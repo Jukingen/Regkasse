@@ -49,7 +49,7 @@
   "tagesbericht": {
     "list": {
       "pageTitle": "Tagesbericht (formal)",
-      "breadcrumb": "Tagesbericht",
+      "breadcrumb": "Formaler Tagesbericht",
       "columnDate": "Datum",
       "intro": "Provisorische Berichte können bis zur Finalisierung neu berechnet werden. Finalisierte Snapshots sind unveränderlich; Korrekturen erzeugen eine neue Berichtszeile.",
       "generateButton": "Tagesbericht für Enddatum erzeugen/aktualisieren",
@@ -61,7 +61,7 @@
       "loading": "Laden…",
       "loadError": "Bericht nicht gefunden oder Fehler beim Laden.",
       "pageTitle": "Tagesbericht {{date}}",
-      "breadcrumbList": "Tagesbericht",
+      "breadcrumbList": "Formaler Tagesbericht",
       "messages": {
         "finalizeSuccess": "Finalisiert.",
         "finalizeError": "Finalisierung fehlgeschlagen.",

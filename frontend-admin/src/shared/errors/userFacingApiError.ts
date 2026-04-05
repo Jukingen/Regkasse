@@ -49,14 +49,18 @@ export function getUserFacingApiErrorMessage(
   if (options.loginContext && normalized.httpStatus === 401) {
     return t('common.auth.loginInvalidCredentials');
   }
-  if (normalized.httpStatus === 400) return t('common.errors.http400');
+  if (normalized.httpStatus === 400) {
+    return normalized.rawMessage ?? t('common.errors.http400');
+  }
   if (normalized.httpStatus === 401) return t('common.errors.http401');
   if (normalized.httpStatus === 403) return t('common.errors.http403');
   if (normalized.httpStatus === 404) return t('common.errors.http404');
   if (normalized.httpStatus === 409) return t('common.errors.http409');
   if (normalized.httpStatus === 422) return t('common.errors.http422');
   if (normalized.httpStatus === 429) return t('common.errors.http429');
-  if (normalized.httpStatus === 500) return t('common.errors.http500');
+  if (normalized.httpStatus === 500) {
+    return normalized.rawMessage ?? t('common.errors.http500');
+  }
   if (normalized.httpStatus === 503) return t('common.errors.http503');
 
   const msg =

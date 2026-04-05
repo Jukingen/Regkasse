@@ -1,15 +1,14 @@
 {
   "page": {
-    "intro": "Run closings for the selected register, view the pre-check, and review history and KPIs. History and statistics apply to the signed-in user (API filter). Backend:",
-    "introApiPath": "/api/Tagesabschluss/*",
-    "introPermission": "Permission:"
+    "intro": "Operational register closing (TSE/RKSV): run the pre-check and closing. For the formal daily report (document, finalization, FinanzOnline), use “Formal daily report”."
   },
   "toolbar": {
     "refresh": "Refresh"
   },
   "scope": {
     "label": "Current view:",
-    "registerWithId": "Register {{id}}",
+    "registerWithName": "Register: {{name}}",
+    "registerWithId": "Register (ID): {{id}}",
     "registerInvalid": "Register: no valid UUID",
     "historyPeriod": "History {{from}}–{{to}}",
     "historyCount": "{{count}} closings in the period"
@@ -20,10 +19,13 @@
   },
   "register": {
     "fromList": "Register from list",
+    "fixedRegisterTitle": "Register (fixed)",
+    "fixedRegisterHint": "No selection needed — this tenant uses the configured register.",
+    "noRegistersTitle": "No register found for this tenant. Create a register or check permissions.",
     "selectPlaceholder": "Select register",
     "noListTitle": "No register list",
     "noListDescription": "Permission cashregister.view is missing — enter register ID manually as UUID.",
-    "manualLabel": "Register ID (UUID)",
+    "manualLabel": "Register ID",
     "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
     "uuidWarning": "Please set a valid UUID (from list or manual)."
   },

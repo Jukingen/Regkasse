@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -30,29 +31,35 @@ namespace KasseAPI_Final.Services
         private readonly ITseService _tseService;
         private readonly CompanyProfileOptions _companyProfile;
         private readonly IUserService _userService;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
 
         public ReceiptService(
             AppDbContext context,
             ILogger<ReceiptService> logger,
             ITseService tseService,
             Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
-            IUserService userService)
+            IUserService userService,
+            ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
             _tseService = tseService;
             _companyProfile = companyProfile.Value;
             _userService = userService;
+            _settingsTenantResolver = settingsTenantResolver;
         }
 
         /// <summary>Returns persisted receipt by ReceiptId or PaymentId. No lazy generation.</summary>
         public async Task<ReceiptDTO?> GetReceiptAsync(Guid receiptId)
         {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             var receipt = await _context.Receipts
                 .Include(r => r.Items)
                 .Include(r => r.TaxLines)
                 .Include(r => r.Payment)!.ThenInclude(p => p!.OfflineTransaction)
-                .FirstOrDefaultAsync(r => r.ReceiptId == receiptId || r.PaymentId == receiptId);
+                .Where(r => (r.ReceiptId == receiptId || r.PaymentId == receiptId)
+                    && _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId))
+                .FirstOrDefaultAsync();
 
             return receipt != null ? await MapToDtoAsync(receipt) : null;
         }
@@ -60,11 +67,14 @@ namespace KasseAPI_Final.Services
         /// <inheritdoc />
         public async Task<ReceiptDTO?> GetReceiptByPaymentIdAsync(Guid paymentId)
         {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             var receipt = await _context.Receipts
                 .Include(r => r.Items)
                 .Include(r => r.TaxLines)
                 .Include(r => r.Payment)
-                .FirstOrDefaultAsync(r => r.PaymentId == paymentId);
+                .Where(r => r.PaymentId == paymentId
+                    && _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId))
+                .FirstOrDefaultAsync();
 
             return receipt != null ? await MapToDtoAsync(receipt) : null;
         }
@@ -72,11 +82,14 @@ namespace KasseAPI_Final.Services
         public async Task<ReceiptDTO> CreateReceiptFromPaymentAsync(Guid paymentId)
         {
             // 1. Check if receipt already exists
+            var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             var existingReceipt = await _context.Receipts
                 .Include(r => r.Items)
                 .Include(r => r.TaxLines)
                 .Include(r => r.Payment)
-                .FirstOrDefaultAsync(r => r.PaymentId == paymentId);
+                .Where(r => r.PaymentId == paymentId
+                    && _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == effectiveTenantId))
+                .FirstOrDefaultAsync();
 
             if (existingReceipt != null)
             {
@@ -86,6 +99,10 @@ namespace KasseAPI_Final.Services
             // 2. Fetch payment (using repository or context)
             var payment = await _context.PaymentDetails.FirstOrDefaultAsync(p => p.Id == paymentId);
             if (payment == null) throw new KeyNotFoundException($"Payment {paymentId} not found");
+
+            var paymentInTenant = await _context.CashRegisters.AsNoTracking()
+                .AnyAsync(cr => cr.Id == payment.CashRegisterId && cr.TenantId == effectiveTenantId);
+            if (!paymentInTenant) throw new KeyNotFoundException($"Payment {paymentId} not found");
 
             // 3. Parse items
             var items = new List<PaymentItem>();
@@ -339,7 +356,9 @@ namespace KasseAPI_Final.Services
             if (pageSize < 1) pageSize = 25;
             if (pageSize > 100) pageSize = 100;
 
-            var queryable = _context.Receipts.AsNoTracking();
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+            var queryable = _context.Receipts.AsNoTracking()
+                .Where(r => _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId));
 
             if (!string.IsNullOrWhiteSpace(receiptNumber))
                 queryable = queryable.Where(r => r.ReceiptNumber != null && EF.Functions.ILike(r.ReceiptNumber, $"%{receiptNumber.Trim()}%"));

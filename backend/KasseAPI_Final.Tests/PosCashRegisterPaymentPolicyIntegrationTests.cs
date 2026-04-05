@@ -79,7 +79,8 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
             Mock.Of<ILogger<ReceiptService>>(),
             tseMock.Object,
             Options.Create(companyProfile),
-            userMock.Object);
+            userMock.Object,
+            TenantTestDoubles.PrimaryTenantResolver);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),

@@ -1,15 +1,14 @@
 {
   "page": {
-    "intro": "Abschlüsse für die gewählte Kasse auslösen, Schlussprüfung anzeigen, Historie und Kennzahlen einsehen. Historie und Statistik beziehen sich auf den angemeldeten Benutzer (API-Filter). Backend:",
-    "introApiPath": "/api/Tagesabschluss/*",
-    "introPermission": "Berechtigung:"
+    "intro": "Operativer Kassenabschluss (TSE/RKSV): Prüfung ausführen und Abschluss auslösen. Den formalen Tagesbericht (Dokument, Finalisierung, FinanzOnline) finden Sie unter „Formaler Tagesbericht“."
   },
   "toolbar": {
     "refresh": "Aktualisieren"
   },
   "scope": {
     "label": "Aktive Ansicht:",
-    "registerWithId": "Kasse {{id}}",
+    "registerWithName": "Kasse: {{name}}",
+    "registerWithId": "Kasse (ID): {{id}}",
     "registerInvalid": "Kasse: keine gültige UUID",
     "historyPeriod": "Historie {{from}}–{{to}}",
     "historyCount": "{{count}} Abschlüsse im Zeitraum"
@@ -20,10 +19,13 @@
   },
   "register": {
     "fromList": "Kasse aus Liste",
+    "fixedRegisterTitle": "Kasse (fest zugewiesen)",
+    "fixedRegisterHint": "Keine Auswahl nötig — die Kasse ist für diesen Mandanten vorgegeben.",
+    "noRegistersTitle": "Keine Kasse im Mandanten gefunden. Bitte zuerst eine Kasse anlegen oder Berechtigungen prüfen.",
     "selectPlaceholder": "Kasse wählen",
     "noListTitle": "Keine Kassenliste",
     "noListDescription": "Berechtigung cashregister.view fehlt — Kassen-ID manuell als UUID eingeben.",
-    "manualLabel": "Kassen-ID (UUID)",
+    "manualLabel": "Kassen-ID",
     "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
     "uuidWarning": "Bitte gültige UUID setzen (Liste oder manuell)."
   },

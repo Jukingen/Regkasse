@@ -49,7 +49,7 @@
   "tagesbericht": {
     "list": {
       "pageTitle": "Daily report (formal)",
-      "breadcrumb": "Daily report",
+      "breadcrumb": "Formal daily report",
       "columnDate": "Date",
       "intro": "Provisional reports can be recalculated until finalization. Finalized snapshots are immutable; corrections create a new report row.",
       "generateButton": "Generate/update daily report for end date",
@@ -61,7 +61,7 @@
       "loading": "Loading…",
       "loadError": "Report not found or failed to load.",
       "pageTitle": "Daily report {{date}}",
-      "breadcrumbList": "Daily report",
+      "breadcrumbList": "Formal daily report",
       "messages": {
         "finalizeSuccess": "Finalized.",
         "finalizeError": "Finalization failed.",

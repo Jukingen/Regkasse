@@ -25,6 +25,16 @@ describe('getUserFacingApiErrorMessage', () => {
     );
   });
 
+  it('prefers server error text on HTTP 400 when present', () => {
+    expect(
+      getUserFacingApiErrorMessage(
+        t,
+        { response: { status: 400, data: { error: 'Closing blocked: 2 payment(s) without a matching invoice.' } } },
+        { logContext: 'x' },
+      ),
+    ).toBe('Closing blocked: 2 payment(s) without a matching invoice.');
+  });
+
   it('uses fallbackKey when status unknown', () => {
     expect(
       getUserFacingApiErrorMessage(t, new Error('weird'), {

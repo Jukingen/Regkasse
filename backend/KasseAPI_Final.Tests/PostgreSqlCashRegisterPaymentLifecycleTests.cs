@@ -393,7 +393,8 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             Mock.Of<ILogger<ReceiptService>>(),
             tseMock.Object,
             Options.Create(companyProfile),
-            Mock.Of<IUserService>());
+            Mock.Of<IUserService>(),
+            TenantTestDoubles.PrimaryTenantResolver);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),

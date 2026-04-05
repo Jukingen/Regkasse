@@ -1243,6 +1243,12 @@ namespace KasseAPI_Final.Services
                     return null;
                 }
 
+                if (!await PaymentBelongsToEffectiveTenantAsync(payment))
+                {
+                    _logger.LogDebug("Payment {PaymentId} is not in the effective tenant", paymentId);
+                    return null;
+                }
+
                 _logger.LogDebug("Payment retrieved successfully: {PaymentId}", paymentId);
                 return payment;
             }
@@ -1422,6 +1428,15 @@ namespace KasseAPI_Final.Services
                         .FirstOrDefaultAsync(p => p.CancelIdempotencyKey == key && p.IsStorno);
                     if (existingStorno != null)
                     {
+                        if (!await PaymentBelongsToEffectiveTenantAsync(existingStorno))
+                        {
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Payment not found",
+                                Errors = { "Payment not found" }
+                            };
+                        }
                         _logger.LogInformation("Idempotent cancel: returning existing storno {StornoId} for payment {PaymentId} key {Key}", existingStorno.Id, paymentId, key);
                         return new PaymentResult
                         {
@@ -1434,6 +1449,16 @@ namespace KasseAPI_Final.Services
 
                 var payment = await _paymentRepository.GetByIdAsync(paymentId);
                 if (payment == null)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Payment not found",
+                        Errors = { "Payment not found" }
+                    };
+                }
+
+                if (!await PaymentBelongsToEffectiveTenantAsync(payment))
                 {
                     return new PaymentResult
                     {
@@ -1684,6 +1709,15 @@ namespace KasseAPI_Final.Services
                         .FirstOrDefaultAsync(p => p.CancelIdempotencyKey == cancelIdempotencyKey && p.IsStorno);
                     if (existing != null)
                     {
+                        if (!await PaymentBelongsToEffectiveTenantAsync(existing))
+                        {
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Payment not found",
+                                Errors = { "Payment not found" }
+                            };
+                        }
                         _logger.LogInformation("Idempotent cancel (race): returning existing storno {StornoId} for key {Key}", existing.Id, cancelIdempotencyKey);
                         return new PaymentResult
                         {
@@ -1778,6 +1812,16 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                if (!await PaymentBelongsToEffectiveTenantAsync(payment))
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Payment not found",
+                        Errors = { "Payment not found" }
+                    };
+                }
+
                 // Already cancelled: legacy (IsActive=false) or fiscal storno exists. Do not refund.
                 var hasStorno = await _context.PaymentDetails.AsNoTracking()
                     .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
@@ -1813,6 +1857,15 @@ namespace KasseAPI_Final.Services
                         .FirstOrDefaultAsync(p => p.IdempotencyKey == refundKey && p.IsRefund && p.OriginalPaymentId == paymentId);
                     if (existingRefund != null)
                     {
+                        if (!await PaymentBelongsToEffectiveTenantAsync(existingRefund))
+                        {
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Payment not found",
+                                Errors = { "Payment not found" }
+                            };
+                        }
                         _logger.LogInformation("Idempotent refund: returning existing refund {RefundId} for payment {PaymentId} key {Key}", existingRefund.Id, paymentId, refundKey);
                         return new PaymentResult
                         {
@@ -2025,9 +2078,18 @@ namespace KasseAPI_Final.Services
                     if (refundKey != null)
                     {
                         var existing = await _context.PaymentDetails.AsNoTracking()
-                            .FirstOrDefaultAsync(p => p.IdempotencyKey == refundKey && p.IsRefund);
+                            .FirstOrDefaultAsync(p => p.IdempotencyKey == refundKey && p.IsRefund && p.OriginalPaymentId == paymentId);
                         if (existing != null)
                         {
+                            if (!await PaymentBelongsToEffectiveTenantAsync(existing))
+                            {
+                                return new PaymentResult
+                                {
+                                    Success = false,
+                                    Message = "Payment not found",
+                                    Errors = { "Payment not found" }
+                                };
+                            }
                             _logger.LogInformation("Idempotent refund (race): returning existing refund {RefundId} for key {Key}", existing.Id, refundKey);
                             return new PaymentResult
                             {
@@ -2114,9 +2176,11 @@ namespace KasseAPI_Final.Services
             var (fromUtc, toExclusiveUtc) =
                 PostgreSqlUtcDateTime.AustriaInclusiveCalendarRangeUtc(startDate, endDate);
 
+            var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             // Query using PaymentMethodRaw - no InvalidCastException since it's varchar
             var payments = await _context.PaymentDetails
                 .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < toExclusiveUtc && p.IsActive)
+                .Where(p => _context.CashRegisters.Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == effectiveTenantId))
                 .ToListAsync();
 
             // Diagnostic log to confirm PaymentMethodRaw reads as string
@@ -2335,6 +2399,17 @@ namespace KasseAPI_Final.Services
                     FailureKind = FinanzOnlineFailureKind.Permanent
                 };
             }
+            if (!await PaymentBelongsToEffectiveTenantAsync(payment).ConfigureAwait(false))
+            {
+                return new FinanzOnlineSubmitResponse
+                {
+                    Success = false,
+                    ErrorMessage = "Payment not found.",
+                    Status = "Failed",
+                    SubmittedAt = DateTime.UtcNow,
+                    FailureKind = FinanzOnlineFailureKind.Permanent
+                };
+            }
             if (payment.FinanzOnlineStatus == "Submitted")
             {
                 _finanzOnlineMetrics?.IncrementSubmitTotal();
@@ -2528,6 +2603,16 @@ namespace KasseAPI_Final.Services
         }
 
         #region Private Methods
+
+        /// <summary>
+        /// True when the payment's cash register belongs to the effective tenant (settings snapshot).
+        /// </summary>
+        private async Task<bool> PaymentBelongsToEffectiveTenantAsync(PaymentDetails payment, CancellationToken cancellationToken = default)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            return await _context.CashRegisters.AsNoTracking()
+                .AnyAsync(cr => cr.Id == payment.CashRegisterId && cr.TenantId == tenantId, cancellationToken);
+        }
 
         /// <summary>Resolves user role for audit. Returns "Unknown" if user not found.</summary>
         private async Task<string> GetUserRoleAsync(string userId)

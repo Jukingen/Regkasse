@@ -49,7 +49,7 @@
   "tagesbericht": {
     "list": {
       "pageTitle": "Gunluk rapor (resmi)",
-      "breadcrumb": "Gunluk rapor",
+      "breadcrumb": "Resmi gunluk rapor",
       "columnDate": "Tarih",
       "intro": "Gecici raporlar sonlandirmaya kadar yeniden hesaplanabilir. Kesinlestirilmis snapshot'lar degismez; duzeltmeler yeni rapor satiri olusturur.",
       "generateButton": "Bitis tarihi icin gunluk rapor olustur/guncelle",
@@ -61,7 +61,7 @@
       "loading": "Yukleniyor…",
       "loadError": "Rapor bulunamadi veya yukleme hatasi.",
       "pageTitle": "Gunluk rapor {{date}}",
-      "breadcrumbList": "Gunluk rapor",
+      "breadcrumbList": "Resmi gunluk rapor",
       "messages": {
         "finalizeSuccess": "Sonlandirildi.",
         "finalizeError": "Sonlandirma basarisiz.",

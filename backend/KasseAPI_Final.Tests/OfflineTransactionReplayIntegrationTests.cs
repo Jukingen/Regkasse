@@ -64,7 +64,8 @@ public class OfflineTransactionReplayIntegrationTests
             new Mock<ILogger<ReceiptService>>().Object,
             tseMock.Object,
             Options.Create(companyProfile),
-            userMock.Object);
+            userMock.Object,
+            TenantTestDoubles.PrimaryTenantResolver);
 
         var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessor = Mock.Of<IHttpContextAccessor>();

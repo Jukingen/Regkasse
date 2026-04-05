@@ -9,6 +9,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -31,15 +32,18 @@ public class AdminPaymentsController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IPaymentService _paymentService;
     private readonly ILogger<AdminPaymentsController> _logger;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
 
     public AdminPaymentsController(
         AppDbContext context,
         IPaymentService paymentService,
-        ILogger<AdminPaymentsController> logger)
+        ILogger<AdminPaymentsController> logger,
+        ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
         _paymentService = paymentService;
         _logger = logger;
+        _settingsTenantResolver = settingsTenantResolver;
     }
 
     [HttpGet]
@@ -60,7 +64,9 @@ public class AdminPaymentsController : ControllerBase
 
         try
         {
-            IQueryable<PaymentDetails> query = _context.PaymentDetails.AsNoTracking();
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            IQueryable<PaymentDetails> query = _context.PaymentDetails.AsNoTracking()
+                .Where(p => _context.CashRegisters.Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == tenantId));
 
             if (!startDate.HasValue && !endDate.HasValue)
             {
@@ -87,7 +93,13 @@ public class AdminPaymentsController : ControllerBase
             }
 
             if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
+            {
+                var regOk = await _context.CashRegisters.AsNoTracking()
+                    .AnyAsync(cr => cr.Id == cashRegisterId.Value && cr.TenantId == tenantId, cancellationToken);
+                if (!regOk)
+                    return BadRequest(new { message = "Cash register is not in the current tenant", code = "ADMIN_PAYMENTS_INVALID_REGISTER" });
                 query = query.Where(p => p.CashRegisterId == cashRegisterId.Value);
+            }
 
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -158,7 +170,11 @@ public class AdminPaymentsController : ControllerBase
     {
         try
         {
-            var p = await _context.PaymentDetails.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            var p = await _context.PaymentDetails.AsNoTracking()
+                .Where(x => x.Id == id)
+                .Where(x => _context.CashRegisters.Any(cr => cr.Id == x.CashRegisterId && cr.TenantId == tenantId))
+                .FirstOrDefaultAsync(cancellationToken);
             if (p == null)
                 return NotFound(new { message = "Payment not found", code = "ADMIN_PAYMENT_NOT_FOUND" });
 

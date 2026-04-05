@@ -3,7 +3,7 @@
 /**
  * Gun sonu admin sayfasi; metinler tagesabschluss namespace, para/tarih formatLocale ile.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -15,7 +15,6 @@ import {
   Input,
   Modal,
   Row,
-  Select,
   Space,
   Spin,
   Table,
@@ -29,8 +28,6 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import {
   getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey,
-  getGetApiTagesabschlussHistoryQueryKey,
-  getGetApiTagesabschlussStatisticsQueryKey,
   useGetApiTagesabschlussCanCloseCashRegisterId,
   useGetApiTagesabschlussHistory,
   useGetApiTagesabschlussStatistics,
@@ -50,7 +47,7 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
-import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, formatNumber } from '@/i18n/formatting';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
@@ -125,13 +122,17 @@ export default function TagesabschlussPage() {
   const [selectedRegisterId, setSelectedRegisterId] = useState<string>('');
   const [manualRegisterId, setManualRegisterId] = useState<string>('');
 
-  const historyParams = useMemo(
-    () => ({
+  const historyParams = useMemo(() => {
+    const base = {
       fromDate: range[0].format('YYYY-MM-DD'),
       toDate: range[1].format('YYYY-MM-DD'),
-    }),
-    [range]
-  );
+    };
+    const id = selectedRegisterId || manualRegisterId.trim();
+    if (id.length > 0 && isUuid(id)) {
+      return { ...base, cashRegisterId: id };
+    }
+    return base;
+  }, [range, selectedRegisterId, manualRegisterId]);
 
   const statsParams = historyParams;
 
@@ -144,12 +145,33 @@ export default function TagesabschlussPage() {
   const registerOptions = useMemo(() => {
     const list = normalizeCashRegisterListBody(registersRaw);
     return list
-      .filter((r) => r.id)
+      .filter((r) => r.id && isUuid(String(r.id)))
       .map((r) => ({
         value: r.id as string,
         label: `${r.registerNumber ?? r.id} — ${r.location ?? ''}`,
       }));
   }, [registersRaw]);
+
+  const selectedRegisterSummary = useMemo(() => {
+    const opt = registerOptions.find((o) => o.value === selectedRegisterId);
+    if (!opt?.label?.trim()) return null;
+    return opt.label.trim().replace(/\s+—\s*$/, '').trim() || opt.label.trim();
+  }, [registerOptions, selectedRegisterId]);
+
+  /** Single-register deployments: preselect the first inventory register; no user choice required. */
+  useEffect(() => {
+    if (!canListRegisters || registersLoading) return;
+    const list = normalizeCashRegisterListBody(registersRaw).filter(
+      (r) => r.id && isUuid(String(r.id)),
+    );
+    if (list.length === 0) return;
+    const primaryId = String(list[0].id);
+    setSelectedRegisterId((prev) => {
+      if (prev && list.some((r) => String(r.id) === prev)) return prev;
+      return primaryId;
+    });
+    setManualRegisterId('');
+  }, [canListRegisters, registersLoading, registersRaw]);
 
   const effectiveRegisterId = selectedRegisterId || manualRegisterId.trim();
   const registerIdValid = effectiveRegisterId.length > 0 && isUuid(effectiveRegisterId);
@@ -166,18 +188,14 @@ export default function TagesabschlussPage() {
   const canClose: TagesabschlussCanCloseResponse | undefined = canCloseQuery.data;
 
   const invalidateTagesabschluss = useCallback(async () => {
-    await queryClient.invalidateQueries({
-      queryKey: getGetApiTagesabschlussHistoryQueryKey(historyParams),
-    });
-    await queryClient.invalidateQueries({
-      queryKey: getGetApiTagesabschlussStatisticsQueryKey(statsParams),
-    });
+    await queryClient.invalidateQueries({ queryKey: ['/api/Tagesabschluss/history'] });
+    await queryClient.invalidateQueries({ queryKey: ['/api/Tagesabschluss/statistics'] });
     if (registerIdValid) {
       await queryClient.invalidateQueries({
         queryKey: getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey(effectiveRegisterId),
       });
     }
-  }, [queryClient, historyParams, statsParams, registerIdValid, effectiveRegisterId]);
+  }, [queryClient, registerIdValid, effectiveRegisterId]);
 
   const dailyMu = usePostApiTagesabschlussDaily({
     mutation: {
@@ -307,21 +325,31 @@ export default function TagesabschlussPage() {
   const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending;
 
   const tagesabschlussScopeSummary = useMemo(() => {
-    const regPart = registerIdValid
-      ? t('tagesabschluss.scope.registerWithId', { id: effectiveRegisterId })
-      : t('tagesabschluss.scope.registerInvalid');
+    const regPart = !registerIdValid
+      ? t('tagesabschluss.scope.registerInvalid')
+      : selectedRegisterSummary
+        ? t('tagesabschluss.scope.registerWithName', { name: selectedRegisterSummary })
+        : t('tagesabschluss.scope.registerWithId', { id: effectiveRegisterId });
     const fromStr = formatDateTime(range[0].startOf('day').toDate(), formatLocale, { dateStyle: 'short' });
     const toStr = formatDateTime(range[1].startOf('day').toDate(), formatLocale, { dateStyle: 'short' });
     const period = t('tagesabschluss.scope.historyPeriod', { from: fromStr, to: toStr });
     const hist = t('tagesabschluss.scope.historyCount', { count: historyRows.length });
     return `${regPart} · ${period} · ${hist}`;
-  }, [registerIdValid, effectiveRegisterId, range, historyRows.length, t, formatLocale]);
+  }, [
+    registerIdValid,
+    effectiveRegisterId,
+    selectedRegisterSummary,
+    range,
+    historyRows.length,
+    t,
+    formatLocale,
+  ]);
 
   return (
     <AdminPageShell>
       <AdminPageHeader
-        title={ADMIN_NAV_LABELS.tagesabschluss}
-        breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.tagesabschluss }]}
+        title={t('nav.tagesabschluss')}
+        breadcrumbs={[adminOverviewCrumb(t), { title: t('nav.tagesabschluss') }]}
         actions={
           <Button
             icon={<ReloadOutlined />}
@@ -337,9 +365,7 @@ export default function TagesabschlussPage() {
       >
         <Paragraph type="secondary" style={{ marginBottom: 0 }}>
           <CalendarOutlined style={{ marginRight: 8 }} />
-          {t('tagesabschluss.page.intro')}{' '}
-          <Text code>{t('tagesabschluss.page.introApiPath')}</Text> ({t('tagesabschluss.page.introPermission')}{' '}
-          <Text code>tse.sign</Text>).
+          {t('tagesabschluss.page.intro')}
         </Paragraph>
       </AdminPageHeader>
 
@@ -348,20 +374,23 @@ export default function TagesabschlussPage() {
       <Card title={t('tagesabschluss.card.register')}>
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           {canListRegisters ? (
-            <div>
-              <Text type="secondary">{t('tagesabschluss.register.fromList')}</Text>
-              <Select
-                showSearch
-                allowClear
-                placeholder={t('tagesabschluss.register.selectPlaceholder')}
-                style={{ width: '100%', marginTop: 6 }}
-                options={registerOptions}
-                loading={registersLoading}
-                value={selectedRegisterId || undefined}
-                onChange={(v) => setSelectedRegisterId(v ?? '')}
-                optionFilterProp="label"
-              />
-            </div>
+            registersLoading ? (
+              <Spin />
+            ) : registerOptions.length === 0 ? (
+              <Alert type="warning" showIcon message={t('tagesabschluss.register.noRegistersTitle')} />
+            ) : (
+              <div>
+                <Title level={5} style={{ marginTop: 0, marginBottom: 6 }}>
+                  {t('tagesabschluss.register.fixedRegisterTitle')}
+                </Title>
+                <Text>
+                  {selectedRegisterSummary ?? (registerIdValid ? effectiveRegisterId : '—')}
+                </Text>
+                <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                  {t('tagesabschluss.register.fixedRegisterHint')}
+                </Paragraph>
+              </div>
+            )
           ) : (
             <Alert
               type="info"
@@ -370,15 +399,17 @@ export default function TagesabschlussPage() {
               description={t('tagesabschluss.register.noListDescription')}
             />
           )}
-          <div>
-            <Text type="secondary">{t('tagesabschluss.register.manualLabel')}</Text>
-            <Input
-              style={{ marginTop: 6 }}
-              placeholder={t('tagesabschluss.register.manualPlaceholder')}
-              value={manualRegisterId}
-              onChange={(e) => setManualRegisterId(e.target.value)}
-            />
-          </div>
+          {!canListRegisters || registerOptions.length === 0 ? (
+            <div>
+              <Text type="secondary">{t('tagesabschluss.register.manualLabel')}</Text>
+              <Input
+                style={{ marginTop: 6 }}
+                placeholder={t('tagesabschluss.register.manualPlaceholder')}
+                value={manualRegisterId}
+                onChange={(e) => setManualRegisterId(e.target.value)}
+              />
+            </div>
+          ) : null}
 
           {!registerIdValid ? (
             <Text type="warning">{t('tagesabschluss.register.uuidWarning')}</Text>

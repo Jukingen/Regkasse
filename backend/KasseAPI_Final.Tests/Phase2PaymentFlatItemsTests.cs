@@ -68,7 +68,7 @@ public class Phase2PaymentFlatItemsTests
             .ReturnsAsync((Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction _, Guid _, string reg, DateTime d) => $"AT-{reg}-{d:yyyyMMdd}-{++seqCallCount}");
 
         var loggerReceipt = new Mock<ILogger<ReceiptService>>().Object;
-        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile), Mock.Of<IUserService>());
+        var receiptService = new ReceiptService(context, loggerReceipt, tseMock.Object, Options.Create(companyProfile), Mock.Of<IUserService>(), TenantTestDoubles.PrimaryTenantResolver);
 
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());

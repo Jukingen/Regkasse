@@ -101,7 +101,7 @@ export const ADMIN_NAV_LABELS = {
     tables: 'Tische',
     auditLogs: 'Audit-Protokoll',
     payments: 'Zahlungen',
-    tagesabschluss: 'Tagesabschluss',
+    tagesabschluss: 'Operativer Tagesabschluss',
     operationsCenter: 'Operations Center',
     reporting: 'Operative Berichte',
     reportCenter: 'Report Center',

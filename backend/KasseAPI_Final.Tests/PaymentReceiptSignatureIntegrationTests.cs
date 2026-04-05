@@ -88,7 +88,8 @@ public class PaymentReceiptSignatureIntegrationTests
             Mock.Of<ILogger<ReceiptService>>(),
             tseService,
             Options.Create(companyProfile),
-            Mock.Of<IUserService>());
+            Mock.Of<IUserService>(),
+            TenantTestDoubles.PrimaryTenantResolver);
 
         var customer = new Customer { Id = Guid.NewGuid(), Name = "Test", Email = "t@t.com", Phone = "1", IsActive = true };
         context.Customers.Add(customer);
