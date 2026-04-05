@@ -52,21 +52,32 @@ namespace KasseAPI_Final.Controllers
             return (fromUtcCal, toExclusiveUtc, true, reportStart, reportEnd);
         }
 
+        /// <summary>Invoices whose cash register belongs to the effective tenant (settings snapshot).</summary>
+        private IQueryable<Invoice> QueryInvoicesForEffectiveTenant(Guid tenantId) =>
+            _context.Invoices.Where(i =>
+                _context.CashRegisters.Any(cr => cr.Id == i.CashRegisterId && cr.TenantId == tenantId));
+
+        /// <summary>Payments whose cash register belongs to the effective tenant.</summary>
+        private IQueryable<PaymentDetails> QueryPaymentsForEffectiveTenant(Guid tenantId) =>
+            _context.PaymentDetails.Where(p =>
+                _context.CashRegisters.Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == tenantId));
+
         // GET: api/reports/sales
         [HttpGet("sales")]
         public async Task<ActionResult<SalesReport>> GetSalesReport([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
                     ResolveReportsQueryRange(startDate, endDate);
 
                 // endExclusive: Austria calendar half-open [fromUtc, endBoundUtc). Else: rolling UTC window with inclusive instant upper bound (endBoundUtc = now).
                 var invoices = endExclusive
-                    ? await _context.Invoices
+                    ? await QueryInvoicesForEffectiveTenant(tenantId)
                         .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate < endBoundUtc && i.IsActive)
                         .ToListAsync()
-                    : await _context.Invoices
+                    : await QueryInvoicesForEffectiveTenant(tenantId)
                         .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate <= endBoundUtc && i.IsActive)
                         .ToListAsync();
 
@@ -111,6 +122,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
                     ResolveReportsQueryRange(startDate, endDate);
 
@@ -118,10 +130,12 @@ namespace KasseAPI_Final.Controllers
                     ? await _context.OrderItems
                         .Include(oi => oi.Order)
                         .Where(oi => oi.Order.OrderDate >= fromUtc && oi.Order.OrderDate < endBoundUtc && oi.Order.IsActive)
+                        .Where(oi => _context.Products.Any(pr => pr.Id == oi.ProductId && pr.TenantId == tenantId))
                         .ToListAsync()
                     : await _context.OrderItems
                         .Include(oi => oi.Order)
                         .Where(oi => oi.Order.OrderDate >= fromUtc && oi.Order.OrderDate <= endBoundUtc && oi.Order.IsActive)
+                        .Where(oi => _context.Products.Any(pr => pr.Id == oi.ProductId && pr.TenantId == tenantId))
                         .ToListAsync();
 
                 var productReport = new ProductReport
@@ -167,14 +181,15 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
                     ResolveReportsQueryRange(startDate, endDate);
 
                 var invoices = endExclusive
-                    ? await _context.Invoices
+                    ? await QueryInvoicesForEffectiveTenant(tenantId)
                         .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate < endBoundUtc && i.IsActive)
                         .ToListAsync()
-                    : await _context.Invoices
+                    : await QueryInvoicesForEffectiveTenant(tenantId)
                         .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate <= endBoundUtc && i.IsActive)
                         .ToListAsync();
 
@@ -261,14 +276,15 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
                     ResolveReportsQueryRange(startDate, endDate);
 
                 var payments = endExclusive
-                    ? await _context.PaymentDetails
+                    ? await QueryPaymentsForEffectiveTenant(tenantId)
                         .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < endBoundUtc)
                         .ToListAsync()
-                    : await _context.PaymentDetails
+                    : await QueryPaymentsForEffectiveTenant(tenantId)
                         .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt <= endBoundUtc)
                         .ToListAsync();
 
@@ -314,14 +330,15 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
                 var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) =
                     ResolveReportsQueryRange(startDate, endDate);
 
                 var invoices = endExclusive
-                    ? await _context.Invoices
+                    ? await QueryInvoicesForEffectiveTenant(tenantId)
                         .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate < endBoundUtc && i.IsActive)
                         .ToListAsync()
-                    : await _context.Invoices
+                    : await QueryInvoicesForEffectiveTenant(tenantId)
                         .Where(i => i.InvoiceDate >= fromUtc && i.InvoiceDate <= endBoundUtc && i.IsActive)
                         .ToListAsync();
 
