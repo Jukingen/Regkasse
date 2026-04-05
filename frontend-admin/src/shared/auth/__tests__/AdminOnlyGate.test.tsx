@@ -32,6 +32,7 @@ describe('AdminOnlyGate', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Cashier', permissions: ['product.view'] },
       authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
       isInitialized: true,
     });
     render(
@@ -46,6 +47,7 @@ describe('AdminOnlyGate', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Admin', permissions: [] },
       authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
       isInitialized: true,
     });
     render(
@@ -60,6 +62,7 @@ describe('AdminOnlyGate', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Manager', permissions: ['user.manage'] },
       authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
       isInitialized: true,
     });
     const { getByText } = render(

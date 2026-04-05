@@ -1304,6 +1304,7 @@ export const InvoiceList: React.FC = () => {
                                                         investigationBatchCorrelationId:
                                                             detailCorrelationTrimmed || undefined,
                                                     })}
+                                                    prefetch={false}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                 >
@@ -1322,6 +1323,7 @@ export const InvoiceList: React.FC = () => {
                                                         </Typography.Text>
                                                         <Link
                                                             href={`/payments?paymentId=${encodeURIComponent(detailInvoice.sourcePaymentId)}`}
+                                                            prefetch={false}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                         >
@@ -1428,6 +1430,7 @@ export const InvoiceList: React.FC = () => {
                                                                     investigationBatchCorrelationId:
                                                                         detailCorrelationTrimmed || undefined,
                                                                 })}
+                                                                prefetch={false}
                                                                 target="_blank"
                                                                 rel="noopener noreferrer"
                                                             >

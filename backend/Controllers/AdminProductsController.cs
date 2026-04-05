@@ -13,10 +13,11 @@ namespace KasseAPI_Final.Controllers
 {
     /// <summary>
     /// Admin: Ürün listesi (sayfalama/arama), tekil ürün, CRUD, stok, modifier-groups. Route: api/admin/products.
+    /// Read endpoints require ProductView (aligned with FE-Admin route guard and CategoriesController pattern); mutations require ProductManage.
     /// </summary>
     [Route("api/admin/products")]
     [ApiController]
-    [HasPermission(AppPermissions.ProductManage)]
+    [HasPermission(AppPermissions.ProductView)]
     public class AdminProductsController : BaseController
     {
         private readonly AppDbContext _context;
@@ -137,6 +138,7 @@ namespace KasseAPI_Final.Controllers
         /// Yeni ürün oluştur. POST api/admin/products
         /// </summary>
         [HttpPost]
+        [HasPermission(AppPermissions.ProductManage)]
         public async Task<IActionResult> Create([FromBody] Product product)
         {
             try
@@ -175,6 +177,7 @@ namespace KasseAPI_Final.Controllers
         /// Ürün güncelle. PUT api/admin/products/{id}
         /// </summary>
         [HttpPut("{id:guid}")]
+        [HasPermission(AppPermissions.ProductManage)]
         public async Task<IActionResult> Update(Guid id, [FromBody] Product product)
         {
             try
@@ -222,6 +225,7 @@ namespace KasseAPI_Final.Controllers
         /// Ürün stok güncelle. PUT api/admin/products/stock/{id}
         /// </summary>
         [HttpPut("stock/{id:guid}")]
+        [HasPermission(AppPermissions.ProductManage)]
         public async Task<IActionResult> UpdateStock(Guid id, [FromBody] UpdateStockRequest request)
         {
             try
@@ -261,6 +265,7 @@ namespace KasseAPI_Final.Controllers
         /// Ürün sil (soft delete). DELETE api/admin/products/{id}
         /// </summary>
         [HttpDelete("{id:guid}")]
+        [HasPermission(AppPermissions.ProductManage)]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
@@ -329,6 +334,7 @@ namespace KasseAPI_Final.Controllers
         /// Ürüne modifier gruplarını ata. POST api/admin/products/{id}/modifier-groups
         /// </summary>
         [HttpPost("{id:guid}/modifier-groups")]
+        [HasPermission(AppPermissions.ProductManage)]
         public async Task<IActionResult> SetProductModifierGroups(Guid id, [FromBody] SetProductModifierGroupsRequest request)
         {
             try

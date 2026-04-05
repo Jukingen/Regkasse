@@ -54,6 +54,26 @@ public class OpenApiCriticalPathsContractTests
         }
     }
 
+    [Fact]
+    public void SwaggerJson_Omits_LegacyCartPaymentProductAliases_And_DeprecatedFinanzOnlineSubmit()
+    {
+        var path = ResolveSwaggerPath();
+        using var doc = JsonDocument.Parse(File.ReadAllText(path));
+        Assert.True(doc.RootElement.TryGetProperty("paths", out var paths));
+
+        foreach (var legacy in new[]
+                 {
+                     "/api/Cart/current",
+                     "/api/Payment",
+                     "/api/Product",
+                     "/api/FinanzOnline/submit-invoice"
+                 })
+        {
+            Assert.False(paths.TryGetProperty(legacy, out _),
+                $"Committed OpenAPI must not expose retired route: {legacy}");
+        }
+    }
+
     private static void AssertPathMethod(JsonElement paths, string route, string method)
     {
         Assert.True(paths.TryGetProperty(route, out var pathItem), $"Missing path: {route}");

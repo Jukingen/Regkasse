@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import React, { useState, ReactNode } from 'react';
 import { I18nProvider } from '@/i18n';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { AuthSessionInvalidationListener } from '@/features/auth/components/AuthSessionInvalidationListener';
 
 export default function QueryProvider({ children }: { children: ReactNode }) {
     // Standard Next.js 14 pattern for QueryClient stability
@@ -27,6 +28,7 @@ export default function QueryProvider({ children }: { children: ReactNode }) {
     return (
         <I18nProvider>
             <QueryClientProvider client={queryClient}>
+                <AuthSessionInvalidationListener />
                 {children}
                 <ReactQueryDevtools initialIsOpen={false} />
             </QueryClientProvider>

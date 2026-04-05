@@ -1,11 +1,49 @@
 /**
  * Service to manage JWT token storage across the application.
+ * Primary persistence is localStorage so new browser tabs share the same admin session
+ * (sessionStorage is isolated per tab). Tokens previously stored only in sessionStorage
+ * are migrated once on read.
  */
+
+/** Dispatched on `removeToken()` so client state (e.g. React Query auth) can resync. */
+export const AUTH_SESSION_CLEARED_EVENT = 'rk-admin-auth-cleared';
 
 const ACCESS_TOKEN_KEY = 'rk_admin_access_token';
 const REFRESH_TOKEN_KEY = 'rk_admin_refresh_token';
 let accessTokenMemory: string | null = null;
 const normalizeToken = (token: string): string => token.startsWith('Bearer ') ? token.slice(7) : token;
+
+function readAccessFromPersistence(): string | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    let token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+    if (!token) {
+        const legacy = window.sessionStorage.getItem(ACCESS_TOKEN_KEY);
+        if (legacy) {
+            window.localStorage.setItem(ACCESS_TOKEN_KEY, legacy);
+            window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+            token = legacy;
+        }
+    }
+    return token;
+}
+
+function readRefreshFromPersistence(): string | null {
+    if (typeof window === 'undefined') {
+        return null;
+    }
+    let refresh = window.localStorage.getItem(REFRESH_TOKEN_KEY);
+    if (!refresh) {
+        const legacy = window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
+        if (legacy) {
+            window.localStorage.setItem(REFRESH_TOKEN_KEY, legacy);
+            window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+            refresh = legacy;
+        }
+    }
+    return refresh;
+}
 
 export const authStorage = {
     /**
@@ -15,12 +53,9 @@ export const authStorage = {
         if (accessTokenMemory) {
             return accessTokenMemory;
         }
-        if (typeof window !== 'undefined') {
-            const token = sessionStorage.getItem(ACCESS_TOKEN_KEY);
-            accessTokenMemory = token;
-            return token;
-        }
-        return null;
+        const token = readAccessFromPersistence();
+        accessTokenMemory = token;
+        return token;
     },
 
     /**
@@ -33,15 +68,13 @@ export const authStorage = {
         }
         accessTokenMemory = cleanToken;
         if (typeof window !== 'undefined') {
-            sessionStorage.setItem(ACCESS_TOKEN_KEY, cleanToken);
+            window.localStorage.setItem(ACCESS_TOKEN_KEY, cleanToken);
+            window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
         }
     },
 
     getRefreshToken: (): string | null => {
-        if (typeof window !== 'undefined') {
-            return sessionStorage.getItem(REFRESH_TOKEN_KEY);
-        }
-        return null;
+        return readRefreshFromPersistence();
     },
 
     setRefreshToken: (refreshToken: string): void => {
@@ -50,7 +83,8 @@ export const authStorage = {
             return;
         }
         if (typeof window !== 'undefined') {
-            sessionStorage.setItem(REFRESH_TOKEN_KEY, cleanRefreshToken);
+            window.localStorage.setItem(REFRESH_TOKEN_KEY, cleanRefreshToken);
+            window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
         }
     },
 
@@ -60,11 +94,11 @@ export const authStorage = {
     removeToken: (): void => {
         accessTokenMemory = null;
         if (typeof window !== 'undefined') {
-            sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-            sessionStorage.removeItem(REFRESH_TOKEN_KEY);
-            // Legacy cleanup: make sure old localStorage keys do not survive.
-            window.localStorage?.removeItem(ACCESS_TOKEN_KEY);
-            window.localStorage?.removeItem(REFRESH_TOKEN_KEY);
+            window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+            window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+            window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+            window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+            window.dispatchEvent(new CustomEvent(AUTH_SESSION_CLEARED_EVENT));
         }
     },
 

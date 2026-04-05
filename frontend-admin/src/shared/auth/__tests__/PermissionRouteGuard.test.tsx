@@ -36,6 +36,7 @@ describe('PermissionRouteGuard', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Cashier', permissions: [] },
       authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
       isInitialized: true,
     });
     render(
@@ -50,6 +51,7 @@ describe('PermissionRouteGuard', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Cashier', permissions: ['product.view'] },
       authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
       isInitialized: true,
     });
     render(
@@ -64,6 +66,7 @@ describe('PermissionRouteGuard', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'SuperAdmin', permissions: ['settings.view'] },
       authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
       isInitialized: true,
     });
     const { getByText } = render(

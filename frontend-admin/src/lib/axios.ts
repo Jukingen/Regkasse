@@ -103,9 +103,12 @@ const createAxiosInstance = () => {
                             originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
                             return instance(originalRequest);
                         }
+                        authStorage.removeToken();
                     } catch {
                         authStorage.removeToken();
                     }
+                } else {
+                    authStorage.removeToken();
                 }
             }
 

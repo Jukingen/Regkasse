@@ -44,7 +44,7 @@ jobs:
         run: >
           dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
           --verbosity minimal
-          --filter "FullyQualifiedName~PaymentApiContractTests|FullyQualifiedName~OpenApiCriticalPathsContractTests"
+          --filter "FullyQualifiedName~PaymentApiContractTests|FullyQualifiedName~OpenApiCriticalPathsContractTests|FullyQualifiedName~OpenApiToolingGenerationTests"
 
       - name: Install frontend-admin dependencies
         working-directory: frontend-admin

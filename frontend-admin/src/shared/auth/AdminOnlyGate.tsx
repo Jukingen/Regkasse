@@ -18,7 +18,7 @@ interface AdminOnlyGateProps {
  * Redirects to /403 if user lacks admin permission/role.
  */
 export const AdminOnlyGate: FC<AdminOnlyGateProps> = ({ children }) => {
-    const { user, authStatus, isInitialized } = useAuth();
+    const { user, authStatus, isAuthInitializing } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const permissions = user?.permissions ?? [];
@@ -29,12 +29,12 @@ export const AdminOnlyGate: FC<AdminOnlyGateProps> = ({ children }) => {
             : isSuperAdmin(role);
 
     useEffect(() => {
-        if (!isInitialized || authStatus === AuthStatus.Loading) return;
+        if (isAuthInitializing) return;
         if (authStatus === AuthStatus.Unauthenticated) return;
         if (!isAdmin) router.replace('/403');
-    }, [isInitialized, authStatus, isAdmin, router, pathname]);
+    }, [isAuthInitializing, authStatus, isAdmin, router, pathname]);
 
-    if (!isInitialized || authStatus === AuthStatus.Loading) {
+    if (isAuthInitializing) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 80 }}>
                 <Spin size="large" tip="Checking authorization..." />

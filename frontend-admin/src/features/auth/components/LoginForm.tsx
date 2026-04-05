@@ -33,7 +33,7 @@ export const LoginForm: FC = () => {
                         authStorage.setRefreshToken(refreshToken);
                     }
                     if (process.env.NODE_ENV === 'development') {
-                        technicalConsole.devLog('[LoginForm] JWT token pair saved to session storage');
+                        technicalConsole.devLog('[LoginForm] JWT token pair saved to local storage (shared across tabs)');
                     }
                 }
 

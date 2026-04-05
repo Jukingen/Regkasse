@@ -31,11 +31,11 @@ function checkRoutePermission(pathname: string, permissions: string[]): boolean 
 export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, authStatus, isInitialized } = useAuth();
+  const { user, authStatus, isAuthInitializing } = useAuth();
   const permissions = (user as { permissions?: string[] } | undefined)?.permissions ?? [];
 
   const state = useMemo((): GuardState => {
-    if (!isInitialized || authStatus === AuthStatus.Loading) return 'loading';
+    if (isAuthInitializing) return 'loading';
     if (authStatus === AuthStatus.Unauthenticated) return 'unauthenticated';
     if (permissions.length === 0) {
       if (ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS) return 'allowed';
@@ -43,7 +43,7 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
     }
     if (!checkRoutePermission(pathname, permissions)) return 'insufficient';
     return 'allowed';
-  }, [isInitialized, authStatus, permissions, pathname]);
+  }, [isAuthInitializing, authStatus, permissions, pathname]);
 
   useEffect(() => {
     if (state !== 'allowed' && state !== 'loading' && state !== 'unauthenticated') {

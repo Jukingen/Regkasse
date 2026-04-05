@@ -18,14 +18,13 @@ interface GuardProps {
  */
 export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
     const { t } = useI18n();
-    const { authStatus, isInitialized } = useAuth();
+    const { authStatus, isAuthInitializing } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const alreadyRedirected = useRef<string | null>(null);
 
     useEffect(() => {
-        // Decide only when auth is strictly initialized
-        if (!isInitialized || authStatus === AuthStatus.Loading) return;
+        if (isAuthInitializing) return;
 
         const currentPath = pathname;
         // Protected Mode: authenticated -> children, unauthenticated -> /login
@@ -48,10 +47,9 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
                 }
             }
         }
-    }, [authStatus, isInitialized, router, mode, pathname]);
+    }, [authStatus, isAuthInitializing, router, mode, pathname]);
 
-    // Show spinner while deciding or loading
-    if (!isInitialized || authStatus === AuthStatus.Loading) {
+    if (isAuthInitializing) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>
                 <Spin spinning tip={t('common.auth.checkingSession')}>

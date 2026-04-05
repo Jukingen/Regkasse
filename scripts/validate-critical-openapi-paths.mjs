@@ -2,6 +2,8 @@
 /**
  * Validates backend/swagger.json: OpenAPI 3.x shape, critical Admin/POS routes, and required component schemas.
  * Run from repository root: node scripts/validate-critical-openapi-paths.mjs
+ *
+ * Regenerate the committed contract (no manual JSON edits): node scripts/generate-backend-openapi.mjs
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
