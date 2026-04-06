@@ -45,6 +45,7 @@
     "tagVip": "VIP",
     "benefitFallback": "Vorteil",
     "deleteConfirmTitle": "Kunde löschen?",
-    "deleteConfirmDescription": "Möchten Sie diesen Kunden wirklich löschen?"
+    "deleteConfirmDescription": "Möchten Sie diesen Kunden wirklich löschen?",
+    "manageBenefits": "Vorteile verwalten"
   }
 }

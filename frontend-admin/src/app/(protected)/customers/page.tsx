@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { Button, message, Space, Input } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -33,6 +34,7 @@ async function getAdminCustomerAssignmentCount(customerId: string): Promise<numb
 
 export default function CustomersPage() {
     const { t } = useI18n();
+    const router = useRouter();
     const { filters, setParam } = useCustomerFilters();
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -153,6 +155,9 @@ export default function CustomersPage() {
                     loading={isLoading}
                     onEdit={openEditModal}
                     onDelete={handleDelete}
+                    onManageBenefits={(customer) => {
+                        if (customer.id) router.push(`/benefit-assignments?customerId=${customer.id}`);
+                    }}
                     benefitAssignments={benefitAssignments ?? undefined}
                 />
             </AdminDataList>

@@ -10,6 +10,8 @@ interface CustomerListProps {
     loading: boolean;
     onEdit: (customer: Customer) => void;
     onDelete: (id: string) => void;
+    /** Navigate to benefit-assignments filtered for this customer. */
+    onManageBenefits?: (customer: Customer) => void;
     /** Optional: show benefit summary per customer. Fail-safe when undefined or empty. */
     benefitAssignments?: BenefitAssignment[] | null;
 }
@@ -30,7 +32,7 @@ function getBenefitSummaryForCustomer(
         .filter((x) => x.label);
 }
 
-export default function CustomerList({ data, loading, onEdit, onDelete, benefitAssignments }: CustomerListProps) {
+export default function CustomerList({ data, loading, onEdit, onDelete, onManageBenefits, benefitAssignments }: CustomerListProps) {
     const { t } = useI18n();
     const dataSource = Array.isArray(data) ? data : [];
     const columns = [
@@ -110,6 +112,14 @@ export default function CustomerList({ data, loading, onEdit, onDelete, benefitA
                         icon={<EditOutlined />}
                         onClick={() => onEdit(record)}
                     />
+                    {onManageBenefits && (
+                        <Tooltip title={t('customers.list.manageBenefits')}>
+                            <Button
+                                icon={<GiftOutlined />}
+                                onClick={() => onManageBenefits(record)}
+                            />
+                        </Tooltip>
+                    )}
                     <Popconfirm
                         title={t('customers.list.deleteConfirmTitle')}
                         description={t('customers.list.deleteConfirmDescription')}

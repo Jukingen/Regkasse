@@ -78,6 +78,8 @@
       "deactivated": "Atama devre disi",
       "deleteFailed": "Silme basarisiz"
     },
-    "popconfirmDeactivate": "Atama devre disi birakilsin mi?"
+    "popconfirmDeactivate": "Atama devre disi birakilsin mi?",
+    "showAllCustomers": "Tum musterileri goster",
+    "filteringForCustomer": "Sadece bu musteri"
   }
 }

@@ -45,6 +45,7 @@
     "tagVip": "VIP",
     "benefitFallback": "Avantaj",
     "deleteConfirmTitle": "Musteri silinsin mi?",
-    "deleteConfirmDescription": "Bu musteriyi silmek istediginize emin misiniz?"
+    "deleteConfirmDescription": "Bu musteriyi silmek istediginize emin misiniz?",
+    "manageBenefits": "Avantajlari yonet"
   }
 }

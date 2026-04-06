@@ -17,7 +17,7 @@ import { CartDisplay } from '../../components/CartDisplay';
 import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
-import EmployeeIdentificationSheet from '../../components/EmployeeIdentificationSheet';
+import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
 import CategoryFilter from '../../components/CategoryFilter';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { ProductList } from '../../components/ProductList';
@@ -74,8 +74,8 @@ function POSSummaryBlock({
   onPayment,
   paddingBottom,
   saleCustomer,
-  onOpenEmployeeSheet,
-  onClearEmployee,
+  onOpenCustomerSheet,
+  onClearCustomer,
   benefitSummaryCount,
   t,
 }: {
@@ -93,8 +93,8 @@ function POSSummaryBlock({
   onPayment: () => void;
   paddingBottom: number;
   saleCustomer?: { id: string; name: string; customerNumber?: string } | null;
-  onOpenEmployeeSheet?: () => void;
-  onClearEmployee?: () => void;
+  onOpenCustomerSheet?: () => void;
+  onClearCustomer?: () => void;
   /** Assignment count from benefit-summary; show badge when > 0. */
   benefitSummaryCount?: number | null;
   t: (key: string, options?: Record<string, string | number>) => string;
@@ -109,27 +109,27 @@ function POSSummaryBlock({
   return (
     <View style={[styles.summaryBlock, { paddingBottom }]}>
       <SectionHeader step="4" title={t('checkout:posFlow.section.summary')} rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
-      {onOpenEmployeeSheet && (
+      {onOpenCustomerSheet && (
         <View style={styles.personalStrip}>
-          <Text style={styles.personalLabel}>{t('checkout:posFlow.personal.label')}</Text>
+          <Text style={styles.personalLabel}>{t('checkout:posFlow.customer.label', { defaultValue: 'Müşteri' })}</Text>
           {saleCustomer ? (
             <>
               <Text style={styles.personalValue} numberOfLines={1}>{saleCustomer.name}</Text>
               {showBenefitBadge && benefitBadgeText ? (
                 <Text style={styles.benefitBadge} numberOfLines={1}>{benefitBadgeText}</Text>
               ) : null}
-              <Pressable style={styles.personalBtn} onPress={onOpenEmployeeSheet}>
-                <Text style={styles.personalBtnText}>{t('checkout:posFlow.personal.change')}</Text>
+              <Pressable style={styles.personalBtn} onPress={onOpenCustomerSheet}>
+                <Text style={styles.personalBtnText}>{t('checkout:posFlow.customer.change', { defaultValue: 'Değiştir' })}</Text>
               </Pressable>
-              <Pressable style={styles.personalBtn} onPress={onClearEmployee}>
-                <Text style={styles.personalBtnText}>{t('checkout:posFlow.personal.remove')}</Text>
+              <Pressable style={styles.personalBtn} onPress={onClearCustomer}>
+                <Text style={styles.personalBtnText}>{t('checkout:posFlow.customer.remove', { defaultValue: 'Kaldır' })}</Text>
               </Pressable>
             </>
           ) : (
             <>
-              <Text style={styles.personalValue}>{t('checkout:posFlow.personal.none')}</Text>
-              <Pressable style={styles.personalSetzenBtn} onPress={onOpenEmployeeSheet}>
-                <Text style={styles.personalSetzenText}>{t('checkout:posFlow.personal.set')}</Text>
+              <Text style={styles.personalValue}>{t('checkout:posFlow.customer.none', { defaultValue: 'Yok' })}</Text>
+              <Pressable style={styles.personalSetzenBtn} onPress={onOpenCustomerSheet}>
+                <Text style={styles.personalSetzenText}>{t('checkout:posFlow.customer.set', { defaultValue: 'Seç' })}</Text>
               </Pressable>
             </>
           )}
@@ -258,7 +258,7 @@ export default function CashRegisterScreen() {
   } = useCart();
 
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
-  const [employeeSheetVisible, setEmployeeSheetVisible] = useState(false);
+  const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
@@ -480,13 +480,13 @@ export default function CashRegisterScreen() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      {/* Employee identification sheet for Personal/benefit attachment */}
-      <EmployeeIdentificationSheet
-        visible={employeeSheetVisible}
-        onClose={() => setEmployeeSheetVisible(false)}
+      {/* Customer identification sheet for customer attachment */}
+      <CustomerSelectionSheet
+        visible={customerSheetVisible}
+        onClose={() => setCustomerSheetVisible(false)}
         onSelect={(c) => {
           setSaleCustomer(c);
-          setEmployeeSheetVisible(false);
+          setCustomerSheetVisible(false);
         }}
       />
 
@@ -559,8 +559,8 @@ export default function CashRegisterScreen() {
             onPayment={handlePayment}
             paddingBottom={footerBottomPadding}
             saleCustomer={saleCustomer}
-            onOpenEmployeeSheet={() => setEmployeeSheetVisible(true)}
-            onClearEmployee={() => setSaleCustomer(null)}
+            onOpenCustomerSheet={() => setCustomerSheetVisible(true)}
+            onClearCustomer={() => setSaleCustomer(null)}
             benefitSummaryCount={benefitSummaryCount}
             t={t}
           />

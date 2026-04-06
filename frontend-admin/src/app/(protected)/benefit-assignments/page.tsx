@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Button,
   Table,
@@ -17,7 +17,7 @@ import {
   Switch,
   DatePicker,
 } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import {
@@ -36,6 +36,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { useSearchParams } from 'next/navigation';
 
 export default function BenefitAssignmentsPage() {
   const { t } = useI18n();
@@ -51,10 +52,24 @@ export default function BenefitAssignmentsPage() {
   const [editing, setEditing] = useState<BenefitAssignment | null>(null);
   const [form] = Form.useForm();
 
-  const assignments = listQuery.data ?? [];
+  const assignments = useMemo(() => listQuery.data ?? [], [listQuery.data]);
   const definitions = definitionsQuery.data ?? [];
   const customerResponse = customersQuery.data as { items?: { id: string; name: string; customerNumber?: string }[] } | undefined;
-  const customers = customerResponse?.items ?? [];
+  const customers = useMemo(() => customerResponse?.items ?? [], [customerResponse?.items]);
+
+  // Customer-scoped filter from query param (e.g. navigated from /customers)
+  const searchParams = useSearchParams();
+  const customerIdParam = searchParams.get('customerId');
+  const [filterActive, setFilterActive] = useState(true);
+  const filterCustomerId = filterActive ? customerIdParam : null;
+  const filterCustomer = useMemo(
+    () => (filterCustomerId ? customers.find((c) => c.id === filterCustomerId) : null),
+    [filterCustomerId, customers],
+  );
+  const filteredAssignments = useMemo(
+    () => (filterCustomerId ? assignments.filter((a) => a.customerId === filterCustomerId) : assignments),
+    [filterCustomerId, assignments],
+  );
 
   const invalidateList = () => queryClient.invalidateQueries({ queryKey: adminBenefitAssignmentsQueryKeys.lists() });
 
@@ -62,7 +77,7 @@ export default function BenefitAssignmentsPage() {
     setEditing(null);
     form.setFieldsValue({
       benefitDefinitionId: undefined,
-      customerId: undefined,
+      customerId: filterCustomerId ?? undefined,
       validFrom: dayjs().startOf('day'),
       validTo: null,
       priority: 0,
@@ -185,12 +200,28 @@ export default function BenefitAssignmentsPage() {
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
-        title={t('benefits.assignments.pageTitle')}
+        title={filterCustomer ? `${t('benefits.assignments.pageTitle')} – ${filterCustomer.name}` : t('benefits.assignments.pageTitle')}
         breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('benefits.assignments.breadcrumb') }]}
         actions={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            {t('benefits.assignments.newAssignment')}
-          </Button>
+          <Space>
+            {customerIdParam && (
+              <Button
+                icon={<FilterOutlined />}
+                onClick={() => {
+                  if (filterActive) {
+                    setFilterActive(false);
+                  } else {
+                    setFilterActive(true);
+                  }
+                }}
+              >
+                {filterActive ? t('benefits.assignments.showAllCustomers') : t('benefits.assignments.filteringForCustomer')}
+              </Button>
+            )}
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+              {t('benefits.assignments.newAssignment')}
+            </Button>
+          </Space>
         }
       />
 
@@ -219,7 +250,7 @@ export default function BenefitAssignmentsPage() {
 
       <Table
         columns={columns}
-        dataSource={assignments}
+        dataSource={filteredAssignments}
         rowKey="id"
         loading={listQuery.isLoading}
         pagination={{ pageSize: 10, showSizeChanger: true }}

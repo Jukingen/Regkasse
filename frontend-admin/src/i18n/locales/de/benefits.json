@@ -78,6 +78,8 @@
       "deactivated": "Zuweisung deaktiviert",
       "deleteFailed": "Löschen fehlgeschlagen"
     },
-    "popconfirmDeactivate": "Zuweisung deaktivieren?"
+    "popconfirmDeactivate": "Zuweisung deaktivieren?",
+    "showAllCustomers": "Alle Kunden anzeigen",
+    "filteringForCustomer": "Nur diesen Kunden"
   }
 }

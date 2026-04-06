@@ -45,6 +45,7 @@
     "tagVip": "VIP",
     "benefitFallback": "Benefit",
     "deleteConfirmTitle": "Delete customer?",
-    "deleteConfirmDescription": "Are you sure you want to delete this customer?"
+    "deleteConfirmDescription": "Are you sure you want to delete this customer?",
+    "manageBenefits": "Manage benefits"
   }
 }
