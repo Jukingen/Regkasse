@@ -1,71 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import {
-    buildFinanzOnlineQueueInvestigationHref,
-    buildIncidentInvestigationHref,
-    buildReplayBatchDetailHref,
-    buildVerificationsAuditHref,
-    truncateInvestigationContextToken,
-} from '@/shared/investigationNavigation';
+import { buildFinanzOnlineOutboxHandoffHref } from '@/shared/investigationNavigation';
 
-describe('buildIncidentInvestigationHref', () => {
-    it('encodes correlation for query', () => {
-        expect(buildIncidentInvestigationHref('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee')).toBe(
-            '/rksv/incident?correlationId=aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+describe('buildFinanzOnlineOutboxHandoffHref', () => {
+    it('returns deep link with outboxId for valid UUID (authoritative outbox handoff)', () => {
+        const id = '11111111-1111-4111-8111-111111111111';
+        expect(buildFinanzOnlineOutboxHandoffHref(id)).toBe(
+            `/rksv/finanz-online-outbox?outboxId=${encodeURIComponent(id)}`,
         );
     });
 
-    it('falls back to base when empty', () => {
-        expect(buildIncidentInvestigationHref('  ')).toBe('/rksv/incident');
-    });
-});
-
-describe('buildReplayBatchDetailHref', () => {
-    it('encodes path segment', () => {
-        expect(buildReplayBatchDetailHref('aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee')).toBe(
-            '/rksv/replay-batch/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-        );
-    });
-});
-
-describe('buildVerificationsAuditHref', () => {
-    it('puts correlation in audit log filter query', () => {
-        const id = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
-        expect(buildVerificationsAuditHref(id)).toBe(`/rksv/verifications?correlationId=${encodeURIComponent(id)}`);
-    });
-});
-
-describe('buildFinanzOnlineQueueInvestigationHref', () => {
-    it('adds focus payment only for valid UUID', () => {
-        const href = buildFinanzOnlineQueueInvestigationHref({
-            registerRowId: '11111111-1111-4111-8111-111111111111',
-            focusPaymentId: '22222222-2222-4222-8222-222222222222',
-            investigationBatchCorrelationId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
-        });
-        expect(href).toContain('cashRegisterId=11111111-1111-4111-8111-111111111111');
-        expect(href).toContain('focusPaymentId=22222222-2222-4222-8222-222222222222');
-        expect(href).toContain('investigationBatchCorrelationId=');
-    });
-
-    it('drops invalid focus payment id', () => {
-        const href = buildFinanzOnlineQueueInvestigationHref({
-            focusPaymentId: 'not-a-uuid',
-        });
-        expect(href).not.toContain('focusPaymentId=');
-    });
-
-    it('omits cashRegisterId when registerRowId is not link-safe (display text must not enter URL)', () => {
-        const href = buildFinanzOnlineQueueInvestigationHref({
-            registerRowId: 'KASSE-DISPLAY-1',
-            focusPaymentId: '22222222-2222-4222-8222-222222222222',
-        });
-        expect(href).not.toContain('cashRegisterId=');
-        expect(href).toContain('focusPaymentId=');
-    });
-});
-
-describe('truncateInvestigationContextToken', () => {
-    it('caps length', () => {
-        const long = 'x'.repeat(400);
-        expect(truncateInvestigationContextToken(long).length).toBe(256);
+    it('returns null for invalid or empty ids (never poison URLs)', () => {
+        expect(buildFinanzOnlineOutboxHandoffHref(null)).toBeNull();
+        expect(buildFinanzOnlineOutboxHandoffHref('')).toBeNull();
+        expect(buildFinanzOnlineOutboxHandoffHref('not-a-uuid')).toBeNull();
     });
 });

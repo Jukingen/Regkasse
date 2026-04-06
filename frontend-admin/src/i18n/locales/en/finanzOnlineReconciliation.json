@@ -6,7 +6,15 @@
     "leadBeforeLink": "For operational monitoring of the SOAP/outbox pipeline (submission, protocol, retries), use",
     "leadAfterLink": ". This screen remains for payment-row status and manual retry per payment (legacy)."
   },
+  "simulationBanners": {
+    "transportSimActive": "Simulated FinanzOnline transport active (no real BMF connection on this simulated path).",
+    "developerScenario": "Developer simulation scenario: {{profile}}"
+  },
   "queuePage": {
+    "derivedLegacyTruthAlert": {
+      "title": "Reconciliation row ≠ delivery or terminal truth",
+      "description": "The FO status column (e.g. Pending, Submitted) comes from the payment-row list API. It may diverge from the authoritative outbox. Pending does not automatically mean the SOAP pipeline is still waiting — use outbox status and lifecycle. When an outbox message id is present, use the direct link to open that outbox row."
+    },
     "statusOption": {
       "Pending": "Pending",
       "Failed": "Failed",
@@ -17,7 +25,8 @@
       "success": "Payment {{paymentId}}: {{message}}",
       "warning": "Payment {{paymentId}}: {{message}}",
       "error": "Retry for {{paymentId}}: {{message}}",
-      "errorFallback": "Retry failed"
+      "errorFallback": "Retry failed",
+      "outboxLifecycleHint": "Note: Retry uses the reconciliation retry path for the payment — not the outbox background worker cycle. Verify the outcome in Outbox."
     },
     "columns": {
       "receiptNumberTooltip": "Receipt number from the reconciliation list DTO.",
@@ -27,6 +36,16 @@
       "paymentShort": "Payment",
       "openInPayments": "Open in payments",
       "foStatusShort": "FO status",
+      "legacyFoDerivedSubtitle": "FO status from payment row (legacy, not outbox)",
+      "outboxProcessedUtc": "Outbox · processed (UTC): {{at}}",
+      "protocolSuccessSimulatedColumnNote": "ProtocolSuccess is simulated here — not live evidence.",
+      "outboxEvidenceTransmission": "Transmission: {{id}}",
+      "outboxEvidenceExternalRef": "External reference: {{id}}",
+      "outboxEvidenceProtocol": "Protocol: {{code}}",
+      "outboxPrimaryShort": "Outbox (primary)",
+      "outboxOpenLink": "Full outbox",
+      "outboxOpenThisMessageLink": "Open this outbox row",
+      "outboxTerminalTag": "Terminal",
       "foActionColumnShort": "FO action (UI)",
       "foTimelineShort": "FO timeline (API)",
       "rowCreated": "Row created:",
@@ -34,6 +53,8 @@
       "lastAttempt": "Last attempt:",
       "errorShort": "Error (short)",
       "foRefTooltip": "finanzOnlineReferenceId — FinanzOnline reference from the list DTO.",
+      "outboxIntegratedTooltip": "Authoritative SOAP/outbox pipeline: latest outbox row for this payment’s invoice aggregate. Transport path (simulated vs real SOAP TEST/PROD) comes from the outbox row and live transport configuration.",
+      "referenceFoIntegratedTooltip": "finanzOnlineReferenceId from the list DTO (payment row, legacy). Prefer the outbox column for transmission and protocol evidence.",
       "referenceFoShort": "Reference (FO)",
       "amountTooltip": "totalAmount — payment amount in the list DTO.",
       "amountShort": "Amount",
@@ -64,10 +85,34 @@
       "cardTitle": "Reconciliation ({{count}} entries)",
       "paginationTotal": "Total: {{total}}"
     },
+    "transportSurfaceBadge": {
+      "simulated": "List surface · transport: simulated (not BMF live)",
+      "real": "List surface · transport: real SOAP path (TEST/PROD per configuration)"
+    },
     "expandRow": {
+      "authoritativeOutboxTitle": "Outbox / SOAP (authoritative)",
+      "outboxTransportPath": "Transport path",
       "technicalDetailsHeader": "Row — technical details (list API)",
       "openPaymentInPayments": "Open payment in payments",
-      "searchReceiptsByNumber": "Search receipts (receipt number)"
+      "searchReceiptsByNumber": "Search receipts (receipt number)",
+      "openHandoffOutboxSameCase": "Open the same outbox message in Outbox (deep link)",
+      "protocolSuccessSimulatedExpandNote": "Note: with simulated transport, ProtocolSuccess is not evidence of live BMF acceptance.",
+      "labelOutboxMessageId": "Outbox message ID",
+      "labelOutboxStatus": "Outbox status (technical)",
+      "labelOutboxLifecyclePhase": "Lifecycle phase",
+      "labelOutboxTransmissionId": "Transmission ID",
+      "labelOutboxExternalReferenceId": "External reference ID",
+      "labelOutboxProtocolCode": "Protocol code",
+      "labelOutboxProtocolSummary": "Protocol (short)",
+      "labelOutboxProcessedAtUtc": "Processed (UTC)",
+      "labelFinanzOnlineError": "FinanzOnline error (legacy)",
+      "labelPaymentId": "Payment ID",
+      "labelReceiptNumber": "Receipt number",
+      "labelCashRegisterId": "Cash register ID",
+      "labelFinanzOnlineReferenceId": "FO reference (legacy list)",
+      "labelCreatedAt": "Row created",
+      "labelFinanzOnlineLastAttemptAtUtc": "Last FO attempt (UTC)",
+      "labelFinanzOnlineRetryCount": "FO retries"
     }
   }
 }

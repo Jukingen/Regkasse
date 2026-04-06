@@ -72,7 +72,8 @@ public sealed class TestModeFinanzOnlineRegistrierkassenClient : IFinanzOnlineRe
             {
                 Success = false,
                 ErrorCode = "TEST_REAL_SUBMISSION_DISABLED",
-                ErrorMessage = "Real TEST submission is disabled."
+                ErrorMessage =
+                    "Real TEST rkdb submission is disabled. Set FinanzOnline:Registrierkassen:EnableRealTestSubmission to true and set UseSimulation to false on Session, Registrierkassen, and TransmissionQuery for live BMF TEST traffic."
             };
         }
 

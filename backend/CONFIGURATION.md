@@ -14,6 +14,16 @@ FinanzOnline **user/password** for SOAP are expected from **company settings in 
 
 Optional **production cutover** token: `FinanzOnline:CutoverGuard:ProdApprovalToken` → `FinanzOnline__CutoverGuard__ProdApprovalToken` (set only when your runbook requires it).
 
+## Inventory / stock (optional rollout)
+
+Product rows keep `StockQuantity` / `MinStockLevel` in the database; this section only gates **runtime behavior**.
+
+| Setting | JSON path | Environment variable | Default | Effect when `false` |
+|--------|------------|----------------------|---------|---------------------|
+| Enforce stock on payment | `Inventory:EnforceStockAvailability` | `Inventory__EnforceStockAvailability` | `true` | POS payment does **not** reject for low stock and does **not** change `Product.StockQuantity` on payment, storno, or refund (symmetric). |
+
+Operator-facing Lager UI in **frontend-admin** is controlled separately via **Next.js** `NEXT_PUBLIC_*` variables (baked at build). See repository `docs/inventory-lager-optional.md` (includes smoke checklist and restart/rebuild table).
+
 ## Local development (recommended)
 
 1. Copy templates (once):

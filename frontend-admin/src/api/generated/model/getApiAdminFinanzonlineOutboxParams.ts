@@ -13,6 +13,8 @@ mode?: string;
 correlationId?: string;
 aggregateType?: string;
 businessKey?: string;
+/** When set, list is restricted to this outbox message id (deep link from reconciliation). */
+outboxId?: string;
 fromUtc?: string;
 toUtc?: string;
 limit?: number;

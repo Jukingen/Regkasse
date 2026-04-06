@@ -15,6 +15,7 @@ using Moq;
 using Xunit;
 
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -88,6 +89,7 @@ public class Phase2PaymentFlatItemsTests
             auditMock.Object,
             Options.Create(companyProfile),
             Options.Create(tseOptions),
+            Options.Create(new InventoryOptions()),
             loggerPayment,
             cashRegResolver,
             httpAccessor,

@@ -10,6 +10,10 @@ import type { FinanzOnlineReadinessResponseOutboxCountsByStatus } from './finanz
 
 export interface FinanzOnlineReadinessResponse {
   /** @nullable */
+  configuredSimulationScenario?: string | null;
+  /** @nullable */
+  effectiveSimulationScenario?: string | null;
+  /** @nullable */
   findings?: FinanzOnlineReadinessFindingDto[] | null;
   /** @nullable */
   outboxCountsByStatus?: FinanzOnlineReadinessResponseOutboxCountsByStatus;
@@ -18,6 +22,10 @@ export interface FinanzOnlineReadinessResponse {
   overallStatus?: string | null;
   protocolReconciliationPossible?: boolean;
   realTestSubmissionPossible?: boolean;
+  /** @nullable */
+  simulationFixedDelayMs?: number | null;
+  /** @nullable */
+  simulationSeed?: number | null;
   /** @nullable */
   summary?: string | null;
   /** @nullable */

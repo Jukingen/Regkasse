@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
-import { Button, Table, Space, message, Tag, Input, Popconfirm, Alert, Empty, Modal, InputNumber, Typography, Flex, Tooltip } from 'antd';
+import { Button, Table, Space, message, Tag, Input, Popconfirm, Alert, Empty, Modal, InputNumber, Typography, Flex, Tooltip, Select } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, StockOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -14,13 +14,24 @@ import { ColumnType } from 'antd/es/table';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import {
+    activeFilterFromUrl,
+    listIsActiveQueryParam,
+    shouldClearProductListStatusQueryParam,
+    type ProductListActiveFilter,
+} from '@/features/products/utils/productListStatusQuery';
+import { isAdminProductsLagerUiEnabled } from '@/features/products/utils/adminProductsLagerUi';
 
 const SEARCH_DEBOUNCE_MS = 400;
 const MIN_SEARCH_LENGTH = 2;
 
+/** Slightly de-emphasize inactive product rows without hiding actions */
+const INACTIVE_PRODUCT_ROW_STYLE: React.CSSProperties = { opacity: 0.82 };
+
 export default function ProductsPage() {
+    const showProductLagerUi = isAdminProductsLagerUiEnabled();
     const { t } = useI18n();
-    const { filters } = useProductFilters();
+    const { filters, setParam } = useProductFilters();
     const [page, setPage] = useState(() => Number(filters.page) || 1);
     const [pageSize, setPageSize] = useState(() => Number(filters.pageSize) || 10);
     const [searchTerm, setSearchTerm] = useState('');
@@ -44,15 +55,36 @@ export default function ProductsPage() {
         invalidateList,
     } = useProducts();
 
+    const activeFilter = activeFilterFromUrl(filters.status);
+
+    // Drop invalid or empty status= so shared links fall back to default active list
+    useEffect(() => {
+        if (shouldClearProductListStatusQueryParam(filters.status)) {
+            setParam('status', null);
+        }
+    }, [filters.status, setParam]);
+
     const listQuery = useList(
         {
             pageNumber: page,
             pageSize,
             name: searchDebounced.trim().length >= MIN_SEARCH_LENGTH ? searchDebounced.trim() : undefined,
             categoryId: filters.categoryId?.trim() || undefined,
+            isActive: listIsActiveQueryParam(activeFilter),
         },
         { placeholderData: keepPreviousData }
     );
+
+    const handleActiveFilterChange = (value: ProductListActiveFilter) => {
+        setPage(1);
+        if (value === 'active') {
+            setParam('status', null);
+        } else if (value === 'all') {
+            setParam('status', 'all');
+        } else {
+            setParam('status', 'inactive');
+        }
+    };
 
     const createMutation = useCreate();
     const updateMutation = useUpdate();
@@ -157,6 +189,32 @@ export default function ProductsPage() {
         }
     };
 
+    const stockColumn: ColumnType<Product> = {
+            title: t('products.table.stock'),
+            dataIndex: 'stockQuantity',
+            key: 'stockQuantity',
+            width: 120,
+            render: (qty: number, record: Product) => {
+                const min = Number(record.minStockLevel) ?? 0;
+                const isLow = Number(qty) <= min;
+                const unit = record.unit || t('products.table.unitPieces');
+                const tag = (
+                    <Tag color={isLow ? 'red' : 'green'} style={{ marginInlineEnd: 0 }}>
+                        {Number(qty)} {unit}
+                    </Tag>
+                );
+                return (
+                    <Space direction="vertical" size={0}>
+                        {tag}
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                            {t('products.table.minLabel')}: {min} {unit}
+                            {isLow && min > 0 ? ` · ${t('products.table.minReached')}` : ''}
+                        </Typography.Text>
+                    </Space>
+                );
+            },
+    };
+
     const columns: ColumnType<Product>[] = [
         {
             title: t('products.table.product'),
@@ -212,31 +270,7 @@ export default function ProductsPage() {
                 </Typography.Text>
             ),
         },
-        {
-            title: t('products.table.stock'),
-            dataIndex: 'stockQuantity',
-            key: 'stockQuantity',
-            width: 120,
-            render: (qty: number, record: Product) => {
-                const min = Number(record.minStockLevel) ?? 0;
-                const isLow = Number(qty) <= min;
-                const unit = record.unit || t('products.table.unitPieces');
-                const tag = (
-                    <Tag color={isLow ? 'red' : 'green'} style={{ marginInlineEnd: 0 }}>
-                        {Number(qty)} {unit}
-                    </Tag>
-                );
-                return (
-                    <Space direction="vertical" size={0}>
-                        {tag}
-                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                            {t('products.table.minLabel')}: {min} {unit}
-                            {isLow && min > 0 ? ` · ${t('products.table.minReached')}` : ''}
-                        </Typography.Text>
-                    </Space>
-                );
-            },
-        },
+        ...(showProductLagerUi ? [stockColumn] : []),
         {
             title: t('products.table.status'),
             dataIndex: 'isActive',
@@ -287,7 +321,7 @@ export default function ProductsPage() {
         {
             title: t('products.table.actions'),
             key: 'actions',
-            width: 220,
+            width: showProductLagerUi ? 220 : 160,
             fixed: 'right',
             align: 'right',
             render: (_: unknown, record: Product) => (
@@ -295,9 +329,11 @@ export default function ProductsPage() {
                     <Button type="primary" size="small" icon={<EditOutlined />} onClick={() => openEdit(record)}>
                             {t('products.actions.edit')}
                     </Button>
-                    <Button type="default" size="small" icon={<StockOutlined />} onClick={() => openStockModal(record)}>
+                    {showProductLagerUi ? (
+                        <Button type="default" size="small" icon={<StockOutlined />} onClick={() => openStockModal(record)}>
                             {t('products.actions.stock')}
-                    </Button>
+                        </Button>
+                    ) : null}
                     <Popconfirm
                         title={t('products.actions.deleteConfirmTitle')}
                         description={t('products.actions.deleteConfirmDescription')}
@@ -320,15 +356,36 @@ export default function ProductsPage() {
                 title={t('products.page.title')}
                 breadcrumbs={[adminOverviewCrumb(t), { title: t('products.page.title') }]}
                 actions={
-                    <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
-                        <Input.Search
-                            placeholder={t('products.page.searchPlaceholder')}
-                            allowClear
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            onSearch={(v) => setSearchTerm(v)}
-                            style={{ width: 280, maxWidth: '100%' }}
-                            value={searchTerm}
-                        />
+                    <Flex wrap="wrap" gap="middle" align="center" justify="flex-end" style={{ width: '100%' }}>
+                        <Flex
+                            wrap="wrap"
+                            gap={8}
+                            align="center"
+                            style={{ flex: 1, minWidth: 0, justifyContent: 'flex-end' }}
+                        >
+                            {/* Toolbar filters: status today; room for category etc. without crowding the table */}
+                            <Select<ProductListActiveFilter>
+                                size="small"
+                                value={activeFilter}
+                                onChange={handleActiveFilterChange}
+                                options={[
+                                    { value: 'all', label: t('products.page.filterAll') },
+                                    { value: 'active', label: t('products.page.filterActive') },
+                                    { value: 'inactive', label: t('products.page.filterInactive') },
+                                ]}
+                                style={{ width: 130, maxWidth: '100%' }}
+                                aria-label={t('products.page.filterLabel')}
+                                title={t('products.page.filterLabel')}
+                            />
+                            <Input.Search
+                                placeholder={t('products.page.searchPlaceholder')}
+                                allowClear
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onSearch={(v) => setSearchTerm(v)}
+                                style={{ width: 280, maxWidth: '100%', minWidth: 160 }}
+                                value={searchTerm}
+                            />
+                        </Flex>
                         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                             {t('products.page.newProduct')}
                         </Button>
@@ -373,8 +430,13 @@ export default function ProductsPage() {
                     loading={isLoading}
                     pagination={pagination}
                     size="middle"
-                    scroll={{ x: 1100 }}
+                    scroll={{ x: showProductLagerUi ? 1100 : 980 }}
                     locale={{ emptyText: <Empty description={t('products.page.empty')} /> }}
+                    onRow={(record) =>
+                        record.isActive === false
+                            ? { style: INACTIVE_PRODUCT_ROW_STYLE }
+                            : {}
+                    }
                 />
             ) : null}
 
@@ -386,35 +448,37 @@ export default function ProductsPage() {
                 loading={createMutation.isPending || updateMutation.isPending}
             />
 
-            <Modal
-                title={t('products.stockModal.title')}
-                open={!!stockModalProduct}
-                onOk={handleStockSave}
-                onCancel={() => setStockModalProduct(null)}
-                confirmLoading={stockMutation.isPending}
-                okText={t('common.buttons.save')}
-                cancelText={t('common.buttons.cancel')}
-            >
-                {stockModalProduct && (
-                    <div style={{ marginTop: 8 }}>
-                        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
-                            {t('products.stockModal.productLabel')}
-                        </Typography.Text>
-                        <Typography.Text strong style={{ display: 'block', marginBottom: 12 }}>
-                            {stockModalProduct.name?.trim() ? stockModalProduct.name : FORMAT_EMPTY_DISPLAY}
-                        </Typography.Text>
-                        <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
-                            {t('products.stockModal.quantityLabel')}
-                        </Typography.Text>
-                        <InputNumber
-                            min={0}
-                            value={stockQuantity}
-                            onChange={(v) => setStockQuantity(Number(v) ?? 0)}
-                            style={{ width: '100%' }}
-                        />
-                    </div>
-                )}
-            </Modal>
+            {showProductLagerUi ? (
+                <Modal
+                    title={t('products.stockModal.title')}
+                    open={!!stockModalProduct}
+                    onOk={handleStockSave}
+                    onCancel={() => setStockModalProduct(null)}
+                    confirmLoading={stockMutation.isPending}
+                    okText={t('common.buttons.save')}
+                    cancelText={t('common.buttons.cancel')}
+                >
+                    {stockModalProduct && (
+                        <div style={{ marginTop: 8 }}>
+                            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                                {t('products.stockModal.productLabel')}
+                            </Typography.Text>
+                            <Typography.Text strong style={{ display: 'block', marginBottom: 12 }}>
+                                {stockModalProduct.name?.trim() ? stockModalProduct.name : FORMAT_EMPTY_DISPLAY}
+                            </Typography.Text>
+                            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+                                {t('products.stockModal.quantityLabel')}
+                            </Typography.Text>
+                            <InputNumber
+                                min={0}
+                                value={stockQuantity}
+                                onChange={(v) => setStockQuantity(Number(v) ?? 0)}
+                                style={{ width: '100%' }}
+                            />
+                        </div>
+                    )}
+                </Modal>
+            ) : null}
         </Space>
     );
 }

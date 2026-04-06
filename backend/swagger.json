@@ -954,6 +954,19 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "isActive",
+            "in": "query",
+            "description": "Omit or true: active products only (default). false: inactive only. all: active and inactive.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false",
+                "all"
+              ]
+            }
           }
         ],
         "responses": {
@@ -5040,6 +5053,14 @@
             "in": "query",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "outboxId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -19242,6 +19263,68 @@
         },
         "additionalProperties": false
       },
+      "FinanzOnlineReadinessDiagnosticsDto": {
+        "type": "object",
+        "properties": {
+          "sessionLayerSimulated": {
+            "type": "boolean"
+          },
+          "registrierkassenLayerSimulated": {
+            "type": "boolean"
+          },
+          "transmissionQueryLayerSimulated": {
+            "type": "boolean"
+          },
+          "mixedTransportLayers": {
+            "type": "boolean"
+          },
+          "anyLayerSimulated": {
+            "type": "boolean"
+          },
+          "allLayersReal": {
+            "type": "boolean"
+          },
+          "outboxPipelineEnabled": {
+            "type": "boolean"
+          },
+          "registrierkassenEnableRealTestSubmission": {
+            "type": "boolean"
+          },
+          "transmissionQueryEnableRealTestQuery": {
+            "type": "boolean"
+          },
+          "connectivityUsesCompanySettings": {
+            "type": "boolean"
+          },
+          "companySettingsProbeEvaluated": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "companySettingsFinanzOnlineComplete": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "configSessionBaseUrlConfigured": {
+            "type": "boolean"
+          },
+          "configRkdbBaseUrlConfigured": {
+            "type": "boolean"
+          },
+          "configSessionHasUsernamePassword": {
+            "type": "boolean"
+          },
+          "configSessionHasParticipantIds": {
+            "type": "boolean"
+          },
+          "sessionEndpointResolvable": {
+            "type": "boolean"
+          },
+          "rkdbEndpointResolvable": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "FinanzOnlineReadinessFindingDto": {
         "type": "object",
         "properties": {
@@ -19254,6 +19337,10 @@
             "nullable": true
           },
           "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
             "type": "string",
             "nullable": true
           }
@@ -19298,6 +19385,27 @@
               "format": "int32"
             },
             "nullable": true
+          },
+          "configuredSimulationScenario": {
+            "type": "string",
+            "nullable": true
+          },
+          "effectiveSimulationScenario": {
+            "type": "string",
+            "nullable": true
+          },
+          "simulationFixedDelayMs": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "simulationSeed": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "diagnostics": {
+            "$ref": "#/components/schemas/FinanzOnlineReadinessDiagnosticsDto"
           }
         },
         "additionalProperties": false

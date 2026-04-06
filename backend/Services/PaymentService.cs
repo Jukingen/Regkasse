@@ -12,6 +12,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
+using KasseAPI_Final.Configuration;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -51,6 +52,7 @@ namespace KasseAPI_Final.Services
         private readonly IPaymentMethodCatalogService _paymentMethodCatalog;
         private readonly IPricingRuleResolver _pricingRuleResolver;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly InventoryOptions _inventoryOptions;
 
         public PaymentService(
             AppDbContext context,
@@ -66,6 +68,7 @@ namespace KasseAPI_Final.Services
             IAuditLogService auditLogService,
             Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
             Microsoft.Extensions.Options.IOptions<TseOptions> tseOptions,
+            Microsoft.Extensions.Options.IOptions<InventoryOptions> inventoryOptions,
             ILogger<PaymentService> logger,
             ICashRegisterResolutionService cashRegisterResolution,
             IHttpContextAccessor httpContextAccessor,
@@ -87,6 +90,7 @@ namespace KasseAPI_Final.Services
             _auditLogService = auditLogService;
             _companyProfile = companyProfile.Value;
             _tseOptions = tseOptions.Value;
+            _inventoryOptions = inventoryOptions.Value;
             _logger = logger;
             _cashRegisterResolution = cashRegisterResolution;
             _httpContextAccessor = httpContextAccessor;
@@ -279,6 +283,7 @@ namespace KasseAPI_Final.Services
 
                 PaymentDetails? committedPayment = null;
                 Invoice? committedInvoice = null;
+                var paymentStockLinesSkipped = 0;
 
                 await using var transaction = await _context.Database.BeginTransactionAsync();
                 try
@@ -379,19 +384,32 @@ namespace KasseAPI_Final.Services
                         // Stock is updated in memory on tracked entities; persisted in a single transaction with payment/invoice/receipt (no per-product UpdateAsync).
                         if (!product.IsSellableAddOn)
                         {
-                            if (product.StockQuantity < itemRequest.Quantity)
+                            if (_inventoryOptions.EnforceStockAvailability)
                             {
-                                await transaction.RollbackAsync();
-                                _context.ChangeTracker.Clear();
-                                return new PaymentResult
+                                if (product.StockQuantity < itemRequest.Quantity)
                                 {
-                                    Success = false,
-                                    Message = "Insufficient stock",
-                                    Errors = { $"Insufficient stock for product {product.Name}" }
-                                };
+                                    await transaction.RollbackAsync();
+                                    _context.ChangeTracker.Clear();
+                                    return new PaymentResult
+                                    {
+                                        Success = false,
+                                        Message = "Insufficient stock",
+                                        Errors = { $"Insufficient stock for product {product.Name}" }
+                                    };
+                                }
+                                product.StockQuantity -= itemRequest.Quantity;
+                                product.UpdatedAt = DateTime.UtcNow;
                             }
-                            product.StockQuantity -= itemRequest.Quantity;
-                            product.UpdatedAt = DateTime.UtcNow;
+                            else
+                            {
+                                paymentStockLinesSkipped++;
+                                _logger.LogDebug(
+                                    "Stock enforcement disabled (Inventory:EnforceStockAvailability=false): no deduct for product {ProductId} name={ProductName} requestedQty={Qty} currentStock={Stock}",
+                                    product.Id,
+                                    product.Name,
+                                    itemRequest.Quantity,
+                                    product.StockQuantity);
+                            }
                         }
 
                         // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper. decimal only.
@@ -761,7 +779,7 @@ namespace KasseAPI_Final.Services
                     _context.PaymentDetails.Add(payment);
                     _context.Invoices.Add(posInvoice);
                     await _receiptService.AddReceiptFromPaymentToContextAsync(payment);
-                    // Stock updates: product entities were modified in the loop (tracked); SaveChanges persists them with payment/invoice/receipt in one commit.
+                    // Stock updates: when EnforceStockAvailability is true, product entities were modified in the loop (tracked); SaveChanges persists them with payment/invoice/receipt in one commit.
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -826,6 +844,13 @@ namespace KasseAPI_Final.Services
                 {
                     var createdPayment = committedPayment;
                     var createdInvoice = committedInvoice;
+                    if (!_inventoryOptions.EnforceStockAvailability && paymentStockLinesSkipped > 0)
+                    {
+                        _logger.LogInformation(
+                            "Payment {PaymentId} committed without per-line stock mutations; skippedProductLines={SkippedLines} (Inventory:EnforceStockAvailability=false).",
+                            createdPayment.Id,
+                            paymentStockLinesSkipped);
+                    }
                     _logger.LogInformation("Payment created successfully: {PaymentId} for customer {CustomerId} (Invoice {InvoiceId}, Receipt in same transaction)",
                         createdPayment.Id, customer.Id, createdInvoice.Id);
 
@@ -1690,10 +1715,17 @@ namespace KasseAPI_Final.Services
                 {
                     var product = await _context.Products
                         .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == effectiveTenantId);
-                    if (product != null)
+                    if (product != null && _inventoryOptions.EnforceStockAvailability)
                     {
                         product.StockQuantity += item.Quantity;
                         product.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else if (product != null && !_inventoryOptions.EnforceStockAvailability)
+                    {
+                        _logger.LogDebug(
+                            "Stock enforcement disabled: storno skipped stock revert for product {ProductId} qty={Qty}",
+                            item.ProductId,
+                            item.Quantity);
                     }
                 }
 
@@ -2063,8 +2095,18 @@ namespace KasseAPI_Final.Services
                             var refundQuantity = (int)Math.Round(item.Quantity * refundRatio);
                             if (refundQuantity > 0)
                             {
-                                product.StockQuantity += refundQuantity;
-                                product.UpdatedAt = DateTime.UtcNow;
+                                if (_inventoryOptions.EnforceStockAvailability)
+                                {
+                                    product.StockQuantity += refundQuantity;
+                                    product.UpdatedAt = DateTime.UtcNow;
+                                }
+                                else
+                                {
+                                    _logger.LogDebug(
+                                        "Stock enforcement disabled: refund skipped stock revert for product {ProductId} qty={Qty}",
+                                        item.ProductId,
+                                        refundQuantity);
+                                }
                             }
                         }
                     }

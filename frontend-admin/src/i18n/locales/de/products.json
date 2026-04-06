@@ -1,6 +1,10 @@
 {
   "page": {
     "title": "Produkte",
+    "filterLabel": "Status",
+    "filterAll": "Alle",
+    "filterActive": "Aktiv",
+    "filterInactive": "Inaktiv",
     "searchPlaceholder": "Produkte suchen …",
     "newProduct": "Neues Produkt",
     "searchHint": "Suche nach Produktname; mindestens {{min}} Zeichen lösen eine Serverabfrage aus.",

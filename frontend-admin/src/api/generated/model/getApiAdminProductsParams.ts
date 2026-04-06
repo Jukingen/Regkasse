@@ -11,4 +11,6 @@ pageNumber?: number;
 pageSize?: number;
 categoryId?: string;
 name?: string;
+/** Omit or true: active only (default). false: inactive only. all: both. */
+isActive?: 'true' | 'false' | 'all';
 };

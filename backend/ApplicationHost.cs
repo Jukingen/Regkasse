@@ -62,6 +62,7 @@ internal static class ApplicationHost
 builder.Services.Configure<CompanyProfileOptions>(builder.Configuration.GetSection(CompanyProfileOptions.SectionName));
 builder.Services.Configure<PosCashRegisterFeatureOptions>(
     builder.Configuration.GetSection(PosCashRegisterFeatureOptions.SectionName));
+builder.Services.Configure<InventoryOptions>(builder.Configuration.GetSection(InventoryOptions.SectionName));
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<AuditRetentionOptions>(builder.Configuration.GetSection(AuditRetentionOptions.SectionName));
@@ -72,6 +73,11 @@ builder.Services.Configure<FinanzOnlineTransmissionQueryOptions>(builder.Configu
 builder.Services.Configure<FinanzOnlineOutboxOptions>(builder.Configuration.GetSection(FinanzOnlineOutboxOptions.SectionName));
 builder.Services.Configure<FinanzOnlineCutoverGuardOptions>(builder.Configuration.GetSection(FinanzOnlineCutoverGuardOptions.SectionName));
 builder.Services.Configure<FinanzOnlineDevTestOptions>(builder.Configuration.GetSection(FinanzOnlineDevTestOptions.SectionName));
+builder.Services.Configure<FinanzOnlineSimulationDeveloperOptions>(
+    builder.Configuration.GetSection(FinanzOnlineSimulationDeveloperOptions.SectionName));
+builder.Services.Configure<FinanzOnlineSimulationOptions>(
+    builder.Configuration.GetSection(FinanzOnlineSimulationOptions.SectionName));
+builder.Services.AddSingleton<FinanzOnlineDeveloperSimulationEngine>();
 if (!OpenApiExportMode.IsEnabled)
 {
     builder.Services.AddSingleton<IValidateOptions<BackupOptions>, BackupOptionsValidator>();
@@ -671,6 +677,9 @@ app.MapMetrics();
 // Test endpoint
 app.MapGet("/", () => "Kasse API is running!");
 app.MapGet("/health", () => "OK");
+app.MapGet("/health/finanzonline", (IServiceProvider services) =>
+    Results.Json(FinanzOnlineReadinessEvaluator.EvaluateFromRootServices(services)))
+    .AllowAnonymous();
 app.MapGet("/health/auth-schema", async (AppDbContext db) =>
 {
     static async Task<bool> TableExistsAsync(AppDbContext context, string tableName)

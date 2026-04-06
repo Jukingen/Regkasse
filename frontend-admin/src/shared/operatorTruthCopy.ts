@@ -141,7 +141,7 @@ export const OPERATOR_FO_QUEUE_COPY = {
     /** Always-visible top banner — primary operational truth + URL guidance (Phase 1 redesign). */
     pageTopDisclaimerMessage: 'FinanzOnline-Abgleich — operative Zeilenebene',
     pageTopDisclaimerLead:
-        'Diese Tabelle ist die primäre Oberfläche für den FinanzOnline-Status je Zahlung (serverseitig gefilterte Listen-API, Limit 200). Zeilenaktionen und Felder beziehen sich auf die jeweilige Zahlung — keine Schnittstellen-Diagnose allein.',
+        'Diese Tabelle zeigt den FinanzOnline-Status je Zahlung aus der zahlungszeilenbasierten Listen-API (Limit 200) — abgeleitet/Legacy. Für SOAP-Übermittlung, Protokoll und Terminalität ist die Outbox die autoritative Oberfläche; die Spalte »Outbox« spiegelt nur den zuletzt bekannten Stand aus der Pipeline.',
     pageTopDisclaimerUrlContext:
         'URL-Parameter wie investigationBatchCorrelationId oder focusPaymentId dienen nur der Orientierung beim Wechsel zwischen Incident, Replay und dieser Ansicht — sie filtern die Liste nicht zusätzlich nach Correlation pro Zeile (Abgleichszeilen enthalten keine Correlation-ID im DTO).',
     /** Short label on aggregated metric cards */
@@ -159,11 +159,13 @@ export const OPERATOR_FO_QUEUE_COPY = {
         'Die folgenden Links nutzen die Batch-Correlation aus der aktuellen URL (Orientierung — gilt für alle sichtbaren Zeilen gleich, nicht als Zeilenfeld gespeichert).',
     retryActionButtonTooltip:
         'Erneut senden erscheint nur bei bestimmten API-Statuswerten und vorhandener paymentId — reine UI-/Client-Regel, kein separates Backend-Feld „retryable“ und keine Erfolgsgarantie.',
+    retryOutboxLifecycleHint:
+        '»Erneut senden« löst die Retry-Route der Abgleichs-API (Zahlung) aus — nicht den Outbox-Hintergrundzyklus. Ergebnis und endgültigen Status bitte in der Outbox prüfen.',
     pagePrimaryOperationalTruthLead:
-        'Primäre operative Oberfläche für FinanzOnline je Zahlung: serverseitig gefilterte Abgleichstabelle und Zeilenaktionen (siehe Vertrags- und Metrik-Hinweise auf dieser Seite).',
+        'Zahlungszeilen-Ansicht für FinanzOnline-Abgleich (Legacy): serverseitig gefilterte Liste und Zeilenaktionen — nicht gleichbedeutend mit der autoritativen Outbox-Pipeline (siehe Vertrags- und Metrik-Hinweise).',
     /** One-line lead under page title — same operational meaning as pagePrimaryOperationalTruthLead; full text stays in collapsible panel. */
     pageLeadCompact:
-        'Serverseitig gefilterte FinanzOnline-Abgleichszeilen (Limit 200) mit Zeilenaktion »Erneut senden« — ausführlicher Kontext unten einklappbar.',
+        'Zahlungszeilen-Abgleich (Legacy, Limit 200) mit »Erneut senden« — Outbox bleibt maßgeblich für SOAP-Lebenszyklus; Details unten einklappbar.',
     relatedSupportingLabel: 'Verwandt (unterstützend / Diagnose)',
     /** Collapse panel: full lead + related-route links (FO queue page top band). */
     foQueueListenKontextCollapseTitle: 'Ausführlicher Listen-Kontext & verwandte Oberflächen',
@@ -194,7 +196,7 @@ export const OPERATOR_FO_QUEUE_COPY = {
         'Transient / Permanent / Unbekannt oben sind Laufzeit-Zähler aus der Metrik-API — keine zeilenweise Fehlerklasse in der Abgleichsliste.',
     /** Retry UI honesty */
     foStatusColumnTooltip:
-        'FinanzOnline-Status aus der Abgleich-API (keine eigene Fehlerklassifikation im Datenmodell).',
+        'FinanzOnline-Status aus der Abgleich-API (Zahlungszeile) — nicht automatisch identisch mit Outbox-Status oder Terminalität der SOAP-Pipeline.',
     foActionColumnTooltip:
         'Spiegelt nur, ob in dieser Ansicht der Button »Erneut senden« erscheint — kein separates Backend-Feld „retryable“ und keine Terminalitäts-Garantie.',
     foTimelineColumnTooltip:

@@ -40,6 +40,7 @@ import {
     toLinkSafeRegisterRowId,
 } from '@/shared/utils/registerIdentity';
 import {
+    buildFinanzOnlineOutboxHandoffHref,
     buildFinanzOnlineQueueInvestigationHref,
     buildIncidentInvestigationHref,
     buildReplayBatchDetailHref,
@@ -66,7 +67,16 @@ import {
     getFinanzOnlineRetryUiState,
     isFinanzOnlineRetryButtonContract,
 } from '@/shared/foReconciliationRowTriage';
-import { finanzOnlineRowTechnicalResponseSummary } from '@/shared/finanzOnlineReconciliationTruth';
+import {
+    finanzOnlineRowLegacyErrorParagraphType,
+    finanzOnlineRowTechnicalResponseSummary,
+} from '@/shared/finanzOnlineReconciliationTruth';
+import {
+    finanzOnlineOutboxLifecyclePhaseTagColor,
+    finanzOnlineTransportPathTagColor,
+    isSimulatedFinanzOnlineTransportPath,
+    labelFinanzOnlineTransportPathKind,
+} from '@/shared/finanzOnlineTransportPathPresentation';
 import {
     OPERATOR_FO_OPERATIONS_PAGE_COPY,
     OPERATOR_FO_QUEUE_COPY,
@@ -213,6 +223,12 @@ export default function FinanzOnlineReconciliationPage() {
         [retryMutation],
     );
 
+    const retryActionCombinedTooltip = useMemo(
+        () =>
+            `${OPERATOR_FO_QUEUE_COPY.retryActionButtonTooltip}\n\n${OPERATOR_FO_QUEUE_COPY.retryOutboxLifecycleHint}`,
+        [],
+    );
+
     const columns = useMemo(
         () => [
         {
@@ -268,7 +284,12 @@ export default function FinanzOnlineReconciliationPage() {
             key: 'finanzOnlineStatus',
             width: 130,
             render: (val: string | null) => (
-                <Tag color={statusBadgeColor(val)}>{val ?? '—'}</Tag>
+                <Space direction="vertical" size={0}>
+                    <Tag color={statusBadgeColor(val)}>{val ?? '—'}</Tag>
+                    <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                        {t('finanzOnlineReconciliation.queuePage.columns.legacyFoDerivedSubtitle')}
+                    </Typography.Text>
+                </Space>
             ),
         },
         {
@@ -285,6 +306,100 @@ export default function FinanzOnlineReconciliationPage() {
                     <Tooltip title={ui.tooltip}>
                         <Tag color={ui.tagColor}>{ui.tagLabel}</Tag>
                     </Tooltip>
+                );
+            },
+        },
+        {
+            title: (
+                <Tooltip title={t('finanzOnlineReconciliation.queuePage.columns.outboxIntegratedTooltip')}>
+                    <span>{t('finanzOnlineReconciliation.queuePage.columns.outboxPrimaryShort')}</span>
+                </Tooltip>
+            ),
+            key: 'outboxPrimary',
+            width: 200,
+            render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => {
+                const phase = r.outboxLifecyclePhase;
+                const st = r.outboxStatus;
+                const tpk = r.outboxTransportPathKind;
+                const outboxHandoffHref = buildFinanzOnlineOutboxHandoffHref(r.outboxMessageId);
+                if (!phase && !st && !r.outboxMessageId && !tpk?.trim()) {
+                    return <Typography.Text type="secondary">—</Typography.Text>;
+                }
+                return (
+                    <Space direction="vertical" size={4}>
+                        {tpk?.trim() ? (
+                            <Tooltip title={tpk}>
+                                <Tag color={finanzOnlineTransportPathTagColor(tpk)}>
+                                    {labelFinanzOnlineTransportPathKind((k) => t(k), tpk, '—')}
+                                </Tag>
+                            </Tooltip>
+                        ) : null}
+                        {phase ? (
+                            <Tag color={finanzOnlineOutboxLifecyclePhaseTagColor(phase, tpk)}>
+                                {phase}
+                            </Tag>
+                        ) : null}
+                        {st ? (
+                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                {st}
+                            </Typography.Text>
+                        ) : null}
+                        {r.outboxTransmissionId?.trim() ? (
+                            <Typography.Text type="secondary" style={{ fontSize: 10, wordBreak: 'break-all' }}>
+                                {t('finanzOnlineReconciliation.queuePage.columns.outboxEvidenceTransmission', {
+                                    id: r.outboxTransmissionId,
+                                })}
+                            </Typography.Text>
+                        ) : null}
+                        {r.outboxExternalReferenceId?.trim() ? (
+                            <Typography.Text type="secondary" style={{ fontSize: 10, wordBreak: 'break-all' }}>
+                                {t('finanzOnlineReconciliation.queuePage.columns.outboxEvidenceExternalRef', {
+                                    id: r.outboxExternalReferenceId,
+                                })}
+                            </Typography.Text>
+                        ) : null}
+                        {r.outboxProtocolCode?.trim() ? (
+                            <Typography.Text code style={{ fontSize: 10, wordBreak: 'break-all', display: 'block' }}>
+                                {r.outboxProtocolCode.trim()}
+                            </Typography.Text>
+                        ) : null}
+                        {r.outboxProtocolSummary?.trim() ? (
+                            <Typography.Text type="secondary" style={{ fontSize: 10, wordBreak: 'break-all' }}>
+                                {r.outboxProtocolSummary.trim()}
+                            </Typography.Text>
+                        ) : null}
+                        {r.outboxProcessedAtUtc && dayjs(r.outboxProcessedAtUtc).isValid() ? (
+                            <Typography.Text type="secondary" style={{ fontSize: 10, wordBreak: 'break-all' }}>
+                                {t('finanzOnlineReconciliation.queuePage.columns.outboxProcessedUtc', {
+                                    at: formatDateTime(r.outboxProcessedAtUtc, formatLocale, {
+                                        dateStyle: 'short',
+                                        timeStyle: 'medium',
+                                    }),
+                                })}
+                            </Typography.Text>
+                        ) : null}
+                        {st === 'ProtocolSuccess' && isSimulatedFinanzOnlineTransportPath(tpk) ? (
+                            <Typography.Text type="warning" style={{ fontSize: 10 }}>
+                                {t('finanzOnlineReconciliation.queuePage.columns.protocolSuccessSimulatedColumnNote')}
+                            </Typography.Text>
+                        ) : null}
+                        {r.outboxIsTerminal === true ? (
+                            <Tag color="purple">{t('finanzOnlineReconciliation.queuePage.columns.outboxTerminalTag')}</Tag>
+                        ) : null}
+                        {outboxHandoffHref ? (
+                            <Link href={outboxHandoffHref}>
+                                {t('finanzOnlineReconciliation.queuePage.columns.outboxOpenThisMessageLink')}
+                            </Link>
+                        ) : null}
+                        <Link href="/rksv/finanz-online-outbox">
+                            {t('finanzOnlineReconciliation.queuePage.columns.outboxOpenLink')}
+                        </Link>
+                        {r.outboxMessageId ? (
+                            <Typography.Text code copyable style={{ fontSize: 10, wordBreak: 'break-all' }}>
+                                {r.outboxMessageId}
+                            </Typography.Text>
+                        ) : null}
+                    </Space>
                 );
             },
         },
@@ -329,9 +444,10 @@ export default function FinanzOnlineReconciliationPage() {
             width: 220,
             render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => {
                 const summary = finanzOnlineRowTechnicalResponseSummary(r);
+                const errType = finanzOnlineRowLegacyErrorParagraphType(r);
                 return summary ? (
                     <Typography.Paragraph
-                        type="danger"
+                        type={errType}
                         style={{ marginBottom: 0, maxWidth: 212, fontSize: 12, lineHeight: 1.35 }}
                         ellipsis={{ rows: 2, tooltip: summary }}
                     >
@@ -344,7 +460,7 @@ export default function FinanzOnlineReconciliationPage() {
         },
         {
             title: (
-                <Tooltip title={t('finanzOnlineReconciliation.queuePage.columns.foRefTooltip')}>
+                <Tooltip title={t('finanzOnlineReconciliation.queuePage.columns.referenceFoIntegratedTooltip')}>
                     <span>{t('finanzOnlineReconciliation.queuePage.columns.referenceFoShort')}</span>
                 </Tooltip>
             ),
@@ -417,7 +533,9 @@ export default function FinanzOnlineReconciliationPage() {
                 const paymentId = r.paymentId ?? '';
                 const loading = retryingId === paymentId;
                 return canRetry && paymentId ? (
-                    <Tooltip title={OPERATOR_FO_QUEUE_COPY.retryActionButtonTooltip}>
+                    <Tooltip
+                        title={<span style={{ whiteSpace: 'pre-wrap' }}>{retryActionCombinedTooltip}</span>}
+                    >
                         <Button
                             type="link"
                             size="small"
@@ -432,7 +550,7 @@ export default function FinanzOnlineReconciliationPage() {
             },
         },
         ],
-        [t, formatLocale, retryingId, handleRetry],
+        [t, formatLocale, retryingId, handleRetry, retryActionCombinedTooltip],
     );
 
     const isLoading = listLoading || metricsLoading;
@@ -505,6 +623,14 @@ export default function FinanzOnlineReconciliationPage() {
             />
 
             <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message={t('finanzOnlineReconciliation.queuePage.derivedLegacyTruthAlert.title')}
+                description={t('finanzOnlineReconciliation.queuePage.derivedLegacyTruthAlert.description')}
+            />
+
+            <Alert
                 type="info"
                 showIcon
                 style={{ marginBottom: 12 }}
@@ -567,6 +693,31 @@ export default function FinanzOnlineReconciliationPage() {
                         >
                             {t('common.buttons.retry')}
                         </Button>
+                    }
+                />
+            ) : null}
+
+            {listData && listData.finanzOnlineTransportSimulationActive === false ? (
+                <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message={t('finanzOnlineReconciliation.queuePage.transportSurfaceBadge.real')}
+                />
+            ) : null}
+
+            {listData?.finanzOnlineTransportSimulationActive === true ? (
+                <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message={t('finanzOnlineReconciliation.simulationBanners.transportSimActive')}
+                    description={
+                        listData?.finanzOnlineDeveloperSimulationProfile
+                            ? t('finanzOnlineReconciliation.simulationBanners.developerScenario', {
+                                  profile: listData.finanzOnlineDeveloperSimulationProfile,
+                              })
+                            : undefined
                     }
                 />
             ) : null}
@@ -844,11 +995,12 @@ export default function FinanzOnlineReconciliationPage() {
                                 t('finanzOnlineReconciliation.queuePage.table.paginationTotal', { total }),
                         }}
                         size="small"
-                        scroll={{ x: 1620 }}
+                        scroll={{ x: 1740 }}
                         expandable={{
                             expandedRowRender: (record) => {
                                 const reg = viewFinanzReconciliationRegister(record);
                                 const pid = record.paymentId?.trim() ?? '';
+                                const rowOutboxHandoffHref = buildFinanzOnlineOutboxHandoffHref(record.outboxMessageId);
                                 const syncHref = buildFinanzOnlineQueueInvestigationHref({
                                     registerRowId: toLinkSafeRegisterRowId(cashRegisterId),
                                     focusPaymentId,
@@ -865,11 +1017,111 @@ export default function FinanzOnlineReconciliationPage() {
 
                                         <Divider orientation="left" plain style={{ margin: '12px 0 8px' }}>
                                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                                {t('finanzOnlineReconciliation.queuePage.expandRow.authoritativeOutboxTitle')}
+                                            </Typography.Text>
+                                        </Divider>
+                                        {record.outboxLifecyclePhase === 'ProtocolSuccess' &&
+                                        isSimulatedFinanzOnlineTransportPath(record.outboxTransportPathKind) ? (
+                                            <Alert
+                                                type="warning"
+                                                showIcon
+                                                style={{ marginBottom: 8 }}
+                                                message={t(
+                                                    'finanzOnlineReconciliation.queuePage.expandRow.protocolSuccessSimulatedExpandNote',
+                                                )}
+                                            />
+                                        ) : null}
+                                        <Descriptions bordered size="small" column={1}>
+                                            <Descriptions.Item label={t('finanzOnlineReconciliation.queuePage.expandRow.outboxTransportPath')}>
+                                                {record.outboxTransportPathKind?.trim()
+                                                    ? labelFinanzOnlineTransportPathKind(
+                                                          (k) => t(k),
+                                                          record.outboxTransportPathKind,
+                                                          '—',
+                                                      )
+                                                    : '—'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelOutboxMessageId')}
+                                            >
+                                                {record.outboxMessageId?.trim() ? (
+                                                    <Typography.Text code copyable>
+                                                        {record.outboxMessageId}
+                                                    </Typography.Text>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelOutboxStatus')}
+                                            >
+                                                {record.outboxStatus ?? '—'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelOutboxLifecyclePhase')}
+                                            >
+                                                {record.outboxLifecyclePhase ?? '—'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelOutboxTransmissionId')}
+                                            >
+                                                {record.outboxTransmissionId?.trim() ? (
+                                                    <Typography.Text code copyable>
+                                                        {record.outboxTransmissionId}
+                                                    </Typography.Text>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelOutboxExternalReferenceId')}
+                                            >
+                                                {record.outboxExternalReferenceId?.trim() ? (
+                                                    <Typography.Text code copyable>
+                                                        {record.outboxExternalReferenceId}
+                                                    </Typography.Text>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelOutboxProtocolCode')}
+                                            >
+                                                {record.outboxProtocolCode ?? '—'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelOutboxProtocolSummary')}
+                                            >
+                                                {record.outboxProtocolSummary ?? '—'}
+                                            </Descriptions.Item>
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelOutboxProcessedAtUtc')}
+                                            >
+                                                {record.outboxProcessedAtUtc && dayjs(record.outboxProcessedAtUtc).isValid()
+                                                    ? `${formatDateTime(record.outboxProcessedAtUtc, formatLocale, {
+                                                          dateStyle: 'short',
+                                                          timeStyle: 'medium',
+                                                      })} UTC`
+                                                    : '—'}
+                                            </Descriptions.Item>
+                                        </Descriptions>
+                                        {rowOutboxHandoffHref ? (
+                                            <Typography.Paragraph style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
+                                                <Link href={rowOutboxHandoffHref}>
+                                                    {t('finanzOnlineReconciliation.queuePage.expandRow.openHandoffOutboxSameCase')}
+                                                </Link>
+                                            </Typography.Paragraph>
+                                        ) : null}
+
+                                        <Divider orientation="left" plain style={{ margin: '12px 0 8px' }}>
+                                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                                 {OPERATOR_FO_QUEUE_COPY.expandSectionErrorTitle}
                                             </Typography.Text>
                                         </Divider>
                                         <Descriptions bordered size="small" column={1}>
-                                            <Descriptions.Item label="finanzOnlineError">
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelFinanzOnlineError')}
+                                            >
                                                 {record.finanzOnlineError?.trim() ? (
                                                     <Typography.Text type="danger" copyable>
                                                         {record.finanzOnlineError}
@@ -886,7 +1138,9 @@ export default function FinanzOnlineReconciliationPage() {
                                             </Typography.Text>
                                         </Divider>
                                         <Descriptions bordered size="small" column={1}>
-                                            <Descriptions.Item label="paymentId">
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelPaymentId')}
+                                            >
                                                 {pid ? (
                                                     <Typography.Text code copyable>
                                                         {pid}
@@ -895,7 +1149,9 @@ export default function FinanzOnlineReconciliationPage() {
                                                     '—'
                                                 )}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label="receiptNumber">
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelReceiptNumber')}
+                                            >
                                                 {record.receiptNumber?.trim() ? (
                                                     <Typography.Text code copyable>
                                                         {record.receiptNumber}
@@ -904,7 +1160,9 @@ export default function FinanzOnlineReconciliationPage() {
                                                     '—'
                                                 )}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label="cashRegisterId">
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelCashRegisterId')}
+                                            >
                                                 {reg.apiCashRegisterId ? (
                                                     <Typography.Text code copyable>
                                                         {reg.apiCashRegisterId}
@@ -913,7 +1171,9 @@ export default function FinanzOnlineReconciliationPage() {
                                                     '—'
                                                 )}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label="finanzOnlineReferenceId">
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelFinanzOnlineReferenceId')}
+                                            >
                                                 {record.finanzOnlineReferenceId?.trim() ? (
                                                     <Typography.Text code copyable>
                                                         {record.finanzOnlineReferenceId}
@@ -933,12 +1193,18 @@ export default function FinanzOnlineReconciliationPage() {
                                             {OPERATOR_FO_QUEUE_COPY.expandTimestampsUtcHint}
                                         </Typography.Paragraph>
                                         <Descriptions bordered size="small" column={1}>
-                                            <Descriptions.Item label="createdAt">
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelCreatedAt')}
+                                            >
                                                 {record.createdAt && dayjs(record.createdAt).isValid()
                                                     ? dayjs(record.createdAt).format('DD.MM.YYYY HH:mm:ss')
                                                     : '—'}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label="finanzOnlineLastAttemptAtUtc">
+                                            <Descriptions.Item
+                                                label={t(
+                                                    'finanzOnlineReconciliation.queuePage.expandRow.labelFinanzOnlineLastAttemptAtUtc',
+                                                )}
+                                            >
                                                 {record.finanzOnlineLastAttemptAtUtc &&
                                                 dayjs(record.finanzOnlineLastAttemptAtUtc).isValid()
                                                     ? dayjs(record.finanzOnlineLastAttemptAtUtc).format(
@@ -946,7 +1212,9 @@ export default function FinanzOnlineReconciliationPage() {
                                                       )
                                                     : '—'}
                                             </Descriptions.Item>
-                                            <Descriptions.Item label="finanzOnlineRetryCount">
+                                            <Descriptions.Item
+                                                label={t('finanzOnlineReconciliation.queuePage.expandRow.labelFinanzOnlineRetryCount')}
+                                            >
                                                 {record.finanzOnlineRetryCount ?? 0}
                                             </Descriptions.Item>
                                         </Descriptions>

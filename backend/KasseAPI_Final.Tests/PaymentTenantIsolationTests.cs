@@ -6,6 +6,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -63,7 +64,7 @@ public sealed class PaymentTenantIsolationTests
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
         var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), tenantResolver);
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
-        return new PaymentService(ctx, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, new NoOpProductModifierValidationService(), Mock.Of<IReceiptSequenceService>(), receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(ctx, tenantResolver), new PricingRuleResolver(ctx, tenantResolver), tenantResolver);
+        return new PaymentService(ctx, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, new NoOpProductModifierValidationService(), Mock.Of<IReceiptSequenceService>(), receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), Options.Create(new InventoryOptions()), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(ctx, tenantResolver), new PricingRuleResolver(ctx, tenantResolver), tenantResolver);
     }
 
     private static PaymentDetails MinimalPayment(Guid id, Guid customerId, Guid cashRegisterId, DateTime createdAt)

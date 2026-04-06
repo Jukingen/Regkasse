@@ -7,6 +7,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers
@@ -39,19 +40,30 @@ namespace KasseAPI_Final.Controllers
         /// <summary>
         /// Ürün listesi (sayfalama, opsiyonel categoryId ve name araması). GET api/admin/products
         /// </summary>
+        /// <param name="isActive">Optional: omit or "true" = active only (default); "false" = inactive only; "all" = both.</param>
         [HttpGet]
         public async Task<IActionResult> GetList(
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 20,
             [FromQuery] Guid? categoryId = null,
-            [FromQuery] string? name = null)
+            [FromQuery] string? name = null,
+            [FromQuery] string? isActive = null)
         {
             try
             {
+                if (!AdminProductListIsActiveFilterParser.TryParse(isActive, out var activeMode, out var filterError))
+                    return ErrorResponse(filterError!, 400);
+
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
                 var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
 
-                var query = _context.Products.Where(p => p.IsActive && p.TenantId == tenantId);
+                var query = _context.Products.Where(p => p.TenantId == tenantId);
+                query = activeMode switch
+                {
+                    AdminProductListIsActiveFilterMode.ActiveOnly => query.Where(p => p.IsActive),
+                    AdminProductListIsActiveFilterMode.InactiveOnly => query.Where(p => !p.IsActive),
+                    _ => query
+                };
                 if (categoryId.HasValue)
                     query = query.Where(p => p.CategoryId == categoryId.Value);
                 if (!string.IsNullOrWhiteSpace(name))
@@ -96,7 +108,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var product = await _productRepository.GetByIdAsync(id);
+                var product = await GetAdminProductByIdAsync(id);
                 if (product == null)
                     return ErrorResponse("Product not found", 404);
 
@@ -192,7 +204,7 @@ namespace KasseAPI_Final.Controllers
                 if (!validationResult.IsValid)
                     return ErrorResponse(validationResult.ErrorMessage!, 400);
 
-                var existingProduct = await _productRepository.GetByIdAsync(id);
+                var existingProduct = await GetAdminProductByIdAsync(id);
                 if (existingProduct == null)
                     return ErrorResponse("Product not found", 404);
 
@@ -210,10 +222,14 @@ namespace KasseAPI_Final.Controllers
                 product.UpdatedBy = User.Identity?.Name ?? "system";
                 product.CreatedAt = existingProduct.CreatedAt;
                 product.CreatedBy = existingProduct.CreatedBy;
+                product.TenantId = existingProduct.TenantId;
 
-                var updatedProduct = await _productRepository.UpdateAsync(product);
+                _context.Entry(existingProduct).State = EntityState.Detached;
+                _context.Products.Update(product);
+                await _context.SaveChangesAsync();
+
                 _logger.LogInformation("Admin product updated: {Name} (ID: {Id})", product.Name, id);
-                return SuccessResponse(AdminProductDto.FromProduct(updatedProduct), "Product updated successfully");
+                return SuccessResponse(AdminProductDto.FromProduct(product), "Product updated successfully");
             }
             catch (Exception ex)
             {
@@ -233,7 +249,8 @@ namespace KasseAPI_Final.Controllers
                 if (request.Quantity < 0)
                     return ErrorResponse("Stock quantity cannot be negative", 400);
 
-                var product = await _productRepository.GetByIdAsync(id);
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
                 if (product == null)
                     return ErrorResponse("Product not found", 404);
 
@@ -244,7 +261,7 @@ namespace KasseAPI_Final.Controllers
                     product.StockQuantity = request.Quantity;
                     product.UpdatedAt = DateTime.UtcNow;
                     product.UpdatedBy = User.Identity?.Name ?? "system";
-                    await _productRepository.UpdateAsync(product);
+                    await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
                     _logger.LogInformation("Admin product stock updated: {Name} (ID: {Id}) Old: {Old}, New: {New}", product.Name, id, oldStock, request.Quantity);
                     return SuccessResponse(AdminProductDto.FromProduct(product), "Product stock updated successfully");
@@ -270,9 +287,20 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var deleted = await _productRepository.DeleteAsync(id);
-                if (!deleted)
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var entity = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+                if (entity == null)
                     return ErrorResponse("Product not found", 404);
+                if (!entity.IsActive)
+                {
+                    _logger.LogInformation("Admin product delete skipped (already inactive): {Id}", id);
+                    return SuccessResponse(new { id }, "Product deleted successfully");
+                }
+
+                entity.IsActive = false;
+                entity.UpdatedAt = DateTime.UtcNow;
+                entity.UpdatedBy = User.Identity?.Name ?? "system";
+                await _context.SaveChangesAsync();
                 _logger.LogInformation("Admin product deleted: {Id}", id);
                 return SuccessResponse(new { id }, "Product deleted successfully");
             }
@@ -380,6 +408,12 @@ namespace KasseAPI_Final.Controllers
             {
                 return HandleException(ex, "AdminProducts.SetProductModifierGroups");
             }
+        }
+
+        private async Task<Product?> GetAdminProductByIdAsync(Guid id)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+            return await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
         }
 
         private async Task<ValidationResult> ValidateProductForRKSVAsync(Product product)

@@ -3,7 +3,65 @@
     "leadTag": "Outbox / SOAP",
     "leadLine": "Primary operational view for FinanzOnline submission and protocol reconciliation (TEST and PROD).",
     "leadNoPaymentRows": "Not payment-row based — for that use",
-    "leadLegacyQueueLink": "Payment reconciliation (legacy)"
+    "leadLegacyQueueLink": "Payment reconciliation (legacy)",
+    "authoritativeLine": "Authoritative source for submission lifecycle and protocol evidence: this outbox list (not the legacy payment-row view)."
+  },
+  "transportPath": {
+    "bannerSimulated": "Simulated FinanzOnline transport is active — success and protocol states here reflect simulation only, not a live BMF connection.",
+    "bannerReal": "Real FinanzOnline transport (no transport simulation) — protocol and status refer to the configured SOAP path.",
+    "developerScenario": "Developer simulation profile: {{profile}}",
+    "kind": {
+      "Simulated": "Simulated",
+      "RealTest": "Real test (SOAP TEST)",
+      "RealProduction": "Real production (SOAP PROD)"
+    }
+  },
+  "readiness": {
+    "cardTitle": "FinanzOnline — configuration readiness",
+    "cardSubtitle": "No live SOAP call; checks simulation vs real TEST pipeline and outbox worker. API messages are technical English.",
+    "loadError": "Could not load readiness.",
+    "overall": "Overall status",
+    "transportMode": "Transport mode",
+    "realTestSubmit": "Real TEST submit possible (per config)",
+    "protocol": "Protocol reconciliation possible (per config)",
+    "outboxWorker": "Outbox worker enabled",
+    "yes": "Yes",
+    "no": "No",
+    "findingsTitle": "Configuration findings",
+    "findingsDetailHint": "Short German title in de-DE UI — technical API text below in English.",
+    "findingTitleFallback": "Configuration note",
+    "findingTitles": {
+      "FO_READINESS_MIXED_TRANSPORT_LAYERS": "Mixed transport layers (unsupported)",
+      "FO_READINESS_SIMULATION_ACTIVE": "Simulation active — not BMF live",
+      "FO_READINESS_CONFLICT_ENABLE_REAL_TEST_WITH_REG_SIMULATION": "Conflict: real TEST submit with register simulation",
+      "FO_READINESS_CONFLICT_ENABLE_REAL_QUERY_WITH_TX_SIMULATION": "Conflict: real query with transmission simulation",
+      "FO_READINESS_ENDPOINTS_FROM_COMPANY_SETTINGS": "SOAP endpoints from company settings (legacy note)",
+      "FO_READINESS_COMPANY_SETTINGS_UNVERIFIED_IN_THIS_CONTEXT": "Company settings not verified in this call",
+      "FO_READINESS_COMPANY_SETTINGS_ROW_MISSING": "No company_settings row for tenant",
+      "FO_READINESS_COMPANY_SETTINGS_API_URL_MISSING": "FinanzOnlineApiUrl missing in company settings",
+      "FO_READINESS_COMPANY_SETTINGS_CREDENTIALS_INCOMPLETE": "FinanzOnline credentials incomplete in company settings",
+      "FO_READINESS_COMPANY_SETTINGS_PARTICIPANT_IDS_INCOMPLETE": "Telematik/Hersteller ID missing in company settings",
+      "FO_READINESS_CONFIG_SESSION_CREDENTIALS_MISSING": "Session credentials missing in configuration",
+      "FO_READINESS_CONFIG_SESSION_PARTICIPANT_IDS_MISSING": "Telematik/Hersteller ID missing in configuration",
+      "FO_READINESS_SESSION_BASEURL_MISSING": "Session base URL missing",
+      "FO_READINESS_RKDB_BASEURL_MISSING": "RKDB base URL missing",
+      "FO_READINESS_REAL_TEST_SUBMISSION_DISABLED": "Real TEST submit disabled by config",
+      "FO_READINESS_REAL_TEST_PROTOCOL_QUERY_DISABLED": "Real protocol reconciliation disabled by config",
+      "FO_READINESS_OUTBOX_DISABLED": "Outbox pipeline disabled (no background worker)",
+      "FO_READINESS_OUTBOX_WORKER_DISABLED": "Outbox pipeline disabled (no background worker)",
+      "FO_READINESS_DEVTEST_SMOKE_ENQUEUE_ENABLED": "Dev test smoke enqueue enabled",
+      "FO_READINESS_SIMULATION_SCENARIO_IGNORED_IN_PRODUCTION": "Simulation scenario ignored in production",
+      "FO_READINESS_SIMULATION_SCENARIO_UNKNOWN": "Unknown simulation scenario",
+      "FO_READINESS_SIMULATION_SCENARIO_NOT_APPLIED": "Simulation scenario not applied",
+      "FO_READINESS_SIMULATION_SCENARIO_ACTIVE": "Configured simulation scenario active"
+    },
+    "scenarioConfigured": "Configured scenario (raw)",
+    "scenarioEffective": "Effective scenario",
+    "scenarioDelay": "Simulation fixed delay (ms)",
+    "scenarioSeed": "Simulation seed",
+    "outboxCountsTitle": "Outbox rows by status",
+    "healthProbeHint": "Public probe (no auth): GET /health/finanzonline — same evaluator as admin, but no tenant company_settings probe and no outbox counts.",
+    "apiSummary": "API summary"
   },
   "privacyAlert": {
     "title": "Privacy notice",
@@ -38,6 +96,7 @@
       "businessKey": "Business key",
       "correlation": "Correlation",
       "mode": "Mode",
+      "transportPath": "Transport path",
       "status": "Status",
       "hintOrError": "Hint / error",
       "attempts": "Attempts",
@@ -46,6 +105,11 @@
       "protocol": "Protocol",
       "createdUtc": "Created (UTC)",
       "processedUtc": "Processed (UTC)"
+    },
+    "protocolSuccess": {
+      "simulatedCaution": "Simulated — no BMF acceptance evidence.",
+      "realTestNote": "Real SOAP TEST — protocol refers to configured TEST path.",
+      "realProductionNote": "Real SOAP production — verify carefully."
     }
   },
   "empty": {
@@ -59,11 +123,14 @@
   },
   "drawer": {
     "title": "Outbox details",
+    "evidenceSectionTitle": "Evidence (outbox)",
+    "protocolSuccessSimulatedAlert": "Note: simulated transport — “protocol success” here is not evidence of live BMF acceptance.",
     "fields": {
       "outboxId": "Outbox ID",
       "businessKey": "Business key",
       "correlation": "Correlation",
       "mode": "Mode",
+      "transportPath": "Transport path (authoritative)",
       "statusTechnical": "Status (technical)",
       "statusDisplay": "Status (display)",
       "hint": "Hint",
@@ -72,6 +139,9 @@
       "failureCategory": "Failure category",
       "attempts": "Attempts",
       "nextAttemptUtc": "Next attempt (UTC)",
+      "evidenceTransmissionTitle": "Evidence · Submission (packet)",
+      "evidenceReferenceTitle": "Evidence · External reference",
+      "evidenceProtocolTitle": "Evidence · Protocol (BMF)",
       "paketTransmission": "Packet / transmission",
       "externalReference": "External reference",
       "externalStatus": "External status",

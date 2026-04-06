@@ -134,6 +134,10 @@ public sealed class FinanzOnlineRegisterSubmissionResponse
     public string? ReferenceId { get; set; }
     public string? Status { get; set; }
     public string? ProtocolCode { get; set; }
+
+    /// <summary>Optional human-readable summary persisted on outbox after submit (simulation may populate).</summary>
+    public string? ProtocolSummary { get; set; }
+
     public string? ErrorCode { get; set; }
     public string? ErrorMessage { get; set; }
 

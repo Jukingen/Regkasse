@@ -16,6 +16,7 @@ using Moq;
 using Xunit;
 
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -118,6 +119,7 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
             auditMock.Object,
             Options.Create(companyProfile),
             Options.Create(tseOptions),
+            Options.Create(new InventoryOptions()),
             loggerPayment,
             cashRegResolver,
             httpAccessorMock.Object,

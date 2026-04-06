@@ -51,6 +51,7 @@ import {
 import type { InventoryHistoryRowDto } from '@/api/generated/model';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { isAdminInventoryNavEnabled } from '@/shared/config/adminInventoryNavUi';
 
 dayjs.extend(utc);
 
@@ -108,6 +109,7 @@ export default function InventoryOperationsPage() {
   const qc = useQueryClient();
   const { hasPermission } = usePermissions();
 
+  const inventoryNavEnabled = isAdminInventoryNavEnabled();
   const canView = hasPermission(PERMISSIONS.INVENTORY_VIEW);
   const canManage = hasPermission(PERMISSIONS.INVENTORY_MANAGE);
   const canAdjust = hasPermission(PERMISSIONS.INVENTORY_ADJUST);
@@ -140,7 +142,7 @@ export default function InventoryOperationsPage() {
 
   const [countDraft, setCountDraft] = useState<Record<string, number | null>>({});
 
-  const invQuery = useGetApiInventory({ query: { enabled: canView } });
+  const invQuery = useGetApiInventory({ query: { enabled: canView && inventoryNavEnabled } });
   const rows = useMemo(() => (invQuery.data ?? []) as EnrichedInventoryRow[], [invQuery.data]);
 
   const filtered = useMemo(() => {
@@ -165,15 +167,15 @@ export default function InventoryOperationsPage() {
   );
 
   const histQ = useGetApiInventoryHistory(histParams, {
-    query: { enabled: canView && tab === 'movements' },
+    query: { enabled: canView && inventoryNavEnabled && tab === 'movements' },
   });
 
   const reorderQ = useGetApiInventoryReorderSuggestions({
-    query: { enabled: canView && tab === 'reorder' },
+    query: { enabled: canView && inventoryNavEnabled && tab === 'reorder' },
   });
 
   const txQ = useGetApiInventoryTransactionsId(drawerInvId ?? '', {
-    query: { enabled: !!drawerInvId },
+    query: { enabled: !!drawerInvId && inventoryNavEnabled },
   });
 
   const invalidateAll = useCallback(async () => {
@@ -457,6 +459,23 @@ export default function InventoryOperationsPage() {
       },
     },
   ];
+
+  if (!inventoryNavEnabled) {
+    return (
+      <div style={{ paddingBottom: 24 }}>
+        <AdminPageHeader
+          title={
+            <Space>
+              <InboxOutlined />
+              {t('adminShell.inventory.pageTitle')}
+            </Space>
+          }
+          breadcrumbs={[adminOverviewCrumb(t), { title: t('adminShell.inventory.pageTitle'), href: '/inventory' }]}
+        />
+        <Alert type="info" showIcon message={t('adminShell.inventory.featureDisabledTitle')} description={t('adminShell.inventory.featureDisabledBody')} style={{ marginTop: 16 }} />
+      </div>
+    );
+  }
 
   if (!canView) {
     return (

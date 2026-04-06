@@ -88,66 +88,118 @@ public sealed class SimulatedFinanzOnlineSessionClient : IFinanzOnlineSessionCli
 public sealed class SimulatedFinanzOnlineRegistrierkassenClient : IFinanzOnlineRegistrierkassenClient
 {
     private readonly ILogger<SimulatedFinanzOnlineRegistrierkassenClient> _logger;
+    private readonly FinanzOnlineDeveloperSimulationEngine _developerSimulation;
 
-    public SimulatedFinanzOnlineRegistrierkassenClient(ILogger<SimulatedFinanzOnlineRegistrierkassenClient> logger)
+    public SimulatedFinanzOnlineRegistrierkassenClient(
+        ILogger<SimulatedFinanzOnlineRegistrierkassenClient> logger,
+        FinanzOnlineDeveloperSimulationEngine developerSimulation)
     {
         _logger = logger;
+        _developerSimulation = developerSimulation;
     }
 
-    public Task<FinanzOnlineRegisterSubmissionResponse> SubmitAsync(
+    public async Task<FinanzOnlineRegisterSubmissionResponse> SubmitAsync(
         FinanzOnlineRegisterSubmissionRequest request,
         FinanzOnlineMappedCommand mappedCommand,
         string sessionToken,
         CancellationToken cancellationToken = default)
     {
+        await _developerSimulation.ApplyLatencyIfDevScenarioActiveAsync(cancellationToken).ConfigureAwait(false);
+
         if (string.IsNullOrWhiteSpace(sessionToken))
         {
-            return Task.FromResult(new FinanzOnlineRegisterSubmissionResponse
+            return new FinanzOnlineRegisterSubmissionResponse
             {
                 Success = false,
                 ErrorCode = "SESSION_REQUIRED",
                 ErrorMessage = "Session token is required."
-            });
+            };
         }
 
+        var overridden = await _developerSimulation
+            .TryRegistrierkassenSubmitAsync(
+                request,
+                () => Task.FromResult(BuildDefaultSuccessResponse(request, mappedCommand)),
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (overridden != null)
+            return overridden;
+
+        return BuildDefaultSuccessResponse(request, mappedCommand);
+    }
+
+    private FinanzOnlineRegisterSubmissionResponse BuildDefaultSuccessResponse(
+        FinanzOnlineRegisterSubmissionRequest request,
+        FinanzOnlineMappedCommand mappedCommand)
+    {
         var now = DateTime.UtcNow;
         var transmissionId = $"SIM-TX-{now:yyyyMMddHHmmss}-{Guid.NewGuid():N}";
         var referenceId = $"FIN_{now:yyyyMMddHHmmss}_{request.Correlation.BusinessKey}";
         _logger.LogDebug("Simulated FinanzOnline submission Operation={Operation} BusinessKey={BusinessKey}",
             mappedCommand.OperationName, request.Correlation.BusinessKey);
 
-        return Task.FromResult(new FinanzOnlineRegisterSubmissionResponse
+        return new FinanzOnlineRegisterSubmissionResponse
         {
             Success = true,
             TransmissionId = transmissionId,
             ReferenceId = referenceId,
             Status = "Submitted",
-            ProtocolCode = "SIM_ACCEPTED"
-        });
+            ProtocolCode = "SIM_ACCEPTED",
+            ProtocolSummary = "Simulated rkdb submission accepted; awaiting status_kasse reconciliation.",
+            RkdbTsErstellungIso = now.ToString("O")
+        };
     }
 }
 
 public sealed class SimulatedFinanzOnlineTransmissionQueryClient : IFinanzOnlineTransmissionQueryClient
 {
-    public Task<FinanzOnlineTransmissionStatusQueryResponse> QueryStatusAsync(FinanzOnlineTransmissionStatusQueryRequest request, CancellationToken cancellationToken = default)
-    {
-        var protocol = new List<FinanzOnlineTransmissionProtocolEntry>
-        {
-            new()
-            {
-                TimestampUtc = DateTimeOffset.UtcNow,
-                Level = "Info",
-                Message = "Simulated protocol entry."
-            }
-        };
+    private readonly FinanzOnlineDeveloperSimulationEngine _developerSimulation;
 
-        return Task.FromResult(new FinanzOnlineTransmissionStatusQueryResponse
+    public SimulatedFinanzOnlineTransmissionQueryClient(FinanzOnlineDeveloperSimulationEngine developerSimulation)
+    {
+        _developerSimulation = developerSimulation;
+    }
+
+    public async Task<FinanzOnlineTransmissionStatusQueryResponse> QueryStatusAsync(
+        FinanzOnlineTransmissionStatusQueryRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        await _developerSimulation.ApplyLatencyIfDevScenarioActiveAsync(cancellationToken).ConfigureAwait(false);
+
+        Task<FinanzOnlineTransmissionStatusQueryResponse> BuildDefaultAsync()
         {
-            Success = true,
-            TransmissionId = request.TransmissionId,
-            Status = "Submitted",
-            Protocol = protocol
-        });
+            var protocol = new List<FinanzOnlineTransmissionProtocolEntry>
+            {
+                new()
+                {
+                    TimestampUtc = DateTimeOffset.UtcNow,
+                    Level = "Info",
+                    Message = "Simulated status_kasse: transmission acknowledged."
+                },
+                new()
+                {
+                    TimestampUtc = DateTimeOffset.UtcNow,
+                    Level = "Info",
+                    Message = "Simulated protocol: closed successfully."
+                }
+            };
+
+            return Task.FromResult(new FinanzOnlineTransmissionStatusQueryResponse
+            {
+                Success = true,
+                TransmissionId = request.TransmissionId,
+                Status = "success",
+                Protocol = protocol
+            });
+        }
+
+        var overridden = await _developerSimulation
+            .TryTransmissionQueryAsync(request, BuildDefaultAsync, cancellationToken)
+            .ConfigureAwait(false);
+        if (overridden != null)
+            return overridden;
+
+        return await BuildDefaultAsync().ConfigureAwait(false);
     }
 }
 

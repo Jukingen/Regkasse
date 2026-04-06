@@ -15,9 +15,11 @@ import {
     SIDEBAR_LAYOUT_ROWS,
     SIDEBAR_NAV_ITEM_CATALOG,
     composeAdminSidebarData,
+    type SidebarCatalogId,
     type SidebarIconToken,
     type SidebarLayoutBlock,
 } from '@/shared/adminSidebarRegistry';
+import { filterCatalogIdsForInventoryNav } from '@/shared/config/adminInventoryNavUi';
 
 const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     ThunderboltOutlined: Icons.ThunderboltOutlined,
@@ -84,19 +86,21 @@ function buildDomainBlocks(
     const out: MenuProps['items'] = [];
     for (const block of blocks) {
         if (block.kind === 'leaves') {
-            for (const id of block.catalogIds) {
+            const leafIds = filterCatalogIdsForInventoryNav(block.catalogIds as readonly SidebarCatalogId[]);
+            for (const id of leafIds) {
                 out.push(catalogLeaf(t, id));
             }
             continue;
         }
         if (block.kind === 'nested') {
             const text = t(block.labelKey);
+            const nestedIds = filterCatalogIdsForInventoryNav(block.catalogIds as readonly SidebarCatalogId[]);
             out.push({
                 key: block.menuKey,
                 icon: iconEl(block.icon),
                 label: text,
                 title: text,
-                children: block.catalogIds.map((id) => catalogLeaf(t, id)),
+                children: nestedIds.map((id) => catalogLeaf(t, id)),
             });
             continue;
         }

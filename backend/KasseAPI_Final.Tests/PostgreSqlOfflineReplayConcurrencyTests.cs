@@ -20,6 +20,7 @@ using Moq;
 using Xunit;
 
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -161,6 +162,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             audit.Object,
             Options.Create(TestCompany),
             Options.Create(new TseOptions { TseMode = "Demo" }),
+            Options.Create(new InventoryOptions()),
             Mock.Of<ILogger<PaymentService>>(),
             cashRegResolver,
             httpAccessor,

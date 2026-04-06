@@ -61,3 +61,12 @@ export function buildFinanzOnlineQueueInvestigationHref(opts: {
     if (ctx) params.set('investigationBatchCorrelationId', truncateInvestigationContextToken(ctx));
     return `${path}?${params.toString()}`;
 }
+
+/**
+ * Deep-link to FinanzOnline outbox list + detail when `outboxMessageId` from reconciliation is a valid UUID.
+ */
+export function buildFinanzOnlineOutboxHandoffHref(outboxMessageId: string | null | undefined): string | null {
+    const id = parseAuthoritativePaymentGuid(outboxMessageId);
+    if (!id) return null;
+    return `/rksv/finanz-online-outbox?outboxId=${encodeURIComponent(id)}`;
+}

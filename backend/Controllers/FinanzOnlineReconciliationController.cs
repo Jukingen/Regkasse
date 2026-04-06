@@ -6,10 +6,13 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Controllers;
@@ -29,17 +32,35 @@ public class FinanzOnlineReconciliationController : ControllerBase
     private readonly IPaymentService _paymentService;
     private readonly IFinanzOnlineMetrics _metrics;
     private readonly ILogger<FinanzOnlineReconciliationController> _logger;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly IOptionsMonitor<FinanzOnlineSessionOptions> _sessionOptions;
+    private readonly IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> _registrierkassenOptions;
+    private readonly IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> _transmissionQueryOptions;
+    private readonly IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> _simulationDeveloperOptions;
+    private readonly IOptionsMonitor<FinanzOnlineSimulationOptions> _simulationScenarioOptions;
 
     public FinanzOnlineReconciliationController(
         AppDbContext context,
         IPaymentService paymentService,
         IFinanzOnlineMetrics metrics,
-        ILogger<FinanzOnlineReconciliationController> logger)
+        ILogger<FinanzOnlineReconciliationController> logger,
+        IHostEnvironment hostEnvironment,
+        IOptionsMonitor<FinanzOnlineSessionOptions> sessionOptions,
+        IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions,
+        IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> transmissionQueryOptions,
+        IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> simulationDeveloperOptions,
+        IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions)
     {
         _context = context;
         _paymentService = paymentService;
         _metrics = metrics;
         _logger = logger;
+        _hostEnvironment = hostEnvironment;
+        _sessionOptions = sessionOptions;
+        _registrierkassenOptions = registrierkassenOptions;
+        _transmissionQueryOptions = transmissionQueryOptions;
+        _simulationDeveloperOptions = simulationDeveloperOptions;
+        _simulationScenarioOptions = simulationScenarioOptions;
     }
 
     /// <summary>
@@ -112,16 +133,85 @@ public class FinanzOnlineReconciliationController : ControllerBase
                 })
                 .ToListAsync(cancellationToken);
 
+            await EnrichWithOutboxAsync(items, cancellationToken).ConfigureAwait(false);
+
+            var transportSim = _sessionOptions.CurrentValue.UseSimulation
+                || _registrierkassenOptions.CurrentValue.UseSimulation
+                || _transmissionQueryOptions.CurrentValue.UseSimulation;
+            var devProfile = FinanzOnlineSimulationDeveloperUi.ActiveProfileForAdminList(
+                _hostEnvironment,
+                _simulationScenarioOptions.CurrentValue,
+                _simulationDeveloperOptions.CurrentValue);
+
             return Ok(new FinanzOnlineReconciliationListResponse
             {
                 Total = items.Count,
-                Items = items
+                Items = items,
+                FinanzOnlineTransportSimulationActive = transportSim,
+                FinanzOnlineDeveloperSimulationProfile = devProfile
             });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "FinanzOnline reconciliation list failed");
             return StatusCode(500, new { message = "Reconciliation list failed.", code = "RECONCILIATION_LIST_ERROR" });
+        }
+    }
+
+    private async Task EnrichWithOutboxAsync(
+        List<FinanzOnlineReconciliationItemDto> items,
+        CancellationToken cancellationToken)
+    {
+        if (items.Count == 0)
+            return;
+
+        var paymentIds = items.Select(i => i.PaymentId).ToList();
+        var invoiceLinks = await _context.Invoices.AsNoTracking()
+            .Where(i => i.SourcePaymentId != null && paymentIds.Contains(i.SourcePaymentId.Value))
+            .Select(i => new { InvoiceId = i.Id, PaymentId = i.SourcePaymentId!.Value })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (invoiceLinks.Count == 0)
+            return;
+
+        var invoiceIds = invoiceLinks.Select(x => x.InvoiceId).Distinct().ToList();
+        var outboxRows = await _context.FinanzOnlineOutboxMessages.AsNoTracking()
+            .Where(m => m.AggregateType == "Invoice" && invoiceIds.Contains(m.AggregateId))
+            .OrderByDescending(m => m.CreatedAt)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var latestByInvoice = new Dictionary<Guid, FinanzOnlineOutboxMessage>();
+        foreach (var m in outboxRows)
+        {
+            if (!latestByInvoice.ContainsKey(m.AggregateId))
+                latestByInvoice[m.AggregateId] = m;
+        }
+
+        var paymentToInvoice = invoiceLinks.GroupBy(x => x.PaymentId).ToDictionary(g => g.Key, g => g.First().InvoiceId);
+
+        var anySim = _sessionOptions.CurrentValue.UseSimulation
+            || _registrierkassenOptions.CurrentValue.UseSimulation
+            || _transmissionQueryOptions.CurrentValue.UseSimulation;
+
+        foreach (var item in items)
+        {
+            if (!paymentToInvoice.TryGetValue(item.PaymentId, out var invoiceId))
+                continue;
+            if (!latestByInvoice.TryGetValue(invoiceId, out var msg))
+                continue;
+
+            item.OutboxMessageId = msg.Id;
+            item.OutboxStatus = msg.Status;
+            item.OutboxLifecyclePhase = FinanzOnlineReconciliationOutboxMapper.MapLifecyclePhase(msg.Status);
+            item.OutboxIsTerminal = FinanzOnlineReconciliationOutboxMapper.IsTerminalStatus(msg.Status);
+            item.OutboxTransportPathKind = FinanzOnlineTransportPathKindResolver.Resolve(anySim, msg.Mode);
+            item.OutboxTransmissionId = msg.TransmissionId;
+            item.OutboxExternalReferenceId = msg.ExternalReferenceId;
+            item.OutboxProtocolCode = msg.ProtocolCode;
+            item.OutboxProtocolSummary = msg.ProtocolSummary;
+            item.OutboxProcessedAtUtc = msg.ProcessedAt;
+            item.OutboxLastResponsePreview = FinanzOnlineReconciliationOutboxMapper.TruncatePreview(msg.LastResponseJson);
         }
     }
 
@@ -157,6 +247,12 @@ public class FinanzOnlineReconciliationListResponse
 {
     public int Total { get; set; }
     public IReadOnlyList<FinanzOnlineReconciliationItemDto> Items { get; set; } = Array.Empty<FinanzOnlineReconciliationItemDto>();
+
+    /// <summary>True when any FinanzOnline transport layer uses simulation (session, rkdb, or transmission query).</summary>
+    public bool? FinanzOnlineTransportSimulationActive { get; set; }
+
+    /// <summary>Non-production: active <c>FinanzOnline:Simulation:Developer</c> profile when not None (see <see cref="FinanzOnlineSimulationDeveloperUi"/>).</summary>
+    public string? FinanzOnlineDeveloperSimulationProfile { get; set; }
 }
 
 public class FinanzOnlineReconciliationItemDto
@@ -171,6 +267,21 @@ public class FinanzOnlineReconciliationItemDto
     public string? FinanzOnlineReferenceId { get; set; }
     public DateTime? FinanzOnlineLastAttemptAtUtc { get; set; }
     public int FinanzOnlineRetryCount { get; set; }
+
+    /// <summary>Authoritative outbox row for this payment's invoice (latest Invoice aggregate message).</summary>
+    public Guid? OutboxMessageId { get; set; }
+    public string? OutboxStatus { get; set; }
+    public string? OutboxLifecyclePhase { get; set; }
+    public bool? OutboxIsTerminal { get; set; }
+    public string? OutboxTransmissionId { get; set; }
+    public string? OutboxExternalReferenceId { get; set; }
+    public string? OutboxProtocolCode { get; set; }
+    public string? OutboxProtocolSummary { get; set; }
+    public DateTime? OutboxProcessedAtUtc { get; set; }
+    public string? OutboxLastResponsePreview { get; set; }
+
+    /// <summary>Simulated | RealTest | RealProduction for the joined outbox row (live transport simulation flags + stored message mode).</summary>
+    public string? OutboxTransportPathKind { get; set; }
 }
 
 public class FinanzOnlineRetryResponse

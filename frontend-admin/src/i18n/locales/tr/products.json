@@ -1,6 +1,10 @@
 {
   "page": {
     "title": "Ürünler",
+    "filterLabel": "Durum",
+    "filterAll": "Tümü",
+    "filterActive": "Aktif",
+    "filterInactive": "Pasif",
     "searchPlaceholder": "Ürün ara …",
     "newProduct": "Yeni ürün",
     "searchHint": "Ürün adına göre arama yapın; en az {{min}} karakter sunucu sorgusu tetikler.",

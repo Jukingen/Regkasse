@@ -257,6 +257,8 @@
   "inventory": {
     "pageTitle": "Stok ve envanter",
     "pageIntro": "Stok özeti, hareketler, yeniden sipariş önerisi, sayım taslağı ve transfer. Kritik değişiklikler denetim kaydına düşer.",
+    "featureDisabledTitle": "Envanter modülü gizli",
+    "featureDisabledBody": "Bu ekran mevcut yayın yapılandırmasında kapalı. Modülü yeniden açmak için yöneticinize başvurun (yapılandırma / admin uygulamasının yeniden derlenmesi).",
     "tabOverview": "Stok",
     "tabMovements": "Hareketler",
     "tabReorder": "Sipariş",

@@ -35,11 +35,15 @@ export type UpdateProductResult = { success: true; product?: Partial<Product>; f
 
 type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : never;
 
+/** Omit or 'true': active only (API default). 'false': inactive only. 'all': both. */
+export type AdminProductsListIsActiveParam = 'true' | 'false' | 'all';
+
 export interface AdminProductsListParams {
   pageNumber?: number;
   pageSize?: number;
   categoryId?: string;
   name?: string;
+  isActive?: AdminProductsListIsActiveParam;
 }
 
 export interface AdminProductsListResponse {
@@ -57,13 +61,29 @@ function unwrapData<T>(res: any): T {
   return res as T;
 }
 
+/** Builds GET query object for list endpoint (stable contract for tests and axios). */
+export function buildAdminProductsListQueryParams(params?: AdminProductsListParams) {
+  return {
+    pageNumber: params?.pageNumber,
+    pageSize: params?.pageSize,
+    categoryId: params?.categoryId,
+    name: params?.name,
+    isActive: params?.isActive,
+  };
+}
+
 export function getAdminProductsList(
   params?: AdminProductsListParams,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<AdminProductsListResponse> {
   return customInstance<AdminProductsListResponse>(
-    { url: ADMIN_PRODUCTS, method: 'GET', params: { pageNumber: params?.pageNumber, pageSize: params?.pageSize, categoryId: params?.categoryId, name: params?.name }, signal },
+    {
+      url: ADMIN_PRODUCTS,
+      method: 'GET',
+      params: buildAdminProductsListQueryParams(params),
+      signal,
+    },
     options
   ).then((res) => unwrapData(res) as AdminProductsListResponse);
 }

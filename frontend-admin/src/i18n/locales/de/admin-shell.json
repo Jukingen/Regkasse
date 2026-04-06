@@ -257,6 +257,8 @@
   "inventory": {
     "pageTitle": "Lager & Bestände",
     "pageIntro": "Bestandsübersicht, Bewegungen, Nachbestell-Hinweise, Inventur (Entwurf lokal) und Umlagerung. Kritische Änderungen werden protokolliert (Audit).",
+    "featureDisabledTitle": "Lager-Modul ausgeblendet",
+    "featureDisabledBody": "Diese Oberfläche ist in der aktuellen Bereitstellung deaktiviert. Wenden Sie sich an die Systembetreuung, um das Lager-Modul wieder sichtbar zu machen (Konfiguration / Neubau der Admin-App).",
     "tabOverview": "Bestand",
     "tabMovements": "Bewegungen",
     "tabReorder": "Nachbestellen",

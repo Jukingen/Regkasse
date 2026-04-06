@@ -257,6 +257,8 @@
   "inventory": {
     "pageTitle": "Inventory & stock",
     "pageIntro": "Stock overview, movements, reorder hints, stocktake (draft local), and transfers. Critical changes are audit-logged.",
+    "featureDisabledTitle": "Inventory module hidden",
+    "featureDisabledBody": "This screen is turned off in the current deployment configuration. Ask your administrator to re-enable the inventory module (configuration / admin app rebuild).",
     "tabOverview": "Stock",
     "tabMovements": "Movements",
     "tabReorder": "Reorder",

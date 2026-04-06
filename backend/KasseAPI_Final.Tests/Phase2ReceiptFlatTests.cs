@@ -15,6 +15,7 @@ using Moq;
 using Xunit;
 
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Configuration;
 
 namespace KasseAPI_Final.Tests;
 
@@ -65,7 +66,7 @@ public class Phase2ReceiptFlatTests
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
         var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
-        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver), new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver);
+        return new PaymentService(context, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, modifierValidation, receiptSeqMock.Object, receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), Options.Create(new InventoryOptions()), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(context, TenantTestDoubles.PrimaryTenantResolver), new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver);
     }
 
     [Fact]

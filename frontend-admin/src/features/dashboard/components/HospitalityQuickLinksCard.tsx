@@ -9,6 +9,7 @@ import { ArrowRightOutlined } from '@ant-design/icons';
 import { useI18n } from '@/i18n/I18nProvider';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { isAdminInventoryNavEnabled } from '@/shared/config/adminInventoryNavUi';
 
 const OPS_CENTER_ANY: readonly string[] = [
   PERMISSIONS.SALE_VIEW,
@@ -23,6 +24,7 @@ type LinkDef = { href: string; labelKey: string; visible: boolean };
 export function HospitalityQuickLinksCard() {
   const { t } = useI18n();
   const { hasPermission, hasAnyPermission } = usePermissions();
+  const inventoryNavEnabled = isAdminInventoryNavEnabled();
 
   const links: LinkDef[] = useMemo(
     () => [
@@ -34,13 +36,17 @@ export function HospitalityQuickLinksCard() {
         visible: hasAnyPermission([...OPS_CENTER_ANY]),
       },
       { href: '/receipts', labelKey: 'adminShell.hospitalityHub.linkReceipts', visible: hasPermission(PERMISSIONS.SALE_VIEW) },
-      { href: '/inventory', labelKey: 'adminShell.hospitalityHub.linkInventory', visible: hasPermission(PERMISSIONS.INVENTORY_VIEW) },
+      {
+        href: '/inventory',
+        labelKey: 'adminShell.hospitalityHub.linkInventory',
+        visible: inventoryNavEnabled && hasPermission(PERMISSIONS.INVENTORY_VIEW),
+      },
       { href: '/pricing-rules', labelKey: 'adminShell.hospitalityHub.linkPricing', visible: hasPermission(PERMISSIONS.PRODUCT_VIEW) },
       { href: '/settings/payment-methods', labelKey: 'adminShell.hospitalityHub.linkPaymentsConfig', visible: hasPermission(PERMISSIONS.SETTINGS_VIEW) },
       { href: '/tables', labelKey: 'adminShell.hospitalityHub.linkTables', visible: hasPermission(PERMISSIONS.TABLE_VIEW) },
       { href: '/rksv/status', labelKey: 'adminShell.hospitalityHub.linkRksvStatus', visible: hasPermission(PERMISSIONS.SETTINGS_VIEW) },
     ],
-    [hasPermission, hasAnyPermission],
+    [hasPermission, hasAnyPermission, inventoryNavEnabled],
   );
 
   const visibleLinks = links.filter((l) => l.visible);

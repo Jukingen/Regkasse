@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -26,6 +27,9 @@ public static class FinanzOnlineTransportStartupDiagnostics
         var cutover = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineCutoverGuardOptions>>().CurrentValue;
         var connectivity = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineConnectivityOptions>>().CurrentValue;
         var devTest = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineDevTestOptions>>().CurrentValue;
+        var simDev = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions>>().CurrentValue;
+        var simScenario = sp.GetRequiredService<IOptionsMonitor<FinanzOnlineSimulationOptions>>().CurrentValue;
+        var hostEnv = sp.GetRequiredService<IHostEnvironment>();
 
         var prodSoapEligible = cutover.AllowProdMode &&
                                (!cutover.RequireExplicitProdApproval ||
@@ -34,7 +38,7 @@ public static class FinanzOnlineTransportStartupDiagnostics
 
         // Yapılandırılmış alanlar: şablon içindeki {Name} anahtarları log sağlayıcısına özellik olarak gider (şifre/token değeri yok).
         logger.LogInformation(
-            "FinanzOnline startup snapshot: SessionUseSimulation={SessionUseSimulation} RegistrierkassenUseSimulation={RegistrierkassenUseSimulation} RegistrierkassenEnableRealTestSubmission={RegistrierkassenEnableRealTestSubmission} TransmissionQueryUseSimulation={TransmissionQueryUseSimulation} TransmissionQueryEnableRealTestQuery={TransmissionQueryEnableRealTestQuery} OutboxEnabled={OutboxEnabled} SoapModes={SoapModes} CutoverAllowProdMode={CutoverAllowProdMode} CutoverRequireExplicitProdApproval={CutoverRequireExplicitProdApproval} CutoverProdApprovalConfigured={CutoverProdApprovalConfigured} ConnectivityUseCompanySettings={ConnectivityUseCompanySettings} DevTestAllowEnqueueSmokeTest={DevTestAllowEnqueueSmokeTest}",
+            "FinanzOnline startup snapshot: SessionUseSimulation={SessionUseSimulation} RegistrierkassenUseSimulation={RegistrierkassenUseSimulation} RegistrierkassenEnableRealTestSubmission={RegistrierkassenEnableRealTestSubmission} TransmissionQueryUseSimulation={TransmissionQueryUseSimulation} TransmissionQueryEnableRealTestQuery={TransmissionQueryEnableRealTestQuery} OutboxEnabled={OutboxEnabled} SoapModes={SoapModes} CutoverAllowProdMode={CutoverAllowProdMode} CutoverRequireExplicitProdApproval={CutoverRequireExplicitProdApproval} CutoverProdApprovalConfigured={CutoverProdApprovalConfigured} ConnectivityUseCompanySettings={ConnectivityUseCompanySettings} DevTestAllowEnqueueSmokeTest={DevTestAllowEnqueueSmokeTest} SimulationDeveloperBehaviorProfile={SimulationDeveloperBehaviorProfile} SimulationScenarioConfigured={SimulationScenarioConfigured} SimulationScenarioEffective={SimulationScenarioEffective} SimulationFixedDelayMs={SimulationFixedDelayMs} SimulationSeed={SimulationSeed}",
             session.UseSimulation,
             reg.UseSimulation,
             reg.EnableRealTestSubmission,
@@ -46,6 +50,38 @@ public static class FinanzOnlineTransportStartupDiagnostics
             cutover.RequireExplicitProdApproval,
             !string.IsNullOrWhiteSpace(cutover.ProdApprovalToken),
             connectivity.UseCompanySettings,
-            devTest.AllowEnqueueSmokeTest);
+            devTest.AllowEnqueueSmokeTest,
+            simDev.BehaviorProfile ?? "None",
+            FinanzOnlineDeveloperSimulationEngine.GetConfiguredScenarioRawOrNull(simScenario) ?? "None",
+            FinanzOnlineDeveloperSimulationEngine.GetEffectiveCanonicalScenarioName(hostEnv, simScenario) ?? "None",
+            simScenario.FixedDelayMs,
+            simScenario.Seed);
+
+        var readiness = FinanzOnlineReadinessEvaluator.Evaluate(
+            session, reg, tx, outbox, connectivity, devTest, simScenario, hostEnv, tenantCompanyProbe: null);
+        foreach (var f in readiness.Findings)
+        {
+            if (string.Equals(f.Severity, "Error", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning(
+                    "FinanzOnline readiness issue (blocking): {Code} — {Message}",
+                    f.Code,
+                    f.Message);
+            }
+            else
+            {
+                logger.LogInformation(
+                    "FinanzOnline readiness note: {Code} — {Message}",
+                    f.Code,
+                    f.Message);
+            }
+        }
+
+        logger.LogInformation(
+            "FinanzOnline readiness summary: OverallStatus={OverallStatus} TransportMode={TransportMode} RealTestSubmissionPossible={RealTestSubmissionPossible} ProtocolReconciliationPossible={ProtocolReconciliationPossible}",
+            readiness.OverallStatus,
+            readiness.TransportMode,
+            readiness.RealTestSubmissionPossible,
+            readiness.ProtocolReconciliationPossible);
     }
 }

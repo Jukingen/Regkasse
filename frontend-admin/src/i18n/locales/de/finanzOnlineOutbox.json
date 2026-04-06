@@ -3,7 +3,65 @@
     "leadTag": "Outbox / SOAP",
     "leadLine": "Primäre operative Sicht für FinanzOnline-Übermittlung und Protokollabgleich (TEST und PROD).",
     "leadNoPaymentRows": "Keine Zahlungszeilen — dafür",
-    "leadLegacyQueueLink": "Zahlungs-Abgleich (Legacy)"
+    "leadLegacyQueueLink": "Zahlungs-Abgleich (Legacy)",
+    "authoritativeLine": "Authoritative Quelle für Übermittlungs-Lebenszyklus und Protokollnachweise: diese Outbox-Liste (nicht die Legacy-Zahlungszeilen-Ansicht)."
+  },
+  "transportPath": {
+    "bannerSimulated": "Simulierter FinanzOnline-Transport aktiv — Erfolgs- und Protokollzustände gelten hier nur für die Simulation, nicht für eine reale BMF-Verbindung.",
+    "bannerReal": "Echter FinanzOnline-Transport (keine Transportsimulation) — Protokoll- und Statusangaben beziehen sich auf den konfigurierten SOAP-Pfad.",
+    "developerScenario": "Entwickler-Simulationsszenario: {{profile}}",
+    "kind": {
+      "Simulated": "Simuliert",
+      "RealTest": "Echter Test (SOAP TEST)",
+      "RealProduction": "Echte Produktion (SOAP PROD)"
+    }
+  },
+  "readiness": {
+    "cardTitle": "FinanzOnline — Konfigurations-Readiness",
+    "cardSubtitle": "Kein Live-SOAP-Aufruf; prüft Simulation vs. echte TEST-Pipeline und Outbox-Worker. Hinweistexte der API sind technisch auf Englisch.",
+    "loadError": "Readiness konnte nicht geladen werden.",
+    "overall": "Gesamtstatus",
+    "transportMode": "Transportmodus",
+    "realTestSubmit": "Echter TEST-Submit möglich (laut Config)",
+    "protocol": "Protokollabgleich möglich (laut Config)",
+    "outboxWorker": "Outbox-Worker aktiv",
+    "yes": "Ja",
+    "no": "Nein",
+    "findingsTitle": "Konfigurationshinweise",
+    "findingsDetailHint": "Kurztitel auf Deutsch — technischer API-Text darunter auf Englisch.",
+    "findingTitleFallback": "Konfigurationshinweis",
+    "findingTitles": {
+      "FO_READINESS_MIXED_TRANSPORT_LAYERS": "Gemischte Transport-Schichten (nicht unterstützt)",
+      "FO_READINESS_SIMULATION_ACTIVE": "Simulation aktiv — kein BMF-Live",
+      "FO_READINESS_CONFLICT_ENABLE_REAL_TEST_WITH_REG_SIMULATION": "Konflikt: echter TEST-Submit mit Registrierkassen-Simulation",
+      "FO_READINESS_CONFLICT_ENABLE_REAL_QUERY_WITH_TX_SIMULATION": "Konflikt: echte Abfrage mit Transmissions-Simulation",
+      "FO_READINESS_ENDPOINTS_FROM_COMPANY_SETTINGS": "SOAP-Endpunkte aus Firmeneinstellungen (Legacy-Hinweis)",
+      "FO_READINESS_COMPANY_SETTINGS_UNVERIFIED_IN_THIS_CONTEXT": "Firmeneinstellungen in diesem Aufruf nicht geprüft",
+      "FO_READINESS_COMPANY_SETTINGS_ROW_MISSING": "Kein company_settings-Datensatz für den Mandanten",
+      "FO_READINESS_COMPANY_SETTINGS_API_URL_MISSING": "FinanzOnlineApiUrl in Firmeneinstellungen fehlt",
+      "FO_READINESS_COMPANY_SETTINGS_CREDENTIALS_INCOMPLETE": "FinanzOnline Zugangsdaten in Firmeneinstellungen unvollständig",
+      "FO_READINESS_COMPANY_SETTINGS_PARTICIPANT_IDS_INCOMPLETE": "Telematik-/Hersteller-ID in Firmeneinstellungen fehlt",
+      "FO_READINESS_CONFIG_SESSION_CREDENTIALS_MISSING": "Session-Zugangsdaten in der Konfiguration fehlen",
+      "FO_READINESS_CONFIG_SESSION_PARTICIPANT_IDS_MISSING": "Telematik-/Hersteller-ID in der Konfiguration fehlt",
+      "FO_READINESS_SESSION_BASEURL_MISSING": "Session-Basis-URL fehlt",
+      "FO_READINESS_RKDB_BASEURL_MISSING": "RKDB-Basis-URL fehlt",
+      "FO_READINESS_REAL_TEST_SUBMISSION_DISABLED": "Echter TEST-Submit laut Config deaktiviert",
+      "FO_READINESS_REAL_TEST_PROTOCOL_QUERY_DISABLED": "Echter Protokollabgleich laut Config deaktiviert",
+      "FO_READINESS_OUTBOX_DISABLED": "Outbox-Pipeline aus (kein Hintergrund-Worker)",
+      "FO_READINESS_OUTBOX_WORKER_DISABLED": "Outbox-Pipeline aus (kein Hintergrund-Worker)",
+      "FO_READINESS_DEVTEST_SMOKE_ENQUEUE_ENABLED": "Dev-Test-Smoke-Enqueue erlaubt",
+      "FO_READINESS_SIMULATION_SCENARIO_IGNORED_IN_PRODUCTION": "Simulationsszenario in Produktion wirkungslos",
+      "FO_READINESS_SIMULATION_SCENARIO_UNKNOWN": "Unbekanntes Simulationsszenario",
+      "FO_READINESS_SIMULATION_SCENARIO_NOT_APPLIED": "Simulationsszenario wird nicht angewendet",
+      "FO_READINESS_SIMULATION_SCENARIO_ACTIVE": "Konfiguriertes Simulationsszenario aktiv"
+    },
+    "scenarioConfigured": "Konfiguriertes Szenario (Rohwert)",
+    "scenarioEffective": "Wirksames Szenario",
+    "scenarioDelay": "Simulation Fix-Delay (ms)",
+    "scenarioSeed": "Simulation Seed",
+    "outboxCountsTitle": "Outbox-Zeilen je Status",
+    "healthProbeHint": "Öffentlicher Probe-Endpunkt (ohne Auth): GET /health/finanzonline — gleiche Evaluator-Logik wie Admin, aber ohne Mandanten-prüfung der company_settings und ohne Outbox-Zählung.",
+    "apiSummary": "API-Zusammenfassung"
   },
   "privacyAlert": {
     "title": "Hinweis zum Datenschutz",
@@ -38,6 +96,7 @@
       "businessKey": "Business Key",
       "correlation": "Correlation",
       "mode": "Modus",
+      "transportPath": "Transportpfad",
       "status": "Status",
       "hintOrError": "Hinweis / Fehler",
       "attempts": "Versuche",
@@ -46,6 +105,11 @@
       "protocol": "Protokoll",
       "createdUtc": "Erstellt (UTC)",
       "processedUtc": "Verarbeitet (UTC)"
+    },
+    "protocolSuccess": {
+      "simulatedCaution": "Simuliert — kein BMF-Bestätigungsnachweis.",
+      "realTestNote": "Echter SOAP-TEST — Protokoll bezieht sich auf konfigurierten TEST-Pfad.",
+      "realProductionNote": "Echte SOAP-Produktion — besonders sorgfältig prüfen."
     }
   },
   "empty": {
@@ -59,11 +123,14 @@
   },
   "drawer": {
     "title": "Outbox-Details",
+    "evidenceSectionTitle": "Nachweise (Outbox)",
+    "protocolSuccessSimulatedAlert": "Hinweis: Simulierter Transport — „Protocol success“ ist hier kein Nachweis einer BMF-Live-Annahme.",
     "fields": {
       "outboxId": "Outbox-ID",
       "businessKey": "Business Key",
       "correlation": "Correlation",
       "mode": "Modus",
+      "transportPath": "Transportpfad (authoritativ)",
       "statusTechnical": "Status (technisch)",
       "statusDisplay": "Status (Anzeige)",
       "hint": "Hinweis",
@@ -72,6 +139,9 @@
       "failureCategory": "Failure-Kategorie",
       "attempts": "Versuche",
       "nextAttemptUtc": "Nächster Versuch (UTC)",
+      "evidenceTransmissionTitle": "Nachweis · Übermittlung (Paket)",
+      "evidenceReferenceTitle": "Nachweis · Externe Referenz",
+      "evidenceProtocolTitle": "Nachweis · Protokoll (BMF)",
       "paketTransmission": "Paket / Transmission",
       "externalReference": "Externe Referenz",
       "externalStatus": "Externer Status",

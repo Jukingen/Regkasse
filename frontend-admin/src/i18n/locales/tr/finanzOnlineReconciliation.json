@@ -6,7 +6,15 @@
     "leadBeforeLink": "SOAP/outbox boru hattının (gönderim, protokol, yeniden denemeler) operasyonel izlenmesi için şunu kullanın:",
     "leadAfterLink": ". Bu ekran, ödeme satırı durumu ve ödeme başına manuel yeniden deneme (eski akış) için kullanılmaya devam eder."
   },
+  "simulationBanners": {
+    "transportSimActive": "Simüle FinanzOnline taşıma etkin (bu simüle yolda gerçek BMF bağlantısı yok).",
+    "developerScenario": "Geliştirici simülasyon senaryosu: {{profile}}"
+  },
   "queuePage": {
+    "derivedLegacyTruthAlert": {
+      "title": "Mutabakat satırı ≠ teslim veya terminal gerçeği",
+      "description": "FO durum sütunu (Pending, Submitted vb.) ödeme satırı liste API’sinden gelir; otoriter Outbox’tan sapabilir. Pending, SOAP boru hattının hâlâ beklediği anlamına gelmez — Outbox durumuna bakın. Outbox ileti kimliği varsa doğrudan bağlantıyı kullanın."
+    },
     "statusOption": {
       "Pending": "Beklemede (Pending)",
       "Failed": "Başarısız (Failed)",
@@ -17,7 +25,8 @@
       "success": "Ödeme {{paymentId}}: {{message}}",
       "warning": "Ödeme {{paymentId}}: {{message}}",
       "error": "{{paymentId}} için yeniden deneme: {{message}}",
-      "errorFallback": "Yeniden deneme başarısız"
+      "errorFallback": "Yeniden deneme başarısız",
+      "outboxLifecycleHint": "Not: Yeniden deneme mutabakat API yolunu kullanır — Outbox arka plan döngüsü değil. Sonucu Outbox’ta doğrulayın."
     },
     "columns": {
       "receiptNumberTooltip": "Mutabakat liste DTO’sundan fiş numarası.",
@@ -27,6 +36,16 @@
       "paymentShort": "Ödeme",
       "openInPayments": "Ödemelerde aç",
       "foStatusShort": "FO durumu",
+      "legacyFoDerivedSubtitle": "FO durumu ödeme satırından (eski, Outbox değil)",
+      "outboxProcessedUtc": "Outbox · işlendi (UTC): {{at}}",
+      "protocolSuccessSimulatedColumnNote": "ProtocolSuccess burada simüle — canlı kanıt değil.",
+      "outboxEvidenceTransmission": "İletim: {{id}}",
+      "outboxEvidenceExternalRef": "Harici referans: {{id}}",
+      "outboxEvidenceProtocol": "Protokol: {{code}}",
+      "outboxPrimaryShort": "Outbox (birincil)",
+      "outboxOpenLink": "Tüm Outbox",
+      "outboxOpenThisMessageLink": "Bu Outbox satırını aç",
+      "outboxTerminalTag": "Terminal",
       "foActionColumnShort": "FO eylemi (UI)",
       "foTimelineShort": "FO zaman çizelgesi (API)",
       "rowCreated": "Satır oluşturuldu:",
@@ -34,6 +53,8 @@
       "lastAttempt": "Son deneme:",
       "errorShort": "Hata (kısa)",
       "foRefTooltip": "finanzOnlineReferenceId — liste DTO’sundan FinanzOnline referansı.",
+      "outboxIntegratedTooltip": "Yetkili SOAP/outbox hattı: bu ödemenin fatura agregatına ait son outbox satırı. Taşıma yolu (simüle vs gerçek SOAP TEST/PROD) outbox satırı ve canlı taşıma yapılandırmasından gelir.",
+      "referenceFoIntegratedTooltip": "Liste DTO’sundaki finanzOnlineReferenceId (ödeme satırı, eski). İletim ve protokol kanıtları için öncelikle outbox sütununu kullanın.",
       "referenceFoShort": "Referans (FO)",
       "amountTooltip": "totalAmount — liste DTO’sundaki ödeme tutarı.",
       "amountShort": "Tutar",
@@ -64,10 +85,34 @@
       "cardTitle": "Mutabakat ({{count}} kayıt)",
       "paginationTotal": "Toplam: {{total}}"
     },
+    "transportSurfaceBadge": {
+      "simulated": "Liste yüzeyi · taşıma: simüle (BMF canlı değil)",
+      "real": "Liste yüzeyi · taşıma: gerçek SOAP yolu (yapılandırmaya göre TEST/PROD)"
+    },
     "expandRow": {
+      "authoritativeOutboxTitle": "Outbox / SOAP (otoriter)",
+      "outboxTransportPath": "Taşıma yolu",
       "technicalDetailsHeader": "Satır — teknik ayrıntılar (liste API)",
       "openPaymentInPayments": "Ödemeyi ödemelerde aç",
-      "searchReceiptsByNumber": "Fiş ara (fiş numarası)"
+      "searchReceiptsByNumber": "Fiş ara (fiş numarası)",
+      "openHandoffOutboxSameCase": "Aynı Outbox iletisini Outbox ekranında aç (derin bağlantı)",
+      "protocolSuccessSimulatedExpandNote": "Not: simüle taşımada ProtocolSuccess, canlı BMF kabulü kanıtı değildir.",
+      "labelOutboxMessageId": "Outbox ileti kimliği",
+      "labelOutboxStatus": "Outbox durumu (teknik)",
+      "labelOutboxLifecyclePhase": "Yaşam döngüsü fazı",
+      "labelOutboxTransmissionId": "İletim kimliği",
+      "labelOutboxExternalReferenceId": "Harici referans kimliği",
+      "labelOutboxProtocolCode": "Protokol kodu",
+      "labelOutboxProtocolSummary": "Protokol (kısa)",
+      "labelOutboxProcessedAtUtc": "İşlendi (UTC)",
+      "labelFinanzOnlineError": "FinanzOnline hatası (eski)",
+      "labelPaymentId": "Ödeme kimliği",
+      "labelReceiptNumber": "Fiş numarası",
+      "labelCashRegisterId": "Kasa kimliği",
+      "labelFinanzOnlineReferenceId": "FO referansı (eski liste)",
+      "labelCreatedAt": "Satır oluşturuldu",
+      "labelFinanzOnlineLastAttemptAtUtc": "Son FO denemesi (UTC)",
+      "labelFinanzOnlineRetryCount": "FO yeniden denemeleri"
     }
   }
 }

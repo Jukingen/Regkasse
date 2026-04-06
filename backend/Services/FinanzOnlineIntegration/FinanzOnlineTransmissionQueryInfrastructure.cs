@@ -76,7 +76,8 @@ public sealed class TestModeFinanzOnlineTransmissionQueryClient : IFinanzOnlineT
                 Success = false,
                 TransmissionId = request.TransmissionId,
                 ErrorCode = "TEST_REAL_QUERY_DISABLED",
-                ErrorMessage = "Real TEST transmission query is disabled."
+                ErrorMessage =
+                    "Real TEST protocol (status_kasse) query is disabled. Set FinanzOnline:TransmissionQuery:EnableRealTestQuery to true and UseSimulation to false on Session, Registrierkassen, and TransmissionQuery."
             };
         }
 

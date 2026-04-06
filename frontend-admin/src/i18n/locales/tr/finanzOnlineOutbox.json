@@ -3,7 +3,65 @@
     "leadTag": "Outbox / SOAP",
     "leadLine": "FinanzOnline gönderimi ve protokol mutabakatı için birincil operasyonel görünüm (TEST ve PROD).",
     "leadNoPaymentRows": "Ödeme satırı değil — bunun için",
-    "leadLegacyQueueLink": "Ödeme mutabakatı (eski)"
+    "leadLegacyQueueLink": "Ödeme mutabakatı (eski)",
+    "authoritativeLine": "Gönderim yaşam döngüsü ve protokol kanıtları için otoriter kaynak: bu Outbox listesi (eski ödeme satırı görünümü değil)."
+  },
+  "transportPath": {
+    "bannerSimulated": "Simüle FinanzOnline aktarımı açık — buradaki başarı ve protokol durumları yalnızca simülasyondur; canlı BMF bağlantısı değildir.",
+    "bannerReal": "Gerçek FinanzOnline aktarımı (aktarım simülasyonu yok) — protokol ve durum, yapılandırılmış SOAP yolunu ifade eder.",
+    "developerScenario": "Geliştirici simülasyon profili: {{profile}}",
+    "kind": {
+      "Simulated": "Simüle",
+      "RealTest": "Gerçek test (SOAP TEST)",
+      "RealProduction": "Gerçek prod (SOAP PROD)"
+    }
+  },
+  "readiness": {
+    "cardTitle": "FinanzOnline — yapılandırma hazırlığı",
+    "cardSubtitle": "Canlı SOAP çağrısı yok; simülasyon ile gerçek TEST hattı ve outbox worker’ı kontrol eder. API mesajları teknik İngilizcedir.",
+    "loadError": "Hazırlık yüklenemedi.",
+    "overall": "Genel durum",
+    "transportMode": "Taşıma modu",
+    "realTestSubmit": "Gerçek TEST gönderimi mümkün (yapılandırmaya göre)",
+    "protocol": "Protokol mutabakatı mümkün (yapılandırmaya göre)",
+    "outboxWorker": "Outbox worker açık",
+    "yes": "Evet",
+    "no": "Hayır",
+    "findingsTitle": "Yapılandırma bulguları",
+    "findingsDetailHint": "de-DE arayüzünde kısa başlık Almanca — alttaki teknik API metni İngilizce.",
+    "findingTitleFallback": "Yapılandırma notu",
+    "findingTitles": {
+      "FO_READINESS_MIXED_TRANSPORT_LAYERS": "Karışık taşıma katmanları (desteklenmiyor)",
+      "FO_READINESS_SIMULATION_ACTIVE": "Simülasyon açık — BMF canlı değil",
+      "FO_READINESS_CONFLICT_ENABLE_REAL_TEST_WITH_REG_SIMULATION": "Çakışma: gerçek TEST gönderimi + kasa simülasyonu",
+      "FO_READINESS_CONFLICT_ENABLE_REAL_QUERY_WITH_TX_SIMULATION": "Çakışma: gerçek sorgu + iletim simülasyonu",
+      "FO_READINESS_ENDPOINTS_FROM_COMPANY_SETTINGS": "SOAP uç noktaları şirket ayarlarından (eski not)",
+      "FO_READINESS_COMPANY_SETTINGS_UNVERIFIED_IN_THIS_CONTEXT": "Bu çağrıda şirket ayarları doğrulanmadı",
+      "FO_READINESS_COMPANY_SETTINGS_ROW_MISSING": "Kiracı için company_settings kaydı yok",
+      "FO_READINESS_COMPANY_SETTINGS_API_URL_MISSING": "Şirket ayarlarında FinanzOnlineApiUrl eksik",
+      "FO_READINESS_COMPANY_SETTINGS_CREDENTIALS_INCOMPLETE": "Şirket ayarlarında FinanzOnline kimlik bilgileri eksik",
+      "FO_READINESS_COMPANY_SETTINGS_PARTICIPANT_IDS_INCOMPLETE": "Şirket ayarlarında Telematik/Hersteller kimliği eksik",
+      "FO_READINESS_CONFIG_SESSION_CREDENTIALS_MISSING": "Yapılandırmada oturum kimlik bilgileri eksik",
+      "FO_READINESS_CONFIG_SESSION_PARTICIPANT_IDS_MISSING": "Yapılandırmada Telematik/Hersteller kimliği eksik",
+      "FO_READINESS_SESSION_BASEURL_MISSING": "Oturum temel URL eksik",
+      "FO_READINESS_RKDB_BASEURL_MISSING": "RKDB temel URL eksik",
+      "FO_READINESS_REAL_TEST_SUBMISSION_DISABLED": "Yapılandırmaya göre gerçek TEST gönderimi kapalı",
+      "FO_READINESS_REAL_TEST_PROTOCOL_QUERY_DISABLED": "Yapılandırmaya göre gerçek protokol mutabakatı kapalı",
+      "FO_READINESS_OUTBOX_DISABLED": "Outbox boru hattı kapalı (arka plan işleyici yok)",
+      "FO_READINESS_OUTBOX_WORKER_DISABLED": "Outbox boru hattı kapalı (arka plan işleyici yok)",
+      "FO_READINESS_DEVTEST_SMOKE_ENQUEUE_ENABLED": "Dev test smoke enqueue açık",
+      "FO_READINESS_SIMULATION_SCENARIO_IGNORED_IN_PRODUCTION": "Üretimde simülasyon senaryosu yok sayılıyor",
+      "FO_READINESS_SIMULATION_SCENARIO_UNKNOWN": "Bilinmeyen simülasyon senaryosu",
+      "FO_READINESS_SIMULATION_SCENARIO_NOT_APPLIED": "Simülasyon senaryosu uygulanmıyor",
+      "FO_READINESS_SIMULATION_SCENARIO_ACTIVE": "Yapılandırılmış simülasyon senaryosu aktif"
+    },
+    "scenarioConfigured": "Yapılandırılmış senaryo (ham)",
+    "scenarioEffective": "Etkin senaryo",
+    "scenarioDelay": "Simülasyon sabit gecikme (ms)",
+    "scenarioSeed": "Simülasyon tohumu",
+    "outboxCountsTitle": "Duruma göre Outbox satırları",
+    "healthProbeHint": "Genel sonda (auth yok): GET /health/finanzonline — Admin ile aynı değerlendirici; tenant company_settings doğrulaması ve Outbox sayımı yok.",
+    "apiSummary": "API özeti"
   },
   "privacyAlert": {
     "title": "Gizlilik notu",
@@ -38,6 +96,7 @@
       "businessKey": "İş anahtarı",
       "correlation": "Correlation",
       "mode": "Mod",
+      "transportPath": "Aktarım yolu",
       "status": "Durum",
       "hintOrError": "İpucu / hata",
       "attempts": "Denemeler",
@@ -46,6 +105,11 @@
       "protocol": "Protokol",
       "createdUtc": "Oluşturulma (UTC)",
       "processedUtc": "İşlendi (UTC)"
+    },
+    "protocolSuccess": {
+      "simulatedCaution": "Simüle — BMF kabul kanıtı değildir.",
+      "realTestNote": "Gerçek SOAP TEST — protokol yapılandırılmış TEST yolunu ifade eder.",
+      "realProductionNote": "Gerçek SOAP üretim — dikkatle doğrulayın."
     }
   },
   "empty": {
@@ -59,11 +123,14 @@
   },
   "drawer": {
     "title": "Outbox ayrıntıları",
+    "evidenceSectionTitle": "Kanıtlar (Outbox)",
+    "protocolSuccessSimulatedAlert": "Not: simüle taşıma — buradaki “protokol başarısı” canlı BMF kabulü kanıtı değildir.",
     "fields": {
       "outboxId": "Outbox kimliği",
       "businessKey": "İş anahtarı",
       "correlation": "Correlation",
       "mode": "Mod",
+      "transportPath": "Aktarım yolu (otoriter)",
       "statusTechnical": "Durum (teknik)",
       "statusDisplay": "Durum (görünen)",
       "hint": "İpucu",
@@ -72,6 +139,9 @@
       "failureCategory": "Hata kategorisi",
       "attempts": "Denemeler",
       "nextAttemptUtc": "Sonraki deneme (UTC)",
+      "evidenceTransmissionTitle": "Kanıt · Gönderim (paket)",
+      "evidenceReferenceTitle": "Kanıt · Harici referans",
+      "evidenceProtocolTitle": "Kanıt · Protokol (BMF)",
       "paketTransmission": "Paket / iletim",
       "externalReference": "Harici referans",
       "externalStatus": "Harici durum",

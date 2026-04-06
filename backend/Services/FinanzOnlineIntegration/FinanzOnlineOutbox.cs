@@ -147,6 +147,7 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly IOptionsMonitor<FinanzOnlineOutboxOptions> _options;
     private readonly ILogger<FinanzOnlineOutboxHostedService> _logger;
+    private long _cycleIndex;
 
     public FinanzOnlineOutboxHostedService(
         IServiceProvider serviceProvider,
@@ -163,9 +164,15 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
         var opts = _options.CurrentValue;
         if (!opts.Enabled)
         {
-            _logger.LogInformation("FinanzOnline outbox worker disabled.");
+            _logger.LogInformation("FinanzOnline outbox worker disabled (FinanzOnlineOutbox:Enabled=false).");
             return;
         }
+
+        _logger.LogInformation(
+            "FinanzOnline outbox worker started: PollInterval={PollInterval}s ProcessingTimeoutSeconds={ProcessingTimeoutSeconds} MaxAttempts={MaxAttempts}",
+            Math.Max(1, (int)opts.PollInterval.TotalSeconds),
+            opts.ProcessingTimeoutSeconds,
+            opts.MaxAttempts);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -183,9 +190,30 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
                 _logger.LogError(ex, "FinanzOnline outbox cycle failed.");
             }
 
+            _cycleIndex++;
+            if (_cycleIndex == 1 || _cycleIndex % 60 == 0)
+            {
+                _logger.LogInformation(
+                    "FinanzOnline outbox worker heartbeat: completedCycles={Cycles} pollIntervalSeconds={PollIntervalSeconds}",
+                    _cycleIndex,
+                    Math.Max(1, (int)_options.CurrentValue.PollInterval.TotalSeconds));
+            }
+
             await Task.Delay(_options.CurrentValue.PollInterval, stoppingToken).ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// Test assembly entry point only (<c>InternalsVisibleTo</c>). One dequeue/claim/submit cycle; no poll delay. Not for production calls.
+    /// </summary>
+    internal Task ProcessOneForIntegrationTestsAsync(CancellationToken cancellationToken = default) =>
+        ProcessOneAsync(cancellationToken);
+
+    /// <summary>
+    /// Test assembly entry point only (<c>InternalsVisibleTo</c>). One AwaitingProtocol status_kasse reconciliation pass. Not for production calls.
+    /// </summary>
+    internal Task ReconcileOneForIntegrationTestsAsync(CancellationToken cancellationToken = default) =>
+        ReconcileOneAsync(cancellationToken);
 
     private async Task ProcessOneAsync(CancellationToken cancellationToken)
     {
@@ -341,6 +369,8 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
                 active.ExternalReferenceId = Truncate(result.ReferenceId, 120);
                 active.ExternalStatus = Truncate(result.Status, 40);
                 active.ProtocolCode = Truncate(result.ProtocolCode, 80);
+                if (!string.IsNullOrWhiteSpace(result.ProtocolSummary))
+                    active.ProtocolSummary = Truncate(result.ProtocolSummary, 500);
                 active.LastResponseJson = JsonSerializer.Serialize(new
                 {
                     result.Success,
@@ -348,6 +378,7 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
                     result.ReferenceId,
                     result.Status,
                     result.ProtocolCode,
+                    result.ProtocolSummary,
                     result.ErrorCode,
                     result.ErrorMessage,
                     result.RkdbTsErstellungIso,

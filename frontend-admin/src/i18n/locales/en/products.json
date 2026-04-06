@@ -1,6 +1,10 @@
 {
   "page": {
     "title": "Products",
+    "filterLabel": "Status",
+    "filterAll": "All",
+    "filterActive": "Active",
+    "filterInactive": "Inactive",
     "searchPlaceholder": "Search products …",
     "newProduct": "New product",
     "searchHint": "Search by product name; at least {{min}} characters trigger a server query.",

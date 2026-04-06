@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -45,11 +47,31 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
 
     private readonly AppDbContext _context;
     private readonly ILogger<FinanzOnlineOutboxAdminController> _logger;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly IOptionsMonitor<FinanzOnlineSessionOptions> _sessionOptions;
+    private readonly IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> _registrierkassenOptions;
+    private readonly IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> _transmissionQueryOptions;
+    private readonly IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> _simulationDeveloperOptions;
+    private readonly IOptionsMonitor<FinanzOnlineSimulationOptions> _simulationScenarioOptions;
 
-    public FinanzOnlineOutboxAdminController(AppDbContext context, ILogger<FinanzOnlineOutboxAdminController> logger)
+    public FinanzOnlineOutboxAdminController(
+        AppDbContext context,
+        ILogger<FinanzOnlineOutboxAdminController> logger,
+        IHostEnvironment hostEnvironment,
+        IOptionsMonitor<FinanzOnlineSessionOptions> sessionOptions,
+        IOptionsMonitor<FinanzOnlineRegistrierkassenOptions> registrierkassenOptions,
+        IOptionsMonitor<FinanzOnlineTransmissionQueryOptions> transmissionQueryOptions,
+        IOptionsMonitor<FinanzOnlineSimulationDeveloperOptions> simulationDeveloperOptions,
+        IOptionsMonitor<FinanzOnlineSimulationOptions> simulationScenarioOptions)
     {
         _context = context;
         _logger = logger;
+        _hostEnvironment = hostEnvironment;
+        _sessionOptions = sessionOptions;
+        _registrierkassenOptions = registrierkassenOptions;
+        _transmissionQueryOptions = transmissionQueryOptions;
+        _simulationDeveloperOptions = simulationDeveloperOptions;
+        _simulationScenarioOptions = simulationScenarioOptions;
     }
 
     /// <summary>
@@ -65,6 +87,7 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         [FromQuery] string? correlationId = null,
         [FromQuery] string? aggregateType = null,
         [FromQuery] string? businessKey = null,
+        [FromQuery] Guid? outboxId = null,
         [FromQuery] DateTime? fromUtc = null,
         [FromQuery] DateTime? toUtc = null,
         [FromQuery] int limit = 100,
@@ -73,6 +96,9 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         try
         {
             var q = _context.FinanzOnlineOutboxMessages.AsNoTracking();
+
+            if (outboxId.HasValue)
+                q = q.Where(x => x.Id == outboxId.Value);
 
             if (!string.IsNullOrWhiteSpace(mode))
             {
@@ -123,12 +149,19 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            var items = rows.Select(MapToDto).ToList();
+            var anySim = TransportSimulationActive();
+            var items = rows.Select(x => MapToDto(x, anySim)).ToList();
+            var devProfile = FinanzOnlineSimulationDeveloperUi.ActiveProfileForAdminList(
+                _hostEnvironment,
+                _simulationScenarioOptions.CurrentValue,
+                _simulationDeveloperOptions.CurrentValue);
 
             return Ok(new FinanzOnlineOutboxListResponse
             {
                 Total = total,
-                Items = items
+                Items = items,
+                FinanzOnlineTransportSimulationActive = anySim,
+                FinanzOnlineDeveloperSimulationProfile = devProfile
             });
         }
         catch (Exception ex)
@@ -152,8 +185,14 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         if (row == null)
             return NotFound(new { message = "Outbox message not found.", code = "FINANZONLINE_OUTBOX_NOT_FOUND" });
 
-        return Ok(MapToDto(row));
+        var anySim = TransportSimulationActive();
+        return Ok(MapToDto(row, anySim));
     }
+
+    private bool TransportSimulationActive() =>
+        _sessionOptions.CurrentValue.UseSimulation
+        || _registrierkassenOptions.CurrentValue.UseSimulation
+        || _transmissionQueryOptions.CurrentValue.UseSimulation;
 
     private static bool IsKnownBucket(string bucket) =>
         KnownBuckets.Contains(bucket, StringComparer.OrdinalIgnoreCase);
@@ -201,7 +240,7 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
         };
     }
 
-    private static FinanzOnlineOutboxItemDto MapToDto(FinanzOnlineOutboxMessage x)
+    private static FinanzOnlineOutboxItemDto MapToDto(FinanzOnlineOutboxMessage x, bool anyLayerSimulation)
     {
         var registerId = TryGetRegisterIdFromPayload(x.PayloadJson);
         return new FinanzOnlineOutboxItemDto
@@ -222,6 +261,7 @@ public sealed class FinanzOnlineOutboxAdminController : ControllerBase
                 RegisterId = registerId
             },
             Mode = x.Mode,
+            TransportPathKind = FinanzOnlineTransportPathKindResolver.Resolve(anyLayerSimulation, x.Mode),
             Status = x.Status,
             OperatorStatusLabel = MapOperatorLabel(x.Status),
             OperatorFailureHint = MapOperatorFailureHint(x.FailureCategory, x.LastErrorCode, x.Status),
@@ -354,6 +394,12 @@ public sealed class FinanzOnlineOutboxListResponse
 {
     public int Total { get; set; }
     public IReadOnlyList<FinanzOnlineOutboxItemDto> Items { get; set; } = Array.Empty<FinanzOnlineOutboxItemDto>();
+
+    /// <summary>True when session, rkdb, or transmission-query layer uses simulation.</summary>
+    public bool? FinanzOnlineTransportSimulationActive { get; set; }
+
+    /// <summary>Non-production: active <c>FinanzOnline:Simulation:Developer</c> profile when not None (see <see cref="FinanzOnlineSimulationDeveloperUi"/>).</summary>
+    public string? FinanzOnlineDeveloperSimulationProfile { get; set; }
 }
 
 public sealed class FinanzOnlineOutboxScopeDto
@@ -378,6 +424,10 @@ public sealed class FinanzOnlineOutboxItemDto
     /// <summary>Register / tenant / branch from enqueue + payload (no secrets).</summary>
     public FinanzOnlineOutboxScopeDto? Scope { get; set; }
     public string Mode { get; set; } = "TEST";
+
+    /// <summary>Simulated | RealTest | RealProduction — derived from live transport simulation flags and stored message mode.</summary>
+    public string TransportPathKind { get; set; } = string.Empty;
+
     public string Status { get; set; } = string.Empty;
     public string OperatorStatusLabel { get; set; } = string.Empty;
     /// <summary>Brief hint for operators; technical detail remains in <see cref="LastErrorCode"/> / <see cref="LastErrorSummary"/>.</summary>

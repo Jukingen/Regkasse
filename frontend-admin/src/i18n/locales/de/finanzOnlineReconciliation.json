@@ -6,7 +6,15 @@
     "leadBeforeLink": "Für operative Überwachung der SOAP-/Outbox-Pipeline (Übermittlung, Protokoll, Retries) nutzen Sie",
     "leadAfterLink": ". Diese Seite bleibt für zahlungszeilenbasierten Status und manuelles Retry pro Zahlung (Legacy) verfügbar."
   },
+  "simulationBanners": {
+    "transportSimActive": "Simulierter FinanzOnline-Transport aktiv (keine reale BMF-Verbindung über diesen simulierten Pfad).",
+    "developerScenario": "Entwickler-Simulationsszenario: {{profile}}"
+  },
   "queuePage": {
+    "derivedLegacyTruthAlert": {
+      "title": "Abgleichszeile ≠ Liefer- oder Terminalitätswahrheit",
+      "description": "Die Spalte »FO-Status« (z. B. Pending, Submitted) kommt aus der zahlungszeilenbasierten Listen-API. Sie kann zeitlich oder inhaltlich von der autoritativen Outbox abweichen. Pending bedeutet nicht automatisch, dass die SOAP-Pipeline noch wartet — maßgeblich sind Status und Phase in der Outbox. Nutzen Sie bei vorhandener Nachrichten-ID den direkten Link zum Outbox-Eintrag."
+    },
     "statusOption": {
       "Pending": "Ausstehend (Pending)",
       "Failed": "Fehlgeschlagen (Failed)",
@@ -17,7 +25,8 @@
       "success": "Zahlung {{paymentId}}: {{message}}",
       "warning": "Zahlung {{paymentId}}: {{message}}",
       "error": "Retry für {{paymentId}}: {{message}}",
-      "errorFallback": "Retry fehlgeschlagen"
+      "errorFallback": "Retry fehlgeschlagen",
+      "outboxLifecycleHint": "Hinweis: »Erneut senden« nutzt die Abgleichs-Retry-Route zur Zahlung — nicht den Outbox-Hintergrundzyklus. Bitte Ergebnis in der Outbox verifizieren."
     },
     "columns": {
       "receiptNumberTooltip": "Belegnummer aus der Abgleichs-API (Listen-DTO).",
@@ -27,6 +36,16 @@
       "paymentShort": "Zahlung",
       "openInPayments": "In Zahlungen öffnen",
       "foStatusShort": "FO-Status",
+      "legacyFoDerivedSubtitle": "FO-Status aus Zahlungszeile (Legacy, nicht Outbox)",
+      "outboxProcessedUtc": "Outbox · Verarbeitet (UTC): {{at}}",
+      "protocolSuccessSimulatedColumnNote": "ProtocolSuccess nur simuliert — kein Live-Nachweis.",
+      "outboxEvidenceTransmission": "Übermittlung: {{id}}",
+      "outboxEvidenceExternalRef": "Externe Referenz: {{id}}",
+      "outboxEvidenceProtocol": "Protokoll: {{code}}",
+      "outboxPrimaryShort": "Outbox (primär)",
+      "outboxOpenLink": "Gesamte Outbox",
+      "outboxOpenThisMessageLink": "Diesen Outbox-Eintrag öffnen",
+      "outboxTerminalTag": "Terminal",
       "foActionColumnShort": "FO-Aktion (UI)",
       "foTimelineShort": "FO-Verlauf (API)",
       "rowCreated": "Zeile erstellt:",
@@ -34,6 +53,8 @@
       "lastAttempt": "Letzter Versuch:",
       "errorShort": "Fehler (Kurz)",
       "foRefTooltip": "finanzOnlineReferenceId — FinanzOnline-Referenz aus dem Listen-DTO.",
+      "outboxIntegratedTooltip": "Authoritative SOAP-/Outbox-Pipeline: letzte Outbox-Zeile zum Invoice-Aggregat dieser Zahlung. Der Transportpfad (simuliert, echter SOAP-TEST oder -PROD) kommt aus der Outbox-Zeile und der aktuellen Transport-Konfiguration.",
+      "referenceFoIntegratedTooltip": "finanzOnlineReferenceId aus dem Listen-DTO (Zahlungszeile, Legacy). Für Übermittlungs- und Protokollnachweise primär die Outbox-Spalte nutzen.",
       "referenceFoShort": "Referenz (FO)",
       "amountTooltip": "totalAmount — Betrag der Zahlung im Listen-DTO.",
       "amountShort": "Betrag",
@@ -64,10 +85,34 @@
       "cardTitle": "Abgleich ({{count}} Einträge)",
       "paginationTotal": "Gesamt: {{total}}"
     },
+    "transportSurfaceBadge": {
+      "simulated": "Listen-Oberfläche · Transport: simuliert (kein BMF-Live)",
+      "real": "Listen-Oberfläche · Transport: echter SOAP-Pfad (TEST/PROD laut Konfiguration)"
+    },
     "expandRow": {
+      "authoritativeOutboxTitle": "Outbox / SOAP (authoritativ)",
+      "outboxTransportPath": "Transportpfad",
       "technicalDetailsHeader": "Zeile — technische Details (Listen-API)",
       "openPaymentInPayments": "Zahlung in Zahlungen öffnen",
-      "searchReceiptsByNumber": "Belege suchen (Belegnummer)"
+      "searchReceiptsByNumber": "Belege suchen (Belegnummer)",
+      "openHandoffOutboxSameCase": "Dieselbe Outbox-Nachricht in der Outbox-UI öffnen (Deep-Link)",
+      "protocolSuccessSimulatedExpandNote": "Hinweis: Bei simuliertem Transport ist ProtocolSuccess kein Nachweis einer BMF-Live-Annahme.",
+      "labelOutboxMessageId": "Outbox-Nachrichten-ID",
+      "labelOutboxStatus": "Outbox-Status (technisch)",
+      "labelOutboxLifecyclePhase": "Lebenszyklusphase",
+      "labelOutboxTransmissionId": "Übertragungs-ID (Transmission)",
+      "labelOutboxExternalReferenceId": "Externe Referenz-ID",
+      "labelOutboxProtocolCode": "Protokollcode",
+      "labelOutboxProtocolSummary": "Protokoll (Kurz)",
+      "labelOutboxProcessedAtUtc": "Verarbeitet (UTC)",
+      "labelFinanzOnlineError": "FinanzOnline-Fehler (Legacy)",
+      "labelPaymentId": "Zahlungs-ID",
+      "labelReceiptNumber": "Belegnummer",
+      "labelCashRegisterId": "Kassen-ID",
+      "labelFinanzOnlineReferenceId": "FO-Referenz (Legacy-Liste)",
+      "labelCreatedAt": "Zeile erstellt",
+      "labelFinanzOnlineLastAttemptAtUtc": "Letzter FO-Versuch (UTC)",
+      "labelFinanzOnlineRetryCount": "FO-Wiederholungen"
     }
   }
 }
