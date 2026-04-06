@@ -5112,6 +5112,25 @@
         }
       }
     },
+    "/api/admin/finanzonline-readiness": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinanzOnlineReadinessResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/finanzonline-reconciliation/metrics": {
       "get": {
         "tags": [
@@ -19097,6 +19116,10 @@
             "type": "string",
             "nullable": true
           },
+          "transportPathKind": {
+            "type": "string",
+            "nullable": true
+          },
           "status": {
             "type": "string",
             "nullable": true
@@ -19189,6 +19212,14 @@
               "$ref": "#/components/schemas/FinanzOnlineOutboxItemDto"
             },
             "nullable": true
+          },
+          "finanzOnlineTransportSimulationActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "finanzOnlineDeveloperSimulationProfile": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -19206,6 +19237,66 @@
           },
           "registerId": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineReadinessFindingDto": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "nullable": true
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FinanzOnlineReadinessResponse": {
+        "type": "object",
+        "properties": {
+          "overallStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "transportMode": {
+            "type": "string",
+            "nullable": true
+          },
+          "realTestSubmissionPossible": {
+            "type": "boolean"
+          },
+          "protocolReconciliationPossible": {
+            "type": "boolean"
+          },
+          "outboxWorkerEnabled": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string",
+            "nullable": true
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FinanzOnlineReadinessFindingDto"
+            },
+            "nullable": true
+          },
+          "outboxCountsByStatus": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            },
             "nullable": true
           }
         },
@@ -19254,6 +19345,52 @@
           "finanzOnlineRetryCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "outboxMessageId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "outboxStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "outboxLifecyclePhase": {
+            "type": "string",
+            "nullable": true
+          },
+          "outboxIsTerminal": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "outboxTransmissionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "outboxExternalReferenceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "outboxProtocolCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "outboxProtocolSummary": {
+            "type": "string",
+            "nullable": true
+          },
+          "outboxProcessedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "outboxLastResponsePreview": {
+            "type": "string",
+            "nullable": true
+          },
+          "outboxTransportPathKind": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -19270,6 +19407,14 @@
             "items": {
               "$ref": "#/components/schemas/FinanzOnlineReconciliationItemDto"
             },
+            "nullable": true
+          },
+          "finanzOnlineTransportSimulationActive": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "finanzOnlineDeveloperSimulationProfile": {
+            "type": "string",
             "nullable": true
           }
         },

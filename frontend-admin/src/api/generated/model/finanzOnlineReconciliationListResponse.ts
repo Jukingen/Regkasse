@@ -9,6 +9,10 @@ import type { FinanzOnlineReconciliationItemDto } from './finanzOnlineReconcilia
 
 export interface FinanzOnlineReconciliationListResponse {
   /** @nullable */
+  finanzOnlineDeveloperSimulationProfile?: string | null;
+  /** @nullable */
+  finanzOnlineTransportSimulationActive?: boolean | null;
+  /** @nullable */
   items?: FinanzOnlineReconciliationItemDto[] | null;
   total?: number;
 }

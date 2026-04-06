@@ -9,6 +9,10 @@ import type { FinanzOnlineOutboxItemDto } from './finanzOnlineOutboxItemDto';
 
 export interface FinanzOnlineOutboxListResponse {
   /** @nullable */
+  finanzOnlineDeveloperSimulationProfile?: string | null;
+  /** @nullable */
+  finanzOnlineTransportSimulationActive?: boolean | null;
+  /** @nullable */
   items?: FinanzOnlineOutboxItemDto[] | null;
   total?: number;
 }

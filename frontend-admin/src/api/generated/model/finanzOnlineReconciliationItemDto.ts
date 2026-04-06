@@ -18,6 +18,28 @@ export interface FinanzOnlineReconciliationItemDto {
   finanzOnlineRetryCount?: number;
   /** @nullable */
   finanzOnlineStatus?: string | null;
+  /** @nullable */
+  outboxExternalReferenceId?: string | null;
+  /** @nullable */
+  outboxIsTerminal?: boolean | null;
+  /** @nullable */
+  outboxLastResponsePreview?: string | null;
+  /** @nullable */
+  outboxLifecyclePhase?: string | null;
+  /** @nullable */
+  outboxMessageId?: string | null;
+  /** @nullable */
+  outboxProcessedAtUtc?: string | null;
+  /** @nullable */
+  outboxProtocolCode?: string | null;
+  /** @nullable */
+  outboxProtocolSummary?: string | null;
+  /** @nullable */
+  outboxStatus?: string | null;
+  /** @nullable */
+  outboxTransmissionId?: string | null;
+  /** @nullable */
+  outboxTransportPathKind?: string | null;
   paymentId?: string;
   /** @nullable */
   receiptNumber?: string | null;

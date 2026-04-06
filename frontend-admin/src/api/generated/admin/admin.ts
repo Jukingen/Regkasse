@@ -57,6 +57,7 @@ import type {
   FinanzOnlineMetricsResponse,
   FinanzOnlineOutboxItemDto,
   FinanzOnlineOutboxListResponse,
+  FinanzOnlineReadinessResponse,
   FinanzOnlineReconciliationListResponse,
   FinanzOnlineRetryResponse,
   GetApiAdminBackupRunsParams,
@@ -3698,6 +3699,61 @@ export const useGetApiAdminFinanzonlineOutboxId = <TData = Awaited<ReturnType<ty
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminFinanzonlineOutboxIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminFinanzonlineReadiness = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<FinanzOnlineReadinessResponse>(
+      {url: `/api/admin/finanzonline-readiness`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminFinanzonlineReadinessQueryKey = () => {
+    return [`/api/admin/finanzonline-readiness`] as const;
+    }
+
+    
+export const getGetApiAdminFinanzonlineReadinessQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminFinanzonlineReadinessQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>> = ({ signal }) => getApiAdminFinanzonlineReadiness(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminFinanzonlineReadinessQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>>
+export type GetApiAdminFinanzonlineReadinessQueryError = unknown
+
+export const useGetApiAdminFinanzonlineReadiness = <TData = Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminFinanzonlineReadiness>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminFinanzonlineReadinessQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

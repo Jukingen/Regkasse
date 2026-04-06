@@ -61,4 +61,6 @@ export interface FinanzOnlineOutboxItemDto {
   tenantId?: string | null;
   /** @nullable */
   transmissionId?: string | null;
+  /** @nullable */
+  transportPathKind?: string | null;
 }
