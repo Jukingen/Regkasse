@@ -135,6 +135,9 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>True when the same idempotency key returned an existing committed payment (no new fiscal write).</summary>
         public bool IdempotentReplay { get; set; }
+
+        /// <summary>True if failure is deterministic (e.g. invalid register, missing customer). Replays should not retry.</summary>
+        public bool IsDeterministicFailure { get; set; }
     }
     
     /// <summary>

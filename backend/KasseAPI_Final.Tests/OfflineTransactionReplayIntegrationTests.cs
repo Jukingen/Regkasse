@@ -690,10 +690,10 @@ public class OfflineTransactionReplayIntegrationTests
 
         var resp = await offlineService.ReplayOfflineTransactionsAsync(replayReq, "u1", "Cashier");
         Assert.Single(resp.Items);
-        Assert.Equal("Pending", resp.Items[0].Status);
+        Assert.Equal("Failed", resp.Items[0].Status);
 
         var offlineRow = await context.OfflineTransactions.FirstAsync(x => x.Id == offlineId);
-        Assert.Equal(OfflineTransactionStatus.Pending, offlineRow.Status);
+        Assert.Equal(OfflineTransactionStatus.Failed, offlineRow.Status);
         Assert.Null(offlineRow.SyncedPaymentId);
         Assert.NotNull(offlineRow.LastErrorCode);
         Assert.NotNull(offlineRow.LastReplayAttemptAt);
@@ -1130,7 +1130,7 @@ public class OfflineTransactionReplayIntegrationTests
         Assert.Equal(1, context.OfflineTransactions.Count());
 
         var row = await context.OfflineTransactions.FirstAsync();
-        Assert.Equal(row.RetryCount, 2);
+        Assert.Equal(1, row.RetryCount);
 
         Assert.Equal(offlineId1, resp.Items[0].RequestedOfflineTransactionId);
         Assert.Equal(offlineId1, resp.Items[0].OfflineTransactionId);

@@ -344,10 +344,65 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         Assert.Equal(CashRegisterResolutionCodes.Closed, result.DiagnosticCode);
     }
 
+    [SkippableFact]
+    public async Task CreatePaymentAsync_WhenPostCommitAuditThrows_SucceedsWithoutRollback()
+    {
+        Skip.IfNot(_fixture.HasDatabase, _fixture.SkipReason);
+
+        var cashRegisterId = Guid.NewGuid();
+        var categoryId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+
+        await using (var seed = CreateContext())
+        {
+            await AddMinimalUserAsync(seed, "u1");
+            TenantTestDoubles.EnsureDefaultTenant(seed);
+            seed.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+            seed.Products.Add(new Product { Id = productId, TenantId = LegacyDefaultTenantIds.Primary, Name = "Item", Price = 6.90m, CategoryId = categoryId, Category = "Speisen", StockQuantity = 100, Unit = "Stk", TaxType = 2, TaxRate = TaxTypes.GetTaxRate(2), IsFiscalCompliant = true, IsTaxable = true, IsActive = true });
+            seed.Customers.Add(new Customer { Id = customerId, Name = "C", IsActive = true });
+            seed.CashRegisters.Add(new CashRegister { TenantId = LegacyDefaultTenantIds.Primary, Id = cashRegisterId, RegisterNumber = "PG-PAY-RES1", Status = RegisterStatus.Open, CurrentUserId = "u1", IsActive = true, CreatedAt = DateTime.UtcNow, LastBalanceUpdate = DateTime.UtcNow, Location = "T" });
+            await seed.SaveChangesAsync();
+        }
+
+        var crashingAuditMock = new Mock<IAuditLogService>();
+        crashingAuditMock.Setup(x => x.LogPaymentOperationAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(), It.IsAny<double?>()))
+            .ThrowsAsync(new InvalidOperationException("Simulated Audit Server Crash"));
+
+        await using var payCtx = CreateContext();
+        var paymentService = CreatePaymentServiceForLifecycleTest(payCtx, crashingAuditMock);
+
+        var request = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            TotalAmount = 6.90m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = cashRegisterId,
+            Payment = new PaymentMethodRequest { Method = "cash", TseRequired = false },
+            Items = new List<PaymentItemRequest> { new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced } }
+        };
+
+        var result = await paymentService.CreatePaymentAsync(request, "u1");
+        
+        Assert.True(result.Success);
+        Assert.NotNull(result.Payment);
+        
+        await using var verifyCtx = CreateContext();
+        var savedPayment = await verifyCtx.PaymentDetails.AnyAsync(p => p.Id == result.PaymentId);
+        Assert.True(savedPayment, "Payment MUST exist in DB despite audit failure");
+    }
+
     /// <summary>
     /// Payment wiring for lifecycle tests (TSE demo mode skips device checks; FinanzOnline mock).
+
     /// </summary>
-    private static PaymentService CreatePaymentServiceForLifecycleTest(AppDbContext ctx)
+    private static PaymentService CreatePaymentServiceForLifecycleTest(AppDbContext ctx, Mock<IAuditLogService>? auditMockOpt = null)
     {
         var paymentRepo = new GenericRepository<PaymentDetails>(ctx, Mock.Of<ILogger<GenericRepository<PaymentDetails>>>());
         var productRepo = new GenericRepository<Product>(ctx, Mock.Of<ILogger<GenericRepository<Product>>>());
@@ -396,14 +451,17 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             Options.Create(companyProfile),
             Mock.Of<IUserService>(),
             TenantTestDoubles.PrimaryTenantResolver);
-        var auditMock = new Mock<IAuditLogService>();
-        auditMock.Setup(x => x.LogPaymentOperationAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),
-                It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(),
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(),
-                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
-                It.IsAny<string?>(), It.IsAny<double?>()))
-            .ReturnsAsync(new AuditLog());
+        var auditMock = auditMockOpt ?? new Mock<IAuditLogService>();
+        if (auditMockOpt == null)
+        {
+            auditMock.Setup(x => x.LogPaymentOperationAsync(
+                    It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(),
+                    It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                    It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(),
+                    It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(),
+                    It.IsAny<string?>(), It.IsAny<double?>()))
+                .ReturnsAsync(new AuditLog());
+        }
 
         var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
         var httpAccessorMock = new Mock<IHttpContextAccessor>();

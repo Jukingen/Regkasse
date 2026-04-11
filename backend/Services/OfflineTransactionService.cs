@@ -438,7 +438,7 @@ public class OfflineTransactionService : IOfflineTransactionService
                     }
 
                     var (errCode, safeMsg) = MapPaymentFailure(paymentResult);
-                    var isFinalRetry = offline.RetryCount >= MaxRetryLimit;
+                    var isFinalRetry = offline.RetryCount >= MaxRetryLimit || paymentResult.IsDeterministicFailure;
 
                     offline.LastErrorCode = errCode;
                     offline.LastErrorMessageSafe = safeMsg;
@@ -821,7 +821,7 @@ public class OfflineTransactionService : IOfflineTransactionService
     private (string Code, string SafeMessage) MapPaymentFailure(PaymentResult paymentResult)
     {
         var code = string.IsNullOrWhiteSpace(paymentResult.DiagnosticCode)
-            ? "PAYMENT_FAILED"
+            ? (paymentResult.IsDeterministicFailure ? "VALIDATION_FAILED" : "PAYMENT_FAILED")
             : paymentResult.DiagnosticCode.Trim();
 
         var msg = string.IsNullOrWhiteSpace(paymentResult.Message)
