@@ -43,11 +43,21 @@ export default function TabLayout() {
     // When background offline queue sync completes after reconnect, show short summary to user
     useEffect(() => {
         const unsub = subscribeOfflineSyncComplete((processed, failed) => {
-            if (processed > 0) {
-                const msg = failed > 0
-                    ? t('navigation:offlineQueue.syncSummaryPartial', { processed, failed })
-                    : t('navigation:offlineQueue.syncSummarySuccess', { processed });
-                Alert.alert(t('navigation:offlineQueue.title'), msg);
+            if (processed > 0 && failed > 0) {
+                Alert.alert(
+                    t('navigation:offlineQueue.title'),
+                    t('navigation:offlineQueue.syncSummaryPartial', { processed, failed })
+                );
+            } else if (processed > 0) {
+                Alert.alert(
+                    t('navigation:offlineQueue.title'),
+                    t('navigation:offlineQueue.syncSummarySuccess', { processed })
+                );
+            } else if (failed > 0) {
+                Alert.alert(
+                    t('navigation:offlineQueue.title'),
+                    t('navigation:offlineQueue.syncSummaryAllFailed', { failed })
+                );
             }
         });
         return unsub;

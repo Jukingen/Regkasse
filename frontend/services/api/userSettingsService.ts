@@ -6,6 +6,8 @@ import {
 } from './normalizeUserSettingsResponse';
 import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
 
+const isDev = __DEV__;
+
 // Kullanıcı ayarları interface'i - Kasa mantığına uygun
 export interface UserSettings {
   id: string;
@@ -58,15 +60,14 @@ export interface UserSettings {
 // Kullanıcı ayarlarını getir
 export const getUserSettings = async (): Promise<UserSettings> => {
   try {
-    console.log('Fetching user settings from API...');
-    
-    // ✅ YENİ: TokenManager ile token kontrolü - manual header ekleme gerekmez
-    // apiClient zaten otomatik token management yapıyor
-    console.log('User settings request - token management via apiClient');
-    
+    if (isDev) {
+      console.log('Fetching user settings from API...');
+    }
     // ✅ YENİ: apiClient otomatik header management
     const raw = await apiClient.get<unknown>('/user/settings');
-    console.log('User settings API response:', raw);
+    if (isDev) {
+      console.log('User settings API response (dev): keys loaded');
+    }
     const source = resolveUserSettingsRecord(raw);
     const flat = source as Record<string, unknown>;
     debugPosPaymentTrace('settings_values', {
@@ -79,7 +80,9 @@ export const getUserSettings = async (): Promise<UserSettings> => {
     const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
     return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
   } catch (error) {
-    console.error('Error fetching user settings:', error);
+    if (isDev) {
+      console.error('Error fetching user settings:', error);
+    }
     debugPosPaymentTrace('settings_fetch_failed_throw', {
       message: error instanceof Error ? error.message : String(error),
     });
@@ -111,7 +114,9 @@ export const getUserSettingsAfterLogin = async (): Promise<UserSettings> => {
   try {
     return await bootstrapUserSettings();
   } catch (error) {
-    console.warn('[userSettings] bootstrap failed, falling back to GET /user/settings', error);
+    if (isDev) {
+      console.warn('[userSettings] bootstrap failed, falling back to GET /user/settings', error);
+    }
     return getUserSettings();
   }
 };
@@ -122,7 +127,9 @@ export const updateUserSettings = async (settings: Partial<UserSettings>): Promi
     const response = await apiClient.put<UserSettings>('/user/settings', settings);
     return response;
   } catch (error) {
-    console.error('Error updating user settings:', error);
+    if (isDev) {
+      console.error('Error updating user settings:', error);
+    }
     throw new Error('Kullanıcı ayarları güncellenemedi');
   }
 };
@@ -133,7 +140,9 @@ export const updateUserLanguage = async (language: 'de-DE' | 'en' | 'tr'): Promi
     const response = await apiClient.put<UserSettings>('/user/settings/language', { language });
     return response;
   } catch (error) {
-    console.error('Error updating user language:', error);
+    if (isDev) {
+      console.error('Error updating user language:', error);
+    }
     throw new Error('Dil ayarı güncellenemedi');
   }
 };
@@ -155,7 +164,9 @@ export const updateCashRegisterConfig = async (config: {
     const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
     return { ...(source as UserSettings), cashRegisterId: invalid ? undefined : id };
   } catch (error) {
-    console.error('Error updating cash register config:', error);
+    if (isDev) {
+      console.error('Error updating cash register config:', error);
+    }
     // Preserve { status, data } from axios interceptor so callers can distinguish policy 4xx vs transient failures.
     if (error && typeof error === 'object' && 'status' in error) {
       throw error;
@@ -174,7 +185,9 @@ export const updateTSESettings = async (settings: {
     const response = await apiClient.put<UserSettings>('/user/settings/tse', settings);
     return response;
   } catch (error) {
-    console.error('Error updating TSE settings:', error);
+    if (isDev) {
+      console.error('Error updating TSE settings:', error);
+    }
     throw new Error('TSE ayarları güncellenemedi');
   }
 };
@@ -189,7 +202,9 @@ export const updateSecuritySettings = async (settings: {
     const response = await apiClient.put<UserSettings>('/user/settings/security', settings);
     return response;
   } catch (error) {
-    console.error('Error updating security settings:', error);
+    if (isDev) {
+      console.error('Error updating security settings:', error);
+    }
     throw new Error('Güvenlik ayarları güncellenemedi');
   }
 };
@@ -247,7 +262,9 @@ export const resetUserSettings = async (): Promise<UserSettings> => {
     const response = await apiClient.post<UserSettings>('/user/settings/reset');
     return response;
   } catch (error) {
-    console.error('Error resetting user settings:', error);
+    if (isDev) {
+      console.error('Error resetting user settings:', error);
+    }
     // Varsayılan ayarları döndür
     return getDefaultUserSettings();
   }

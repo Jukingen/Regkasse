@@ -5,12 +5,14 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { FinanzOnlineReadinessDiagnosticsDto } from './finanzOnlineReadinessDiagnosticsDto';
 import type { FinanzOnlineReadinessFindingDto } from './finanzOnlineReadinessFindingDto';
 import type { FinanzOnlineReadinessResponseOutboxCountsByStatus } from './finanzOnlineReadinessResponseOutboxCountsByStatus';
 
 export interface FinanzOnlineReadinessResponse {
   /** @nullable */
   configuredSimulationScenario?: string | null;
+  diagnostics?: FinanzOnlineReadinessDiagnosticsDto;
   /** @nullable */
   effectiveSimulationScenario?: string | null;
   /** @nullable */

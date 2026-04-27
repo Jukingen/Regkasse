@@ -200,7 +200,9 @@ export class SecureApiService {
    * Türkçe açıklama: Merkezi hata yönetimi
    */
   private handleApiError(error: any) {
-    console.error('API Error:', error);
+    if (__DEV__) {
+      console.error('API Error:', error);
+    }
 
     // Token ile ilgili hatalar
     if (error.status === 401) {

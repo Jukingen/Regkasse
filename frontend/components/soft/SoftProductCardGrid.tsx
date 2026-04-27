@@ -1,6 +1,6 @@
 // Soft minimal grid product card component
 // Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage.
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, Image, Pressable } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../../constants/SoftTheme';
 import { SoftPriceBadge } from './SoftPriceBadge';
@@ -22,6 +22,14 @@ export function SoftProductCardGrid({
     inStock = true,
     onPress
 }: ProductCardGridProps) {
+    const [imageLoadFailed, setImageLoadFailed] = useState(false);
+    const trimmedUrl = imageUrl?.trim() ?? '';
+    const showRemoteImage = trimmedUrl.length > 0 && !imageLoadFailed;
+
+    useEffect(() => {
+        setImageLoadFailed(false);
+    }, [trimmedUrl]);
+
     return (
         <Pressable
             onPress={onPress}
@@ -34,8 +42,12 @@ export function SoftProductCardGrid({
         >
             {/* Image Container */}
             <View style={styles.imageWrapper}>
-                {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.image} />
+                {showRemoteImage ? (
+                    <Image
+                        source={{ uri: trimmedUrl }}
+                        style={styles.image}
+                        onError={() => setImageLoadFailed(true)}
+                    />
                 ) : (
                     <View style={styles.imagePlaceholder}>
                         <Text style={styles.placeholderEmoji}>☕</Text>

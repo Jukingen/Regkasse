@@ -8,6 +8,8 @@
 
 export interface FinanzOnlineReadinessFindingDto {
   /** @nullable */
+  category?: string | null;
+  /** @nullable */
   code?: string | null;
   /** @nullable */
   message?: string | null;

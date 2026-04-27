@@ -1,5 +1,5 @@
 // Soft minimal list product card component (for cart items)
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, Image, Pressable } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../../constants/SoftTheme';
 import { SoftPriceBadge } from './SoftPriceBadge';
@@ -27,6 +27,14 @@ export function SoftProductCardList({
     onDecrement,
     onRemove
 }: ProductCardListProps) {
+    const [imageLoadFailed, setImageLoadFailed] = useState(false);
+    const trimmedUrl = imageUrl?.trim() ?? '';
+    const showRemoteImage = trimmedUrl.length > 0 && !imageLoadFailed;
+
+    useEffect(() => {
+        setImageLoadFailed(false);
+    }, [trimmedUrl]);
+
     return (
         <Pressable
             onPress={onPress}
@@ -34,8 +42,12 @@ export function SoftProductCardList({
         >
             {/* Thumbnail */}
             <View style={styles.thumbnail}>
-                {imageUrl ? (
-                    <Image source={{ uri: imageUrl }} style={styles.image} />
+                {showRemoteImage ? (
+                    <Image
+                        source={{ uri: trimmedUrl }}
+                        style={styles.image}
+                        onError={() => setImageLoadFailed(true)}
+                    />
                 ) : (
                     <View style={styles.imagePlaceholder}>
                         <Text style={styles.placeholderEmoji}>☕</Text>

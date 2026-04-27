@@ -24,7 +24,8 @@
   "offlineQueue": {
     "title": "Cevrimdisi kuyruk",
     "syncSummaryPartial": "{{processed}} odeme senkronize edildi. {{failed}} basarisiz.",
-    "syncSummarySuccess": "{{processed}} odeme basariyla senkronize edildi."
+    "syncSummarySuccess": "{{processed}} odeme basariyla senkronize edildi.",
+    "syncSummaryAllFailed": "Hic odeme senkronize edilmedi. {{failed}} basarisiz — Ayarlar > cevrimdisi kuyruga bakin ve gerekirse tekrar deneyin."
   },
   "cartAccessibility": {
     "default": "Sepet, odemeye devam et",

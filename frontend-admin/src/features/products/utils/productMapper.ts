@@ -90,6 +90,13 @@ export const mapApiProductToUi = (apiProduct: ApiProduct | any): Product => {
     };
 };
 
+function normalizeImageUrlForApi(v: unknown): string | null {
+    if (v === undefined || v === null) return null;
+    const s = String(v).trim();
+    if (s === '') return null;
+    return s;
+}
+
 /** Payload for backend: taxType integer (1,2,3), taxRate consistent with enum. Sends both categoryId and category (name) because Product.Category is [Required]. */
 export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string; category?: string; taxType?: number }): Record<string, unknown> => {
     const taxType = Number(uiProduct.taxType ?? (uiProduct as any).taxType ?? 1);
@@ -109,6 +116,7 @@ export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string; ca
         cost: Number(uiProduct.cost ?? 0),
         isActive: uiProduct.isActive ?? true,
         barcode: uiProduct.barcode ?? '',
+        imageUrl: normalizeImageUrlForApi(uiProduct.imageUrl),
         taxType, // Backend int enum bekliyor (1, 2, 3)
         taxRate,
         isFiscalCompliant: true,

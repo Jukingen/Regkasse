@@ -16,6 +16,25 @@ import { authTrace } from '../utils/authTrace';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
 const isDev = __DEV__;
 
+function authDevLog(...args: unknown[]) {
+    if (isDev) {
+        // eslint-disable-next-line no-console
+        console.log(...args);
+    }
+}
+function authDevWarn(...args: unknown[]) {
+    if (isDev) {
+        // eslint-disable-next-line no-console
+        console.warn(...args);
+    }
+}
+function authDevError(...args: unknown[]) {
+    if (isDev) {
+        // eslint-disable-next-line no-console
+        console.error(...args);
+    }
+}
+
 // Cart cache temizleme için event listener
 const CART_CLEAR_EVENT = 'logout-clear-cache';
 
@@ -54,7 +73,7 @@ const checkBackendAuth = async (): Promise<{ isAuthenticated: boolean; user: any
             return { isAuthenticated: false, user: null };
         }
     } catch (error) {
-        console.error('❌ Backend auth check hatası:', error);
+        authDevError('❌ Backend auth check hatası:', error);
         return { isAuthenticated: false, user: null };
     } finally {
         // Flag'i temizle
@@ -115,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🧹 Cart cache temizleme fonksiyonu
     const clearCartCache = useCallback(async () => {
         try {
-            console.log('🧹 Clearing cart cache...');
+            authDevLog('🧹 Clearing cart cache...');
             // Remove exact keys (Universal)
             const cartKeys = [
                 'currentCartId',
@@ -129,10 +148,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Clear any partial matches for web cleanup or persistent fragments
             await storage.clearByPartialKey(['cart', 'Cart', 'table']);
 
-            console.log('✅ Cart cache cleared successfully');
+            authDevLog('✅ Cart cache cleared successfully');
 
         } catch (error) {
-            console.error('❌ Cart cache temizleme hatası:', error);
+            authDevError('❌ Cart cache temizleme hatası:', error);
         }
     }, []);
 
@@ -141,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (inactivityTimerRef.current) {
             clearTimeout(inactivityTimerRef.current);
             inactivityTimerRef.current = null;
-            console.log('[AUTH] inactivity timer cleared');
+            authDevLog('[AUTH] inactivity timer cleared');
         }
     }, []);
 
@@ -163,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 // Reduce log noise
                 if (isExpired || timeLeftMinutes < 60) {
-                    console.log('🔍 TOKEN CHECK:', {
+                    authDevLog('🔍 TOKEN CHECK:', {
                         timeLeft: timeLeftMinutes + ' minutes',
                         isExpired
                     });
@@ -172,10 +191,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return isExpired;
             }
 
-            console.warn('⚠️ TOKEN CHECK: No expiration time found in token');
+            authDevWarn('⚠️ TOKEN CHECK: No expiration time found in token');
             return false; // Expiration yoksa güvenlik için false döndür
         } catch (error) {
-            console.error('❌ TOKEN CHECK: Token expiration check failed:', error);
+            authDevError('❌ TOKEN CHECK: Token expiration check failed:', error);
             return false;
         }
     };
@@ -192,7 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         inactivityTimerRef.current = setTimeout(() => {
-            console.log('User inactive for 30 minutes, logging out...');
+            authDevLog('User inactive for 30 minutes, logging out...');
             // CRITICAL FIX: Circular dependency'yi önlemek için logout'u direkt çağırmıyoruz
             // Bunun yerine state'i temizliyoruz
             setUser(null);
@@ -221,28 +240,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Inactivity timer'ı durdur
             stopInactivityTimer();
 
-            console.log('✅ Logout tamamlandı, login sayfasına yönlendiriliyor...');
+            authDevLog('✅ Logout tamamlandı, login sayfasına yönlendiriliyor...');
 
             // Login sayfasına yönlendir
             if (router && typeof router.push === 'function') {
                 try {
                     await router.push("/(auth)/login");
                 } catch (navigationError) {
-                    console.error('❌ Navigation to login page failed:', navigationError);
+                    authDevError('❌ Navigation to login page failed:', navigationError);
                     // Fallback: window.location kullan (web için)
                     if (typeof window !== 'undefined') {
                         window.location.href = '/(auth)/login';
                     }
                 }
             } else {
-                console.warn('⚠️ Router not available for logout navigation');
+                authDevWarn('⚠️ Router not available for logout navigation');
                 // Fallback: window.location kullan (web için)
                 if (typeof window !== 'undefined') {
                     window.location.href = '/(auth)/login';
                 }
             }
         } catch (error) {
-            console.error('❌ handleLogoutAndRedirect error:', error);
+            authDevError('❌ handleLogoutAndRedirect error:', error);
             // Hata durumunda bile state'i temizle
             setUser(null);
             setIsAuthenticated(false);
@@ -253,12 +272,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 🧹 Logout event listener - Cart cache temizleme ve AUTH_SESSION_EXPIRED için
     useEffect(() => {
         const handleLogoutEvent = () => {
-            console.log('📡 Logout event received, clearing cart cache...');
+            authDevLog('📡 Logout event received, clearing cart cache...');
             clearCartCache();
         };
 
         const handleAuthExpiredEvent = () => {
-            console.log('📡 AUTH_SESSION_EXPIRED received. Logging out...');
+            authDevLog('📡 AUTH_SESSION_EXPIRED received. Logging out...');
             handleLogoutAndRedirect();
         };
 
@@ -277,7 +296,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     }
                 };
             } catch (error) {
-                console.warn('⚠️ Failed to add window event listener:', error);
+                authDevWarn('⚠️ Failed to add window event listener:', error);
             }
         }
     }, [clearCartCache, handleLogoutAndRedirect]);
@@ -333,7 +352,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (typeof sessionStorage !== 'undefined') {
                     sessionStorage.setItem('hasInitialAuthCheck', 'true');
                 }
-                console.log('✅ AUTH CHECK: User state already exists, skipping further checks');
+                authDevLog('✅ AUTH CHECK: User state already exists, skipping further checks');
                 return;
             }
 
@@ -354,7 +373,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                         if (shouldUpdate) {
                             setUser(userWithToken);
-                            console.log('✅ [AUTH CHECK] User state updated from storage');
+                            authDevLog('✅ [AUTH CHECK] User state updated from storage');
                         }
 
                         setIsAuthenticated(true);
@@ -367,7 +386,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         return;
                     }
                 } catch (parseError) {
-                    console.error('❌ [F5 FIX] User parse hatası:', parseError);
+                    authDevError('❌ [F5 FIX] User parse hatası:', parseError);
                 }
             }
 
@@ -380,7 +399,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                     if (shouldUpdate) {
                         setUser(result.user);
-                        console.log('✅ [AUTH CHECK] User state updated from backend');
+                        authDevLog('✅ [AUTH CHECK] User state updated from backend');
                     }
                     setIsAuthenticated(true);
                     hasInitialAuthCheckRef.current = true;
@@ -392,14 +411,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     return;
                 }
             } catch (backendError) {
-                console.warn('⚠️ [F5 FIX] Backend auth check hatası:', backendError);
+                authDevWarn('⚠️ [F5 FIX] Backend auth check hatası:', backendError);
             }
 
             // Hiçbir user bilgisi bulunamazsa logout yap
             await handleLogoutAndRedirect();
 
         } catch (error) {
-            console.error('❌ [F5 FIX] Auth check hatası:', error);
+            authDevError('❌ [F5 FIX] Auth check hatası:', error);
             await handleLogoutAndRedirect();
         } finally {
             setIsLoading(false);
@@ -415,7 +434,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 🚀 F5 REFRESH FIX: Her zaman önce storage'dan restore etmeye çalış
         const initializeAuth = async () => {
             try {
-                console.log('🔍 AUTH INIT: Checking storage for existing auth...');
+                authDevLog('🔍 AUTH INIT: Checking storage for existing auth...');
 
                 const snapshot = await sessionManager.getSnapshot();
                 const token = snapshot.accessToken;
@@ -430,7 +449,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const isTokenExpired = checkTokenExpiration(cleanToken);
 
                         if (isTokenExpired) {
-                            console.log('⏰ AUTH INIT: Token expired, clearing storage and redirecting to login');
+                            authDevLog('⏰ AUTH INIT: Token expired, clearing storage and redirecting to login');
                             await sessionManager.clearSession();
                             if (typeof sessionStorage !== 'undefined') {
                                 sessionStorage.removeItem('hasInitialAuthCheck');
@@ -446,7 +465,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             token: cleanToken
                         };
 
-                        console.log('✅ AUTH INIT: Restoring user state from storage');
+                        authDevLog('✅ AUTH INIT: Restoring user state from storage');
                         setUser(userWithToken);
                         setIsAuthenticated(true);
                         hasInitialAuthCheckRef.current = true;
@@ -462,12 +481,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
 
                 // Storage'da geçerli auth bulunamazsa normal auth check yap
-                console.log('❌ AUTH INIT: No valid auth in storage, performing full auth check');
+                authDevLog('❌ AUTH INIT: No valid auth in storage, performing full auth check');
                 await stableCheckAuthStatus(); // Await added
                 setIsAuthReady(true); // ✅ Ready even if failed
 
             } catch (error) {
-                console.error('❌ AUTH INIT: Error during initialization:', error);
+                authDevError('❌ AUTH INIT: Error during initialization:', error);
                 await stableCheckAuthStatus(); // Await added
                 setIsAuthReady(true); // ✅ Ready even if failed
             }
@@ -522,21 +541,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // CRITICAL FIX: Login sonrası navigation'ı optimize et
     useEffect(() => {
         if (justLoggedIn && isAuthenticated && user) {
-            console.log('🚀 Login successful, attempting navigation...'); // Debug log
-            console.log('🚀 Navigation state:', { justLoggedIn, isAuthenticated, hasUser: !!user, userEmail: user?.email }); // Debug log
+            authDevLog('🚀 Login successful, attempting navigation...'); // Debug log
+            authDevLog('🚀 Navigation state:', { justLoggedIn, isAuthenticated, hasUser: !!user, userEmail: user?.email }); // Debug log
 
             // Navigation'ı dene
             const attemptNavigation = async () => {
                 try {
                     if (router && typeof router.push === 'function') {
-                        console.log('🧭 Navigating to cash-register...'); // Debug log
+                        authDevLog('🧭 Navigating to cash-register...'); // Debug log
                         await router.push("/(tabs)/cash-register");
-                        console.log('✅ Navigation successful!'); // Debug log
+                        authDevLog('✅ Navigation successful!'); // Debug log
                     } else {
-                        console.error('❌ Router not available for navigation'); // Debug log
+                        authDevError('❌ Router not available for navigation'); // Debug log
                     }
                 } catch (error) {
-                    console.error('❌ Navigation failed:', error); // Debug log
+                    authDevError('❌ Navigation failed:', error); // Debug log
                 }
             };
 
@@ -546,7 +565,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // 3 saniye sonra flag'i temizle
             const timer = setTimeout(() => {
                 setJustLoggedIn(false);
-                console.log('🔄 justLoggedIn flag cleared'); // Debug log
+                authDevLog('🔄 justLoggedIn flag cleared'); // Debug log
             }, 3000);
 
             return () => clearTimeout(timer);
@@ -557,33 +576,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Cart reset will be handled by the component that uses AuthContext
 
     const login = useCallback(async (username: string, password: string) => {
-        console.log('Login function called with username:', username); // Debug log
+        authDevLog('Login function called with username:', username); // Debug log
         try {
             setIsLoading(true);
             setJustLoggedIn(true); // Login başladığında flag'i set et
-            console.log('Making login API request...'); // Debug log
+            authDevLog('Making login API request...'); // Debug log
 
             const response = await authService.login({ email: username, password, clientApp: 'pos' });
             if (isDev) {
-                console.log('Login API response received'); // Debug log
+                authDevLog('Login API response received'); // Debug log
             }
 
             // API client response interceptor'ı response.data döndürüyor
             const { token, user: loggedInUser, refreshToken } = response;
 
             if (!token || !loggedInUser) {
-                console.error('Invalid login response:', response); // Debug log
+                authDevError('Invalid login response:', response); // Debug log
                 throw new Error('Invalid login response');
             }
 
             // POS rol kontrolü: sadece Cashier ve SuperAdmin girebilir
             if (!isPosAllowedRole(loggedInUser.role, loggedInUser.roles)) {
-                console.warn('POS role denied for user:', loggedInUser.email, 'role:', loggedInUser.role);
+                authDevWarn('POS role denied for user:', loggedInUser.email, 'role:', loggedInUser.role);
                 setJustLoggedIn(false);
                 throw new AuthAppError('POS_UNAUTHORIZED_USER');
             }
 
-            console.log('Storing token and user data...'); // Debug log
+            authDevLog('Storing token and user data...'); // Debug log
 
             // Token'ı JWT olarak kaydet (Bearer prefix olmadan)
             const cleanToken = token.startsWith('Bearer ') ? token.substring(7) : token;
@@ -595,14 +614,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 user: loggedInUser,
             });
             if (isDev) {
-                console.log('Session tokens stored');
+                authDevLog('Session tokens stored');
             }
 
             // 🔐 AUTH STATE PERSISTENCE - F5 refresh'te korunması için
             // await persistAuthState(loggedInUser, cleanToken); // Removed as per new_code
 
             // --- CART TEMİZLİĞİ ---
-            console.log('🧹 Login sonrası cart cache temizleniyor...');
+            authDevLog('🧹 Login sonrası cart cache temizleniyor...');
             await storage.removeItem('currentCartId');
 
             // Cart cache temizleme event'ini tetikle - Platform-aware
@@ -610,12 +629,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 try {
                     const clearCartEvent = new CustomEvent(CART_CLEAR_EVENT);
                     window.dispatchEvent(clearCartEvent);
-                    console.log('✅ Web platform: Cart clear event dispatched');
+                    authDevLog('✅ Web platform: Cart clear event dispatched');
                 } catch (error) {
-                    console.warn('⚠️ Failed to dispatch cart clear event:', error);
+                    authDevWarn('⚠️ Failed to dispatch cart clear event:', error);
                 }
             } else {
-                console.log('📱 Mobile platform: Direct cart clear called');
+                authDevLog('📱 Mobile platform: Direct cart clear called');
                 // Mobile platformda direkt clearCartCache çağır
                 clearCartCache();
             }
@@ -633,12 +652,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await storage.removeItem(key);
             }
 
-            console.log('✅ Cart cache temizlendi');
+            authDevLog('✅ Cart cache temizlendi');
             // --- CART TEMİZLİĞİ SONU ---
 
-            console.log('Setting user state...'); // Debug log
+            authDevLog('Setting user state...'); // Debug log
             if (isDev) {
-                console.log('User data prepared for state update'); // Debug log
+                authDevLog('User data prepared for state update'); // Debug log
             }
 
             // State'leri birlikte set et - önce user, sonra authentication
@@ -647,27 +666,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 token: cleanToken // cleanToken'ı user state'ine ekle (JWT only)
             };
             setUser(userWithToken);
-            console.log('User state set to:', userWithToken); // Debug log
+            authDevLog('User state set to:', userWithToken); // Debug log
 
             // Kısa bir gecikme ile authentication state'ini set et
             setTimeout(() => {
                 setIsAuthenticated(true);
-                console.log('Authentication state set to true'); // Debug log
+                authDevLog('Authentication state set to true'); // Debug log
                 if (isDev) {
-                    console.log('Auth state updated after login'); // Debug log
+                    authDevLog('Auth state updated after login'); // Debug log
                 }
             }, 100);
 
             // Kullanıcı ayarlarını backend'den çek
             try {
-                console.log('Fetching user settings after login...');
+                authDevLog('Fetching user settings after login...');
 
                 // Token'ın doğru şekilde kaydedildiğini kontrol et
                 const savedToken = await sessionManager.getAccessToken();
-                console.log('Saved token before user settings request:', !!savedToken, 'length:', savedToken?.length);
+                authDevLog('Saved token before user settings request:', !!savedToken, 'length:', savedToken?.length);
 
                 const userSettings = await getUserSettingsAfterLogin();
-                console.log('User settings loaded after login (bootstrap or GET fallback):', userSettings);
+                authDevLog('User settings loaded after login (bootstrap or GET fallback):', userSettings);
 
                 if (userSettings?.language) {
                     // Map API language (e.g. de-DE) to i18n text locale (de | en | tr)
@@ -675,17 +694,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const currentLang = i18n.language;
                     if (normalizeTextLocale(currentLang) !== next) {
                         await persistAndChangeLanguage(next);
-                        console.log('Language changed to:', next);
+                        authDevLog('Language changed to:', next);
                     }
                 } else {
                     const currentLang = i18n.language;
                     if (currentLang !== DEFAULT_TEXT_LOCALE) {
                         await persistAndChangeLanguage(DEFAULT_TEXT_LOCALE);
-                        console.log('Default language set:', DEFAULT_TEXT_LOCALE);
+                        authDevLog('Default language set:', DEFAULT_TEXT_LOCALE);
                     }
                 }
             } catch (err) {
-                console.warn('Kullanıcı ayarları backendden alınamadı, varsayılan dil kullanılıyor:', err);
+                authDevWarn('Kullanıcı ayarları backendden alınamadı, varsayılan dil kullanılıyor:', err);
                 const currentLang = i18n.language;
                 if (currentLang !== DEFAULT_TEXT_LOCALE) {
                     await persistAndChangeLanguage(DEFAULT_TEXT_LOCALE);
@@ -696,11 +715,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             // State'lerin doğru set edildiğini kontrol et
-            console.log('State set, checking...'); // Debug log
-            console.log('Current state values:', { isAuthenticated, user }); // Debug log
-            console.log('Login process completed, navigation will be handled by useEffect'); // Debug log
+            authDevLog('State set, checking...'); // Debug log
+            authDevLog('Current state values:', { isAuthenticated, user }); // Debug log
+            authDevLog('Login process completed, navigation will be handled by useEffect'); // Debug log
         } catch (error: unknown) {
-            console.error('Login failed:', error);
+            authDevError('Login failed:', error);
             setJustLoggedIn(false);
 
             if (isAuthError(error)) {
@@ -715,7 +734,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [clearCartCache]);
 
     const logout = useCallback(async () => {
-        console.log('Logout function called'); // Debug log
+        authDevLog('Logout function called'); // Debug log
 
         try {
             // 🧹 ÖNCE CART CACHE'İ TEMİZLE
@@ -725,7 +744,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await authService.logout();
 
             // 🧹 LOCAL STATE VE STORAGE TEMİZLİĞİ
-            console.log('🧹 Local state ve storage temizleniyor...');
+            authDevLog('🧹 Local state ve storage temizleniyor...');
 
             // State'leri temizle
             setUser(null);
@@ -739,38 +758,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 try {
                     const clearCartEvent = new CustomEvent(CART_CLEAR_EVENT);
                     window.dispatchEvent(clearCartEvent);
-                    console.log('✅ Web platform: Cart clear event dispatched during logout');
+                    authDevLog('✅ Web platform: Cart clear event dispatched during logout');
                 } catch (error) {
-                    console.warn('⚠️ Failed to dispatch cart clear event during logout:', error);
+                    authDevWarn('⚠️ Failed to dispatch cart clear event during logout:', error);
                 }
             }
 
             // 🧹 INACTIVITY TIMER TEMİZLİĞİ
             stopInactivityTimer();
 
-            console.log('✅ Logout completed successfully');
+            authDevLog('✅ Logout completed successfully');
 
             // Login sayfasına yönlendir
             if (router && typeof router.push === 'function') {
                 try {
                     await router.push("/(auth)/login");
-                    console.log('✅ Navigation to login page successful');
+                    authDevLog('✅ Navigation to login page successful');
                 } catch (navigationError) {
-                    console.error('❌ Navigation to login page failed:', navigationError);
+                    authDevError('❌ Navigation to login page failed:', navigationError);
                     // Fallback: window.location kullan (web için)
                     if (typeof window !== 'undefined') {
                         window.location.href = '/(auth)/login';
                     }
                 }
             } else {
-                console.warn('⚠️ Router not available for logout navigation');
+                authDevWarn('⚠️ Router not available for logout navigation');
                 // Fallback: window.location kullan (web için)
                 if (typeof window !== 'undefined') {
                     window.location.href = '/(auth)/login';
                 }
             }
         } catch (error) {
-            console.error('❌ Logout error:', error);
+            authDevError('❌ Logout error:', error);
             // Hata durumunda bile state'i temizle
             setUser(null);
             setIsAuthenticated(false);
@@ -781,7 +800,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 try {
                     await router.push("/(auth)/login");
                 } catch (navigationError) {
-                    console.error('Navigation failed after logout error:', navigationError);
+                    authDevError('Navigation failed after logout error:', navigationError);
                 }
             }
         }

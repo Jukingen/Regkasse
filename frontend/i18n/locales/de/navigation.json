@@ -24,7 +24,8 @@
   "offlineQueue": {
     "title": "Offline-Warteschlange",
     "syncSummaryPartial": "{{processed}} Zahlung(en) synchronisiert. {{failed}} fehlgeschlagen.",
-    "syncSummarySuccess": "{{processed}} Zahlung(en) erfolgreich synchronisiert."
+    "syncSummarySuccess": "{{processed}} Zahlung(en) erfolgreich synchronisiert.",
+    "syncSummaryAllFailed": "Keine Zahlung synchronisiert. {{failed}} fehlgeschlagen — bitte Offline-Warteschlange in den Einstellungen prüfen und ggf. erneut senden."
   },
   "cartAccessibility": {
     "default": "Warenkorb, zum Bezahlen",

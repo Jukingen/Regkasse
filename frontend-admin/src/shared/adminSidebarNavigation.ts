@@ -7,15 +7,19 @@
  * Permission filtering: `menuPermissions.MENU_PERMISSION` + `filterSidebarMenuItems`.
  * Route protection: `routePermissions.ROUTE_PERMISSIONS` + `PermissionRouteGuard` (unchanged contract).
  *
- * Role fallback (when `usePermissionFirst` is false — no permissions on `/me` yet): only `/users` and
- * `/rksv` parent keys use `canViewUsers` / `canShowRksvMenu`; other leaves stay visible unless
- * permission mode is on. Prefer keeping `/me` permissions authoritative.
+ * When JWT has no permission claims (`usePermissionFirst` is false):
+ * - If `ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS` is false, hide all routable leaves (matches
+ *   `PermissionRouteGuard` fail-closed). Submenu group keys `grp-*` / `rksv-grp-*` stay structural
+ *   so children can be filtered to empty and removed.
+ * - If the env flag is true (migration), legacy role fallbacks apply: `/users` and `/rksv` use
+ *   `canViewUsers` / `canShowRksvMenu`, other leaves stay visible. Prefer `/me` permissions in prod.
  */
 
 import type { MenuProps } from 'antd';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
 import { SETTINGS_AREA_ROUTE_PATHS } from '@/shared/settingsAreaRoutes';
+import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from '@/shared/auth/routeGuardConfig';
 
 /** RKSV landing URL vs menu leaf key (Orval / menu model use /rksv/operations as selected key). */
 export const RKSV_HUB_PATH = '/rksv';
@@ -148,9 +152,18 @@ export function filterSidebarMenuItems(
 ): MenuProps['items'] {
     if (!items?.length) return items;
 
+    const isStructuralSubmenuKey = (key: string) =>
+        key.startsWith('grp-') || key.startsWith('rksv-grp-');
+
     const leafAllowed = (key: string): boolean => {
         if (ctx.usePermissionFirst) {
             return ctx.isMenuItemAllowed(key, ctx.permissions);
+        }
+        if (!ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS) {
+            if (isStructuralSubmenuKey(key)) {
+                return true;
+            }
+            return false;
         }
         if (key === '/users') return ctx.canViewUsers(ctx.userRole);
         if (key === '/rksv') return ctx.canShowRksvMenu(ctx.userRole);

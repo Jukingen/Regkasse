@@ -143,10 +143,11 @@ export default function OfflineQueueScreen() {
       const { processed, failed } = await syncPendingPaymentQueue();
       await load();
       if (processed > 0 || failed > 0) {
-        Alert.alert(
-          'Synchronisation',
-          `${processed} Zahlung(en) synchronisiert.${failed > 0 ? ` ${failed} fehlgeschlagen.` : ''}`
-        );
+        const syncMsg =
+          processed === 0 && failed > 0
+            ? `Keine Zahlung synchronisiert. ${failed} fehlgeschlagen — bitte Fehlermeldung prüfen oder erneut senden.`
+            : `${processed} Zahlung(en) synchronisiert.${failed > 0 ? ` ${failed} fehlgeschlagen.` : ''}`;
+        Alert.alert('Synchronisation', syncMsg);
       } else {
         Alert.alert('Hinweis', 'Keine ausstehenden Zahlungen in der Warteschlange.');
       }
@@ -238,6 +239,13 @@ export default function OfflineQueueScreen() {
             Die Replay-Batch-Correlation-ID verknüpft einen Server-Replay mit Zahlungen und Logs. Bitte diese ID
             (und nach erfolgreicher Sync die Payment-ID) an den Support melden — schneller als nur die lokale
             Queue-ID.
+          </Text>
+        </View>
+        <View style={styles.operatorHint}>
+          <Text style={styles.operatorHintTitle}>Vor erneuter Zahlung</Text>
+          <Text style={styles.operatorHintText}>
+            Offene Einträge hier oder unter Einstellungen prüfen und zuerst synchronisieren. Eine zweite Zahlung für
+            denselben Tisch/Vorgang kann sonst zu doppelten Buchungen führen.
           </Text>
         </View>
         <View style={styles.filterRow}>
@@ -415,6 +423,25 @@ const styles = StyleSheet.create({
   supportBannerText: {
     fontSize: 12,
     color: '#1e40af',
+    lineHeight: 17,
+  },
+  operatorHint: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  operatorHintTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400e',
+    marginBottom: 4,
+  },
+  operatorHintText: {
+    fontSize: 12,
+    color: '#a16207',
     lineHeight: 17,
   },
   filterRow: {

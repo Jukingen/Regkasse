@@ -73,6 +73,31 @@ export default function ProductForm({
         [t],
     );
 
+    const productImageUrlRules = useMemo(
+        () => [
+            {
+                validator: (_: unknown, value: unknown) => {
+                    if (value === undefined || value === null) return Promise.resolve();
+                    const s = String(value).trim();
+                    if (s === '') return Promise.resolve();
+                    if (s.length > 500) {
+                        return Promise.reject(new Error(t('products.form.imageUrlTooLong')));
+                    }
+                    try {
+                        const u = new URL(s);
+                        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+                            return Promise.reject(new Error(t('products.form.imageUrlInvalid')));
+                        }
+                        return Promise.resolve();
+                    } catch {
+                        return Promise.reject(new Error(t('products.form.imageUrlInvalid')));
+                    }
+                },
+            },
+        ],
+        [t],
+    );
+
     // Category list: /api/admin/categories (useCategories → src/api/admin/categories)
     const { useList } = useCategories();
     const { data: categoryList } = useList();
@@ -137,6 +162,12 @@ export default function ProductForm({
                 (initialValues as any)?.category ??
                 '';
 
+            const rawImageUrl = values.imageUrl;
+            const imageUrl =
+                rawImageUrl === undefined || rawImageUrl === null || String(rawImageUrl).trim() === ''
+                    ? null
+                    : String(rawImageUrl).trim();
+
             const processedValues: ProductFormSubmitValues = {
                 ...values,
                 price: Number(values.price),
@@ -147,6 +178,7 @@ export default function ProductForm({
                 unit: values.unit || 'pcs',
                 categoryId,
                 category: categoryName,
+                imageUrl,
                 modifierGroupIds: selectedModifierGroupIds,
             };
 
@@ -277,6 +309,19 @@ export default function ProductForm({
                     label={t('products.form.description')}
                 >
                     <TextArea rows={3} />
+                </Form.Item>
+
+                <Form.Item
+                    name="imageUrl"
+                    label={t('products.form.imageUrl')}
+                    extra={t('products.form.imageUrlExtra')}
+                    rules={productImageUrlRules}
+                >
+                    <Input
+                        allowClear
+                        autoComplete="off"
+                        placeholder={t('products.form.imageUrlPlaceholder')}
+                    />
                 </Form.Item>
 
                 <Form.Item

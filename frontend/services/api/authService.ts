@@ -80,7 +80,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
       return null;
     }
     if (isDev) {
-      console.log('Retrieved user from storage:', user);
+        console.log('Retrieved user from storage');
     }
     return user;
   } catch (error) {
@@ -140,7 +140,7 @@ export const validateToken = async (): Promise<User | null> => {
 
     if (response && response.id) {
       if (isDev) {
-        console.log('✅ Backend token validation başarılı:', response.email);
+        console.log('✅ Backend token validation başarılı:', response.id);
       }
 
       // AsyncStorage'daki user bilgisini güncelle

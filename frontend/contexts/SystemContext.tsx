@@ -24,25 +24,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
-export interface SystemConfiguration {
-  language: string;
-  theme: 'light' | 'dark' | 'system';
-  notifications: boolean;
-  printerSettings: {
-    enabled: boolean;
-    model: string;
-    paperSize: '80mm' | '58mm';
-    autoPrint: boolean;
-    printLogo: boolean;
-    printTaxDetails: boolean;
-    footerText: string;
-  };
-  tseSettings: {
-    enabled: boolean;
-    connected: boolean;
-    deviceId: string;
-  };
-}
+import { defaultSystemConfig, type SystemConfiguration } from './systemConfiguration';
+
+export type { SystemConfiguration } from './systemConfiguration';
 
 interface SystemContextType {
   isOnline: boolean;
@@ -52,26 +36,6 @@ interface SystemContextType {
   loading: boolean;
   checkConnectivity: () => Promise<boolean>;
 }
-
-const defaultConfig: SystemConfiguration = {
-  language: 'de',
-  theme: 'system',
-  notifications: true,
-  printerSettings: {
-    enabled: false,
-    model: 'EPSON TM-T88VI',
-    paperSize: '80mm',
-    autoPrint: true,
-    printLogo: true,
-    printTaxDetails: true,
-    footerText: 'Vielen Dank für Ihren Einkauf!'
-  },
-  tseSettings: {
-    enabled: true,
-    connected: false,
-    deviceId: ''
-  },
-};
 
 const SystemContext = createContext<SystemContextType | undefined>(undefined);
 
@@ -92,7 +56,7 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
 
   const { t } = useTranslation();
   const [isOnline, setIsOnline] = useState(true);
-  const [systemConfig, setSystemConfig] = useState<SystemConfiguration>(defaultConfig);
+  const [systemConfig, setSystemConfig] = useState<SystemConfiguration>(defaultSystemConfig);
   const [loading, setLoading] = useState(true);
 
   // Ağ durumunu izle
@@ -111,7 +75,7 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
       const savedConfig = await storage.getItem('systemConfig');
       if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
-        setSystemConfig({ ...defaultConfig, ...parsedConfig });
+        setSystemConfig({ ...defaultSystemConfig, ...parsedConfig });
       }
     } catch (error) {
       console.error('System config load failed:', error);

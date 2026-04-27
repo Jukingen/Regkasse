@@ -67,6 +67,11 @@
     "taxReduced": "%10 (indirimli)",
     "taxSpecial": "%13 (ozel)",
     "description": "Aciklama",
+    "imageUrl": "Gorsel URL (istege bagli)",
+    "imageUrlPlaceholder": "https://…",
+    "imageUrlExtra": "Urun gorseli icin HTTPS URL. Gorsel yoksa bos birakin.",
+    "imageUrlInvalid": "Gecerli bir http(s) URL girin.",
+    "imageUrlTooLong": "URL cok uzun (en fazla 500 karakter).",
     "active": "Aktif",
     "addonGroupsLabel": "Bu urun icin ek urun gruplari",
     "addonGroupsExtra": "Bu urun icin hangi gruplar secilebilir? Grup basina ek urunleri \"Ek urun gruplari\" altinda yonetin."

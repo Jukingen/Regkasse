@@ -67,6 +67,11 @@
     "taxReduced": "10 % (ermäßigt)",
     "taxSpecial": "13 % (besonders)",
     "description": "Beschreibung",
+    "imageUrl": "Bild-URL (optional)",
+    "imageUrlPlaceholder": "https://…",
+    "imageUrlExtra": "HTTPS-URL zu einem Produktbild. Leer lassen, wenn kein Bild verwendet wird.",
+    "imageUrlInvalid": "Bitte eine gültige http(s)-URL eingeben.",
+    "imageUrlTooLong": "URL ist zu lang (max. 500 Zeichen).",
     "active": "Aktiv",
     "addonGroupsLabel": "Add-on-Gruppen für dieses Produkt",
     "addonGroupsExtra": "Welche Gruppen sind für dieses Produkt wählbar? Add-on-Produkte pro Gruppe verwalten Sie unter „Add-on-Gruppen“."

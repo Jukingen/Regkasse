@@ -24,7 +24,8 @@
   "offlineQueue": {
     "title": "Offline Queue",
     "syncSummaryPartial": "{{processed}} payment(s) synchronized. {{failed}} failed.",
-    "syncSummarySuccess": "{{processed}} payment(s) synchronized successfully."
+    "syncSummarySuccess": "{{processed}} payment(s) synchronized successfully.",
+    "syncSummaryAllFailed": "No payments synchronized. {{failed}} failed — check Offline Queue in Settings and retry if needed."
   },
   "cartAccessibility": {
     "default": "Cart, proceed to payment",

@@ -5,12 +5,15 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { GetApiAdminProductsIsActive } from './getApiAdminProductsIsActive';
 
 export type GetApiAdminProductsParams = {
 pageNumber?: number;
 pageSize?: number;
 categoryId?: string;
 name?: string;
-/** Omit or true: active only (default). false: inactive only. all: both. */
-isActive?: 'true' | 'false' | 'all';
+/**
+ * Omit or true: active products only (default). false: inactive only. all: active and inactive.
+ */
+isActive?: GetApiAdminProductsIsActive;
 };

@@ -24,15 +24,6 @@ const TokenManager = {
             const currentTime = Date.now() / 1000;
             const isExpired = decoded.exp ? decoded.exp < currentTime : true;
 
-            if (isDev) {
-                console.log('Token expiration check:', {
-                    exp: decoded.exp,
-                    currentTime: currentTime,
-                    isExpired: isExpired,
-                    timeLeft: decoded.exp ? Math.round((decoded.exp - currentTime) / 60) + ' minutes' : 'unknown'
-                });
-            }
-
             return isExpired;
         } catch (error) {
             console.error('Token expiration check failed:', error);
@@ -124,15 +115,6 @@ axiosInstance.interceptors.request.use(
 
             // Token'ı header'a ekle (JWT token'a Bearer prefix ekle)
             config.headers.Authorization = `Bearer ${token}`;
-            if (isDev) {
-                console.log('✅ Token added to request:', config.url);
-            }
-        } else if (isDev) {
-            console.log('⚠️ No token found, proceeding without auth');
-        }
-
-        if (isDev) {
-            console.log(`🚀 [${new Date().toISOString()}] Request: ${config.method?.toUpperCase()} ${config.url}`);
         }
         return config;
     },
@@ -244,9 +226,6 @@ axiosInstance.interceptors.response.use(
 // API client
 export const apiClient = {
     get: async <T>(url: string, config?: any): Promise<T> => {
-        if (isDev) {
-            console.log('GET request:', { url, config });
-        }
         try {
             const response = await axiosInstance.get<T>(url, config);
             return response as T;
@@ -259,9 +238,6 @@ export const apiClient = {
     },
 
     post: async <T>(url: string, data?: any, config?: any): Promise<T> => {
-        if (isDev) {
-            console.log(`🌐 API POST CALL: ${url}`);
-        }
         try {
             const response = await axiosInstance.post<T>(url, data, config);
             return response as T;
@@ -274,9 +250,6 @@ export const apiClient = {
     },
 
     put: async <T>(url: string, data?: any, config?: any): Promise<T> => {
-        if (isDev) {
-            console.log(`🌐 API PUT CALL: ${url}`);
-        }
         try {
             const response = await axiosInstance.put<T>(url, data, config);
             return response as T;
@@ -289,9 +262,6 @@ export const apiClient = {
     },
 
     delete: async <T>(url: string, config?: any): Promise<T> => {
-        if (isDev) {
-            console.log('DELETE request:', { url, config });
-        }
         try {
             const response = await axiosInstance.delete<T>(url, config);
             return response as T;

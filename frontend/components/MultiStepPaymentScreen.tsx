@@ -230,7 +230,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         setError(
           t(
             'payment:errors.nonFiscalQueued',
-            'Keine RKSV-Bestätigung: Zahlung nur lokal in Warteschlange. Bei Verbindung synchronisieren oder erneut bezahlen.'
+            'Keine RKSV-Bestätigung: Zahlung nur lokal in Warteschlange. Bei Verbindung wird synchronisiert — bis dahin nicht als fiscal verbucht. Vor einer erneuten Zahlung bitte Einstellungen → Offline-Warteschlange prüfen; eine zweite Zahlung kann sonst zu doppelten Buchungen führen.'
           )
         );
       } else if (response.success) {

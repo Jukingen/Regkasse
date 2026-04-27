@@ -69,7 +69,7 @@
     "demoRestricted": "Demo users cannot create real payments. Please continue with an authorized user.",
     "benefitDailyAllowanceConflict": "Daily allowance was just used at another terminal. Please try again.",
     "unknown": "Payment process failed. Please try again.",
-    "nonFiscalQueued": "No fiscal confirmation: payment queued locally only. Syncs when online — not RKSV-valid until then."
+    "nonFiscalQueued": "No fiscal confirmation: payment queued locally only. Syncs when online — not RKSV-valid until then. Before paying again, check Settings → Offline queue; a second payment for the same sale can create duplicate charges."
   },
   "cancellation": {
     "title": "Cancel Payment",
