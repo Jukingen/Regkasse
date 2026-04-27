@@ -30,8 +30,14 @@ import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency, formatNumber, formatPercent } from '@/i18n/formatting';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import { useGetApiUserManagement } from '@/api/generated/user-management/user-management';
-import { useGetApiReportsOperationalStaffPerformance } from '@/api/generated/reports/reports';
-import type { CashRegister, StaffPerformanceStaffRowDto } from '@/api/generated/model';
+import { useGetApiReportsOperationalStaffPerformance } from '@/api/generated/operational-reports/operational-reports';
+import type {
+    CashRegister,
+    StaffPerformanceLocalDayAggregateDto,
+    StaffPerformanceLocalDayStaffDto,
+    StaffPerformanceStaffMethodSliceDto,
+    StaffPerformanceStaffRowDto,
+} from '@/api/generated/model';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import Link from 'next/link';
@@ -47,15 +53,15 @@ const PAYMENT_METHOD_OPTIONS: { value: number; labelDe: string }[] = [
     { value: 5, labelDe: 'Mobil' },
 ];
 
-function formatPaymentMethodKey(key: string | undefined): string {
-    if (key === undefined || key === '') return '—';
+function formatPaymentMethodKey(key: string | null | undefined): string {
+    if (key == null || key === '') return '—';
     const n = Number.parseInt(key, 10);
     const opt = PAYMENT_METHOD_OPTIONS.find((o) => o.value === n);
     if (opt) return opt.labelDe;
     return key;
 }
 
-function formatYyyyMmDd(yyyyMmDd: string | undefined): string {
+function formatYyyyMmDd(yyyyMmDd: string | null | undefined): string {
     if (!yyyyMmDd || yyyyMmDd.length !== 8) return yyyyMmDd ?? '—';
     const y = yyyyMmDd.slice(0, 4);
     const m = yyyyMmDd.slice(4, 6);
@@ -168,12 +174,7 @@ export default function StaffPerformanceReportingPage() {
         },
     ];
 
-    const methodSliceColumns: ColumnsType<{
-        cashierId?: string;
-        paymentMethodRaw?: string;
-        saleCount?: number;
-        grossAmount?: number;
-    }> = [
+    const methodSliceColumns: ColumnsType<StaffPerformanceStaffMethodSliceDto> = [
         {
             title: t('adminShell.staffPerformance.colCashier'),
             dataIndex: 'cashierId',
@@ -192,12 +193,29 @@ export default function StaffPerformanceReportingPage() {
         },
     ];
 
-    const dayAggColumns = [
+    const dayAggColumns: ColumnsType<StaffPerformanceLocalDayAggregateDto> = [
         {
             title: t('adminShell.staffPerformance.colLocalDay'),
             dataIndex: 'localDayYyyyMmDd',
             render: (v: string) => formatYyyyMmDd(v),
         },
+        { title: t('adminShell.staffPerformance.colSalesCount'), dataIndex: 'saleTransactionCount' },
+        {
+            title: t('adminShell.staffPerformance.colGross'),
+            dataIndex: 'grossSalesAmount',
+            render: (v: number) => formatMoney(Number(v ?? 0)),
+        },
+        { title: t('adminShell.staffPerformance.colRefunds'), dataIndex: 'refundRowCount' },
+        { title: t('adminShell.staffPerformance.colStorno'), dataIndex: 'stornoRowCount' },
+    ];
+
+    const dayStaffColumns: ColumnsType<StaffPerformanceLocalDayStaffDto> = [
+        {
+            title: t('adminShell.staffPerformance.colLocalDay'),
+            dataIndex: 'localDayYyyyMmDd',
+            render: (v: string) => formatYyyyMmDd(v),
+        },
+        { title: t('adminShell.staffPerformance.colCashierId'), dataIndex: 'cashierId', ellipsis: true },
         { title: t('adminShell.staffPerformance.colSalesCount'), dataIndex: 'saleTransactionCount' },
         {
             title: t('adminShell.staffPerformance.colGross'),
@@ -423,22 +441,7 @@ export default function StaffPerformanceReportingPage() {
                         <Table
                             rowKey={(r) => `${r.localDayYyyyMmDd}-${r.cashierId}`}
                             dataSource={reportQ.data?.byLocalDayAndStaff ?? []}
-                            columns={[
-                                {
-                                    title: t('adminShell.staffPerformance.colLocalDay'),
-                                    dataIndex: 'localDayYyyyMmDd',
-                                    render: (v: string) => formatYyyyMmDd(v),
-                                },
-                                { title: t('adminShell.staffPerformance.colCashierId'), dataIndex: 'cashierId', ellipsis: true },
-                                { title: t('adminShell.staffPerformance.colSalesCount'), dataIndex: 'saleTransactionCount' },
-                                {
-                                    title: t('adminShell.staffPerformance.colGross'),
-                                    dataIndex: 'grossSalesAmount',
-                                    render: (v: number) => formatMoney(Number(v ?? 0)),
-                                },
-                                { title: t('adminShell.staffPerformance.colRefunds'), dataIndex: 'refundRowCount' },
-                                { title: t('adminShell.staffPerformance.colStorno'), dataIndex: 'stornoRowCount' },
-                            ]}
+                            columns={dayStaffColumns}
                             pagination={{ pageSize: 40 }}
                             scroll={{ x: 900 }}
                         />

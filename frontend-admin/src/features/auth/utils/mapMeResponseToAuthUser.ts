@@ -4,7 +4,16 @@ import type { AuthUser } from '@/shared/auth/types';
 /**
  * GET /api/Auth/me payload: OpenAPI UserInfo plus legacy PascalCase and permission arrays.
  */
-export type MeResponse = UserInfo & {
+type MeResponseCamelExtensions = {
+    isDemo?: boolean;
+    appContext?: string | null;
+    tenantId?: string | null;
+    tenantDisplayName?: string | null;
+    branchId?: string | null;
+    branchDisplayName?: string | null;
+};
+
+export type MeResponse = UserInfo & MeResponseCamelExtensions & {
     permissions?: string[];
     Permissions?: string[];
     roles?: string[];

@@ -78,7 +78,7 @@ export function RestoreVerificationCard({
   }, [restoreStatusLabel, run, listFailureInterp, t]);
 
   const failureTypography = useMemo(() => {
-    if (!listFailureInterp) return { code: undefined as const, detail: undefined as const };
+    if (!listFailureInterp) return { code: undefined, detail: undefined };
     if (listFailureInterp.kind === 'fake_stub_expected') {
       return { code: 'secondary' as const, detail: 'secondary' as const };
     }

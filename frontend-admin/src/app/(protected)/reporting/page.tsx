@@ -38,9 +38,9 @@ import {
   useGetApiReportsOperationalInterim,
   useGetApiReportsOperationalPeriodic,
   useGetApiReportsOperationalSummary,
-} from '@/api/generated/reports/reports';
+} from '@/api/generated/operational-reports/operational-reports';
 import { useGetApiUserManagement } from '@/api/generated/user-management/user-management';
-import type { CashRegister, ClosingReferenceRowDto } from '@/api/generated/model';
+import type { CashRegister, CashierBucketDto, ClosingReferenceRowDto, PaymentMethodBucketDto } from '@/api/generated/model';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -56,8 +56,8 @@ const PAYMENT_METHOD_OPTIONS: { value: number; labelDe: string }[] = [
   { value: 5, labelDe: 'Mobil' },
 ];
 
-function formatPaymentMethodKey(key: string | undefined): string {
-  if (key === undefined || key === '') return '—';
+function formatPaymentMethodKey(key: string | null | undefined): string {
+  if (key == null || key === '') return '—';
   const n = Number.parseInt(key, 10);
   const opt = PAYMENT_METHOD_OPTIONS.find((o) => o.value === n);
   if (opt) return opt.labelDe;
@@ -232,7 +232,7 @@ export default function ReportingPage() {
     onError: () => message.error(t('adminShell.reporting.freezeError')),
   });
 
-  const payCols: ColumnsType<{ methodKey?: string; count?: number; totalAmount?: number }> = [
+  const payCols: ColumnsType<PaymentMethodBucketDto> = [
     {
       title: t('adminShell.reporting.methodKey'),
       dataIndex: 'methodKey',
@@ -246,7 +246,7 @@ export default function ReportingPage() {
     },
   ];
 
-  const staffCols: ColumnsType<{ cashierId?: string; count?: number; totalAmount?: number }> = [
+  const staffCols: ColumnsType<CashierBucketDto> = [
     { title: t('adminShell.reporting.cashierId'), dataIndex: 'cashierId' },
     { title: t('adminShell.reporting.count'), dataIndex: 'count' },
     {

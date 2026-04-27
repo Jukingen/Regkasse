@@ -71,7 +71,7 @@ export type AuditLogStatusPresentation = {
 /**
  * Honest status display: handles numeric enums from JSON when OpenAPI maps enum incorrectly.
  */
-export function viewAuditLogStatusPresentation(status: AuditLogEntryDto['status']): AuditLogStatusPresentation {
+export function viewAuditLogStatusPresentation(status: AuditLogEntryDto['status'] | number): AuditLogStatusPresentation {
     if (status === undefined || status === null) {
         return { label: '—', antColor: 'default' };
     }

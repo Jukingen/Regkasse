@@ -1,45 +1,44 @@
 import { Platform } from 'react-native';
 
 const isDev = __DEV__;
+const API_BASE_URL_ENV = 'EXPO_PUBLIC_API_BASE_URL';
+const LEGACY_API_URL_ENV = 'EXPO_PUBLIC_API_URL';
+
+const normalizeEnv = (value?: string) => value?.trim();
 
 // Platform-aware API URL configuration
 const getApiBaseUrl = () => {
   // 1. Priority: Check EXPO_PUBLIC_API_BASE_URL (Preferred)
-  if (process.env.EXPO_PUBLIC_API_BASE_URL) {
+  const configuredApiBaseUrl = normalizeEnv(process.env.EXPO_PUBLIC_API_BASE_URL);
+  if (configuredApiBaseUrl) {
     if (isDev) {
-      console.log('🌐 Using API URL from EXPO_PUBLIC_API_BASE_URL:', process.env.EXPO_PUBLIC_API_BASE_URL);
+      console.log(`🌐 Using API URL from ${API_BASE_URL_ENV}:`, configuredApiBaseUrl);
     }
-    return process.env.EXPO_PUBLIC_API_BASE_URL;
+    return configuredApiBaseUrl;
   }
 
-  // 2. Check legacy env var
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    if (isDev) {
-      console.log('🌐 Using API URL from EXPO_PUBLIC_API_URL:', process.env.EXPO_PUBLIC_API_URL);
+  // 2. Check legacy env var for local development only
+  const legacyApiUrl = normalizeEnv(process.env.EXPO_PUBLIC_API_URL);
+  if (legacyApiUrl) {
+    if (!isDev) {
+      throw new Error(`${API_BASE_URL_ENV} must be configured for production builds. ${LEGACY_API_URL_ENV} is only supported during development.`);
     }
-    return process.env.EXPO_PUBLIC_API_URL;
+
+    console.warn(`[config] ${API_BASE_URL_ENV} is missing. Using legacy ${LEGACY_API_URL_ENV} for local development only: ${legacyApiUrl}`);
+    return legacyApiUrl;
   }
 
   if (!isDev) {
-    throw new Error('EXPO_PUBLIC_API_BASE_URL must be configured for production builds.');
+    throw new Error(`${API_BASE_URL_ENV} must be configured for production builds.`);
   }
 
-  // 3. Platform-specific Fallback
   if (Platform.OS === 'web') {
-    // Web: localhost works fine
     const backendApiUrl = 'http://localhost:5183/api';
-    console.log('🔧 Using Web backend API URL:', backendApiUrl);
-    return backendApiUrl;
-  } else {
-    // Native (iOS/Android): localhost does NOT work on physical devices or some emulators
-    // Fallback to a development machine LAN IP.
-    // TODO: Update this IP to your computer's local IP address (e.g., 192.168.1.X)
-    // or start Expo with: EXPO_PUBLIC_API_BASE_URL=http://YOUR_IP:5183/api npx expo start
-    const devMachineIp = '192.168.1.2'; // Example fallback
-    const backendApiUrl = `http://${devMachineIp}:5183/api`;
-    console.log('📱 Using Native Dev API URL (Fallback):', backendApiUrl);
+    console.warn(`[config] ${API_BASE_URL_ENV} is missing. Using web-only development fallback: ${backendApiUrl}. Set ${API_BASE_URL_ENV} for beta or device testing.`);
     return backendApiUrl;
   }
+
+  throw new Error(`${API_BASE_URL_ENV} is required for native development builds. Set it in frontend/.env, for example ${API_BASE_URL_ENV}=http://YOUR_DEV_MACHINE_IP:5183/api. No LAN IP fallback is used.`);
 };
 
 export const API_BASE_URL = getApiBaseUrl();

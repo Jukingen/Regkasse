@@ -35,7 +35,7 @@ const summary: BackupRecoverabilitySummaryResponseDto = {
   latestRunAt: '2026-01-01T00:00:00Z',
   latestRunStatus: 3,
   latestRestoreRunAt: null,
-  latestRestoreRunStatus: null,
+  latestRestoreRunStatus: undefined,
   backupProofAgeSeconds: 1,
   restoreProofAgeSeconds: 1,
   backupExecutionReality: 'x',

@@ -163,6 +163,8 @@ export interface RestoreTruth {
   latestDrillFailed: boolean;
   /** Son drill tamamlandı (API status 2) — pg_restore --list vb. geçti. */
   latestDrillSucceeded: boolean;
+  /** execution-mode yüklüyse: etkin yedek profili restore/drill için çalıştırılabilir mi. */
+  backupExecutionProfileRunnable?: boolean;
 }
 
 export interface BannerOperatorTruth {
@@ -291,7 +293,7 @@ function labelFromStatusNamespace(
   return label === key ? String(s) : label;
 }
 
-function lockHintIssues(issues: string[] | undefined): string[] {
+function lockHintIssues(issues: string[] | null | undefined): string[] {
   const re = /lock|advisory|distributed|kilit|sperre/i;
   return (issues ?? []).filter((x) => re.test(x));
 }

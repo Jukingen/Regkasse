@@ -151,7 +151,7 @@ const BACKUP_IDLE_POLL_MS = 60_000;
 const BACKUP_DEV_REAL_PG_DUMP_DOC_REPO_PATH =
   "backend/docs/BACKUP_DEVELOPMENT_REAL_PG_DUMP.md";
 
-function backupDiagnosticTagColor(severity: string | undefined): string {
+function backupDiagnosticTagColor(severity: string | null | undefined): string {
   const s = (severity ?? "").toLowerCase();
   if (s === "error") return "red";
   if (s === "warning") return "orange";

@@ -47,6 +47,7 @@ function minimalInvoice(overrides: Partial<Invoice> = {}): Invoice {
         remainingAmount: 0,
         subtotal: 0,
         taxAmount: 0,
+        taxDetails: {},
         totalAmount: 0,
         tseSignature: '',
         tseTimestamp: '',

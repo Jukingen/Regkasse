@@ -65,7 +65,7 @@ function isDerivedPipelineStepId(key: string | undefined): key is DerivedPipelin
 }
 
 /** API `not_required` → stepper’da skipped (policy dışı adım). */
-export function mapServerPipelineStatus(status: string | undefined): DerivedPipelineStepState {
+export function mapServerPipelineStatus(status: string | null | undefined): DerivedPipelineStepState {
   if (status === 'not_required') return 'skipped';
   if (
     status === 'pending' ||

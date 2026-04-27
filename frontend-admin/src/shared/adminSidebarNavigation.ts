@@ -210,7 +210,7 @@ export function computeSidebarOpenKeysMerge(params: SidebarOpenKeysMergeParams):
 
     /** Drop RKSV submenu keys when the route is outside `/rksv` or the user cannot see RKSV at all. */
     if (!params.canSeeRksv || !p.startsWith('/rksv')) {
-        for (const k of [...keys]) {
+        for (const k of Array.from(keys)) {
             if (k === '/rksv' || k.startsWith('rksv-grp-')) {
                 keys.delete(k);
             }

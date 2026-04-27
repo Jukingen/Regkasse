@@ -77,7 +77,7 @@ describe('shouldShowFakeStubPgRestoreListExplainer', () => {
 
 describe('interpretPgRestoreListFailure', () => {
   const base = {
-    failureCode: PG_RESTORE_LIST_FAILED as const,
+    failureCode: PG_RESTORE_LIST_FAILED,
     failureDetail: '',
     detailsJson: null as string | null,
     pgRestoreListExitCode: null as number | null,

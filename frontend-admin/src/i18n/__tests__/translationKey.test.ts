@@ -9,6 +9,6 @@ describe('translationKey', () => {
 
   it('typedT bilinen anahtarı iletir', () => {
     const t = (key: string) => `ok:${key}`;
-    expect(typedT(t, 'common.actions.save')).toBe('ok:common.actions.save');
+    expect(typedT(t, 'common.buttons.save')).toBe('ok:common.buttons.save');
   });
 });
