@@ -1,5 +1,7 @@
 # RKSV admin — field-by-field truth matrix (truth-critical surfaces)
 
+> **Status:** Historical/secondary RKSV matrix. Canonical baseline: `frontend-admin/docs/rksv-truth-matrix.md`.
+
 **Purpose:** Review artifact mapping each listed admin surface to HTTP sources, Orval/generated types, and per-field truth classification.  
 **Rules:** No new backend semantics invented here. **Authoritative** = value is taken directly from a named API field on the primary response for that widget. **Inferred** = frontend assumes shape or meaning without OpenAPI guarantee (structural typing, JSON parse, or undocumented backend behavior).  
 **Facets:** Align with `OPERATOR_TRUTH_BADGE` kinds in `src/shared/operatorTruthCopy.ts` and register policy in `docs/CONTRACT_TRUTH_SURFACES.md` / `viewFinanzReconciliationRegister` / `viewReplayBatchTraceIds` in `src/shared/rksvAdminTruth.ts`.

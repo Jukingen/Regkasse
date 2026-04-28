@@ -1,8 +1,12 @@
 # Contract discipline — truth-critical admin surfaces
 
+> **Status:** Umbrella contract/truth-surface map. This is not the canonical source for every domain-specific truth.
+> - Canonical FinanzOnline admin source: `frontend-admin/docs/FINANZONLINE_ADMIN_SOURCE_OF_TRUTH.md`
+> - Canonical RKSV truth matrix: `frontend-admin/docs/rksv-truth-matrix.md`
+
 These UI areas must stay aligned with **Orval-generated** types under `src/api/generated/`. Silent drift (casts to `any`, duplicate DTOs, swallowing parse errors) is treated as a release risk.
 
-**QA (manual + automation plan):** `docs/RKSV_TRUTH_SURFACES_QA_CHECKLIST.md` · **Automated truth tests:** `docs/TRUTH_SURFACE_AUTOMATED_TESTS.md` · **Reusable QA template:** `docs/QA_TRUTH_CRITICAL_TEMPLATE.md` · **Operator copy vs i18n catalogs:** `docs/OPERATOR_COPY_AND_RUNTIME_I18N.md`
+**QA (manual + automation plan):** `docs/RKSV_TRUTH_SURFACES_QA_CHECKLIST.md` · **Automated truth tests:** `docs/TRUTH_SURFACE_AUTOMATED_TESTS.md` · **Reusable QA template:** `docs/QA_TRUTH_CRITICAL_TEMPLATE.md` (pointer) · **Operator copy vs i18n catalogs:** `docs/OPERATOR_COPY_AND_RUNTIME_I18N.md`
 
 ## In-scope paths
 

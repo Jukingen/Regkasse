@@ -1,5 +1,7 @@
 # FinanzOnline — BMF TEST validation runbook
 
+> **Status:** Active runbook for FinanzOnline BMF TEST validation. Legacy `POST /api/FinanzOnline/submit-invoice` references are historical/deprecated and not the preferred path.
+
 Operational checklist for **live BMF TEST SOAP** (not in-process simulation). Based on backend paths: `FinanzOnlineService.SubmitInvoiceAsync` → `IFinanzOnlineOutboxService` → `FinanzOnlineOutboxHostedService` → `IFinanzOnlineSubmissionService` / `TestModeFinanzOnlineRegistrierkassenClient` → optional `TestModeFinanzOnlineTransmissionQueryClient`.
 
 ---

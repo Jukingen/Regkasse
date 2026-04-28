@@ -1,5 +1,7 @@
 # Permission-First Architecture Design (Post Role Cleanup)
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Current model (implemented):** [FINAL_AUTHORIZATION_MODEL.md](FINAL_AUTHORIZATION_MODEL.md). Single admin role: **Admin** (no Administrator). Legacy role policies are **not registered**; controllers use `[HasPermission(AppPermissions.X)]` only.
 
 **Purpose:** Document permission infrastructure and migration path. **Migration is complete**; this doc is kept for design reference.

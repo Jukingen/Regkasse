@@ -1,5 +1,7 @@
 # Legacy Modifier Migration Workflow – Deliverable
 
+> **Status:** Historical deliverable / migration note. Preserve for context; validate current behavior against code before using as source of truth.
+
 ## What was changed
 
 1. **Dedicated migration API module**

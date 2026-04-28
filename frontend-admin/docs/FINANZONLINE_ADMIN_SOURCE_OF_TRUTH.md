@@ -1,5 +1,7 @@
 # FinanzOnline — admin source-of-truth decision (RKSV)
 
+> **Status:** Canonical FinanzOnline admin source of truth. Legacy endpoint mentions in related docs are historical/deprecated unless explicitly documented as current.
+
 **Status:** decision / operator guidance (documentation-first).  
 **Scope:** `frontend-admin` surfaces vs backend contracts consumed via Orval (`src/api/generated/**`) and helpers in `src/shared/rksvAdminTruth.ts`.  
 **Non-goals:** no behavior change in this note; no new local DTOs; no `any`.

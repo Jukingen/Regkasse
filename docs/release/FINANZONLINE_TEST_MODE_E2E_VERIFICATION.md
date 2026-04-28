@@ -1,5 +1,7 @@
 # FinanzOnline TEST mode — end-to-end operational verification
 
+> **Status:** Release verification document. Legacy `POST /api/FinanzOnline/submit-invoice` references are historical/deprecated and not preferred.
+
 Technical runbook (English). This document describes how to **observe** the current FinanzOnline **TEST** pipeline (outbox → session → rkdb → protocol query) with this codebase. It is **not** a legal/compliance sign-off and does **not** assert production readiness.
 
 ## A. Current trigger path for TEST submissions

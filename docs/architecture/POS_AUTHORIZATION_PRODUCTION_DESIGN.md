@@ -1,5 +1,7 @@
 # POS Authorization: Production-Ready Role + Permission Design
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Tarih:** 2025-03-09  
 **Amaç:** ASP.NET Core POS için production’a uygun, esnek ve bakımı kolay role + permission authorization tasarımı.
 

@@ -1,5 +1,7 @@
 # RKSV admin — field-level truth matrix
 
+> **Status:** Canonical RKSV truth matrix / baseline reference.
+
 Baseline reference for operator-facing RKSV routes under `/rksv`. Terminology aligns with `src/shared/operatorTruthCopy.ts`, `src/shared/finanzOnlineReconciliationTruth.ts`, and `src/shared/rksvAdminTruth.ts`. **Do not treat this table as an API contract** — regenerate Orval clients from OpenAPI for authoritative DTO shapes.
 
 ---

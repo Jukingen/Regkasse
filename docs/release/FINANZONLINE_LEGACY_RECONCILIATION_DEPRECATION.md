@@ -1,5 +1,7 @@
 # FinanzOnline legacy payment-row reconciliation — deprecation and migration
 
+> **Status:** Historical deprecation/migration note. Legacy `POST /api/FinanzOnline/submit-invoice` references are deprecated/historical.
+
 This document defines the **phased** move from **payment-centric** FinanzOnline visibility (`PaymentDetails.FinanzOnline*` columns + admin reconciliation API) to the **outbox-based** SOAP pipeline (`FinanzOnlineOutboxMessages` + `GET /api/admin/finanzonline-outbox`). It is an engineering/operations note, not a legal compliance statement.
 
 ## A. Legacy dependencies (current)

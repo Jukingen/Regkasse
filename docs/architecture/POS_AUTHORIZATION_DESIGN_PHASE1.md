@@ -1,5 +1,7 @@
 # POS Authorization – Phase 1: Tasarım (Kodlamadan Önce)
 
+> **Status:** NEEDS HUMAN REVIEW / historical Phase 1 design. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`.
+
 **Tarih:** 2025-03-09  
 **Amaç:** Operasyonel POS rollerini ve domain’leri yansıtan, bakımı kolay bir authorization yapısı için önce tasarımı netleştirmek. Kod refactor Phase 2’de bu tasarıma göre yapılacak.
 

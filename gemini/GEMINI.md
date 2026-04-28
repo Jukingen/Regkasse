@@ -20,9 +20,9 @@ FRONTEND (POS):
 - components/ui | components/soft | components/debug
 
 ADMIN WEB:
-- Vite + React + TypeScript
-- React Router + React Query
+- Next.js App Router + Ant Design + TanStack Query + Orval
 - No Expo / RN patterns allowed
+- Keep this file aligned with the current repository architecture.
 
 OUTPUT RULES:
 - Always produce a plan first.
