@@ -1,5 +1,7 @@
 # POS Authorization: Geriye Dönük Uyumlu Geçiş Planı
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Tarih:** 2025-03-09  
 **Amaç:** Sistemi kırmadan POS rollerini (Cashier, Waiter) eklemek; Admin/backoffice akışlarını korumak; ileride permission modeline temiz geçişi mümkün kılmak.
 

@@ -1,5 +1,7 @@
 # Permission Migration – İlk Sprint Backlog
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Tarih:** 2025-03-09
 
 **Sprint hedefi:** Sistemi bozmadan permission altyapısını başlatmak; en kritik 5–10 endpoint’i permission policy’ye geçirmek; legacy role fallback’i korumak.

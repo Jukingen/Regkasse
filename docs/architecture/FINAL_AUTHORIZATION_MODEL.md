@@ -1,5 +1,7 @@
 # Final Authorization Model
 
+> **Status:** Current authorization source of truth. Other authorization phase/audit/planning docs may be historical snapshots. Validate implementation-sensitive changes against code and tests.
+
 **Audience:** Test team, FE team, backend developers.  
 **Canonical code:** `backend/Authorization/Roles.cs`, `AppPermissions.cs`, `RolePermissionMatrix.cs`, `AuthorizationExtensions.cs`.
 

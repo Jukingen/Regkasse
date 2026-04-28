@@ -1,5 +1,7 @@
 # RKSV / Invoice / Reconciliation — Manual QA Checklist
 
+> **Status:** NEEDS HUMAN REVIEW. QA checklist may still be operational. Canonical RKSV truth matrix: `frontend-admin/docs/rksv-truth-matrix.md`.
+
 **Scope:** `/invoices`, `/rksv/finanz-online-queue`, `/rksv/incident`, `/rksv/replay-batch/[correlationId]` (plus cross-links to Verifications, Payments, Receipts).
 
 **Canonical operator-facing German copy:** `src/shared/operatorTruthCopy.ts` (and badge tooltips via `adminTruthBadges` → `OPERATOR_TRUTH_BADGE`).

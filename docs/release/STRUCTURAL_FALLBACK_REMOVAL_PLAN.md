@@ -1,5 +1,7 @@
 # Structural fallback — kaldırma analizi ve plan
 
+> **Status:** Verification required before implementation. Treat as release/plan document, not current runtime behavior unless validated.
+
 **Amaç:** Karmaşıklığı azaltmak; structural fallback tamamen kaldırılabilir mi analiz ve kaldırma ön koşulları, feature-flag rollout ve PR planı.
 
 ---

@@ -1,5 +1,7 @@
 # Login: Role → Permission Claim Üretim Akışı Tasarımı
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Tarih:** 2025-03-09
 
 **Bağlam:** POS + backoffice hibrit; hedef role + permission; Administrator legacy alias; JWT/cookie’da hem role hem permission; ileride tenant/branch scope.

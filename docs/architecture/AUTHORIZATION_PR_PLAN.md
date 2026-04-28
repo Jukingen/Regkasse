@@ -1,5 +1,7 @@
 # Authorization Refactor — Incremental PR Plan
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Historical.** Legacy admin role has been fully removed. System uses **Admin** only (plus SuperAdmin). This plan is kept for reference.
 
 **Goal:** Split authorization work into 4–6 low-risk PRs with clear rollback.  

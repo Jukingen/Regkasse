@@ -12,8 +12,8 @@ Final cleanup and architecture consistency review (no new features). All technic
   - `src/shared/auth/AdminOnlyGate.tsx` (component JSDoc)
   - `src/theme/index.ts` (theme colors and locale comment)
 - **Documentation**: Short “Architecture and boundaries” sections added to:
-  - `docs/ADMIN_PRODUCTS_DOMAIN_DELIVERABLE.md`
-  - `docs/ADMIN_CATEGORIES_DOMAIN_DELIVERABLE.md`
+  - `docs/archive/ADMIN_PRODUCTS_DOMAIN_DELIVERABLE.md`
+  - `docs/archive/ADMIN_CATEGORIES_DOMAIN_DELIVERABLE.md`
   - `docs/LEGACY_MODIFIER_MIGRATION_DELIVERABLE.md`
 - **Products deliverable**: Updated to state that productMapper and modifierGroups comments are now English; removed the follow-up item about normalizing Turkish in productMapper.
 
@@ -29,8 +29,8 @@ No functional changes, no new features, no backend or API contract changes.
 | `src/lib/api/modifierGroups.ts` | Top comment and JSDoc (AddOnGroupProductItemDto, createModifierGroup, updateModifierGroup, addModifierToGroup deprecation, AddProductToGroupBody) → English. |
 | `src/shared/auth/AdminOnlyGate.tsx` | Component JSDoc → English. |
 | `src/theme/index.ts` | “Tema renkleri”, “Mavi”, “Kırmızı”, “Almanca yerelleştirme” → English. |
-| `docs/ADMIN_PRODUCTS_DOMAIN_DELIVERABLE.md` | Added “Architecture and boundaries”; updated “English-only technical artifacts” and productMapper row; removed Turkish follow-up from recommended next steps. |
-| `docs/ADMIN_CATEGORIES_DOMAIN_DELIVERABLE.md` | Added “Architecture and boundaries”. |
+| `docs/archive/ADMIN_PRODUCTS_DOMAIN_DELIVERABLE.md` | Added “Architecture and boundaries”; updated “English-only technical artifacts” and productMapper row; removed Turkish follow-up from recommended next steps. |
+| `docs/archive/ADMIN_CATEGORIES_DOMAIN_DELIVERABLE.md` | Added “Architecture and boundaries”. |
 | `docs/LEGACY_MODIFIER_MIGRATION_DELIVERABLE.md` | Added “Architecture and boundaries”. |
 | `docs/CLEANUP_AND_CONSISTENCY_REPORT.md` | **New.** This report. |
 

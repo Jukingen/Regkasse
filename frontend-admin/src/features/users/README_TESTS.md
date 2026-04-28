@@ -1,5 +1,7 @@
 # Users Modülü Test Paketi
 
+> **Status:** NEEDS HUMAN REVIEW. Validate freshness before treating as current source of truth.
+
 ## Kapsam
 
 - **`hooks/__tests__/useUsersList.test.ts`** – Liste hook: başarılı/boş/hatalı yükleme, parametre iletimi (role, isActive, query, page, pageSize), `enabled: false` ile çağrı yok.

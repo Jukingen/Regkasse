@@ -1,5 +1,7 @@
 # POS Authorization: Swagger Endpoint Yapısına Göre Role + Permission Migration Tasarımı
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Tarih:** 2025-03-09  
 **Amaç:** Mevcut role bazlı yapıyı minimum kırılımla permission tabanlı yapıya evirmek; Administrator’ı Admin altında legacy alias yapmak; backoffice ile POS’u net ayırmak; kritik endpoint’leri önce permission policy ile korumak; frontend guard/menu stratejisini tanımlamak.
 

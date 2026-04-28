@@ -1,5 +1,7 @@
 # Authorization: Mevcut Durum Analizi ve POS Hedef Mimarisi
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Tarih:** 2025-03-09  
 **Amaç:** Backend authorization yapısını POS ihtiyaçlarına göre analiz etmek, hedef rol mimarisini ve migration planını ortaya koymak.
 

@@ -1,5 +1,7 @@
 # Role-Based → Permission-Based Authorization: Fazlı Migration Planı
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Tarih:** 2025-03-09  
 **Hedef:** Minimum kırılım, mevcut endpoint’ler çalışmaya devam etsin; kritik endpoint’ler önce permission policy’ye geçsin; Admin/Administrator sadeleşsin; backoffice ve POS ayrımı netleşsin.
 

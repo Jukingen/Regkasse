@@ -1,5 +1,7 @@
 # Operator canonical copy vs runtime i18n
 
+> **Status:** NEEDS HUMAN REVIEW. Validate freshness before treating as current source of truth.
+
 This note defines **who owns which strings** so German operator wording does not drift silently between TypeScript reference blocks and locale catalogs.
 
 ## Layers (do not merge)

@@ -1,5 +1,7 @@
 # Endpoint Bazlı Permission Matrisi
 
+> **Status:** Historical / phase-specific authorization document. Current authorization source of truth: `docs/architecture/FINAL_AUTHORIZATION_MODEL.md`. Preserve this file for audit/history; do not treat it as the latest implementation contract without verification.
+
 **Tarih:** 2025-03-09
 
 **Bağlam:** POS + backoffice hibrit; authorization şu an role bazlı, hedef role + permission; Administrator legacy alias (hedef rol Admin); minimum kırılımlı migration; backoffice ile operasyonel POS ayrımı; legacy api/Payment deprecated, yeni api/pos/payment; kritik alanlar: payment, refund, order status/cancel, company settings, audit cleanup, finanzonline config/submit, inventory adjust. Tasarım: rol = iş profili, permission = aksiyon yetkisi, scope = tenant/branch/ownership.
