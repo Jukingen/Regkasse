@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Testcontainers.PostgreSql;
 using Xunit;
 
@@ -63,13 +64,71 @@ public sealed class PostgreSqlReplayFixture : IAsyncLifetime
         }
     }
 
+    private static bool ShouldResetIntegrationDatabase(string connectionString)
+    {
+        try
+        {
+            var csb = new NpgsqlConnectionStringBuilder(connectionString);
+            var db = (csb.Database ?? string.Empty).Trim();
+            if (db.Equals("regkasse_pg_integration", StringComparison.OrdinalIgnoreCase))
+                return true;
+            if (string.Equals(Environment.GetEnvironmentVariable("REGKASSE_TEST_POSTGRES_RESET"), "1", StringComparison.Ordinal))
+                return true;
+        }
+        catch
+        {
+            // If the connection string cannot be parsed, only run Migrate.
+        }
+
+        return false;
+    }
+
+    private static async Task AssertAspNetUsersDeactivatedAtPresentAsync(AppDbContext ctx)
+    {
+        await ctx.Database.OpenConnectionAsync().ConfigureAwait(false);
+        try
+        {
+            await using var cmd = ctx.Database.GetDbConnection().CreateCommand();
+            cmd.CommandText =
+                """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM pg_attribute a
+                    INNER JOIN pg_class c ON a.attrelid = c.oid
+                    INNER JOIN pg_namespace n ON c.relnamespace = n.oid
+                    WHERE n.nspname = 'public'
+                      AND c.relname = 'AspNetUsers'
+                      AND a.attname = 'deactivated_at'
+                      AND a.attnum > 0
+                      AND NOT a.attisdropped
+                );
+                """;
+            var scalar = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+            if (scalar is not true)
+            {
+                throw new InvalidOperationException(
+                    "PostgreSQL integration schema is missing AspNetUsers.deactivated_at after Migrate. " +
+                    "Drop the integration database, set REGKASSE_TEST_POSTGRES_RESET=1 for a one-shot reset, or point REGKASSE_TEST_POSTGRES at a fresh database.");
+            }
+        }
+        finally
+        {
+            await ctx.Database.CloseConnectionAsync().ConfigureAwait(false);
+        }
+    }
+
     private static async Task MigrateAsync(string connectionString)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseAppNpgsql(connectionString)
             .Options;
         await using var ctx = new AppDbContext(options);
-        await ctx.Database.MigrateAsync();
+
+        if (ShouldResetIntegrationDatabase(connectionString))
+            await ctx.Database.EnsureDeletedAsync().ConfigureAwait(false);
+
+        await ctx.Database.MigrateAsync().ConfigureAwait(false);
+        await AssertAspNetUsersDeactivatedAtPresentAsync(ctx).ConfigureAwait(false);
     }
 
     public async Task DisposeAsync()

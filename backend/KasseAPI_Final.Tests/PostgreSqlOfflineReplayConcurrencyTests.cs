@@ -78,6 +78,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             Id = productId,
             TenantId = LegacyDefaultTenantIds.Primary,
             Name = "Döner",
+            Description = "-",
             Price = 6.90m,
             CategoryId = categoryId,
             Category = "Speisen",

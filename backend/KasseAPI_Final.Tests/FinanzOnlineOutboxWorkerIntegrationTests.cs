@@ -162,6 +162,8 @@ public sealed class FinanzOnlineOutboxWorkerIntegrationTests
                 Assert.Null(after.ProcessingToken);
                 Assert.NotNull(after.ProcessedAt);
                 Assert.StartsWith("TBR-", after.ExternalReferenceId ?? "", StringComparison.Ordinal);
+                // Informational Tagesbericht path assigns a synthetic TransmissionId for audit/traceability (not a live FinanzOnline tx).
+                Assert.StartsWith("TBR-TX-", after.TransmissionId ?? "", StringComparison.Ordinal);
             }
 
             submission.Verify(
