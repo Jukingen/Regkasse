@@ -89,18 +89,15 @@ public sealed class PostgreSqlReplayFixture : IAsyncLifetime
         try
         {
             await using var cmd = ctx.Database.GetDbConnection().CreateCommand();
+            // information_schema is case-stable across PostgreSQL identifier folding (AspNetUsers vs aspnetusers).
             cmd.CommandText =
                 """
                 SELECT EXISTS (
                     SELECT 1
-                    FROM pg_attribute a
-                    INNER JOIN pg_class c ON a.attrelid = c.oid
-                    INNER JOIN pg_namespace n ON c.relnamespace = n.oid
-                    WHERE n.nspname = 'public'
-                      AND c.relname = 'AspNetUsers'
-                      AND a.attname = 'deactivated_at'
-                      AND a.attnum > 0
-                      AND NOT a.attisdropped
+                    FROM information_schema.columns
+                    WHERE table_schema = 'public'
+                      AND column_name = 'deactivated_at'
+                      AND lower(table_name) = 'aspnetusers'
                 );
                 """;
             var scalar = await cmd.ExecuteScalarAsync().ConfigureAwait(false);

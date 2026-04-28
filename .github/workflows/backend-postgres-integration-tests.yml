@@ -17,6 +17,8 @@ env:
   CI: 'true'
   # Ephemeral CI database only (matches services.postgres below).
   REGKASSE_TEST_POSTGRES: 'Host=localhost;Port=5432;Database=regkasse_pg_integration;Username=postgres;Password=postgres'
+  # Ensure cold schema even if the integration DB name ever diverges from fixture defaults.
+  REGKASSE_TEST_POSTGRES_RESET: '1'
 
 jobs:
   postgres-integration:
