@@ -1,5 +1,7 @@
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -38,11 +40,27 @@ public sealed class TseServiceSignatureChainPostgreSqlTests
 
         await using var context = CreateContext();
 
+        var cashRegisterId = Guid.NewGuid();
+        TenantTestDoubles.EnsureDefaultTenant(context);
+        context.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = cashRegisterId,
+            RegisterNumber = "TSE-PG-1",
+            Location = "Test",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, Mock.Of<ILogger<SignaturePipeline>>());
         var tseService = CreateTseService(context, pipeline, keyProvider);
 
-        var cashRegisterId = Guid.NewGuid();
         var receiptNumber = $"AT-TSE-PG-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..8]}";
         const string kassenId = "KASSE-PG-01";
         const decimal totalAmount = 10.00m;

@@ -49,6 +49,7 @@
         "reporting",
         "modifierGroups",
         "benefits",
+        "backupDr",
         "customers",
         "invoices"
       ]

@@ -253,7 +253,13 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
         if (claimed == 0)
             return;
 
-        var active = await context.FinanzOnlineOutboxMessages.FirstAsync(x => x.Id == candidate.Id && x.ProcessingToken == claimToken, cancellationToken).ConfigureAwait(false);
+        // ExecuteUpdateAsync updates the row in the database but does not refresh the tracked candidate.
+        // Failure classification uses AttemptCount; stale tracker values can mis-route MaxAttempts=1 to RetryableFailure instead of DeadLetter.
+        var messageId = candidate.Id;
+        context.Entry(candidate).State = EntityState.Detached;
+        var active = await context.FinanzOnlineOutboxMessages
+            .FirstAsync(x => x.Id == messageId && x.ProcessingToken == claimToken, cancellationToken)
+            .ConfigureAwait(false);
         try
         {
             var payload = JsonSerializer.Deserialize<FinanzOnlineOutboxPayload>(active.PayloadJson);

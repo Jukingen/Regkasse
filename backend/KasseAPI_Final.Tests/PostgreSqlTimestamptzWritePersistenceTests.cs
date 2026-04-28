@@ -95,7 +95,8 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         await ctx.SaveChangesAsync();
 
         var reloaded = await ctx.DailyClosings.AsNoTracking().SingleAsync(c => c.Id == closing.Id);
-        Assert.Equal(expectedUtc, reloaded.ClosingDate);
+        // Npgsql may materialize timestamptz as DateTimeKind.Unspecified while preserving the UTC instant (ticks).
+        Assert.Equal(expectedUtc.Ticks, reloaded.ClosingDate.Ticks);
     }
 
     [SkippableFact]
@@ -122,7 +123,7 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         await ctx.SaveChangesAsync();
 
         var reloaded = await ctx.FinanzOnlineErrors.AsNoTracking().SingleAsync(e => e.Id == row.Id);
-        Assert.Equal(row.OccurredAt, reloaded.OccurredAt);
+        Assert.Equal(row.OccurredAt.Ticks, reloaded.OccurredAt.Ticks);
     }
 
     [SkippableFact]
@@ -152,7 +153,7 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         await ctx.SaveChangesAsync();
 
         var reloaded = await ctx.AuditLogs.AsNoTracking().SingleAsync(a => a.Id == log.Id);
-        Assert.Equal(log.Timestamp, reloaded.Timestamp);
+        Assert.Equal(log.Timestamp.Ticks, reloaded.Timestamp.Ticks);
     }
 
     [SkippableFact]
@@ -231,6 +232,6 @@ public sealed class PostgreSqlTimestamptzWritePersistenceTests
         await ctx.SaveChangesAsync();
 
         var reloaded = await ctx.Receipts.AsNoTracking().SingleAsync(r => r.ReceiptId == receipt.ReceiptId);
-        Assert.Equal(receipt.IssuedAt, reloaded.IssuedAt);
+        Assert.Equal(receipt.IssuedAt.Ticks, reloaded.IssuedAt.Ticks);
     }
 }
