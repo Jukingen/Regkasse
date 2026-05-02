@@ -387,7 +387,7 @@ namespace KasseAPI_Final.Services
                         // Stock is updated in memory on tracked entities; persisted in a single transaction with payment/invoice/receipt (no per-product UpdateAsync).
                         if (!product.IsSellableAddOn)
                         {
-                            if (_inventoryOptions.EnforceStockAvailability)
+                            if (_inventoryOptions.EnforceStockOnSales)
                             {
                                 if (product.StockQuantity < itemRequest.Quantity)
                                 {
@@ -407,7 +407,7 @@ namespace KasseAPI_Final.Services
                             {
                                 paymentStockLinesSkipped++;
                                 _logger.LogDebug(
-                                    "Stock enforcement disabled (Inventory:EnforceStockAvailability=false): no deduct for product {ProductId} name={ProductName} requestedQty={Qty} currentStock={Stock}",
+                                    "Stock enforcement disabled (Inventory:EnforceStockOnSales=false): no deduct for product {ProductId} name={ProductName} requestedQty={Qty} currentStock={Stock}",
                                     product.Id,
                                     product.Name,
                                     itemRequest.Quantity,
@@ -610,7 +610,7 @@ namespace KasseAPI_Final.Services
                     _context.PaymentDetails.Add(payment);
                     _context.Invoices.Add(posInvoice);
                     await _receiptService.AddReceiptFromPaymentToContextAsync(payment);
-                    // Stock updates: when EnforceStockAvailability is true, product entities were modified in the loop (tracked); SaveChanges persists them with payment/invoice/receipt in one commit.
+                    // Stock updates: when EnforceStockOnSales is true, product entities were modified in the loop (tracked); SaveChanges persists them with payment/invoice/receipt in one commit.
 
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
@@ -675,10 +675,10 @@ namespace KasseAPI_Final.Services
                 {
                     var createdPayment = committedPayment;
                     var createdInvoice = committedInvoice;
-                    if (!_inventoryOptions.EnforceStockAvailability && paymentStockLinesSkipped > 0)
+                    if (!_inventoryOptions.EnforceStockOnSales && paymentStockLinesSkipped > 0)
                     {
                         _logger.LogInformation(
-                            "Payment {PaymentId} committed without per-line stock mutations; skippedProductLines={SkippedLines} (Inventory:EnforceStockAvailability=false).",
+                            "Payment {PaymentId} committed without per-line stock mutations; skippedProductLines={SkippedLines} (Inventory:EnforceStockOnSales=false).",
                             createdPayment.Id,
                             paymentStockLinesSkipped);
                     }
@@ -1318,12 +1318,12 @@ namespace KasseAPI_Final.Services
                 {
                     var product = await _context.Products
                         .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == effectiveTenantId);
-                    if (product != null && _inventoryOptions.EnforceStockAvailability)
+                    if (product != null && _inventoryOptions.EnforceStockOnSales)
                     {
                         product.StockQuantity += item.Quantity;
                         product.UpdatedAt = DateTime.UtcNow;
                     }
-                    else if (product != null && !_inventoryOptions.EnforceStockAvailability)
+                    else if (product != null && !_inventoryOptions.EnforceStockOnSales)
                     {
                         _logger.LogDebug(
                             "Stock enforcement disabled: storno skipped stock revert for product {ProductId} qty={Qty}",
@@ -1698,7 +1698,7 @@ namespace KasseAPI_Final.Services
                             var refundQuantity = (int)Math.Round(item.Quantity * refundRatio);
                             if (refundQuantity > 0)
                             {
-                                if (_inventoryOptions.EnforceStockAvailability)
+                                if (_inventoryOptions.EnforceStockOnSales)
                                 {
                                     product.StockQuantity += refundQuantity;
                                     product.UpdatedAt = DateTime.UtcNow;

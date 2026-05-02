@@ -163,6 +163,46 @@ export function updateAdminProductStock(
   return customInstance<void>({ url: `${ADMIN_PRODUCTS}/stock/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data }, options);
 }
 
+const MAX_PRODUCT_IMAGE_BYTES = 2 * 1024 * 1024;
+
+/** Multipart upload — do not use customInstance (JSON unwrap). Returns public image URL for product ImageUrl. */
+export async function uploadAdminProductImage(
+  productId: string,
+  file: File,
+  options?: {
+    onProgress?: (percent: number) => void;
+    signal?: AbortSignal;
+  }
+): Promise<string> {
+  if (file.size > MAX_PRODUCT_IMAGE_BYTES) {
+    throw new Error('FILE_TOO_LARGE');
+  }
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await AXIOS_INSTANCE.post<{
+    success?: boolean;
+    data?: { imageUrl?: string };
+    Data?: { ImageUrl?: string };
+  }>(`${ADMIN_PRODUCTS}/${productId}/image`, formData, {
+    signal: options?.signal,
+    onUploadProgress: (ev) => {
+      if (ev.total && options?.onProgress) {
+        options.onProgress(Math.round((ev.loaded * 100) / ev.total));
+      }
+    },
+  });
+  const payload = res.data as { data?: { imageUrl?: string }; Data?: { ImageUrl?: string } };
+  const url =
+    payload?.data?.imageUrl ??
+    (payload as { Data?: { ImageUrl?: string } })?.Data?.ImageUrl;
+  if (!url || typeof url !== 'string') {
+    throw new Error('MISSING_IMAGE_URL');
+  }
+  return url;
+}
+
+export { MAX_PRODUCT_IMAGE_BYTES };
+
 export const adminProductsQueryKeys = {
   all: ['admin', 'products'] as const,
   lists: () => [...adminProductsQueryKeys.all, 'list'] as const,

@@ -32,7 +32,7 @@
     },
     "summaryStrip": "Tisch {{table}} · {{itemCount}} Artikel · GESAMT {{total}}",
     "personal": {
-      "label": "Personal:",
+      "label": "Kunde",
       "change": "Ändern",
       "remove": "Entfernen",
       "none": "Keiner",

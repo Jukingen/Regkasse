@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Form, Input, InputNumber, Modal, Select, Switch, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Switch, Upload, message } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 import { Product } from '@/api/generated/model';
 import { useCategories } from '@/features/categories/hooks/useCategories';
 import { getModifierGroups, getProductModifierGroups, type ModifierGroupDto } from '@/lib/api/modifierGroups';
@@ -9,6 +10,7 @@ import { TAX_TYPE_ENUM } from '@/features/products/utils/productMapper';
 import ExtraZutatenSection from './ExtraZutatenSection';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { useI18n } from '@/i18n';
+import { uploadAdminProductImage, MAX_PRODUCT_IMAGE_BYTES } from '@/api/admin/products';
 
 export type ProductFormSubmitValues = Product & { modifierGroupIds?: string[]; categoryId?: string };
 
@@ -34,6 +36,8 @@ export default function ProductForm({
     const [modifierGroups, setModifierGroups] = useState<ModifierGroupDto[]>([]);
     const [selectedModifierGroupIds, setSelectedModifierGroupIds] = useState<string[]>([]);
     const [modifierGroupsLoading, setModifierGroupsLoading] = useState(false);
+    const [imageUploading, setImageUploading] = useState(false);
+    const [imageUploadPercent, setImageUploadPercent] = useState<number | null>(null);
 
     // Load all modifier groups and (in edit mode) groups assigned to this product
     useEffect(() => {
@@ -215,7 +219,7 @@ export default function ProductForm({
             open={visible}
             onOk={handleOk}
             onCancel={onCancel}
-            confirmLoading={loading}
+            confirmLoading={!!loading || imageUploading}
             okButtonProps={{
                 disabled: !!initialValues && modifierGroupsLoading,
             }}
@@ -322,6 +326,65 @@ export default function ProductForm({
                         autoComplete="off"
                         placeholder={t('products.form.imageUrlPlaceholder')}
                     />
+                </Form.Item>
+
+                <Form.Item label={t('products.form.imageUploadLabel')} extra={t('products.form.imageUploadExtra')}>
+                    <Upload
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        showUploadList={false}
+                        disabled={!initialValues?.id || !!loading || imageUploading}
+                        beforeUpload={(file) => {
+                            if (file.size > MAX_PRODUCT_IMAGE_BYTES) {
+                                message.error(t('products.form.imageUploadFailed'));
+                                return Upload.LIST_IGNORE;
+                            }
+                            return true;
+                        }}
+                        customRequest={async (options) => {
+                            const { file, onError, onSuccess, onProgress } = options;
+                            const id = initialValues?.id;
+                            if (!id) {
+                                onError?.(new Error('no product id'));
+                                return;
+                            }
+                            const f = file as File;
+                            setImageUploading(true);
+                            setImageUploadPercent(0);
+                            try {
+                                const url = await uploadAdminProductImage(id, f, {
+                                    onProgress: (pct) => {
+                                        setImageUploadPercent(pct);
+                                        onProgress?.({ percent: pct });
+                                    },
+                                });
+                                form.setFieldsValue({ imageUrl: url });
+                                setImageUploadPercent(100);
+                                onSuccess?.(url);
+                            } catch {
+                                message.error(t('products.form.imageUploadFailed'));
+                                onError?.(new Error('upload failed'));
+                            } finally {
+                                setImageUploading(false);
+                                setImageUploadPercent(null);
+                            }
+                        }}
+                    >
+                        <Button
+                            type="default"
+                            icon={<UploadOutlined />}
+                            loading={imageUploading}
+                            disabled={!initialValues?.id || !!loading}
+                        >
+                            {imageUploading && imageUploadPercent != null
+                                ? `${t('products.form.imageUploading')} ${imageUploadPercent}%`
+                                : t('products.form.imageUploadButton')}
+                        </Button>
+                    </Upload>
+                    {!initialValues?.id ? (
+                        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+                            {t('products.form.imageUploadSaveFirst')}
+                        </div>
+                    ) : null}
                 </Form.Item>
 
                 <Form.Item

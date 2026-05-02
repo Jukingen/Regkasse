@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
@@ -24,17 +27,26 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Product> _productRepository;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly IWebHostEnvironment _hostEnvironment;
+        private readonly IOptions<ProductMediaOptions> _productMediaOptions;
+        private readonly ProductImageThumbnailService _productImageThumbnailService;
 
         public AdminProductsController(
             AppDbContext context,
             IGenericRepository<Product> productRepository,
             ILogger<AdminProductsController> logger,
-            ISettingsTenantResolver settingsTenantResolver)
+            ISettingsTenantResolver settingsTenantResolver,
+            IWebHostEnvironment hostEnvironment,
+            IOptions<ProductMediaOptions> productMediaOptions,
+            ProductImageThumbnailService productImageThumbnailService)
             : base(logger)
         {
             _context = context;
             _productRepository = productRepository;
             _settingsTenantResolver = settingsTenantResolver;
+            _hostEnvironment = hostEnvironment;
+            _productMediaOptions = productMediaOptions;
+            _productImageThumbnailService = productImageThumbnailService;
         }
 
         /// <summary>
@@ -407,6 +419,90 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 return HandleException(ex, "AdminProducts.SetProductModifierGroups");
+            }
+        }
+
+        /// <summary>
+        /// Upload product image (JPG, PNG, WebP; max 2 MB). Decodes input, center-crops to a square thumbnail (default 120×120), encodes WebP, stores only that file; response returns its public URL for <see cref="Product.ImageUrl"/>.
+        /// POST api/admin/products/{id}/image
+        /// </summary>
+        [HttpPost("{id:guid}/image")]
+        [HasPermission(AppPermissions.ProductManage)]
+        [RequestSizeLimit(3 * 1024 * 1024)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 3 * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> UploadProductImage(Guid id, IFormFile? file, CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return ErrorResponse("No file uploaded", 400);
+
+                var opts = _productMediaOptions.Value;
+                if (file.Length > opts.MaxBytes)
+                    return ErrorResponse($"File too large (max {opts.MaxBytes} bytes)", 400);
+
+                await using var readStream = file.OpenReadStream();
+                await using var ms = new MemoryStream();
+                await readStream.CopyToAsync(ms, cancellationToken);
+                var bytes = ms.ToArray();
+                if (bytes.Length == 0)
+                    return ErrorResponse("No file uploaded", 400);
+                if (bytes.Length > opts.MaxBytes)
+                    return ErrorResponse($"File too large (max {opts.MaxBytes} bytes)", 400);
+
+                var header = bytes.AsSpan(0, Math.Min(bytes.Length, 16));
+                if (!ProductImageFormatDetector.TryDetect(header, out _, out _))
+                    return ErrorResponse("Unsupported image type (allowed: JPG, PNG, WebP)", 400);
+
+                byte[] thumbnailBytes;
+                try
+                {
+                    thumbnailBytes = await _productImageThumbnailService.CreateSquareThumbnailWebpAsync(bytes, cancellationToken);
+                }
+                catch (ProductImageProcessingException ex)
+                {
+                    return ErrorResponse(ex.Message, 400);
+                }
+
+                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id && p.TenantId == tenantId);
+                if (product == null)
+                    return ErrorResponse("Product not found", 404);
+
+                var root = Path.Combine(_hostEnvironment.ContentRootPath, opts.RootRelativeDirectory);
+                var productDir = Path.Combine(root, tenantId.ToString("D"), id.ToString("D"));
+                Directory.CreateDirectory(productDir);
+                foreach (var existing in Directory.GetFiles(productDir))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(existing);
+                    }
+                    catch
+                    {
+                        // best-effort cleanup before replacing image
+                    }
+                }
+
+                var fileName = $"{Guid.NewGuid():N}.webp";
+                var absolutePath = Path.Combine(productDir, fileName);
+                await System.IO.File.WriteAllBytesAsync(absolutePath, thumbnailBytes, cancellationToken);
+
+                var prefix = opts.PublicUrlPathPrefix.TrimEnd('/');
+                if (!prefix.StartsWith('/'))
+                    prefix = "/" + prefix;
+                var baseUrl = string.IsNullOrWhiteSpace(opts.PublicBaseUrl)
+                    ? $"{Request.Scheme}://{Request.Host.Value}"
+                    : opts.PublicBaseUrl.Trim().TrimEnd('/');
+                var publicUrl = $"{baseUrl}{prefix}/{tenantId:D}/{id:D}/{fileName}";
+
+                _logger.LogInformation("Admin product image uploaded: product {ProductId}, tenant {TenantId}", id, tenantId);
+                return SuccessResponse(new { imageUrl = publicUrl }, "Image uploaded");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "AdminProducts.UploadProductImage");
             }
         }
 

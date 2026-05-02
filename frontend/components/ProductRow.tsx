@@ -2,8 +2,8 @@
  * POS ürün satırı: tek tıkla sepete ekleme (one-tap add). Extras: group.products only (Phase C; legacy modifiers removed).
  * Memoized: re-renders only when product.id or selected modifiers (ids+prices) change.
  */
-import React, { memo, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { memo, useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { Product } from '../services/api/productService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { ModifierOptionChips } from './ModifierOptionChips';
@@ -31,6 +31,18 @@ interface ProductRowProps {
   getCategoryEmoji?: (category?: string) => string;
 }
 
+/** Remote http(s) images from admin Bild-URL or uploaded media; other schemes fall back to emoji. */
+function isRenderableProductImageUrl(url: string | undefined): boolean {
+  const t = url?.trim() ?? '';
+  if (!t.length) return false;
+  try {
+    const u = new URL(t);
+    return u.protocol === 'https:' || u.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 function modifiersKey(mods: ModifierChipItem[]): string {
   if (!mods.length) return '';
   return mods
@@ -56,6 +68,14 @@ function ProductRowInner({
   );
   const hasAddOnProducts = groupsWithProducts.length > 0;
 
+  const trimmedImageUrl = product.imageUrl?.trim() ?? '';
+  const showHttpsImage = isRenderableProductImageUrl(trimmedImageUrl);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [trimmedImageUrl]);
+
   const handleRowPress = () => {
     if (hasAddOnProducts && onOpenAddOnSheet) onOpenAddOnSheet(product);
     else onAdd(product);
@@ -68,7 +88,16 @@ function ProductRowInner({
     >
       <View style={styles.mainRow}>
         <View style={styles.thumbnail}>
-          <Text style={styles.emoji}>{getCategoryEmoji(product.productCategory || product.category)}</Text>
+          {showHttpsImage && !imageFailed ? (
+            <Image
+              source={{ uri: trimmedImageUrl }}
+              style={styles.thumbnailImage}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <Text style={styles.emoji}>{getCategoryEmoji(product.productCategory || product.category)}</Text>
+          )}
         </View>
 
         <View style={styles.info}>
@@ -118,6 +147,12 @@ const styles = StyleSheet.create({
     backgroundColor: SoftColors.bgSecondary,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  thumbnailImage: {
+    width: 64,
+    height: 64,
+    borderRadius: SoftRadius.md,
   },
   emoji: {
     fontSize: 28,
@@ -156,6 +191,7 @@ const styles = StyleSheet.create({
 
 export const ProductRow = memo(ProductRowInner, (prev, next) => {
   if (prev.product.id !== next.product.id) return false;
+  if (prev.product.imageUrl !== next.product.imageUrl) return false;
   if (modifiersKey(prev.pendingModifiers) !== modifiersKey(next.pendingModifiers)) return false;
   if (prev.onAddAddOn !== next.onAddAddOn) return false;
   return true;

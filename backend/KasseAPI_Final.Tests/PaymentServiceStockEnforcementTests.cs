@@ -19,7 +19,7 @@ using KasseAPI_Final.Tenancy;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// <see cref="InventoryOptions.EnforceStockAvailability"/> gates payment stock check/deduct (and keeps storno/refund symmetric).
+/// <see cref="InventoryOptions.EnforceStockOnSales"/> gates payment stock check/deduct (and keeps storno/refund symmetric).
 /// </summary>
 public sealed class PaymentServiceStockEnforcementTests
 {
@@ -118,7 +118,7 @@ public sealed class PaymentServiceStockEnforcementTests
     }
 
     [Fact]
-    public async Task CreatePayment_WhenEnforceOn_AndStockInsufficient_Rejects()
+    public async Task CreatePayment_WhenEnforceStockOnSalesTrue_AndStockInsufficient_Rejects()
     {
         await using var context = CreateContext();
         var categoryId = Guid.NewGuid();
@@ -163,7 +163,7 @@ public sealed class PaymentServiceStockEnforcementTests
         });
         await context.SaveChangesAsync();
 
-        var sut = CreatePaymentService(context, new InventoryOptions { EnforceStockAvailability = true });
+        var sut = CreatePaymentService(context, new InventoryOptions { EnforceStockOnSales = true });
         var request = new CreatePaymentRequest
         {
             CustomerId = customerId,
@@ -187,7 +187,7 @@ public sealed class PaymentServiceStockEnforcementTests
     }
 
     [Fact]
-    public async Task CreatePayment_WhenEnforceOff_AndStockInsufficient_Succeeds_WithoutMutatingStock()
+    public async Task CreatePayment_WhenEnforceStockOnSalesFalse_AndStockInsufficient_Succeeds_WithoutMutatingStock()
     {
         await using var context = CreateContext();
         var categoryId = Guid.NewGuid();
@@ -232,7 +232,7 @@ public sealed class PaymentServiceStockEnforcementTests
         });
         await context.SaveChangesAsync();
 
-        var sut = CreatePaymentService(context, new InventoryOptions { EnforceStockAvailability = false });
+        var sut = CreatePaymentService(context, new InventoryOptions { EnforceStockOnSales = false });
         var request = new CreatePaymentRequest
         {
             CustomerId = customerId,

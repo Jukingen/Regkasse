@@ -32,7 +32,7 @@
     },
     "summaryStrip": "Table {{table}} · {{itemCount}} items · TOTAL {{total}}",
     "personal": {
-      "label": "Staff:",
+      "label": "Customer",
       "change": "Change",
       "remove": "Remove",
       "none": "None",

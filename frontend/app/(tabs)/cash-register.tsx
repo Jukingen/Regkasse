@@ -111,7 +111,7 @@ function POSSummaryBlock({
       <SectionHeader step="4" title={t('checkout:posFlow.section.summary')} rowStyle={styles.summaryBlockHeader} titleStyle={styles.summaryBlockTitle} />
       {onOpenCustomerSheet && (
         <View style={styles.personalStrip}>
-          <Text style={styles.personalLabel}>{t('checkout:posFlow.customer.label', { defaultValue: 'Müşteri' })}</Text>
+          <Text style={styles.personalLabel}>{t('checkout:posFlow.personal.label')}</Text>
           {saleCustomer ? (
             <>
               <Text style={styles.personalValue} numberOfLines={1}>{saleCustomer.name}</Text>
@@ -119,17 +119,17 @@ function POSSummaryBlock({
                 <Text style={styles.benefitBadge} numberOfLines={1}>{benefitBadgeText}</Text>
               ) : null}
               <Pressable style={styles.personalBtn} onPress={onOpenCustomerSheet}>
-                <Text style={styles.personalBtnText}>{t('checkout:posFlow.customer.change', { defaultValue: 'Değiştir' })}</Text>
+                <Text style={styles.personalBtnText}>{t('checkout:posFlow.personal.change')}</Text>
               </Pressable>
               <Pressable style={styles.personalBtn} onPress={onClearCustomer}>
-                <Text style={styles.personalBtnText}>{t('checkout:posFlow.customer.remove', { defaultValue: 'Kaldır' })}</Text>
+                <Text style={styles.personalBtnText}>{t('checkout:posFlow.personal.remove')}</Text>
               </Pressable>
             </>
           ) : (
             <>
-              <Text style={styles.personalValue}>{t('checkout:posFlow.customer.none', { defaultValue: 'Yok' })}</Text>
+              <Text style={styles.personalValue}>{t('checkout:posFlow.personal.none')}</Text>
               <Pressable style={styles.personalSetzenBtn} onPress={onOpenCustomerSheet}>
-                <Text style={styles.personalSetzenText}>{t('checkout:posFlow.customer.set', { defaultValue: 'Seç' })}</Text>
+                <Text style={styles.personalSetzenText}>{t('checkout:posFlow.personal.set')}</Text>
               </Pressable>
             </>
           )}

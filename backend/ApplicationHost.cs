@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -24,6 +26,7 @@ using KasseAPI_Final.Swagger;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
+using Microsoft.Extensions.FileProviders;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Services.LegalExportCompleteness;
@@ -31,6 +34,7 @@ using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Services.OperationalRuns;
+using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
 using Microsoft.Extensions.Configuration;
 
@@ -60,6 +64,8 @@ internal static class ApplicationHost
 
 // Configuration Binding
 builder.Services.Configure<CompanyProfileOptions>(builder.Configuration.GetSection(CompanyProfileOptions.SectionName));
+builder.Services.Configure<ProductMediaOptions>(builder.Configuration.GetSection(ProductMediaOptions.SectionName));
+builder.Services.AddScoped<ProductImageThumbnailService>();
 builder.Services.Configure<PosCashRegisterFeatureOptions>(
     builder.Configuration.GetSection(PosCashRegisterFeatureOptions.SectionName));
 builder.Services.Configure<InventoryOptions>(builder.Configuration.GetSection(InventoryOptions.SectionName));
@@ -661,6 +667,25 @@ app.UseCors("AllowAll");
 
 // CorrelationId: propagate from request (X-Correlation-Id) or generate; required for audit traceability
 app.UseMiddleware<KasseAPI_Final.Middleware.CorrelationIdMiddleware>();
+
+// Public GET for product images saved by admin upload (anonymous; unguessable file names).
+var productMediaOpts = app.Services.GetRequiredService<IOptions<ProductMediaOptions>>().Value;
+var webHostEnv = app.Services.GetRequiredService<IWebHostEnvironment>();
+var productMediaRoot = Path.Combine(webHostEnv.ContentRootPath, productMediaOpts.RootRelativeDirectory);
+Directory.CreateDirectory(productMediaRoot);
+var productMediaRequestPath = productMediaOpts.PublicUrlPathPrefix.TrimEnd('/');
+var normalizedMediaRequestPath = productMediaRequestPath.StartsWith('/')
+    ? productMediaRequestPath
+    : "/" + productMediaRequestPath;
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(productMediaRoot),
+    RequestPath = normalizedMediaRequestPath,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = "public,max-age=86400";
+    }
+});
 
 // Authentication ve Authorization middleware
 app.UseAuthentication();

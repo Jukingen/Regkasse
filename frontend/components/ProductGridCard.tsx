@@ -2,8 +2,8 @@
  * POS grid ürün kartı: tek tıkla sepete ekleme. Extras: group.products only (Phase C; legacy modifiers removed).
  * Memoized: re-renders only when product.id or selected modifiers change.
  */
-import React, { memo, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { memo, useEffect, useMemo, useState } from 'react';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { Product } from '../services/api/productService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
 import { ModifierOptionChips } from './ModifierOptionChips';
@@ -15,6 +15,18 @@ export interface ModifierChipItem {
   name: string;
   price: number;
   quantity?: number;
+}
+
+/** Remote http(s) images from admin Bild-URL or uploaded media; other schemes fall back to emoji. */
+function isRenderableProductImageUrl(url: string | undefined): boolean {
+  const t = url?.trim() ?? '';
+  if (!t.length) return false;
+  try {
+    const u = new URL(t);
+    return u.protocol === 'https:' || u.protocol === 'http:';
+  } catch {
+    return false;
+  }
 }
 
 function modifiersKey(mods: ModifierChipItem[]): string {
@@ -54,6 +66,14 @@ function ProductGridCardInner({
   );
   const hasAddOnProducts = groupsWithProducts.length > 0;
 
+  const trimmedImageUrl = product.imageUrl?.trim() ?? '';
+  const showHttpsImage = isRenderableProductImageUrl(trimmedImageUrl);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [trimmedImageUrl]);
+
   const handlePress = () => {
     if (hasAddOnProducts && onOpenAddOnSheet) onOpenAddOnSheet(product);
     else onAdd(product);
@@ -65,7 +85,16 @@ function ProductGridCardInner({
       onPress={handlePress}
     >
       <View style={styles.imageWrapper}>
-        <Text style={styles.emoji}>{getCategoryEmoji(product.productCategory || product.category)}</Text>
+        {showHttpsImage && !imageFailed ? (
+          <Image
+            source={{ uri: trimmedImageUrl }}
+            style={styles.gridImage}
+            resizeMode="cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <Text style={styles.emoji}>{getCategoryEmoji(product.productCategory || product.category)}</Text>
+        )}
       </View>
       <View style={styles.content}>
         <Text style={styles.category}>{product.productCategory || product.category}</Text>
@@ -103,7 +132,9 @@ const styles = StyleSheet.create({
     backgroundColor: SoftColors.bgSecondary,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
+  gridImage: StyleSheet.absoluteFillObject,
   emoji: { fontSize: 40 },
   content: { padding: SoftSpacing.md, gap: SoftSpacing.xs },
   category: { ...SoftTypography.caption, color: SoftColors.textMuted, textTransform: 'uppercase' as const },
@@ -121,6 +152,7 @@ const styles = StyleSheet.create({
 
 export const ProductGridCard = memo(ProductGridCardInner, (prev, next) => {
   if (prev.product.id !== next.product.id) return false;
+  if (prev.product.imageUrl !== next.product.imageUrl) return false;
   if (modifiersKey(prev.pendingModifiers) !== modifiersKey(next.pendingModifiers)) return false;
   if (prev.onAddAddOn !== next.onAddAddOn) return false;
   return true;

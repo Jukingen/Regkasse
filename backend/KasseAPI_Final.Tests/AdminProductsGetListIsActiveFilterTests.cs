@@ -2,9 +2,13 @@ using System.Text.Json;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -74,7 +78,12 @@ public sealed class AdminProductsGetListIsActiveFilterTests
             ctx,
             Mock.Of<IGenericRepository<Product>>(),
             NullLogger<AdminProductsController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary),
+            Mock.Of<IWebHostEnvironment>(),
+            Options.Create(new ProductMediaOptions()),
+            new ProductImageThumbnailService(
+                Options.Create(new ProductMediaOptions()),
+                NullLogger<ProductImageThumbnailService>.Instance));
 
     private static int ReadTotalCount(IActionResult result)
     {
