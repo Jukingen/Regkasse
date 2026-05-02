@@ -2,6 +2,7 @@ import React from 'react';
 import { Table, Space, Button, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Product } from '@/api/generated/model';
+import { formatProductUnitLabelForLocale } from '@/features/products/utils/productMapper';
 import { useProductFilters } from '../hooks/useProducts';
 import { useI18n } from '@/i18n';
 
@@ -43,7 +44,7 @@ export default function ProductList({ data, loading, onEdit, onDelete }: Product
                 const isLow = stock <= minStock;
                 return (
                     <Tag color={isLow ? 'red' : 'green'}>
-                        {stock} {record.unit || t('products.table.unitPieces')}
+                        {stock} {formatProductUnitLabelForLocale(record.unit, t)}
                     </Tag>
                 );
             }

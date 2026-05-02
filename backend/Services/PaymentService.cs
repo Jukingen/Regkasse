@@ -415,8 +415,7 @@ namespace KasseAPI_Final.Services
                             }
                         }
 
-                        // VAT oranı kategoriden (yüzde: 10, 20); tek rounding noktası CartMoneyHelper. decimal only.
-                        var vatRatePercent = product.CategoryNavigation.VatRate;
+                        // VAT: same RKSV tax type as cart (product.TaxType); single rounding via CartMoneyHelper.
                         decimal unitGross;
                         if (cartSnapshotPrices != null && cartSnapshotPrices.TryGetValue(product.Id, out var snapGross))
                         {
@@ -433,7 +432,7 @@ namespace KasseAPI_Final.Services
                             unitGross = priceRes.UnitPriceGross;
                         }
 
-                        var line = CartMoneyHelper.ComputeLine(unitGross, itemRequest.Quantity, vatRatePercent);
+                        var line = CartMoneyHelper.ComputeLine(unitGross, itemRequest.Quantity, product.TaxType);
                         totalAmount += line.LineGross;
                         totalTaxAmount += line.LineTax;
 
@@ -742,14 +741,13 @@ namespace KasseAPI_Final.Services
                     .FirstOrDefaultAsync(p => p.Id == item.ProductId && p.TenantId == effectiveTenantId);
                 if (product?.CategoryNavigation == null) continue;
 
-                var vatRatePercent = product.CategoryNavigation.VatRate;
                 var priceRes = await _pricingRuleResolver.ResolveUnitGrossAsync(
                     product.Price,
                     product.Id,
                     product.CategoryId,
                     request.CashRegisterId,
                     DateTime.UtcNow);
-                var line = CartMoneyHelper.ComputeLine(priceRes.UnitPriceGross, item.Quantity, vatRatePercent);
+                var line = CartMoneyHelper.ComputeLine(priceRes.UnitPriceGross, item.Quantity, product.TaxType);
                 totalAmount += line.LineGross;
                 paymentItems.Add(new PaymentItem
                 {

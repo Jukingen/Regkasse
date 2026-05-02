@@ -21,8 +21,8 @@
     "actions": "Aktionen",
     "active": "Aktiv",
     "inactive": "Inaktiv",
-    "unitPieces": "Stk",
-    "minLabel": "Min",
+    "unitPieces": "Stück",
+    "minLabel": "Min.",
     "minReached": "≤ Min",
     "taxExemption": "Steuerbefreiung",
     "rksvLabel": "RKSV"

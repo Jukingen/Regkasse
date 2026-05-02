@@ -41,6 +41,33 @@ export function formatTaxTypeLabelForLocale(
     }
 }
 
+type ProductsTranslateFn = (key: string, options?: Record<string, string | number>) => string;
+
+/** Piece-unit tokens often returned by the API in English; map to localized label without changing stored/API values. */
+const PIECE_UNIT_SYNONYMS = new Set([
+    'piece',
+    'pieces',
+    'pc',
+    'pcs',
+    'stk',
+    'stück',
+    'stueck',
+]);
+
+function isPieceUnitSynonym(unit: string): boolean {
+    const u = unit.trim().toLowerCase();
+    return PIECE_UNIT_SYNONYMS.has(u);
+}
+
+/** Stock unit for display: known piece synonyms use `products.table.unitPieces`; other values pass through (e.g. kg, custom labels). */
+export function formatProductUnitLabelForLocale(unit: string | undefined | null, t: ProductsTranslateFn): string {
+    const raw = typeof unit === 'string' ? unit.trim() : '';
+    if (!raw || isPieceUnitSynonym(raw)) {
+        return t('products.table.unitPieces');
+    }
+    return raw;
+}
+
 // Define the shape of the raw API response item (PascalCase)
 export interface ApiProduct {
     Id: string;

@@ -917,23 +917,33 @@ namespace KasseAPI_Final.Controllers
                                         container.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5).DefaultTextStyle(x => x.SemiBold());
                                 });
 
-                                // Deserialize Items
+                                // Line items: same JSON shape as payment_details.PaymentItems (PaymentItem list).
+                                List<PaymentItem>? pdfLineItems = null;
                                 if (invoice.InvoiceItems?.RootElement.ValueKind == JsonValueKind.Array)
                                 {
-                                    foreach (var item in invoice.InvoiceItems.RootElement.EnumerateArray())
+                                    try
                                     {
-                                        var name = item.TryGetProperty("productName", out var n) ? n.GetString() : "Item";
-                                        var qty = item.TryGetProperty("quantity", out var q) ? q.GetInt32() : 0;
-                                        var price = item.TryGetProperty("unitPrice", out var p) ? p.GetDecimal() : 0;
-                                        var total = item.TryGetProperty("totalPrice", out var t) ? t.GetDecimal() : 0;
-                                        var taxStart = item.TryGetProperty("taxRate", out var tr) ? tr.GetDecimal() : 0;
-                                        var taxRate = taxStart > 1 ? taxStart / 100 : taxStart; // Simple heuristic if stored as 20 vs 0.2
+                                        pdfLineItems = JsonSerializer.Deserialize<List<PaymentItem>>(
+                                            invoice.InvoiceItems.RootElement.GetRawText());
+                                    }
+                                    catch (JsonException)
+                                    {
+                                        pdfLineItems = null;
+                                    }
+                                }
 
-                                        table.Cell().Element(BodyCellStyle).Text(name);
-                                        table.Cell().Element(BodyCellStyle).AlignRight().Text(qty.ToString());
-                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{price:F2}");
-                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{taxRate:P0}");
-                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{total:F2}");
+                                if (pdfLineItems != null)
+                                {
+                                    foreach (var pi in pdfLineItems)
+                                    {
+                                        var displayName = string.IsNullOrWhiteSpace(pi.ProductName) ? "Item" : pi.ProductName;
+                                        var taxFraction = pi.TaxRate;
+
+                                        table.Cell().Element(BodyCellStyle).Text(displayName);
+                                        table.Cell().Element(BodyCellStyle).AlignRight().Text(pi.Quantity.ToString());
+                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{pi.UnitPrice:F2}");
+                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{taxFraction:P0}");
+                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{pi.TotalPrice:F2}");
                                     }
                                 }
 

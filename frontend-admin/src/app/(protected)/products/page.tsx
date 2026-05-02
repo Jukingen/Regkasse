@@ -8,7 +8,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
 import { Product } from '@/api/generated/model';
-import { mapApiProductToUi, mapUiProductToApi, formatTaxTypeLabelForLocale } from '@/features/products/utils/productMapper';
+import { mapApiProductToUi, mapUiProductToApi, formatTaxTypeLabelForLocale, formatProductUnitLabelForLocale } from '@/features/products/utils/productMapper';
 import ProductForm, { type ProductFormSubmitValues } from '@/features/products/components/ProductForm';
 import { ColumnType } from 'antd/es/table';
 import { useI18n } from '@/i18n';
@@ -197,7 +197,7 @@ export default function ProductsPage() {
             render: (qty: number, record: Product) => {
                 const min = Number(record.minStockLevel) ?? 0;
                 const isLow = Number(qty) <= min;
-                const unit = record.unit || t('products.table.unitPieces');
+                const unit = formatProductUnitLabelForLocale(record.unit, t);
                 const tag = (
                     <Tag color={isLow ? 'red' : 'green'} style={{ marginInlineEnd: 0 }}>
                         {Number(qty)} {unit}
