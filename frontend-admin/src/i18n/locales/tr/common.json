@@ -157,6 +157,9 @@
     "emptyCategories": "Kategori yok",
     "deleteConfirmTitle": "Kategori silinsin mi?",
     "deleteConfirmDescription": "Bu kategoriye bagli urunler etkilenebilir.",
+    "list": {
+      "deleteConfirmDescription": "Bu kategoriyi silmek istediginize emin misiniz?"
+    },
     "form": {
       "modalTitleCreate": "Yeni kategori",
       "modalTitleEdit": "Kategoriyi duzenle",
@@ -172,6 +175,10 @@
     },
     "table": {
       "name": "Ad",
+      "color": "Renk",
+      "description": "Aciklama",
+      "status": "Durum",
+      "inactive": "Pasif",
       "product": "Urun",
       "barcode": "Barkod",
       "price": "Fiyat",

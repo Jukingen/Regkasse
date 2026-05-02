@@ -93,6 +93,7 @@
     "devicePlaceholder": "Default",
     "reprintSubmit": "Trigger reprint",
     "receiptNumber": "Receipt number",
+    "grandTotalLabel": "Grand total",
     "issuedAt": "Issued",
     "detailLink": "Detail",
     "openReceipt": "Open receipt",
@@ -211,7 +212,10 @@
       "queueOpenAdmin": "Full queue",
       "queueColBericht": "Report type",
       "queueColHint": "Hint",
-      "outboxGoReport": "Open report"
+      "outboxGoReport": "Open report",
+      "detailLabelSchema": "Schema",
+      "detailLabelUtc": "UTC",
+      "detailLabelClosings": "Closings"
     }
   },
   "staffPerformance": {
@@ -290,6 +294,7 @@
     "transferNotes": "Comment",
     "drawerTxTitle": "Movements (SKU)",
     "historyTitle": "Global movement history",
+    "historyFilterApply": "Apply",
     "filterInventory": "Inventory row",
     "filterAll": "All",
     "dateRange": "Range (UTC)",

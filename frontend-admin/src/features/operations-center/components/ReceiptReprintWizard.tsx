@@ -190,7 +190,9 @@ export default function ReceiptReprintWizard({
                                         <Descriptions.Item label={t('adminShell.operationsCenter.issuedAt')}>
                                             {receipt.date ?? '—'}
                                         </Descriptions.Item>
-                                        <Descriptions.Item label="Grand total">{formatEUR(receipt.grandTotal ?? 0)}</Descriptions.Item>
+                                        <Descriptions.Item label={t('adminShell.operationsCenter.grandTotalLabel')}>
+                                            {formatEUR(receipt.grandTotal ?? 0)}
+                                        </Descriptions.Item>
                                     </Descriptions>
                                     <Alert
                                         type="info"

@@ -157,6 +157,9 @@
     "emptyCategories": "No categories",
     "deleteConfirmTitle": "Delete category?",
     "deleteConfirmDescription": "Products linked to this category may be affected.",
+    "list": {
+      "deleteConfirmDescription": "Are you sure you want to delete this category?"
+    },
     "form": {
       "modalTitleCreate": "New category",
       "modalTitleEdit": "Edit category",
@@ -172,6 +175,10 @@
     },
     "table": {
       "name": "Name",
+      "color": "Color",
+      "description": "Description",
+      "status": "Status",
+      "inactive": "Inactive",
       "product": "Product",
       "barcode": "Barcode",
       "price": "Price",

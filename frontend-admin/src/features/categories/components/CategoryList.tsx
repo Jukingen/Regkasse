@@ -2,6 +2,7 @@ import React from 'react';
 import { Table, Space, Button, Popconfirm, Tag } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Category } from '@/api/generated/model';
+import { useI18n } from '@/i18n';
 
 interface CategoryListProps {
     data: Category[];
@@ -11,9 +12,10 @@ interface CategoryListProps {
 }
 
 export default function CategoryList({ data, loading, onEdit, onDelete }: CategoryListProps) {
+    const { t } = useI18n();
     const columns = [
         {
-            title: 'Name',
+            title: t('common.categories.table.name'),
             dataIndex: 'name',
             key: 'name',
             render: (text: string, record: Category) => (
@@ -24,7 +26,7 @@ export default function CategoryList({ data, loading, onEdit, onDelete }: Catego
             ),
         },
         {
-            title: 'Color',
+            title: t('common.categories.table.color'),
             dataIndex: 'color',
             key: 'color',
             render: (color: string) => (
@@ -32,27 +34,27 @@ export default function CategoryList({ data, loading, onEdit, onDelete }: Catego
             ),
         },
         {
-            title: 'Description',
+            title: t('common.categories.table.description'),
             dataIndex: 'description',
             key: 'description',
         },
         {
-            title: 'Sort Order',
+            title: t('common.categories.table.sortOrder'),
             dataIndex: 'sortOrder',
             key: 'sortOrder',
         },
         {
-            title: 'Status',
+            title: t('common.categories.table.status'),
             dataIndex: 'isActive',
             key: 'isActive',
             render: (isActive: boolean) => (
                 <Tag color={isActive ? 'green' : 'red'}>
-                    {isActive ? 'Active' : 'Inactive'}
+                    {isActive ? t('common.categories.table.active') : t('common.categories.table.inactive')}
                 </Tag>
             ),
         },
         {
-            title: 'Actions',
+            title: t('common.categories.table.actions'),
             key: 'actions',
             render: (_: any, record: Category) => (
                 <Space>
@@ -61,11 +63,11 @@ export default function CategoryList({ data, loading, onEdit, onDelete }: Catego
                         onClick={() => onEdit(record)}
                     />
                     <Popconfirm
-                        title="Delete category?"
-                        description="Are you sure you want to delete this category?"
+                        title={t('common.categories.deleteConfirmTitle')}
+                        description={t('common.categories.list.deleteConfirmDescription')}
                         onConfirm={() => record.id && onDelete(record.id)}
-                        okText="Yes"
-                        cancelText="No"
+                        okText={t('common.buttons.yes')}
+                        cancelText={t('common.buttons.no')}
                     >
                         <Button danger icon={<DeleteOutlined />} />
                     </Popconfirm>

@@ -217,7 +217,8 @@
       "actionFixed": "Fixed gross unit price",
       "actionPercent": "Percent off list price",
       "actionValue": "Value",
-      "cashRegisterId": "Cash register (UUID, optional)"
+      "cashRegisterId": "Cash register (UUID, optional)",
+      "placeholderOptional": "optional"
     }
   }
 }

@@ -289,7 +289,7 @@ export default function PricingRulesPage() {
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="cashRegisterId" label={t('settings.pricingRules.form.cashRegisterId')}>
-            <Input placeholder="optional" />
+            <Input placeholder={t('settings.pricingRules.form.placeholderOptional')} />
           </Form.Item>
         </Form>
       </Modal>

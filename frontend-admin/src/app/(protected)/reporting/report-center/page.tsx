@@ -871,8 +871,10 @@ export default function ReportCenterPage() {
             ) : null}
 
             <Descriptions bordered size="small" column={2} style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="Schema">{xzQ.data?.schemaVersion ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="UTC">
+              <Descriptions.Item label={t('adminShell.reporting.reportCenter.detailLabelSchema')}>
+                {xzQ.data?.schemaVersion ?? '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('adminShell.reporting.reportCenter.detailLabelUtc')}>
                 {xzQ.data?.generatedAtUtc ? dayjs(xzQ.data.generatedAtUtc).format('YYYY-MM-DD HH:mm:ss') : '—'}
               </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.dateRange')}>
@@ -882,7 +884,9 @@ export default function ReportCenterPage() {
                 {xzQ.data?.isCurrentBusinessDay ? t('adminShell.reporting.yes') : t('adminShell.reporting.no')}
               </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.reportCenter.colScope')}>{xzQ.data?.scopeKind ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Closings">{xzQ.data?.linkedClosingIds?.length ?? 0}</Descriptions.Item>
+              <Descriptions.Item label={t('adminShell.reporting.reportCenter.detailLabelClosings')}>
+                {xzQ.data?.linkedClosingIds?.length ?? 0}
+              </Descriptions.Item>
             </Descriptions>
 
             {xzQ.data?.parts?.length ? (
@@ -1037,7 +1041,9 @@ export default function ReportCenterPage() {
           {periodenDetailQ.data ? (
             <>
               <Descriptions bordered size="small" column={1} style={{ marginBottom: 12 }}>
-                <Descriptions.Item label="Schema">{periodenDetailQ.data.snapshotSchemaVersion}</Descriptions.Item>
+                <Descriptions.Item label={t('adminShell.reporting.reportCenter.detailLabelSchema')}>
+                  {periodenDetailQ.data.snapshotSchemaVersion}
+                </Descriptions.Item>
                 <Descriptions.Item label={t('adminShell.reporting.gross')}>
                   {Number(periodenDetailQ.data.summary?.grossTotalAmount ?? 0).toFixed(2)}
                 </Descriptions.Item>

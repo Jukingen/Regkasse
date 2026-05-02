@@ -217,7 +217,8 @@
       "actionFixed": "Fester Bruttopreis",
       "actionPercent": "Rabatt % vom Listenpreis",
       "actionValue": "Wert",
-      "cashRegisterId": "Kasse (UUID, optional)"
+      "cashRegisterId": "Kasse (UUID, optional)",
+      "placeholderOptional": "optional"
     }
   }
 }

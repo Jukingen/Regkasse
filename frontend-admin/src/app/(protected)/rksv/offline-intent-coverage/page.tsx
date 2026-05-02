@@ -108,7 +108,7 @@ export default function OfflineIntentCoveragePage() {
 
     const byRegisterColumns = [
         {
-            title: 'Kasse',
+            title: t('rksvHub.offlineIntentCoveragePage.colRegister'),
             dataIndex: 'cashRegisterId',
             key: 'cashRegisterId',
             width: 140,
@@ -119,28 +119,28 @@ export default function OfflineIntentCoveragePage() {
             ),
         },
         {
-            title: 'Samples',
+            title: t('rksvHub.offlineIntentCoveragePage.colSamples'),
             dataIndex: 'total',
             key: 'total',
             width: 90,
             align: 'right' as const,
         },
         {
-            title: 'DeviceId Missing',
+            title: t('rksvHub.offlineIntentCoveragePage.colDeviceIdMissing'),
             dataIndex: 'deviceIdMissingRate',
             key: 'deviceIdMissingRate',
             width: 170,
             render: (v: number) => formatPercent01AsPct(v),
         },
         {
-            title: 'Sequence Missing',
+            title: t('rksvHub.offlineIntentCoveragePage.colSequenceMissing'),
             dataIndex: 'sequenceMissingRate',
             key: 'sequenceMissingRate',
             width: 170,
             render: (v: number) => formatPercent01AsPct(v),
         },
         {
-            title: 'Risk Score',
+            title: t('rksvHub.offlineIntentCoveragePage.colRiskScore'),
             dataIndex: 'riskScore',
             key: 'riskScore',
             width: 120,
@@ -155,11 +155,11 @@ export default function OfflineIntentCoveragePage() {
     return (
         <>
             <AdminPageHeader
-                title="Offline Intent Coverage"
+                title={t('rksvHub.offlineIntentCoveragePage.title')}
                 breadcrumbs={[
                     ADMIN_OVERVIEW_CRUMB,
-                    { title: 'RKSV', href: '/rksv' },
-                    { title: 'Offline Intent Coverage' },
+                    { title: t('rksvHub.offlineIntentCoveragePage.breadcrumbRksv'), href: '/rksv' },
+                    { title: t('rksvHub.offlineIntentCoveragePage.title') },
                 ]}
             />
 
@@ -170,7 +170,7 @@ export default function OfflineIntentCoveragePage() {
             ) : error ? (
                 <Alert
                     type="error"
-                    message="Coverage query failed"
+                    message={t('rksvHub.offlineIntentCoveragePage.loadErrorTitle')}
                     description={
                         <ApiErrorAlertDescription
                             t={t}
@@ -188,15 +188,18 @@ export default function OfflineIntentCoveragePage() {
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}
-                            message="Low offline-intent coverage"
-                            description={coverage?.alertReason ?? 'Threshold exceeded.'}
+                            message={t('rksvHub.offlineIntentCoveragePage.lowCoverageTitle')}
+                            description={
+                                coverage?.alertReason ??
+                                t('rksvHub.offlineIntentCoveragePage.thresholdFallback')
+                            }
                         />
                     ) : null}
 
                     <Card size="small" style={{ marginBottom: 16 }}>
                         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                             <Space wrap align="center">
-                                <Typography.Text strong>Date Range (UTC):</Typography.Text>
+                                <Typography.Text strong>{t('rksvHub.offlineIntentCoveragePage.filterDateRangeUtc')}</Typography.Text>
                                 <RangePicker
                                     showTime
                                     value={[dateRange[0], dateRange[1]]}
@@ -208,10 +211,10 @@ export default function OfflineIntentCoveragePage() {
                                 />
                             </Space>
                             <Space wrap align="center">
-                                <Typography.Text strong>Kasse (optional):</Typography.Text>
+                                <Typography.Text strong>{t('rksvHub.offlineIntentCoveragePage.filterRegisterOptional')}</Typography.Text>
                                 <Select
                                     allowClear
-                                    placeholder="Alle Kassen"
+                                    placeholder={t('rksvHub.offlineIntentCoveragePage.registerPlaceholder')}
                                     style={{ minWidth: 260 }}
                                     value={cashRegisterId}
                                     onChange={(v) => setCashRegisterId(v)}
@@ -220,14 +223,14 @@ export default function OfflineIntentCoveragePage() {
                                 />
                             </Space>
                             <Space wrap align="center">
-                                <Typography.Text strong>Top-Risk Limit:</Typography.Text>
+                                <Typography.Text strong>{t('rksvHub.offlineIntentCoveragePage.topRiskLimit')}</Typography.Text>
                                 <InputNumber
                                     min={1}
                                     max={100}
                                     value={topLimit}
                                     onChange={(v) => setTopLimit(typeof v === 'number' ? v : 10)}
                                 />
-                                <Typography.Text type="secondary">(1–100, Standard 10)</Typography.Text>
+                                <Typography.Text type="secondary">{t('rksvHub.offlineIntentCoveragePage.limitHint')}</Typography.Text>
                             </Space>
                         </Space>
                     </Card>
@@ -235,13 +238,13 @@ export default function OfflineIntentCoveragePage() {
                     <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                         <Col xs={24} md={6}>
                             <Card size="small">
-                                <Statistic title="Samples" value={coverage?.total ?? 0} />
+                                <Statistic title={t('rksvHub.offlineIntentCoveragePage.statSamples')} value={coverage?.total ?? 0} />
                             </Card>
                         </Col>
                         <Col xs={24} md={6}>
                             <Card size="small">
                                 <Statistic
-                                    title="DeviceId Coverage"
+                                    title={t('rksvHub.offlineIntentCoveragePage.statDeviceIdCoverage')}
                                     value={(coverage?.deviceIdCoveragePercent ?? 0).toFixed(1) + '%'}
                                 />
                             </Card>
@@ -249,7 +252,7 @@ export default function OfflineIntentCoveragePage() {
                         <Col xs={24} md={6}>
                             <Card size="small">
                                 <Statistic
-                                    title="Sequence Coverage"
+                                    title={t('rksvHub.offlineIntentCoveragePage.statSequenceCoverage')}
                                     value={(coverage?.sequenceCoveragePercent ?? 0).toFixed(1) + '%'}
                                 />
                             </Card>
@@ -257,7 +260,7 @@ export default function OfflineIntentCoveragePage() {
                         <Col xs={24} md={6}>
                             <Card size="small">
                                 <Statistic
-                                    title="Missing (DeviceId/Sequence)"
+                                    title={t('rksvHub.offlineIntentCoveragePage.statMissingCombined')}
                                     value={
                                         `${formatPercent01AsPct(coverage?.deviceIdMissingRate ?? 0)} / ${formatPercent01AsPct(
                                             coverage?.sequenceMissingRate ?? 0
@@ -269,7 +272,7 @@ export default function OfflineIntentCoveragePage() {
                     </Row>
 
                     <Card
-                        title="Risk by register"
+                        title={t('rksvHub.offlineIntentCoveragePage.cardRiskByRegister')}
                         size="small"
                         style={{ marginBottom: 16 }}
                     >
@@ -278,18 +281,23 @@ export default function OfflineIntentCoveragePage() {
                             dataSource={byRegister}
                             rowKey={(r, idx) => r.cashRegisterId ?? `register-${idx ?? 0}`}
                             pagination={false}
-                            locale={{ emptyText: 'No coverage samples in this window.' }}
+                            locale={{ emptyText: t('rksvHub.offlineIntentCoveragePage.emptyByRegister') }}
                             size="small"
                         />
                     </Card>
 
-                    <Card title={`Top risk registers (limit ${topRiskQuery.data?.limit ?? topLimit})`} size="small">
+                    <Card
+                        title={t('rksvHub.offlineIntentCoveragePage.cardTopRiskTitle', {
+                            limit: topRiskQuery.data?.limit ?? topLimit,
+                        })}
+                        size="small"
+                    >
                         <Table
                             columns={byRegisterColumns}
                             dataSource={topRiskRegisters}
                             rowKey={(r, idx) => r.cashRegisterId ?? `top-risk-${idx ?? 0}`}
                             pagination={false}
-                            locale={{ emptyText: 'No top-risk samples in this window.' }}
+                            locale={{ emptyText: t('rksvHub.offlineIntentCoveragePage.emptyTopRisk') }}
                             size="small"
                         />
                     </Card>

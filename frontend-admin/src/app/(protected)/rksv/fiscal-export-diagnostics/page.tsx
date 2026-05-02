@@ -412,7 +412,7 @@ export default function FiscalExportDiagnosticsPage() {
                     ) : null}
 
                     {preview.chainContinuityWarnings?.length ? (
-                        <Card size="small" style={{ marginBottom: 16 }} title="ChainContinuityWarnings">
+                        <Card size="small" style={{ marginBottom: 16 }} title={t('rksvHub.fiscalExportPage.chainContinuityWarningsCardTitle')}>
                             <Alert
                                 type="warning"
                                 showIcon

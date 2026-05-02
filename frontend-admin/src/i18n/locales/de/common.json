@@ -155,8 +155,11 @@
     "searchHint": "Die Suche filtert Kategorien waehrend der Eingabe (kurze Verzoegerung vor der Anfrage). Erweitern Sie eine Zeile, um Produkte dieser Kategorie zu sehen.",
     "loadErrorTitle": "Kategorien konnten nicht geladen werden",
     "emptyCategories": "Keine Kategorien",
-    "deleteConfirmTitle": "Kategorie loeschen?",
+    "deleteConfirmTitle": "Kategorie löschen?",
     "deleteConfirmDescription": "Produkte, die mit dieser Kategorie verknuepft sind, koennen betroffen sein.",
+    "list": {
+      "deleteConfirmDescription": "Wirklich löschen?"
+    },
     "form": {
       "modalTitleCreate": "Neue Kategorie",
       "modalTitleEdit": "Kategorie bearbeiten",
@@ -172,6 +175,10 @@
     },
     "table": {
       "name": "Name",
+      "color": "Farbe",
+      "description": "Beschreibung",
+      "status": "Status",
+      "inactive": "Inaktiv",
       "product": "Produkt",
       "barcode": "Barcode",
       "price": "Preis",

@@ -544,7 +544,7 @@ export default function InventoryOperationsPage() {
                     value={histRange[0] && histRange[1] ? [histRange[0], histRange[1]] : null}
                     onChange={(d) => setHistRange(d ? [d[0], d[1]] : [null, null])}
                   />
-                  <Button onClick={() => setHistPage(1)}>OK</Button>
+                  <Button onClick={() => setHistPage(1)}>{t('adminShell.inventory.historyFilterApply')}</Button>
                 </Space>
                 <Spin spinning={histQ.isLoading}>
                   <Table

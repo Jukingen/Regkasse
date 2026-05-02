@@ -93,6 +93,7 @@
     "devicePlaceholder": "Varsayılan",
     "reprintSubmit": "Yeniden yazdırmayı tetikle",
     "receiptNumber": "Fiş numarası",
+    "grandTotalLabel": "Genel toplam",
     "issuedAt": "Düzenlenme",
     "detailLink": "Detay",
     "openReceipt": "Fişi aç",
@@ -211,7 +212,10 @@
       "queueOpenAdmin": "Tam kuyruk",
       "queueColBericht": "Rapor türü",
       "queueColHint": "İpucu",
-      "outboxGoReport": "Raporu aç"
+      "outboxGoReport": "Raporu aç",
+      "detailLabelSchema": "Schema",
+      "detailLabelUtc": "UTC",
+      "detailLabelClosings": "Kapanışlar"
     }
   },
   "staffPerformance": {
@@ -290,6 +294,7 @@
     "transferNotes": "Açıklama",
     "drawerTxTitle": "Hareketler",
     "historyTitle": "Genel hareket geçmişi",
+    "historyFilterApply": "Uygula",
     "filterInventory": "Envanter satırı",
     "filterAll": "Tümü",
     "dateRange": "Aralık (UTC)",

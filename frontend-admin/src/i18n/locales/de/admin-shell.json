@@ -93,6 +93,7 @@
     "devicePlaceholder": "Standard",
     "reprintSubmit": "Nachdruck auslösen",
     "receiptNumber": "Belegnummer",
+    "grandTotalLabel": "Gesamtbetrag",
     "issuedAt": "Ausgestellt",
     "detailLink": "Detail",
     "openReceipt": "Beleg öffnen",
@@ -211,7 +212,10 @@
       "queueOpenAdmin": "Vollständige Warteschlange",
       "queueColBericht": "Berichtstyp",
       "queueColHint": "Hinweis",
-      "outboxGoReport": "Zum Bericht"
+      "outboxGoReport": "Zum Bericht",
+      "detailLabelSchema": "Schema",
+      "detailLabelUtc": "Zeit (UTC)",
+      "detailLabelClosings": "Abschlüsse"
     }
   },
   "staffPerformance": {
@@ -290,6 +294,7 @@
     "transferNotes": "Kommentar",
     "drawerTxTitle": "Bewegungen (Artikel)",
     "historyTitle": "Globale Bewegungshistorie",
+    "historyFilterApply": "Anwenden",
     "filterInventory": "Lagerzeile",
     "filterAll": "Alle",
     "dateRange": "Zeitraum (UTC)",

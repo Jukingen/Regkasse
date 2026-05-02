@@ -217,7 +217,8 @@
       "actionFixed": "Sabit brüt birim fiyat",
       "actionPercent": "Liste fiyatından % indirim",
       "actionValue": "Değer",
-      "cashRegisterId": "Kasa (UUID, isteğe bağlı)"
+      "cashRegisterId": "Kasa (UUID, isteğe bağlı)",
+      "placeholderOptional": "isteğe bağlı"
     }
   }
 }
