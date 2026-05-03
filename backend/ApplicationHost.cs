@@ -452,6 +452,8 @@ builder.Services.AddScoped<IVoucherService, VoucherService>();
 builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
         builder.Services.AddScoped<IRksvSpecialReceiptService, RksvSpecialReceiptService>();
+        builder.Services.AddScoped<IRksvStartbelegPolicy, RksvStartbelegPolicy>();
+        builder.Services.AddScoped<IRksvMonatsbelegPolicy, RksvMonatsbelegPolicy>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
 builder.Services.AddScoped<LegacyRouteDeprecationFilter>();

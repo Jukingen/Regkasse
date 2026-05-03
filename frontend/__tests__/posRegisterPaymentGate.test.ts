@@ -129,6 +129,38 @@ describe('computeRegisterGateBlockingPayment', () => {
     ).toBe(true);
   });
 
+  it('blocks when ensure-ready requires monatsbeleg_required even with a valid register id', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: false,
+        posReadinessLoading: false,
+        posReadinessError: false,
+        posReadinessNextAction: 'monatsbeleg_required',
+        posReadinessEffectiveRegisterId: validId,
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(true);
+  });
+
+  it('blocks when ensure-ready requires startbeleg_required even with a valid register id', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: false,
+        posReadinessLoading: false,
+        posReadinessError: false,
+        posReadinessNextAction: 'startbeleg_required',
+        posReadinessEffectiveRegisterId: validId,
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(true);
+  });
+
   it('blocks when ensure-ready is forbidden even if profile/settings carry a valid register id (conflict / actor-already-open)', () => {
     expect(
       computeRegisterGateBlockingPayment({

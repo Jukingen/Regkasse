@@ -35,9 +35,18 @@ public class PosCashRegisterReadinessServiceTests
     private static PosCashRegisterReadinessService CreateSut(
         AppDbContext ctx,
         ICashRegisterShiftService shift,
-        PosCashRegisterFeatureOptions featureOptions)
+        PosCashRegisterFeatureOptions featureOptions,
+        IRksvStartbelegPolicy? startbelegPolicy = null,
+        IRksvMonatsbelegPolicy? monatsbelegPolicy = null)
     {
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var startPol = startbelegPolicy ?? RksvStartbelegTestDoubles.GateOff();
+        var monthPol = monatsbelegPolicy ?? RksvMonatsbelegTestDoubles.GateOff();
+        var resolution = new CashRegisterResolutionService(
+            ctx,
+            Mock.Of<ILogger<CashRegisterResolutionService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            startPol,
+            monthPol);
         var opt = Options.Create(featureOptions);
         return new PosCashRegisterReadinessService(
             ctx,
@@ -45,7 +54,9 @@ public class PosCashRegisterReadinessServiceTests
             shift,
             opt,
             Mock.Of<ILogger<PosCashRegisterReadinessService>>(),
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver,
+            startPol,
+            monthPol);
     }
 
     [Fact]
@@ -82,7 +93,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -102,6 +113,130 @@ public class PosCashRegisterReadinessServiceTests
         var reg = await ctx.CashRegisters.AsNoTracking().FirstAsync(r => r.Id == regId);
         Assert.Equal(RegisterStatus.Open, reg.Status);
         Assert.Equal("u1", reg.CurrentUserId);
+    }
+
+    [Fact]
+    public async Task SoleClosed_StartbelegGateMissing_ReturnsStartbelegRequired_DoesNotOpen()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        });
+        await ctx.SaveChangesAsync();
+
+        var store = new Mock<Microsoft.AspNetCore.Identity.IUserStore<ApplicationUser>>();
+        var mgr = new Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
+
+        var startbelegPolicy = RksvStartbelegTestDoubles.GateOnMissingStartbeleg();
+        var monatsbelegPolicy = RksvMonatsbelegTestDoubles.GateOff();
+        var shift = new CashRegisterShiftService(
+            ctx,
+            mgr,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            startbelegPolicy,
+            monatsbelegPolicy);
+        var features = new PosCashRegisterFeatureOptions
+        {
+            EffectiveDefaultOnPosEntry = true,
+            AutoOpenSoleClosedRegister = true,
+            DefaultAutoOpenOpeningBalance = 0
+        };
+        var sut = CreateSut(ctx, shift, features, startbelegPolicy, monatsbelegPolicy);
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+
+        Assert.Equal("startbeleg_required", dto.NextAction);
+        Assert.False(dto.AutoOpened);
+        Assert.Equal(PosCashRegisterReadinessMessageCodes.StartbelegRequired, dto.MessageCode);
+        Assert.Equal(regId.ToString(), dto.EffectiveRegisterId);
+
+        var reg = await ctx.CashRegisters.AsNoTracking().FirstAsync(r => r.Id == regId);
+        Assert.Equal(RegisterStatus.Closed, reg.Status);
+    }
+
+    [Fact]
+    public async Task SoleClosed_MonatsbelegGateMissing_ReturnsMonatsbelegRequired_DoesNotOpen()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        ctx.Users.Add(new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        });
+        await ctx.SaveChangesAsync();
+
+        var store = new Mock<Microsoft.AspNetCore.Identity.IUserStore<ApplicationUser>>();
+        var mgr = new Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>(
+            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
+
+        var startPol = RksvStartbelegTestDoubles.GateOnHasStartbeleg();
+        var monthPol = RksvMonatsbelegTestDoubles.GateOnMissingMonatsbeleg();
+        var shift = new CashRegisterShiftService(
+            ctx,
+            mgr,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            startPol,
+            monthPol);
+        var features = new PosCashRegisterFeatureOptions
+        {
+            EffectiveDefaultOnPosEntry = true,
+            AutoOpenSoleClosedRegister = true,
+            DefaultAutoOpenOpeningBalance = 0
+        };
+        var sut = CreateSut(ctx, shift, features, startPol, monthPol);
+
+        var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
+
+        Assert.Equal("monatsbeleg_required", dto.NextAction);
+        Assert.False(dto.AutoOpened);
+        Assert.Equal(PosCashRegisterReadinessMessageCodes.MonatsbelegRequired, dto.MessageCode);
+        Assert.Equal(regId.ToString(), dto.EffectiveRegisterId);
+
+        var reg = await ctx.CashRegisters.AsNoTracking().FirstAsync(r => r.Id == regId);
+        Assert.Equal(RegisterStatus.Closed, reg.Status);
     }
 
     [Fact]
@@ -151,7 +286,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -203,7 +338,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -211,7 +346,7 @@ public class PosCashRegisterReadinessServiceTests
             DefaultAutoOpenOpeningBalance = 0
         };
         var sut = CreateSut(ctx, shift, features);
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("ready", dto.NextAction);
@@ -341,7 +476,7 @@ public class PosCashRegisterReadinessServiceTests
 
         var shift = new Mock<ICashRegisterShiftService>();
         var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = true });
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("forbidden", dto.NextAction);
@@ -388,7 +523,7 @@ public class PosCashRegisterReadinessServiceTests
 
         var shift = new Mock<ICashRegisterShiftService>();
         var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = true });
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("forbidden", dto.NextAction);
@@ -451,7 +586,7 @@ public class PosCashRegisterReadinessServiceTests
 
         var shift = new Mock<ICashRegisterShiftService>();
         var sut = CreateSut(ctx, shift.Object, new PosCashRegisterFeatureOptions { EffectiveDefaultOnPosEntry = true, AutoOpenSoleClosedRegister = false });
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var dto = await sut.EnsureReadyForPosAsync("u1", CashierPrincipal(), CancellationToken.None);
         Assert.Equal("forbidden", dto.NextAction);
@@ -597,7 +732,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,
@@ -676,7 +811,7 @@ public class PosCashRegisterReadinessServiceTests
         store.Setup(s => s.FindByIdAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(ctx.Users.First(u => u.Id == "u1"));
 
-        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var shift = new CashRegisterShiftService(ctx, mgr, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var features = new PosCashRegisterFeatureOptions
         {
             EffectiveDefaultOnPosEntry = true,

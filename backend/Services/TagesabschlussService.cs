@@ -96,7 +96,7 @@ namespace KasseAPI_Final.Services
                     .Where(i => i.SourcePaymentId == null ||
                                 !_context.PaymentDetails.Any(p =>
                                     p.Id == i.SourcePaymentId!.Value &&
-                                    p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Nullbeleg))
+                                    p.RksvSpecialReceiptKind != null))
                     .ToListAsync();
 
                 if (!transactions.Any())
@@ -208,7 +208,7 @@ namespace KasseAPI_Final.Services
                     .Where(i => i.SourcePaymentId == null ||
                                 !_context.PaymentDetails.Any(p =>
                                     p.Id == i.SourcePaymentId!.Value &&
-                                    p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Nullbeleg))
+                                    p.RksvSpecialReceiptKind != null))
                     .ToListAsync();
 
                 if (!transactions.Any())
@@ -299,7 +299,7 @@ namespace KasseAPI_Final.Services
                     .Where(i => i.SourcePaymentId == null ||
                                 !_context.PaymentDetails.Any(p =>
                                     p.Id == i.SourcePaymentId!.Value &&
-                                    p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Nullbeleg))
+                                    p.RksvSpecialReceiptKind != null))
                     .ToListAsync();
 
                 if (!transactions.Any())
@@ -404,6 +404,12 @@ namespace KasseAPI_Final.Services
 
         public async Task<bool> CanPerformClosingAsync(Guid cashRegisterId)
         {
+            var reg = await _context.CashRegisters.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == cashRegisterId)
+                .ConfigureAwait(false);
+            if (reg == null || reg.Status == RegisterStatus.Decommissioned)
+                return false;
+
             var lastClosing = await GetLastClosingDateAsync(cashRegisterId);
             var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
             // ClosingDate is stored as UTC (Vienna midnight instant); compare via Vienna calendar, not .Date on UTC.

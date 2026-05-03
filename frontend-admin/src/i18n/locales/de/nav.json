@@ -43,6 +43,7 @@
   "rksvGroupDiagnose": "Diagnose",
   "rksvGroupAnbindung": "Anbindung",
   "rksvLeafOverview": "Übersicht",
+  "rksvLeafSonderbelege": "RKSV Sonderbelege",
   "rksvLeafLegacyQueue": "Zahlungszeilen (Legacy)",
   "rksvLeafIncident": "Incident",
   "rksvLeafReplayBatch": "Replay-Stapel",

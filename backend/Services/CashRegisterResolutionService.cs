@@ -3,6 +3,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services;
@@ -31,15 +32,21 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
     private readonly AppDbContext _context;
     private readonly ILogger<CashRegisterResolutionService> _logger;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
+    private readonly IRksvStartbelegPolicy _rksvStartbelegPolicy;
+    private readonly IRksvMonatsbelegPolicy _rksvMonatsbelegPolicy;
 
     public CashRegisterResolutionService(
         AppDbContext context,
         ILogger<CashRegisterResolutionService> logger,
-        ISettingsTenantResolver settingsTenantResolver)
+        ISettingsTenantResolver settingsTenantResolver,
+        IRksvStartbelegPolicy rksvStartbelegPolicy,
+        IRksvMonatsbelegPolicy rksvMonatsbelegPolicy)
     {
         _context = context;
         _logger = logger;
         _settingsTenantResolver = settingsTenantResolver;
+        _rksvStartbelegPolicy = rksvStartbelegPolicy;
+        _rksvMonatsbelegPolicy = rksvMonatsbelegPolicy;
     }
 
     /// <inheritdoc />
@@ -173,7 +180,13 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             .WhereCountsTowardPosOperationalCardinality()
             .CountAsync(cancellationToken);
 
-        return EvaluatePaymentRegisterPolicy(userId, requestedRegisterId, register, settings, operationalRegisterCount);
+        return await EvaluatePaymentRegisterPolicyAsync(
+            userId,
+            requestedRegisterId,
+            register,
+            settings,
+            operationalRegisterCount,
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -210,13 +223,55 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             .WhereCountsTowardPosOperationalCardinality()
             .CountAsync(cancellationToken);
 
-        return EvaluatePaymentRegisterPolicy(userId, requestedRegisterId, register, settings, operationalRegisterCount);
+        return await EvaluatePaymentRegisterPolicyAsync(
+            userId,
+            requestedRegisterId,
+            register,
+            settings,
+            operationalRegisterCount,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<CashRegisterResolutionValidationResult> EvaluatePaymentRegisterPolicyAsync(
+        string userId,
+        Guid requestedRegisterId,
+        CashRegister? register,
+        UserSettings? settings,
+        int operationalRegisterCount,
+        CancellationToken cancellationToken)
+    {
+        var core = EvaluatePaymentRegisterCore(userId, requestedRegisterId, register, settings, operationalRegisterCount);
+        if (!core.Ok)
+            return core;
+
+        if (_rksvStartbelegPolicy.SessionGateApplies &&
+            !await _rksvStartbelegPolicy.HasStartbelegForRegisterAsync(requestedRegisterId, cancellationToken)
+                .ConfigureAwait(false))
+        {
+            return CashRegisterResolutionValidationResult.Failure(
+                CashRegisterResolutionCodes.StartbelegRequired,
+                "RKSV Startbeleg must be created before sales on this cash register.");
+        }
+
+        if (_rksvMonatsbelegPolicy.SessionGateApplies)
+        {
+            var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+            if (!await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(requestedRegisterId, y, m, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                return CashRegisterResolutionValidationResult.Failure(
+                    CashRegisterResolutionCodes.MonatsbelegRequired,
+                    "RKSV Monatsbeleg must be created for the current calendar month before sales on this cash register.");
+            }
+        }
+
+        return core;
     }
 
     /// <summary>
-    /// Single policy implementation for payment-time register authorization (pre-check and commit gate).
+    /// Core occupancy / assignment rules (without RKSV Startbeleg / Monatsbeleg gates).
     /// </summary>
-    private static CashRegisterResolutionValidationResult EvaluatePaymentRegisterPolicy(
+    private static CashRegisterResolutionValidationResult EvaluatePaymentRegisterCore(
         string userId,
         Guid requestedRegisterId,
         CashRegister? register,
@@ -228,6 +283,13 @@ public sealed class CashRegisterResolutionService : ICashRegisterResolutionServi
             return CashRegisterResolutionValidationResult.Failure(
                 CashRegisterResolutionCodes.NotFound,
                 "Cash register not found.");
+        }
+
+        if (register.Status == RegisterStatus.Decommissioned)
+        {
+            return CashRegisterResolutionValidationResult.Failure(
+                CashRegisterResolutionCodes.Decommissioned,
+                "Cash register is permanently decommissioned (RKSV Schlussbeleg) and cannot accept payments.");
         }
 
         if (register.Status != RegisterStatus.Open)

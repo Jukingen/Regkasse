@@ -6,6 +6,8 @@ import { View, ActivityIndicator, Text, Pressable, StyleSheet, Alert } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PaymentModal from '../../components/PaymentModal';
+import { MonatsbelegRequiredBanner } from '../../components/MonatsbelegRequiredBanner';
+import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftShadows } from '../../constants/SoftTheme';
@@ -102,6 +104,8 @@ export default function TabLayout() {
     return (
         <PosRegisterReadinessProvider>
         <View style={{ flex: 1 }}>
+            <StartbelegRequiredBanner />
+            <MonatsbelegRequiredBanner />
             <Tabs
                 screenOptions={{
                     tabBarActiveTintColor: SoftColors.accent,

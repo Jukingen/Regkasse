@@ -48,6 +48,9 @@ namespace KasseAPI_Final.Models
         Closed = 1,
         Open = 2,
         Maintenance = 3,
-        Disabled = 4
+        Disabled = 4,
+
+        /// <summary>RKSV Schlussbeleg issued; register must not open shifts or accept new fiscal receipts (permanent decommissioning).</summary>
+        Decommissioned = 5,
     }
 }

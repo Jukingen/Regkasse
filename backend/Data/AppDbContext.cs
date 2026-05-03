@@ -622,6 +622,28 @@ namespace KasseAPI_Final.Data
                     .IsUnique()
                     .HasDatabaseName("ix_payment_details_nullbeleg_per_register_month")
                     .HasFilter("\"rksv_special_receipt_kind\" = 'Nullbeleg' AND \"is_active\" = true");
+
+                entity.HasIndex(e => e.CashRegisterId)
+                    .IsUnique()
+                    .HasDatabaseName("ix_payment_details_startbeleg_per_register")
+                    .HasFilter("\"rksv_special_receipt_kind\" = 'Startbeleg' AND \"is_active\" = true");
+
+                entity.HasIndex(e => new { e.CashRegisterId, e.RksvSpecialReceiptYear, e.RksvSpecialReceiptMonth })
+                    .IsUnique()
+                    .HasDatabaseName("ix_payment_details_monatsbeleg_per_register_month")
+                    .HasFilter("\"rksv_special_receipt_kind\" = 'Monatsbeleg' AND \"is_active\" = true");
+
+                entity.HasIndex(e => new { e.CashRegisterId, e.RksvSpecialReceiptYear })
+                    .IsUnique()
+                    .HasDatabaseName("ix_payment_details_jahresbeleg_per_register_year")
+                    .HasFilter(
+                        "\"rksv_special_receipt_kind\" = 'Jahresbeleg' AND \"is_active\" = true AND \"rksv_special_receipt_year\" IS NOT NULL");
+
+                // Composite so EF does not treat this as the same index as Startbeleg (both would be CashRegisterId-only otherwise).
+                entity.HasIndex(e => new { e.CashRegisterId, e.RksvSpecialReceiptKind })
+                    .IsUnique()
+                    .HasDatabaseName("ix_payment_details_schlussbeleg_per_register")
+                    .HasFilter("\"rksv_special_receipt_kind\" = 'Schlussbeleg' AND \"is_active\" = true");
             });
 
             // OfflineTransaction configuration (non-fiscal intent; replay creates the canonical Payment + Receipt)

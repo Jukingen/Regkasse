@@ -91,8 +91,7 @@ public sealed class PaymentServiceStockEnforcementTests
 
         var cashRegResolver = new CashRegisterResolutionService(
             context,
-            Mock.Of<ILogger<CashRegisterResolutionService>>(),
-            TenantTestDoubles.PrimaryTenantResolver);
+            Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         return new PaymentService(
             context,

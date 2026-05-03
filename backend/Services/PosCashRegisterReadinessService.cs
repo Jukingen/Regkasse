@@ -4,6 +4,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -20,6 +21,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     private readonly IOptions<PosCashRegisterFeatureOptions> _options;
     private readonly ILogger<PosCashRegisterReadinessService> _logger;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
+    private readonly IRksvStartbelegPolicy _rksvStartbelegPolicy;
+    private readonly IRksvMonatsbelegPolicy _rksvMonatsbelegPolicy;
 
     public PosCashRegisterReadinessService(
         AppDbContext context,
@@ -27,7 +30,9 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         ICashRegisterShiftService shift,
         IOptions<PosCashRegisterFeatureOptions> options,
         ILogger<PosCashRegisterReadinessService> logger,
-        ISettingsTenantResolver settingsTenantResolver)
+        ISettingsTenantResolver settingsTenantResolver,
+        IRksvStartbelegPolicy rksvStartbelegPolicy,
+        IRksvMonatsbelegPolicy rksvMonatsbelegPolicy)
     {
         _context = context;
         _resolution = resolution;
@@ -35,6 +40,8 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         _options = options;
         _logger = logger;
         _settingsTenantResolver = settingsTenantResolver;
+        _rksvStartbelegPolicy = rksvStartbelegPolicy;
+        _rksvMonatsbelegPolicy = rksvMonatsbelegPolicy;
     }
 
     /// <inheritdoc />
@@ -105,6 +112,13 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady
         };
 
+        if (effectiveRegister.Status == RegisterStatus.Decommissioned)
+        {
+            dto.NextAction = "forbidden";
+            dto.MessageCode = PosCashRegisterReadinessMessageCodes.RegisterDecommissioned;
+            return StampPreferred(dto, userSettings);
+        }
+
         if (effectiveRegister.Status == RegisterStatus.Open)
         {
             // Same occupancy predicate as payment / picker / sole auto-assign (<see cref="CashRegisterShiftOccupancy.IsHeldByOtherUser"/>).
@@ -113,6 +127,22 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             {
                 dto.NextAction = "forbidden";
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterConflict;
+                return StampPreferred(dto, userSettings);
+            }
+
+            if (_rksvStartbelegPolicy.SessionGateApplies &&
+                !await _rksvStartbelegPolicy.HasStartbelegForRegisterAsync(effectiveRegister.Id, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                dto.NextAction = "startbeleg_required";
+                dto.MessageCode = PosCashRegisterReadinessMessageCodes.StartbelegRequired;
+                return StampPreferred(dto, userSettings);
+            }
+
+            if (await RequiresMonatsbelegAsync(effectiveRegister.Id, cancellationToken).ConfigureAwait(false))
+            {
+                dto.NextAction = "monatsbeleg_required";
+                dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
                 return StampPreferred(dto, userSettings);
             }
 
@@ -133,6 +163,22 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         {
             dto.NextAction = "open_register";
             dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterForbidden;
+            return StampPreferred(dto, userSettings);
+        }
+
+        if (_rksvStartbelegPolicy.SessionGateApplies &&
+            !await _rksvStartbelegPolicy.HasStartbelegForRegisterAsync(effectiveRegister.Id, cancellationToken)
+                .ConfigureAwait(false))
+        {
+            dto.NextAction = "startbeleg_required";
+            dto.MessageCode = PosCashRegisterReadinessMessageCodes.StartbelegRequired;
+            return StampPreferred(dto, userSettings);
+        }
+
+        if (await RequiresMonatsbelegAsync(effectiveRegister.Id, cancellationToken).ConfigureAwait(false))
+        {
+            dto.NextAction = "monatsbeleg_required";
+            dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
             return StampPreferred(dto, userSettings);
         }
 
@@ -212,6 +258,16 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
                 dto.MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterNotFound;
                 return StampPreferred(dto, userSettings);
 
+            case CashRegisterOpenKind.FailedStartbelegRequired:
+                dto.NextAction = "startbeleg_required";
+                dto.MessageCode = PosCashRegisterReadinessMessageCodes.StartbelegRequired;
+                return StampPreferred(dto, userSettings);
+
+            case CashRegisterOpenKind.FailedMonatsbelegRequired:
+                dto.NextAction = "monatsbeleg_required";
+                dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
+                return StampPreferred(dto, userSettings);
+
             case CashRegisterOpenKind.FailedInvalidState:
             default:
                 dto.NextAction = "open_register";
@@ -284,6 +340,13 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             MessageCode = PosCashRegisterReadinessMessageCodes.CashRegisterReady
         };
 
+        if (effective.Status == RegisterStatus.Decommissioned)
+        {
+            dto.NextAction = "forbidden";
+            dto.MessageCode = PosCashRegisterReadinessMessageCodes.RegisterDecommissioned;
+            return StampPreferred(dto, userSettings);
+        }
+
         if (effective.Status == RegisterStatus.Open &&
             CashRegisterShiftOccupancy.IsHeldByOtherUser(userId, effective.CurrentUserId))
         {
@@ -294,7 +357,41 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
 
         if (effective.Status == RegisterStatus.Open)
         {
+            if (_rksvStartbelegPolicy.SessionGateApplies &&
+                !await _rksvStartbelegPolicy.HasStartbelegForRegisterAsync(effective.Id, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                dto.NextAction = "startbeleg_required";
+                dto.MessageCode = PosCashRegisterReadinessMessageCodes.StartbelegRequired;
+                return StampPreferred(dto, userSettings);
+            }
+
+            if (await RequiresMonatsbelegAsync(effective.Id, cancellationToken).ConfigureAwait(false))
+            {
+                dto.NextAction = "monatsbeleg_required";
+                dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
+                return StampPreferred(dto, userSettings);
+            }
+
             dto.NextAction = "ready";
+            return StampPreferred(dto, userSettings);
+        }
+
+        if (effective.Status == RegisterStatus.Closed &&
+            _rksvStartbelegPolicy.SessionGateApplies &&
+            !await _rksvStartbelegPolicy.HasStartbelegForRegisterAsync(effective.Id, cancellationToken)
+                .ConfigureAwait(false))
+        {
+            dto.NextAction = "startbeleg_required";
+            dto.MessageCode = PosCashRegisterReadinessMessageCodes.StartbelegRequired;
+            return StampPreferred(dto, userSettings);
+        }
+
+        if (effective.Status == RegisterStatus.Closed &&
+            await RequiresMonatsbelegAsync(effective.Id, cancellationToken).ConfigureAwait(false))
+        {
+            dto.NextAction = "monatsbeleg_required";
+            dto.MessageCode = PosCashRegisterReadinessMessageCodes.MonatsbelegRequired;
             return StampPreferred(dto, userSettings);
         }
 
@@ -357,6 +454,16 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
             RegisterStatus.Closed => "Closed",
             RegisterStatus.Maintenance => "Maintenance",
             RegisterStatus.Disabled => "Disabled",
+            RegisterStatus.Decommissioned => "Decommissioned",
             _ => null
         };
+
+    private async Task<bool> RequiresMonatsbelegAsync(Guid registerId, CancellationToken cancellationToken)
+    {
+        if (!_rksvMonatsbelegPolicy.SessionGateApplies)
+            return false;
+        var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        return !await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(registerId, y, m, cancellationToken)
+            .ConfigureAwait(false);
+    }
 }

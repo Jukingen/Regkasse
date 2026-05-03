@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Alert, Descriptions, Tag, Typography } from 'antd';
+import { Alert, Descriptions, Space, Tag, Typography } from 'antd';
 import type { ReceiptDetailDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
 import {
@@ -14,6 +14,7 @@ import {
 import dayjs from 'dayjs';
 import { OPERATOR_LINK_LABELS, OPERATOR_REGISTER_LINK_COPY } from '@/shared/operatorTruthCopy';
 import { useI18n } from '@/i18n';
+import { formatRksvSpecialReceiptKindDisplay } from '@/features/receipts/utils/formatRksvSpecialReceiptKind';
 
 const { Text } = Typography;
 
@@ -87,6 +88,18 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                 {(receipt.cashierDisplayName && receipt.cashierDisplayName.trim()) ||
                     receipt.cashierId ||
                     '—'}
+            </Descriptions.Item>
+            <Descriptions.Item label={c('labelSpecialKind')}>
+                <Space wrap size="small">
+                    {receipt.rksvSpecialReceiptKind?.trim() ? (
+                        <Tag>{formatRksvSpecialReceiptKindDisplay(t, receipt.rksvSpecialReceiptKind)}</Tag>
+                    ) : (
+                        <Text type="secondary">{c('valueSpecialKindNone')}</Text>
+                    )}
+                    {receipt.rksvNullbelegActsAsJahresbeleg ? (
+                        <Tag color="blue">{c('labelNullbelegAsJahres')}</Tag>
+                    ) : null}
+                </Space>
             </Descriptions.Item>
             <Descriptions.Item label={c('labelPaymentId')}>
                 {receipt.paymentId ? (

@@ -12,4 +12,33 @@ public interface IRksvSpecialReceiptService
         CreateNullbelegRequest request,
         string actorUserId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>RKSV Startbeleg: one active zero signed receipt per cash register (normal Beleg sequence).</summary>
+    Task<CreateStartbelegResponse> CreateStartbelegAsync(
+        CreateStartbelegRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>RKSV Monatsbeleg: one active zero signed receipt per cash register per Vienna calendar month.</summary>
+    Task<CreateMonatsbelegResponse> CreateMonatsbelegAsync(
+        CreateMonatsbelegRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// RKSV Jahresbeleg: one active zero signed receipt per cash register per Vienna calendar year.
+    /// December <see cref="CreateMonatsbelegAsync"/> delegates here (December Monatsbeleg is effectively Jahresbeleg).
+    /// </summary>
+    Task<CreateJahresbelegResponse> CreateJahresbelegAsync(
+        CreateJahresbelegRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// RKSV Schlussbeleg: one per cash register; sets register to <see cref="RegisterStatus.Decommissioned"/> atomically with the signed zero receipt.
+    /// </summary>
+    Task<CreateSchlussbelegResponse> CreateSchlussbelegAsync(
+        CreateSchlussbelegRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default);
 }

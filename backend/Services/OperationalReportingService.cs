@@ -304,7 +304,7 @@ public sealed class OperationalReportingService : IOperationalReportingService
         if (activeOnly)
             q = q.Where(p => p.IsActive);
 
-        // RKSV Monats-Nullbeleg: zero signed receipt — exclude from operator / Umsatz aggregates.
+        // RKSV Sonderbelege (Nullbeleg / Monatsbeleg / Jahresbeleg / Startbeleg, etc.): exclude from operator / Umsatz aggregates.
         q = q.Where(p => p.RksvSpecialReceiptKind == null);
 
         var rawRows = await q
@@ -896,7 +896,7 @@ public sealed class OperationalReportingService : IOperationalReportingService
         if (activeOnly)
             q = q.Where(p => p.IsActive);
 
-        // RKSV Monats-Nullbeleg: exclude from gross / tax operational totals.
+        // RKSV Sonderbelege: exclude from gross / tax operational totals.
         q = q.Where(p => p.RksvSpecialReceiptKind == null);
 
         var list = await q.ToListAsync(cancellationToken);

@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,17 +13,23 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<CashRegisterShiftService> _logger;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
+    private readonly IRksvStartbelegPolicy _rksvStartbelegPolicy;
+    private readonly IRksvMonatsbelegPolicy _rksvMonatsbelegPolicy;
 
     public CashRegisterShiftService(
         AppDbContext context,
         UserManager<ApplicationUser> userManager,
         ILogger<CashRegisterShiftService> logger,
-        ISettingsTenantResolver settingsTenantResolver)
+        ISettingsTenantResolver settingsTenantResolver,
+        IRksvStartbelegPolicy rksvStartbelegPolicy,
+        IRksvMonatsbelegPolicy rksvMonatsbelegPolicy)
     {
         _context = context;
         _userManager = userManager;
         _logger = logger;
         _settingsTenantResolver = settingsTenantResolver;
+        _rksvStartbelegPolicy = rksvStartbelegPolicy;
+        _rksvMonatsbelegPolicy = rksvMonatsbelegPolicy;
     }
 
     /// <inheritdoc />
@@ -109,6 +116,33 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 return CashRegisterOpenResult.ActorAlreadyHasOtherOpenRegister();
             }
 
+            if (_rksvStartbelegPolicy.SessionGateApplies &&
+                !await _rksvStartbelegPolicy.HasStartbelegForRegisterAsync(registerId, cancellationToken)
+                    .ConfigureAwait(false))
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogWarning(
+                    "Open cash register {RegisterId} rejected: RKSV Startbeleg missing (production TSE mode)",
+                    registerId);
+                return CashRegisterOpenResult.StartbelegRequired();
+            }
+
+            if (_rksvMonatsbelegPolicy.SessionGateApplies)
+            {
+                var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+                if (!await _rksvMonatsbelegPolicy.HasMonatsbelegForRegisterMonthAsync(registerId, y, m, cancellationToken)
+                        .ConfigureAwait(false))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    _logger.LogWarning(
+                        "Open cash register {RegisterId} rejected: RKSV Monatsbeleg missing for {Year}-{Month}",
+                        registerId,
+                        y,
+                        m);
+                    return CashRegisterOpenResult.MonatsbelegRequired();
+                }
+            }
+
             register.Status = RegisterStatus.Open;
             register.CurrentUser = user;
             // Always persist shift ownership on the FK column (payment + close authorize via CurrentUserId).
@@ -179,6 +213,12 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             }
 
             if (register.Status == RegisterStatus.Closed)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return CashRegisterCloseResult.AlreadyClosed();
+            }
+
+            if (register.Status == RegisterStatus.Decommissioned)
             {
                 await transaction.RollbackAsync(cancellationToken);
                 return CashRegisterCloseResult.AlreadyClosed();

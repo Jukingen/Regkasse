@@ -12,6 +12,7 @@ import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useI18n } from '@/i18n';
+import { formatRksvSpecialReceiptKindDisplay } from '@/features/receipts/utils/formatRksvSpecialReceiptKind';
 
 interface ReceiptsTableProps {
     data: ReceiptListItemDto[];
@@ -106,6 +107,18 @@ function buildColumns(
             ),
         },
         {
+            title: t('receipts.table.colSpecialKind'),
+            dataIndex: 'rksvSpecialReceiptKind',
+            key: 'rksvSpecialReceiptKind',
+            width: 130,
+            render: (kind: string | null | undefined) =>
+                kind ? (
+                    <Tag color="blue">{formatRksvSpecialReceiptKindDisplay(t, kind)}</Tag>
+                ) : (
+                    <Typography.Text type="secondary">—</Typography.Text>
+                ),
+        },
+        {
             title: t('receipts.table.colGrandTotal'),
             dataIndex: 'grandTotal',
             key: 'grandTotal',
@@ -190,7 +203,7 @@ export default function ReceiptsTable({
         return col;
     });
 
-    const scrollX = reprintEnabled ? 1280 : 1100;
+    const scrollX = reprintEnabled ? 1410 : 1230;
 
     return (
         <Table<ReceiptListItemDto>

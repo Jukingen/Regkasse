@@ -100,6 +100,46 @@ describe('posRegisterGateCopy blocked-state differentiation', () => {
     expect(registerGateBannerDetail(ctx)).not.toMatch(/anderen Benutzern zugeordnet/i);
   });
 
+  it('RKSV Monatsbeleg missing: dedicated title/detail/footer/alert', () => {
+    const ctx = buildPosRegisterGateContext({
+      settingsLoadFailed: false,
+      registerListFailureKind: null,
+      registerListLoading: false,
+      registerPicklistCount: 0,
+      registerListEmptyReason: null,
+      readiness: {
+        loading: false,
+        error: false,
+        nextAction: 'monatsbeleg_required',
+        messageCode: POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED,
+      },
+    });
+    expect(registerGateBannerTitle(ctx)).toMatch(/Monatsbeleg/i);
+    expect(registerGateBannerDetail(ctx)).toMatch(/Monatsbeleg|Monat/i);
+    expect(registerGateFooterHint(ctx)).toMatch(/Monatsbeleg/i);
+    expect(registerGateAlertMessage(ctx)).toMatch(/Monatsbeleg/i);
+  });
+
+  it('RKSV Startbeleg missing: dedicated title/detail/footer/alert', () => {
+    const ctx = buildPosRegisterGateContext({
+      settingsLoadFailed: false,
+      registerListFailureKind: null,
+      registerListLoading: false,
+      registerPicklistCount: 0,
+      registerListEmptyReason: null,
+      readiness: {
+        loading: false,
+        error: false,
+        nextAction: 'startbeleg_required',
+        messageCode: POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED,
+      },
+    });
+    expect(registerGateBannerTitle(ctx)).toMatch(/Startbeleg/i);
+    expect(registerGateBannerDetail(ctx)).toMatch(/Startbeleg|RKSV/i);
+    expect(registerGateFooterHint(ctx)).toMatch(/Startbeleg/i);
+    expect(registerGateAlertMessage(ctx)).toMatch(/Startbeleg/i);
+  });
+
   it('GET selectable forbidden: permission copy, independent of emptyReason', () => {
     const ctx = buildPosRegisterGateContext({
       settingsLoadFailed: false,

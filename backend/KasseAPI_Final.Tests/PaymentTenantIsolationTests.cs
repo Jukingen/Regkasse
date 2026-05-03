@@ -62,7 +62,7 @@ public sealed class PaymentTenantIsolationTests
         var receiptService = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), tseMock.Object, Options.Create(companyProfile), userMock.Object, tenantResolver);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
-        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), tenantResolver);
+        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), tenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
         return new PaymentService(ctx, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, new NoOpProductModifierValidationService(), Mock.Of<IReceiptSequenceService>(), receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), Options.Create(new InventoryOptions()), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(ctx, tenantResolver), new PricingRuleResolver(ctx, tenantResolver), tenantResolver);
     }

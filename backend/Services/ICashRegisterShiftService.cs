@@ -58,6 +58,12 @@ public sealed class CashRegisterOpenResult
     /// </summary>
     public static CashRegisterOpenResult ActorAlreadyHasOtherOpenRegister() =>
         new() { Kind = CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister };
+
+    public static CashRegisterOpenResult StartbelegRequired() =>
+        new() { Kind = CashRegisterOpenKind.FailedStartbelegRequired };
+
+    public static CashRegisterOpenResult MonatsbelegRequired() =>
+        new() { Kind = CashRegisterOpenKind.FailedMonatsbelegRequired };
 }
 
 public enum CashRegisterOpenKind
@@ -69,6 +75,8 @@ public enum CashRegisterOpenKind
     FailedConflictOtherUser,
     FailedActorAlreadyHasOtherOpenRegister,
     FailedInvalidState,
+    FailedStartbelegRequired,
+    FailedMonatsbelegRequired,
 }
 
 /// <summary>

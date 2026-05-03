@@ -43,6 +43,7 @@
   "rksvGroupDiagnose": "Diagnostics",
   "rksvGroupAnbindung": "Integration",
   "rksvLeafOverview": "Overview",
+  "rksvLeafSonderbelege": "RKSV special receipts",
   "rksvLeafLegacyQueue": "Payment rows (legacy)",
   "rksvLeafIncident": "Incident",
   "rksvLeafReplayBatch": "Replay batch",

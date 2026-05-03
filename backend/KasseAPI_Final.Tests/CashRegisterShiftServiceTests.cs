@@ -62,7 +62,7 @@ public class CashRegisterShiftServiceTests
         };
 
         var mgr = CreateUserManager(user);
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var first = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: true, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.SuccessOpened, first.Kind);
@@ -111,10 +111,45 @@ public class CashRegisterShiftServiceTests
 
         var user = new ApplicationUser { Id = "u1", UserName = "u1", Email = "u1@test", FirstName = "A", LastName = "B" };
         var mgr = CreateUserManager(user);
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var result = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: true, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.FailedConflictOtherUser, result.Kind);
+    }
+
+    [Fact]
+    public async Task Open_DecommissionedRegister_ReturnsFailedInvalidState()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Decommissioned,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        };
+        var mgr = CreateUserManager(user);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
+
+        var result = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: false, CancellationToken.None);
+        Assert.Equal(CashRegisterOpenKind.FailedInvalidState, result.Kind);
     }
 
     [Fact]
@@ -162,7 +197,7 @@ public class CashRegisterShiftServiceTests
         await ctx.SaveChangesAsync();
 
         var mgr = CreateUserManager(user);
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var result = await svc.TryOpenCashRegisterAsync(regB, "u1", 0m, "open", allowIdempotentSameUser: true, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister, result.Kind);
@@ -201,7 +236,7 @@ public class CashRegisterShiftServiceTests
             LastName = "B"
         };
         var mgr = CreateUserManager(user);
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var result = await svc.TryOpenCashRegisterAsync(regId, actorId, 10m, "open", allowIdempotentSameUser: true, CancellationToken.None);
         Assert.Equal(CashRegisterOpenKind.SuccessOpened, result.Kind);
@@ -234,7 +269,7 @@ public class CashRegisterShiftServiceTests
         await ctx.SaveChangesAsync();
 
         var mgr = CreateUserManager(new ApplicationUser { Id = ownerId, UserName = ownerId, Email = "u@test" });
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var result = await svc.TryCloseCashRegisterAsync(regId, ownerId, 42m, CancellationToken.None);
         Assert.Equal(CashRegisterCloseKind.Success, result.Kind);
@@ -274,7 +309,7 @@ public class CashRegisterShiftServiceTests
         await ctx.SaveChangesAsync();
 
         var mgr = CreateUserManager(new ApplicationUser { Id = "other", UserName = "o", Email = "o@test" });
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var result = await svc.TryCloseCashRegisterAsync(regId, "other", 1m, CancellationToken.None);
         Assert.Equal(CashRegisterCloseKind.FailedForbidden, result.Kind);
@@ -307,9 +342,137 @@ public class CashRegisterShiftServiceTests
         await ctx.SaveChangesAsync();
 
         var mgr = CreateUserManager(new ApplicationUser { Id = "u1", UserName = "u1", Email = "u@test" });
-        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterShiftService(ctx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var result = await svc.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
         Assert.Equal(CashRegisterCloseKind.FailedAlreadyClosed, result.Kind);
+    }
+
+    [Fact]
+    public async Task Open_StartbelegGateOn_WithoutStartbeleg_ReturnsFailedStartbelegRequired()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        };
+        var mgr = CreateUserManager(user);
+        var policy = RksvStartbelegTestDoubles.GateOnMissingStartbeleg();
+        var svc = new CashRegisterShiftService(
+            ctx,
+            mgr.Object,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            policy,
+            RksvMonatsbelegTestDoubles.GateOff());
+
+        var r = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: false, CancellationToken.None);
+        Assert.Equal(CashRegisterOpenKind.FailedStartbelegRequired, r.Kind);
+
+        var reg = await ctx.CashRegisters.AsNoTracking().SingleAsync(x => x.Id == regId);
+        Assert.Equal(RegisterStatus.Closed, reg.Status);
+    }
+
+    [Fact]
+    public async Task Open_StartbelegGateOn_WhenPolicyReportsHasStartbeleg_Opens()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        };
+        var mgr = CreateUserManager(user);
+        var policy = RksvStartbelegTestDoubles.GateOnHasStartbeleg();
+        var svc = new CashRegisterShiftService(
+            ctx,
+            mgr.Object,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            policy,
+            RksvMonatsbelegTestDoubles.GateOff());
+
+        var r = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: false, CancellationToken.None);
+        Assert.Equal(CashRegisterOpenKind.SuccessOpened, r.Kind);
+    }
+
+    [Fact]
+    public async Task Open_MonatsbelegGateOn_WithoutMonatsbeleg_ReturnsFailedMonatsbelegRequired()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u1",
+            Email = "u1@test",
+            FirstName = "A",
+            LastName = "B"
+        };
+        var mgr = CreateUserManager(user);
+        var svc = new CashRegisterShiftService(
+            ctx,
+            mgr.Object,
+            Mock.Of<ILogger<CashRegisterShiftService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOnHasStartbeleg(),
+            RksvMonatsbelegTestDoubles.GateOnMissingMonatsbeleg());
+
+        var r = await svc.TryOpenCashRegisterAsync(regId, "u1", 0m, "open", allowIdempotentSameUser: false, CancellationToken.None);
+        Assert.Equal(CashRegisterOpenKind.FailedMonatsbelegRequired, r.Kind);
     }
 }

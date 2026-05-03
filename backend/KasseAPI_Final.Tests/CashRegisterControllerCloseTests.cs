@@ -44,7 +44,7 @@ public class CashRegisterControllerCloseTests
         var shift = new CashRegisterShiftService(
             ctx,
             CreateTestUserManager(),
-            Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+            Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var c = new CashRegisterController(
             Mock.Of<ILogger<CashRegisterController>>(),
             ctx,

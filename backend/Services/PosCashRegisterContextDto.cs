@@ -41,4 +41,13 @@ public static class PosCashRegisterReadinessMessageCodes
     public const string CashRegisterNotFound = "CASH_REGISTER_NOT_FOUND";
     /// <summary>User already has another register open; close it before opening another.</summary>
     public const string CashRegisterActorAlreadyOpenElsewhere = "CASH_REGISTER_ACTOR_ALREADY_OPEN";
+
+    /// <summary>RKSV Startbeleg missing; client must create zero receipt before shift/sales.</summary>
+    public const string StartbelegRequired = "CASH_REGISTER_STARTBELEG_REQUIRED";
+
+    /// <summary>RKSV Monatsbeleg missing for the current Vienna calendar month; client must create zero receipt before shift/sales.</summary>
+    public const string MonatsbelegRequired = "CASH_REGISTER_MONATSBELEG_REQUIRED";
+
+    /// <summary>RKSV Schlussbeleg was issued; this register cannot be used for new sessions or receipts.</summary>
+    public const string RegisterDecommissioned = "CASH_REGISTER_DECOMMISSIONED_RKSV";
 }

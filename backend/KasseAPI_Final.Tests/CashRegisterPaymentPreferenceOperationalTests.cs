@@ -94,7 +94,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
         });
         await ctx.SaveChangesAsync();
 
-        var svc = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var r = await svc.ValidatePaymentRegisterAsync(userId, closedPref, new ClaimsPrincipal());
 
         Assert.False(r.Ok);
@@ -154,7 +154,7 @@ public class CashRegisterPaymentPreferenceOperationalTests
         });
         await ctx.SaveChangesAsync();
 
-        var svc = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var svc = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var r = await svc.ValidatePaymentRegisterAsync(userId, regId, new ClaimsPrincipal());
 
         Assert.False(r.Ok);

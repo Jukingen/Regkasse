@@ -4,6 +4,7 @@ import { buildRksvMenuGroups, getRksvOpenSubgroupKeys } from '@/shared/rksvMenuM
 /** Stable route contract for sidebar + hub: keys and hrefs must match MENU_PERMISSION and App Router paths. */
 const EXPECTED_KEYS_AND_HREFS: { key: string; href: string }[] = [
     { key: '/rksv/operations', href: '/rksv' },
+    { key: '/rksv/sonderbelege', href: '/rksv/sonderbelege' },
     { key: '/rksv/finanz-online-outbox', href: '/rksv/finanz-online-outbox' },
     { key: '/rksv/finanz-online-queue', href: '/rksv/finanz-online-queue' },
     { key: '/rksv/incident', href: '/rksv/incident' },

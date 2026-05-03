@@ -147,7 +147,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             userMock.Object,
             TenantTestDoubles.PrimaryTenantResolver);
 
-        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
         var paymentService = new PaymentService(
             ctx,

@@ -18,6 +18,10 @@ namespace KasseAPI_Final.Services;
 /// <remarks>
 /// TODO (legal): Whether Nullbeleg must be submitted to FinanzOnline / RKSV web service and exact BMF Belegcheck payload rules.
 /// TODO (legal): Confirm Monats-Nullbeleg timestamp (last second of month vs issuance time) with fiscal advisor.
+/// TODO (legal): Startbeleg — BMF Belegcheck / FinanzOnline submission deadlines and payload fields vs normal Beleg.
+/// TODO (legal): BMF Belegcheck / FinanzOnline submission deadlines and payload rules for Jahresbeleg (not implemented in-app).
+/// TODO (legal): Early Jahresbeleg and continued sales — operator process only; this codebase does not enforce post-Jahresbeleg sales stops.
+/// TODO (security): Schlussbeleg / Endbeleg — add operator password or second-factor confirmation when a register credential model exists (not invented here).
 /// </remarks>
 public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 {
@@ -60,7 +64,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
-        await EnsureTseReadyForNullbelegAsync(cancellationToken).ConfigureAwait(false);
+        await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
         var register = await _db.CashRegisters.AsNoTracking()
@@ -69,6 +73,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 cancellationToken)
             .ConfigureAwait(false)
             ?? throw new InvalidOperationException("Cash register not found for the current tenant.");
+
+        EnsureRegisterNotDecommissioned(register);
 
         var duplicate = await _db.PaymentDetails.AsNoTracking()
             .AnyAsync(
@@ -220,18 +226,784 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         return t.Length <= 500 ? t : t[..500];
     }
 
-    private async Task EnsureTseReadyForNullbelegAsync(CancellationToken cancellationToken)
+    private static string? BuildJahresbelegNotes(string? reason, string? earlyReason)
+    {
+        var r = TruncateNotes(reason);
+        var e = TruncateNotes(earlyReason);
+        if (r == null && e == null)
+            return null;
+        if (r != null && e != null)
+        {
+            var combined = $"{r} | Early: {e}";
+            return combined.Length <= 500 ? combined : combined[..500];
+        }
+
+        return r ?? TruncateNotes($"Early: {e}");
+    }
+
+    private static void EnsureRegisterNotDecommissioned(CashRegister register)
+    {
+        if (register.Status == RegisterStatus.Decommissioned)
+        {
+            throw new InvalidOperationException(
+                $"Cash register {register.RegisterNumber} is permanently decommissioned (RKSV Schlussbeleg) and cannot receive new special receipts.");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<CreateStartbelegResponse> CreateStartbelegAsync(
+        CreateStartbelegRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
+
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var register = await _db.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
+                cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Cash register not found for the current tenant.");
+
+        EnsureRegisterNotDecommissioned(register);
+
+        var duplicate = await _db.PaymentDetails.AsNoTracking()
+            .AnyAsync(
+                p => p.CashRegisterId == request.CashRegisterId &&
+                     p.IsActive &&
+                     p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Startbeleg,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (duplicate)
+        {
+            throw new InvalidOperationException(
+                $"A Startbeleg already exists for register {register.RegisterNumber}.");
+        }
+
+        var guest = await _db.Customers.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId, cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Guest customer is not available; cannot create Startbeleg.");
+
+        var viennaLocalNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, PostgreSqlUtcDateTime.AustriaTimeZone);
+        var issuedAtUnspecified = DateTime.SpecifyKind(viennaLocalNow, DateTimeKind.Unspecified);
+        var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(issuedAtUnspecified, PostgreSqlUtcDateTime.AustriaTimeZone);
+        var sequenceAnchor = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var receiptNumber = await _receiptSequence.AllocateNextBelegNrInTransactionAsync(
+                    tx,
+                    request.CashRegisterId,
+                    register.RegisterNumber,
+                    sequenceAnchor)
+                .ConfigureAwait(false);
+
+            var taxDetailsJson = "{}";
+            var sig = await FiscalTseSigning.SignAsync(
+                    _tseService,
+                    new FiscalSigningRequest(
+                        request.CashRegisterId,
+                        receiptNumber,
+                        0m,
+                        register.RegisterNumber,
+                        PrevSignatureValue: null,
+                        Timestamp: issuedAtUtc,
+                        TaxDetailsJson: taxDetailsJson,
+                        DbTransaction: tx))
+                .ConfigureAwait(false);
+
+            var paymentId = Guid.NewGuid();
+            var correlation = TruncateCorrelation(request.CorrelationId);
+            var payment = new PaymentDetails
+            {
+                Id = paymentId,
+                CustomerId = guest.Id,
+                CustomerName = guest.Name,
+                TableNumber = 0,
+                CashierId = actorUserId,
+                TotalAmount = 0m,
+                TaxAmount = 0m,
+                PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
+                Steuernummer = _companyProfile.TaxNumber,
+                CashRegisterId = request.CashRegisterId,
+                Notes = TruncateNotes(request.Reason),
+                CorrelationId = correlation,
+                TseSignature = sig.CompactJws,
+                PrevSignatureValueUsed = sig.PrevSignatureValueUsed,
+                TseTimestamp = issuedAtUtc,
+                TaxDetails = JsonDocument.Parse("{}"),
+                PaymentItems = JsonDocument.Parse("[]"),
+                ReceiptNumber = receiptNumber,
+                IsPrinted = false,
+                RksvSpecialReceiptKind = RksvSpecialReceiptKinds.Startbeleg,
+                RksvSpecialReceiptYear = null,
+                RksvSpecialReceiptMonth = null,
+                RksvNullbelegActsAsJahresbeleg = false,
+                CreatedAt = issuedAtUtc,
+                CreatedBy = actorUserId,
+                IsActive = true,
+            };
+
+            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var invoice = new Invoice
+            {
+                Id = Guid.NewGuid(),
+                SourcePaymentId = paymentId,
+                InvoiceNumber = receiptNumber,
+                InvoiceDate = issuedAtUtc,
+                DueDate = issuedAtUtc,
+                Status = InvoiceStatus.Paid,
+                Subtotal = 0m,
+                TaxAmount = 0m,
+                TotalAmount = 0m,
+                PaidAmount = 0m,
+                RemainingAmount = 0m,
+                CustomerName = guest.Name,
+                CustomerTaxNumber = payment.Steuernummer,
+                CompanyName = _companyProfile.CompanyName,
+                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyAddress = companyAddress,
+                TseSignature = payment.TseSignature,
+                KassenId = register.RegisterNumber,
+                TseTimestamp = payment.TseTimestamp,
+                CashRegisterId = request.CashRegisterId,
+                PaymentMethod = PaymentMethod.Cash,
+                PaymentReference = null,
+                PaymentDate = issuedAtUtc,
+                InvoiceItems = JsonDocument.Parse("[]"),
+                TaxDetails = JsonDocument.Parse("{}"),
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+
+            _db.PaymentDetails.Add(payment);
+            _db.Invoices.Add(invoice);
+            await _receiptService.AddReceiptFromPaymentToContextAsync(payment).ConfigureAwait(false);
+
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            var receiptEntity = await _db.Receipts.AsNoTracking()
+                .FirstAsync(r => r.PaymentId == paymentId, cancellationToken)
+                .ConfigureAwait(false);
+
+            var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
+            var qr = dto?.Signature?.QrData ?? string.Empty;
+
+            _logger.LogInformation(
+                "Startbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register}",
+                paymentId, receiptNumber, register.RegisterNumber);
+
+            return new CreateStartbelegResponse
+            {
+                PaymentId = paymentId,
+                InvoiceId = invoice.Id,
+                ReceiptId = receiptEntity.ReceiptId,
+                ReceiptNumber = receiptNumber,
+                QrData = qr,
+            };
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<CreateMonatsbelegResponse> CreateMonatsbelegAsync(
+        CreateMonatsbelegRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        var (viennaYear, viennaMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        if (request.Year != viennaYear || request.Month != viennaMonth)
+        {
+            throw new InvalidOperationException(
+                $"Monatsbeleg can only be created for the current Vienna calendar month ({viennaYear}-{viennaMonth:00}), not {request.Year}-{request.Month:00}.");
+        }
+
+        // December: RKSV annual receipt is Jahresbeleg (not a separate Monatsbeleg row).
+        if (viennaMonth == 12)
+        {
+            var jResp = await CreateJahresbelegAsync(
+                    new CreateJahresbelegRequest
+                    {
+                        CashRegisterId = request.CashRegisterId,
+                        Year = viennaYear,
+                        Reason = request.Reason,
+                        EarlyReason = null,
+                    },
+                    actorUserId,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return new CreateMonatsbelegResponse
+            {
+                PaymentId = jResp.PaymentId,
+                InvoiceId = jResp.InvoiceId,
+                ReceiptId = jResp.ReceiptId,
+                ReceiptNumber = jResp.ReceiptNumber,
+                QrData = jResp.QrData,
+            };
+        }
+
+        await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
+
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var register = await _db.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
+                cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Cash register not found for the current tenant.");
+
+        EnsureRegisterNotDecommissioned(register);
+
+        var duplicate = await _db.PaymentDetails.AsNoTracking()
+            .AnyAsync(
+                p => p.CashRegisterId == request.CashRegisterId &&
+                     p.IsActive &&
+                     p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
+                     p.RksvSpecialReceiptYear == request.Year &&
+                     p.RksvSpecialReceiptMonth == request.Month,
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (duplicate)
+        {
+            throw new InvalidOperationException(
+                $"A Monatsbeleg already exists for register {register.RegisterNumber} in {request.Year}-{request.Month:00}.");
+        }
+
+        var guest = await _db.Customers.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId, cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Guest customer is not available; cannot create Monatsbeleg.");
+
+        var viennaLocalNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, PostgreSqlUtcDateTime.AustriaTimeZone);
+        var issuedAtUnspecified = DateTime.SpecifyKind(viennaLocalNow, DateTimeKind.Unspecified);
+        var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(issuedAtUnspecified, PostgreSqlUtcDateTime.AustriaTimeZone);
+        var sequenceAnchor = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var receiptNumber = await _receiptSequence.AllocateNextBelegNrInTransactionAsync(
+                    tx,
+                    request.CashRegisterId,
+                    register.RegisterNumber,
+                    sequenceAnchor)
+                .ConfigureAwait(false);
+
+            var taxDetailsJson = "{}";
+            var sig = await FiscalTseSigning.SignAsync(
+                    _tseService,
+                    new FiscalSigningRequest(
+                        request.CashRegisterId,
+                        receiptNumber,
+                        0m,
+                        register.RegisterNumber,
+                        PrevSignatureValue: null,
+                        Timestamp: issuedAtUtc,
+                        TaxDetailsJson: taxDetailsJson,
+                        DbTransaction: tx))
+                .ConfigureAwait(false);
+
+            var paymentId = Guid.NewGuid();
+            var payment = new PaymentDetails
+            {
+                Id = paymentId,
+                CustomerId = guest.Id,
+                CustomerName = guest.Name,
+                TableNumber = 0,
+                CashierId = actorUserId,
+                TotalAmount = 0m,
+                TaxAmount = 0m,
+                PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
+                Steuernummer = _companyProfile.TaxNumber,
+                CashRegisterId = request.CashRegisterId,
+                Notes = TruncateNotes(request.Reason),
+                TseSignature = sig.CompactJws,
+                PrevSignatureValueUsed = sig.PrevSignatureValueUsed,
+                TseTimestamp = issuedAtUtc,
+                TaxDetails = JsonDocument.Parse("{}"),
+                PaymentItems = JsonDocument.Parse("[]"),
+                ReceiptNumber = receiptNumber,
+                IsPrinted = false,
+                RksvSpecialReceiptKind = RksvSpecialReceiptKinds.Monatsbeleg,
+                RksvSpecialReceiptYear = request.Year,
+                RksvSpecialReceiptMonth = request.Month,
+                RksvNullbelegActsAsJahresbeleg = false,
+                CreatedAt = issuedAtUtc,
+                CreatedBy = actorUserId,
+                IsActive = true,
+            };
+
+            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var invoice = new Invoice
+            {
+                Id = Guid.NewGuid(),
+                SourcePaymentId = paymentId,
+                InvoiceNumber = receiptNumber,
+                InvoiceDate = issuedAtUtc,
+                DueDate = issuedAtUtc,
+                Status = InvoiceStatus.Paid,
+                Subtotal = 0m,
+                TaxAmount = 0m,
+                TotalAmount = 0m,
+                PaidAmount = 0m,
+                RemainingAmount = 0m,
+                CustomerName = guest.Name,
+                CustomerTaxNumber = payment.Steuernummer,
+                CompanyName = _companyProfile.CompanyName,
+                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyAddress = companyAddress,
+                TseSignature = payment.TseSignature,
+                KassenId = register.RegisterNumber,
+                TseTimestamp = payment.TseTimestamp,
+                CashRegisterId = request.CashRegisterId,
+                PaymentMethod = PaymentMethod.Cash,
+                PaymentReference = null,
+                PaymentDate = issuedAtUtc,
+                InvoiceItems = JsonDocument.Parse("[]"),
+                TaxDetails = JsonDocument.Parse("{}"),
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+
+            _db.PaymentDetails.Add(payment);
+            _db.Invoices.Add(invoice);
+            await _receiptService.AddReceiptFromPaymentToContextAsync(payment).ConfigureAwait(false);
+
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            var receiptEntity = await _db.Receipts.AsNoTracking()
+                .FirstAsync(r => r.PaymentId == paymentId, cancellationToken)
+                .ConfigureAwait(false);
+
+            var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
+            var qr = dto?.Signature?.QrData ?? string.Empty;
+
+            _logger.LogInformation(
+                "Monatsbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Period={Y}-{M}",
+                paymentId, receiptNumber, register.RegisterNumber, request.Year, request.Month);
+
+            return new CreateMonatsbelegResponse
+            {
+                PaymentId = paymentId,
+                InvoiceId = invoice.Id,
+                ReceiptId = receiptEntity.ReceiptId,
+                ReceiptNumber = receiptNumber,
+                QrData = qr,
+            };
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<CreateJahresbelegResponse> CreateJahresbelegAsync(
+        CreateJahresbelegRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        var (viennaYear, _) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        if (request.Year < viennaYear - 1 || request.Year > viennaYear)
+        {
+            throw new InvalidOperationException(
+                $"Jahresbeleg can only be created for Vienna year {viennaYear} or {viennaYear - 1}, not {request.Year}.");
+        }
+
+        await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
+
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var register = await _db.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
+                cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Cash register not found for the current tenant.");
+
+        EnsureRegisterNotDecommissioned(register);
+
+        var duplicate = await _db.PaymentDetails.AsNoTracking()
+            .AnyAsync(
+                p => p.CashRegisterId == request.CashRegisterId &&
+                     p.IsActive &&
+                     (
+                         (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Jahresbeleg &&
+                          p.RksvSpecialReceiptYear == request.Year) ||
+                         (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
+                          p.RksvSpecialReceiptYear == request.Year &&
+                          p.RksvSpecialReceiptMonth == 12)
+                     ),
+                cancellationToken)
+            .ConfigureAwait(false);
+        if (duplicate)
+        {
+            throw new InvalidOperationException(
+                $"A Jahresbeleg (or December Monatsbeleg) already exists for register {register.RegisterNumber} for year {request.Year}.");
+        }
+
+        var guest = await _db.Customers.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId, cancellationToken)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException("Guest customer is not available; cannot create Jahresbeleg.");
+
+        var viennaLocalNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, PostgreSqlUtcDateTime.AustriaTimeZone);
+        var issuedAtUnspecified = DateTime.SpecifyKind(viennaLocalNow, DateTimeKind.Unspecified);
+        var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(issuedAtUnspecified, PostgreSqlUtcDateTime.AustriaTimeZone);
+        var sequenceAnchor = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var receiptNumber = await _receiptSequence.AllocateNextBelegNrInTransactionAsync(
+                    tx,
+                    request.CashRegisterId,
+                    register.RegisterNumber,
+                    sequenceAnchor)
+                .ConfigureAwait(false);
+
+            var taxDetailsJson = "{}";
+            var sig = await FiscalTseSigning.SignAsync(
+                    _tseService,
+                    new FiscalSigningRequest(
+                        request.CashRegisterId,
+                        receiptNumber,
+                        0m,
+                        register.RegisterNumber,
+                        PrevSignatureValue: null,
+                        Timestamp: issuedAtUtc,
+                        TaxDetailsJson: taxDetailsJson,
+                        DbTransaction: tx))
+                .ConfigureAwait(false);
+
+            var paymentId = Guid.NewGuid();
+            var payment = new PaymentDetails
+            {
+                Id = paymentId,
+                CustomerId = guest.Id,
+                CustomerName = guest.Name,
+                TableNumber = 0,
+                CashierId = actorUserId,
+                TotalAmount = 0m,
+                TaxAmount = 0m,
+                PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
+                Steuernummer = _companyProfile.TaxNumber,
+                CashRegisterId = request.CashRegisterId,
+                Notes = BuildJahresbelegNotes(request.Reason, request.EarlyReason),
+                TseSignature = sig.CompactJws,
+                PrevSignatureValueUsed = sig.PrevSignatureValueUsed,
+                TseTimestamp = issuedAtUtc,
+                TaxDetails = JsonDocument.Parse("{}"),
+                PaymentItems = JsonDocument.Parse("[]"),
+                ReceiptNumber = receiptNumber,
+                IsPrinted = false,
+                RksvSpecialReceiptKind = RksvSpecialReceiptKinds.Jahresbeleg,
+                RksvSpecialReceiptYear = request.Year,
+                RksvSpecialReceiptMonth = null,
+                RksvNullbelegActsAsJahresbeleg = true,
+                CreatedAt = issuedAtUtc,
+                CreatedBy = actorUserId,
+                IsActive = true,
+            };
+
+            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var invoice = new Invoice
+            {
+                Id = Guid.NewGuid(),
+                SourcePaymentId = paymentId,
+                InvoiceNumber = receiptNumber,
+                InvoiceDate = issuedAtUtc,
+                DueDate = issuedAtUtc,
+                Status = InvoiceStatus.Paid,
+                Subtotal = 0m,
+                TaxAmount = 0m,
+                TotalAmount = 0m,
+                PaidAmount = 0m,
+                RemainingAmount = 0m,
+                CustomerName = guest.Name,
+                CustomerTaxNumber = payment.Steuernummer,
+                CompanyName = _companyProfile.CompanyName,
+                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyAddress = companyAddress,
+                TseSignature = payment.TseSignature,
+                KassenId = register.RegisterNumber,
+                TseTimestamp = payment.TseTimestamp,
+                CashRegisterId = request.CashRegisterId,
+                PaymentMethod = PaymentMethod.Cash,
+                PaymentReference = null,
+                PaymentDate = issuedAtUtc,
+                InvoiceItems = JsonDocument.Parse("[]"),
+                TaxDetails = JsonDocument.Parse("{}"),
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+
+            _db.PaymentDetails.Add(payment);
+            _db.Invoices.Add(invoice);
+            await _receiptService.AddReceiptFromPaymentToContextAsync(payment).ConfigureAwait(false);
+
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            var receiptEntity = await _db.Receipts.AsNoTracking()
+                .FirstAsync(r => r.PaymentId == paymentId, cancellationToken)
+                .ConfigureAwait(false);
+
+            var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
+            var qr = dto?.Signature?.QrData ?? string.Empty;
+
+            _logger.LogInformation(
+                "Jahresbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Year={Year}",
+                paymentId, receiptNumber, register.RegisterNumber, request.Year);
+
+            return new CreateJahresbelegResponse
+            {
+                PaymentId = paymentId,
+                InvoiceId = invoice.Id,
+                ReceiptId = receiptEntity.ReceiptId,
+                ReceiptNumber = receiptNumber,
+                QrData = qr,
+            };
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Not for daily / monthly / yearly business closing — permanent register retirement only.
+    /// </remarks>
+    public async Task<CreateSchlussbelegResponse> CreateSchlussbelegAsync(
+        CreateSchlussbelegRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
+
+        await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
+
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await CashRegisterDatabaseLock.AcquireRegisterRowExclusiveLockAsync(_db, request.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+
+            var register = await _db.CashRegisters
+                .FirstOrDefaultAsync(r => r.Id == request.CashRegisterId && r.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Cash register not found for the current tenant.");
+
+            if (register.Status == RegisterStatus.Decommissioned)
+            {
+                throw new InvalidOperationException(
+                    $"Cash register {register.RegisterNumber} is already permanently decommissioned.");
+            }
+
+            if (register.Status == RegisterStatus.Open)
+            {
+                throw new InvalidOperationException(
+                    "Cash register has an open shift; close the register before issuing a Schlussbeleg (Endbeleg).");
+            }
+
+            if (register.Status != RegisterStatus.Closed)
+            {
+                throw new InvalidOperationException(
+                    $"Schlussbeleg requires cash register status Closed (no open shift). Current status: {register.Status}.");
+            }
+
+            var duplicate = await _db.PaymentDetails.AsNoTracking()
+                .AnyAsync(
+                    p => p.CashRegisterId == request.CashRegisterId &&
+                         p.IsActive &&
+                         p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Schlussbeleg,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (duplicate)
+            {
+                throw new InvalidOperationException(
+                    $"A Schlussbeleg already exists for register {register.RegisterNumber}.");
+            }
+
+            var guest = await _db.Customers.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == WalkInCustomerConstants.GuestCustomerId, cancellationToken)
+                .ConfigureAwait(false)
+                ?? throw new InvalidOperationException("Guest customer is not available; cannot create Schlussbeleg.");
+
+            var viennaLocalNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, PostgreSqlUtcDateTime.AustriaTimeZone);
+            var issuedAtUnspecified = DateTime.SpecifyKind(viennaLocalNow, DateTimeKind.Unspecified);
+            var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(issuedAtUnspecified, PostgreSqlUtcDateTime.AustriaTimeZone);
+            var sequenceAnchor = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+            var receiptNumber = await _receiptSequence.AllocateNextBelegNrInTransactionAsync(
+                    tx,
+                    request.CashRegisterId,
+                    register.RegisterNumber,
+                    sequenceAnchor)
+                .ConfigureAwait(false);
+
+            var taxDetailsJson = "{}";
+            var sig = await FiscalTseSigning.SignAsync(
+                    _tseService,
+                    new FiscalSigningRequest(
+                        request.CashRegisterId,
+                        receiptNumber,
+                        0m,
+                        register.RegisterNumber,
+                        PrevSignatureValue: null,
+                        Timestamp: issuedAtUtc,
+                        TaxDetailsJson: taxDetailsJson,
+                        DbTransaction: tx))
+                .ConfigureAwait(false);
+
+            var paymentId = Guid.NewGuid();
+            var payment = new PaymentDetails
+            {
+                Id = paymentId,
+                CustomerId = guest.Id,
+                CustomerName = guest.Name,
+                TableNumber = 0,
+                CashierId = actorUserId,
+                TotalAmount = 0m,
+                TaxAmount = 0m,
+                PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
+                Steuernummer = _companyProfile.TaxNumber,
+                CashRegisterId = request.CashRegisterId,
+                Notes = TruncateNotes(request.Reason),
+                TseSignature = sig.CompactJws,
+                PrevSignatureValueUsed = sig.PrevSignatureValueUsed,
+                TseTimestamp = issuedAtUtc,
+                TaxDetails = JsonDocument.Parse("{}"),
+                PaymentItems = JsonDocument.Parse("[]"),
+                ReceiptNumber = receiptNumber,
+                IsPrinted = false,
+                RksvSpecialReceiptKind = RksvSpecialReceiptKinds.Schlussbeleg,
+                RksvSpecialReceiptYear = null,
+                RksvSpecialReceiptMonth = null,
+                RksvNullbelegActsAsJahresbeleg = false,
+                CreatedAt = issuedAtUtc,
+                CreatedBy = actorUserId,
+                IsActive = true,
+            };
+
+            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var invoice = new Invoice
+            {
+                Id = Guid.NewGuid(),
+                SourcePaymentId = paymentId,
+                InvoiceNumber = receiptNumber,
+                InvoiceDate = issuedAtUtc,
+                DueDate = issuedAtUtc,
+                Status = InvoiceStatus.Paid,
+                Subtotal = 0m,
+                TaxAmount = 0m,
+                TotalAmount = 0m,
+                PaidAmount = 0m,
+                RemainingAmount = 0m,
+                CustomerName = guest.Name,
+                CustomerTaxNumber = payment.Steuernummer,
+                CompanyName = _companyProfile.CompanyName,
+                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyAddress = companyAddress,
+                TseSignature = payment.TseSignature,
+                KassenId = register.RegisterNumber,
+                TseTimestamp = payment.TseTimestamp,
+                CashRegisterId = request.CashRegisterId,
+                PaymentMethod = PaymentMethod.Cash,
+                PaymentReference = null,
+                PaymentDate = issuedAtUtc,
+                InvoiceItems = JsonDocument.Parse("[]"),
+                TaxDetails = JsonDocument.Parse("{}"),
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            };
+
+            register.Status = RegisterStatus.Decommissioned;
+            register.CurrentUserId = null;
+            register.CurrentUser = null;
+            register.UpdatedAt = DateTime.UtcNow;
+
+            _db.PaymentDetails.Add(payment);
+            _db.Invoices.Add(invoice);
+            await _receiptService.AddReceiptFromPaymentToContextAsync(payment).ConfigureAwait(false);
+
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            var receiptEntity = await _db.Receipts.AsNoTracking()
+                .FirstAsync(r => r.PaymentId == paymentId, cancellationToken)
+                .ConfigureAwait(false);
+
+            var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
+            var qr = dto?.Signature?.QrData ?? string.Empty;
+
+            _logger.LogInformation(
+                "Schlussbeleg created and register decommissioned PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register}",
+                paymentId, receiptNumber, register.RegisterNumber);
+
+            return new CreateSchlussbelegResponse
+            {
+                PaymentId = paymentId,
+                InvoiceId = invoice.Id,
+                ReceiptId = receiptEntity.ReceiptId,
+                ReceiptNumber = receiptNumber,
+                QrData = qr,
+            };
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private static string? TruncateCorrelation(string? correlationId)
+    {
+        if (string.IsNullOrWhiteSpace(correlationId))
+            return null;
+        var t = correlationId.Trim();
+        return t.Length <= 100 ? t : t[..100];
+    }
+
+    private async Task EnsureTseReadyForSignedSpecialReceiptAsync(CancellationToken cancellationToken)
     {
         if (_tseOptions.IsOff)
-            throw new InvalidOperationException("TSE is disabled (TseMode=Off); Nullbeleg cannot be signed.");
+            throw new InvalidOperationException("TSE is disabled (TseMode=Off); RKSV special receipt cannot be signed.");
 
         if (_tseOptions.UseSoftTseWhenNoDevice)
             return;
 
         var st = await _tseService.GetDeviceStatusAsync().ConfigureAwait(false);
         if (!st.IsConnected)
-            throw new InvalidOperationException("TSE device is not connected; Nullbeleg signing requires a connected TSE.");
+            throw new InvalidOperationException("TSE device is not connected; signing requires a connected TSE.");
         if (!st.IsReady)
-            throw new InvalidOperationException($"TSE device is not ready (status: {st.Status}); cannot sign Nullbeleg.");
+            throw new InvalidOperationException($"TSE device is not ready (status: {st.Status}); cannot sign.");
     }
 }

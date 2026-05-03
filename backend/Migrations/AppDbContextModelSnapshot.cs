@@ -3291,7 +3291,10 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique()
                         .HasFilter("\"cancel_idempotency_key\" IS NOT NULL");
 
-                    b.HasIndex("CashRegisterId");
+                    b.HasIndex("CashRegisterId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_details_startbeleg_per_register")
+                        .HasFilter("\"rksv_special_receipt_kind\" = 'Startbeleg' AND \"is_active\" = true");
 
                     b.HasIndex("CreatedAt");
 
@@ -3320,6 +3323,21 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_payment_details_nullbeleg_per_register_month")
                         .HasFilter("\"rksv_special_receipt_kind\" = 'Nullbeleg' AND \"is_active\" = true");
+
+                    b.HasIndex("CashRegisterId", "RksvSpecialReceiptYear")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_details_jahresbeleg_per_register_year")
+                        .HasFilter("\"rksv_special_receipt_kind\" = 'Jahresbeleg' AND \"is_active\" = true AND \"rksv_special_receipt_year\" IS NOT NULL");
+
+                    b.HasIndex("CashRegisterId", "RksvSpecialReceiptYear", "RksvSpecialReceiptMonth")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_details_monatsbeleg_per_register_month")
+                        .HasFilter("\"rksv_special_receipt_kind\" = 'Monatsbeleg' AND \"is_active\" = true");
+
+                    b.HasIndex("CashRegisterId", "RksvSpecialReceiptKind")
+                        .IsUnique()
+                        .HasDatabaseName("ix_payment_details_schlussbeleg_per_register")
+                        .HasFilter("\"rksv_special_receipt_kind\" = 'Schlussbeleg' AND \"is_active\" = true");
 
                     b.ToTable("payment_details");
                 });

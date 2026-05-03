@@ -44,11 +44,10 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
         PosCashRegisterFeatureOptions features) =>
         new(
             ctx,
-            new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver),
+            new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff()),
             shift,
             Options.Create(features),
-            Mock.Of<ILogger<PosCashRegisterReadinessService>>(),
-            TenantTestDoubles.PrimaryTenantResolver);
+            Mock.Of<ILogger<PosCashRegisterReadinessService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
     private static PaymentService CreatePaymentService(AppDbContext context, ClaimsPrincipal? httpUser = null)
     {
@@ -98,7 +97,7 @@ public class CashRegisterConflictPaymentE2EIntegrationTests
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
 
-        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var httpAccessorMock = new Mock<IHttpContextAccessor>();
         var httpContext = new DefaultHttpContext();
         if (httpUser != null)

@@ -28,7 +28,7 @@ public class UserSettingsControllerReadSideEffectTests
 
     private static UserSettingsController CreateController(AppDbContext ctx, string userId)
     {
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var c = new UserSettingsController(ctx, Mock.Of<ILogger<UserSettingsController>>(), resolution);
         c.ControllerContext = new ControllerContext
         {

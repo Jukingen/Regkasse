@@ -137,6 +137,72 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Cashier_Has_RksvStartbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.RksvStartbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_RksvStartbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.RksvStartbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_Has_RksvMonatsbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.RksvMonatsbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_RksvMonatsbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.RksvMonatsbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Accountant_Has_RksvMonatsbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Accountant, AppPermissions.RksvMonatsbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_Has_RksvJahresbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.RksvJahresbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_RksvJahresbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.RksvJahresbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Accountant_Has_RksvJahresbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Accountant, AppPermissions.RksvJahresbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_RksvSchlussbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.RksvSchlussbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_RksvSchlussbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.RksvSchlussbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_DoesNotHave_RksvSchlussbelegCreate()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.RksvSchlussbelegCreate));
+    }
+
+    [Fact]
     public void RoleHasPermission_Manager_DoesNotHave_UserManage()
     {
         Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserManage));

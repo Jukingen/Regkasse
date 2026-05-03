@@ -103,6 +103,10 @@ public static class PermissionCatalog
         AppPermissions.TseSign,
         AppPermissions.TseDiagnostics,
         AppPermissions.RksvNullbelegCreate,
+        AppPermissions.RksvStartbelegCreate,
+        AppPermissions.RksvMonatsbelegCreate,
+        AppPermissions.RksvJahresbelegCreate,
+        AppPermissions.RksvSchlussbelegCreate,
         AppPermissions.SystemCritical,
         // Legacy / convenience
         AppPermissions.PriceOverride,

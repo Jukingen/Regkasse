@@ -68,7 +68,7 @@ public class OfflineTransactionReplayIntegrationTests
             userMock.Object,
             TenantTestDoubles.PrimaryTenantResolver);
 
-        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var cashRegResolver = new CashRegisterResolutionService(context, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
         var paymentService = new PaymentService(
             context,

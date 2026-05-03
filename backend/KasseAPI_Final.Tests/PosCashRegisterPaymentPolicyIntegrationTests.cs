@@ -180,7 +180,7 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
         });
         await ctx.SaveChangesAsync();
 
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var paymentService = CreatePaymentService(ctx, resolution);
 
         var request = new CreatePaymentRequest

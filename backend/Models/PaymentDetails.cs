@@ -192,7 +192,7 @@ namespace KasseAPI_Final.Models
         [Column("rksv_special_receipt_year")]
         public int? RksvSpecialReceiptYear { get; set; }
 
-        /// <summary>Vienna calendar month 1–12 for Monats-Nullbeleg (duplicate guard).</summary>
+        /// <summary>Vienna calendar month 1–12 for Monatsbeleg / Nullbeleg; null for Jahresbeleg (year-only).</summary>
         [Column("rksv_special_receipt_month")]
         public int? RksvSpecialReceiptMonth { get; set; }
 

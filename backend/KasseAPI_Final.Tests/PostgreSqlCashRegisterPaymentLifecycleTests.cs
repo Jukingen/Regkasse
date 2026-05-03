@@ -93,7 +93,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
 
         await using var holdCtx = CreateContext();
         await using var tx = await holdCtx.Database.BeginTransactionAsync();
-        var resolution = new CashRegisterResolutionService(holdCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(holdCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var gateOk = await resolution.ValidatePaymentRegisterForCommitAsync("u1", regId, new ClaimsPrincipal());
         Assert.True(gateOk.Ok);
 
@@ -103,7 +103,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             await using var closeCtx = new AppDbContext(
                 new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options);
             var mgr = CreateUserManagerMock();
-            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
             return await shift.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
         });
 
@@ -145,14 +145,14 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var closeCtx = CreateContext())
         {
             var mgr = CreateUserManagerMock();
-            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
             var closed = await shift.TryCloseCashRegisterAsync(regId, "u1", 0m, CancellationToken.None);
             Assert.Equal(CashRegisterCloseKind.Success, closed.Kind);
         }
 
         await using var payCtx = CreateContext();
         await using var tx = await payCtx.Database.BeginTransactionAsync();
-        var resolution = new CashRegisterResolutionService(payCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(payCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var gate = await resolution.ValidatePaymentRegisterForCommitAsync("u1", regId, new ClaimsPrincipal());
         Assert.False(gate.Ok);
         Assert.Equal(CashRegisterResolutionCodes.Closed, gate.Code);
@@ -235,7 +235,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var step = CreateContext())
         {
             var mgr = CreateUserManagerMock(u1, u2);
-            var shift = new CashRegisterShiftService(step, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+            var shift = new CashRegisterShiftService(step, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
             var closeR = await shift.TryCloseCashRegisterAsync(r1, u1.Id, 0m, CancellationToken.None);
             Assert.Equal(CashRegisterCloseKind.Success, closeR.Kind);
             var openR = await shift.TryOpenCashRegisterAsync(
@@ -250,7 +250,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
 
         await using var payCtx = CreateContext();
         await using var tx = await payCtx.Database.BeginTransactionAsync();
-        var resolution = new CashRegisterResolutionService(payCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(payCtx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var gate = await resolution.ValidatePaymentRegisterForCommitAsync(u1.Id, r1, new ClaimsPrincipal());
         Assert.False(gate.Ok);
         Assert.Equal(CashRegisterResolutionCodes.Forbidden, gate.Code);
@@ -318,7 +318,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
         await using (var closeCtx = CreateContext())
         {
             var mgr = CreateUserManagerMock();
-            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver);
+            var shift = new CashRegisterShiftService(closeCtx, mgr.Object, Mock.Of<ILogger<CashRegisterShiftService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
             await shift.TryCloseCashRegisterAsync(cashRegisterId, "u1", 0m, CancellationToken.None);
         }
 
@@ -463,7 +463,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
                 .ReturnsAsync(new AuditLog());
         }
 
-        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var httpAccessorMock = new Mock<IHttpContextAccessor>();
         httpAccessorMock.Setup(a => a.HttpContext).Returns(new DefaultHttpContext());
 

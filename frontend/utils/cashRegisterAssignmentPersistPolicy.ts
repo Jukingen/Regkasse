@@ -69,6 +69,10 @@ const ASSIGNMENT_REJECT_DE: Partial<Record<string, string>> = {
   [POS_CASH_REGISTER_CODES.NOT_FOUND]: 'Kasse wurde nicht gefunden.',
   [POS_CASH_REGISTER_CODES.REQUIRED]: 'Keine gültige Kasse angegeben.',
   [POS_CASH_REGISTER_CODES.SELECTION_REQUIRED]: 'Bitte wählen Sie eine zulässige Kasse aus.',
+  [POS_CASH_REGISTER_CODES.STARTBELEG_REQUIRED]:
+    'Für diese Kasse fehlt der Startbeleg (RKSV). Bitte zuerst den Startbeleg erstellen, danach erneut zuweisen.',
+  [POS_CASH_REGISTER_CODES.MONATSBELEG_REQUIRED]:
+    'Für diese Kasse fehlt der Monatsbeleg für den aktuellen Monat (RKSV). Bitte zuerst den Monatsbeleg erstellen, danach erneut zuweisen.',
 };
 
 export function cashRegisterPersistFailureAlertDe(

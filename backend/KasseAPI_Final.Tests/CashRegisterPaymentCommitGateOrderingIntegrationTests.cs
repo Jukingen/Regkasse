@@ -29,7 +29,7 @@ public class CashRegisterPaymentCommitGateOrderingIntegrationTests
     }
 
     private static CashRegisterResolutionService CreateService(AppDbContext ctx) =>
-        new(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        new(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
     [Fact]
     public async Task PreCheck_AllowsOpenRegister_ThenClose_BeforeCommitGate_CommitGate_RejectsClosed()

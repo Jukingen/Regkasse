@@ -33,7 +33,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
 
     private static UserSettingsController CreateController(AppDbContext ctx, string userId)
     {
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var c = new UserSettingsController(ctx, Mock.Of<ILogger<UserSettingsController>>(), resolution);
         c.ControllerContext = new ControllerContext
         {
@@ -94,7 +94,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         var afterGet = await ctx.UserSettings.AsNoTracking().SingleAsync(us => us.UserId == userId);
         Assert.Null(afterGet.CashRegisterId);
 
-        var resolutionAfterGet = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolutionAfterGet = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var preAfterGet = await resolutionAfterGet.ValidatePaymentRegisterAsync(userId, regId, new ClaimsPrincipal());
         Assert.True(preAfterGet.Ok);
 
@@ -103,7 +103,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         var afterBoot = await ctx.UserSettings.AsNoTracking().SingleAsync(us => us.UserId == userId);
         Assert.Equal(regId.ToString(), afterBoot.CashRegisterId);
 
-        var resolutionFinal = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolutionFinal = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var preFinal = await resolutionFinal.ValidatePaymentRegisterAsync(userId, regId, new ClaimsPrincipal());
         Assert.True(preFinal.Ok);
     }
@@ -150,7 +150,7 @@ public class UserSettingsBootstrapPaymentOrderingTests
         var controller = CreateController(ctx, userId);
         await controller.GetUserSettings();
 
-        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        var resolution = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             new[]
             {

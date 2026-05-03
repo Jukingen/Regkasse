@@ -32,6 +32,7 @@ function toListItem(row: NonNullable<ReceiptListItemDtoPagedResult['items']>[num
     taxTotal: row.taxTotal ?? 0,
     grandTotal: row.grandTotal ?? 0,
     createdAt: row.createdAt ?? '',
+    rksvSpecialReceiptKind: row.rksvSpecialReceiptKind ?? null,
   };
 }
 
@@ -86,6 +87,8 @@ export function mapReceiptDtoToDetail(d: ReceiptDTO): ReceiptDetailDto {
     fiscalTraceKind: d.fiscalTraceKind ?? null,
     originalPaymentId: d.originalPaymentId ?? null,
     originalSaleReceiptId: d.originalSaleReceiptId ?? null,
+    rksvSpecialReceiptKind: d.rksvSpecialReceiptKind ?? null,
+    rksvNullbelegActsAsJahresbeleg: d.rksvNullbelegActsAsJahresbeleg ?? false,
   };
 }
 

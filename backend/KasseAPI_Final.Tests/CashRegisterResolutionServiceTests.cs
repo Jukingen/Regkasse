@@ -25,7 +25,7 @@ public class CashRegisterResolutionServiceTests
     }
 
     private static CashRegisterResolutionService CreateService(AppDbContext ctx) =>
-        new(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver);
+        new(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
     private static ClaimsPrincipal PrincipalWithRole(string role)
     {
@@ -355,6 +355,72 @@ public class CashRegisterResolutionServiceTests
 
         Assert.True(r.Ok);
         Assert.Equal(regId, r.ResolvedRegisterId);
+    }
+
+    [Fact]
+    public async Task ValidatePaymentRegister_StartbelegGateOn_WithoutStartbeleg_Blocks()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = new CashRegisterResolutionService(
+            ctx,
+            Mock.Of<ILogger<CashRegisterResolutionService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOnMissingStartbeleg(),
+            RksvMonatsbelegTestDoubles.GateOnHasMonatsbeleg());
+
+        var r = await sut.ValidatePaymentRegisterAsync("u1", regId, new ClaimsPrincipal());
+        Assert.False(r.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.StartbelegRequired, r.Code);
+    }
+
+    [Fact]
+    public async Task ValidatePaymentRegister_MonatsbelegGateOn_WithoutMonatsbeleg_Blocks()
+    {
+        await using var ctx = CreateContext();
+        var regId = Guid.NewGuid();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CurrentUserId = "u1",
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var sut = new CashRegisterResolutionService(
+            ctx,
+            Mock.Of<ILogger<CashRegisterResolutionService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOnHasStartbeleg(),
+            RksvMonatsbelegTestDoubles.GateOnMissingMonatsbeleg());
+
+        var r = await sut.ValidatePaymentRegisterAsync("u1", regId, new ClaimsPrincipal());
+        Assert.False(r.Ok);
+        Assert.Equal(CashRegisterResolutionCodes.MonatsbelegRequired, r.Code);
     }
 
     [Fact]

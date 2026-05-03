@@ -72,6 +72,13 @@ public static class PostgreSqlUtcDateTime
         return ViennaCalendarDateMidnightUnspecified(local.Year, local.Month, local.Day);
     }
 
+    /// <summary>Vienna wall-clock year and month for <c>DateTime.UtcNow</c> (RKSV Monatsbeleg period guard).</summary>
+    public static (int Year, int Month) GetViennaCurrentYearMonth()
+    {
+        var local = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, AustriaTimeZone);
+        return (local.Year, local.Month);
+    }
+
     /// <summary>
     /// Half-open UTC range for one Austria local calendar day: <c>[fromInclusiveUtc, toExclusiveUtc)</c>.
     /// </summary>

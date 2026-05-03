@@ -14,6 +14,12 @@ export const POS_CASH_REGISTER_CODES = {
   FORBIDDEN: 'CASH_REGISTER_FORBIDDEN',
   CLOSED: 'CASH_REGISTER_CLOSED',
   SELECTION_REQUIRED: 'CASH_REGISTER_SELECTION_REQUIRED',
+  /** RKSV: payment/commit blocked until Startbeleg exists (same string as readiness message code). */
+  STARTBELEG_REQUIRED: 'CASH_REGISTER_STARTBELEG_REQUIRED',
+  MONATSBELEG_REQUIRED: 'CASH_REGISTER_MONATSBELEG_REQUIRED',
+  /** RKSV: Schlussbeleg issued — register decommissioned (readiness / resolution). */
+  DECOMMISSIONED: 'CASH_REGISTER_DECOMMISSIONED',
+  REGISTER_DECOMMISSIONED_RKSV: 'CASH_REGISTER_DECOMMISSIONED_RKSV',
 } as const;
 
 export type RegisterGateReadinessInput = {
@@ -75,12 +81,33 @@ export const POS_READINESS_MESSAGE_CODES = {
   CONFLICT: 'CASH_REGISTER_CONFLICT',
   NOT_FOUND: 'CASH_REGISTER_NOT_FOUND',
   ACTOR_ALREADY_OPEN: 'CASH_REGISTER_ACTOR_ALREADY_OPEN',
+  STARTBELEG_REQUIRED: 'CASH_REGISTER_STARTBELEG_REQUIRED',
+  MONATSBELEG_REQUIRED: 'CASH_REGISTER_MONATSBELEG_REQUIRED',
+  REGISTER_DECOMMISSIONED_RKSV: 'CASH_REGISTER_DECOMMISSIONED_RKSV',
 } as const;
 
 export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
   if (ctx.settingsLoadFailed) return 'Kasseneinstellungen nicht ladbar';
   if (ctx.posReadinessLoading) return 'Kasse wird vorbereitet…';
   if (ctx.posReadinessError) return 'Kassenbereitschaft nicht ladbar';
+  if (
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
+    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
+  ) {
+    return 'Fiskalisierung abgeschlossen';
+  }
+  if (
+    ctx.posReadinessNextAction === 'startbeleg_required' ||
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED
+  ) {
+    return 'Startbeleg erforderlich';
+  }
+  if (
+    ctx.posReadinessNextAction === 'monatsbeleg_required' ||
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
+  ) {
+    return 'Monatsbeleg erforderlich';
+  }
   if (ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CONFLICT) {
     return 'Kasse bereits in Verwendung';
   }
@@ -156,6 +183,24 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   }
   if (ctx.posReadinessError) {
     return 'Die serverseitige Kassenbereitschaft konnte nicht geladen werden. Nutzen Sie „Kassenbereitschaft erneut versuchen“ oder warten Sie, bis die Profil-Einstellungen geladen sind.';
+  }
+  if (
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
+    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
+  ) {
+    return 'Für diese Registrierkasse wurde ein Schlussbeleg (Endbeleg) erstellt. Die Kasse ist dauerhaft außer Betrieb und kann nicht mehr für Schichten oder Verkäufe genutzt werden. Bitte eine andere Kasse wählen oder den Administrator informieren.';
+  }
+  if (
+    ctx.posReadinessNextAction === 'startbeleg_required' ||
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED
+  ) {
+    return 'Für diese Registrierkasse fehlt der fiskalische Startbeleg (RKSV). Erstellen Sie zuerst den Startbeleg (Nullbeleg mit Betrag 0 €), danach sind Schicht und Verkäufe möglich.';
+  }
+  if (
+    ctx.posReadinessNextAction === 'monatsbeleg_required' ||
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
+  ) {
+    return 'Für den aktuellen Kalendermonat fehlt der fiskalische Monatsbeleg (RKSV). Erstellen Sie den Monatsbeleg (Nullbeleg 0 €), danach sind Schicht und Verkäufe wieder möglich.';
   }
   if (ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CONFLICT) {
     return 'Diese Kasse ist bereits geöffnet und einer anderen Person zugewiesen (aktive Schicht). Beenden Sie die fremde Schicht nur mit Berechtigung, oder nutzen Sie eine andere Kasse / bitten Sie eine berechtigte Person.';
@@ -258,6 +303,24 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
   if (ctx.posReadinessError) {
     return '„Zahlen“ ist deaktiviert: Kassenbereitschaft fehlt — „Erneut versuchen“ oder Einstellungen prüfen.';
   }
+  if (
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
+    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
+  ) {
+    return '„Zahlen“ ist deaktiviert: Kasse fiskalisch abgeschlossen (Schlussbeleg) — andere Kasse wählen.';
+  }
+  if (
+    ctx.posReadinessNextAction === 'startbeleg_required' ||
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED
+  ) {
+    return '„Zahlen“ ist deaktiviert: Startbeleg fehlt — zuerst Startbeleg erstellen.';
+  }
+  if (
+    ctx.posReadinessNextAction === 'monatsbeleg_required' ||
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
+  ) {
+    return '„Zahlen“ ist deaktiviert: Monatsbeleg fehlt — zuerst Monatsbeleg für den Monat erstellen.';
+  }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
       return '„Zahlen“ ist deaktiviert: noch keine Kasse im System — Administrator muss anlegen.';
@@ -320,6 +383,24 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
   if (ctx.posReadinessError) {
     return 'Kassenbereitschaft nicht ladbar. Verbindung prüfen oder erneut versuchen.';
   }
+  if (
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
+    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
+  ) {
+    return 'Diese Kasse ist fiskalisch abgeschlossen (Schlussbeleg). Bitte eine andere Kasse verwenden.';
+  }
+  if (
+    ctx.posReadinessNextAction === 'startbeleg_required' ||
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED
+  ) {
+    return 'Startbeleg muss erstellt werden, bevor Sie verkaufen oder eine Schicht normal nutzen können.';
+  }
+  if (
+    ctx.posReadinessNextAction === 'monatsbeleg_required' ||
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED
+  ) {
+    return 'Monatsbeleg muss für den laufenden Monat erstellt werden, bevor Sie verkaufen oder die Schicht normal nutzen können.';
+  }
   if (ctx.posReadinessNextAction === 'select_register' && ctx.registerPicklistCount === 0) {
     if (listFetchSucceeded(ctx) && ctx.registerListEmptyReason === 'no_registers') {
       return 'Es ist noch keine Kasse angelegt. Bitte Administrator.';
@@ -371,6 +452,14 @@ export function mapBackendCashRegisterCodeToGerman(code: string | undefined): st
       return 'Die Kasse ist nicht geöffnet. Bitte zuerst die Kasse öffnen oder eine andere wählen.';
     case POS_CASH_REGISTER_CODES.SELECTION_REQUIRED:
       return 'Mehrere Kassen: Bitte in den Einstellungen oder unten eine Kasse auswählen.';
+    case POS_CASH_REGISTER_CODES.STARTBELEG_REQUIRED:
+      return 'Startbeleg erforderlich: Bitte zuerst den fiskalischen Startbeleg für diese Kasse erstellen.';
+    case POS_CASH_REGISTER_CODES.MONATSBELEG_REQUIRED:
+      return 'Monatsbeleg erforderlich: Bitte den fiskalischen Monatsbeleg für den aktuellen Monat erstellen.';
+    case POS_CASH_REGISTER_CODES.DECOMMISSIONED:
+    case POS_CASH_REGISTER_CODES.REGISTER_DECOMMISSIONED_RKSV:
+    case POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV:
+      return 'Kasse fiskalisch abgeschlossen: Diese Registrierkasse kann nicht mehr genutzt werden.';
     default:
       return null;
   }

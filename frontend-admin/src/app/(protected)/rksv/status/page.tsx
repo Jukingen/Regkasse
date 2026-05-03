@@ -80,6 +80,19 @@ export default function RksvStatusPage() {
                 </Typography.Text>
             </Space>
 
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="RKSV Sonderbelege"
+                description={
+                    <Typography.Paragraph style={{ marginBottom: 0 }}>
+                        Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg und Endbeleg (Schlussbeleg) finden Sie unter{' '}
+                        <Link href="/rksv/sonderbelege">RKSV Sonderbelege</Link>.
+                    </Typography.Paragraph>
+                }
+            />
+
             {tseError && (
                 <Alert
                     type="error"

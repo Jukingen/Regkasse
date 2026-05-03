@@ -1,4 +1,12 @@
 {
+  "specialKind": {
+    "nullbeleg": "Null receipt (Nullbeleg)",
+    "startbeleg": "Start receipt (Startbeleg)",
+    "monatsbeleg": "Monthly receipt (Monatsbeleg)",
+    "jahresbeleg": "Annual receipt (Jahresbeleg)",
+    "schlussbeleg": "Closing receipt (Schlussbeleg / Endbeleg)",
+    "unknown": "Special receipt"
+  },
   "list": {
     "loadErrorFallback": "Could not load receipts. Please try again.",
     "emptyFiltered": "No receipts for these filters. Adjust filters or widen the date range.",
@@ -32,6 +40,7 @@
     "colRegisterFk": "Register (FK)",
     "colRegisterDisplay": "Register (display)",
     "colCashier": "Cashier (id)",
+    "colSpecialKind": "Special receipt (RKSV)",
     "colGrandTotal": "Grand total",
     "colNext": "Action",
     "open": "Open",
@@ -91,7 +100,10 @@
       "labelTaxTotal": "Tax total",
       "labelGrandTotal": "Grand total",
       "labelQrCode": "QR code",
-      "labelSignature": "Signature"
+      "labelSignature": "Signature",
+      "labelSpecialKind": "RKSV special receipt",
+      "labelNullbelegAsJahres": "Null receipt (annual context)",
+      "valueSpecialKindNone": "—"
     },
     "signature": {
       "cardTitle": "Signature status",

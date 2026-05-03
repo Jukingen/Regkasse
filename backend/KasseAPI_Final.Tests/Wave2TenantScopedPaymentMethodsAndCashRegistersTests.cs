@@ -116,7 +116,8 @@ public sealed class Wave2TenantScopedPaymentMethodsAndCashRegistersTests
         var resolverA = new CashRegisterResolutionService(
             ctx,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<CashRegisterResolutionService>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(TenantA));
+            TenantTestDoubles.SettingsResolverReturning(TenantA),
+            RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var principal = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, Roles.Cashier) }, "test"));
         var picker = await resolverA.ListSelectableForPosPickerAsync("u1", principal, default);
@@ -147,8 +148,7 @@ public sealed class Wave2TenantScopedPaymentMethodsAndCashRegistersTests
 
         var resolver = new CashRegisterResolutionService(
             ctx,
-            Microsoft.Extensions.Logging.Abstractions.NullLogger<CashRegisterResolutionService>.Instance,
-            TenantTestDoubles.PrimaryTenantResolver);
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CashRegisterResolutionService>.Instance, TenantTestDoubles.PrimaryTenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
 
         var gate = await resolver.ValidatePaymentRegisterAsync("cashier", regId, new ClaimsPrincipal(), default);
         Assert.True(gate.Ok);

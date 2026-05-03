@@ -162,6 +162,18 @@ namespace KasseAPI_Final.Controllers
                             message =
                                 "Sie haben bereits eine andere geöffnete Kasse. Bitte schließen Sie diese zuerst, bevor Sie eine weitere öffnen."
                         }),
+                    CashRegisterOpenKind.FailedStartbelegRequired =>
+                        BadRequest(new
+                        {
+                            message = "Startbeleg muss erstellt werden.",
+                            code = "STARTBELEG_REQUIRED"
+                        }),
+                    CashRegisterOpenKind.FailedMonatsbelegRequired =>
+                        BadRequest(new
+                        {
+                            message = "Monatsbeleg muss für den aktuellen Monat erstellt werden.",
+                            code = "MONATSBELEG_REQUIRED"
+                        }),
                     CashRegisterOpenKind.FailedInvalidState =>
                         BadRequest(new { message = "Kasa kann in diesem Zustand nicht geöffnet werden." }),
                     _ => StatusCode(500, new { message = "Kasa açılırken bir hata oluştu" })

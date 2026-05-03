@@ -51,6 +51,8 @@ export interface ReceiptListItemDto {
     taxTotal: number;
     grandTotal: number;
     createdAt: string;
+    /** RKSV Sonderbeleg marker from payment (e.g. Jahresbeleg, Monatsbeleg); null for normal sales. */
+    rksvSpecialReceiptKind?: string | null;
 }
 
 /** Paginated list envelope */
@@ -120,4 +122,8 @@ export interface ReceiptDetailDto {
     clockDriftWarning?: boolean;
     sequenceGapDetected?: boolean;
     sequenceDuplicateDetected?: boolean;
+    /** RKSV Sonderbeleg marker from payment; null for normal sales. */
+    rksvSpecialReceiptKind?: string | null;
+    /** When true, Nullbeleg row is flagged as annual-context (December flow). */
+    rksvNullbelegActsAsJahresbeleg?: boolean;
 }

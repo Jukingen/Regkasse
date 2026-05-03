@@ -1,4 +1,12 @@
 {
+  "specialKind": {
+    "nullbeleg": "Nullbeleg",
+    "startbeleg": "Startbeleg",
+    "monatsbeleg": "Monatsbeleg",
+    "jahresbeleg": "Jahresbeleg",
+    "schlussbeleg": "Schlussbeleg (Endbeleg)",
+    "unknown": "Sonderbeleg"
+  },
   "list": {
     "loadErrorFallback": "Belege konnten nicht geladen werden. Bitte erneut versuchen.",
     "emptyFiltered": "Keine Belege für diese Filter. Filter anpassen oder Zeitraum erweitern.",
@@ -32,6 +40,7 @@
     "colRegisterFk": "Kasse (FK)",
     "colRegisterDisplay": "Kassen-ID (Anzeige)",
     "colCashier": "Kassierer (Id)",
+    "colSpecialKind": "Sonderbeleg (RKSV)",
     "colGrandTotal": "Gesamtbetrag",
     "colNext": "Aktion",
     "open": "Öffnen",
@@ -91,7 +100,10 @@
       "labelTaxTotal": "Steuer gesamt",
       "labelGrandTotal": "Gesamtbetrag",
       "labelQrCode": "QR-Code",
-      "labelSignature": "Signatur"
+      "labelSignature": "Signatur",
+      "labelSpecialKind": "RKSV-Sonderbeleg",
+      "labelNullbelegAsJahres": "Nullbeleg (Jahresbezug)",
+      "valueSpecialKindNone": "—"
     },
     "signature": {
       "cardTitle": "Signaturstatus",

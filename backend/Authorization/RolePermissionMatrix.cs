@@ -78,6 +78,10 @@ public static class RolePermissionMatrix
                 AppPermissions.FiscalExportCompliance,
                 AppPermissions.FinanzOnlineSubmit,
                 AppPermissions.RksvNullbelegCreate,
+                AppPermissions.RksvStartbelegCreate,
+                AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvJahresbelegCreate,
+                AppPermissions.RksvSchlussbelegCreate,
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
@@ -105,6 +109,9 @@ public static class RolePermissionMatrix
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,
                 AppPermissions.TseSign,
+                AppPermissions.RksvStartbelegCreate,
+                AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvJahresbelegCreate,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Waiter] = new[]
@@ -144,6 +151,9 @@ public static class RolePermissionMatrix
                 AppPermissions.FinanzOnlineView,
                 AppPermissions.FinanzOnlineSubmit,
                 AppPermissions.RksvNullbelegCreate,
+                AppPermissions.RksvStartbelegCreate,
+                AppPermissions.RksvMonatsbelegCreate,
+                AppPermissions.RksvJahresbelegCreate,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
         };
 

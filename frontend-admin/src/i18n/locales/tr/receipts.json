@@ -1,4 +1,12 @@
 {
+  "specialKind": {
+    "nullbeleg": "Nullbeleg",
+    "startbeleg": "Startbeleg",
+    "monatsbeleg": "Monatsbeleg",
+    "jahresbeleg": "Jahresbeleg",
+    "schlussbeleg": "Schlussbeleg (kapanis)",
+    "unknown": "Ozel fis"
+  },
   "list": {
     "loadErrorFallback": "Fisler yuklenemedi. Lutfen tekrar deneyin.",
     "emptyFiltered": "Bu filtrelerle fis yok. Filtreleri degistirin veya tarih araligini genisletin.",
@@ -32,6 +40,7 @@
     "colRegisterFk": "Kasa (FK)",
     "colRegisterDisplay": "Kasa (gorunen)",
     "colCashier": "Kasiyer (kimlik)",
+    "colSpecialKind": "Ozel belge (RKSV)",
     "colGrandTotal": "Genel toplam",
     "colNext": "Islem",
     "open": "Ac",
@@ -91,7 +100,10 @@
       "labelTaxTotal": "Vergi toplami",
       "labelGrandTotal": "Genel toplam",
       "labelQrCode": "QR kodu",
-      "labelSignature": "Imza"
+      "labelSignature": "Imza",
+      "labelSpecialKind": "RKSV ozel fis",
+      "labelNullbelegAsJahres": "Nullbeleg (yillik baglam)",
+      "valueSpecialKindNone": "—"
     },
     "signature": {
       "cardTitle": "Imza durumu",
