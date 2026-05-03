@@ -30,7 +30,7 @@ namespace KasseAPI_Final.Services
     /// <summary>
     /// Ödeme işlemleri için service implementation
     /// </summary>
-    public class PaymentService : IPaymentService
+    public partial class PaymentService : IPaymentService
     {
         private readonly AppDbContext _context;
         private readonly IGenericRepository<PaymentDetails> _paymentRepository;
@@ -253,8 +253,14 @@ namespace KasseAPI_Final.Services
 
                 // Authoritative register id/number come from commit gate inside the fiscal transaction (row lock).
 
-                // TSE modu: Off = tseRequired yok sayılır, Demo = cihaz atlanır, Device = cihaz zorunlu
-                var effectiveTseRequired = request.Payment.TseRequired && !_tseOptions.IsOff;
+                // TSE modu: Off = globally disables signing. Client must not skip DEP for Gutschein by sending TseRequired=false.
+                var requestPaymentMethodCode = string.IsNullOrWhiteSpace(request.Payment.Method)
+                    ? null
+                    : request.Payment.Method.Trim().ToLowerInvariant();
+                var voucherLikelyFromClientMethod =
+                    string.Equals(requestPaymentMethodCode, "voucher", StringComparison.Ordinal);
+                var effectiveTseRequired =
+                    (request.Payment.TseRequired || voucherLikelyFromClientMethod) && !_tseOptions.IsOff;
                 if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
                 {
                     var tseStatus = await _tseService.GetDeviceStatusAsync();
@@ -343,6 +349,7 @@ namespace KasseAPI_Final.Services
                     registerNumber = registerCommitValidation.RegisterNumber!;
 
                     var effectiveTenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                    List<VoucherRedeemLine>? voucherRedeemLinesForCommit = null;
 
                     // Ürün kontrolü ve stok güncelleme. Tek hesap motoru: CartMoneyHelper (gross model).
                     var paymentItems = new List<PaymentItem>();
@@ -507,6 +514,25 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                // Catalog authority: legacy value 4 == PaymentMethod.Voucher (same signing policy as other sales when TSE is not globally off).
+                if (IsVoucherLegacyPayment(methodResolution.LegacyRaw))
+                {
+                    effectiveTseRequired = !_tseOptions.IsOff;
+                    var (voucherPlanError, voucherLines) = await BuildVoucherRedemptionPlanAsync(
+                        effectiveTenantId,
+                        totalAmount,
+                        request.Payment,
+                        CancellationToken.None);
+                    if (voucherPlanError != null)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return voucherPlanError;
+                    }
+
+                    voucherRedeemLinesForCommit = voucherLines;
+                }
+
                 // Single database transaction: register row lock + stock + BelegNr + payment + invoice + receipt commit together.
                 PaymentDetails? payment = null;
                 Invoice? posInvoice = null;
@@ -609,6 +635,42 @@ namespace KasseAPI_Final.Services
                     _context.PaymentDetails.Add(payment);
                     _context.Invoices.Add(posInvoice);
                     await _receiptService.AddReceiptFromPaymentToContextAsync(payment);
+
+                    if (voucherRedeemLinesForCommit is { Count: > 0 })
+                    {
+                        var receiptEntity = _context.ChangeTracker.Entries<Receipt>()
+                            .Select(e => e.Entity)
+                            .FirstOrDefault(r => r.PaymentId == payment.Id);
+                        if (receiptEntity == null)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Internal error: receipt not attached for voucher redemption.",
+                                Errors = { "Receipt creation failed before voucher ledger." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = "VOUCHER_RECEIPT_MISSING"
+                            };
+                        }
+
+                        var voucherApplyError = await ApplyVoucherRedemptionsInCurrentTransactionAsync(
+                            effectiveTenantId,
+                            userId,
+                            payment,
+                            receiptEntity.ReceiptId,
+                            voucherRedeemLinesForCommit,
+                            idempotencyKey,
+                            CancellationToken.None);
+                        if (voucherApplyError != null)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return voucherApplyError;
+                        }
+                    }
+
                     // Stock updates: when EnforceStockOnSales is true, product entities were modified in the loop (tracked); SaveChanges persists them with payment/invoice/receipt in one commit.
 
                     await _context.SaveChangesAsync();
@@ -1312,6 +1374,29 @@ namespace KasseAPI_Final.Services
                 _context.Invoices.Add(stornoInvoice);
                 await _receiptService.AddReceiptFromPaymentToContextAsync(storno);
 
+                var stornoReceiptEntity = _context.ChangeTracker.Entries<Receipt>()
+                    .Select(e => e.Entity)
+                    .FirstOrDefault(r => r.PaymentId == stornoId);
+                if (stornoReceiptEntity == null)
+                {
+                    await dbTx.RollbackAsync();
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Internal error: storno receipt missing.",
+                        Errors = { "Cannot finalize reversal without receipt context." }
+                    };
+                }
+
+                await ApplyVoucherRefundsForStornoAsync(
+                    paymentId,
+                    stornoId,
+                    stornoReceiptEntity.ReceiptId,
+                    effectiveTenantId,
+                    userId,
+                    cancelIdempotencyKey,
+                    CancellationToken.None);
+
                 foreach (var item in originalItems)
                 {
                     var product = await _context.Products
@@ -1686,6 +1771,14 @@ namespace KasseAPI_Final.Services
                     _context.PaymentDetails.Add(refund);
                     _context.Invoices.Add(refundInvoice);
                     await _receiptService.AddReceiptFromPaymentToContextAsync(refund);
+
+                    if (string.Equals(payment.PaymentMethodRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal))
+                    {
+                        _logger.LogWarning(
+                            "VOUCHER_REFUND_TODO: Fiscal refund path does not restore stored-value voucher balance. Use full storno (cancellation) for voucher sales or extend RefundPaymentAsync. OriginalPaymentId={PaymentId} RefundId={RefundId}",
+                            paymentId,
+                            refundId);
+                    }
 
                     foreach (var item in originalItems)
                     {

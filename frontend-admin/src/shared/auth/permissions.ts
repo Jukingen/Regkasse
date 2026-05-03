@@ -66,6 +66,10 @@ export const PERMISSIONS = {
   RECEIPT_REPRINT: 'receipt.reprint',
   BENEFIT_VIEW: 'benefit.view',
   BENEFIT_MANAGE: 'benefit.manage',
+  VOUCHER_READ: 'voucher.read',
+  VOUCHER_CREATE: 'voucher.create',
+  VOUCHER_CANCEL: 'voucher.cancel',
+  VOUCHER_AUDIT_VIEW: 'voucher.audit.view',
   CUSTOMER_VIEW: 'customer.view',
   CUSTOMER_MANAGE: 'customer.manage',
 } as const;

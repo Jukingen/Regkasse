@@ -44,7 +44,7 @@ const PAYMENT_METHODS: {
 }[] = [
     { key: 'cash', label: 'payment:methods.cash', icon: 'cash', requiresTSE: true },
     { key: 'card', label: 'payment:methods.card', icon: 'card', requiresTSE: true },
-    { key: 'voucher', label: 'payment:methods.voucher', icon: 'pricetag', requiresTSE: false },
+    { key: 'voucher', label: 'payment:methods.voucher', icon: 'pricetag', requiresTSE: true },
     { key: 'transfer', label: 'payment:methods.transfer', icon: 'swap-horizontal', requiresTSE: true },
   ];
 
@@ -425,9 +425,18 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
           <Text style={styles.buttonText}>{t('payment:buttons.back')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.nextButton, !tseSignature && styles.disabledButton]}
+          style={[
+            styles.nextButton,
+            (PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.requiresTSE ?? true) &&
+              !tseSignature &&
+              styles.disabledButton,
+          ]}
           onPress={handleTSEVerification}
-          disabled={!tseSignature || loading}
+          disabled={
+            loading ||
+            ((PAYMENT_METHODS.find((m) => m.key === selectedPaymentMethod)?.requiresTSE ?? true) &&
+              !tseSignature)
+          }
         >
           {loading ? (
             <ActivityIndicator color="#fff" />

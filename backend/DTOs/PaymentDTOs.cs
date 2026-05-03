@@ -105,6 +105,13 @@ namespace KasseAPI_Final.DTOs
         public bool TseRequired { get; set; } = true;
         
         public decimal? Amount { get; set; }
+
+        /// <summary>Plaintext voucher code for single-voucher payment (never stored on <see cref="PaymentDetails"/>).</summary>
+        [MaxLength(128)]
+        public string? VoucherCode { get; set; }
+
+        /// <summary>Optional multi-voucher split; amounts must sum to the fiscal sale total when method is voucher.</summary>
+        public List<VoucherRedemptionRequestItem>? VoucherRedemptions { get; set; }
     }
     
     /// <summary>

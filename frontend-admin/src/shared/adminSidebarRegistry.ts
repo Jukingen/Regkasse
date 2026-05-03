@@ -54,7 +54,8 @@ export type SidebarIconToken =
     | 'SafetyOutlined'
     | 'SettingOutlined'
     | 'ShopOutlined'
-    | 'CloudServerOutlined';
+    | 'CloudServerOutlined'
+    | 'WalletOutlined';
 
 export type SidebarNavCatalogItem = {
     /** Stable id for tests and layout references */
@@ -104,6 +105,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/payments',
         labelKey: 'nav.payments',
         icon: 'CreditCardOutlined',
+    },
+    vouchers: {
+        id: 'vouchers',
+        menuKey: '/vouchers',
+        href: '/vouchers',
+        labelKey: 'nav.vouchers',
+        icon: 'WalletOutlined',
     },
     invoices: {
         id: 'invoices',
@@ -341,7 +349,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['receipts', 'payments', 'invoices', 'receiptTemplates', 'receiptGenerate'],
+                catalogIds: ['receipts', 'payments', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
             },
         ],
     },

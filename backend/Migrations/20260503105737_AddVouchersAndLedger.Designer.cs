@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260503105737_AddVouchersAndLedger")]
+    partial class AddVouchersAndLedger
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -5782,11 +5785,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("initial_amount");
 
-                    b.Property<string>("InternalNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("internal_note");
-
                     b.Property<string>("MaskedCode")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -5812,8 +5810,6 @@ namespace KasseAPI_Final.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CodeHash");
-
-                    b.HasIndex("CreatedAtUtc");
 
                     b.HasIndex("ExpiresAtUtc");
 

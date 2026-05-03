@@ -12,6 +12,9 @@ export const POS_PAYMENT_API_PREFIX = '/pos/payment';
 /** Relative path for GET/POST payment methods list. */
 export const POS_PAYMENT_METHODS_PATH = `${POS_PAYMENT_API_PREFIX}/methods` as const;
 
+/** POST body: `{ voucherCode, amount? }` — relative to `/api`. */
+export const POS_VOUCHERS_VALIDATE_PATH = '/pos/vouchers/validate' as const;
+
 /** `/pos/payment/{paymentId}[/{tail}]` */
 export function posPaymentByIdPath(paymentId: string, tail?: string): string {
   const id = encodeURIComponent(paymentId);

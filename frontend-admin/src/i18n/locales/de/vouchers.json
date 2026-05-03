@@ -1,0 +1,86 @@
+{
+  "title": "Gutscheine",
+  "list": {
+    "heading": "Gutscheine",
+    "searchPlaceholder": "Code-Hinweis suchen…",
+    "searchButton": "Suchen",
+    "columns": {
+      "maskedCode": "Code-Hinweis",
+      "initialAmount": "Ausgabebetrag",
+      "remainingAmount": "Restguthaben",
+      "currency": "Währung",
+      "status": "Status",
+      "validFrom": "Gültig ab",
+      "expiresAt": "Gültig bis",
+      "createdBy": "Erstellt von",
+      "createdAt": "Erstellt am",
+      "actions": "Aktionen"
+    },
+    "open": "Details",
+    "create": "Neuer Gutschein",
+    "empty": "Keine Gutscheine gefunden.",
+    "permissionDenied": "Keine Berechtigung für Gutscheine."
+  },
+  "status": {
+    "Active": "Aktiv",
+    "PartiallyRedeemed": "Teilweise eingelöst",
+    "Redeemed": "Eingelöst",
+    "Cancelled": "Storniert",
+    "Expired": "Abgelaufen"
+  },
+  "ledger": {
+    "title": "Buchungsverlauf",
+    "type": "Typ",
+    "amount": "Betrag",
+    "balanceAfter": "Saldo danach",
+    "paymentId": "Zahlung",
+    "receiptNumber": "Belegnr.",
+    "createdAt": "Zeit",
+    "createdBy": "Benutzer",
+    "typeIssue": "Ausgabe",
+    "typeRedeem": "Einlösung",
+    "typeRefund": "Gutschrift",
+    "typeCancel": "Storno",
+    "typeExpire": "Ablauf",
+    "empty": "Keine Buchungen.",
+    "permissionDenied": "Keine Berechtigung für den Buchungsverlauf."
+  },
+  "detail": {
+    "heading": "Gutschein",
+    "back": "Zur Liste",
+    "cancel": "Gutschein stornieren",
+    "internalNote": "Interne Notiz",
+    "cancellationReason": "Stornogrund",
+    "cancelledAt": "Storniert am"
+  },
+  "cancel": {
+    "title": "Gutschein stornieren",
+    "reasonLabel": "Grund (Pflichtfeld)",
+    "reasonPlaceholder": "Mind. 5 Zeichen — wird protokolliert.",
+    "confirm": "Stornieren",
+    "success": "Gutschein storniert."
+  },
+  "create": {
+    "heading": "Neuer Gutschein",
+    "amount": "Betrag",
+    "currency": "Währung",
+    "expiryMode": "Gültigkeit",
+    "expiryDefaultYear": "Standard: 1 Jahr ab jetzt",
+    "expiryCustom": "Eigenes Ablaufdatum",
+    "expiresAt": "Gültig bis (UTC)",
+    "note": "Interne Notiz (optional)",
+    "submit": "Ausgeben",
+    "successTitle": "Gutschein erstellt",
+    "plaintextWarning": "Der Klartext-Code wird nur dieses eine Mal angezeigt. Bitte notieren oder kopieren.",
+    "plaintextLabel": "Gutscheincode",
+    "copy": "Kopieren",
+    "goToList": "Zur Übersicht",
+    "viewDetail": "Details anzeigen",
+    "permissionDenied": "Keine Berechtigung zum Erstellen von Gutscheinen."
+  },
+  "errors": {
+    "loadFailed": "Daten konnten nicht geladen werden.",
+    "createFailed": "Erstellung fehlgeschlagen.",
+    "cancelFailed": "Stornierung fehlgeschlagen."
+  }
+}

@@ -24,7 +24,12 @@ import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypogr
 import { formatPrice } from '../utils/formatPrice';
 import { useAuth } from '../contexts/AuthContext';
 import { usePayment } from '../hooks/usePayment';
-import { paymentService, PaymentRequest, PaymentItem } from '../services/api/paymentService';
+import {
+  paymentService,
+  PaymentRequest,
+  PaymentItem,
+  type VoucherValidateSuccess,
+} from '../services/api/paymentService';
 import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 import { cartService } from '../services/api/cartService';
 import { customerService, isWalkInCustomerId, type BenefitEligibilityPreviewResponse } from '../services/api/customerService';
@@ -74,6 +79,12 @@ function formatBlockedReason(
   };
   const key = known[code];
   return key ? t(key) : t('checkout:posFlow.benefit.blockedReasons.fallback');
+}
+
+function parseLocaleDecimal(input: string): number {
+  const s = input.trim().replace(',', '.');
+  if (!s) return NaN;
+  return parseFloat(s);
 }
 
 /** ReceiptDTO veya payment response'taki receipt → ReceiptSummary formatı. */
@@ -202,6 +213,15 @@ export default function PaymentModal({
   /** Prevents double-submit during async work before purchaseState becomes 'processing'. */
   const [paymentBusy, setPaymentBusy] = useState(false);
 
+  /** Gutschein: code, validate snapshot, redeem amount (must match fiscal total for single-code flow). */
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherRedeemAmountStr, setVoucherRedeemAmountStr] = useState('');
+  const [voucherSnapshot, setVoucherSnapshot] = useState<VoucherValidateSuccess | null>(null);
+  const [validatedVoucherCode, setValidatedVoucherCode] = useState<string | null>(null);
+  const [voucherCheckLoading, setVoucherCheckLoading] = useState(false);
+  const [voucherLocalError, setVoucherLocalError] = useState<string | null>(null);
+  const voucherValidatedTotalRef = useRef<number | null>(null);
+
   /** Eligibility preview: read-only UI info. Only when customer selected (not guest) and cart has items. */
   const [eligibilityPreview, setEligibilityPreview] = useState<BenefitEligibilityPreviewResponse | null>(null);
   const [eligibilityPreviewLoading, setEligibilityPreviewLoading] = useState(false);
@@ -265,6 +285,7 @@ export default function PaymentModal({
     error,
     paymentMethods,
     getPaymentMethods,
+    validateVoucher,
     processPayment,
     clearError
   } = usePayment();
@@ -284,6 +305,16 @@ export default function PaymentModal({
   }, [cartItems]);
 
   const totalAmount = grandTotalGross ?? calculatedCartItems.reduce((sum, item) => sum + item.lineTotal, 0);
+
+  const resetVoucherUi = () => {
+    setVoucherCode('');
+    setVoucherRedeemAmountStr('');
+    setVoucherSnapshot(null);
+    setValidatedVoucherCode(null);
+    setVoucherLocalError(null);
+    setVoucherCheckLoading(false);
+    voucherValidatedTotalRef.current = null;
+  };
 
   const changeAmount = parseFloat(amountReceived) - totalAmount;
 
@@ -310,10 +341,27 @@ export default function PaymentModal({
    * Block Zahlen until register gate passes + in-flight payment (paymentBusy / processing).
    * Omit hook `loading`: it can block unrelated actions and caused silent early-return in handlePayment without matching disabled state in edge races.
    */
+  const voucherReady =
+    selectedPaymentMethod !== 'voucher' ||
+    (!!voucherSnapshot &&
+      !!validatedVoucherCode &&
+      validatedVoucherCode.trim() === voucherCode.trim() &&
+      voucherSnapshot.remainingAmount + 0.009 >= totalAmount &&
+      voucherValidatedTotalRef.current != null &&
+      Math.abs(voucherValidatedTotalRef.current - totalAmount) <= 0.02);
+
+  const voucherRedeemParsed = parseLocaleDecimal(voucherRedeemAmountStr);
+  const voucherAmountMatchesTotal =
+    selectedPaymentMethod !== 'voucher' ||
+    (Number.isFinite(voucherRedeemParsed) &&
+      Math.abs(voucherRedeemParsed - totalAmount) <= 0.02 &&
+      (!voucherSnapshot || voucherRedeemParsed <= voucherSnapshot.remainingAmount + 0.02));
+
   const paySubmitDisabled =
     purchaseState === 'processing' ||
     paymentBusy ||
-    isRegisterGateBlockingPayment;
+    isRegisterGateBlockingPayment ||
+    (selectedPaymentMethod === 'voucher' && (!voucherReady || !voucherAmountMatchesTotal));
 
   const showPayWorking = purchaseState === 'processing' || paymentBusy;
 
@@ -375,6 +423,19 @@ export default function PaymentModal({
     const def = paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0];
     if (def) setSelectedPaymentMethod(def.type);
   }, [visible, paymentMethods, selectedPaymentMethod]);
+
+  /** Cart total changed after voucher validation — require a new check (keep typed code). */
+  useEffect(() => {
+    if (!visible) return;
+    if (selectedPaymentMethod !== 'voucher' || !voucherSnapshot || voucherValidatedTotalRef.current == null) return;
+    if (Math.abs(voucherValidatedTotalRef.current - totalAmount) > 0.02) {
+      setVoucherSnapshot(null);
+      setValidatedVoucherCode(null);
+      voucherValidatedTotalRef.current = null;
+      setVoucherRedeemAmountStr('');
+      setVoucherLocalError(t('checkout:posFlow.payment.voucher.totalChangedHint'));
+    }
+  }, [totalAmount, visible, selectedPaymentMethod, voucherSnapshot, t]);
 
   // Eligibility preview: only when customer selected (not guest), cart has items, and modal visible. Race-safe.
   const shouldFetchEligibility =
@@ -550,6 +611,48 @@ export default function PaymentModal({
     setAmountReceived(amount.toString());
   };
 
+  const handleVoucherCheck = async () => {
+    const trimmed = voucherCode.trim();
+    if (!trimmed) {
+      setVoucherLocalError(t('checkout:posFlow.payment.voucher.invalid'));
+      return;
+    }
+    setVoucherCheckLoading(true);
+    setVoucherLocalError(null);
+    try {
+      const r = await validateVoucher(trimmed, totalAmount > 0 ? totalAmount : undefined);
+      if (!r.ok) {
+        const code = (r.errorCode ?? '').toUpperCase();
+        let msg = t('checkout:posFlow.payment.voucher.invalid');
+        if (code === 'EXPIRED') msg = t('checkout:posFlow.payment.voucher.expired');
+        else if (code === 'CANCELLED') msg = t('checkout:posFlow.payment.voucher.cancelled');
+        else if (code === 'REDEEMED') msg = t('checkout:posFlow.payment.voucher.redeemed');
+        else if (code === 'NOT_YET_VALID') msg = t('checkout:posFlow.payment.voucher.notYetValid');
+        else if (code === 'NOT_FOUND') msg = t('checkout:posFlow.payment.voucher.notFound');
+        else if (code === 'NETWORK') msg = t('checkout:posFlow.payment.voucher.networkError');
+        else if (r.message) msg = r.message;
+        setVoucherLocalError(msg);
+        setVoucherSnapshot(null);
+        setValidatedVoucherCode(null);
+        voucherValidatedTotalRef.current = null;
+        return;
+      }
+      if (r.remainingAmount + 0.009 < totalAmount) {
+        setVoucherLocalError(t('checkout:posFlow.payment.voucher.insufficient'));
+        setVoucherSnapshot(null);
+        setValidatedVoucherCode(null);
+        voucherValidatedTotalRef.current = null;
+        return;
+      }
+      setVoucherSnapshot(r);
+      setValidatedVoucherCode(trimmed);
+      setVoucherRedeemAmountStr(totalAmount.toFixed(2));
+      voucherValidatedTotalRef.current = totalAmount;
+    } finally {
+      setVoucherCheckLoading(false);
+    }
+  };
+
   // Ödeme işlemi
   const handlePayment = async () => {
     debugPosPaymentTrace('submit_clicked', {
@@ -584,6 +687,38 @@ export default function PaymentModal({
           Alert.alert(
             t('checkout:posFlow.payment.alerts.hintTitle'),
             t('checkout:posFlow.payment.errors.insufficientAmount')
+          );
+          return;
+        }
+      }
+
+      if (selectedPaymentMethod === 'voucher') {
+        if (!voucherSnapshot || validatedVoucherCode?.trim() !== voucherCode.trim()) {
+          Alert.alert(
+            t('checkout:posFlow.payment.alerts.hintTitle'),
+            t('checkout:posFlow.payment.voucher.invalid')
+          );
+          return;
+        }
+        if (voucherSnapshot.remainingAmount + 0.009 < totalAmount) {
+          Alert.alert(
+            t('checkout:posFlow.payment.alerts.hintTitle'),
+            t('checkout:posFlow.payment.voucher.insufficient')
+          );
+          return;
+        }
+        const vr = parseLocaleDecimal(voucherRedeemAmountStr);
+        if (!Number.isFinite(vr) || Math.abs(vr - totalAmount) > 0.02) {
+          Alert.alert(
+            t('checkout:posFlow.payment.alerts.hintTitle'),
+            t('checkout:posFlow.payment.voucher.amountMustMatchTotal')
+          );
+          return;
+        }
+        if (vr > voucherSnapshot.remainingAmount + 0.02) {
+          Alert.alert(
+            t('checkout:posFlow.payment.alerts.hintTitle'),
+            t('checkout:posFlow.payment.voucher.insufficient')
           );
           return;
         }
@@ -660,7 +795,8 @@ export default function PaymentModal({
         payment: {
           method: selectedPaymentMethod,
           tseRequired: shouldRequireTse,
-          amount: requiresCashAmount ? parseFloat(amountReceived) : undefined
+          amount: requiresCashAmount ? parseFloat(amountReceived) : undefined,
+          ...(selectedPaymentMethod === 'voucher' ? { voucherCode: voucherCode.trim() } : {}),
         },
         tableNumber: resolvedTableNumber,
         totalAmount: totalAmount,
@@ -819,6 +955,7 @@ export default function PaymentModal({
   // Modal kapat
   const handleClose = () => {
     clearError();
+    resetVoucherUi();
     setSelectedPaymentMethod('cash');
     setAmountReceived('');
     setNotes('');
@@ -1003,7 +1140,14 @@ export default function PaymentModal({
                           isSelected && styles.selectedPaymentMethod,
                           pressed && SoftState.pressedScale,
                         ]}
-                        onPress={() => setSelectedPaymentMethod(method.type)}
+                        onPress={() => {
+                          if (method.type !== selectedPaymentMethod) {
+                            if (method.type === 'voucher' || selectedPaymentMethod === 'voucher') {
+                              resetVoucherUi();
+                            }
+                            setSelectedPaymentMethod(method.type);
+                          }
+                        }}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected }}
                         accessibilityLabel={`${method.name}${isSelected ? ', ausgewählt' : ''}`}
@@ -1087,6 +1231,102 @@ export default function PaymentModal({
               </View>
             )}
 
+            {selectedPaymentMethod === 'voucher' && (
+              <View style={styles.section}>
+                <Text style={styles.stepLabel}>3</Text>
+                <Text style={styles.sectionTitle}>Gutschein</Text>
+                <Text style={styles.voucherFieldLabel}>{t('checkout:posFlow.payment.voucher.codeLabel')}</Text>
+                <TextInput
+                  style={styles.voucherCodeInput}
+                  value={voucherCode}
+                  onChangeText={(v) => {
+                    setVoucherCode(v);
+                    setVoucherLocalError(null);
+                    const nextTrim = v.trim();
+                    if (
+                      voucherSnapshot &&
+                      validatedVoucherCode != null &&
+                      nextTrim !== validatedVoucherCode.trim()
+                    ) {
+                      setVoucherSnapshot(null);
+                      setValidatedVoucherCode(null);
+                      voucherValidatedTotalRef.current = null;
+                      setVoucherRedeemAmountStr('');
+                    }
+                  }}
+                  placeholder={t('checkout:posFlow.payment.voucher.codeLabel')}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  editable={!voucherCheckLoading}
+                  accessibilityLabel={t('checkout:posFlow.payment.voucher.codeLabel')}
+                />
+                <Pressable
+                  onPress={handleVoucherCheck}
+                  disabled={voucherCheckLoading}
+                  style={({ pressed }) => [
+                    styles.voucherCheckButton,
+                    voucherCheckLoading && styles.voucherCheckButtonDisabled,
+                    pressed && !voucherCheckLoading && SoftState.pressedScale,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('checkout:posFlow.payment.voucher.checkButton')}
+                >
+                  {voucherCheckLoading ? (
+                    <View style={styles.voucherCheckButtonInner}>
+                      <ActivityIndicator size="small" color={SoftColors.accent} />
+                      <Text style={styles.voucherCheckButtonText}>{t('checkout:posFlow.payment.voucher.checking')}</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.voucherCheckButtonText}>{t('checkout:posFlow.payment.voucher.checkButton')}</Text>
+                  )}
+                </Pressable>
+                {voucherSnapshot ? (
+                  <View style={styles.voucherInfoBlock}>
+                    <Text style={styles.voucherInfoLine}>
+                      {t('checkout:posFlow.payment.voucher.balanceLabel')}: {formatPrice(voucherSnapshot.remainingAmount)}
+                    </Text>
+                    <Text style={styles.voucherInfoLine}>
+                      {t('checkout:posFlow.payment.voucher.maxUsableLabel')}:{' '}
+                      {formatPrice(voucherSnapshot.maxRedeemableAmount)}
+                    </Text>
+                    <Text style={styles.voucherMuted}>
+                      {t('checkout:posFlow.payment.voucher.maskedHint', { masked: voucherSnapshot.maskedCode })}
+                    </Text>
+                    {(() => {
+                      const exp = new Date(voucherSnapshot.expiresAtUtc);
+                      if (Number.isNaN(exp.getTime())) return null;
+                      return (
+                        <Text style={styles.voucherMuted}>
+                          {t('checkout:posFlow.payment.voucher.expiresHint', {
+                            date: exp.toLocaleDateString(
+                              getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language),
+                              { day: '2-digit', month: '2-digit', year: 'numeric' }
+                            ),
+                          })}
+                        </Text>
+                      );
+                    })()}
+                  </View>
+                ) : null}
+                <View style={styles.inputRow}>
+                  <Text style={styles.label}>{t('checkout:posFlow.payment.voucher.redeemAmountLabel')}</Text>
+                  <TextInput
+                    style={styles.amountInput}
+                    value={voucherRedeemAmountStr}
+                    onChangeText={setVoucherRedeemAmountStr}
+                    placeholder={t('checkout:posFlow.payment.placeholderAmount')}
+                    keyboardType="decimal-pad"
+                    editable={!!voucherSnapshot && validatedVoucherCode?.trim() === voucherCode.trim()}
+                    accessibilityLabel={t('checkout:posFlow.payment.voucher.redeemAmountLabel')}
+                  />
+                </View>
+                {voucherLocalError ? <Text style={styles.voucherInlineError}>{voucherLocalError}</Text> : null}
+                {voucherSnapshot && validatedVoucherCode?.trim() === voucherCode.trim() ? (
+                  <Text style={styles.voucherMuted}>{t('checkout:posFlow.payment.voucher.changeCodeHint')}</Text>
+                ) : null}
+              </View>
+            )}
+
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Notizen</Text>
               <TextInput
@@ -1167,7 +1407,9 @@ export default function PaymentModal({
                     </View>
                   ) : (
                     <Text style={styles.payButtonText}>
-                      {formatPrice(totalAmount)} zahlen
+                      {selectedPaymentMethod === 'voucher' && voucherReady && voucherAmountMatchesTotal
+                        ? t('checkout:posFlow.payment.voucher.payCta', { amount: formatPrice(totalAmount) })
+                        : `${formatPrice(totalAmount)} zahlen`}
                     </Text>
                   )}
                 </Pressable>
@@ -1625,6 +1867,61 @@ const styles = StyleSheet.create({
   presetButtonTextSelected: {
     color: SoftColors.accentDark,
     fontWeight: '700',
+  },
+  voucherFieldLabel: {
+    ...SoftTypography.label,
+    color: SoftColors.textPrimary,
+    marginBottom: SoftSpacing.xs,
+  },
+  voucherCodeInput: {
+    borderWidth: 1,
+    borderColor: SoftColors.border,
+    borderRadius: SoftRadius.md,
+    padding: SoftSpacing.sm,
+    ...SoftTypography.body,
+    color: SoftColors.textPrimary,
+    marginBottom: SoftSpacing.sm,
+  },
+  voucherCheckButton: {
+    alignSelf: 'flex-start',
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    borderWidth: 2,
+    borderColor: SoftColors.accent,
+    backgroundColor: SoftColors.accentLight,
+    marginBottom: SoftSpacing.sm,
+  },
+  voucherCheckButtonDisabled: {
+    opacity: 0.6,
+  },
+  voucherCheckButtonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SoftSpacing.sm,
+  },
+  voucherCheckButtonText: {
+    ...SoftTypography.label,
+    color: SoftColors.accentDark,
+    fontWeight: '600',
+  },
+  voucherInfoBlock: {
+    marginBottom: SoftSpacing.sm,
+    gap: 4,
+  },
+  voucherInfoLine: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textPrimary,
+  },
+  voucherMuted: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    marginTop: 2,
+  },
+  voucherInlineError: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.error,
+    marginTop: SoftSpacing.xs,
   },
   footerSecondary: {
     flexDirection: 'column',

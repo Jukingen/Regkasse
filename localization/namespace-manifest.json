@@ -45,6 +45,7 @@
         "receipts",
         "receiptTemplates",
         "payments",
+        "vouchers",
         "tagesabschluss",
         "reporting",
         "modifierGroups",

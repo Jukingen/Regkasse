@@ -18,6 +18,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/invoices': PERMISSIONS.INVOICE_VIEW,
   '/orders': PERMISSIONS.ORDER_VIEW,
   '/payments': PERMISSIONS.PAYMENT_VIEW,
+  '/vouchers/new': PERMISSIONS.VOUCHER_CREATE,
+  '/vouchers': PERMISSIONS.VOUCHER_READ,
   '/reporting': PERMISSIONS.REPORT_VIEW,
   '/reporting/report-center': PERMISSIONS.REPORT_VIEW,
   '/reporting/staff': PERMISSIONS.REPORT_VIEW,

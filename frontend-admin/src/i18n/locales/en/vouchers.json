@@ -1,0 +1,86 @@
+{
+  "title": "Vouchers",
+  "list": {
+    "heading": "Vouchers",
+    "searchPlaceholder": "Search code hint…",
+    "searchButton": "Search",
+    "columns": {
+      "maskedCode": "Code hint",
+      "initialAmount": "Initial amount",
+      "remainingAmount": "Remaining",
+      "currency": "Currency",
+      "status": "Status",
+      "validFrom": "Valid from",
+      "expiresAt": "Expires",
+      "createdBy": "Created by",
+      "createdAt": "Created at",
+      "actions": "Actions"
+    },
+    "open": "Details",
+    "create": "New voucher",
+    "empty": "No vouchers found.",
+    "permissionDenied": "You do not have permission to view vouchers."
+  },
+  "status": {
+    "Active": "Active",
+    "PartiallyRedeemed": "Partially redeemed",
+    "Redeemed": "Redeemed",
+    "Cancelled": "Cancelled",
+    "Expired": "Expired"
+  },
+  "ledger": {
+    "title": "Ledger",
+    "type": "Type",
+    "amount": "Amount",
+    "balanceAfter": "Balance after",
+    "paymentId": "Payment",
+    "receiptNumber": "Receipt no.",
+    "createdAt": "Time",
+    "createdBy": "User",
+    "typeIssue": "Issue",
+    "typeRedeem": "Redeem",
+    "typeRefund": "Refund",
+    "typeCancel": "Cancel",
+    "typeExpire": "Expire",
+    "empty": "No ledger entries.",
+    "permissionDenied": "You do not have permission to view the ledger."
+  },
+  "detail": {
+    "heading": "Voucher",
+    "back": "Back to list",
+    "cancel": "Cancel voucher",
+    "internalNote": "Internal note",
+    "cancellationReason": "Cancellation reason",
+    "cancelledAt": "Cancelled at"
+  },
+  "cancel": {
+    "title": "Cancel voucher",
+    "reasonLabel": "Reason (required)",
+    "reasonPlaceholder": "At least 5 characters — will be recorded.",
+    "confirm": "Cancel voucher",
+    "success": "Voucher cancelled."
+  },
+  "create": {
+    "heading": "New voucher",
+    "amount": "Amount",
+    "currency": "Currency",
+    "expiryMode": "Validity",
+    "expiryDefaultYear": "Default: 1 year from now",
+    "expiryCustom": "Custom expiry date",
+    "expiresAt": "Expires at (UTC)",
+    "note": "Internal note (optional)",
+    "submit": "Issue",
+    "successTitle": "Voucher created",
+    "plaintextWarning": "The plaintext code is shown only once. Copy or note it now.",
+    "plaintextLabel": "Voucher code",
+    "copy": "Copy",
+    "goToList": "Back to list",
+    "viewDetail": "View details",
+    "permissionDenied": "You do not have permission to create vouchers."
+  },
+  "errors": {
+    "loadFailed": "Could not load data.",
+    "createFailed": "Creation failed.",
+    "cancelFailed": "Cancellation failed."
+  }
+}

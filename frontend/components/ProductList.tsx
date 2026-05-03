@@ -294,14 +294,16 @@ export const ProductList: React.FC<ProductListProps> = ({
     );
   }
 
+  const listNumColumns = viewMode === 'grid' ? getGridColumns() : 1;
+
   return (
     <View style={styles.container}>
       <FlatList
         data={products}
         renderItem={viewMode === 'grid' ? renderGridProduct : renderListProduct}
         keyExtractor={(item) => item.id || Math.random().toString()}
-        numColumns={viewMode === 'grid' ? getGridColumns() : 1}
-        key={viewMode}
+        numColumns={listNumColumns}
+        key={`products-${viewMode}-${listNumColumns}`}
         keyboardShouldPersistTaps="handled"
         removeClippedSubviews={false}
         contentContainerStyle={[

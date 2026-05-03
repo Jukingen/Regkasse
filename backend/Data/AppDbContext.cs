@@ -59,6 +59,12 @@ namespace KasseAPI_Final.Data
         public DbSet<AuthSession> AuthSessions { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<UserTenantMembership> UserTenantMemberships { get; set; }
+
+        /// <summary>Tenant-scoped vouchers (Gutscheine); codes stored hashed only.</summary>
+        public DbSet<Voucher> Vouchers { get; set; }
+
+        /// <summary>Append-only ledger for voucher balance changes.</summary>
+        public DbSet<VoucherLedgerEntry> VoucherLedgerEntries { get; set; }
         
         // Masa siparişleri için yeni tablolar
         public DbSet<TableOrder> TableOrders { get; set; }
@@ -1602,6 +1608,83 @@ namespace KasseAPI_Final.Data
                     .HasDatabaseName("ux_restore_verification_runs_idempotency_key")
                     .HasFilter("idempotency_key IS NOT NULL");
                 entity.Property(e => e.PostRestoreL4ContinuityProofState).HasConversion<int>();
+            });
+
+            // Vouchers (Gutscheine): configured last so FK delete behaviors are not overridden by model conventions.
+            builder.Entity<Voucher>(entity =>
+            {
+                entity.ToTable("vouchers");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.CodeHash).HasColumnName("code_hash").IsRequired().HasMaxLength(64);
+                entity.Property(e => e.MaskedCode).HasColumnName("masked_code").IsRequired().HasMaxLength(32);
+                entity.Property(e => e.InitialAmount).HasColumnName("initial_amount").HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.RemainingAmount).HasColumnName("remaining_amount").HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.Currency).HasColumnName("currency").IsRequired().HasMaxLength(3);
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasConversion<int>();
+                entity.Property(e => e.ValidFromUtc).HasColumnName("valid_from_utc").IsRequired();
+                entity.Property(e => e.ExpiresAtUtc).HasColumnName("expires_at_utc").IsRequired();
+                entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+                entity.Property(e => e.CancelledAtUtc).HasColumnName("cancelled_at_utc");
+                entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason").HasMaxLength(500);
+                entity.Property(e => e.InternalNote).HasColumnName("internal_note").HasMaxLength(500);
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.ExpiresAtUtc);
+                entity.HasIndex(e => e.CodeHash);
+                entity.HasIndex(e => new { e.TenantId, e.CodeHash }).IsUnique();
+                entity.HasIndex(e => e.CreatedAtUtc);
+            });
+
+            builder.Entity<VoucherLedgerEntry>(entity =>
+            {
+                entity.ToTable("voucher_ledger_entries");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.VoucherId).HasColumnName("voucher_id").IsRequired();
+                entity.Property(e => e.PaymentId).HasColumnName("payment_id");
+                entity.Property(e => e.ReceiptId).HasColumnName("receipt_id");
+                entity.Property(e => e.Type).HasColumnName("type").IsRequired().HasConversion<int>();
+                entity.Property(e => e.Amount).HasColumnName("amount").HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.BalanceAfter).HasColumnName("balance_after").HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+                entity.Property(e => e.CorrelationId).HasColumnName("correlation_id").HasMaxLength(100);
+                entity.Property(e => e.IdempotencyKey).HasColumnName("idempotency_key").HasMaxLength(128);
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Voucher)
+                    .WithMany(v => v.LedgerEntries)
+                    .HasForeignKey(e => e.VoucherId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Payment)
+                    .WithMany()
+                    .HasForeignKey(e => e.PaymentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.Receipt)
+                    .WithMany()
+                    .HasForeignKey(e => e.ReceiptId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.VoucherId);
+                entity.HasIndex(e => e.PaymentId);
+                entity.HasIndex(e => e.ReceiptId);
+                entity.HasIndex(e => e.CreatedAtUtc);
+                entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
             });
 
             Console.WriteLine("AppDbContext model configuration completed with TableOrder support");

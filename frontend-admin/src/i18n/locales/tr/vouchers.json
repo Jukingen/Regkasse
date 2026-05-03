@@ -1,0 +1,86 @@
+{
+  "title": "Hediye çekleri",
+  "list": {
+    "heading": "Hediye çekleri",
+    "searchPlaceholder": "Kod ipucu ara…",
+    "searchButton": "Ara",
+    "columns": {
+      "maskedCode": "Kod ipucu",
+      "initialAmount": "Başlangıç tutarı",
+      "remainingAmount": "Kalan",
+      "currency": "Para birimi",
+      "status": "Durum",
+      "validFrom": "Geçerlilik başı",
+      "expiresAt": "Bitiş",
+      "createdBy": "Oluşturan",
+      "createdAt": "Oluşturulma",
+      "actions": "İşlemler"
+    },
+    "open": "Detay",
+    "create": "Yeni hediye çeki",
+    "empty": "Kayıt bulunamadı.",
+    "permissionDenied": "Hediye çeklerini görüntüleme yetkiniz yok."
+  },
+  "status": {
+    "Active": "Aktif",
+    "PartiallyRedeemed": "Kısmen kullanıldı",
+    "Redeemed": "Kullanıldı",
+    "Cancelled": "İptal",
+    "Expired": "Süresi doldu"
+  },
+  "ledger": {
+    "title": "Defter kayıtları",
+    "type": "Tür",
+    "amount": "Tutar",
+    "balanceAfter": "Son bakiye",
+    "paymentId": "Ödeme",
+    "receiptNumber": "Fiş no.",
+    "createdAt": "Zaman",
+    "createdBy": "Kullanıcı",
+    "typeIssue": "Çıkış",
+    "typeRedeem": "Kullanım",
+    "typeRefund": "İade",
+    "typeCancel": "İptal",
+    "typeExpire": "Süre",
+    "empty": "Kayıt yok.",
+    "permissionDenied": "Defter görüntüleme yetkiniz yok."
+  },
+  "detail": {
+    "heading": "Hediye çeki",
+    "back": "Listeye dön",
+    "cancel": "Hediye çekini iptal et",
+    "internalNote": "Dahili not",
+    "cancellationReason": "İptal nedeni",
+    "cancelledAt": "İptal zamanı"
+  },
+  "cancel": {
+    "title": "Hediye çekini iptal et",
+    "reasonLabel": "Neden (zorunlu)",
+    "reasonPlaceholder": "En az 5 karakter — kaydedilir.",
+    "confirm": "İptal et",
+    "success": "Hediye çeki iptal edildi."
+  },
+  "create": {
+    "heading": "Yeni hediye çeki",
+    "amount": "Tutar",
+    "currency": "Para birimi",
+    "expiryMode": "Geçerlilik",
+    "expiryDefaultYear": "Varsayılan: şu andan 1 yıl",
+    "expiryCustom": "Özel bitiş tarihi",
+    "expiresAt": "Bitiş (UTC)",
+    "note": "Dahili not (isteğe bağlı)",
+    "submit": "Oluştur",
+    "successTitle": "Hediye çeki oluşturuldu",
+    "plaintextWarning": "Düz metin kod yalnızca bir kez gösterilir. Kopyalayın veya not alın.",
+    "plaintextLabel": "Hediye çeki kodu",
+    "copy": "Kopyala",
+    "goToList": "Listeye dön",
+    "viewDetail": "Detayı aç",
+    "permissionDenied": "Hediye çeki oluşturma yetkiniz yok."
+  },
+  "errors": {
+    "loadFailed": "Veriler yüklenemedi.",
+    "createFailed": "Oluşturma başarısız.",
+    "cancelFailed": "İptal başarısız."
+  }
+}

@@ -63,6 +63,12 @@ public static class AppPermissions
     public const string BenefitView = "benefit.view";
     public const string BenefitManage = "benefit.manage";
 
+    // --- Vouchers (Gutscheine, admin back-office) ---
+    public const string VoucherRead = "voucher.read";
+    public const string VoucherCreate = "voucher.create";
+    public const string VoucherCancel = "voucher.cancel";
+    public const string VoucherAuditView = "voucher.audit.view";
+
     // --- Inventory, Customer ---
     public const string InventoryView = "inventory.view";
     public const string InventoryManage = "inventory.manage";

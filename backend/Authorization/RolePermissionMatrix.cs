@@ -80,6 +80,10 @@ public static class RolePermissionMatrix
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
+                AppPermissions.VoucherRead,
+                AppPermissions.VoucherCreate,
+                AppPermissions.VoucherCancel,
+                AppPermissions.VoucherAuditView,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Cashier] = new[]

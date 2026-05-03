@@ -14,7 +14,13 @@ const SEQUENCE_MAP_KEY = '@regkasse/client_sequence_map_v1';
 export interface PendingPaymentPayload {
   customerId: string;
   items: { productId: string; quantity: number; taxType: string }[];
-  payment: { method: string; tseRequired: boolean; amount?: number };
+  payment: {
+    method: string;
+    tseRequired: boolean;
+    amount?: number;
+    voucherCode?: string;
+    voucherRedemptions?: { code: string; amount: number }[];
+  };
   tableNumber: number;
   totalAmount: number;
   cashRegisterId: string;

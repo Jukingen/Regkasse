@@ -18,6 +18,7 @@ import deBenefits from './locales/de/benefits.json';
 import deCustomers from './locales/de/customers.json';
 import deInvoices from './locales/de/invoices.json';
 import deBackupDr from './locales/de/backupDr.json';
+import deVouchers from './locales/de/vouchers.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -38,6 +39,7 @@ import enBenefits from './locales/en/benefits.json';
 import enCustomers from './locales/en/customers.json';
 import enInvoices from './locales/en/invoices.json';
 import enBackupDr from './locales/en/backupDr.json';
+import enVouchers from './locales/en/vouchers.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
@@ -58,6 +60,7 @@ import trBenefits from './locales/tr/benefits.json';
 import trCustomers from './locales/tr/customers.json';
 import trInvoices from './locales/tr/invoices.json';
 import trBackupDr from './locales/tr/backupDr.json';
+import trVouchers from './locales/tr/vouchers.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -92,6 +95,7 @@ const catalogs = {
     customers: deCustomers,
     invoices: deInvoices,
     backupDr: deBackupDr,
+    vouchers: deVouchers,
   },
   en: {
     adminShell: enAdminShell,
@@ -114,6 +118,7 @@ const catalogs = {
     customers: enCustomers,
     invoices: enInvoices,
     backupDr: enBackupDr,
+    vouchers: enVouchers,
   },
   tr: {
     adminShell: trAdminShell,
@@ -136,6 +141,7 @@ const catalogs = {
     customers: trCustomers,
     invoices: trInvoices,
     backupDr: trBackupDr,
+    vouchers: trVouchers,
   },
 } as const;
 

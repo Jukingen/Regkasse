@@ -1,5 +1,11 @@
 import { useState, useCallback } from 'react';
-import { paymentService, PaymentRequest, PaymentResponse, PaymentMethod } from '../services/api/paymentService';
+import {
+  paymentService,
+  PaymentRequest,
+  PaymentResponse,
+  PaymentMethod,
+  type VoucherValidateResult,
+} from '../services/api/paymentService';
 import { getPaymentErrorDisplayMessage, normalizePaymentError } from '../features/payment/paymentErrors';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 import { sessionManager } from '../services/session/sessionManager';
@@ -35,6 +41,14 @@ export const usePayment = () => {
     } finally {
       setMethodsLoading(false);
     }
+  }, []);
+
+  const validateVoucher = useCallback(async (voucherCode: string, amount?: number): Promise<VoucherValidateResult> => {
+    const token = await sessionManager.getAccessToken();
+    if (!token) {
+      return { ok: false, errorCode: 'NO_TOKEN', message: 'Nicht angemeldet.' };
+    }
+    return paymentService.validateVoucher(voucherCode, amount);
   }, []);
 
   // Ödeme işlemi
@@ -144,6 +158,7 @@ export const usePayment = () => {
     error,
     paymentMethods,
     getPaymentMethods,
+    validateVoucher,
     processPayment,
     createReceipt,
     cancelPayment,

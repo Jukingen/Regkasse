@@ -4,6 +4,7 @@ import { sessionManager } from '../session/sessionManager';
 import {
   POS_PAYMENT_API_PREFIX,
   POS_PAYMENT_METHODS_PATH,
+  POS_VOUCHERS_VALIDATE_PATH,
   posPaymentByIdPath,
   posPaymentQrPngAbsoluteUrl,
 } from './posPaymentPaths';
@@ -33,6 +34,26 @@ export type PaymentMethod = NormalizedPosPaymentMethod;
 /** String sent in `payment.method` on POST /api/pos/payment — stable code from admin / GET methods. */
 export type PosPaymentMethodCode = string;
 
+export type VoucherRedemptionPayloadItem = { code: string; amount: number };
+
+/** POST /api/pos/vouchers/validate — success shape matches backend `VoucherValidateResponse`. */
+export type VoucherValidateSuccess = {
+  ok: true;
+  status: string;
+  remainingAmount: number;
+  maxRedeemableAmount: number;
+  expiresAtUtc: string;
+  maskedCode: string;
+};
+
+export type VoucherValidateFailure = {
+  ok: false;
+  errorCode?: string;
+  message?: string;
+};
+
+export type VoucherValidateResult = VoucherValidateSuccess | VoucherValidateFailure;
+
 // Backend PaymentItemRequest: one item per cart line. Phase D: POS does not send modifierIds; add-ons are separate lines.
 export interface PaymentItem {
   productId: string;
@@ -48,6 +69,10 @@ export interface PaymentRequest {
     method: string;
     tseRequired: boolean;
     amount?: number; // Opsiyonel
+    /** Plaintext; only for method=voucher (single-code path). Never stored server-side on payment row. */
+    voucherCode?: string;
+    /** Multi-voucher split; amounts must sum to fiscal total when used instead of voucherCode. */
+    voucherRedemptions?: VoucherRedemptionPayloadItem[];
   };
   tableNumber: number;
   totalAmount: number;
@@ -131,9 +156,62 @@ export interface Receipt {
   cashierId: string;
 }
 
+function unwrapVoucherValidateBody(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw;
+  const r = raw as Record<string, unknown>;
+  return r.data ?? r.value ?? r.Value ?? raw;
+}
+
 class PaymentService {
   /** All payment HTTP uses `/api/pos/payment` — see `posPaymentPaths.ts` (canonical POS boundary). */
   private readonly baseUrl = POS_PAYMENT_API_PREFIX;
+
+  /**
+   * Validates a Gutschein for the current tenant (read-only).
+   * Maps HTTP errors to `ok: false` with German-safe messages from caller/i18n.
+   */
+  async validateVoucher(voucherCode: string, amount?: number): Promise<VoucherValidateResult> {
+    const trimmed = voucherCode?.trim() ?? '';
+    try {
+      const raw = await apiClient.post<unknown>(POS_VOUCHERS_VALIDATE_PATH, {
+        voucherCode: trimmed,
+        amount: amount != null && amount > 0 ? amount : undefined,
+      });
+      const d = unwrapVoucherValidateBody(raw) as Record<string, unknown> | null;
+      if (d && d.ok === true) {
+        return {
+          ok: true,
+          status: String(d.status ?? ''),
+          remainingAmount: Number(d.remainingAmount ?? 0),
+          maxRedeemableAmount: Number(d.maxRedeemableAmount ?? d.remainingAmount ?? 0),
+          expiresAtUtc: String(d.expiresAtUtc ?? ''),
+          maskedCode: String(d.maskedCode ?? ''),
+        };
+      }
+      return {
+        ok: false,
+        errorCode: typeof d?.errorCode === 'string' ? d.errorCode : undefined,
+        message: typeof d?.message === 'string' ? d.message : undefined,
+      };
+    } catch (err: unknown) {
+      const e = err as { status?: number; data?: unknown; message?: string };
+      const data = e?.data as Record<string, unknown> | undefined;
+      if (data && typeof data === 'object') {
+        if (data.ok === false) {
+          return {
+            ok: false,
+            errorCode: typeof data.errorCode === 'string' ? data.errorCode : undefined,
+            message: typeof data.message === 'string' ? data.message : undefined,
+          };
+        }
+      }
+      return {
+        ok: false,
+        errorCode: e?.status === 404 ? 'NOT_FOUND' : 'NETWORK',
+        message: e?.message,
+      };
+    }
+  }
 
   async getPaymentMethods(): Promise<PaymentMethod[]> {
     const raw = await apiClient.get<unknown>(POS_PAYMENT_METHODS_PATH);
