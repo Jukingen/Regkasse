@@ -43,7 +43,9 @@
     "typeCancel": "Cancel",
     "typeExpire": "Expire",
     "empty": "No ledger entries.",
-    "permissionDenied": "You do not have permission to view the ledger."
+    "permissionDenied": "You do not have permission to view the ledger.",
+    "linkOpenPayments": "Open payments list for this payment ID",
+    "linkOpenReceipts": "Open receipts list filtered by this receipt number"
   },
   "detail": {
     "heading": "Voucher",

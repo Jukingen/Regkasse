@@ -24,6 +24,7 @@ using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text;
+using System.Globalization;
 
 namespace KasseAPI_Final.Services
 {
@@ -514,7 +515,33 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // Catalog authority: legacy value 4 == PaymentMethod.Voucher (same signing policy as other sales when TSE is not globally off).
+                // POS sends method code "voucher". If tenant catalog maps code voucher to a non-voucher legacy value, reject before committing (no silent skip of Gutschein redemption).
+                if (voucherLikelyFromClientMethod
+                    && methodResolution.MatchedPaymentMethodDefinition
+                    && !IsVoucherLegacyPayment(methodResolution.LegacyRaw))
+                {
+                    var expectedLegacy = ((int)PaymentMethod.Voucher).ToString(CultureInfo.InvariantCulture);
+                    _logger.LogError(
+                        "Payment rejected: payment_method_definitions has code voucher but legacy_payment_method_value={Legacy} (expected {Expected}). Fix tenant catalog.",
+                        methodResolution.LegacyRaw,
+                        expectedLegacy);
+                    await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message =
+                            $"Voucher payment method is misconfigured: catalog code \"voucher\" must map to legacy value {expectedLegacy} (PaymentMethod.Voucher).",
+                        Errors =
+                        {
+                            $"Voucher catalog misconfiguration: code voucher must use legacy_payment_method_value {expectedLegacy}."
+                        },
+                        IsDeterministicFailure = true,
+                        DiagnosticCode = "VOUCHER_LEGACY_MISMATCH"
+                    };
+                }
+
+                // Voucher redemption when legacy maps to PaymentMethod.Voucher (4). Method code voucher with mismatched catalog legacy is rejected above.
                 if (IsVoucherLegacyPayment(methodResolution.LegacyRaw))
                 {
                     effectiveTseRequired = !_tseOptions.IsOff;

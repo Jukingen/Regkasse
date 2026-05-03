@@ -38,7 +38,7 @@ public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
     {
         var code = NormalizeCode(methodCode);
         if (string.IsNullOrEmpty(code))
-            return new PaymentMethodResolutionResult(true, "0", null);
+            return new PaymentMethodResolutionResult(true, "0", null, false);
 
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var row = await _context.PaymentMethodDefinitions
@@ -48,11 +48,15 @@ public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
         if (row != null)
         {
             if (!row.IsActive)
-                return new PaymentMethodResolutionResult(false, "0", "This payment method is disabled.");
-            return new PaymentMethodResolutionResult(true, row.LegacyPaymentMethodValue.ToString(CultureInfo.InvariantCulture), null);
+                return new PaymentMethodResolutionResult(false, "0", "This payment method is disabled.", true);
+            return new PaymentMethodResolutionResult(
+                true,
+                row.LegacyPaymentMethodValue.ToString(CultureInfo.InvariantCulture),
+                null,
+                true);
         }
 
-        return new PaymentMethodResolutionResult(true, LegacyFallbackRaw(code), null);
+        return new PaymentMethodResolutionResult(true, LegacyFallbackRaw(code), null, false);
     }
 
     public async Task<string> ResolveRawForFilterAsync(string? methodCode, CancellationToken cancellationToken = default)

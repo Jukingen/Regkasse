@@ -43,7 +43,9 @@
     "typeCancel": "Storno",
     "typeExpire": "Ablauf",
     "empty": "Keine Buchungen.",
-    "permissionDenied": "Keine Berechtigung für den Buchungsverlauf."
+    "permissionDenied": "Keine Berechtigung für den Buchungsverlauf.",
+    "linkOpenPayments": "Zahlungsübersicht mit dieser Zahlungs-ID öffnen",
+    "linkOpenReceipts": "Belegübersicht mit dieser Belegnummer filtern"
   },
   "detail": {
     "heading": "Gutschein",

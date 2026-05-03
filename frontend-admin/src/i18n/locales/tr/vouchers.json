@@ -43,7 +43,9 @@
     "typeCancel": "İptal",
     "typeExpire": "Süre",
     "empty": "Kayıt yok.",
-    "permissionDenied": "Defter görüntüleme yetkiniz yok."
+    "permissionDenied": "Defter görüntüleme yetkiniz yok.",
+    "linkOpenPayments": "Bu ödeme kimliği için ödeme listesini aç",
+    "linkOpenReceipts": "Bu fiş numarasına göre fiş listesini filtrele"
   },
   "detail": {
     "heading": "Hediye çeki",

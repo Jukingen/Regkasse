@@ -819,7 +819,22 @@ export default function PaymentModal({
         totalAmount: paymentRequest.totalAmount,
         idempotencyKey: paymentRequest.idempotencyKey,
       });
-      console.log('[PAYMENT] Request:', JSON.stringify(paymentRequest, null, 2));
+      if (__DEV__) {
+        const p = paymentRequest.payment;
+        const hasVoucherSecret =
+          !!(typeof p.voucherCode === 'string' && p.voucherCode.trim()) ||
+          (Array.isArray(p.voucherRedemptions) && p.voucherRedemptions.length > 0);
+        console.log('[PAYMENT] Request summary:', {
+          method: p.method,
+          itemCount: paymentItems.length,
+          totalAmount: paymentRequest.totalAmount,
+          tableNumber: paymentRequest.tableNumber,
+          cashRegisterId: paymentRequest.cashRegisterId,
+          idempotencyKey: paymentRequest.idempotencyKey,
+          hasVoucherSecret,
+          voucherRedemptionLineCount: p.voucherRedemptions?.length ?? 0,
+        });
+      }
       const response = await processPayment(paymentRequest);
 
       if (response.fiscalStatus === 'NON_FISCAL_PENDING') {

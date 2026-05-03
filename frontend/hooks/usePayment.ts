@@ -33,7 +33,7 @@ export const usePayment = () => {
       const defaultMethods: PaymentMethod[] = [
         { id: 'cash', name: 'Nakit', type: 'cash', icon: 'cash-outline', isDefault: true, requiresReceivedAmount: true },
         { id: 'card', name: 'Kart', type: 'card', icon: 'card-outline', requiresReceivedAmount: false },
-        { id: 'voucher', name: 'Kupon', type: 'voucher', icon: 'gift-outline', requiresReceivedAmount: false },
+        { id: 'voucher', name: 'Gutschein', type: 'voucher', icon: 'gift-outline', requiresReceivedAmount: false },
         { id: 'transfer', name: 'Havale', type: 'transfer', icon: 'swap-horizontal-outline', requiresReceivedAmount: false },
       ];
       setPaymentMethods(defaultMethods);
@@ -80,7 +80,11 @@ export const usePayment = () => {
           error: response.error,
           message: response.message,
         });
-        throw new Error(response.error ?? 'Zahlung fehlgeschlagen');
+        const msg =
+          (typeof response.message === 'string' && response.message.trim()) ||
+          response.error ||
+          'Zahlung fehlgeschlagen';
+        throw new Error(msg);
       }
 
       debugPosPaymentTrace('use_payment_hook_success', { paymentId: response.paymentId });

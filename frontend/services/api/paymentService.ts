@@ -21,6 +21,8 @@ import {
   syncPendingPaymentQueue as flushPendingPaymentQueue,
   removePendingByIdempotencyKey,
   getPendingPaymentQueue,
+  paymentPayloadContainsVoucherSecrets,
+  VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE,
   type PendingPaymentPayload,
 } from '../payment/pendingPaymentQueue';
 import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
@@ -263,6 +265,18 @@ class PaymentService {
         debugPosPaymentTrace('payment_api_transport_failure_queue', {
           message: error instanceof Error ? error.message : String(error),
         });
+        if (paymentPayloadContainsVoucherSecrets(req.payment)) {
+          debugPosPaymentTrace('payment_api_transport_voucher_not_queued', {});
+          return {
+            success: false,
+            isSynced: false,
+            fiscalStatus: 'FAILED',
+            paymentId: '',
+            error: 'VOUCHER_REQUIRES_ONLINE',
+            message: VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE,
+            invoicePersisted: false,
+          };
+        }
         const payload = req as unknown as PendingPaymentPayload;
         const pendingQueueId = await enqueuePendingPayment(payload);
         return {

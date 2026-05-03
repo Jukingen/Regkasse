@@ -237,7 +237,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         setPaymentSessionId(response.paymentId);
         nextStep();
       } else {
-        setError(response.error || t('payment:errors.paymentFailed'));
+        setError(response.message || response.error || t('payment:errors.paymentFailed'));
       }
     } catch (error) {
       setError(t('payment:errors.paymentError'));

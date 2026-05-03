@@ -16,6 +16,7 @@ import {
   Typography,
   message,
 } from 'antd';
+import { LinkOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -114,13 +115,39 @@ export default function AdminVoucherDetailPage() {
         title: t('vouchers.ledger.paymentId'),
         dataIndex: 'paymentId',
         key: 'paymentId',
-        render: (pid: string | null | undefined) => shortId(pid ?? undefined),
+        render: (pid: string | null | undefined) => {
+          const full = typeof pid === 'string' ? pid.trim() : '';
+          if (!full) return '—';
+          return (
+            <Space size="small" align="center" wrap>
+              <Typography.Text copyable={{ text: full }}>{shortId(full)}</Typography.Text>
+              <Link
+                href={`/payments?paymentId=${encodeURIComponent(full)}`}
+                title={t('vouchers.ledger.linkOpenPayments')}
+                aria-label={t('vouchers.ledger.linkOpenPayments')}
+              >
+                <LinkOutlined />
+              </Link>
+            </Space>
+          );
+        },
       },
       {
         title: t('vouchers.ledger.receiptNumber'),
         dataIndex: 'receiptNumber',
         key: 'receiptNumber',
-        render: (x: string | null | undefined) => x ?? '—',
+        render: (x: string | null | undefined) => {
+          const rn = typeof x === 'string' ? x.trim() : '';
+          if (!rn) return '—';
+          return (
+            <Link
+              href={`/receipts?receiptNumber=${encodeURIComponent(rn)}`}
+              title={t('vouchers.ledger.linkOpenReceipts')}
+            >
+              {rn}
+            </Link>
+          );
+        },
       },
       {
         title: t('vouchers.ledger.createdAt'),

@@ -1,6 +1,6 @@
 /**
  * Controlled offline transaction queue (NON_FISCAL_PENDING -> Synced/Failed).
- * Invariant: offline entries never contain any receipt number / signature.
+ * Invariant: offline entries never contain receipt number / signature, or plaintext Gutschein codes.
  */
 import { apiClient } from '../api/config';
 import { storage } from '../../utils/storage';
@@ -27,6 +27,22 @@ export interface PendingPaymentPayload {
   steuernummer?: string;
   notes?: string;
   idempotencyKey?: string;
+}
+
+/** POS German copy when voucher must not be queued offline (security: no plaintext codes in AsyncStorage). */
+export const VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE =
+  'Gutschein-Zahlungen sind ohne Online-Verbindung nicht möglich. Bitte Internet prüfen und erneut versuchen. Aus Sicherheitsgründen wird der Gutscheincode nicht lokal zwischengespeichert.';
+
+/** True if payload would carry plaintext voucher material (must never be written to the offline queue). */
+export function paymentPayloadContainsVoucherSecrets(
+  payment: PendingPaymentPayload['payment'] | undefined
+): boolean {
+  if (!payment) return false;
+  if (typeof payment.voucherCode === 'string' && payment.voucherCode.trim().length > 0) return true;
+  if (!Array.isArray(payment.voucherRedemptions) || payment.voucherRedemptions.length === 0) return false;
+  return payment.voucherRedemptions.some(
+    (r) => typeof r?.code === 'string' && r.code.trim().length > 0
+  );
 }
 
 export type OfflineTransactionStatus = 'Pending' | 'Synced' | 'Failed';
@@ -164,6 +180,10 @@ async function nextClientSequenceNumber(cashRegisterId: string): Promise<number>
 export async function enqueuePendingPayment(
   paymentRequest: PendingPaymentPayload
 ): Promise<string> {
+  if (paymentPayloadContainsVoucherSecrets(paymentRequest.payment)) {
+    throw new Error(VOUCHER_OFFLINE_NOT_ALLOWED_MESSAGE_DE);
+  }
+
   const qRaw = await readQueue();
   const q = qRaw.map(normalizeEntry);
   const idem = paymentRequest.idempotencyKey?.trim();

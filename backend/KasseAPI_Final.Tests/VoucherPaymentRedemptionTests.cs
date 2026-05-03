@@ -772,4 +772,57 @@ public class VoucherPaymentRedemptionTests
         Assert.False(pr.Success);
     }
 
+    [Fact]
+    public async Task CreatePayment_Voucher_CatalogCodeVoucher_NonVoucherLegacy_RejectsWithoutRedeem()
+    {
+        await using var context = CreateContext();
+        var (_, productId, customerId, regId, voucherId) =
+            await SeedCatalogAndVoucherAsync(context, 50m, DateTime.UtcNow.AddDays(10), VoucherStatus.Active);
+        var utc = DateTime.UtcNow;
+        context.PaymentMethodDefinitions.Add(new PaymentMethodDefinition
+        {
+            Id = Guid.NewGuid(),
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Code = "voucher",
+            Name = "Gutschein",
+            IsActive = true,
+            IsDefault = false,
+            DisplayOrder = 40,
+            LegacyPaymentMethodValue = 1,
+            CreatedAtUtc = utc,
+        });
+        await context.SaveChangesAsync();
+
+        var paymentService = CreatePaymentService(context);
+        var request = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            TotalAmount = 5.00m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = regId,
+            Payment = new PaymentMethodRequest
+            {
+                Method = "voucher",
+                TseRequired = false,
+                VoucherCode = PlainCode,
+            },
+            Items = new List<PaymentItemRequest>
+            {
+                new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced },
+            },
+        };
+
+        var result = await paymentService.CreatePaymentAsync(request, "u1");
+        Assert.False(result.Success);
+        Assert.Equal("VOUCHER_LEGACY_MISMATCH", result.DiagnosticCode);
+        Assert.Contains("legacy", string.Join(" ", result.Errors).ToLowerInvariant());
+
+        var v = await context.Vouchers.AsNoTracking().FirstAsync(x => x.Id == voucherId);
+        Assert.Equal(50m, v.RemainingAmount);
+        Assert.Equal(
+            0,
+            await context.VoucherLedgerEntries.CountAsync(l => l.VoucherId == voucherId && l.Type == VoucherTransactionType.Redeem));
+    }
+
 }

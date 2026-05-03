@@ -16,12 +16,18 @@ jest.mock('../services/api/config', () => ({
   API_BASE_URL: 'http://localhost',
 }));
 
-jest.mock('../services/payment/pendingPaymentQueue', () => ({
-  enqueuePendingPayment: (payload: unknown) => mockEnqueuePendingPayment(payload),
-  syncPendingPaymentQueue: jest.fn(async () => ({ processed: 0, failed: 0 })),
-  removePendingByIdempotencyKey: jest.fn(async () => undefined),
-  getPendingPaymentQueue: jest.fn(async () => []),
-}));
+jest.mock('../services/payment/pendingPaymentQueue', () => {
+  const actual = jest.requireActual(
+    '../services/payment/pendingPaymentQueue'
+  ) as typeof import('../services/payment/pendingPaymentQueue');
+  return {
+    ...actual,
+    enqueuePendingPayment: (payload: unknown) => mockEnqueuePendingPayment(payload),
+    syncPendingPaymentQueue: jest.fn(async () => ({ processed: 0, failed: 0 })),
+    removePendingByIdempotencyKey: jest.fn(async () => undefined),
+    getPendingPaymentQueue: jest.fn(async () => []),
+  };
+});
 
 jest.mock('../utils/storage', () => ({
   storage: {
@@ -37,6 +43,7 @@ jest.mock('../features/payment/paymentErrors', () => ({
 }));
 
 import paymentService from '../services/api/paymentService';
+import { paymentPayloadContainsVoucherSecrets } from '../services/payment/pendingPaymentQueue';
 
 function baseRequest(overrides: Partial<PaymentRequest> = {}): PaymentRequest {
   return {
@@ -128,5 +135,58 @@ describe('paymentService.processPayment taxType normalization', () => {
     expect(mockEnqueuePendingPayment).toHaveBeenCalledTimes(1);
     const enqueued = mockEnqueuePendingPayment.mock.calls[0][0] as { items: { taxType: string }[] };
     expect(enqueued.items[0].taxType).toBe('special');
+  });
+
+  it('does not enqueue voucher payments on transport failure (no plaintext in offline queue)', async () => {
+    mockPost.mockRejectedValue({
+      response: undefined,
+      message: 'Network Error',
+      code: 'ERR_NETWORK',
+    });
+
+    const raw = baseRequest({
+      idempotencyKey: 'voucher-offline-key',
+      payment: {
+        method: 'voucher',
+        tseRequired: false,
+        voucherCode: 'GUT-TEST-SECRET',
+      },
+    });
+
+    const res = await paymentService.processPayment(raw);
+
+    expect(res.fiscalStatus).toBe('FAILED');
+    expect(res.success).toBe(false);
+    expect(mockEnqueuePendingPayment).not.toHaveBeenCalled();
+    expect(res.error).toBe('VOUCHER_REQUIRES_ONLINE');
+    expect(res.message).toMatch(/Gutschein/i);
+  });
+});
+
+describe('paymentPayloadContainsVoucherSecrets', () => {
+  it('detects non-empty voucherCode', () => {
+    expect(
+      paymentPayloadContainsVoucherSecrets({
+        method: 'voucher',
+        tseRequired: false,
+        voucherCode: 'GUT-1',
+      })
+    ).toBe(true);
+  });
+
+  it('detects voucherRedemptions with codes', () => {
+    expect(
+      paymentPayloadContainsVoucherSecrets({
+        method: 'voucher',
+        tseRequired: false,
+        voucherRedemptions: [{ code: 'X', amount: 1 }],
+      })
+    ).toBe(true);
+  });
+
+  it('is false for cash', () => {
+    expect(paymentPayloadContainsVoucherSecrets({ method: 'cash', tseRequired: false, amount: 1 })).toBe(
+      false
+    );
   });
 });

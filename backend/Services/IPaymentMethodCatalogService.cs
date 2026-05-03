@@ -18,4 +18,9 @@ public interface IPaymentMethodCatalogService
     Task<string> ResolveRawForFilterAsync(string? methodCode, CancellationToken cancellationToken = default);
 }
 
-public sealed record PaymentMethodResolutionResult(bool Ok, string LegacyRaw, string? ErrorMessage);
+/// <param name="MatchedPaymentMethodDefinition">True when resolution used a tenant <c>payment_method_definitions</c> row (not legacy string fallback).</param>
+public sealed record PaymentMethodResolutionResult(
+    bool Ok,
+    string LegacyRaw,
+    string? ErrorMessage,
+    bool MatchedPaymentMethodDefinition = false);

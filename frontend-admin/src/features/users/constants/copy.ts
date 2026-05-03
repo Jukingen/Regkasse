@@ -231,26 +231,6 @@ export const usersCopy = {
   resetPasswordErrorGeneric: 'Das Passwort erfüllt die Anforderungen nicht.',
 } as const;
 
-/** Maps permission groupKey (slug from API) to display label for Role Capability Matrix. */
-export const GROUP_KEY_LABELS: Record<string, string> = {
-  user_role: 'User & Role',
-  product: 'Product',
-  order_sale: 'Order & Sale',
-  payment: 'Payment',
-  cash_shift: 'Cash & Shift',
-  inventory: 'Inventory',
-  customer: 'Customer',
-  invoice: 'Invoice',
-  settings: 'Settings',
-  audit_report: 'Audit & Report',
-  finanzonline: 'FinanzOnline',
-  kitchen: 'Kitchen',
-  tse: 'TSE',
-  system: 'System',
-  sonstige: 'Sonstige',
-  other: 'Sonstige',
-};
-
 /**
  * Maps backend/Identity English password error strings to localized copy (currently wired to `usersCopy` DE strings).
  * Follow-up: move targets to `users.passwordErrors.*` i18n keys and pass `t` / active locale instead of DE-only copy.
