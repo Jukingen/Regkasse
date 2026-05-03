@@ -46,8 +46,10 @@ import type {
   SetProductModifierGroupsRequest,
   UpdateCartItemRequest,
   UpdateStockRequest,
+  ValidateVoucherRequest,
   VerifySignatureRequest,
-  VerifySignatureResponse
+  VerifySignatureResponse,
+  VoucherValidateResponse
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -2007,7 +2009,58 @@ export const useGetApiPosCashRegisterSelectable = <TData = Awaited<ReturnType<ty
 
 
 
-export const getApiPos = (
+export const postApiPosVouchersValidate = (
+    validateVoucherRequest: ValidateVoucherRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<VoucherValidateResponse>(
+      {url: `/api/pos/vouchers/validate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: validateVoucherRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosVouchersValidateMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosVouchersValidate>>, TError,{data: ValidateVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosVouchersValidate>>, TError,{data: ValidateVoucherRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosVouchersValidate>>, {data: ValidateVoucherRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPosVouchersValidate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosVouchersValidateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosVouchersValidate>>>
+    export type PostApiPosVouchersValidateMutationBody = ValidateVoucherRequest
+    export type PostApiPosVouchersValidateMutationError = ProblemDetails
+
+    export const usePostApiPosVouchersValidate = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosVouchersValidate>>, TError,{data: ValidateVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosVouchersValidate>>,
+        TError,
+        {data: ValidateVoucherRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosVouchersValidateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPos = (
     params?: GetApiPosParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

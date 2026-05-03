@@ -114,6 +114,9 @@ public static class AppPermissions
     public const string TseSign = "tse.sign";
     public const string TseDiagnostics = "tse.diagnostics";
 
+    /// <summary>RKSV Monats-Nullbeleg (zero TSE receipt) — admin API only; not POS <see cref="PaymentTake"/>.</summary>
+    public const string RksvNullbelegCreate = "rksv.nullbeleg.create";
+
     // --- System-critical (permanent delete, high-risk) ---
     public const string SystemCritical = "system.critical";
 

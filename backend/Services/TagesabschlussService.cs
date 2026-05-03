@@ -93,6 +93,10 @@ namespace KasseAPI_Final.Services
                                i.CreatedAt >= dayStartUtc &&
                                i.CreatedAt < dayEndExclusiveUtc &&
                                i.Status == InvoiceStatus.Paid)
+                    .Where(i => i.SourcePaymentId == null ||
+                                !_context.PaymentDetails.Any(p =>
+                                    p.Id == i.SourcePaymentId!.Value &&
+                                    p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Nullbeleg))
                     .ToListAsync();
 
                 if (!transactions.Any())
@@ -201,6 +205,10 @@ namespace KasseAPI_Final.Services
                     .Where(i => i.CashRegisterId == cashRegisterId &&
                                i.CreatedAt >= monthStartUtc &&
                                i.Status == InvoiceStatus.Paid)
+                    .Where(i => i.SourcePaymentId == null ||
+                                !_context.PaymentDetails.Any(p =>
+                                    p.Id == i.SourcePaymentId!.Value &&
+                                    p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Nullbeleg))
                     .ToListAsync();
 
                 if (!transactions.Any())
@@ -288,6 +296,10 @@ namespace KasseAPI_Final.Services
                     .Where(i => i.CashRegisterId == cashRegisterId &&
                                i.CreatedAt >= yearStartUtc &&
                                i.Status == InvoiceStatus.Paid)
+                    .Where(i => i.SourcePaymentId == null ||
+                                !_context.PaymentDetails.Any(p =>
+                                    p.Id == i.SourcePaymentId!.Value &&
+                                    p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Nullbeleg))
                     .ToListAsync();
 
                 if (!transactions.Any())

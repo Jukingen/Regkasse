@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260503204541_AddPaymentDetailsRksvSpecialReceiptColumns")]
+    partial class AddPaymentDetailsRksvSpecialReceiptColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3315,11 +3318,6 @@ namespace KasseAPI_Final.Migrations
                         .HasFilter("\"receipt_number\" IS NOT NULL AND \"receipt_number\" <> ''");
 
                     b.HasIndex("TseSignature");
-
-                    b.HasIndex("CashRegisterId", "RksvSpecialReceiptYear", "RksvSpecialReceiptMonth")
-                        .IsUnique()
-                        .HasDatabaseName("ix_payment_details_nullbeleg_per_register_month")
-                        .HasFilter("\"rksv_special_receipt_kind\" = 'Nullbeleg' AND \"is_active\" = true");
 
                     b.ToTable("payment_details");
                 });

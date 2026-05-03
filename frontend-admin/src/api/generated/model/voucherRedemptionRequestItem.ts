@@ -6,10 +6,12 @@
  * OpenAPI spec version: v1
  */
 
-export type GetApiAdminProductsParams = {
-pageNumber?: number;
-pageSize?: number;
-categoryId?: string;
-name?: string;
-isActive?: string;
-};
+export interface VoucherRedemptionRequestItem {
+  /** @minimum 0.01 */
+  amount: number;
+  /**
+   * @minLength 3
+   * @maxLength 128
+   */
+  code: string;
+}

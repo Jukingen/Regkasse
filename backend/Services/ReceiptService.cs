@@ -358,6 +358,7 @@ namespace KasseAPI_Final.Services
 
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             var queryable = _context.Receipts.AsNoTracking()
+                .Include(r => r.Payment)
                 .Where(r => _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId));
 
             if (!string.IsNullOrWhiteSpace(receiptNumber))
@@ -418,7 +419,8 @@ namespace KasseAPI_Final.Services
                     SubTotal = r.SubTotal,
                     TaxTotal = r.TaxTotal,
                     GrandTotal = r.GrandTotal,
-                    CreatedAt = r.CreatedAt
+                    CreatedAt = r.CreatedAt,
+                    RksvSpecialReceiptKind = r.Payment != null ? r.Payment.RksvSpecialReceiptKind : null
                 })
                 .ToListAsync();
 
@@ -516,6 +518,8 @@ namespace KasseAPI_Final.Services
                 OriginalPaymentId = pay?.OriginalPaymentId,
                 OriginalSaleReceiptId = pay?.OriginalReceiptId,
                 FiscalTraceKind = traceKind,
+                RksvSpecialReceiptKind = pay?.RksvSpecialReceiptKind,
+                RksvNullbelegActsAsJahresbeleg = pay?.RksvNullbelegActsAsJahresbeleg ?? false,
                 HasOfflineOrigin = pay?.OfflineTransactionId != null,
                 OfflineTransactionId = pay?.OfflineTransactionId,
                 OfflineCreatedAtUtc = off?.OfflineCreatedAtUtc,

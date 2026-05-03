@@ -20,6 +20,12 @@ namespace KasseAPI_Final.DTOs
         public Guid? OriginalSaleReceiptId { get; set; }
         /// <summary>null = normal sale; Storno; Refund.</summary>
         public string? FiscalTraceKind { get; set; }
+
+        /// <summary>RKSV Sonderbeleg (e.g. Nullbeleg); null = normal payment.</summary>
+        public string? RksvSpecialReceiptKind { get; set; }
+
+        /// <summary>December Nullbeleg Jahres-tag (future Jahresbeleg handling).</summary>
+        public bool RksvNullbelegActsAsJahresbeleg { get; set; }
         /// <summary>True when payment is linked to a controlled offline intent replay.</summary>
         public bool HasOfflineOrigin { get; set; }
         public Guid? OfflineTransactionId { get; set; }

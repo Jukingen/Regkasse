@@ -5,6 +5,7 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { VoucherRedemptionRequestItem } from './voucherRedemptionRequestItem';
 
 export interface PaymentMethodRequest {
   /** @nullable */
@@ -12,4 +13,11 @@ export interface PaymentMethodRequest {
   /** @minLength 1 */
   method: string;
   tseRequired: boolean;
+  /**
+   * @maxLength 128
+   * @nullable
+   */
+  voucherCode?: string | null;
+  /** @nullable */
+  voucherRedemptions?: VoucherRedemptionRequestItem[] | null;
 }

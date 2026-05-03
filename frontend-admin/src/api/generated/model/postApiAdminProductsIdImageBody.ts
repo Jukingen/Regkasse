@@ -6,10 +6,6 @@
  * OpenAPI spec version: v1
  */
 
-export type GetApiAdminProductsParams = {
-pageNumber?: number;
-pageSize?: number;
-categoryId?: string;
-name?: string;
-isActive?: string;
+export type PostApiAdminProductsIdImageBody = {
+  file?: Blob;
 };

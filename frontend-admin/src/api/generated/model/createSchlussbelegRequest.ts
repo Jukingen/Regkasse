@@ -6,10 +6,11 @@
  * OpenAPI spec version: v1
  */
 
-export type GetApiAdminProductsParams = {
-pageNumber?: number;
-pageSize?: number;
-categoryId?: string;
-name?: string;
-isActive?: string;
-};
+export interface CreateSchlussbelegRequest {
+  cashRegisterId: string;
+  /**
+   * @maxLength 450
+   * @nullable
+   */
+  reason?: string | null;
+}

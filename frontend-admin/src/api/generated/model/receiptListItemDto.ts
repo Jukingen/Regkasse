@@ -21,6 +21,8 @@ export interface ReceiptListItemDto {
   receiptNumber?: string | null;
   /** @nullable */
   registerDisplayNumber?: string | null;
+  /** @nullable */
+  rksvSpecialReceiptKind?: string | null;
   subTotal?: number;
   taxTotal?: number;
 }

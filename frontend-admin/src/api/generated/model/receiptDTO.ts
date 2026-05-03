@@ -52,6 +52,9 @@ export interface ReceiptDTO {
   /** @nullable */
   receiptNumber?: string | null;
   receiptPersistedAtUtc?: string;
+  rksvNullbelegActsAsJahresbeleg?: boolean;
+  /** @nullable */
+  rksvSpecialReceiptKind?: string | null;
   sequenceDuplicateDetected?: boolean;
   sequenceGapDetected?: boolean;
   signature?: ReceiptSignatureDTO;

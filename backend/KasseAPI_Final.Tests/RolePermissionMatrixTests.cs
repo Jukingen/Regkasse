@@ -125,6 +125,18 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Manager_Has_RksvNullbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.RksvNullbelegCreate));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Accountant_Has_RksvNullbelegCreate()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Accountant, AppPermissions.RksvNullbelegCreate));
+    }
+
+    [Fact]
     public void RoleHasPermission_Manager_DoesNotHave_UserManage()
     {
         Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserManage));

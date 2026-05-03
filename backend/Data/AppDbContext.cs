@@ -612,6 +612,16 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.FinanzOnlineError).HasMaxLength(500);
                 entity.Property(e => e.FinanzOnlineReferenceId).HasMaxLength(100);
                 entity.HasIndex(e => e.FinanzOnlineStatus).HasFilter("\"finanz_online_status\" IS NOT NULL");
+
+                entity.Property(e => e.RksvSpecialReceiptKind).HasMaxLength(20).HasColumnName("rksv_special_receipt_kind");
+                entity.Property(e => e.RksvSpecialReceiptYear).HasColumnName("rksv_special_receipt_year");
+                entity.Property(e => e.RksvSpecialReceiptMonth).HasColumnName("rksv_special_receipt_month");
+                entity.Property(e => e.RksvNullbelegActsAsJahresbeleg).HasColumnName("rksv_nullbeleg_acts_as_jahresbeleg");
+
+                entity.HasIndex(e => new { e.CashRegisterId, e.RksvSpecialReceiptYear, e.RksvSpecialReceiptMonth })
+                    .IsUnique()
+                    .HasDatabaseName("ix_payment_details_nullbeleg_per_register_month")
+                    .HasFilter("\"rksv_special_receipt_kind\" = 'Nullbeleg' AND \"is_active\" = true");
             });
 
             // OfflineTransaction configuration (non-fiscal intent; replay creates the canonical Payment + Receipt)

@@ -102,6 +102,7 @@ public static class PermissionCatalog
         // TSE, system-critical
         AppPermissions.TseSign,
         AppPermissions.TseDiagnostics,
+        AppPermissions.RksvNullbelegCreate,
         AppPermissions.SystemCritical,
         // Legacy / convenience
         AppPermissions.PriceOverride,

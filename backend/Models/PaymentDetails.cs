@@ -183,7 +183,25 @@ namespace KasseAPI_Final.Models
         [Column("finanz_online_retry_count")]
         public int FinanzOnlineRetryCount { get; set; }
 
+        /// <summary>RKSV Sonderbeleg; NULL = normal fiscal payment row.</summary>
+        [MaxLength(20)]
+        [Column("rksv_special_receipt_kind")]
+        public string? RksvSpecialReceiptKind { get; set; }
+
+        /// <summary>Vienna calendar year for Monats-Nullbeleg (duplicate guard).</summary>
+        [Column("rksv_special_receipt_year")]
+        public int? RksvSpecialReceiptYear { get; set; }
+
+        /// <summary>Vienna calendar month 1–12 for Monats-Nullbeleg (duplicate guard).</summary>
+        [Column("rksv_special_receipt_month")]
+        public int? RksvSpecialReceiptMonth { get; set; }
+
+        /// <summary>December Nullbeleg may later be treated as Jahresbeleg; no extra business logic in phase 1.</summary>
+        [Column("rksv_nullbeleg_acts_as_jahresbeleg")]
+        public bool RksvNullbelegActsAsJahresbeleg { get; set; }
+
         // Navigation properties
         public virtual Customer? Customer { get; set; }
     }
 }
+

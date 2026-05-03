@@ -31,6 +31,9 @@ import type {
   AdminReactivateRequest,
   AdminUserActivityResponse,
   AdminUserDto,
+  AdminVoucherDetailDto,
+  AdminVoucherLedgerLineDto,
+  AdminVoucherListResponse,
   AnalyzeRequest,
   ApiError,
   BackupExecutionModePutRequestDto,
@@ -44,8 +47,11 @@ import type {
   BackupVerificationResponseDto,
   BenefitAssignment,
   BenefitDefinition,
+  CancelAdminVoucherRequest,
   CancelPaymentRequest,
   Category,
+  CreateAdminVoucherRequest,
+  CreateAdminVoucherResponse,
   CreateBenefitAssignmentRequest,
   CreateBenefitDefinitionRequest,
   CreateCategoryRequest,
@@ -78,6 +84,7 @@ import type {
   GetApiAdminRestoreVerificationRunsParams,
   GetApiAdminUsersIdActivityParams,
   GetApiAdminUsersParams,
+  GetApiAdminVouchersParams,
   IncidentInvestigationResponse,
   IntegrityReportDto,
   LegalHoldDto,
@@ -88,6 +95,7 @@ import type {
   OfflinePayloadHashRiskResponse,
   PaymentMethodDefinitionAdminDto,
   PaymentStatistics,
+  PostApiAdminProductsIdImageBody,
   PricingRuleAdminDto,
   PrintRoutingOptionsResponse,
   ProblemDetails,
@@ -1838,6 +1846,62 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const postApiAdminProductsIdImage = (
+    id: string,
+    postApiAdminProductsIdImageBody: PostApiAdminProductsIdImageBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      const formData = new FormData();
+if(postApiAdminProductsIdImageBody.file !== undefined) {
+ formData.append('file', postApiAdminProductsIdImageBody.file)
+ }
+
+      return customInstance<void>(
+      {url: `/api/admin/products/${id}/image`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminProductsIdImageMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsIdImage>>, TError,{id: string;data: PostApiAdminProductsIdImageBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsIdImage>>, TError,{id: string;data: PostApiAdminProductsIdImageBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminProductsIdImage>>, {id: string;data: PostApiAdminProductsIdImageBody}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAdminProductsIdImage(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminProductsIdImageMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminProductsIdImage>>>
+    export type PostApiAdminProductsIdImageMutationBody = PostApiAdminProductsIdImageBody
+    export type PostApiAdminProductsIdImageMutationError = unknown
+
+    export const usePostApiAdminProductsIdImage = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsIdImage>>, TError,{id: string;data: PostApiAdminProductsIdImageBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminProductsIdImage>>,
+        TError,
+        {id: string;data: PostApiAdminProductsIdImageBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminProductsIdImageMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiAdminRestoreVerificationReadiness = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -2650,7 +2714,276 @@ export const useGetApiAdminUsersIdActivity = <TData = Awaited<ReturnType<typeof 
 
 
 
-export const getApiAdminBenefitAssignments = (
+export const getApiAdminVouchers = (
+    params?: GetApiAdminVouchersParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminVoucherListResponse>(
+      {url: `/api/admin/vouchers`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminVouchersQueryKey = (params?: GetApiAdminVouchersParams,) => {
+    return [`/api/admin/vouchers`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminVouchersQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminVouchers>>, TError = unknown>(params?: GetApiAdminVouchersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminVouchersQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminVouchers>>> = ({ signal }) => getApiAdminVouchers(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminVouchersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVouchers>>>
+export type GetApiAdminVouchersQueryError = unknown
+
+export const useGetApiAdminVouchers = <TData = Awaited<ReturnType<typeof getApiAdminVouchers>>, TError = unknown>(
+ params?: GetApiAdminVouchersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminVouchersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminVouchers = (
+    createAdminVoucherRequest: CreateAdminVoucherRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<CreateAdminVoucherResponse>(
+      {url: `/api/admin/vouchers`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createAdminVoucherRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminVouchersMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchers>>, TError,{data: CreateAdminVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchers>>, TError,{data: CreateAdminVoucherRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminVouchers>>, {data: CreateAdminVoucherRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminVouchers(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminVouchersMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminVouchers>>>
+    export type PostApiAdminVouchersMutationBody = CreateAdminVoucherRequest
+    export type PostApiAdminVouchersMutationError = unknown
+
+    export const usePostApiAdminVouchers = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchers>>, TError,{data: CreateAdminVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminVouchers>>,
+        TError,
+        {data: CreateAdminVoucherRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminVouchersMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminVouchersId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminVoucherDetailDto>(
+      {url: `/api/admin/vouchers/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminVouchersIdQueryKey = (id: string,) => {
+    return [`/api/admin/vouchers/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminVouchersIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminVouchersId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminVouchersIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminVouchersId>>> = ({ signal }) => getApiAdminVouchersId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminVouchersIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVouchersId>>>
+export type GetApiAdminVouchersIdQueryError = unknown
+
+export const useGetApiAdminVouchersId = <TData = Awaited<ReturnType<typeof getApiAdminVouchersId>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminVouchersIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminVouchersIdLedger = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminVoucherLedgerLineDto[]>(
+      {url: `/api/admin/vouchers/${id}/ledger`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminVouchersIdLedgerQueryKey = (id: string,) => {
+    return [`/api/admin/vouchers/${id}/ledger`] as const;
+    }
+
+    
+export const getGetApiAdminVouchersIdLedgerQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminVouchersIdLedgerQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>> = ({ signal }) => getApiAdminVouchersIdLedger(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminVouchersIdLedgerQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>>
+export type GetApiAdminVouchersIdLedgerQueryError = unknown
+
+export const useGetApiAdminVouchersIdLedger = <TData = Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminVouchersIdLedger>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminVouchersIdLedgerQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminVouchersIdCancel = (
+    id: string,
+    cancelAdminVoucherRequest: CancelAdminVoucherRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/vouchers/${id}/cancel`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: cancelAdminVoucherRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminVouchersIdCancelMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchersIdCancel>>, TError,{id: string;data: CancelAdminVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchersIdCancel>>, TError,{id: string;data: CancelAdminVoucherRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminVouchersIdCancel>>, {id: string;data: CancelAdminVoucherRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAdminVouchersIdCancel(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminVouchersIdCancelMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminVouchersIdCancel>>>
+    export type PostApiAdminVouchersIdCancelMutationBody = CancelAdminVoucherRequest
+    export type PostApiAdminVouchersIdCancelMutationError = unknown
+
+    export const usePostApiAdminVouchersIdCancel = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchersIdCancel>>, TError,{id: string;data: CancelAdminVoucherRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminVouchersIdCancel>>,
+        TError,
+        {id: string;data: CancelAdminVoucherRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminVouchersIdCancelMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBenefitAssignments = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

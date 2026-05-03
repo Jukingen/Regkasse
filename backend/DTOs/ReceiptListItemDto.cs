@@ -23,5 +23,8 @@ namespace KasseAPI_Final.DTOs
         public decimal TaxTotal { get; set; }
         public decimal GrandTotal { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>RKSV Sonderbeleg marker for list UI (e.g. Nullbeleg).</summary>
+        public string? RksvSpecialReceiptKind { get; set; }
     }
 }

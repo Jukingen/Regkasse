@@ -640,7 +640,7 @@ public sealed class TagesberichtService : ITagesberichtService
 
         var payments = await q.ToListAsync(cancellationToken);
 
-        var saleLike = payments.Where(p => p.IsActive && !p.IsRefund && !p.IsStorno).ToList();
+        var saleLike = payments.Where(p => p.IsActive && !p.IsRefund && !p.IsStorno && p.RksvSpecialReceiptKind == null).ToList();
         var refunds = payments.Where(p => p.IsActive && p.IsRefund).ToList();
         var stornos = payments.Where(p => p.IsActive && p.IsStorno).ToList();
 
