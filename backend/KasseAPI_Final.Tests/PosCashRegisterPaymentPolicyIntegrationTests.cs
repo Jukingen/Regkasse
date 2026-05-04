@@ -15,6 +15,7 @@ using Xunit;
 
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Rksv;
 
 namespace KasseAPI_Final.Tests;
 
@@ -201,5 +202,80 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
         Assert.True(result.Success);
         Assert.NotNull(result.Payment);
         Assert.Equal(openId, result.Payment!.CashRegisterId);
+    }
+
+    [Fact]
+    public async Task CreatePaymentAsync_DecommissionedRegister_RejectedWithRksvRegisterDecommissioned()
+    {
+        await using var ctx = CreateContext();
+        var categoryId = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+        var decommissionedId = Guid.NewGuid();
+
+        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = LegacyDefaultTenantIds.Primary, Id = categoryId, Name = "Speisen", VatRate = 10m });
+        ctx.Products.Add(new Product
+        {
+            Id = productId,
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Name = "Item",
+            Price = 6.90m,
+            CategoryId = categoryId,
+            Category = "Speisen",
+            StockQuantity = 100,
+            MinStockLevel = 0,
+            Unit = "Stk",
+            TaxType = 2,
+            TaxRate = TaxTypes.GetTaxRate(2),
+            Barcode = $"t-{productId:N}",
+            IsFiscalCompliant = true,
+            IsTaxable = true,
+            RksvProductType = RksvProductTypes.Standard,
+            IsActive = true
+        });
+        ctx.Customers.Add(new Customer { Id = customerId, Name = "C", Email = "c@test", Phone = "1", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = decommissionedId,
+            RegisterNumber = "K-END",
+            Location = "T",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Decommissioned,
+            CurrentUserId = null,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        await ctx.SaveChangesAsync();
+
+        var resolution = new CashRegisterResolutionService(
+            ctx,
+            Mock.Of<ILogger<CashRegisterResolutionService>>(),
+            TenantTestDoubles.PrimaryTenantResolver,
+            RksvStartbelegTestDoubles.GateOff(),
+            RksvMonatsbelegTestDoubles.GateOff());
+        var paymentService = CreatePaymentService(ctx, resolution);
+
+        var request = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            TotalAmount = 6.90m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = decommissionedId,
+            Payment = new PaymentMethodRequest { Method = "cash", TseRequired = true },
+            Items = new List<PaymentItemRequest>
+            {
+                new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced }
+            }
+        };
+
+        var result = await paymentService.CreatePaymentAsync(request, "u1");
+
+        Assert.False(result.Success);
+        Assert.Equal(RksvGuardErrorCodes.RegisterDecommissioned, result.DiagnosticCode);
     }
 }

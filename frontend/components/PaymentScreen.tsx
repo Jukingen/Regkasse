@@ -35,6 +35,11 @@ import {
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
 import { getFormattingLocaleForTextLocale } from '../i18n/localeUtils';
+import { useSystem } from '../contexts/SystemContext';
+import {
+  POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE,
+  posOfflineBlocksVoucherSplitEntry,
+} from '../constants/posVoucherOffline';
 
 // Desteklenen ödeme yöntemleri ve ikon adları
 type PaymentMethodKey = 'cash' | 'card' | 'voucher' | 'contactless' | 'transfer';
@@ -101,6 +106,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   cashRegisterResolutionActive = true,
 }) => {
   const { t, i18n } = useTranslation(['checkout', 'payment', 'common', 'settings']);
+  const { isOnline } = useSystem();
   const {
     cashRegisterId,
     cashRegisterResolved,
@@ -165,6 +171,8 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
 
   const enteredTotal = (Object.values(payments) as string[]).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+  const voucherAmountEntered = parseFloat(payments.voucher) || 0;
+  const offlineBlocksVoucher = posOfflineBlocksVoucherSplitEntry(isOnline, voucherAmountEntered);
 
   useEffect(() => {
     customerService
@@ -233,7 +241,13 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
   const handleConfirm = async () => {
     // No Alert: confirm button is disabled while processing.
     if (processing) return;
+    if (isRegisterGateBlockingPayment) return;
     setError('');
+    if (offlineBlocksVoucher) {
+      setError(POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE);
+      Alert.alert('Offline', POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE);
+      return;
+    }
     if (enteredTotal < totalAmount) {
       setError(t('checkout:posFlow.payment.errors.insufficientAmount'));
       return;
@@ -427,18 +441,23 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         <Text style={styles.registerBannerMuted}>{t('checkout:posFlow.payment.loadingRegisterSettings')}</Text>
       ) : null}
       {PAYMENT_METHODS.map((method) => (
-        <View key={method.key} style={styles.methodRow}>
-          <Ionicons name={method.icon} size={22} color="#1976d2" style={{ marginRight: 8 }} />
-          <Text style={styles.methodLabel}>{t(method.labelKey)}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="decimal-pad"
-            placeholder={t('checkout:posFlow.payment.placeholderAmount')}
-            value={payments[method.key]}
-            onChangeText={(val) => handleChange(method.key as PaymentMethodKey, val)}
-            editable={!processing}
-          />
-          <Text style={styles.euro}>€</Text>
+        <View key={method.key} style={styles.methodBlock}>
+          <View style={styles.methodRow}>
+            <Ionicons name={method.icon} size={22} color="#1976d2" style={{ marginRight: 8 }} />
+            <Text style={styles.methodLabel}>{t(method.labelKey)}</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="decimal-pad"
+              placeholder={t('checkout:posFlow.payment.placeholderAmount')}
+              value={payments[method.key]}
+              onChangeText={(val) => handleChange(method.key as PaymentMethodKey, val)}
+              editable={!processing && (method.key !== 'voucher' || isOnline)}
+            />
+            <Text style={styles.euro}>€</Text>
+          </View>
+          {method.key === 'voucher' && !isOnline ? (
+            <Text style={styles.voucherOfflineHint}>{POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE}</Text>
+          ) : null}
         </View>
       ))}
       <View style={styles.summaryRow}>
@@ -455,11 +474,17 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
           style={[
             styles.confirmBtn,
             {
-              opacity: enteredTotal < totalAmount || isRegisterGateBlockingPayment ? 0.5 : 1,
+              opacity:
+                enteredTotal < totalAmount || isRegisterGateBlockingPayment || offlineBlocksVoucher ? 0.5 : 1,
             },
           ]}
           onPress={handleConfirm}
-          disabled={processing || enteredTotal < totalAmount || isRegisterGateBlockingPayment}
+          disabled={
+            processing ||
+            enteredTotal < totalAmount ||
+            isRegisterGateBlockingPayment ||
+            offlineBlocksVoucher
+          }
           accessibilityHint={
             isRegisterGateBlockingPayment && !processing
               ? registerGateFooterHint(registerGateCtx)
@@ -482,7 +507,9 @@ const styles = StyleSheet.create({
   container: { backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center' },
   title: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
   total: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
-  methodRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, width: '100%' },
+  methodBlock: { width: '100%', marginBottom: 8 },
+  methodRow: { flexDirection: 'row', alignItems: 'center', width: '100%' },
+  voucherOfflineHint: { fontSize: 12, color: '#c62828', marginTop: 4, marginLeft: 30 },
   methodLabel: { flex: 1, fontSize: 15 },
   input: { width: 70, borderWidth: 1, borderColor: '#ccc', borderRadius: 6, padding: 6, fontSize: 15, textAlign: 'right', backgroundColor: '#f9f9f9' },
   euro: { marginLeft: 4, fontSize: 15 },

@@ -23,6 +23,11 @@ import { resolveWalkInCustomerId } from '../constants/walkInCustomer';
 import { PaymentCancelResponse } from '../types/cart';
 
 import { useTranslation } from 'react-i18next';
+import { useSystem } from '../contexts/SystemContext';
+import {
+  POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE,
+  posOfflineBlocksVoucherByMethod,
+} from '../constants/posVoucherOffline';
 
 // Ödeme adımları enum'u
 enum PaymentStep {
@@ -66,6 +71,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
   tableNumber
 }) => {
   const { t } = useTranslation(['payment', 'common']);
+  const { isOnline } = useSystem();
   const [currentStep, setCurrentStep] = useState<PaymentStep>(PaymentStep.CUSTOMER_SELECTION);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -172,6 +178,11 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
   // Ödeme onayı
   const handlePaymentConfirmation = async () => {
     if (loading) return;
+    if (posOfflineBlocksVoucherByMethod(isOnline, selectedPaymentMethod)) {
+      setError(POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE);
+      Alert.alert('Offline', POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE);
+      return;
+    }
     setLoading(true);
     try {
       let settings;
@@ -338,20 +349,28 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
       </Text>
 
       {PAYMENT_METHODS.map(method => (
-        <TouchableOpacity
-          key={method.key}
-          style={styles.methodCard}
-          onPress={() => handlePaymentMethodSelection(method.key)}
-        >
-          <Ionicons name={method.icon} size={24} color="#1976d2" />
-          <Text style={styles.methodLabel}>{t(method.label)}</Text>
-          {method.requiresTSE && (
-            <View style={styles.tseBadge}>
-              <Text style={styles.tseBadgeText}>TSE</Text>
-            </View>
-          )}
-          <Ionicons name="chevron-forward" size={20} color="#ccc" />
-        </TouchableOpacity>
+        <View key={method.key} style={styles.methodCardWrap}>
+          <TouchableOpacity
+            style={[
+              styles.methodCard,
+              posOfflineBlocksVoucherByMethod(isOnline, method.key) && styles.methodCardDisabled,
+            ]}
+            disabled={loading || posOfflineBlocksVoucherByMethod(isOnline, method.key)}
+            onPress={() => handlePaymentMethodSelection(method.key)}
+          >
+            <Ionicons name={method.icon} size={24} color="#1976d2" />
+            <Text style={styles.methodLabel}>{t(method.label)}</Text>
+            {method.requiresTSE && (
+              <View style={styles.tseBadge}>
+                <Text style={styles.tseBadgeText}>TSE</Text>
+              </View>
+            )}
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
+          </TouchableOpacity>
+          {method.key === 'voucher' && !isOnline ? (
+            <Text style={styles.voucherOfflineHint}>{POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE}</Text>
+          ) : null}
+        </View>
       ))}
     </View>
   );
@@ -682,15 +701,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
   },
+  methodCardWrap: {
+    marginBottom: 12,
+  },
   methodCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8f9fa',
     padding: 16,
     borderRadius: 8,
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e9ecef',
+  },
+  methodCardDisabled: {
+    opacity: 0.45,
+  },
+  voucherOfflineHint: {
+    fontSize: 12,
+    color: '#c62828',
+    marginTop: 6,
+    marginLeft: 4,
   },
   methodLabel: {
     flex: 1,
