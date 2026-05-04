@@ -60,6 +60,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv/payload-hash-conflicts': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/offline-intent-coverage': PERMISSIONS.REPORT_EXPORT,
   '/rksv/integrity': [PERMISSIONS.AUDIT_VIEW, PERMISSIONS.FINANZONLINE_MANAGE],
+  '/rksv/belegcheck': PERMISSIONS.PAYMENT_VIEW,
   '/benefit-definitions': PERMISSIONS.BENEFIT_VIEW,
   '/benefit-assignments': PERMISSIONS.BENEFIT_VIEW,
 };

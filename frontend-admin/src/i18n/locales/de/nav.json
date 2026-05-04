@@ -53,5 +53,22 @@
   "rksvLeafOfflineCoverage": "Offline-Abdeckung",
   "rksvLeafSystemStatus": "Systemstatus",
   "rksvLeafCmcCertificate": "CMC / Zertifikat",
-  "rksvLeafFinanzOnlineIntegration": "FinanzOnline · Integration"
+  "rksvLeafFinanzOnlineIntegration": "FinanzOnline · Integration",
+  "rksvLeafBelegcheck": "Beleg prüfen",
+  "rksvBelegcheckQrLabel": "QR-Code einfügen",
+  "rksvBelegcheckQrPlaceholder": "Vollständigen QR-Payload hier einfügen …",
+  "rksvBelegcheckSubmit": "Prüfen",
+  "rksvBelegcheckResultTitle": "Ergebnis",
+  "rksvBelegcheckValid": "Format gültig",
+  "rksvBelegcheckInvalid": "Format ungültig",
+  "rksvBelegcheckErrorsHeading": "Hinweise",
+  "rksvBelegcheckEmptyPayload": "Bitte einen QR-Payload eingeben.",
+  "rksvBelegcheckRequestFailed": "Anfrage fehlgeschlagen",
+  "rksvBelegcheckFieldReceiptNumber": "Belegnummer",
+  "rksvBelegcheckFieldTimestamp": "Zeitstempel",
+  "rksvBelegcheckFieldGrossTotal": "Betrag (1)",
+  "rksvBelegcheckFieldSecondAmount": "Betrag (2)",
+  "rksvBelegcheckFieldCertificate": "Zertifikat-Seriennummer",
+  "rksvBelegcheckFieldPrevSignature": "Vorgänger-Signatur",
+  "rksvBelegcheckNoPrev": "—"
 }

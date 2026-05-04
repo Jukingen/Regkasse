@@ -4,6 +4,8 @@
  * Do not treat these interfaces as a parallel OpenAPI contract — regenerate Orval when the backend changes.
  */
 
+import type { RksvFinanzOnlineSubmissionStatusDto } from '@/api/generated/model';
+
 // ---------------------------------------------------------------------------
 // Query Params
 // ---------------------------------------------------------------------------
@@ -53,6 +55,8 @@ export interface ReceiptListItemDto {
     createdAt: string;
     /** RKSV Sonderbeleg marker from payment (e.g. Jahresbeleg, Monatsbeleg); null for normal sales. */
     rksvSpecialReceiptKind?: string | null;
+    /** FinanzOnline/BMF lifecycle for Startbeleg/Jahresbeleg when a tracking row exists. */
+    rksvFinanzOnlineSubmissionStatus?: string | null;
 }
 
 /** Paginated list envelope */
@@ -126,4 +130,6 @@ export interface ReceiptDetailDto {
     rksvSpecialReceiptKind?: string | null;
     /** When true, Nullbeleg row is flagged as annual-context (December flow). */
     rksvNullbelegActsAsJahresbeleg?: boolean;
+    /** FinanzOnline/BMF submission snapshot for Startbeleg/Jahresbeleg (no secrets). */
+    rksvFinanzOnlineSubmission?: RksvFinanzOnlineSubmissionStatusDto | null;
 }

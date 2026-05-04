@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -56,7 +57,9 @@ public class RksvStartbelegServiceTests
             TenantTestDoubles.PrimaryTenantResolver,
             Options.Create(companyProfile),
             Options.Create(tseOptions),
-            new Mock<ILogger<RksvSpecialReceiptService>>().Object);
+            new Mock<ILogger<RksvSpecialReceiptService>>().Object,
+            new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
+            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object));
     }
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service)> SeedAsync(AppDbContext context)
@@ -138,6 +141,22 @@ public class RksvStartbelegServiceTests
         Assert.Null(payment.RksvSpecialReceiptMonth);
         Assert.Equal(0m, payment.TotalAmount);
         Assert.Equal("pos-session-1", payment.CorrelationId);
+
+        var fonRow = await context.RksvSpecialReceiptFinanzOnlineSubmissions.AsNoTracking()
+            .SingleAsync(x => x.PaymentId == resp.PaymentId);
+        Assert.Equal(RksvSpecialReceiptKinds.Startbeleg, fonRow.Kind);
+        Assert.Equal(RksvSpecialReceiptFinanzOnlineSubmissionStatuses.Pending, fonRow.Status);
+        Assert.Equal(regId, fonRow.CashRegisterId);
+        Assert.Equal(resp.ReceiptId, fonRow.ReceiptId);
+        Assert.Equal(0, fonRow.AttemptCount);
+
+        var outbox = await context.FinanzOnlineOutboxMessages.AsNoTracking()
+            .SingleAsync(x => x.MessageType == FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvStartbelegSubmission);
+        Assert.Equal(FinanzOnlineOutboxStatuses.Pending, outbox.Status);
+        Assert.Equal("RksvSpecialReceipt", outbox.AggregateType);
+        Assert.Equal(resp.ReceiptId, outbox.AggregateId);
+        Assert.Contains(resp.ReceiptNumber, outbox.PayloadJson, StringComparison.Ordinal);
+        Assert.Contains(resp.PaymentId.ToString("N"), outbox.PayloadJson, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

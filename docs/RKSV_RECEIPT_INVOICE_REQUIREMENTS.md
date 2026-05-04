@@ -18,6 +18,7 @@
 | Beleg numarası | `backend/Services/ReceiptSequenceService.cs` → `AT-{RegisterNumber}-{yyyyMMdd}-{seq}` |
 | Vergi oranları | `backend/Models/Product.cs` içindeki `TaxTypes` + `TaxType` enum |
 | Şirket bilgisi | `CompanyProfileOptions` (`ReceiptService` / `PaymentService` içinde kullanım) |
+| RKSV Sonderbelege (admin) | `RksvSpecialReceiptsController`, `RksvSpecialReceiptService`, `RksvSpecialReceiptDtos.cs`; ödeme entity RKSV alanları (`PaymentDetails` / `Models`) |
 
 ---
 
@@ -197,19 +198,19 @@ Aşağıda her satır için: **Amaç (iş/hukuk bağlamı — kesin hukuki deği
 | **Risk** | FinanzOnline TEST gönderiminde uygun `beleg` üretilememesi. |
 | **Öneri** | Gerekirse üretici DEP export entegrasyonu (ayrı proje). |
 
-### 16. Storno / Nullbeleg / Jahresbeleg özel işaretleri
+### 16. Storno / RKSV Sonderbeleg alanları (`RksvSpecialReceiptKind`)
 
 | | |
 |--|--|
 | **Storno** | **Kısmen:** `PaymentDetails.IsStorno` → `ReceiptDTO.FiscalTraceKind = "Storno"` (`ReceiptService.MapToDtoAsync`). `Invoice` üzerinde `DocumentType`, `StornoReasonCode`, `StornoReasonText`, `CreditNote` enum değeri. Ayrı basılı “STORNO” watermark’ı **bu belgede doğrulanmadı** (şablon katmanı). |
-| **Nullbeleg** | **Not found in current implementation** (özel beleg tipi akışı). |
-| **Jahresbeleg** | **Not found in current implementation** (Jahres**beleg** ≠ Jahres**bericht** formal raporu; ayrı fiş tipi araması sonuç vermedi). |
+| **RKSV özel fiş türleri** | **Uygulanıyor (admin):** `POST api/rksv/special-receipts/*` (`RksvSpecialReceiptsController`) → `RksvSpecialReceiptService`. Ödeme satırında `RksvSpecialReceiptKind` (`Nullbeleg`, `Startbeleg`, `Monatsbeleg`, `Jahresbeleg`, `Schlussbeleg` vb. sabitler `RksvSpecialReceiptKinds`). Fiş DTO: `ReceiptDTO.RksvSpecialReceiptKind`, `RksvNullbelegActsAsJahresbeleg`, isteğe bağlı `RksvFinanzOnlineSubmission` (`RksvFinanzOnlineSubmissionStatusDto`) — son alan yalnızca **Startbeleg** ve **Jahresbeleg** oluşturma yolunda doldurulur (`RksvSpecialReceiptFinanzOnlineSubmissionTracker` / outbox handler ile uyumlu; UI tarafında `isRksvFinanzOnlineTrackedSpecialReceiptKind`). |
+| **Jahresbericht (formal rapor)** | Jahres**beleg** (Sonderbeleg) ile karıştırılmamalı; formal yıllık rapor ayrı controller’dadır (`docs/RKSV_CASH_REGISTER_OPERATIONS.md` bölüm 3). |
 
-**Kod:** `Invoice.cs`, `ReceiptDTO.cs`, `ReceiptService.cs`
+**Kod:** `Invoice.cs`, `PaymentDetails` (RKSV alanları), `ReceiptDTO.cs`, `ReceiptService.cs`, `RksvSpecialReceiptDtos.cs`
 
 **Risk:** İade (`Refund`) ile Storno ayrımı operasyonel olarak netleştirilmeli (`FiscalTraceKind` `"Refund"`).
 
-**Öneri:** Kredi notası / Storno iş akışı için `InvoiceController` ve POS refund yollarının operasyon dokümantasyonu.
+**Öneri:** Kredi notası / Storno iş akışı için `InvoiceController` ve POS refund yollarının operasyon dokümantasyonu; Sonderbelege için `RKSV_CASH_REGISTER_OPERATIONS.md` bölüm 4.
 
 ### 17. FinanzOnline doğrulama URL’si (metin olarak basım)
 
@@ -267,7 +268,8 @@ Aşağıda her satır için: **Amaç (iş/hukuk bağlamı — kesin hukuki deği
 | Vorherige Signatur | Var |
 | Umsatzzähler (ayrı) | **Yok** |
 | DEP referansı (fiş satırı) | **Yok** (ayrı doğrulama / export katmanları var) |
-| Nullbeleg / Start / Schluss / Jahresbeleg (fiş tipi) | **Yok** (Jahres**bericht** rapor ayrı) |
+| RKSV Sonderbelege (Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg) | **Var** (admin API + `RksvSpecialReceiptKind`; FO submission DTO: Startbeleg + Jahresbeleg) |
+| Jahresbericht (formal yıllık rapor) | Ayrı ürün (Jahres**beleg** değil) |
 | RKSV verification URL (API) | **Backend’de yok** |
 
 ---
@@ -277,7 +279,7 @@ Aşağıda her satır için: **Amaç (iş/hukuk bağlamı — kesin hukuki deği
 ### Eksik veya yüksek riskli uyumluluk alanları (teknik bakış)
 
 1. **19% KDV** — ürün vergi tablosunda tanımlı değil (`TaxTypes`).
-2. **Nullbeleg / Startbeleg / Schlussbeleg / Jahresbeleg (fiş)** — özel fiş türleri kodda yok.
+2. **RKSV Sonderbelege** — uygulanır; FinanzOnline özel gönderim izi (`RksvSpecialReceiptFinanzOnlineSubmissions`) yalnızca Startbeleg ve Jahresbeleg oluşturma yollarında doldurulur. Diğer Sonderbeleg türleri için bu tabloda satır oluşturulmaz.
 3. **Umsatzzähler** — açık alan yok; TSE iç gömülü olabilir (belirsiz).
 4. **FinanzOnline doğrulama URL** — backend `ReceiptDTO`’da yok; fişte basım API’ye bağlı değil.
 5. **Formal raporların FinanzOnline yükü** — kod notlarında Non-DEP özet; klasik DEP dosyası üretimi bu belge kapsamında kanıtlanmadı.
@@ -292,6 +294,5 @@ Aşağıda her satır için: **Amaç (iş/hukuk bağlamı — kesin hukuki deği
 
 1. `VerificationUrl` için backend sözleşmesi ve POS şablonu doldurma.
 2. Gerekliyse `TaxTypes` ve ürün doğrulamasına **19%** veya AB özel oranı eklenmesi (iş gereksinimi netleştikten sonra).
-3. Nullbeleg / yıl başı fiş gibi RKSV özel beleg türleri için ayrı kullanıcı hikâyesi ve API tasarımı (şu an yok).
-4. `ReceiptPaymentDTO` zenginleştirmesi (çoklu ödeme, nakit para üstü).
-5. Aylık/yıllık kapanış için FinanzOnline gönderiminin günlük ile özdeş olup olmayacağının ürün kararı + kod hizalaması.
+3. `ReceiptPaymentDTO` zenginleştirmesi (çoklu ödeme, nakit para üstü).
+4. Aylık/yıllık kapanış için FinanzOnline gönderiminin günlük ile özdeş olup olmayacağının ürün kararı + kod hizalaması.

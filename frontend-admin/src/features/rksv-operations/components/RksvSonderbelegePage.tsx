@@ -19,6 +19,7 @@ import {
     Select,
     Space,
     Table,
+    Tag,
     Typography,
     message,
 } from 'antd';
@@ -37,6 +38,11 @@ import { formatEUR } from '@/shared/utils/currency';
 import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 import ReceiptReprintWizard from '@/features/operations-center/components/ReceiptReprintWizard';
 import { rksvSpecialReceiptKindLabelDe } from '@/features/rksv-operations/rksvSpecialReceiptDisplay';
+import {
+    isRksvFinanzOnlineTrackedSpecialReceiptKind,
+    rksvFinanzOnlineSubmissionStatusLabelDe,
+    rksvFinanzOnlineSubmissionStatusTagColor,
+} from '@/features/receipts/utils/rksvFinanzOnlineSubmissionUi';
 
 function getViennaCalendarYear(now: Date = new Date()): number {
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric' });
@@ -382,6 +388,24 @@ export default function RksvSonderbelegePage() {
                 render: (k: string | null | undefined) => (
                     <Typography.Text>{rksvSpecialReceiptKindLabelDe(k)}</Typography.Text>
                 ),
+            },
+            {
+                title: 'FinanzOnline (BMF)',
+                key: 'fon',
+                render: (_: unknown, row) => {
+                    if (!isRksvFinanzOnlineTrackedSpecialReceiptKind(row.rksvSpecialReceiptKind)) {
+                        return <Typography.Text type="secondary">—</Typography.Text>;
+                    }
+                    const st = row.rksvFinanzOnlineSubmissionStatus;
+                    if (!st?.trim()) {
+                        return <Typography.Text type="secondary">—</Typography.Text>;
+                    }
+                    return (
+                        <Tag color={rksvFinanzOnlineSubmissionStatusTagColor(st)}>
+                            {rksvFinanzOnlineSubmissionStatusLabelDe(st)}
+                        </Tag>
+                    );
+                },
             },
             {
                 title: 'Betrag',

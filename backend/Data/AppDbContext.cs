@@ -75,6 +75,9 @@ namespace KasseAPI_Final.Data
         public DbSet<FinanzOnlineSubmission> FinanzOnlineSubmissions { get; set; }
         public DbSet<FinanzOnlineOutboxMessage> FinanzOnlineOutboxMessages { get; set; }
 
+        /// <summary>RKSV Startbeleg/Jahresbeleg FinanzOnline submission tracking (no secrets).</summary>
+        public DbSet<RksvSpecialReceiptFinanzOnlineSubmission> RksvSpecialReceiptFinanzOnlineSubmissions { get; set; }
+
         // RKSV Receipt tables
         public DbSet<Receipt> Receipts { get; set; }
         public DbSet<ReceiptItem> ReceiptItems { get; set; }
@@ -1330,6 +1333,29 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.TenantId, e.BranchId, e.MessageType, e.BusinessKey, e.PayloadHash, e.Mode })
                     .IsUnique();
                 entity.HasIndex(e => e.TransmissionId).HasFilter("\"TransmissionId\" IS NOT NULL");
+            });
+
+            builder.Entity<RksvSpecialReceiptFinanzOnlineSubmission>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.RawResponseSnapshot).HasColumnType("jsonb");
+                entity.HasIndex(e => e.PaymentId).IsUnique();
+                entity.HasIndex(e => new { e.CashRegisterId, e.Kind });
+
+                entity.HasOne<PaymentDetails>()
+                    .WithMany()
+                    .HasForeignKey(e => e.PaymentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne<Receipt>()
+                    .WithMany()
+                    .HasForeignKey(e => e.ReceiptId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne<CashRegister>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Cart configuration - Güvenlik ve performans için index'ler

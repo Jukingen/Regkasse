@@ -26,6 +26,10 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>December Nullbeleg Jahres-tag (future Jahresbeleg handling).</summary>
         public bool RksvNullbelegActsAsJahresbeleg { get; set; }
+
+        /// <summary>FinanzOnline submission tracking for RKSV Startbeleg/Jahresbeleg only; null for other receipts or when no row exists.</summary>
+        public RksvFinanzOnlineSubmissionStatusDto? RksvFinanzOnlineSubmission { get; set; }
+
         /// <summary>True when payment is linked to a controlled offline intent replay.</summary>
         public bool HasOfflineOrigin { get; set; }
         public Guid? OfflineTransactionId { get; set; }

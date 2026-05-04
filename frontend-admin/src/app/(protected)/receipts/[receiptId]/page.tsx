@@ -9,6 +9,7 @@ import ReceiptDetailCard from '@/features/receipts/components/ReceiptDetailCard'
 import ReceiptItemsTable from '@/features/receipts/components/ReceiptItemsTable';
 import ReceiptTaxSummary from '@/features/receipts/components/ReceiptTaxSummary';
 import SignatureStatusPanel from '@/features/receipts/components/SignatureStatusPanel';
+import RksvSpecialReceiptFinanzOnlineSubmissionCard from '@/features/receipts/components/RksvSpecialReceiptFinanzOnlineSubmissionCard';
 import { useI18n } from '@/i18n';
 
 const { Title } = Typography;
@@ -99,6 +100,13 @@ export default function ReceiptDetailPage() {
             </Button>
 
             <ReceiptDetailCard receipt={receipt} />
+
+            <RksvSpecialReceiptFinanzOnlineSubmissionCard
+                receiptId={receipt.receiptId}
+                paymentId={receipt.paymentId}
+                rksvSpecialReceiptKind={receipt.rksvSpecialReceiptKind}
+                submission={receipt.rksvFinanzOnlineSubmission ?? null}
+            />
 
             <SignatureStatusPanel
                 paymentId={receipt.paymentId}

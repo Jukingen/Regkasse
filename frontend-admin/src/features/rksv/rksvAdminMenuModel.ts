@@ -109,6 +109,7 @@ export function buildRksvMenuGroups(t: (key: string) => string, verificationNavL
                     href: '/rksv/offline-intent-coverage',
                     label: t('nav.rksvLeafOfflineCoverage'),
                 },
+                { key: '/rksv/belegcheck', href: '/rksv/belegcheck', label: t('nav.rksvLeafBelegcheck') },
             ],
         },
         {

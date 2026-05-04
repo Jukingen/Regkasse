@@ -1,10 +1,13 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Constants;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +36,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     private readonly CompanyProfileOptions _companyProfile;
     private readonly TseOptions _tseOptions;
     private readonly ILogger<RksvSpecialReceiptService> _logger;
+    private readonly IRksvSpecialReceiptFinanzOnlineSubmissionTracker _fonSubmissionTracker;
+    private readonly IFinanzOnlineOutboxService _finanzOnlineOutbox;
 
     public RksvSpecialReceiptService(
         AppDbContext db,
@@ -42,7 +47,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         ISettingsTenantResolver tenantResolver,
         IOptions<CompanyProfileOptions> companyProfile,
         IOptions<TseOptions> tseOptions,
-        ILogger<RksvSpecialReceiptService> logger)
+        ILogger<RksvSpecialReceiptService> logger,
+        IRksvSpecialReceiptFinanzOnlineSubmissionTracker fonSubmissionTracker,
+        IFinanzOnlineOutboxService finanzOnlineOutbox)
     {
         _db = db;
         _tseService = tseService;
@@ -52,7 +59,14 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         _companyProfile = companyProfile.Value;
         _tseOptions = tseOptions.Value;
         _logger = logger;
+        _fonSubmissionTracker = fonSubmissionTracker;
+        _finanzOnlineOutbox = finanzOnlineOutbox;
     }
+
+    private static readonly JsonSerializerOptions RksvFonOutboxJsonOpts = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     /// <inheritdoc />
     public async Task<CreateNullbelegResponse> CreateNullbelegAsync(
@@ -250,6 +264,83 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         }
     }
 
+    private Guid ResolveReceiptIdFromChangeTracker(Guid paymentId)
+    {
+        foreach (var e in _db.ChangeTracker.Entries<Receipt>())
+        {
+            if (e.Entity.PaymentId == paymentId)
+                return e.Entity.ReceiptId;
+        }
+
+        throw new InvalidOperationException($"Receipt for PaymentId={paymentId} was not found in the EF change tracker.");
+    }
+
+    private static string GetQrPayloadFromChangeTracker(AppDbContext db, Guid paymentId)
+    {
+        foreach (var e in db.ChangeTracker.Entries<Receipt>())
+        {
+            if (e.Entity.PaymentId == paymentId)
+                return e.Entity.QrCodePayload ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
+
+    private static string ComputeSha256HexForOutbox(string payload)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(payload ?? string.Empty));
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
+
+    private async Task EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync(
+        string messageType,
+        Guid tenantId,
+        string registerNumber,
+        Guid paymentId,
+        Guid receiptId,
+        Guid cashRegisterId,
+        string receiptNumber,
+        string kind,
+        CancellationToken cancellationToken)
+    {
+        var inner = new RksvSpecialReceiptFinanzOnlineOutboxPayloadBody
+        {
+            Kind = kind,
+            PaymentId = paymentId,
+            ReceiptId = receiptId,
+            CashRegisterId = cashRegisterId,
+            ReceiptNumber = receiptNumber,
+            QrPayload = GetQrPayloadFromChangeTracker(_db, paymentId),
+        };
+        var innerJson = JsonSerializer.Serialize(inner, RksvFonOutboxJsonOpts);
+        var payloadHashHex = ComputeSha256HexForOutbox(innerJson);
+        var businessKey = $"rksv|{receiptId:N}|{kind}";
+        await _finanzOnlineOutbox.EnqueueSubmissionAsync(
+            aggregateType: "RksvSpecialReceipt",
+            aggregateId: receiptId,
+            messageType: messageType,
+            businessKey: businessKey,
+            payload: new FinanzOnlineOutboxPayload
+            {
+                Mode = FinanzOnlineIntegrationMode.TEST,
+                Scope = new FinanzOnlineScope
+                {
+                    TenantId = tenantId.ToString("N"),
+                    RegisterId = registerNumber,
+                },
+                Correlation = new FinanzOnlineCorrelationContext
+                {
+                    BusinessKey = businessKey,
+                    PayloadHash = payloadHashHex,
+                    CorrelationId = paymentId.ToString("N"),
+                },
+                SubmissionKind = FinanzOnlineSubmissionKind.Register,
+                PayloadJson = innerJson,
+            },
+            cancellationToken,
+            persistImmediately: false).ConfigureAwait(false);
+    }
+
     /// <inheritdoc />
     public async Task<CreateStartbelegResponse> CreateStartbelegAsync(
         CreateStartbelegRequest request,
@@ -386,6 +477,25 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
             await _receiptService.AddReceiptFromPaymentToContextAsync(payment).ConfigureAwait(false);
+
+            var receiptIdForTracking = ResolveReceiptIdFromChangeTracker(paymentId);
+            _db.RksvSpecialReceiptFinanzOnlineSubmissions.Add(
+                _fonSubmissionTracker.CreateInitialNotRequiredRow(
+                    paymentId,
+                    receiptIdForTracking,
+                    request.CashRegisterId,
+                    RksvSpecialReceiptKinds.Startbeleg));
+
+            await EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync(
+                FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvStartbelegSubmission,
+                tenantId,
+                register.RegisterNumber,
+                paymentId,
+                receiptIdForTracking,
+                request.CashRegisterId,
+                receiptNumber,
+                RksvSpecialReceiptKinds.Startbeleg,
+                cancellationToken).ConfigureAwait(false);
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
@@ -762,6 +872,25 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);
             await _receiptService.AddReceiptFromPaymentToContextAsync(payment).ConfigureAwait(false);
+
+            var receiptIdForTrackingJb = ResolveReceiptIdFromChangeTracker(paymentId);
+            _db.RksvSpecialReceiptFinanzOnlineSubmissions.Add(
+                _fonSubmissionTracker.CreateInitialNotRequiredRow(
+                    paymentId,
+                    receiptIdForTrackingJb,
+                    request.CashRegisterId,
+                    RksvSpecialReceiptKinds.Jahresbeleg));
+
+            await EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync(
+                FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvJahresbelegSubmission,
+                tenantId,
+                register.RegisterNumber,
+                paymentId,
+                receiptIdForTrackingJb,
+                request.CashRegisterId,
+                receiptNumber,
+                RksvSpecialReceiptKinds.Jahresbeleg,
+                cancellationToken).ConfigureAwait(false);
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);

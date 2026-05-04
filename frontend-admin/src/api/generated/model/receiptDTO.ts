@@ -9,6 +9,7 @@ import type { ReceiptCompanyDTO } from './receiptCompanyDTO';
 import type { ReceiptHeaderDTO } from './receiptHeaderDTO';
 import type { ReceiptItemDTO } from './receiptItemDTO';
 import type { ReceiptPaymentDTO } from './receiptPaymentDTO';
+import type { RksvFinanzOnlineSubmissionStatusDto } from './rksvFinanzOnlineSubmissionStatusDto';
 import type { ReceiptSignatureDTO } from './receiptSignatureDTO';
 import type { ReceiptTaxLineDTO } from './receiptTaxLineDTO';
 import type { ReceiptTotalsDTO } from './receiptTotalsDTO';
@@ -52,6 +53,8 @@ export interface ReceiptDTO {
   /** @nullable */
   receiptNumber?: string | null;
   receiptPersistedAtUtc?: string;
+  /** @nullable */
+  rksvFinanzOnlineSubmission?: RksvFinanzOnlineSubmissionStatusDto;
   rksvNullbelegActsAsJahresbeleg?: boolean;
   /** @nullable */
   rksvSpecialReceiptKind?: string | null;

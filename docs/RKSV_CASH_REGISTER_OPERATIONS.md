@@ -105,26 +105,59 @@ Yıl bazlı formal rapor; aynı controller/servis kalıbı.
 
 ---
 
-## 4. Nullbeleg
+## 4. RKSV Sonderbelege — Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg
 
-### Repo durumu
-**Not found in current implementation** — kod tabanında `Nullbeleg` adlı akış, endpoint veya özel menü **bulunamadı** (metin araması: `Nullbeleg`).
+RKSV özel fişleri **POS ödeme rotalarından ayrıdır**; `PaymentService` üzerinden oluşturulmaz. Üretim `RksvSpecialReceiptsController` + `RksvSpecialReceiptService` ile yapılır; sonuç kayıtları normal `PaymentDetails` / `Invoice` / `Receipt` tablolarına yazılır ve fiş DTO’sunda `RksvSpecialReceiptKind` ile işaretlenir.
+
+### Ortak API (`backend`)
+
+| İşlem | HTTP | İzin (`AppPermissions`) |
+|--------|------|-------------------------|
+| Monats-Nullbeleg | `POST api/rksv/special-receipts/nullbeleg` | `RksvNullbelegCreate` |
+| Startbeleg | `POST api/rksv/special-receipts/startbeleg` | `RksvStartbelegCreate` |
+| Monatsbeleg | `POST api/rksv/special-receipts/monatsbeleg` | `RksvMonatsbelegCreate` |
+| Jahresbeleg | `POST api/rksv/special-receipts/jahresbeleg` | `RksvJahresbelegCreate` |
+| Schlussbeleg (Endbeleg) | `POST api/rksv/special-receipts/schlussbeleg` | `RksvSchlussbelegCreate` |
+
+İstek/yanıt gövdeleri: `backend/DTOs/RksvSpecialReceiptDtos.cs`. Controller: `backend/Controllers/RksvSpecialReceiptsController.cs`. İş kuralları ve TSE sıfır tutarlı imza: `backend/Services/RksvSpecialReceiptService.cs`.
+
+### Admin arayüzü (`frontend-admin`)
+
+- **Sayfa:** `frontend-admin/src/app/(protected)/rksv/sonderbelege/page.tsx` → `RksvSonderbelegePage` (`frontend-admin/src/features/rksv-operations/components/RksvSonderbelegePage.tsx`).
+- **Menü:** RKSV grubu altında **Sonderbelege** (`nav.rksvLeafSonderbelege`); rota `/rksv/sonderbelege` (`frontend-admin/src/features/rksv/rksvAdminMenuModel.ts`).
+- **Akış (özet):** Kasa seçimi → ilgili izin varsa oluşturma kartları (Nullbeleg / Startbeleg / Monatsbeleg / Jahresbeleg / Schlussbeleg) → `POST /api/rksv/special-receipts/...` → son fiş listesi `getApiReceiptsList` ile son 300 kayıt içinden `rksvSpecialReceiptKind` dolu olanlarla süzülür. İsteğe bağlı **Beleg erneut drucken** (`ReceiptReprintWizard`, `RECEIPT_REPRINT`). Schlussbeleg için ek onay metni modalı vardır.
+- **Fiş detayı:** `receipts/[receiptId]/page.tsx` içinde Startbeleg/Jahresbeleg için `RksvSpecialReceiptFinanzOnlineSubmissionCard` (`ReceiptDTO.rksvFinanzOnlineSubmission`).
+- **FinanzOnline durumu (yalnızca izlenen türler):** Arayüzde Startbeleg ve Jahresbeleg için gönderim rozeti/metni `isRksvFinanzOnlineTrackedSpecialReceiptKind` (`frontend-admin/src/features/receipts/utils/rksvFinanzOnlineSubmissionUi.ts`) ile sınırlanır; backend ile uyumludur.
+
+### FinanzOnline outbox izi (kod davranışı)
+
+- **Outbox kuyruğuna eklenen Sonderbeleg türleri:** yalnızca **Startbeleg** ve **Jahresbeleg** (`RksvSpecialReceiptService` içinde `EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync` çağrıları; mesaj türleri `FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvStartbelegSubmission` / `RksvJahresbelegSubmission`).
+- **Nullbeleg, Monatsbeleg, Schlussbeleg:** `RksvSpecialReceiptService` bu türler için `EnqueueRksvSpecialReceiptFinanzOnlineOutboxAsync` çağırmaz; `RksvSpecialReceiptFinanzOnlineSubmissions` satırı da bu oluşturma yollarında eklenmez.
+- **Durum satırı:** `RksvSpecialReceiptFinanzOnlineSubmission` entity + `ReceiptDTO.RksvFinanzOnlineSubmission` (`RksvFinanzOnlineSubmissionStatusDto`). İşleyici: `RksvSpecialReceiptFinanzOnlineOutboxHandler`.
+
+### 4.1 Nullbeleg
+
+Viyana takvimi `year`/`month` için kasa başına tek kayıt; `ActsAsJahresbeleg` isteğe bağlı (gövdede `null` ise Aralık için `true` varsayılanı serviste uygulanır). Misafir müşteri + sıfır tutarlı ödeme/fatura/fiş üretimi `RksvSpecialReceiptService.CreateNullbelegAsync`.
+
+### 4.2 Startbeleg
+
+Kasa başına tek Startbeleg; kasa kalıcı devre dışı değilse. Oluşturma sonrası FO submission satırı ve outbox mesajı eklenir (`CreateStartbelegAsync`).
+
+### 4.3 Monatsbeleg
+
+Yalnızca **mevcut** Viyana takvim ayı için; Aralık ayında istek **Jahresbeleg** yoluna yönlendirilir (ayrı `Monatsbeleg` satırı üretilmez — servis içi dallanma). FO özel iz kaydı yok.
+
+### 4.4 Jahresbeleg
+
+Viyana takvim yılı **şu anki yıl veya bir önceki yıl** ile sınırlı; erken düzenleme notu `EarlyReason` ile taşınabilir. Oluşturma sonrası FO submission + outbox (`CreateJahresbelegAsync`).
+
+### 4.5 Schlussbeleg (Endbeleg)
+
+Açık vardiya yokken ve kasa durumu kapalı uygunluğunda; sonrasında kasa **kalıcı olarak devre dışı** bırakılır. FO özel iz kaydı yok.
 
 ---
 
-## 5. Startbeleg
-
-**Not found in current implementation** (`Startbeleg` araması sonuç vermedi).
-
----
-
-## 6. Schlussbeleg
-
-**Not found in current implementation** (`Schlussbeleg` araması sonuç vermedi).
-
----
-
-## 7. Belege / fişler (Receipts)
+## 9. Belege / fişler (Receipts)
 
 ### Ne
 Ödeme ile atomik oluşturulan **kalıcı** fiş (`receipts` tablosu + kalemler + vergi satırları). “Ödeme sonrası tembel üretim” yok; `GetReceiptByPaymentId` açıkça kalıcı fiş bekler.
@@ -160,11 +193,11 @@ RKSV için imza, zincir, QR yükü ve satır düzeyi kanıt.
 - Ödeme var fiş yok: `GetReceiptDataAsync` log’unda “receipt must be created at payment time” uyarısı ile uyumlu `404`.
 
 ### Eksik / kısmi
-- Admin’de ayrı “Nullbeleg bas” vb. **yok**.
+- (Sonderbelege için bkz. **bölüm 4**; normal satış fişi yolu değişmedi.)
 
 ---
 
-## 8. Zahlungen / ödemeler (Payments)
+## 10. Zahlungen / ödemeler (Payments)
 
 ### Ne
 `payment_details` tabanlı satış ödemesi; POS faturası (`invoices` + `SourcePaymentId`) ile eşlenir.
@@ -193,7 +226,7 @@ POS’ta ödeme alın; admin’de **Zahlungen** ile doğrulama, FinanzOnline kuy
 
 ---
 
-## 9. Tagesabschluss / operativer Tagesabschluss (gün sonu ve dönem kapanışları)
+## 11. Tagesabschluss / operativer Tagesabschluss (gün sonu ve dönem kapanışları)
 
 ### Ne
 - **Günlük:** `DailyClosing` (`ClosingType = Daily`), TSE imzası, Viyana takvim günü için `Invoice` (Paid) toplamları; FinanzOnline açıksa `SubmitDailyClosingAsync`.
@@ -229,7 +262,7 @@ Kasa dönemini TSE ile mühürlemek ve (etkinse) FinanzOnline’a iletmek.
 
 ---
 
-## 10. DEP / dışa aktarma / denetim izi
+## 12. DEP / dışa aktarma / denetim izi
 
 ### Ne (uygulamada)
 1. **FinanzOnline RKDB `belegpruefung`:** DEP desenine uyan `beleg` metni için yapısal doğrulama (`FinanzOnlineRkdbBelegpruefungValidator`). Fiş QR metni çoğu zaman bu desenle **aynı değildir** (`FinanzOnlineService.TryResolveRkdbBelegpruefungAsync` yorumu).
@@ -254,7 +287,7 @@ Doğrudan DEP dışa aktarma **yok**; veri sunucu/admin API’lerinden alınır.
 
 ---
 
-## 11. FinanzOnline / RKSV doğrulama ve operasyon ekranları
+## 13. FinanzOnline / RKSV doğrulama ve operasyon ekranları
 
 ### Ne
 - **Yapılandırma ve tanı:** `FinanzOnlineController` — `api/FinanzOnline/config`, `status`, test connection, hata geçmişi vb. (`SettingsView` / `FinanzOnlineView` / `FinanzOnlineManage` kombinasyonları endpoint bazında dosyada ayrılmıştır).
@@ -299,6 +332,7 @@ FinanzOnline yönetim ekranları **admin**dedir; POS ödeme sonrası gönderim `
 | Legal export completeness | `api/reports/legal-export-completeness/...` |
 | POS ödeme | `api/pos/payment` (+ legacy `api/Payment`) |
 | Tagesabschluss | `api/Tagesabschluss/...` |
+| RKSV Sonderbelege | `api/rksv/special-receipts/nullbeleg`, `.../startbeleg`, `.../monatsbeleg`, `.../jahresbeleg`, `.../schlussbeleg` |
 | Fişler | `api/Receipts/...` |
 | Fiscal export | `api/admin/fiscal-export` |
 | Integrity | `api/admin/integrity` |
@@ -314,6 +348,6 @@ FinanzOnline yönetim ekranları **admin**dedir; POS ödeme sonrası gönderim `
 | Konu | Durum |
 |------|--------|
 | POS’tan formal Tagesbericht | Eksik (placeholder ekran) |
-| Nullbeleg / Startbeleg / Schlussbeleg | Kodda bulunamadı |
+| RKSV Sonderbelege (Nullbeleg … Schlussbeleg) | Bölüm 4 + `api/rksv/special-receipts/*`; FO özel iz: Startbeleg + Jahresbeleg |
 | Aylık/yıllık Tagesabschluss → FinanzOnline | Günlük ile aynı otomasyon kodda görülmedi |
 | Formal rapor FO gönderimi | Bilgilendirici / Non-DEP özet (outbox notu) |

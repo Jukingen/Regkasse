@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -57,7 +58,9 @@ public class RksvJahresbelegServiceTests
             TenantTestDoubles.PrimaryTenantResolver,
             Options.Create(companyProfile),
             Options.Create(tseOptions),
-            new Mock<ILogger<RksvSpecialReceiptService>>().Object);
+            new Mock<ILogger<RksvSpecialReceiptService>>().Object,
+            new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
+            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object));
     }
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service, Mock<IReceiptSequenceService> Seq)> SeedAsync(AppDbContext context)
@@ -147,6 +150,20 @@ public class RksvJahresbelegServiceTests
         Assert.True(payment.RksvNullbelegActsAsJahresbeleg);
         Assert.Equal(0m, payment.TotalAmount);
         Assert.False(string.IsNullOrEmpty(payment.PrevSignatureValueUsed));
+
+        var fonRow = await context.RksvSpecialReceiptFinanzOnlineSubmissions.AsNoTracking()
+            .SingleAsync(x => x.PaymentId == resp.PaymentId);
+        Assert.Equal(RksvSpecialReceiptKinds.Jahresbeleg, fonRow.Kind);
+        Assert.Equal(RksvSpecialReceiptFinanzOnlineSubmissionStatuses.Pending, fonRow.Status);
+        Assert.Equal(regId, fonRow.CashRegisterId);
+        Assert.Equal(resp.ReceiptId, fonRow.ReceiptId);
+
+        var outbox = await context.FinanzOnlineOutboxMessages.AsNoTracking()
+            .SingleAsync(x => x.MessageType == FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvJahresbelegSubmission);
+        Assert.Equal(FinanzOnlineOutboxStatuses.Pending, outbox.Status);
+        Assert.Equal("RksvSpecialReceipt", outbox.AggregateType);
+        Assert.Equal(resp.ReceiptId, outbox.AggregateId);
+        Assert.Contains("Jahresbeleg", outbox.PayloadJson, StringComparison.Ordinal);
     }
 
     [Fact]

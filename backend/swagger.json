@@ -24941,6 +24941,46 @@
         },
         "additionalProperties": false
       },
+      "RksvFinanzOnlineSubmissionStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "lastAttemptAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastErrorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastErrorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submittedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "verifiedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ReceiptDTO": {
         "type": "object",
         "properties": {
@@ -24976,6 +25016,10 @@
           },
           "rksvNullbelegActsAsJahresbeleg": {
             "type": "boolean"
+          },
+          "rksvFinanzOnlineSubmission": {
+            "$ref": "#/components/schemas/RksvFinanzOnlineSubmissionStatusDto",
+            "nullable": true
           },
           "hasOfflineOrigin": {
             "type": "boolean"
@@ -25236,6 +25280,10 @@
             "format": "date-time"
           },
           "rksvSpecialReceiptKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "rksvFinanzOnlineSubmissionStatus": {
             "type": "string",
             "nullable": true
           }

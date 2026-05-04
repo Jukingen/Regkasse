@@ -84,6 +84,8 @@ builder.Services.Configure<FinanzOnlineSimulationDeveloperOptions>(
     builder.Configuration.GetSection(FinanzOnlineSimulationDeveloperOptions.SectionName));
 builder.Services.Configure<FinanzOnlineSimulationOptions>(
     builder.Configuration.GetSection(FinanzOnlineSimulationOptions.SectionName));
+builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
+    builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
 builder.Services.AddSingleton<FinanzOnlineDeveloperSimulationEngine>();
 if (!OpenApiExportMode.IsEnabled)
 {
@@ -428,6 +430,20 @@ builder.Services.AddScoped<IFinanzOnlineTransmissionQueryClient>(sp =>
 builder.Services.AddScoped<IFinanzOnlineCommandMapper, DefaultFinanzOnlineCommandMapper>();
 builder.Services.AddScoped<IFinanzOnlineSubmissionService, FinanzOnlineSubmissionService>();
 builder.Services.AddScoped<IFinanzOnlineOutboxService, FinanzOnlineOutboxService>();
+builder.Services.AddScoped<RksvSpecialReceiptFinanzOnlineOutboxHandler>();
+builder.Services.AddScoped<FakeRksvFinanzOnlineSubmissionClient>();
+builder.Services.AddScoped<NotImplementedRksvFinanzOnlineSubmissionClient>();
+builder.Services.AddScoped<RksvFinanzOnlineSubmissionClient>();
+builder.Services.AddScoped<IRksvFinanzOnlineSubmissionClient>(sp =>
+{
+    var opts = sp.GetRequiredService<IOptionsMonitor<RksvFinanzOnlineSubmissionClientOptions>>().CurrentValue;
+    return opts.ClientKind switch
+    {
+        RksvFinanzOnlineSubmissionClientKind.NotImplemented => sp.GetRequiredService<NotImplementedRksvFinanzOnlineSubmissionClient>(),
+        RksvFinanzOnlineSubmissionClientKind.Real => sp.GetRequiredService<RksvFinanzOnlineSubmissionClient>(),
+        _ => sp.GetRequiredService<FakeRksvFinanzOnlineSubmissionClient>(),
+    };
+});
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
 builder.Services.AddScoped<IFinanzOnlineAdminConnectivityService, FinanzOnlineAdminConnectivityService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
@@ -451,9 +467,11 @@ builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();
 builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
-        builder.Services.AddScoped<IRksvSpecialReceiptService, RksvSpecialReceiptService>();
-        builder.Services.AddScoped<IRksvStartbelegPolicy, RksvStartbelegPolicy>();
-        builder.Services.AddScoped<IRksvMonatsbelegPolicy, RksvMonatsbelegPolicy>();
+builder.Services.AddScoped<IRksvSpecialReceiptFinanzOnlineSubmissionTracker, RksvSpecialReceiptFinanzOnlineSubmissionTracker>();
+builder.Services.AddScoped<IRksvSpecialReceiptService, RksvSpecialReceiptService>();
+builder.Services.AddScoped<IRksvStartbelegPolicy, RksvStartbelegPolicy>();
+builder.Services.AddScoped<IRksvMonatsbelegPolicy, RksvMonatsbelegPolicy>();
+builder.Services.AddSingleton<IRksvReceiptQrPayloadFormatValidator, RksvReceiptQrPayloadFormatValidator>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
 builder.Services.AddScoped<LegacyRouteDeprecationFilter>();

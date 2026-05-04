@@ -53,5 +53,22 @@
   "rksvLeafOfflineCoverage": "Çevrimdışı kapsam",
   "rksvLeafSystemStatus": "Sistem durumu",
   "rksvLeafCmcCertificate": "CMC / sertifika",
-  "rksvLeafFinanzOnlineIntegration": "FinanzOnline · entegrasyon"
+  "rksvLeafFinanzOnlineIntegration": "FinanzOnline · entegrasyon",
+  "rksvLeafBelegcheck": "Fiş doğrulama",
+  "rksvBelegcheckQrLabel": "QR yükünü yapıştırın",
+  "rksvBelegcheckQrPlaceholder": "Tam QR yükünü buraya yapıştırın …",
+  "rksvBelegcheckSubmit": "Doğrula",
+  "rksvBelegcheckResultTitle": "Sonuç",
+  "rksvBelegcheckValid": "Biçim geçerli",
+  "rksvBelegcheckInvalid": "Biçim geçersiz",
+  "rksvBelegcheckErrorsHeading": "Notlar",
+  "rksvBelegcheckEmptyPayload": "Lütfen bir QR yükü girin.",
+  "rksvBelegcheckRequestFailed": "İstek başarısız",
+  "rksvBelegcheckFieldReceiptNumber": "Fiş numarası",
+  "rksvBelegcheckFieldTimestamp": "Zaman damgası",
+  "rksvBelegcheckFieldGrossTotal": "Tutar (1)",
+  "rksvBelegcheckFieldSecondAmount": "Tutar (2)",
+  "rksvBelegcheckFieldCertificate": "Sertifika seri numarası",
+  "rksvBelegcheckFieldPrevSignature": "Önceki imza",
+  "rksvBelegcheckNoPrev": "—"
 }

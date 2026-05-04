@@ -4,6 +4,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -59,7 +60,9 @@ public class RksvNullbelegServiceTests
             TenantTestDoubles.PrimaryTenantResolver,
             Options.Create(companyProfile),
             Options.Create(tseOptions),
-            new Mock<ILogger<RksvSpecialReceiptService>>().Object);
+            new Mock<ILogger<RksvSpecialReceiptService>>().Object,
+            new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
+            new FinanzOnlineOutboxService(context, new Mock<ILogger<FinanzOnlineOutboxService>>().Object));
     }
 
     private static async Task<(Guid RegisterId, RksvSpecialReceiptService Service, Mock<ITseService> Tse, Mock<IReceiptSequenceService> Seq)> SeedAndBuildAsync(AppDbContext context)

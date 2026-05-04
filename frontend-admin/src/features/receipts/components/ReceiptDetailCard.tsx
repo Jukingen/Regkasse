@@ -2,7 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Alert, Descriptions, Space, Tag, Typography } from 'antd';
+import { useRouter } from 'next/navigation';
+import { Alert, Button, Descriptions, message, Space, Tag, Typography } from 'antd';
+import { CopyOutlined } from '@ant-design/icons';
 import type { ReceiptDetailDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
 import {
@@ -15,6 +17,8 @@ import dayjs from 'dayjs';
 import { OPERATOR_LINK_LABELS, OPERATOR_REGISTER_LINK_COPY } from '@/shared/operatorTruthCopy';
 import { useI18n } from '@/i18n';
 import { formatRksvSpecialReceiptKindDisplay } from '@/features/receipts/utils/formatRksvSpecialReceiptKind';
+import { maskQrPayloadPreview } from '@/features/receipts/utils/maskQrPayloadPreview';
+import { setBelegcheckPrefillSession } from '@/features/rksv/belegcheckPrefillStorage';
 
 const { Text } = Typography;
 
@@ -27,8 +31,24 @@ interface ReceiptDetailCardProps {
  */
 export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
     const { t } = useI18n();
+    const router = useRouter();
     const regFk = analyzeRegisterFkField(receipt.cashRegisterId);
     const c = (key: string) => t(`receipts.detail.card.${key}`);
+
+    const qrRaw = receipt.qrCodePayload?.trim() ?? '';
+    const copyQrPayload = () => {
+        if (!qrRaw) return;
+        void navigator.clipboard.writeText(qrRaw).then(
+            () => message.success(c('copyQrPayloadSuccess')),
+            () => message.error(c('copyQrPayloadFailed')),
+        );
+    };
+
+    const openBelegcheck = () => {
+        if (!qrRaw) return;
+        setBelegcheckPrefillSession(qrRaw);
+        router.push('/rksv/belegcheck');
+    };
 
     return (
         <Descriptions
@@ -182,11 +202,26 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                 <Text strong style={{ fontSize: 16 }}>{formatEUR(receipt.grandTotal)}</Text>
             </Descriptions.Item>
             <Descriptions.Item label={c('labelQrCode')} span={3}>
-                {receipt.qrCodePayload ? (
-                    <Text code style={{ fontSize: 11, wordBreak: 'break-all' }}>
-                        {receipt.qrCodePayload}
-                    </Text>
-                ) : '—'}
+                {qrRaw ? (
+                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                        <Text code style={{ fontSize: 11, wordBreak: 'break-all' }}>
+                            {maskQrPayloadPreview(qrRaw)}
+                        </Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                            {c('qrPreviewFootnote')}
+                        </Text>
+                        <Space wrap>
+                            <Button type="default" icon={<CopyOutlined />} onClick={copyQrPayload}>
+                                {c('copyQrPayload')}
+                            </Button>
+                            <Button type="link" onClick={openBelegcheck} style={{ paddingLeft: 0 }}>
+                                {c('pruefenQr')}
+                            </Button>
+                        </Space>
+                    </Space>
+                ) : (
+                    '—'
+                )}
             </Descriptions.Item>
             <Descriptions.Item label={c('labelSignature')} span={3}>
                 {receipt.signatureValue ? (

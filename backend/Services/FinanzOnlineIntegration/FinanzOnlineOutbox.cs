@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -70,13 +71,15 @@ public sealed class FinanzOnlineOutboxPayload
 
 public interface IFinanzOnlineOutboxService
 {
+    /// <param name="persistImmediately">When false, the outbox row is only added to the current <see cref="AppDbContext"/>; caller must <c>SaveChanges</c> (e.g. same DB transaction as fiscal writes).</param>
     Task<FinanzOnlineOutboxMessage> EnqueueSubmissionAsync(
         string aggregateType,
         Guid aggregateId,
         string messageType,
         string businessKey,
         FinanzOnlineOutboxPayload payload,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool persistImmediately = true);
 }
 
 public sealed class FinanzOnlineOutboxService : IFinanzOnlineOutboxService
@@ -96,11 +99,18 @@ public sealed class FinanzOnlineOutboxService : IFinanzOnlineOutboxService
         string messageType,
         string businessKey,
         FinanzOnlineOutboxPayload payload,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool persistImmediately = true)
     {
         var payloadJson = JsonSerializer.Serialize(payload);
         var payloadHash = ComputeSha256(payloadJson);
         var idempotencyKey = ComputeSha256($"{aggregateType}|{aggregateId:N}|{messageType}|{businessKey}|{payloadHash}|{payload.Mode}");
+
+        // Same DbContext may hold an unsaved outbox row (deferSave path); check Local before DB query.
+        var tracked = _context.FinanzOnlineOutboxMessages.Local
+            .FirstOrDefault(x => x.IdempotencyKey == idempotencyKey);
+        if (tracked != null)
+            return tracked;
 
         var existing = await _context.FinanzOnlineOutboxMessages
             .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken)
@@ -129,9 +139,10 @@ public sealed class FinanzOnlineOutboxService : IFinanzOnlineOutboxService
         };
 
         _context.FinanzOnlineOutboxMessages.Add(item);
-        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        _logger.LogInformation("FinanzOnline outbox enqueued MessageType={MessageType} AggregateType={AggregateType} AggregateId={AggregateId} CorrelationId={CorrelationId}",
-            messageType, aggregateType, aggregateId, item.CorrelationId);
+        if (persistImmediately)
+            await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("FinanzOnline outbox enqueued MessageType={MessageType} AggregateType={AggregateType} AggregateId={AggregateId} CorrelationId={CorrelationId} PersistImmediately={PersistImmediately}",
+            messageType, aggregateType, aggregateId, item.CorrelationId, persistImmediately);
         return item;
     }
 
@@ -220,6 +231,7 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var submissionService = scope.ServiceProvider.GetRequiredService<IFinanzOnlineSubmissionService>();
+        var rksvSpecialReceiptOutboxHandler = scope.ServiceProvider.GetRequiredService<RksvSpecialReceiptFinanzOnlineOutboxHandler>();
         var audit = scope.ServiceProvider.GetRequiredService<IAuditLogService>();
         var opts = _options.CurrentValue;
         var now = DateTime.UtcNow;
@@ -344,6 +356,32 @@ public sealed class FinanzOnlineOutboxHostedService : BackgroundService
                     "FinanzOnline outbox Jahresbericht informational success Id={OutboxId} AggregateId={AggregateId}",
                     active.Id, active.AggregateId);
                 await LogOutboxAttemptAsync(audit, active, "informational_success", cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            if (string.Equals(active.MessageType, FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvStartbelegSubmission, StringComparison.Ordinal))
+            {
+                await rksvSpecialReceiptOutboxHandler.ProcessAsync(
+                    context,
+                    audit,
+                    active,
+                    payload,
+                    opts,
+                    isJahresbeleg: false,
+                    cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            if (string.Equals(active.MessageType, FinanzOnlineRksvSpecialReceiptOutboxMessageTypes.RksvJahresbelegSubmission, StringComparison.Ordinal))
+            {
+                await rksvSpecialReceiptOutboxHandler.ProcessAsync(
+                    context,
+                    audit,
+                    active,
+                    payload,
+                    opts,
+                    isJahresbeleg: true,
+                    cancellationToken).ConfigureAwait(false);
                 return;
             }
 

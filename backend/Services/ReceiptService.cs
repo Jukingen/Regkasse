@@ -420,7 +420,11 @@ namespace KasseAPI_Final.Services
                     TaxTotal = r.TaxTotal,
                     GrandTotal = r.GrandTotal,
                     CreatedAt = r.CreatedAt,
-                    RksvSpecialReceiptKind = r.Payment != null ? r.Payment.RksvSpecialReceiptKind : null
+                    RksvSpecialReceiptKind = r.Payment != null ? r.Payment.RksvSpecialReceiptKind : null,
+                    RksvFinanzOnlineSubmissionStatus = _context.RksvSpecialReceiptFinanzOnlineSubmissions
+                        .Where(s => s.PaymentId == r.PaymentId)
+                        .Select(s => s.Status)
+                        .FirstOrDefault(),
                 })
                 .ToListAsync();
 
@@ -510,6 +514,31 @@ namespace KasseAPI_Final.Services
                 .FirstOrDefaultAsync().ConfigureAwait(false) ?? receipt.CashRegisterId.ToString();
 
             var off = pay?.OfflineTransaction;
+
+            RksvFinanzOnlineSubmissionStatusDto? rksvFonSubmission = null;
+            if (pay != null)
+            {
+                var k = pay.RksvSpecialReceiptKind;
+                if (k == RksvSpecialReceiptKinds.Startbeleg || k == RksvSpecialReceiptKinds.Jahresbeleg)
+                {
+                    rksvFonSubmission = await _context.RksvSpecialReceiptFinanzOnlineSubmissions.AsNoTracking()
+                        .Where(s => s.PaymentId == receipt.PaymentId)
+                        .Select(s => new RksvFinanzOnlineSubmissionStatusDto
+                        {
+                            Status = s.Status,
+                            LastAttemptAtUtc = s.LastAttemptAtUtc,
+                            LastErrorCode = s.LastErrorCode,
+                            LastErrorMessage = s.LastErrorMessage,
+                            ExternalReference = s.ExternalReference,
+                            AttemptCount = s.AttemptCount,
+                            SubmittedAtUtc = s.SubmittedAtUtc,
+                            VerifiedAtUtc = s.VerifiedAtUtc,
+                        })
+                        .FirstOrDefaultAsync()
+                        .ConfigureAwait(false);
+                }
+            }
+
             return new ReceiptDTO
             {
                 ReceiptId = receipt.ReceiptId,
@@ -520,6 +549,7 @@ namespace KasseAPI_Final.Services
                 FiscalTraceKind = traceKind,
                 RksvSpecialReceiptKind = pay?.RksvSpecialReceiptKind,
                 RksvNullbelegActsAsJahresbeleg = pay?.RksvNullbelegActsAsJahresbeleg ?? false,
+                RksvFinanzOnlineSubmission = rksvFonSubmission,
                 HasOfflineOrigin = pay?.OfflineTransactionId != null,
                 OfflineTransactionId = pay?.OfflineTransactionId,
                 OfflineCreatedAtUtc = off?.OfflineCreatedAtUtc,

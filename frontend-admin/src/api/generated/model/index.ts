@@ -435,6 +435,7 @@ export * from './restoreVerificationTriggerOrchestrationState';
 export * from './restoreVerificationTriggerResponseDto';
 export * from './restoreVerificationTriggerSource';
 export * from './retryPolicyDto';
+export * from './rksvFinanzOnlineSubmissionStatusDto';
 export * from './roleWithPermissionsDto';
 export * from './salesByStatus';
 export * from './salesReport';

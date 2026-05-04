@@ -26,5 +26,8 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>RKSV Sonderbeleg marker for list UI (e.g. Nullbeleg).</summary>
         public string? RksvSpecialReceiptKind { get; set; }
+
+        /// <summary>FinanzOnline/BMF submission lifecycle for Startbeleg/Jahresbeleg; null when no tracking row.</summary>
+        public string? RksvFinanzOnlineSubmissionStatus { get; set; }
     }
 }

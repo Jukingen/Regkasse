@@ -3319,10 +3319,10 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TseSignature");
 
-                    b.HasIndex("CashRegisterId", "RksvSpecialReceiptYear", "RksvSpecialReceiptMonth")
+                    b.HasIndex("CashRegisterId", "RksvSpecialReceiptKind")
                         .IsUnique()
-                        .HasDatabaseName("ix_payment_details_nullbeleg_per_register_month")
-                        .HasFilter("\"rksv_special_receipt_kind\" = 'Nullbeleg' AND \"is_active\" = true");
+                        .HasDatabaseName("ix_payment_details_schlussbeleg_per_register")
+                        .HasFilter("\"rksv_special_receipt_kind\" = 'Schlussbeleg' AND \"is_active\" = true");
 
                     b.HasIndex("CashRegisterId", "RksvSpecialReceiptYear")
                         .IsUnique()
@@ -3333,11 +3333,6 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_payment_details_monatsbeleg_per_register_month")
                         .HasFilter("\"rksv_special_receipt_kind\" = 'Monatsbeleg' AND \"is_active\" = true");
-
-                    b.HasIndex("CashRegisterId", "RksvSpecialReceiptKind")
-                        .IsUnique()
-                        .HasDatabaseName("ix_payment_details_schlussbeleg_per_register")
-                        .HasFilter("\"rksv_special_receipt_kind\" = 'Schlussbeleg' AND \"is_active\" = true");
 
                     b.ToTable("payment_details");
                 });
@@ -4848,6 +4843,92 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("restore_verification_runs", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.RksvSpecialReceiptFinanzOnlineSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempt_count");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("external_reference");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTime?>("LastAttemptAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_attempt_at_utc");
+
+                    b.Property<string>("LastErrorCode")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("last_error_code");
+
+                    b.Property<string>("LastErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error_message");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("payment_id");
+
+                    b.Property<string>("RawResponseSnapshot")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("raw_response_snapshot");
+
+                    b.Property<Guid?>("ReceiptId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("receipt_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime?>("SubmittedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at_utc");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.Property<DateTime?>("VerifiedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId")
+                        .IsUnique();
+
+                    b.HasIndex("ReceiptId");
+
+                    b.HasIndex("CashRegisterId", "Kind");
+
+                    b.ToTable("rksv_special_receipt_finanz_online_submissions");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SignatureChainState", b =>
@@ -6620,6 +6701,26 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("SourceBackupArtifact");
 
                     b.Navigation("SourceBackupRun");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.RksvSpecialReceiptFinanzOnlineSubmission", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", null)
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.PaymentDetails", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.Receipt", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SystemSettings", b =>
