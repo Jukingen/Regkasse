@@ -1,6 +1,6 @@
 # Legacy vs Canonical API Route Inventory
 
-**Last reviewed:** 2026-04-03
+**Last reviewed:** 2026-05-04 (inventory only; re-validate controller routes after major API changes)
 
 ## Definitions
 - **Canonical:** Admin `/api/admin/*`, POS `/api/pos/*`.
@@ -29,6 +29,7 @@
 1. Generated client içinde kalan legacy path’ler yanlışlıkla yeni kullanım üretebilir.
 2. Repo dışı istemciler legacy path kullanıyor olabilir (sadece server log/metrics ile doğrulanır).
 3. TSE/FinanzOnline/receipt ilişkili route ailelerinde isim/path değişikliği yüksek uyumluluk riski taşır.
+4. `/api/rksv/*` özel fiş uçları fiscal yüksek risk; boundary migration’da ayrı gözden geçirilmelidir.
 
 ## E) Maintenance rule
 Bu dosyayı şu değişikliklerde güncelle:

@@ -5,18 +5,30 @@
 - İstenen değişiklik dışında refactor/rewrite yapma.
 
 ## 2) TSE ve signature chain
-- TSE imza üretimi, sequence/state ve doğrulama adımları korunmalı.
-- İmza payload alanlarını ve akış sırasını sebepsiz değiştirme.
+- TSE imza üretimi, **receipt numbering / sequence** ve **`signature_chain_state`** doğrulama adımları korunmalı.
+- İmza payload alanlarını ve akış sırasını sebepsiz değiştirme; istemci veya flag ile zinciri “atlatma” yok.
 
-## 3) FinanzOnline / outbox / reconciliation
+## 3) RKSV özel fiş yaşam döngüsü
+- Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg: tekillik kuralları, kasa durumu ve TSE kullanılabilirlik koşulları kodda sıkıdır.
+- Schlussbeleg’i günlük kapanışla karıştırma; decommissioned kasa geçişi ile ilişkilidir.
+
+## 4) Decommissioned register guardrails
+- **Decommissioned** kasa yeni oturum veya ödeme kabul etmemelidir; bu guard’ları gevşetme veya bypass etme.
+
+## 5) Voucher ledger ve bakiye
+- `Voucher` / `VoucherLedgerEntry` tutarlılığı ve denetim izi; düz metin kod saklama yok.
+- Ledger hareket türleri ve tutarların sıfır altına inmesi gibi kurallar dikkatle ele alınır.
+
+## 6) FinanzOnline / outbox / reconciliation
 - Mapping alanları, retry taxonomisi, reconciliation semantiği hassastır.
+- RKSV submission iskeleti üretim-tamamlı değil olsa da outbox satırları ve durum alanları audit için önemlidir.
 - Hata yutma veya audit izini azaltan değişiklik yapılmaz.
 
-## 4) Authorization/RBAC
+## 7) Authorization/RBAC
 - Permission adları, role-permission matrix ve guard akışları hassastır.
 - Endpoint yetkilerini gevşetme; değişim varsa açık migration planı yaz.
 
-## 5) Money precision / rounding
+## 8) Money precision / rounding
 - Para hesaplarında mevcut precision ve rounding davranışını koru.
 
-> Emin değilsen varsayım yapma: önce kapsamı daralt, risk ve belirsizliği açık yaz.
+> Emin değilsen varsayım yapma: önce kapsamı daralt, risk ve belirsizliği açık yaz. Özet bağlam: `REGKASSE_AI_ONBOARDING.md`.

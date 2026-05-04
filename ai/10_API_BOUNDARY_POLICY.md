@@ -17,6 +17,7 @@ Aşağıdaki yüzeyler boundary dışı ama bilinçli şekilde paylaşılıyor v
 - `/api/Receipts/*`
 - `/api/Invoice/*`
 - `/api/Orders/*`
+- `/api/rksv/*` (RKSV özel fişler; admin/POS yetkisine göre; yüksek risk)
 - `/api/offline-transactions`
 - PascalCase tarihi aileler (`/api/Tse/*`, `/api/UserManagement/*`, `/api/Tagesabschluss/*`, vb.)
 

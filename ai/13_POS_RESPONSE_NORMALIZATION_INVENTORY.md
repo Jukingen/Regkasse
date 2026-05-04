@@ -1,6 +1,6 @@
 # POS response normalization inventory
 
-**Last reviewed:** 2026-04-03
+**Last reviewed:** 2026-05-04
 
 ## Why this exists
 POS servislerinde bazı adapter/normalizer katmanları backend response drift’ini tolere ediyor. Amaç: güvenli şekilde azaltmak.

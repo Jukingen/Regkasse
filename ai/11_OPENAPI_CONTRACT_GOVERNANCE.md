@@ -1,5 +1,7 @@
 # OpenAPI Contract Governance
 
+**İlişkili:** Proje davranış özeti `REGKASSE_AI_ONBOARDING.md` (API listeleri ve guardrail’ler); bu dosya üretim/senkron sürecine odaklanır.
+
 ## Source of truth
 - `backend/swagger.json` API contract kaynağıdır.
 - Backend controller/DTO implementation bu dosya ile uyumlu olmalıdır.

@@ -1,5 +1,9 @@
 # AI Task Template
 
+## 0) Analiz önce (zorunlu)
+- İlgili mevcut kod ve testleri oku; varsayım yapma.
+- Kısa bulgu: mevcut davranış ne, ne değişecek, neden güvenli?
+
 ## 1) Hedef
 - İstenen değişiklik:
 - Kapsam dışı:
@@ -22,11 +26,19 @@
 - Adım 3
 
 ## 5) Doğrulama
-- Çalıştırılacak test/script komutları
+- **Hedefli testler** (fiscal alan: ilgili `KasseAPI_Final.Tests` filtreleri veya sözleşme scriptleri)
+- Çalıştırılacak diğer script/komutlar (`verify-api-client`, OpenAPI kritik path, i18n vb.)
 - Beklenen sonuç
 
 ## 6) Çıktı formatı
-- Değişen dosyalar
+- **Etkilenen dosyalar** (tam yol veya repo-göreli net liste)
 - Kısa gerekçe
-- Test sonuçları
+- Test/script sonuçları
+- **Risk özeti** (fiscal, auth, geriye dönük uyumluluk)
 - Kalan belirsizlikler
+
+## 7) Son denetim (final audit)
+- Davranış değişikliği istenenle sınırlı mı?
+- Swagger + Orval etkilendiyse senkron mu?
+- Hassas alanlarda log/PII/voucher sızıntısı yok mu?
+- Gerekirse `REGKASSE_AI_ONBOARDING.md` ve ilgili `/ai` maddeleriyle tutarlılık kontrolü

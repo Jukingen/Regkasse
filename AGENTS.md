@@ -50,7 +50,7 @@ When deciding how to work, trust these in order:
 2. Package-level config files
 3. Root config files
 4. CI workflows
-5. README and docs
+5. README, `docs/`, and **`REGKASSE_AI_ONBOARDING.md`** (AI/project brief at repo root)
 6. `ai/` guidance docs for domain-specific safety and implementation constraints
 
 If they conflict, follow the most local and executable truth.
@@ -58,7 +58,7 @@ If they conflict, follow the most local and executable truth.
 ## Read before changing code
 Before making changes:
 
-1. Read the relevant docs under `/ai`
+1. For project-wide fiscal/RKSV/POS context, read **`REGKASSE_AI_ONBOARDING.md`**; then read the relevant docs under `/ai`
 2. Respect compliance and fiscal/TSE/RKSV rules
 3. Follow existing repo patterns
 4. Preserve backward compatibility unless explicitly told otherwise

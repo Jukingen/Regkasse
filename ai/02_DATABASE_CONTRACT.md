@@ -11,8 +11,12 @@
 - JSON/esnek payload alanları mevcut; keyfi yeni json alanı açma.
 
 ## Hassas domain alanları
-- Payment/receipt/daily closing ilişkileri
-- TSE imza ve zincir state (`tse*`, `signature chain`, receipt sequence)
+- **PaymentDetails** ve ilişkili ödeme satırları: normal satış + RKSV özel fiş alanları (`RksvSpecialReceiptKind`, yıl/ay metadatası, `RksvNullbelegActsAsJahresbeleg`, storno/refund ve offline replay metadatası vb.—gerçek sütun listesi için `AppDbContext` + migration’lar).
+- **Receipt** / **ReceiptSequence** / **`signature_chain_state`**: fiş numarası sırası ve imza zinciri tutarlılığı; ayrı tablolarda kırılmaması gerekir.
+- **Voucher:** `vouchers`, `voucher_ledger_entries` (bakiye ve denetim izi; düz metin voucher kodu saklanmaz—hash/masked gösterim modeli).
+- TSE cihaz/imza tabloları (`tse_devices`, `tse_signatures`, vb.)
+- `offline_transactions` ve payload hash / replay ile ilişkili alanlar
+- `DailyClosing` ve rapor kapanışı ile ilişkili tablolar
 - FinanzOnline outbox/submission tabloları
 - Backup/restore verification tabloları (operasyonel güvence için)
 
@@ -20,7 +24,8 @@
 1. Önce mevcut entity mapping ve migration paternini incele.
 2. Public contract etkisini (DTO/OpenAPI) ayrı değerlendir.
 3. Geriye dönük uyumluluk olmadan destructive değişiklik yapma.
-4. Hassas alanlarda index/constraint değişikliklerini testsiz bırakma.
+4. **Fiscal/RKSV alanlarında tercih:** ihtiyaç halinde nullable/additive migration ve geri dönüşü testli küçük adımlar (`REGKASSE_AI_ONBOARDING.md` migration notu ile uyumlu).
+5. Hassas alanlarda index/constraint değişikliklerini testsiz bırakma.
 
 ## Minimum kontrol
 - `dotnet ef migrations list --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj`

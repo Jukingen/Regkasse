@@ -5,6 +5,8 @@
 - Navigation kaynakları: `app/_layout.tsx`, `app/(auth)/*`, `app/(tabs)/*`, `app/(screens)/*`.
 - API çağrıları `frontend/services/api/*` üzerinden yapılır.
 - Yeni POS çağrılarında canonical path tercih et: `/api/pos/*`.
+- **Fiscal kural kaynağı:** RKSV/TSE/ödeme reddi ve kasa durumu için backend nihai otoritedir; POS yalnızca erken uyarı/blokaj sağlar (`REGKASSE_AI_ONBOARDING.md`).
+- **Offline kuyruk:** `NON_FISCAL_PENDING` ödemeler `frontend/services/payment/pendingPaymentQueue.ts` ile yerel kuyrukta tutulur; **düz metin voucher kodu asla kuyruğa yazılmaz**. Senkron: `POST /api/offline-transactions/replay` (bağlantı/health toparlanınca tetiklenir).
 
 ## Admin (`frontend-admin/`)
 - Stack: Next.js 14 App Router + Ant Design + TanStack Query.

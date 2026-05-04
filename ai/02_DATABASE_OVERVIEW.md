@@ -3,10 +3,11 @@
 Bu dosya, şema detayını değil sistemin ana veri bölgelerini hızlı anlamak için özet sunar.
 
 ## Ana veri bölgeleri
-- Satış çekirdeği: `Product`, `Category`, `Cart`, `CartItem`, `Order`, `OrderItem`, `PaymentDetails`.
-- Fiş/fiscal katman: `Receipt*`, `ReceiptSequence`, `SignatureChainState`, `TseDevice`, `TseSignature`, `DailyClosing`.
+- Satış çekirdeği: `Product`, `Category`, `Cart`, `CartItem`, `Order`, `OrderItem`, `PaymentDetails` (normal ödemeler ve **RKSV özel fiş** kayıtları aynı ödeme modeli üzerinden; özel fiş türü ve yıl/ay alanları `PaymentDetails` üzerinde tutulur).
+- Fiş/fiscal katman: `Receipt*`, **`ReceiptSequence` / receipt numarası tahsisi**, **`SignatureChainState`** (kasa bazlı imza zinciri), `TseDevice`, `TseSignature`, `DailyClosing`.
+- **Gutschein / voucher:** `Voucher`, `VoucherLedgerEntry` (bakiye hareketleri; kod hash + maskeli gösterim; düz metin kod DB’de tutulmaz).
 - Kimlik ve oturum: `ApplicationUser` + `auth_sessions` + `refresh_tokens`.
-- Finans entegrasyonu: `FinanzOnlineError`, `FinanzOnlineSubmission`, `FinanzOnlineOutboxMessage`.
+- Finans entegrasyonu: `FinanzOnlineError`, `FinanzOnlineSubmission`, `FinanzOnlineOutboxMessage`, RKSV özel fişe özgü submission/outbox tabloları (ör. `rksv_special_receipt_finanz_online_submissions` — tam ad için migration’a bak).
 - Operasyonel güvence: backup/restore verification tabloları.
 
 ## Operasyonel akış (özet)
@@ -18,3 +19,4 @@ Bu dosya, şema detayını değil sistemin ana veri bölgelerini hızlı anlamak
 ## AI notları
 - Şema hakkında karar verirken bu dosya yerine `AppDbContext` + ilgili migration dosyalarını referans al.
 - Fiscal ve audit tablolarında “refactor” amaçlı değişiklikten kaçın; net ihtiyaç olmadan dokunma.
+- Proje bağlamı için önce `REGKASSE_AI_ONBOARDING.md`, sonra `ai/02_DATABASE_CONTRACT.md`.

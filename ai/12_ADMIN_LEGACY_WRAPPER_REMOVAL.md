@@ -1,6 +1,6 @@
 # Admin legacy wrapper status
 
-## Current status (2026-04-03)
+## Current status (2026-05-04)
 - `frontend-admin/src/api/legacy/` klasörü repoda yok (kaldırılmış durumda).
 - Admin tarafında ana tüketim yüzeyi generated client (`src/api/generated/**`) + `src/api/admin/**` helper katmanıdır.
 

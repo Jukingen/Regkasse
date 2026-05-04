@@ -2,6 +2,8 @@
 
 **Status:** Active, incremental (no big-bang rewrite).
 
+**Context:** Üst seviye davranış ve RKSV/voucher kuralları için `REGKASSE_AI_ONBOARDING.md` ana özettir; bu dosya route/OpenAPI stabilize iş kuyruğuna odaklanır.
+
 ## Current repository facts
 - Canonical boundaries exist: `/api/admin/*` and `/api/pos/*`.
 - Legacy aliases still exist for `Payment`, `Cart`, `Product` families.

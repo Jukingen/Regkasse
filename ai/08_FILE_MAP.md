@@ -1,5 +1,9 @@
 # Repository File Map (current)
 
+## AI / proje özü
+- Repo kökü: `REGKASSE_AI_ONBOARDING.md` (ana AI onboarding özeti).
+- Kısa bağlam paketi: `ai/00_CONTEXT_README.md` ve bu dosyanın altındaki klasör yolları.
+
 ## Backend (`backend/`)
 - Controllers: `backend/Controllers/`
 - Services: `backend/Services/`
