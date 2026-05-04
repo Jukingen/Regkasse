@@ -13,6 +13,7 @@ using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Rksv;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -54,6 +55,7 @@ namespace KasseAPI_Final.Services
         private readonly IPricingRuleResolver _pricingRuleResolver;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly InventoryOptions _inventoryOptions;
+        private readonly IPosCriticalActionAuditService _posCriticalAudit;
 
         public PaymentService(
             AppDbContext context,
@@ -76,7 +78,8 @@ namespace KasseAPI_Final.Services
             IPaymentMethodCatalogService paymentMethodCatalog,
             IPricingRuleResolver pricingRuleResolver,
             ISettingsTenantResolver settingsTenantResolver,
-            IFinanzOnlineMetrics? finanzOnlineMetrics = null)
+            IFinanzOnlineMetrics? finanzOnlineMetrics = null,
+            IPosCriticalActionAuditService? posCriticalAudit = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -99,12 +102,32 @@ namespace KasseAPI_Final.Services
             _pricingRuleResolver = pricingRuleResolver;
             _settingsTenantResolver = settingsTenantResolver;
             _finanzOnlineMetrics = finanzOnlineMetrics;
+            _posCriticalAudit = posCriticalAudit ?? PosCriticalActionAuditNoOp.Instance;
         }
 
         /// <summary>
         /// Yeni ödeme oluştur
         /// </summary>
         public async Task<PaymentResult> CreatePaymentAsync(
+            CreatePaymentRequest request,
+            string userId,
+            Guid? offlineTransactionId = null,
+            Guid? offlineReplayBatchCorrelationId = null)
+        {
+            try
+            {
+                var result = await CreatePaymentCoreAsync(request, userId, offlineTransactionId, offlineReplayBatchCorrelationId);
+                await _posCriticalAudit.LogPaymentOutcomeAsync(userId, request, result);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                await _posCriticalAudit.LogPaymentUnhandledExceptionAsync(userId, request, ex);
+                throw;
+            }
+        }
+
+        private async Task<PaymentResult> CreatePaymentCoreAsync(
             CreatePaymentRequest request,
             string userId,
             Guid? offlineTransactionId = null,
@@ -248,7 +271,7 @@ namespace KasseAPI_Final.Services
                         Success = false,
                         Message = registerValidation.Message,
                         Errors = { registerValidation.Message },
-                        DiagnosticCode = registerValidation.Code
+                        DiagnosticCode = MapCashRegisterDiagnosticToRksvPaymentCode(registerValidation.Code)
                     };
                 }
 
@@ -260,6 +283,20 @@ namespace KasseAPI_Final.Services
                     : request.Payment.Method.Trim().ToLowerInvariant();
                 var voucherLikelyFromClientMethod =
                     string.Equals(requestPaymentMethodCode, "voucher", StringComparison.Ordinal);
+                if (voucherLikelyFromClientMethod
+                    && (request.Payment.VoucherRedemptions == null || request.Payment.VoucherRedemptions.Count == 0)
+                    && string.IsNullOrWhiteSpace(request.Payment.VoucherCode))
+                {
+                    const string msg = "Voucher payment requires voucherCode or voucherRedemptions when method is voucher.";
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = msg,
+                        Errors = { msg },
+                        DiagnosticCode = RksvGuardErrorCodes.VoucherCodeRequired,
+                        IsDeterministicFailure = true
+                    };
+                }
                 var effectiveTseRequired =
                     (request.Payment.TseRequired || voucherLikelyFromClientMethod) && !_tseOptions.IsOff;
                 if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
@@ -342,7 +379,7 @@ namespace KasseAPI_Final.Services
                             Success = false,
                             Message = registerCommitValidation.Message,
                             Errors = { registerCommitValidation.Message },
-                            DiagnosticCode = registerCommitValidation.Code
+                            DiagnosticCode = MapCashRegisterDiagnosticToRksvPaymentCode(registerCommitValidation.Code)
                         };
                     }
 
@@ -3054,6 +3091,11 @@ namespace KasseAPI_Final.Services
                 usageRow.Version++;
             }
         }
+
+        private static string? MapCashRegisterDiagnosticToRksvPaymentCode(string? cashRegisterResolutionCode) =>
+            string.Equals(cashRegisterResolutionCode, CashRegisterResolutionCodes.Decommissioned, StringComparison.Ordinal)
+                ? RksvGuardErrorCodes.RegisterDecommissioned
+                : cashRegisterResolutionCode;
 
         #endregion
     }

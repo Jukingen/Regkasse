@@ -18,15 +18,18 @@ public sealed class PosCashRegisterController : ControllerBase
 {
     private readonly IPosCashRegisterReadinessService _readiness;
     private readonly ICashRegisterResolutionService _cashRegisterResolution;
+    private readonly IPosCriticalActionAuditService _posCriticalAudit;
     private readonly ILogger<PosCashRegisterController> _logger;
 
     public PosCashRegisterController(
         IPosCashRegisterReadinessService readiness,
         ICashRegisterResolutionService cashRegisterResolution,
+        IPosCriticalActionAuditService posCriticalAudit,
         ILogger<PosCashRegisterController> logger)
     {
         _readiness = readiness;
         _cashRegisterResolution = cashRegisterResolution;
+        _posCriticalAudit = posCriticalAudit;
         _logger = logger;
     }
 
@@ -47,6 +50,7 @@ public sealed class PosCashRegisterController : ControllerBase
         }
 
         var dto = await _readiness.EnsureReadyForPosAsync(userId, User, cancellationToken);
+        await _posCriticalAudit.LogEnsureReadyOutcomeAsync(userId, dto, cancellationToken);
         return Ok(dto);
     }
 

@@ -161,6 +161,23 @@ describe('computeRegisterGateBlockingPayment', () => {
     ).toBe(true);
   });
 
+  it('blocks when registerStatus is Decommissioned even if nextAction is ready with valid ids', () => {
+    expect(
+      computeRegisterGateBlockingPayment({
+        enabled: true,
+        posEnsureReadyOnEntry: true,
+        cashRegisterResolved: true,
+        settingsLoadFailed: false,
+        posReadinessLoading: false,
+        posReadinessError: false,
+        posReadinessNextAction: 'ready',
+        posReadinessEffectiveRegisterId: validId,
+        posReadinessRegisterStatus: 'Decommissioned',
+        effectiveCashRegisterIdForPayment: validId,
+      })
+    ).toBe(true);
+  });
+
   it('blocks when ensure-ready is forbidden even if profile/settings carry a valid register id (conflict / actor-already-open)', () => {
     expect(
       computeRegisterGateBlockingPayment({

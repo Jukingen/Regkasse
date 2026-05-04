@@ -2,6 +2,7 @@ using KasseAPI_Final.Constants;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
@@ -167,7 +168,8 @@ public class RksvStartbelegServiceTests
         var req = new CreateStartbelegRequest { CashRegisterId = regId };
         await service.CreateStartbelegAsync(req, "u1");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateStartbelegAsync(req, "u1"));
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() => service.CreateStartbelegAsync(req, "u1"));
+        Assert.Equal(RksvGuardErrorCodes.DuplicateStartbeleg, ex.ErrorCode);
         Assert.Contains("Startbeleg already exists", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 }

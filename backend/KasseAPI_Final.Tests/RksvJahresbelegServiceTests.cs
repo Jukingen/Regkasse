@@ -2,6 +2,7 @@ using KasseAPI_Final.Constants;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
@@ -175,7 +176,8 @@ public class RksvJahresbelegServiceTests
         var req = new CreateJahresbelegRequest { CashRegisterId = regId, Year = y };
         await service.CreateJahresbelegAsync(req, "u1");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateJahresbelegAsync(req, "u1"));
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() => service.CreateJahresbelegAsync(req, "u1"));
+        Assert.Equal(RksvGuardErrorCodes.DuplicateJahresbeleg, ex.ErrorCode);
         Assert.Contains("Jahresbeleg", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -211,8 +213,9 @@ public class RksvJahresbelegServiceTests
         });
         await context.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
             service.CreateJahresbelegAsync(new CreateJahresbelegRequest { CashRegisterId = regId, Year = y }, "u1"));
+        Assert.Equal(RksvGuardErrorCodes.DuplicateJahresbeleg, ex.ErrorCode);
         Assert.Contains("already exists", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 

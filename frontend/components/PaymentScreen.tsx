@@ -120,6 +120,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
     posReadinessError,
     posReadinessNextAction,
     posReadinessMessageCode,
+    posReadinessRegisterStatus,
   } = usePosCashRegisterAssignment(cashRegisterResolutionActive);
 
   const registerGateCtx = useMemo(
@@ -135,6 +136,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
           error: posReadinessError,
           nextAction: posReadinessNextAction,
           messageCode: posReadinessMessageCode,
+          registerStatus: posReadinessRegisterStatus,
         },
       }),
     [
@@ -147,6 +149,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       posReadinessError,
       posReadinessNextAction,
       posReadinessMessageCode,
+      posReadinessRegisterStatus,
     ]
   );
 

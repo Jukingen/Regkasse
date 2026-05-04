@@ -7,6 +7,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
@@ -259,7 +260,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     {
         if (register.Status == RegisterStatus.Decommissioned)
         {
-            throw new InvalidOperationException(
+            throw new RksvOperationGuardException(
+                RksvGuardErrorCodes.RegisterDecommissioned,
                 $"Cash register {register.RegisterNumber} is permanently decommissioned (RKSV Schlussbeleg) and cannot receive new special receipts.");
         }
     }
@@ -372,7 +374,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             .ConfigureAwait(false);
         if (duplicate)
         {
-            throw new InvalidOperationException(
+            throw new RksvOperationGuardException(
+                RksvGuardErrorCodes.DuplicateStartbeleg,
                 $"A Startbeleg already exists for register {register.RegisterNumber}.");
         }
 
@@ -591,7 +594,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             .ConfigureAwait(false);
         if (duplicate)
         {
-            throw new InvalidOperationException(
+            throw new RksvOperationGuardException(
+                RksvGuardErrorCodes.DuplicateMonatsbeleg,
                 $"A Monatsbeleg already exists for register {register.RegisterNumber} in {request.Year}-{request.Month:00}.");
         }
 
@@ -769,7 +773,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             .ConfigureAwait(false);
         if (duplicate)
         {
-            throw new InvalidOperationException(
+            throw new RksvOperationGuardException(
+                RksvGuardErrorCodes.DuplicateJahresbeleg,
                 $"A Jahresbeleg (or December Monatsbeleg) already exists for register {register.RegisterNumber} for year {request.Year}.");
         }
 
@@ -952,19 +957,22 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
             if (register.Status == RegisterStatus.Decommissioned)
             {
-                throw new InvalidOperationException(
+                throw new RksvOperationGuardException(
+                    RksvGuardErrorCodes.RegisterAlreadyDecommissioned,
                     $"Cash register {register.RegisterNumber} is already permanently decommissioned.");
             }
 
             if (register.Status == RegisterStatus.Open)
             {
-                throw new InvalidOperationException(
+                throw new RksvOperationGuardException(
+                    RksvGuardErrorCodes.InvalidRegisterState,
                     "Cash register has an open shift; close the register before issuing a Schlussbeleg (Endbeleg).");
             }
 
             if (register.Status != RegisterStatus.Closed)
             {
-                throw new InvalidOperationException(
+                throw new RksvOperationGuardException(
+                    RksvGuardErrorCodes.InvalidRegisterState,
                     $"Schlussbeleg requires cash register status Closed (no open shift). Current status: {register.Status}.");
             }
 
@@ -977,7 +985,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 .ConfigureAwait(false);
             if (duplicate)
             {
-                throw new InvalidOperationException(
+                throw new RksvOperationGuardException(
+                    RksvGuardErrorCodes.DuplicateSchlussbeleg,
                     $"A Schlussbeleg already exists for register {register.RegisterNumber}.");
             }
 

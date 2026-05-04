@@ -267,6 +267,7 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
     posReadinessError: !!posReadiness.error,
     posReadinessNextAction: posReadiness.data?.nextAction,
     posReadinessEffectiveRegisterId: posReadiness.data?.effectiveRegisterId,
+    posReadinessRegisterStatus: posReadiness.data?.registerStatus ?? null,
     effectiveCashRegisterIdForPayment,
   });
 
@@ -289,6 +290,7 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
     posReadinessError: !!posReadiness.error,
     posReadinessNextAction: posReadiness.data?.nextAction ?? null,
     posReadinessMessageCode: posReadiness.data?.messageCode ?? null,
+    posReadinessRegisterStatus: posReadiness.data?.registerStatus ?? null,
   };
 }
 

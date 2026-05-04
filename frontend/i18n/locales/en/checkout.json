@@ -114,6 +114,15 @@
         "retryReadiness": "Retry register readiness",
         "reloadRegisterList": "Reload register list"
       },
+      "operatorWarnings": {
+        "largeCashTitle": "Notice",
+        "largeCashMessage": "Cash payment from {{threshold}} € — please verify the amount before continuing.",
+        "largeCashProceed": "Continue",
+        "voucherFullTitle": "Voucher",
+        "voucherFullMessage": "The full remaining voucher balance will be redeemed. Continue?",
+        "voucherFullProceed": "Continue",
+        "tseUnstableBanner": "TSE status check failed repeatedly — check the connection. Payment remains available when TSE is ready."
+      },
       "voucher": {
         "codeLabel": "Gutscheincode",
         "checkButton": "Gutschein prüfen",

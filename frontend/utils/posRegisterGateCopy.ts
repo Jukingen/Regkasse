@@ -3,8 +3,46 @@
  * Align scenarios with backend codes where possible (see `mapBackendCashRegisterCodeToHint`).
  */
 
+import type { PosCashRegisterContextDto } from './posCashRegisterReadinessParse';
 import type { PosSelectableEmptyReason } from '../services/api/cashRegisterService';
 import type { RegisterListFailureKind } from './registerListError';
+
+/** Hard stop copy when RKSV Schlussbeleg decommissioned the register (POS German UI). */
+export const POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE =
+  'Fiskalisierung abgeschlossen – keine Verkäufe mehr möglich';
+
+export function isReadinessRegisterDecommissioned(d: PosCashRegisterContextDto | null | undefined): boolean {
+  if (!d) return false;
+  const st = (d.registerStatus ?? '').trim().toLowerCase();
+  if (st === 'decommissioned') return true;
+  const code = (d.messageCode ?? '').trim();
+  return (
+    code === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
+    code === POS_CASH_REGISTER_CODES.DECOMMISSIONED
+  );
+}
+
+export function isReadinessStartbelegGateActive(
+  d: PosCashRegisterContextDto | null | undefined,
+  opts: { ensureReadyEnabled: boolean }
+): boolean {
+  return (
+    !!opts.ensureReadyEnabled &&
+    !!d &&
+    (d.nextAction === 'startbeleg_required' || d.messageCode === POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED)
+  );
+}
+
+export function isReadinessMonatsbelegGateActive(
+  d: PosCashRegisterContextDto | null | undefined,
+  opts: { ensureReadyEnabled: boolean }
+): boolean {
+  return (
+    !!opts.ensureReadyEnabled &&
+    !!d &&
+    (d.nextAction === 'monatsbeleg_required' || d.messageCode === POS_READINESS_MESSAGE_CODES.MONATSBELEG_REQUIRED)
+  );
+}
 
 /** Backend diagnostic codes from POST /api/pos/payment or PUT settings. */
 export const POS_CASH_REGISTER_CODES = {
@@ -27,6 +65,8 @@ export type RegisterGateReadinessInput = {
   error: boolean;
   nextAction?: string | null;
   messageCode?: string | null;
+  /** Echo from ensure-ready / context DTO (e.g. `Decommissioned`). */
+  registerStatus?: string | null;
 };
 
 export type PosRegisterGateContext = {
@@ -42,6 +82,7 @@ export type PosRegisterGateContext = {
   posReadinessError?: boolean;
   posReadinessNextAction?: string | null;
   posReadinessMessageCode?: string | null;
+  posReadinessRegisterStatus?: string | null;
 };
 
 function listFetchSucceeded(ctx: PosRegisterGateContext): boolean {
@@ -68,7 +109,17 @@ export function buildPosRegisterGateContext(input: {
     posReadinessError: r?.error,
     posReadinessNextAction: r?.nextAction ?? null,
     posReadinessMessageCode: r?.messageCode ?? null,
+    posReadinessRegisterStatus: r?.registerStatus ?? null,
   };
+}
+
+export function isRegisterGateDecommissioned(ctx: PosRegisterGateContext): boolean {
+  const st = (ctx.posReadinessRegisterStatus ?? '').trim().toLowerCase();
+  if (st === 'decommissioned') return true;
+  return (
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
+    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
+  );
 }
 
 /** Backend PosCashRegisterReadinessMessageCodes (ensure-ready). */
@@ -90,10 +141,7 @@ export function registerGateBannerTitle(ctx: PosRegisterGateContext): string {
   if (ctx.settingsLoadFailed) return 'Kasseneinstellungen nicht ladbar';
   if (ctx.posReadinessLoading) return 'Kasse wird vorbereitet…';
   if (ctx.posReadinessError) return 'Kassenbereitschaft nicht ladbar';
-  if (
-    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
-    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
-  ) {
+  if (isRegisterGateDecommissioned(ctx)) {
     return 'Fiskalisierung abgeschlossen';
   }
   if (
@@ -184,11 +232,8 @@ export function registerGateBannerDetail(ctx: PosRegisterGateContext): string {
   if (ctx.posReadinessError) {
     return 'Die serverseitige Kassenbereitschaft konnte nicht geladen werden. Nutzen Sie „Kassenbereitschaft erneut versuchen“ oder warten Sie, bis die Profil-Einstellungen geladen sind.';
   }
-  if (
-    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
-    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
-  ) {
-    return 'Für diese Registrierkasse wurde ein Schlussbeleg (Endbeleg) erstellt. Die Kasse ist dauerhaft außer Betrieb und kann nicht mehr für Schichten oder Verkäufe genutzt werden. Bitte eine andere Kasse wählen oder den Administrator informieren.';
+  if (isRegisterGateDecommissioned(ctx)) {
+    return `${POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE} Für diese Registrierkasse wurde ein Schlussbeleg (Endbeleg) erstellt. Bitte eine andere Kasse wählen oder den Administrator informieren.`;
   }
   if (
     ctx.posReadinessNextAction === 'startbeleg_required' ||
@@ -303,11 +348,8 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
   if (ctx.posReadinessError) {
     return '„Zahlen“ ist deaktiviert: Kassenbereitschaft fehlt — „Erneut versuchen“ oder Einstellungen prüfen.';
   }
-  if (
-    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
-    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
-  ) {
-    return '„Zahlen“ ist deaktiviert: Kasse fiskalisch abgeschlossen (Schlussbeleg) — andere Kasse wählen.';
+  if (isRegisterGateDecommissioned(ctx)) {
+    return `„Zahlen“ ist deaktiviert: ${POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE}`;
   }
   if (
     ctx.posReadinessNextAction === 'startbeleg_required' ||
@@ -383,11 +425,8 @@ export function registerGateAlertMessage(ctx: PosRegisterGateContext): string {
   if (ctx.posReadinessError) {
     return 'Kassenbereitschaft nicht ladbar. Verbindung prüfen oder erneut versuchen.';
   }
-  if (
-    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.REGISTER_DECOMMISSIONED_RKSV ||
-    ctx.posReadinessMessageCode === POS_CASH_REGISTER_CODES.DECOMMISSIONED
-  ) {
-    return 'Diese Kasse ist fiskalisch abgeschlossen (Schlussbeleg). Bitte eine andere Kasse verwenden.';
+  if (isRegisterGateDecommissioned(ctx)) {
+    return POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE;
   }
   if (
     ctx.posReadinessNextAction === 'startbeleg_required' ||

@@ -2,6 +2,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Vouchers;
@@ -823,6 +824,36 @@ public class VoucherPaymentRedemptionTests
         Assert.Equal(
             0,
             await context.VoucherLedgerEntries.CountAsync(l => l.VoucherId == voucherId && l.Type == VoucherTransactionType.Redeem));
+    }
+
+    [Fact]
+    public async Task CreatePayment_VoucherMethod_WithoutCode_ReturnsRksvVoucherCodeRequired()
+    {
+        await using var context = CreateContext();
+        var (_, productId, customerId, regId) = await SeedSaleCatalogOnlyAsync(context);
+        var paymentService = CreatePaymentService(context);
+        var request = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            TotalAmount = 5.00m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = regId,
+            Payment = new PaymentMethodRequest
+            {
+                Method = "voucher",
+                TseRequired = false,
+            },
+            Items = new List<PaymentItemRequest>
+            {
+                new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced },
+            },
+        };
+
+        var result = await paymentService.CreatePaymentAsync(request, "u1");
+        Assert.False(result.Success);
+        Assert.Equal(RksvGuardErrorCodes.VoucherCodeRequired, result.DiagnosticCode);
+        Assert.True(result.IsDeterministicFailure);
     }
 
 }

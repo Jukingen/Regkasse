@@ -6,15 +6,152 @@ import { View, ActivityIndicator, Text, Pressable, StyleSheet, Alert } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PaymentModal from '../../components/PaymentModal';
-import { MonatsbelegRequiredBanner } from '../../components/MonatsbelegRequiredBanner';
+import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftShadows } from '../../constants/SoftTheme';
 import { useAuth } from '../../contexts/AuthContext';
-import { PosRegisterReadinessProvider } from '../../contexts/PosRegisterReadinessContext';
+import { PosRegisterReadinessProvider, usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
+import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
+import {
+  isReadinessRegisterDecommissioned,
+  isReadinessStartbelegGateActive,
+  POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
+} from '../../utils/posRegisterGateCopy';
+
+type PosTabsInnerProps = {
+  t: (key: string, options?: Record<string, string | number>) => string;
+  insets: ReturnType<typeof useSafeAreaInsets>;
+  cartCount: number;
+  isPaymentModalVisible: boolean;
+  setIsPaymentModalVisible: (visible: boolean) => void;
+  handlePaymentSuccess: (paymentId: string, paidTableNumber?: number) => Promise<void>;
+  currentCart: ReturnType<typeof useCart>['currentCart'];
+  totals: ReturnType<typeof getCartDisplayTotals>;
+  activeTableId: number;
+  saleCustomer: ReturnType<typeof useCart>['saleCustomer'];
+};
+
+function PosTabsInner({
+  t,
+  insets,
+  cartCount,
+  isPaymentModalVisible,
+  setIsPaymentModalVisible,
+  handlePaymentSuccess,
+  currentCart,
+  totals,
+  activeTableId,
+  saleCustomer,
+}: PosTabsInnerProps) {
+  const posReadiness = usePosRegisterReadiness();
+
+  const tryOpenPaymentModal = () => {
+    if (isReadinessRegisterDecommissioned(posReadiness.data)) {
+      Alert.alert('Verkauf', POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE);
+      return;
+    }
+    if (isReadinessStartbelegGateActive(posReadiness.data, { ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY })) {
+      Alert.alert(
+        'Startbeleg erforderlich',
+        'Bitte zuerst den fiskalischen Startbeleg erstellen, bevor Sie zur Zahlung wechseln.'
+      );
+      return;
+    }
+    setIsPaymentModalVisible(true);
+  };
+
+  return (
+    <View style={{ flex: 1 }}>
+      <MonatsbelegSessionBlockModal />
+      <StartbelegRequiredBanner />
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: SoftColors.accent,
+          tabBarInactiveTintColor: SoftColors.textMuted,
+          tabBarStyle: {
+            height: TAB_BAR_HEIGHT + insets.bottom,
+            paddingBottom: insets.bottom,
+            paddingTop: 8,
+            overflow: 'visible',
+          },
+          headerShown: true,
+        }}
+      >
+        <Tabs.Screen
+          name="cash-register"
+          options={{
+            title: t('navigation:cashRegister') || 'Kasa',
+            tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
+          }}
+        />
+
+        <Tabs.Screen
+          name="cart"
+          options={{
+            title: t('navigation:cart'),
+            tabBarButton: (props) => {
+              const { style } = props;
+              return (
+                <Pressable
+                  onPress={tryOpenPaymentModal}
+                  style={[style, styles.cartTabButton]}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  accessibilityLabel={
+                    cartCount > 0
+                      ? t('navigation:cartAccessibility.withCount', { count: cartCount })
+                      : t('navigation:cartAccessibility.default')
+                  }
+                  accessibilityRole="button"
+                >
+                  <View style={styles.cartIconContainer}>
+                    <Ionicons name="cart" size={28} color={SoftColors.textInverse} />
+                    {cartCount > 0 && (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{cartCount}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.cartLabel}>{t('navigation:cart')}</Text>
+                </Pressable>
+              );
+            },
+          }}
+        />
+
+        <Tabs.Screen
+          name="settings"
+          options={{
+            title: t('navigation:settings') || 'Ayarlar',
+            tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
+          }}
+        />
+      </Tabs>
+
+      <PaymentModal
+        visible={isPaymentModalVisible}
+        onClose={() => setIsPaymentModalVisible(false)}
+        onSuccess={handlePaymentSuccess}
+        cartItems={(currentCart?.items || []).map((item) => ({
+          id: item.itemId ?? item.clientId ?? item.productId,
+          productId: item.productId,
+          productName: item.productName || 'Unknown Product',
+          quantity: item.qty,
+          unitPrice: item.unitPrice || item.price || 0,
+          totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
+          taxType: item.taxType,
+          modifiers: item.modifiers?.map((m) => ({ modifierId: m.id, name: m.name, priceDelta: m.price })),
+        }))}
+        grandTotalGross={totals.grandTotalGross}
+        customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
+        tableNumber={activeTableId}
+      />
+    </View>
+  );
+}
 
 export default function TabLayout() {
     const { t } = useTranslation(['navigation']);
@@ -103,89 +240,18 @@ export default function TabLayout() {
 
     return (
         <PosRegisterReadinessProvider>
-        <View style={{ flex: 1 }}>
-            <StartbelegRequiredBanner />
-            <MonatsbelegRequiredBanner />
-            <Tabs
-                screenOptions={{
-                    tabBarActiveTintColor: SoftColors.accent,
-                    tabBarInactiveTintColor: SoftColors.textMuted,
-                    tabBarStyle: {
-                        height: TAB_BAR_HEIGHT + insets.bottom,
-                        paddingBottom: insets.bottom,
-                        paddingTop: 8,
-                        overflow: 'visible',
-                    },
-                    headerShown: true,
-                }}
-            >
-                <Tabs.Screen
-                    name="cash-register"
-                    options={{
-                        title: t('navigation:cashRegister') || 'Kasa',
-                        tabBarIcon: ({ color }) => <Ionicons name="cash-outline" size={24} color={color} />,
-                    }}
-                />
-
-                <Tabs.Screen
-                    name="cart"
-                    options={{
-                        title: t('navigation:cart'),
-                        tabBarButton: (props) => {
-                            const { style, onPress } = props;
-                            return (
-                                <Pressable
-                                    onPress={() => setIsPaymentModalVisible(true)}
-                                    style={[style, styles.cartTabButton]}
-                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                    accessibilityLabel={cartCount > 0
-                                        ? t('navigation:cartAccessibility.withCount', { count: cartCount })
-                                        : t('navigation:cartAccessibility.default')}
-                                    accessibilityRole="button"
-                                >
-                                    <View style={styles.cartIconContainer}>
-                                        <Ionicons name="cart" size={28} color={SoftColors.textInverse} />
-                                        {cartCount > 0 && (
-                                            <View style={styles.badge}>
-                                                <Text style={styles.badgeText}>{cartCount}</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                    <Text style={styles.cartLabel}>{t('navigation:cart')}</Text>
-                                </Pressable>
-                            );
-                        }
-                    }}
-                />
-
-                <Tabs.Screen
-                    name="settings"
-                    options={{
-                        title: t('navigation:settings') || 'Ayarlar',
-                        tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
-                    }}
-                />
-            </Tabs>
-
-            <PaymentModal
-                visible={isPaymentModalVisible}
-                onClose={() => setIsPaymentModalVisible(false)}
-                onSuccess={handlePaymentSuccess}
-                cartItems={(currentCart?.items || []).map(item => ({
-                    id: item.itemId ?? item.clientId ?? item.productId,
-                    productId: item.productId,
-                    productName: item.productName || 'Unknown Product',
-                    quantity: item.qty,
-                    unitPrice: item.unitPrice || item.price || 0,
-                    totalPrice: item.totalPrice ?? getCartLineTotal(item as any),
-                    taxType: item.taxType,
-                    modifiers: item.modifiers?.map(m => ({ modifierId: m.id, name: m.name, priceDelta: m.price }))
-                }))}
-                grandTotalGross={totals.grandTotalGross}
-                customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
-                tableNumber={activeTableId}
+            <PosTabsInner
+                t={t}
+                insets={insets}
+                cartCount={cartCount}
+                isPaymentModalVisible={isPaymentModalVisible}
+                setIsPaymentModalVisible={setIsPaymentModalVisible}
+                handlePaymentSuccess={handlePaymentSuccess}
+                currentCart={currentCart}
+                totals={totals}
+                activeTableId={activeTableId}
+                saleCustomer={saleCustomer}
             />
-        </View>
         </PosRegisterReadinessProvider>
     );
 }

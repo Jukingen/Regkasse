@@ -502,6 +502,7 @@ builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IPosCriticalActionAuditService, PosCriticalActionAuditService>();
 
 // Phase 1: backup orchestration (execution off HTTP thread; see BackupOrchestratorHostedService)
 builder.Services.AddSingleton<IBackupChecksumService, BackupChecksumService>();

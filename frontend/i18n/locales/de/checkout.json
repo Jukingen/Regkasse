@@ -137,6 +137,15 @@
         "networkError": "Netzwerkfehler. Bitte erneut versuchen.",
         "totalChangedHint": "Gesamtbetrag geändert — bitte Gutschein erneut prüfen."
       },
+      "operatorWarnings": {
+        "largeCashTitle": "Hinweis",
+        "largeCashMessage": "Barzahlung ab {{threshold}} € — Betrag bitte prüfen und bestätigen.",
+        "largeCashProceed": "Fortfahren",
+        "voucherFullTitle": "Gutschein",
+        "voucherFullMessage": "Der volle Restwert des Gutscheins wird eingelöst. Fortfahren?",
+        "voucherFullProceed": "Fortfahren",
+        "tseUnstableBanner": "TSE-Status mehrfach fehlgeschlagen — Anbindung prüfen. Bei bereiter TSE ist Zahlen weiterhin möglich."
+      },
       "pdfErrors": {
         "title": "Beleg-PDF",
         "paymentSucceededPrefix": "Die Zahlung war erfolgreich.",

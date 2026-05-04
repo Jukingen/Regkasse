@@ -20,10 +20,17 @@ export type PosRegisterPaymentGateParams = {
   posReadinessError: boolean;
   posReadinessNextAction: string | null | undefined;
   posReadinessEffectiveRegisterId: string | null | undefined;
+  /** From ensure-ready DTO `registerStatus` (e.g. Decommissioned). */
+  posReadinessRegisterStatus?: string | null;
   effectiveCashRegisterIdForPayment: string | null;
 };
 
 export function computeRegisterGateBlockingPayment(p: PosRegisterPaymentGateParams): boolean {
+  const regSt = (p.posReadinessRegisterStatus ?? '').trim().toLowerCase();
+  if (regSt === 'decommissioned') {
+    return true;
+  }
+
   const hasValidCashRegisterId = isValidPosCashRegisterId(p.effectiveCashRegisterIdForPayment);
 
   const awaitingPosReadiness =

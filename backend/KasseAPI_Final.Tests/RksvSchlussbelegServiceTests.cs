@@ -3,6 +3,7 @@ using KasseAPI_Final.Constants;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
@@ -129,9 +130,10 @@ public class RksvSchlussbelegServiceTests
         await using var context = CreateContext();
         var (regId, service, _, _) = await SeedAsync(context, RegisterStatus.Open, currentUserId: "u1");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
             service.CreateSchlussbelegAsync(new CreateSchlussbelegRequest { CashRegisterId = regId }, "manager-1"));
 
+        Assert.Equal(RksvGuardErrorCodes.InvalidRegisterState, ex.ErrorCode);
         Assert.Contains("open shift", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -190,9 +192,10 @@ public class RksvSchlussbelegServiceTests
 
         await service.CreateSchlussbelegAsync(new CreateSchlussbelegRequest { CashRegisterId = regId }, "manager-1");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
             service.CreateSchlussbelegAsync(new CreateSchlussbelegRequest { CashRegisterId = regId }, "manager-1"));
 
+        Assert.Equal(RksvGuardErrorCodes.RegisterAlreadyDecommissioned, ex.ErrorCode);
         Assert.Contains("decommissioned", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -210,9 +213,10 @@ public class RksvSchlussbelegServiceTests
         reg.CurrentUserId = null;
         await context.SaveChangesAsync();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
             service.CreateSchlussbelegAsync(new CreateSchlussbelegRequest { CashRegisterId = regId }, "manager-1"));
 
+        Assert.Equal(RksvGuardErrorCodes.DuplicateSchlussbeleg, ex.ErrorCode);
         Assert.Contains("already exists", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 

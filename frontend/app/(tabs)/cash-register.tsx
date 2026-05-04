@@ -9,7 +9,7 @@
 // =============================================================================
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
@@ -26,6 +26,13 @@ import { ToastContainer } from '../../components/ToastNotification';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography, Space8 } from '../../constants/SoftTheme';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
+import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
+import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
+import {
+  isReadinessRegisterDecommissioned,
+  isReadinessStartbelegGateActive,
+  POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
+} from '../../utils/posRegisterGateCopy';
 import { useCashRegister } from '../../hooks/useCashRegister';
 import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
 import { useProductsUnified } from '../../hooks/useProductsUnified';
@@ -257,6 +264,8 @@ export default function CashRegisterScreen() {
     setSaleCustomer,
   } = useCart();
 
+  const posReadiness = usePosRegisterReadiness();
+
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -472,8 +481,28 @@ export default function CashRegisterScreen() {
       addToast('error', t('checkout:posFlow.toast.selectTableFirst'), 3000);
       return;
     }
+
+    if (isReadinessRegisterDecommissioned(posReadiness.data)) {
+      Alert.alert('Verkauf', POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE);
+      return;
+    }
+    if (isReadinessStartbelegGateActive(posReadiness.data, { ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY })) {
+      Alert.alert(
+        'Startbeleg erforderlich',
+        'Bitte zuerst den fiskalischen Startbeleg erstellen, bevor Sie zur Zahlung wechseln.'
+      );
+      return;
+    }
+
     setIsPaymentModalVisible(true);
-  }, [cart?.items?.length, activeTableId, setIsPaymentModalVisible, addToast]);
+  }, [
+    cart?.items?.length,
+    activeTableId,
+    setIsPaymentModalVisible,
+    addToast,
+    posReadiness.data,
+    t,
+  ]);
 
   return (
     <SafeAreaView style={styles.container}>

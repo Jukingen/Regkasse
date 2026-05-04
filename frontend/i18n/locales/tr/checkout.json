@@ -114,6 +114,15 @@
         "retryReadiness": "Kasa hazirligini tekrar dene",
         "reloadRegisterList": "Kasa listesini yeniden yukle"
       },
+      "operatorWarnings": {
+        "largeCashTitle": "Uyari",
+        "largeCashMessage": "{{threshold}} € ve uzeri nakit — devam etmeden tutari dogrulayin.",
+        "largeCashProceed": "Devam",
+        "voucherFullTitle": "Kupon",
+        "voucherFullMessage": "Kuponun kalan bakiyesinin tamami kullanilacak. Devam?",
+        "voucherFullProceed": "Devam",
+        "tseUnstableBanner": "TSE durum kontrolu ardisik basarisiz — baglantiyi kontrol edin. TSE hazir oldugunda odeme yine mumkun."
+      },
       "voucher": {
         "codeLabel": "Gutscheincode",
         "checkButton": "Gutschein prüfen",

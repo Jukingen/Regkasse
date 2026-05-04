@@ -2,6 +2,7 @@ using KasseAPI_Final.Constants;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
 using KasseAPI_Final.Tenancy;
@@ -170,11 +171,17 @@ public class RksvMonatsbelegServiceTests
         var req = new CreateMonatsbelegRequest { CashRegisterId = regId, Year = y, Month = m };
         await service.CreateMonatsbelegAsync(req, "u1");
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.CreateMonatsbelegAsync(req, "u1"));
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() => service.CreateMonatsbelegAsync(req, "u1"));
         if (m == 12)
+        {
+            Assert.Equal(RksvGuardErrorCodes.DuplicateJahresbeleg, ex.ErrorCode);
             Assert.Contains("Jahresbeleg", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
         else
+        {
+            Assert.Equal(RksvGuardErrorCodes.DuplicateMonatsbeleg, ex.ErrorCode);
             Assert.Contains("Monatsbeleg already exists", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
     }
 
     [Fact]

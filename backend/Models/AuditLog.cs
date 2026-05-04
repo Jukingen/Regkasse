@@ -217,6 +217,18 @@ namespace KasseAPI_Final.Models
         // Role management (custom role delete, permission update)
         public const string ROLE_DELETE = "ROLE_DELETE";
         public const string ROLE_PERMISSIONS_UPDATE = "ROLE_PERMISSIONS_UPDATE";
+
+        /// <summary>POS payment outcome (structured payload; see PosCriticalActionAuditService).</summary>
+        public const string POS_PAY_OUTCOME = "POS_PAY_OUTCOME";
+
+        /// <summary>POS payment path threw before a normalized <c>PaymentResult</c> was returned.</summary>
+        public const string POS_PAY_EX = "POS_PAY_EX";
+
+        /// <summary>POST /api/pos/cash-register/ensure-ready outcome snapshot.</summary>
+        public const string POS_REG_READY = "POS_REG_READY";
+
+        /// <summary>RKSV Sonderbeleg create attempt outcome from POS/admin API.</summary>
+        public const string POS_SPL_RCPT = "POS_SPL_RCPT";
     }
 
             // Entity types for audit logging
@@ -235,5 +247,8 @@ namespace KasseAPI_Final.Models
             public const string SYSTEM_CONFIG = "SystemConfig";
             public const string TSE_DEVICE = "TseDevice";
             public const string RECEIPT = "Receipt";
+
+            /// <summary>Structured POS operator audit rows (payment outcome, ensure-ready, Sonderbelege).</summary>
+            public const string POS_CRITICAL = "PosCritical";
         }
 }

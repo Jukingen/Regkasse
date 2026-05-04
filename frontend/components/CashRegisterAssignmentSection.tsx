@@ -135,6 +135,7 @@ export function CashRegisterAssignmentSection() {
           error: !!posReadiness.error,
           nextAction: posReadiness.data?.nextAction ?? null,
           messageCode: posReadiness.data?.messageCode ?? null,
+          registerStatus: posReadiness.data?.registerStatus ?? null,
         },
       }),
     [
@@ -147,6 +148,7 @@ export function CashRegisterAssignmentSection() {
       posReadiness.error,
       posReadiness.data?.nextAction,
       posReadiness.data?.messageCode,
+      posReadiness.data?.registerStatus,
     ]
   );
 

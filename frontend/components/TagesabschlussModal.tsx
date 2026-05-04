@@ -11,6 +11,20 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
+import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
+import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
+
+/** Local time window where daily register close often collides with RKSV month-end duties. */
+function isClosingMidnightWarnHour(d: Date): boolean {
+  const h = d.getHours();
+  return h >= 22 || h <= 2;
+}
+
+function isLastTwoDaysOfMonth(d: Date): boolean {
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return d.getDate() >= last - 1;
+}
 import {
   performDailyClosing,
   performMonthlyClosing,
@@ -40,7 +54,9 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  
+  const posReadiness = usePosRegisterReadiness();
+  const [closingWarnClock, setClosingWarnClock] = useState(() => new Date());
+
   const [loading, setLoading] = useState(false);
   const [canClose, setCanClose] = useState(false);
   const [lastClosingDate, setLastClosingDate] = useState<string | null>(null);
@@ -59,6 +75,13 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
       loadStatistics();
     }
   }, [visible, cashRegisterId]);
+
+  useEffect(() => {
+    if (!visible) return;
+    setClosingWarnClock(new Date());
+    const id = setInterval(() => setClosingWarnClock(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, [visible]);
 
   const checkClosingStatus = async () => {
     try {
@@ -219,8 +242,24 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
     }
   };
 
-  const renderClosingTab = () => (
+  const renderClosingTab = () => {
+    const monatsbelegGate = isReadinessMonatsbelegGateActive(posReadiness.data, {
+      ensureReadyEnabled: POS_ENSURE_READY_ON_ENTRY,
+    });
+    const showMidnightMonatsbelegBanner =
+      isClosingMidnightWarnHour(closingWarnClock) && (monatsbelegGate || isLastTwoDaysOfMonth(closingWarnClock));
+
+    return (
     <View style={styles.tabContent}>
+      {showMidnightMonatsbelegBanner ? (
+        <View style={styles.rksvWarnBanner} accessibilityRole="alert">
+          <Text style={styles.rksvWarnBannerText}>
+            {monatsbelegGate
+              ? 'Hinweis: Monatsbeleg (RKSV) ist noch ausständig — bitte vor Schließung der Kasse erledigen.'
+              : 'Hinweis: Monatsende naht — Monatsbeleg (RKSV) vor Tagesabschluss prüfen.'}
+          </Text>
+        </View>
+      ) : null}
       <View style={styles.statusSection}>
         <Text style={styles.statusTitle}>
           {t('tagesabschluss.status', 'Status')}
@@ -316,7 +355,8 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
         </View>
       )}
     </View>
-  );
+    );
+  };
 
   const renderHistoryTab = () => (
     <View style={styles.tabContent}>
@@ -543,6 +583,20 @@ const styles = StyleSheet.create({
   tabContent: {
     flex: 1,
     padding: 20,
+  },
+  rksvWarnBanner: {
+    backgroundColor: 'rgba(255, 243, 224, 0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 124, 0, 0.45)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  rksvWarnBannerText: {
+    fontSize: 14,
+    color: '#5d4037',
+    lineHeight: 20,
   },
   statusSection: {
     backgroundColor: '#fff',

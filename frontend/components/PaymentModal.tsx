@@ -23,7 +23,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice } from '../utils/formatPrice';
 import { useAuth } from '../contexts/AuthContext';
+import { useSystem } from '../contexts/SystemContext';
 import { usePayment } from '../hooks/usePayment';
+import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
+import {
+  POS_LARGE_CASH_WARN_THRESHOLD_EUR,
+  POS_TSE_STATUS_FAILURE_WARN_STREAK,
+  registerPosTseStatusCheckOutcome,
+} from '../constants/posOperatorWarnings';
 import {
   paymentService,
   PaymentRequest,
@@ -45,11 +52,15 @@ import { downloadInvoicePdf, InvoicePdfHttpError } from '../services/api/invoice
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 import {
   buildPosRegisterGateContext,
+  isRegisterGateDecommissioned,
+  POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
+  POS_READINESS_MESSAGE_CODES,
   registerGateAlertMessage,
   registerGateBannerDetail,
   registerGateBannerTitle,
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
+import { checkTseStatus } from '../services/api/tseService';
 
 /**
  * Map backend blocked reason to short UI text. Fail-safe: unknown codes return neutral fallback;
@@ -190,6 +201,7 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings']);
   const { user } = useAuth();
+  const { isOnline } = useSystem();
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
   const [amountReceived, setAmountReceived] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
@@ -221,6 +233,9 @@ export default function PaymentModal({
   const [voucherCheckLoading, setVoucherCheckLoading] = useState(false);
   const [voucherLocalError, setVoucherLocalError] = useState<string | null>(null);
   const voucherValidatedTotalRef = useRef<number | null>(null);
+  /** One-shot keys so operator warnings do not repeat until amount/code changes. */
+  const largeCashWarningAckKeyRef = useRef<string | null>(null);
+  const voucherFullBalanceWarningAckKeyRef = useRef<string | null>(null);
 
   /** Eligibility preview: read-only UI info. Only when customer selected (not guest) and cart has items. */
   const [eligibilityPreview, setEligibilityPreview] = useState<BenefitEligibilityPreviewResponse | null>(null);
@@ -246,6 +261,7 @@ export default function PaymentModal({
     posReadinessError,
     posReadinessNextAction,
     posReadinessMessageCode,
+    posReadinessRegisterStatus,
   } = usePosCashRegisterAssignment(visible);
 
   const registerGateCtx = useMemo(
@@ -261,6 +277,7 @@ export default function PaymentModal({
           error: posReadinessError,
           nextAction: posReadinessNextAction,
           messageCode: posReadinessMessageCode,
+          registerStatus: posReadinessRegisterStatus,
         },
       }),
     [
@@ -273,12 +290,71 @@ export default function PaymentModal({
       posReadinessError,
       posReadinessNextAction,
       posReadinessMessageCode,
+      posReadinessRegisterStatus,
     ]
   );
 
   // DEV: TSE Simulation Toggle
   // Default: AÇIK (Bypass) in Development
   const [isTseSimulationEnabled, setIsTseSimulationEnabled] = useState<boolean>(__DEV__);
+
+  const [showStartbelegSaleModal, setShowStartbelegSaleModal] = useState(false);
+  const [fiscalTseGateOk, setFiscalTseGateOk] = useState<boolean | null>(null);
+  const [tseCheckFailureStreak, setTseCheckFailureStreak] = useState(0);
+
+  useEffect(() => {
+    if (!visible) {
+      setShowStartbelegSaleModal(false);
+      largeCashWarningAckKeyRef.current = null;
+      voucherFullBalanceWarningAckKeyRef.current = null;
+      return;
+    }
+    if (!POS_ENSURE_READY_ON_ENTRY) {
+      setShowStartbelegSaleModal(false);
+      return;
+    }
+    if (
+      posReadinessNextAction === 'startbeleg_required' ||
+      posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.STARTBELEG_REQUIRED
+    ) {
+      setShowStartbelegSaleModal(true);
+    } else {
+      setShowStartbelegSaleModal(false);
+    }
+  }, [visible, posReadinessNextAction, posReadinessMessageCode]);
+
+  useEffect(() => {
+    if (!visible) {
+      setFiscalTseGateOk(null);
+      return;
+    }
+    const needTse = __DEV__ ? !isTseSimulationEnabled : true;
+    if (!needTse) {
+      setFiscalTseGateOk(true);
+      const streak = registerPosTseStatusCheckOutcome(true);
+      setTseCheckFailureStreak(streak);
+      return;
+    }
+    let cancelled = false;
+    setFiscalTseGateOk(null);
+    void checkTseStatus()
+      .then((s) => {
+        if (cancelled) return;
+        const ok = Boolean(s.isConnected && s.canCreateInvoices);
+        setFiscalTseGateOk(ok);
+        const streak = registerPosTseStatusCheckOutcome(ok);
+        setTseCheckFailureStreak(streak);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setFiscalTseGateOk(false);
+        const streak = registerPosTseStatusCheckOutcome(false);
+        setTseCheckFailureStreak(streak);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, isTseSimulationEnabled]);
 
   const {
     methodsLoading,
@@ -357,10 +433,19 @@ export default function PaymentModal({
       Math.abs(voucherRedeemParsed - totalAmount) <= 0.02 &&
       (!voucherSnapshot || voucherRedeemParsed <= voucherSnapshot.remainingAmount + 0.02));
 
+  const registerHardStopDecommissioned = isRegisterGateDecommissioned(registerGateCtx);
+  const paymentInteractionsLocked = registerHardStopDecommissioned;
+
+  const needFiscalTseForPay = __DEV__ ? !isTseSimulationEnabled : true;
+  const payGateTseBlocked = needFiscalTseForPay && fiscalTseGateOk !== true;
+  const offlineBlocksVoucher = !isOnline && selectedPaymentMethod === 'voucher';
+
   const paySubmitDisabled =
     purchaseState === 'processing' ||
     paymentBusy ||
     isRegisterGateBlockingPayment ||
+    payGateTseBlocked ||
+    offlineBlocksVoucher ||
     (selectedPaymentMethod === 'voucher' && (!voucherReady || !voucherAmountMatchesTotal));
 
   const showPayWorking = purchaseState === 'processing' || paymentBusy;
@@ -368,7 +453,11 @@ export default function PaymentModal({
   const zahlenBlockedByRegisterHint =
     paySubmitDisabled && !showPayWorking && isRegisterGateBlockingPayment
       ? registerGateFooterHint(registerGateCtx)
-      : undefined;
+      : paySubmitDisabled && !showPayWorking && payGateTseBlocked
+        ? 'TSE nicht bereit — fiskalische Zahlung nicht möglich.'
+        : paySubmitDisabled && !showPayWorking && offlineBlocksVoucher
+          ? 'Gutschein ist offline nicht möglich.'
+          : undefined;
 
   useEffect(() => {
     if (!visible) return;
@@ -666,80 +755,141 @@ export default function PaymentModal({
       debugPosPaymentTrace('submit_blocked_busy', { paymentBusy, purchaseState });
       return;
     }
+
+    if (offlineBlocksVoucher) {
+      Alert.alert('Offline', 'Gutschein ist offline nicht möglich.');
+      return;
+    }
+    if (needFiscalTseForPay && payGateTseBlocked) {
+      Alert.alert('TSE', 'TSE nicht bereit — fiskalische Zahlung nicht möglich.');
+      return;
+    }
+
+    const resolvedTableNumber =
+      tableNumber != null && Number.isFinite(Number(tableNumber)) && Number(tableNumber) >= 1
+        ? Number(tableNumber)
+        : 1;
+
+    if (cartItems.length === 0) {
+      debugPosPaymentTrace('submit_blocked_empty_cart', {});
+      Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.emptyCart'));
+      return;
+    }
+
+    if (requiresCashAmount) {
+      const received = parseLocaleDecimal(amountReceived);
+      if (!Number.isFinite(received) || received + 0.001 < totalAmount) {
+        debugPosPaymentTrace('submit_blocked_cash_amount', { received, totalAmount });
+        Alert.alert(
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.errors.insufficientAmount')
+        );
+        return;
+      }
+    }
+
+    if (selectedPaymentMethod === 'voucher') {
+      if (!voucherSnapshot || validatedVoucherCode?.trim() !== voucherCode.trim()) {
+        Alert.alert(
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.voucher.invalid')
+        );
+        return;
+      }
+      if (voucherSnapshot.remainingAmount + 0.009 < totalAmount) {
+        Alert.alert(
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.voucher.insufficient')
+        );
+        return;
+      }
+      const vrPre = parseLocaleDecimal(voucherRedeemAmountStr);
+      if (!Number.isFinite(vrPre) || Math.abs(vrPre - totalAmount) > 0.02) {
+        Alert.alert(
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.voucher.amountMustMatchTotal')
+        );
+        return;
+      }
+      if (vrPre > voucherSnapshot.remainingAmount + 0.02) {
+        Alert.alert(
+          t('checkout:posFlow.payment.alerts.hintTitle'),
+          t('checkout:posFlow.payment.voucher.insufficient')
+        );
+        return;
+      }
+    }
+
+    if (!hasValidCashRegisterId || !cashRegisterId) {
+      debugPosPaymentTrace('submit_blocked_missing_cash_register', {
+        cashRegisterResolved,
+        cashRegisterId: cashRegisterId ?? null,
+        registerListFailureKind,
+      });
+      Alert.alert(t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'), registerGateAlertMessage(registerGateCtx));
+      return;
+    }
+
+    if (!validateAmount(totalAmount)) {
+      debugPosPaymentTrace('submit_blocked_invalid_amount', { totalAmount });
+      Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.invalidAmountDetailed'));
+      return;
+    }
+
+    // Non-blocking operator confirmations (cancel = stay on screen; continue = same handler, ack ref skips repeat).
+    if (selectedPaymentMethod === 'cash' && requiresCashAmount && totalAmount >= POS_LARGE_CASH_WARN_THRESHOLD_EUR) {
+      const warnKey = `lc|${totalAmount.toFixed(2)}|${amountReceived.trim()}`;
+      if (largeCashWarningAckKeyRef.current !== warnKey) {
+        Alert.alert(
+          t('checkout:posFlow.payment.operatorWarnings.largeCashTitle'),
+          t('checkout:posFlow.payment.operatorWarnings.largeCashMessage', {
+            threshold: POS_LARGE_CASH_WARN_THRESHOLD_EUR,
+          }),
+          [
+            { text: t('checkout:posFlow.payment.buttons.cancel'), style: 'cancel' },
+            {
+              text: t('checkout:posFlow.payment.operatorWarnings.largeCashProceed'),
+              onPress: () => {
+                largeCashWarningAckKeyRef.current = warnKey;
+                void handlePayment();
+              },
+            },
+          ]
+        );
+        return;
+      }
+    }
+
+    if (selectedPaymentMethod === 'voucher' && voucherSnapshot && validatedVoucherCode?.trim() === voucherCode.trim()) {
+      const vrWarn = parseLocaleDecimal(voucherRedeemAmountStr);
+      const redeemsFullBalance =
+        Number.isFinite(vrWarn) &&
+        vrWarn > 0 &&
+        voucherSnapshot.remainingAmount - vrWarn <= 0.02;
+      if (redeemsFullBalance) {
+        const warnKey = `vf|${validatedVoucherCode.trim()}|${vrWarn.toFixed(2)}`;
+        if (voucherFullBalanceWarningAckKeyRef.current !== warnKey) {
+          Alert.alert(
+            t('checkout:posFlow.payment.operatorWarnings.voucherFullTitle'),
+            t('checkout:posFlow.payment.operatorWarnings.voucherFullMessage'),
+            [
+              { text: t('checkout:posFlow.payment.buttons.cancel'), style: 'cancel' },
+              {
+                text: t('checkout:posFlow.payment.operatorWarnings.voucherFullProceed'),
+                onPress: () => {
+                  voucherFullBalanceWarningAckKeyRef.current = warnKey;
+                  void handlePayment();
+                },
+              },
+            ]
+          );
+          return;
+        }
+      }
+    }
+
     setPaymentBusy(true);
     try {
-      // 1. Validasyonlar — Tischnummer: layout usually passes activeTableId; default 1 if missing (guest POS)
-      const resolvedTableNumber =
-        tableNumber != null && Number.isFinite(Number(tableNumber)) && Number(tableNumber) >= 1
-          ? Number(tableNumber)
-          : 1;
-
-      if (cartItems.length === 0) {
-        debugPosPaymentTrace('submit_blocked_empty_cart', {});
-        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.emptyCart'));
-        return;
-      }
-
-      if (requiresCashAmount) {
-        const received = parseFloat(amountReceived);
-        if (isNaN(received) || received < totalAmount) {
-          debugPosPaymentTrace('submit_blocked_cash_amount', { received, totalAmount });
-          Alert.alert(
-            t('checkout:posFlow.payment.alerts.hintTitle'),
-            t('checkout:posFlow.payment.errors.insufficientAmount')
-          );
-          return;
-        }
-      }
-
-      if (selectedPaymentMethod === 'voucher') {
-        if (!voucherSnapshot || validatedVoucherCode?.trim() !== voucherCode.trim()) {
-          Alert.alert(
-            t('checkout:posFlow.payment.alerts.hintTitle'),
-            t('checkout:posFlow.payment.voucher.invalid')
-          );
-          return;
-        }
-        if (voucherSnapshot.remainingAmount + 0.009 < totalAmount) {
-          Alert.alert(
-            t('checkout:posFlow.payment.alerts.hintTitle'),
-            t('checkout:posFlow.payment.voucher.insufficient')
-          );
-          return;
-        }
-        const vr = parseLocaleDecimal(voucherRedeemAmountStr);
-        if (!Number.isFinite(vr) || Math.abs(vr - totalAmount) > 0.02) {
-          Alert.alert(
-            t('checkout:posFlow.payment.alerts.hintTitle'),
-            t('checkout:posFlow.payment.voucher.amountMustMatchTotal')
-          );
-          return;
-        }
-        if (vr > voucherSnapshot.remainingAmount + 0.02) {
-          Alert.alert(
-            t('checkout:posFlow.payment.alerts.hintTitle'),
-            t('checkout:posFlow.payment.voucher.insufficient')
-          );
-          return;
-        }
-      }
-
-      if (!hasValidCashRegisterId || !cashRegisterId) {
-        debugPosPaymentTrace('submit_blocked_missing_cash_register', {
-          cashRegisterResolved,
-          cashRegisterId: cashRegisterId ?? null,
-          registerListFailureKind,
-        });
-        Alert.alert(t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'), registerGateAlertMessage(registerGateCtx));
-        return;
-      }
-
-      if (!validateAmount(totalAmount)) {
-        debugPosPaymentTrace('submit_blocked_invalid_amount', { totalAmount });
-        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.invalidAmountDetailed'));
-        return;
-      }
-
       // 2. Aktif sepet ID'sini al (Source of Truth for Cart ID)
       let currentCartId: string;
       try {
@@ -863,12 +1013,23 @@ export default function PaymentModal({
           response.fiscalStatus === 'FAILED'
             ? (response.message || response.error || t('checkout:posFlow.payment.errors.fiscalNotConfirmed'))
             : response.message || response.error || t('checkout:posFlow.payment.errors.failed');
+        if (response.fiscalStatus === 'FAILED') {
+          const hint = `${response.message || ''} ${response.error || ''}`.toLowerCase();
+          if (hint.includes('tse') || hint.includes('signatur') || hint.includes('signature')) {
+            const streak = registerPosTseStatusCheckOutcome(false);
+            setTseCheckFailureStreak(streak);
+          }
+        }
         Alert.alert(t('checkout:posFlow.payment.errors.failed'), errorMsg);
         setPurchaseState('input');
         return;
       }
 
       console.log('[PAYMENT] Success, paymentId:', response.paymentId);
+      {
+        const streak = registerPosTseStatusCheckOutcome(true);
+        setTseCheckFailureStreak(streak);
+      }
       setCompletedPaymentId(response.paymentId);
       setCompletedPaymentTse(response.tse ?? null);
       debugPosPaymentTrace('success_flow_qr_ready', {
@@ -989,6 +1150,7 @@ export default function PaymentModal({
   };
 
   return (
+    <>
     <Modal
       visible={visible}
       animationType="slide"
@@ -1031,6 +1193,12 @@ export default function PaymentModal({
                 <Text style={styles.totalAmount}>{formatPrice(totalAmount)}</Text>
               </View>
             </View>
+
+            {registerHardStopDecommissioned ? (
+              <View style={styles.registerHardStopBanner} accessibilityRole="alert">
+                <Text style={styles.registerHardStopBannerText}>{POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE}</Text>
+              </View>
+            ) : null}
 
             {isRegisterGateBlockingPayment && (
               <View style={styles.registerBanner}>
@@ -1147,15 +1315,24 @@ export default function PaymentModal({
                 ) : paymentMethods && paymentMethods.length > 0 ? (
                   paymentMethods.map((method) => {
                     const isSelected = selectedPaymentMethod === method.type;
+                    const methodDisabled =
+                      paymentInteractionsLocked || (!isOnline && method.type === 'voucher');
                     return (
                       <Pressable
                         key={method.id}
                         style={({ pressed }) => [
                           styles.paymentMethod,
                           isSelected && styles.selectedPaymentMethod,
-                          pressed && SoftState.pressedScale,
+                          methodDisabled && styles.paymentMethodDisabled,
+                          pressed && !methodDisabled && SoftState.pressedScale,
                         ]}
+                        disabled={methodDisabled}
                         onPress={() => {
+                          if (paymentInteractionsLocked) return;
+                          if (!isOnline && method.type === 'voucher') {
+                            Alert.alert('Offline', 'Gutschein ist offline nicht möglich.');
+                            return;
+                          }
                           if (method.type !== selectedPaymentMethod) {
                             if (method.type === 'voucher' || selectedPaymentMethod === 'voucher') {
                               resetVoucherUi();
@@ -1164,7 +1341,7 @@ export default function PaymentModal({
                           }
                         }}
                         accessibilityRole="button"
-                        accessibilityState={{ selected: isSelected }}
+                        accessibilityState={{ selected: isSelected, disabled: methodDisabled }}
                         accessibilityLabel={`${method.name}${isSelected ? ', ausgewählt' : ''}`}
                       >
                         <Ionicons
@@ -1207,8 +1384,10 @@ export default function PaymentModal({
                         style={({ pressed }) => [
                           styles.presetButton,
                           isPresetSelected && styles.presetButtonSelected,
-                          pressed && SoftState.pressedScale,
+                          pressed && !paymentInteractionsLocked && SoftState.pressedScale,
+                          paymentInteractionsLocked && styles.paymentMethodDisabled,
                         ]}
+                        disabled={paymentInteractionsLocked}
                         onPress={() => handlePresetPress(preset)}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isPresetSelected }}
@@ -1233,6 +1412,7 @@ export default function PaymentModal({
                     onChangeText={setAmountReceived}
                     placeholder="0,00"
                     keyboardType="decimal-pad"
+                    editable={!paymentInteractionsLocked}
                     accessibilityLabel="Erhaltener Betrag in Euro"
                     accessibilityHint="Mindestens den Gesamtbetrag eingeben"
                   />
@@ -1250,6 +1430,9 @@ export default function PaymentModal({
               <View style={styles.section}>
                 <Text style={styles.stepLabel}>3</Text>
                 <Text style={styles.sectionTitle}>Gutschein</Text>
+                {!isOnline ? (
+                  <Text style={styles.voucherInlineError}>Gutschein ist offline nicht möglich.</Text>
+                ) : null}
                 <Text style={styles.voucherFieldLabel}>{t('checkout:posFlow.payment.voucher.codeLabel')}</Text>
                 <TextInput
                   style={styles.voucherCodeInput}
@@ -1272,16 +1455,16 @@ export default function PaymentModal({
                   placeholder={t('checkout:posFlow.payment.voucher.codeLabel')}
                   autoCapitalize="characters"
                   autoCorrect={false}
-                  editable={!voucherCheckLoading}
+                  editable={!voucherCheckLoading && isOnline && !paymentInteractionsLocked}
                   accessibilityLabel={t('checkout:posFlow.payment.voucher.codeLabel')}
                 />
                 <Pressable
                   onPress={handleVoucherCheck}
-                  disabled={voucherCheckLoading}
+                  disabled={voucherCheckLoading || !isOnline || paymentInteractionsLocked}
                   style={({ pressed }) => [
                     styles.voucherCheckButton,
-                    voucherCheckLoading && styles.voucherCheckButtonDisabled,
-                    pressed && !voucherCheckLoading && SoftState.pressedScale,
+                    (voucherCheckLoading || !isOnline || paymentInteractionsLocked) && styles.voucherCheckButtonDisabled,
+                    pressed && !voucherCheckLoading && isOnline && !paymentInteractionsLocked && SoftState.pressedScale,
                   ]}
                   accessibilityRole="button"
                   accessibilityLabel={t('checkout:posFlow.payment.voucher.checkButton')}
@@ -1383,6 +1566,13 @@ export default function PaymentModal({
 
           {purchaseState === 'input' || purchaseState === 'processing' ? (
             <View style={[styles.footer, { paddingBottom: Math.max(SoftSpacing.md, insets.bottom) }]}>
+              {needFiscalTseForPay && tseCheckFailureStreak >= POS_TSE_STATUS_FAILURE_WARN_STREAK ? (
+                <View style={styles.operatorWarnBanner} accessibilityRole="alert">
+                  <Text style={styles.operatorWarnBannerText}>
+                    {t('checkout:posFlow.payment.operatorWarnings.tseUnstableBanner')}
+                  </Text>
+                </View>
+              ) : null}
               <View style={styles.footerButtonRow}>
                 <Pressable
                   onPress={handleClose}
@@ -1435,6 +1625,10 @@ export default function PaymentModal({
                 <Text style={styles.footerBlockedHint}>
                   {registerGateFooterHint(registerGateCtx)}
                 </Text>
+              ) : hasValidCashRegisterId && payGateTseBlocked ? (
+                <Text style={styles.footerBlockedHint}>TSE nicht bereit — fiskalische Zahlung nicht möglich.</Text>
+              ) : hasValidCashRegisterId && offlineBlocksVoucher ? (
+                <Text style={styles.footerBlockedHint}>Gutschein ist offline nicht möglich.</Text>
               ) : null}
             </View>
           ) : (
@@ -1546,6 +1740,32 @@ export default function PaymentModal({
         </View>
       </View>
     </Modal>
+
+    <Modal
+      visible={visible && showStartbelegSaleModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowStartbelegSaleModal(false)}
+    >
+      <View style={styles.startbelegBlockBackdrop}>
+        <View style={styles.startbelegBlockCard}>
+          <Text style={styles.startbelegBlockTitle}>Startbeleg erforderlich</Text>
+          <Text style={styles.startbelegBlockBody}>
+            Für diese Registrierkasse fehlt der fiskalische Startbeleg (RKSV). Erstellen Sie zuerst den Startbeleg, danach
+            sind Verkäufe möglich.
+          </Text>
+          <Pressable
+            onPress={() => setShowStartbelegSaleModal(false)}
+            style={({ pressed }) => [styles.startbelegBlockBtn, pressed && SoftState.pressedScale]}
+            accessibilityRole="button"
+            accessibilityLabel="Verstanden"
+          >
+            <Text style={styles.startbelegBlockBtnText}>Verstanden</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -1711,6 +1931,66 @@ const styles = StyleSheet.create({
     color: SoftColors.accentDark,
     fontWeight: '600',
   },
+  paymentMethodDisabled: {
+    opacity: 0.45,
+  },
+  registerHardStopBanner: {
+    marginHorizontal: SoftSpacing.md,
+    marginBottom: SoftSpacing.md,
+    padding: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.errorBg,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.35)',
+  },
+  registerHardStopBannerText: {
+    ...SoftTypography.body,
+    fontWeight: '700',
+    color: SoftColors.error,
+    textAlign: 'center',
+  },
+  startbelegBlockBackdrop: {
+    flex: 1,
+    backgroundColor: SoftColors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SoftSpacing.lg,
+  },
+  startbelegBlockCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: SoftColors.bgCard,
+    borderRadius: SoftRadius.lg,
+    padding: SoftSpacing.lg,
+    ...SoftShadows.md,
+  },
+  startbelegBlockTitle: {
+    ...SoftTypography.h2,
+    fontWeight: '700',
+    color: SoftColors.textPrimary,
+    marginBottom: SoftSpacing.sm,
+    textAlign: 'center',
+  },
+  startbelegBlockBody: {
+    ...SoftTypography.body,
+    color: SoftColors.textSecondary,
+    marginBottom: SoftSpacing.lg,
+    textAlign: 'center',
+  },
+  startbelegBlockBtn: {
+    alignSelf: 'center',
+    minWidth: 200,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.lg,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.accent,
+    alignItems: 'center',
+  },
+  startbelegBlockBtnText: {
+    ...SoftTypography.label,
+    fontWeight: '600',
+    color: SoftColors.textInverse,
+  },
   inputRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1787,6 +2067,21 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: SoftColors.borderLight,
     backgroundColor: SoftColors.bgCard,
+  },
+  operatorWarnBanner: {
+    marginHorizontal: SoftSpacing.md,
+    marginBottom: SoftSpacing.sm,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: 'rgba(255, 193, 7, 0.22)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 124, 0, 0.45)',
+  },
+  operatorWarnBannerText: {
+    ...SoftTypography.caption,
+    color: SoftColors.textPrimary,
+    textAlign: 'center',
   },
   footerButtonRow: {
     flexDirection: 'row',
