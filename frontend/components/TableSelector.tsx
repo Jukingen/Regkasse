@@ -1,7 +1,10 @@
 // Soft minimal table selector component
 import React from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Vibration, ActivityIndicator } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { View, Text, Pressable, ScrollView, StyleSheet, Vibration } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { TableSelectorTile, webTablePressableOutlineOff } from './TableSelectorTile';
 import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
 
 interface TableSelectorProps {
@@ -21,6 +24,7 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
   tableSelectionLoading,
   onClearAllTables,
 }) => {
+  const { t } = useTranslation(['checkout']);
   const insets = useSafeAreaInsets();
   const tableNumbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -32,7 +36,6 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
 
   const getTableItemCount = (tableNumber: number): number => {
     const tableCart = tableCarts.get(tableNumber);
-    // Cart varsa (boş dahil) cart kaynağı kullan; yoksa recovery (initial load için)
     if (tableCart !== undefined) {
       return tableCart.totalItems ?? 0;
     }
@@ -46,7 +49,9 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
     <View style={styles.tableSection} pointerEvents="box-none" accessibilityRole="none" collapsable={false}>
       <View style={styles.sectionTitleRow}>
         <Text style={styles.stepLabel}>1</Text>
-        <Text style={styles.sectionTitle} accessibilityRole="header">Tisch wählen</Text>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          {t('checkout:posFlow.section.table')}
+        </Text>
       </View>
       <ScrollView
         horizontal
@@ -56,71 +61,34 @@ export const TableSelector: React.FC<TableSelectorProps> = ({
       >
         {tableNumbers.map((tableNumber) => {
           const itemCount = getTableItemCount(tableNumber);
-          const hasItems = itemCount > 0;
           const isSelected = selectedTable === tableNumber;
           const isLoading = tableSelectionLoading === tableNumber;
 
           return (
-            <Pressable
+            <TableSelectorTile
               key={tableNumber}
-              style={({ pressed, focused }) => [
-                styles.tableTab,
-                isSelected && styles.tableTabSelected,
-                hasItems && !isSelected && styles.tableTabWithItems,
-                isLoading && styles.tableTabLoading,
-                pressed && styles.tableTabPressed,
-                focused && SoftState.focusVisible,
-              ]}
+              tableNumber={tableNumber}
+              itemCount={itemCount}
+              isSelected={isSelected}
+              isLoading={isLoading}
               onPress={() => handleTablePress(tableNumber)}
-              disabled={isLoading}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              accessibilityLabel={isSelected ? `Tisch ${tableNumber} ausgewählt` : `Tisch ${tableNumber} wählen`}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isSelected, disabled: isLoading }}
-            >
-              <>
-                <Text style={[
-                  styles.tableTabText,
-                  isSelected && styles.tableTabTextSelected,
-                  hasItems && !isSelected && styles.tableTabTextWithItems,
-                  isLoading && { opacity: 0.5 } // Lightly dim text when loading
-                ]}>
-                  {tableNumber}
-                </Text>
-
-                {isLoading && (
-                  <View style={styles.loadingOverlay} pointerEvents="none">
-                    <ActivityIndicator
-                      size="small"
-                      color={isSelected ? SoftColors.textInverse : SoftColors.accent}
-                    />
-                  </View>
-                )}
-
-                {hasItems && !isLoading && (
-                  <View style={styles.itemBadge} pointerEvents="none">
-                    <Text style={styles.itemBadgeText}>{itemCount}</Text>
-                  </View>
-                )}
-              </>
-            </Pressable>
+            />
           );
         })}
 
-        {/* Clear All Button */}
         <Pressable
-          style={({ pressed, focused }) => [
+          style={({ pressed }) => [
             styles.clearAllButton,
-            pressed && styles.tableTabPressed,
-            focused && SoftState.focusVisible,
+            webTablePressableOutlineOff,
+            pressed && styles.clearAllButtonPressed,
           ]}
           onPress={onClearAllTables}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="Alle Tische leeren"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityLabel={t('checkout:posFlow.tableSelector.a11yClearAll')}
           accessibilityRole="button"
         >
           <Text style={styles.clearAllEmoji}>🧹</Text>
-          <Text style={styles.clearAllText}>Alle leeren</Text>
+          <Text style={styles.clearAllText}>{t('checkout:posFlow.tableSelector.clearAll')}</Text>
         </Pressable>
       </ScrollView>
     </View>
@@ -142,7 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'baseline',
     gap: SoftSpacing.xs,
-    marginBottom: SoftSpacing.sm,
+    marginBottom: SoftSpacing.md,
   },
   stepLabel: {
     ...SoftTypography.caption,
@@ -158,58 +126,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   tableScrollContent: {
-    alignItems: 'center',
+    alignItems: 'flex-end',
+    paddingBottom: 2,
     paddingRight: SoftSpacing.lg,
-  },
-  tableTab: {
-    width: 56,
-    minHeight: 56,
-    borderRadius: SoftRadius.lg,
-    backgroundColor: SoftColors.bgSecondary,
-    marginRight: SoftSpacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SoftShadows.sm,
-    position: 'relative',
-  },
-  tableTabSelected: {
-    backgroundColor: SoftColors.accent,
-    ...SoftShadows.md,
-  },
-  tableTabWithItems: {
-    backgroundColor: SoftColors.bgCard,
-    borderWidth: 1,
-    borderColor: SoftColors.success,
-  },
-  tableTabLoading: {},
-  tableTabPressed: SoftState.pressedScale,
-  tableTabText: {
-    ...SoftTypography.h3,
-    color: SoftColors.textPrimary,
-  },
-  tableTabTextSelected: {
-    color: SoftColors.textInverse,
-  },
-  tableTabTextWithItems: {
-    color: SoftColors.success,
-  },
-  itemBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    backgroundColor: SoftColors.warning,
-    borderRadius: SoftRadius.full,
-    paddingHorizontal: SoftSpacing.xs,
-    paddingVertical: 2,
-    minWidth: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SoftShadows.sm,
-  },
-  itemBadgeText: {
-    ...SoftTypography.caption,
-    fontWeight: '700',
-    color: SoftColors.textInverse,
   },
   clearAllButton: {
     paddingHorizontal: SoftSpacing.md,
@@ -221,26 +140,19 @@ const styles = StyleSheet.create({
     borderColor: SoftColors.error,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 56,
-    minWidth: 56,
+    minHeight: 92,
+    minWidth: 72,
+    ...SoftShadows.sm,
   },
+  clearAllButtonPressed: SoftState.pressed,
   clearAllEmoji: {
-    fontSize: 18,
+    fontSize: 20,
     marginBottom: SoftSpacing.xs,
   },
   clearAllText: {
     ...SoftTypography.caption,
     fontWeight: '600',
     color: SoftColors.error,
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: SoftRadius.lg,
+    textAlign: 'center',
   },
 });

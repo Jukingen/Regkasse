@@ -27,8 +27,17 @@
   "discount": "Discount",
   "posFlow": {
     "section": {
+      "table": "Select table",
       "category": "Category",
       "summary": "Summary"
+    },
+    "tableSelector": {
+      "statusFree": "Free",
+      "statusOpen": "Open",
+      "clearAll": "Clear all",
+      "a11ySelect": "Select table {{number}}",
+      "a11ySelected": "Table {{number}}, selected",
+      "a11yClearAll": "Clear all tables"
     },
     "summaryStrip": "Table {{table}} · {{itemCount}} items · TOTAL {{total}}",
     "personal": {

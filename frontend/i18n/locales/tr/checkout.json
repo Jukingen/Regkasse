@@ -27,8 +27,17 @@
   "discount": "İndirim",
   "posFlow": {
     "section": {
+      "table": "Masa seçin",
       "category": "Kategori",
       "summary": "Özet"
+    },
+    "tableSelector": {
+      "statusFree": "Boş",
+      "statusOpen": "Açık",
+      "clearAll": "Tümünü temizle",
+      "a11ySelect": "Masa {{number}}, seç",
+      "a11ySelected": "Masa {{number}}, seçili",
+      "a11yClearAll": "Tüm masaları temizle"
     },
     "summaryStrip": "Masa {{table}} · {{itemCount}} ürün · TOPLAM {{total}}",
     "personal": {

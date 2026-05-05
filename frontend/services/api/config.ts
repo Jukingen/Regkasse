@@ -95,6 +95,17 @@ const axiosInstance = axios.create({
 
 const REFRESH_HEADER = 'x-auth-refresh-retry';
 
+/** Map known backend Turkish literals to German for POS UI (backend unchanged). */
+function translateKnownTurkishApiErrorMessages(data: unknown): void {
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return;
+    const body = data as Record<string, unknown>;
+    const msg = body.message;
+    if (typeof msg !== 'string') return;
+    if (msg.includes('Kullanıcı bulunamadı')) {
+        body.message = msg.split('Kullanıcı bulunamadı').join('Benutzer nicht gefunden');
+    }
+}
+
 // Request interceptor - Token kontrolü ve ekleme
 axiosInstance.interceptors.request.use(
     async (config) => {
@@ -134,6 +145,10 @@ axiosInstance.interceptors.response.use(
         return response.data;
     },
     async (error) => {
+        if (error.response?.data) {
+            translateKnownTurkishApiErrorMessages(error.response.data);
+        }
+
         if (isDev) {
             console.error('❌ API error:', {
                 status: error.response?.status,

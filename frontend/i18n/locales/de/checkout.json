@@ -27,8 +27,17 @@
   "discount": "Rabatt",
   "posFlow": {
     "section": {
+      "table": "Tisch wählen",
       "category": "Kategorie",
       "summary": "Zusammenfassung"
+    },
+    "tableSelector": {
+      "statusFree": "Frei",
+      "statusOpen": "Offen",
+      "clearAll": "Alle leeren",
+      "a11ySelect": "Tisch {{number}} wählen",
+      "a11ySelected": "Tisch {{number}}, ausgewählt",
+      "a11yClearAll": "Alle Tische leeren"
     },
     "summaryStrip": "Tisch {{table}} · {{itemCount}} Artikel · GESAMT {{total}}",
     "personal": {
