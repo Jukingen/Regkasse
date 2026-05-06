@@ -397,9 +397,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.InvoiceNumber).IsUnique();
                 // entity.HasIndex(e => e.InvoiceDate); // Covered by composite index
                 // entity.HasIndex(e => e.Status); // Covered by composite index
-                entity.HasIndex(e => e.TseSignature)
-                    .IsUnique()
-                    .HasFilter("\"TseSignature\" != ''");
+                // Dropped IX_invoices_TseSignature: B-tree cannot index full JWS strings (>2704 bytes per row in PostgreSQL).
 
                 // Composite Indexes for Pagination
                 entity.HasIndex(e => new { e.IsActive, e.InvoiceDate }); // Default ASC/ASC, checking descending support...

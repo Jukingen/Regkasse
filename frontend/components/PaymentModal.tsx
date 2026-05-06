@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -97,6 +97,65 @@ function parseLocaleDecimal(input: string): number {
   const s = input.trim().replace(',', '.');
   if (!s) return NaN;
   return parseFloat(s);
+}
+
+function effectiveVoucherRedeemCapFromSnapshot(s: VoucherValidateSuccess): number {
+  if (
+    typeof s.maxRedeemableAmount === 'number' &&
+    Number.isFinite(s.maxRedeemableAmount) &&
+    s.maxRedeemableAmount > 0
+  ) {
+    return Math.min(s.remainingAmount, s.maxRedeemableAmount);
+  }
+  return s.remainingAmount ?? 0;
+}
+
+/** Aligns with PaymentModal `voucherMaxForSale` when the Gutschein toggle is on. */
+function computeVoucherMaxForSale(
+  totalAmount: number,
+  snapshot: VoucherValidateSuccess | null,
+  voucherEnabled: boolean
+): number {
+  if (!voucherEnabled || !snapshot) return 0;
+  const cap = effectiveVoucherRedeemCapFromSnapshot(snapshot);
+  return Math.max(0, Math.min(totalAmount, cap));
+}
+
+/** Cart gross tolerance for voucher + cash coverage (aligned with backend money rules). */
+const PAYMENT_COVERAGE_TOLERANCE_EUR = 0.02;
+
+/**
+ * Whether applied voucher EUR plus cash tender covers cart gross total (German decimal input).
+ * When settlement Restbetrag is ~0, only the voucher portion must cover the cart total.
+ */
+function computeVoucherPlusCashCoversTotal(input: {
+  voucherEnabled: boolean;
+  appliedVoucherAmount: number;
+  totalCartAmount: number;
+  settlementAmountDue: number;
+  requiresCashAmount: boolean;
+  amountReceivedStr: string;
+}): { sumPaid: number; coversTotal: boolean } {
+  const v = input.voucherEnabled ? Math.max(0, input.appliedVoucherAmount) : 0;
+  const cashParsed = parseLocaleDecimal(input.amountReceivedStr);
+  const cashReceived = Number.isFinite(cashParsed) ? Math.max(0, cashParsed) : 0;
+
+  let sumPaid: number;
+  if (!input.voucherEnabled) {
+    sumPaid = input.requiresCashAmount ? cashReceived : input.totalCartAmount;
+  } else if (input.settlementAmountDue <= PAYMENT_COVERAGE_TOLERANCE_EUR) {
+    sumPaid = v;
+  } else if (input.requiresCashAmount) {
+    sumPaid = v + cashReceived;
+  } else {
+    // Card/transfer: cover Restbetrag without using cash TextInput.
+    sumPaid = v + Math.max(0, input.settlementAmountDue);
+  }
+
+  return {
+    sumPaid,
+    coversTotal: sumPaid >= input.totalCartAmount - PAYMENT_COVERAGE_TOLERANCE_EUR,
+  };
 }
 
 /** ReceiptDTO veya payment response'taki receipt → ReceiptSummary formatı. */
@@ -238,14 +297,18 @@ export default function PaymentModal({
   /** Gutschein: true when code has non-whitespace (inline ⚠️ when false while method is voucher). */
   const [isVoucherCodeValid, setIsVoucherCodeValid] = useState(true);
   const [voucherRedeemAmountStr, setVoucherRedeemAmountStr] = useState('');
+  /** Writes `voucherRedeemAmountStr`; effective EUR is derived via `useMemo` below (empty → 0). */
+  const setVoucherRedeemAmountEffective = useCallback((eur: number) => {
+    const n = Number.isFinite(eur) ? Math.max(0, eur) : 0;
+    setVoucherRedeemAmountStr(n > 0 ? n.toFixed(2) : '');
+  }, []);
   const [voucherSnapshot, setVoucherSnapshot] = useState<VoucherValidateSuccess | null>(null);
   const [validatedVoucherCode, setValidatedVoucherCode] = useState<string | null>(null);
   const [voucherCheckLoading, setVoucherCheckLoading] = useState(false);
   const [voucherLocalError, setVoucherLocalError] = useState<string | null>(null);
   const voucherValidatedTotalRef = useRef<number | null>(null);
-  /** One-shot keys so operator warnings do not repeat until amount/code changes. */
+  /** One-shot key so large cash operator warning does not repeat until amount changes. */
   const largeCashWarningAckKeyRef = useRef<string | null>(null);
-  const voucherFullBalanceWarningAckKeyRef = useRef<string | null>(null);
 
   /** Eligibility preview: read-only UI info. Only when customer selected (not guest) and cart has items. */
   const [eligibilityPreview, setEligibilityPreview] = useState<BenefitEligibilityPreviewResponse | null>(null);
@@ -316,7 +379,6 @@ export default function PaymentModal({
     if (!visible) {
       setShowStartbelegSaleModal(false);
       largeCashWarningAckKeyRef.current = null;
-      voucherFullBalanceWarningAckKeyRef.current = null;
       return;
     }
     if (!POS_ENSURE_READY_ON_ENTRY) {
@@ -393,6 +455,14 @@ export default function PaymentModal({
     [settlementPaymentMethods, selectedPaymentMethod]
   );
 
+  /** Mirrors submit guard: POST settlement method must not be catalog-only `voucher` row. */
+  const hasValidSettlementMethod = useMemo(
+    () =>
+      !!selectedPaymentMethod &&
+      settlementPaymentMethods.some((m) => m.type === selectedPaymentMethod),
+    [selectedPaymentMethod, settlementPaymentMethods]
+  );
+
   useEffect(() => {
     if (!requiresCashAmount) {
       setIsAmountValid(true);
@@ -418,7 +488,19 @@ export default function PaymentModal({
     }));
   }, [cartItems]);
 
-  const totalAmount = grandTotalGross ?? calculatedCartItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  const cartLineSumGross = calculatedCartItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  /**
+   * Prefer backend `grandTotalGross` when > 0. When it is 0, treat as true €0 cart only if line gross is also ~0;
+   * otherwise assume missing/default 0 from UI helpers and use line sum (matches legacy `> 0 ? gross : lines`).
+   */
+  const totalAmount = (() => {
+    if (grandTotalGross != null && Number.isFinite(grandTotalGross)) {
+      if (grandTotalGross > 0) return grandTotalGross;
+      if (grandTotalGross === 0 && cartLineSumGross <= PAYMENT_COVERAGE_TOLERANCE_EUR) return 0;
+      if (grandTotalGross === 0 && cartLineSumGross > PAYMENT_COVERAGE_TOLERANCE_EUR) return cartLineSumGross;
+    }
+    return cartLineSumGross;
+  })();
 
   const resetVoucherUi = () => {
     setVoucherCode('');
@@ -432,21 +514,33 @@ export default function PaymentModal({
 
   const voucherRedeemParsed = parseLocaleDecimal(voucherRedeemAmountStr);
   const voucherRequestedAmount = Number.isFinite(voucherRedeemParsed) ? Math.max(0, voucherRedeemParsed) : 0;
-  const voucherMaxForSale =
-    voucherEnabled && voucherSnapshot
-      ? Math.max(
-          0,
-          Math.min(
-            totalAmount,
-            voucherSnapshot.remainingAmount,
-            voucherSnapshot.maxRedeemableAmount ?? voucherSnapshot.remainingAmount
-          )
-        )
-      : 0;
-  const voucherRedeemAmountEffective =
-    voucherEnabled && voucherSnapshot && validatedVoucherCode?.trim() === voucherCode.trim()
-      ? Math.min(voucherRequestedAmount, voucherMaxForSale)
-      : 0;
+  const effectiveVoucherRedeemCap = voucherSnapshot
+    ? effectiveVoucherRedeemCapFromSnapshot(voucherSnapshot)
+    : 0;
+  const voucherMaxForSale = computeVoucherMaxForSale(totalAmount, voucherSnapshot, voucherEnabled);
+
+  /** Clamped EUR for POST / UI; empty redeem field → 0 (NaN-safe). Recalculates on every relevant change—same render as Restbetrag. */
+  const voucherRedeemAmountEffective = useMemo(() => {
+    if (!voucherEnabled || !voucherSnapshot || validatedVoucherCode?.trim() !== voucherCode.trim()) {
+      return 0;
+    }
+    const cap = computeVoucherMaxForSale(totalAmount, voucherSnapshot, true);
+    const trimmed = voucherRedeemAmountStr.trim();
+    if (trimmed === '') {
+      return 0;
+    }
+    const parsed = parseLocaleDecimal(voucherRedeemAmountStr);
+    const requested = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+    return Math.min(requested, cap);
+  }, [
+    voucherEnabled,
+    voucherSnapshot,
+    validatedVoucherCode,
+    voucherCode,
+    totalAmount,
+    voucherRedeemAmountStr,
+  ]);
+
   const voucherRemainingToPay = Math.max(0, totalAmount - voucherRedeemAmountEffective);
   const settlementAmountDue = voucherEnabled ? voucherRemainingToPay : totalAmount;
   const shouldCollectCashAmount = requiresCashAmount && settlementAmountDue > 0;
@@ -471,20 +565,45 @@ export default function PaymentModal({
 
   const cashPresets = getCashPresets(settlementAmountDue);
 
+  const mixedCoverage = useMemo(
+    () =>
+      computeVoucherPlusCashCoversTotal({
+        voucherEnabled,
+        appliedVoucherAmount: voucherRedeemAmountEffective,
+        totalCartAmount: totalAmount,
+        settlementAmountDue,
+        requiresCashAmount,
+        amountReceivedStr: amountReceived,
+      }),
+    [
+      voucherEnabled,
+      voucherRedeemAmountEffective,
+      totalAmount,
+      settlementAmountDue,
+      requiresCashAmount,
+      amountReceived,
+    ]
+  );
+
+  const voucherCodeMatchesValidated =
+    !!voucherSnapshot && validatedVoucherCode?.trim() === voucherCode.trim();
+
+  /**
+   * Near-zero cart: Prüfen success + matching code is enough (no redeem EUR line). Positive carts: unchanged redeem rules.
+   * Full voucher coverage fix: when maxForThisCart is 0 the redeem field stays empty but settlement must still validate if cart total is ~€0.
+   */
+  const voucherSettlementValid =
+    !voucherEnabled ||
+    (voucherCodeMatchesValidated &&
+      (totalAmount <= PAYMENT_COVERAGE_TOLERANCE_EUR || // FIX: full voucher coverage
+        (Number.isFinite(voucherRedeemParsed) &&
+          voucherRedeemParsed > 0 &&
+          voucherRedeemAmountEffective > 0)));
+
   /**
    * Block Zahlen until register gate passes + in-flight payment (paymentBusy / processing).
    * Omit hook `loading`: it can block unrelated actions and caused silent early-return in handlePayment without matching disabled state in edge races.
    */
-  const voucherReady =
-    !voucherEnabled ||
-    (!!voucherSnapshot &&
-      !!validatedVoucherCode &&
-      validatedVoucherCode.trim() === voucherCode.trim() &&
-      voucherValidatedTotalRef.current != null &&
-      Math.abs(voucherValidatedTotalRef.current - totalAmount) <= 0.02);
-  const voucherAmountIsValid =
-    !voucherEnabled || (Number.isFinite(voucherRedeemParsed) && voucherRedeemParsed > 0);
-
   const registerHardStopDecommissioned = isRegisterGateDecommissioned(registerGateCtx);
   const paymentInteractionsLocked = registerHardStopDecommissioned;
 
@@ -492,24 +611,43 @@ export default function PaymentModal({
   const payGateTseBlocked = needFiscalTseForPay && fiscalTseGateOk !== true;
   const offlineBlocksVoucher = !isOnline && voucherEnabled;
 
+  const paymentCoverageOk =
+    (totalAmount <= PAYMENT_COVERAGE_TOLERANCE_EUR &&
+      voucherEnabled &&
+      voucherSettlementValid) || // FIX: full voucher coverage
+    mixedCoverage.coversTotal;
+
   const paySubmitDisabled =
     purchaseState === 'processing' ||
     paymentBusy ||
+    methodsLoading ||
+    !hasValidSettlementMethod ||
     isRegisterGateBlockingPayment ||
     payGateTseBlocked ||
     offlineBlocksVoucher ||
-    (voucherEnabled && (!voucherReady || !voucherAmountIsValid));
+    !paymentCoverageOk ||
+    (voucherEnabled && !voucherSettlementValid);
 
   const showPayWorking = purchaseState === 'processing' || paymentBusy;
 
-  const zahlenBlockedByRegisterHint =
-    paySubmitDisabled && !showPayWorking && isRegisterGateBlockingPayment
-      ? registerGateFooterHint(registerGateCtx)
-      : paySubmitDisabled && !showPayWorking && payGateTseBlocked
-        ? 'TSE nicht bereit — fiskalische Zahlung nicht möglich.'
-        : paySubmitDisabled && !showPayWorking && offlineBlocksVoucher
-          ? 'Gutschein ist offline nicht möglich.'
-          : undefined;
+  const paySubmitBlockedHint =
+    paySubmitDisabled && !showPayWorking
+      ? methodsLoading
+        ? 'Zahlungsarten werden geladen…'
+        : !hasValidSettlementMethod
+          ? 'Bitte eine Zahlungsart wählen (Schritt 2).'
+          : !paymentCoverageOk
+            ? 'Deckung fehlt: Gutschein + Barbetrag erreicht nicht den Gesamtbetrag.'
+            : voucherEnabled && !voucherSettlementValid
+              ? 'Gutschein ungültig — bitte „Prüfen“ und Betrag prüfen.'
+              : isRegisterGateBlockingPayment
+                ? registerGateFooterHint(registerGateCtx)
+                : payGateTseBlocked
+                  ? 'TSE nicht bereit — fiskalische Zahlung nicht möglich.'
+                  : offlineBlocksVoucher
+                    ? 'Gutschein ist offline nicht möglich.'
+                    : undefined
+      : undefined;
 
   useEffect(() => {
     if (!visible) return;
@@ -785,41 +923,86 @@ export default function PaymentModal({
       }
       setVoucherSnapshot(r);
       setValidatedVoucherCode(trimmed);
-      const maxForThisCart = Math.min(totalAmount, r.remainingAmount);
-      setVoucherRedeemAmountStr(maxForThisCart > 0 ? maxForThisCart.toFixed(2) : '');
+      const maxForThisCart = computeVoucherMaxForSale(totalAmount, r, true);
+      setVoucherRedeemAmountEffective(maxForThisCart);
       voucherValidatedTotalRef.current = totalAmount;
     } finally {
       setVoucherCheckLoading(false);
     }
   };
 
-  // Ödeme işlemi
+  /** POST /api/pos/payment — exhaustive logs + Debug Error on every guard exit (operator confirmations log only). */
   const handlePayment = async () => {
+    const logPay = (step: string, detail?: Record<string, unknown>) => {
+      console.log(`[PaymentModal] ${step}`, detail ?? '');
+    };
+
+    const submitCoverage = computeVoucherPlusCashCoversTotal({
+      voucherEnabled,
+      appliedVoucherAmount: voucherRedeemAmountEffective,
+      totalCartAmount: totalAmount,
+      settlementAmountDue,
+      requiresCashAmount,
+      amountReceivedStr: amountReceived,
+    });
+
+    logPay('Step 1: Validation start', {
+      paySubmitDisabled,
+      voucherEnabled,
+      selectedPaymentMethod,
+      totalCartAmount: totalAmount,
+      settlementRestbetrag: settlementAmountDue,
+      voucherRedeemAmountEffective,
+    });
+
+    logPay('Step 2: Settlement method check', {
+      selectedPaymentMethod,
+      hasValidSettlementMethod,
+      settlementCodes: settlementPaymentMethods.map((m) => m.type),
+    });
+
+    logPay('Step 3: Calculating total paid (Voucher + cash)', {
+      voucherEur: voucherEnabled ? voucherRedeemAmountEffective : 0,
+      cashReceivedParsed: parseLocaleDecimal(amountReceived),
+      sumPaid: submitCoverage.sumPaid,
+      totalCartAmount: totalAmount,
+      coversTotal: submitCoverage.coversTotal,
+    });
+
     debugPosPaymentTrace('submit_clicked', {
       authUserPresent: !!user?.id,
       paySubmitDisabled,
       cashRegisterResolved,
       hasValidCashRegisterId,
     });
-    // Intentionally no Alert: button shows "Wird verarbeitet…" and is non-interactive while busy.
+
     if (paymentBusy || purchaseState === 'processing') {
       debugPosPaymentTrace('submit_blocked_busy', { paymentBusy, purchaseState });
+      logPay('Guard exit: busy');
+      Alert.alert('Debug Error', 'Failed at: paymentBusy or purchaseState processing');
       return;
     }
 
     if (offlineBlocksVoucher) {
-      Alert.alert('Offline', 'Gutschein ist offline nicht möglich.');
+      logPay('Guard exit: offline blocks voucher');
+      Alert.alert('Debug Error', 'Failed at: Gutschein offline nicht möglich');
       return;
     }
 
     if (!selectedPaymentMethod || !settlementPaymentMethods.some((m) => m.type === selectedPaymentMethod)) {
       setPaymentMethodSubmitAttempted(true);
       debugPosPaymentTrace('submit_blocked_no_payment_method', {});
+      logPay('Guard exit: no settlement method');
+      Alert.alert(
+        'Debug Error',
+        'Failed at: keine gültige Zahlungsart (Schritt 2; nicht nur „Gutschein“ als Methodentyp)'
+      );
       return;
     }
 
     if (needFiscalTseForPay && payGateTseBlocked) {
-      Alert.alert('TSE', 'TSE nicht bereit — fiskalische Zahlung nicht möglich.');
+      logPay('Guard exit: TSE gate');
+      Alert.alert('Debug Error', 'Failed at: TSE nicht bereit');
       return;
     }
 
@@ -830,7 +1013,27 @@ export default function PaymentModal({
 
     if (cartItems.length === 0) {
       debugPosPaymentTrace('submit_blocked_empty_cart', {});
-      Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.emptyCart'));
+      logPay('Guard exit: empty cart');
+      Alert.alert('Debug Error', 'Failed at: Warenkorb leer');
+      return;
+    }
+
+    if (!submitCoverage.coversTotal) {
+      debugPosPaymentTrace('submit_blocked_coverage', {
+        sumPaid: submitCoverage.sumPaid,
+        totalAmount,
+      });
+      logPay('Guard exit: coverage');
+      Alert.alert(
+        'Debug Error',
+        `Failed at: Deckung — Gutschein+Bar=${submitCoverage.sumPaid.toFixed(2)} €, Gesamt=${totalAmount.toFixed(2)} €`
+      );
+      return;
+    }
+
+    if (voucherEnabled && !voucherSettlementValid) {
+      logPay('Guard exit: voucher settlement invalid');
+      Alert.alert('Debug Error', 'Failed at: Gutschein nicht gültig / nicht eingelöst (Prüfen + Betrag)');
       return;
     }
 
@@ -838,42 +1041,16 @@ export default function PaymentModal({
       const received = parseLocaleDecimal(amountReceived);
       if (!Number.isFinite(received) || received <= 0) {
         debugPosPaymentTrace('submit_blocked_cash_amount_empty', { received, settlementAmountDue });
+        logPay('Guard exit: cash amount empty');
+        Alert.alert('Debug Error', 'Failed at: Barbetrag fehlt oder ungültig');
         return;
       }
       if (received + 0.001 < settlementAmountDue) {
         debugPosPaymentTrace('submit_blocked_cash_amount', { received, settlementAmountDue });
+        logPay('Guard exit: cash below Restbetrag');
         Alert.alert(
-          t('checkout:posFlow.payment.alerts.hintTitle'),
-          t('checkout:posFlow.payment.errors.insufficientAmount')
-        );
-        return;
-      }
-    }
-
-    if (voucherEnabled) {
-      if (!voucherCode.trim()) {
-        debugPosPaymentTrace('submit_blocked_voucher_code_empty', {});
-        return;
-      }
-      if (!voucherSnapshot || validatedVoucherCode?.trim() !== voucherCode.trim()) {
-        Alert.alert(
-          t('checkout:posFlow.payment.alerts.hintTitle'),
-          t('checkout:posFlow.payment.voucher.invalid')
-        );
-        return;
-      }
-      const vrPre = parseLocaleDecimal(voucherRedeemAmountStr);
-      if (!Number.isFinite(vrPre) || vrPre <= 0) {
-        Alert.alert(
-          t('checkout:posFlow.payment.alerts.hintTitle'),
-          'Der Gutscheinbetrag muss größer als 0 sein.'
-        );
-        return;
-      }
-      if (voucherRedeemAmountEffective <= 0) {
-        Alert.alert(
-          t('checkout:posFlow.payment.alerts.hintTitle'),
-          'Der Gutscheinbetrag ist für diesen Verkauf nicht einlösbar.'
+          'Debug Error',
+          `Failed at: zu wenig Bargeld (Restbetrag ${settlementAmountDue.toFixed(2)} €, erhalten ${received.toFixed(2)} €)`
         );
         return;
       }
@@ -885,17 +1062,28 @@ export default function PaymentModal({
         cashRegisterId: cashRegisterId ?? null,
         registerListFailureKind,
       });
-      Alert.alert(t('checkout:posFlow.payment.alerts.paymentNotPossibleTitle'), registerGateAlertMessage(registerGateCtx));
+      logPay('Guard exit: cash register');
+      Alert.alert(
+        'Debug Error',
+        `Failed at: Kasse nicht bereit — ${registerGateAlertMessage(registerGateCtx)}`
+      );
       return;
     }
 
-    if (!validateAmount(totalAmount)) {
+    // FIX: full voucher coverage
+    const allowZeroTotalWithValidatedVoucher =
+      voucherEnabled &&
+      voucherSettlementValid &&
+      totalAmount <= PAYMENT_COVERAGE_TOLERANCE_EUR;
+
+    if (!validateAmount(totalAmount) && !allowZeroTotalWithValidatedVoucher) {
       debugPosPaymentTrace('submit_blocked_invalid_amount', { totalAmount });
-      Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.invalidAmountDetailed'));
+      logPay('Guard exit: validateAmount totalAmount');
+      Alert.alert('Debug Error', `Failed at: ungültiger Gesamtbetrag (${String(totalAmount)})`);
       return;
     }
 
-    // Non-blocking operator confirmations (cancel = stay on screen; continue = same handler, ack ref skips repeat).
+    // Operator confirmations: German copy; log step only (no duplicate Debug Error alert).
     if (
       selectedPaymentMethod === 'cash' &&
       shouldCollectCashAmount &&
@@ -903,6 +1091,7 @@ export default function PaymentModal({
     ) {
       const warnKey = `lc|${settlementAmountDue.toFixed(2)}|${amountReceived.trim()}`;
       if (largeCashWarningAckKeyRef.current !== warnKey) {
+        logPay('Defer: large cash operator confirmation', { settlementAmountDue, warnKey });
         Alert.alert(
           t('checkout:posFlow.payment.operatorWarnings.largeCashTitle'),
           t('checkout:posFlow.payment.operatorWarnings.largeCashMessage', {
@@ -923,45 +1112,22 @@ export default function PaymentModal({
       }
     }
 
-    if (voucherEnabled && voucherSnapshot && validatedVoucherCode?.trim() === voucherCode.trim()) {
-      const vrWarn = parseLocaleDecimal(voucherRedeemAmountStr);
-      const redeemsFullBalance =
-        Number.isFinite(vrWarn) &&
-        vrWarn > 0 &&
-        voucherSnapshot.remainingAmount - vrWarn <= 0.02;
-      if (redeemsFullBalance) {
-        const warnKey = `vf|${validatedVoucherCode.trim()}|${vrWarn.toFixed(2)}`;
-        if (voucherFullBalanceWarningAckKeyRef.current !== warnKey) {
-          Alert.alert(
-            t('checkout:posFlow.payment.operatorWarnings.voucherFullTitle'),
-            t('checkout:posFlow.payment.operatorWarnings.voucherFullMessage'),
-            [
-              { text: t('checkout:posFlow.payment.buttons.cancel'), style: 'cancel' },
-              {
-                text: t('checkout:posFlow.payment.operatorWarnings.voucherFullProceed'),
-                onPress: () => {
-                  voucherFullBalanceWarningAckKeyRef.current = warnKey;
-                  void handlePayment();
-                },
-              },
-            ]
-          );
-          return;
-        }
-      }
+    // REMOVED: voucher full balance confirmation dialog
+    // User already confirmed by clicking "Zahlen" after voucher validation
+    if (voucherEnabled && voucherSnapshot && (totalAmount - voucherRedeemAmountEffective) <= 0.02) {
+      console.log('[PaymentModal] Voucher full coverage - proceeding directly to payment (no dialog)');
+      // Continue to API call - do nothing here, just let flow continue
     }
 
     setPaymentBusy(true);
     try {
-      // 2. Aktif sepet ID'sini al (Source of Truth for Cart ID)
+      logPay('Step 4: Payload construction (before cart id)');
       let currentCartId: string;
       try {
         const cart = await cartService.getCurrentCart(resolvedTableNumber);
 
-        // Eğer backend cart boş geliyorsa ama frontend doluysa, frontend items kullanmaya devam et
-        // Ancak cartId'ye ihtiyacımız var complete için.
         if (!cart || !cart.cartId) {
-          throw new Error('Aktif masa sepeti bulunamadı.');
+          throw new Error('Active table cart not found.');
         }
         currentCartId = cart.cartId;
       } catch (cartErr) {
@@ -969,9 +1135,10 @@ export default function PaymentModal({
         debugPosPaymentTrace('submit_blocked_cart_fetch', {
           message: cartErr instanceof Error ? cartErr.message : String(cartErr),
         });
+        logPay('Guard exit: cart fetch');
         Alert.alert(
-          t('checkout:posFlow.payment.alerts.errorTitle'),
-          t('checkout:posFlow.payment.errors.cartLoadFailedRefresh')
+          'Debug Error',
+          `Failed at: Warenkorb laden — ${cartErr instanceof Error ? cartErr.message : String(cartErr)}`
         );
         return;
       }
@@ -1002,13 +1169,22 @@ export default function PaymentModal({
           ? crypto.randomUUID()
           : `${Date.now()}-${Math.random().toString(36).slice(2, 15)}`;
 
+      const settlementPaymentAmountNumeric = voucherEnabled
+        ? settlementAmountDue
+        : requiresCashAmount
+          ? parseLocaleDecimal(amountReceived)
+          : undefined;
+
       const paymentRequest: PaymentRequest = {
         customerId: finalCustomerId, // Always send valid customer ID (guest or registered)
         items: paymentItems,
         payment: {
           method: selectedPaymentMethod,
           tseRequired: shouldRequireTse,
-          amount: voucherEnabled ? settlementAmountDue : requiresCashAmount ? parseFloat(amountReceived) : undefined,
+          amount:
+            settlementPaymentAmountNumeric != null && Number.isFinite(settlementPaymentAmountNumeric)
+              ? settlementPaymentAmountNumeric
+              : undefined,
           ...(voucherEnabled
             ? { voucherRedemptions: [{ code: voucherCode.trim(), amount: voucherRedeemAmountEffective }] }
             : {}),
@@ -1024,6 +1200,14 @@ export default function PaymentModal({
         idempotencyKey
       };
 
+      logPay('Step 4b: Payment payload fields', {
+        method: paymentRequest.payment.method,
+        settlementAmountOnPayment: paymentRequest.payment.amount,
+        voucherRedemptionEur: voucherEnabled ? voucherRedeemAmountEffective : 0,
+        totalAmount: paymentRequest.totalAmount,
+        voucherRedemptionsCount: voucherEnabled ? 1 : 0,
+      });
+
       // 5. PAYMENT REQUEST (STRICT: error handling)
       setPurchaseState('processing');
       debugPosPaymentTrace('process_payment_called', {
@@ -1034,22 +1218,23 @@ export default function PaymentModal({
         totalAmount: paymentRequest.totalAmount,
         idempotencyKey: paymentRequest.idempotencyKey,
       });
-      if (__DEV__) {
-        const p = paymentRequest.payment;
-        const hasVoucherSecret =
-          !!(typeof p.voucherCode === 'string' && p.voucherCode.trim()) ||
-          (Array.isArray(p.voucherRedemptions) && p.voucherRedemptions.length > 0);
-        console.log('[PAYMENT] Request summary:', {
-          method: p.method,
-          itemCount: paymentItems.length,
-          totalAmount: paymentRequest.totalAmount,
-          tableNumber: paymentRequest.tableNumber,
-          cashRegisterId: paymentRequest.cashRegisterId,
-          idempotencyKey: paymentRequest.idempotencyKey,
-          hasVoucherSecret,
-          voucherRedemptionLineCount: p.voucherRedemptions?.length ?? 0,
-        });
-      }
+
+      const DEBUG_PAYLOAD = {
+        ...paymentRequest,
+        payment: {
+          ...paymentRequest.payment,
+          voucherRedemptions: paymentRequest.payment.voucherRedemptions?.map((line) => ({
+            amount: line.amount,
+            code: typeof line.code === 'string' ? `[redacted,len=${line.code.length}]` : line.code,
+          })),
+        },
+      };
+      console.log('DEBUG_PAYLOAD:', DEBUG_PAYLOAD);
+
+      logPay('Step 5: Calling processPayment → POST /api/pos/payment', {
+        idempotencyKey: paymentRequest.idempotencyKey,
+      });
+
       const response = await processPayment(paymentRequest);
 
       if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
@@ -1149,6 +1334,7 @@ export default function PaymentModal({
 
     } catch (err) {
       console.error('Handle Payment Error:', err);
+      console.log('[PaymentModal] Step: processPayment or post-submit flow threw', err);
       setPurchaseState('input');
       const message = isPaymentError(err)
         ? getPaymentErrorMessage(err.code)
@@ -1629,7 +1815,7 @@ export default function PaymentModal({
                     </Text>
                     <Text style={styles.voucherInfoLine}>
                       {t('checkout:posFlow.payment.voucher.maxUsableLabel')}:{' '}
-                      {formatPrice(voucherSnapshot.maxRedeemableAmount)}
+                      {formatPrice(effectiveVoucherRedeemCap)}
                     </Text>
                     <Text style={styles.voucherMuted}>
                       {t('checkout:posFlow.payment.voucher.maskedHint', { masked: voucherSnapshot.maskedCode })}
@@ -1748,8 +1934,8 @@ export default function PaymentModal({
                   ]}
                   disabled={paySubmitDisabled}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  accessibilityLabel={`Zahlen ${formatPrice(totalAmount)}`}
-                  accessibilityHint={zahlenBlockedByRegisterHint}
+                  accessibilityLabel={`Zahlen ${formatPrice(settlementAmountDue)}`}
+                  accessibilityHint={paySubmitBlockedHint}
                   accessibilityRole="button"
                   accessibilityState={{
                     disabled: paySubmitDisabled,
@@ -1762,7 +1948,7 @@ export default function PaymentModal({
                     </View>
                   ) : (
                     <Text style={styles.payButtonText}>
-                      {voucherEnabled && voucherReady && voucherAmountIsValid && settlementAmountDue <= 0.01
+                      {voucherEnabled && voucherSettlementValid && paymentCoverageOk && settlementAmountDue <= 0.01
                         ? t('checkout:posFlow.payment.voucher.payCta', { amount: formatPrice(totalAmount) })
                         : settlementAmountDue > 0.01 && selectedSettlementMethod
                           ? `${formatPrice(settlementAmountDue)} ${selectedSettlementMethod.name.toLowerCase()} zahlen`
@@ -1777,10 +1963,8 @@ export default function PaymentModal({
                 <Text style={styles.footerBlockedHint}>
                   {registerGateFooterHint(registerGateCtx)}
                 </Text>
-              ) : hasValidCashRegisterId && payGateTseBlocked ? (
-                <Text style={styles.footerBlockedHint}>TSE nicht bereit — fiskalische Zahlung nicht möglich.</Text>
-              ) : hasValidCashRegisterId && offlineBlocksVoucher ? (
-                <Text style={styles.footerBlockedHint}>Gutschein ist offline nicht möglich.</Text>
+              ) : paySubmitBlockedHint ? (
+                <Text style={styles.footerBlockedHint}>{paySubmitBlockedHint}</Text>
               ) : null}
             </View>
           ) : (
