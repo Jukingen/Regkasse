@@ -1,9 +1,10 @@
 // Professional POS cart summary with subtotal, tax, and grand total breakdown
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice } from '../utils/formatPrice';
 import { getCartDisplayTotals } from '../contexts/CartContext';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface CartSummaryProps {
   cart: any;
@@ -83,7 +84,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
         >
           {isDisabled ? (
             <View style={styles.payContent}>
-              <ActivityIndicator size="small" color={SoftColors.textInverse} />
+              <WaveLoader size={18} color={SoftColors.textInverse} />
               <Text style={styles.payText}>Verarbeitung...</Text>
             </View>
           ) : (

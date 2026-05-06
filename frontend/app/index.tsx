@@ -1,6 +1,8 @@
 import { useRouter, useRootNavigationState, Redirect } from 'expo-router';
 import { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
+
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export default function Index() {
   const rootNavigationState = useRootNavigationState();
@@ -9,7 +11,7 @@ export default function Index() {
   if (!rootNavigationState?.key) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <WaveLoader size={32} color="#007AFF" />
       </View>
     );
   }

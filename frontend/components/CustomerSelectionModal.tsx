@@ -9,12 +9,12 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { customerService, Customer } from '../services/api/customerService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface CustomerSelectionModalProps {
   visible: boolean;
@@ -200,7 +200,7 @@ export default function CustomerSelectionModal({
         {/* Customer List */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.light.primary} />
+            <WaveLoader size={32} color={Colors.light.primary} />
             <Text style={styles.loadingText}>Loading customers...</Text>
           </View>
         ) : (

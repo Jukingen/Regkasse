@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator,
   TextInput,
 } from 'react-native';
 import { useOrders } from '../hooks/useOrders';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import { usePayment } from '../hooks/usePayment';
 
 // Türkçe Açıklama: Sipariş yönetimi component'i - Masa bazlı siparişleri yönetir
@@ -216,8 +216,8 @@ export default function OrderManagement({ tableNumber, onOrderUpdate }: OrderMan
   if (orderLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Sipariş yükleniyor...</Text>
+        <WaveLoader size={32} color="#007AFF" />
+        <Text style={styles.loadingText}>Bestellung wird geladen…</Text>
       </View>
     );
   }

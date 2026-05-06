@@ -10,7 +10,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +26,7 @@ import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignm
 import { validateAmount } from '../utils/validation';
 import { isPaymentError, getPaymentErrorMessage } from '../features/payment/paymentErrors';
 import { PaymentCancelResponse } from '../types/cart';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import {
   buildPosRegisterGateContext,
   registerGateAlertMessage,
@@ -407,7 +407,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
             {registerGateBannerDetail(registerGateCtx)}
           </Text>
           {registerListLoading || posReadinessLoading ? (
-            <ActivityIndicator color="#1976d2" style={{ marginVertical: 8 }} />
+            <WaveLoader color="#1976d2" size={22} style={{ marginVertical: 8 }} />
           ) : registerPicklist.length > 0 ? (
             <View style={styles.registerChipRow}>
               {registerPicklist.map((r) => (

@@ -2,8 +2,9 @@
  * POS: Inline Extras (modifier) – seçili olanlar satırda [-] qty [+], seçili olmayanlar + ile eklenir. Miktar ürün miktarından bağımsız.
  */
 import React from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography } from '../constants/SoftTheme';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export interface ModifierOptionItem {
   id: string;
@@ -46,7 +47,7 @@ export function ModifierOptionChips({
     return (
       <View style={styles.container}>
         <Text style={styles.label}>{label}</Text>
-        <ActivityIndicator size="small" color={SoftColors.accent} style={styles.loader} />
+        <WaveLoader size={18} color={SoftColors.accent} style={styles.loader} />
       </View>
     );
   }

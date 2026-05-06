@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { WaveLoader } from '../../src/components/common/WaveLoader';
 
 interface LoadingOverlayProps {
   visible: boolean;
@@ -13,7 +14,7 @@ interface LoadingOverlayProps {
 
 export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
   visible,
-  message = 'Loading...',
+  message = 'Bitte warten…',
   size = 'large',
   color,
   backgroundColor
@@ -22,24 +23,23 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 
   if (!visible) return null;
 
+  const waveSize = size === 'small' ? 22 : 32;
+
   return (
     <View style={[
       styles.container,
       { backgroundColor: backgroundColor || theme.background + 'CC' }
     ]}>
       <View style={styles.content}>
-        <ActivityIndicator
-          size={size}
-          color={color || theme.primary}
-        />
-        {message && (
+        <WaveLoader size={waveSize} color={color || theme.primary} />
+        {message ? (
           <Text style={[
             styles.message,
             { color: theme.text }
           ]}>
             {message}
           </Text>
-        )}
+        ) : null}
       </View>
     </View>
   );
@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
+    justifyContent: 'center',
     minWidth: 120,
   },
   message: {
@@ -69,4 +70,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
   },
-}); 
+});

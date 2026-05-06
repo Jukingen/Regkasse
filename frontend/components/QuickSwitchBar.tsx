@@ -7,10 +7,10 @@ import {
   StyleSheet,
   Image,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 
 import { apiClient } from '../services/api/config';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export interface Waiter {
   id: string;
@@ -132,7 +132,7 @@ const QuickSwitchBar: React.FC<QuickSwitchBarProps> = ({
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <WaveLoader size={32} color="#007AFF" />
         <Text style={styles.loadingText}>Yükleniyor...</Text>
       </View>
     );

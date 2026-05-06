@@ -8,12 +8,12 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
-  ActivityIndicator,
   Alert,
   Pressable,
 } from 'react-native';
 import { customerService, type Customer } from '../services/api/customerService';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface CustomerSelectionSheetProps {
   visible: boolean;
@@ -124,7 +124,7 @@ export default function CustomerSelectionSheet({
               disabled={lookupLoading || !customerNumber.trim()}
             >
               {lookupLoading ? (
-                <ActivityIndicator size="small" color={SoftColors.textInverse} />
+                <WaveLoader size={18} color={SoftColors.textInverse} />
               ) : (
                 <Text style={styles.primaryBtnText}>Suchen</Text>
               )}
@@ -160,7 +160,7 @@ export default function CustomerSelectionSheet({
             </View>
             {listLoading ? (
               <View style={styles.loadingBox}>
-                <ActivityIndicator size="large" color={SoftColors.accent} />
+                <WaveLoader size={28} color={SoftColors.accent} />
                 <Text style={styles.loadingText}>Lade Liste…</Text>
               </View>
             ) : (

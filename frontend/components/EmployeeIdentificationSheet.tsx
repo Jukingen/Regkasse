@@ -13,13 +13,13 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
-  ActivityIndicator,
   Alert,
   Pressable,
 } from 'react-native';
 import { type Customer } from '../services/api/customerService';
 import { employeeService, type EmployeeSummary } from '../services/api/employeeService';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface EmployeeIdentificationSheetProps {
   visible: boolean;
@@ -134,7 +134,7 @@ export default function EmployeeIdentificationSheet({
               disabled={lookupLoading || !employeeNumber.trim()}
             >
               {lookupLoading ? (
-                <ActivityIndicator size="small" color={SoftColors.textInverse} />
+                <WaveLoader size={18} color={SoftColors.textInverse} />
               ) : (
                 <Text style={styles.primaryBtnText}>Suchen</Text>
               )}
@@ -170,7 +170,7 @@ export default function EmployeeIdentificationSheet({
             </View>
             {listLoading ? (
               <View style={styles.loadingBox}>
-                <ActivityIndicator size="large" color={SoftColors.accent} />
+                <WaveLoader size={28} color={SoftColors.accent} />
                 <Text style={styles.loadingText}>Lade Liste…</Text>
               </View>
             ) : (

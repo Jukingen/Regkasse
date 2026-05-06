@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 
 import { networkService, NetworkStatus } from '../services/api/networkService';
 import { pendingInvoicesService, PendingInvoicesResponse } from '../services/api/pendingInvoicesService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface PendingInvoicesIndicatorProps {
   showDetails?: boolean;
@@ -125,8 +126,8 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
   if (loading && !pendingData) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="small" color="#666" />
-        <Text style={styles.loadingText}>Bekleyen faturalar kontrol ediliyor...</Text>
+        <WaveLoader size={18} color="#666" />
+        <Text style={styles.loadingText}>Ausstehende Rechnungen werden geprüft…</Text>
       </View>
     );
   }
@@ -149,7 +150,7 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
             disabled={submitting}
           >
             {submitting ? (
-              <ActivityIndicator size="small" color="white" />
+              <WaveLoader size={18} color="#FFFFFF" />
             ) : (
               <Text style={styles.submitButtonText}>Gönder</Text>
             )}

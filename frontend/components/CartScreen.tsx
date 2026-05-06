@@ -11,7 +11,6 @@ import {
   Animated,
   Vibration,
   Modal,
-  ActivityIndicator,
   TextInput,
   FlatList,
 } from 'react-native';

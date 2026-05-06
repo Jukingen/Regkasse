@@ -7,7 +7,6 @@ import {
   Pressable,
   StyleSheet,
   FlatList,
-  ActivityIndicator,
   RefreshControl,
   useWindowDimensions,
   Platform,
@@ -19,6 +18,7 @@ import { SoftColors, SoftSpacing, SoftRadius, SoftState, SoftTypography, SoftSha
 import { getContentPaddingHorizontal } from '../constants/breakpoints';
 import { ProductRow, type ModifierChipItem, type OnAddAddOn } from './ProductRow';
 import { ProductGridCard } from './ProductGridCard';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 /** Breakpoint: tablet = 768+ for grid columns. */
 const TABLET_MIN_WIDTH = 768;
@@ -277,7 +277,7 @@ export const ProductList: React.FC<ProductListProps> = ({
     if (!cacheLoading) return null;
     return (
       <View style={styles.loadingFooter}>
-        <ActivityIndicator size="small" color={SoftColors.accent} />
+        <WaveLoader size={18} color={SoftColors.accent} />
         <Text style={styles.loadingText}>{t('common.loadingMore')}</Text>
       </View>
     );

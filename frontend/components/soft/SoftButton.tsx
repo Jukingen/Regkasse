@@ -1,7 +1,8 @@
 // Soft minimal button component with variants
 import React from 'react';
-import { StyleSheet, Pressable, Text, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { StyleSheet, Pressable, Text, ViewStyle, TextStyle } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../../constants/SoftTheme';
+import { WaveLoader } from '../../src/components/common/WaveLoader';
 
 interface ButtonProps {
     title: string;
@@ -60,9 +61,9 @@ export function SoftButton({
             disabled={disabled || loading}
         >
             {loading ? (
-                <ActivityIndicator
+                <WaveLoader
+                    size={18}
                     color={variant === 'primary' ? SoftColors.textInverse : SoftColors.accent}
-                    size="small"
                 />
             ) : (
                 <Text style={[styles.text, textSizeStyles[size], textVariantStyles[variant]]}>

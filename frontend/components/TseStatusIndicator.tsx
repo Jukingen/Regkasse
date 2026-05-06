@@ -7,11 +7,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { checkTseStatus, TseStatus } from '../services/api/tseService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface TseStatusIndicatorProps {
   onStatusChange?: (status: TseStatus) => void;
@@ -116,7 +116,7 @@ ${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="small" color={Colors.light.primary} />
+        <WaveLoader size={18} color={Colors.light.primary} />
         <Text style={styles.loadingText}>{t('tse.checking', 'Checking TSE...')}</Text>
       </View>
     );

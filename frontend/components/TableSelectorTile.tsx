@@ -6,12 +6,12 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  ActivityIndicator,
   Platform,
   type ViewStyle,
 } from 'react-native';
 
 import { SoftColors, SoftShadows, SoftSpacing, SoftRadius, SoftState, SoftTypography } from '../constants/SoftTheme';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 /** Web-only: no default browser focus outline on these tiles (semantic styles show selection). */
 export const webTablePressableOutlineOff: ViewStyle =
@@ -90,8 +90,8 @@ export function TableSelectorTile({
 
         {isLoading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator
-              size="small"
+            <WaveLoader
+              size={18}
               color={isSelected ? SoftColors.accentDark : SoftColors.accent}
             />
           </View>

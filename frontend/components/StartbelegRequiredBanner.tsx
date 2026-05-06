@@ -1,12 +1,13 @@
 // RKSV: when ensure-ready returns startbeleg_required, offer in-app creation (German operator copy only).
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { postCreateStartbeleg } from '../services/api/rksvSpecialReceiptsService';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export function StartbelegRequiredBanner() {
   const { data, refreshAsync } = usePosRegisterReadiness();
@@ -62,7 +63,7 @@ export function StartbelegRequiredBanner() {
         accessibilityLabel="Startbeleg jetzt erstellen"
       >
         {busy ? (
-          <ActivityIndicator color={SoftColors.textInverse} />
+          <WaveLoader size={20} color={SoftColors.textInverse} />
         ) : (
           <Text style={styles.btnText}>Jetzt erstellen</Text>
         )}

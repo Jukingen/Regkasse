@@ -1,5 +1,7 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, TouchableOpacityProps } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps } from 'react-native';
+
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
@@ -41,9 +43,9 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator 
-          color={variant === 'outline' ? '#007AFF' : 'white'} 
-          size="small" 
+        <WaveLoader
+          size={18}
+          color={variant === 'outline' ? '#007AFF' : 'white'}
         />
       ) : (
         <Text style={textStyle}>{title}</Text>

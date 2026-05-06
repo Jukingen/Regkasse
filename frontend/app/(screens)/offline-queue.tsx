@@ -10,7 +10,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   RefreshControl,
   Share,
@@ -24,6 +23,7 @@ import {
   type PendingPaymentEntry,
   type OfflineTransactionStatus,
 } from '../../services/payment/pendingPaymentQueue';
+import { WaveLoader } from '../../src/components/common/WaveLoader';
 
 const FILTER_ALL = 'All';
 const FILTER_PENDING = 'Pending';
@@ -267,7 +267,7 @@ export default function OfflineQueueScreen() {
           disabled={syncing || pendingCount === 0}
         >
           {syncing ? (
-            <ActivityIndicator size="small" color="#fff" />
+            <WaveLoader size={18} color="#fff" />
           ) : (
             <Text style={styles.syncAllText}>Alle synchronisieren</Text>
           )}
@@ -276,7 +276,7 @@ export default function OfflineQueueScreen() {
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <WaveLoader size={32} color="#007AFF" />
           <Text style={styles.loadingText}>Lade Warteschlange…</Text>
         </View>
       ) : filtered.length === 0 ? (
@@ -353,7 +353,7 @@ export default function OfflineQueueScreen() {
                     disabled={retryingId === entry.queueId}
                   >
                     {retryingId === entry.queueId ? (
-                      <ActivityIndicator size="small" color="#fff" />
+                      <WaveLoader size={18} color="#fff" />
                     ) : (
                       <Text style={styles.retryBtnText}>Erneut senden</Text>
                     )}

@@ -9,10 +9,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator
 } from 'react-native';
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
 import { orderService } from '../services/api/orderService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import { Cart, CartItem } from '../types/cart';
 
 interface OrderConfirmationModalProps {
@@ -195,7 +195,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={Colors.light.white} size="small" />
+                <WaveLoader size={18} color="#FFFFFF" />
               ) : (
                 <Text style={styles.confirmButtonText}>Siparişi Onayla</Text>
               )}

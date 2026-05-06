@@ -9,7 +9,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
   RefreshControl,
   Modal,
 } from 'react-native';
@@ -18,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import * as InvoiceService from '../../services/api/invoiceService';
 import type { PosInvoiceView } from '../../services/api/invoiceService';
 import { getFormattingLocaleForTextLocale } from '../../i18n/localeUtils';
+import { WaveLoader } from '../../src/components/common/WaveLoader';
 
 export default function InvoicesScreen() {
   const { t, i18n } = useTranslation(['invoices', 'common']);
@@ -137,7 +137,7 @@ export default function InvoicesScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <WaveLoader size={32} color="#007AFF" />
         <Text style={styles.loadingText}>{t('invoices:loading')}</Text>
       </View>
     );
@@ -217,8 +217,8 @@ export default function InvoicesScreen() {
             </View>
 
             {detailLoading ? (
-              <View style={{ padding: 24, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#007AFF" />
+              <View style={{ padding: 24, alignItems: 'center', justifyContent: 'center' }}>
+                <WaveLoader size={32} color="#007AFF" />
                 <Text style={styles.loadingText}>{t('invoices:detailLoading')}</Text>
               </View>
             ) : selectedInvoice ? (

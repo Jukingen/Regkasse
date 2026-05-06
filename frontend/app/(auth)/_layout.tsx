@@ -1,5 +1,7 @@
 import { Slot, Redirect, useSegments } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
+
+import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { useAuth } from '../../contexts/AuthContext';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
 import React from 'react';
@@ -18,7 +20,7 @@ export default function AuthLayout() {
     if (isLoading && !isOnLoginScreen) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#007AFF" />
+                <WaveLoader size={32} color="#007AFF" />
             </View>
         );
     }

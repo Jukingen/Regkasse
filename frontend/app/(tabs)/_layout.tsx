@@ -2,7 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs, Redirect } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View, ActivityIndicator, Text, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
+
+import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PaymentModal from '../../components/PaymentModal';
@@ -241,7 +243,7 @@ export default function TabLayout() {
     if (!isAuthReady || isLoading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#007AFF" />
+                <WaveLoader size={32} color="#007AFF" />
             </View>
         );
     }

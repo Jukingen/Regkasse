@@ -1,8 +1,9 @@
 import { useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View } from 'react-native';
 
 import { useAuth } from '../contexts/AuthContext';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import { isPosAllowedRole } from '../utils/posRoleGuard';
 
 interface ProtectedRouteProps {
@@ -51,7 +52,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (isLoading) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#007AFF" />
+                <WaveLoader size={32} color="#007AFF" />
             </View>
         );
     }

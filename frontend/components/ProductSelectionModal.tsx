@@ -9,12 +9,12 @@ import {
   TouchableOpacity,
   TextInput,
   FlatList,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { productService, Product } from '../services/api/productService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface ProductSelectionModalProps {
   visible: boolean;
@@ -227,8 +227,8 @@ export default function ProductSelectionModal({
         {/* Product List */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.light.primary} />
-            <Text style={styles.loadingText}>Loading products...</Text>
+            <WaveLoader size={32} color={Colors.light.primary} />
+            <Text style={styles.loadingText}>Produkte werden geladen…</Text>
           </View>
         ) : (
           <FlatList

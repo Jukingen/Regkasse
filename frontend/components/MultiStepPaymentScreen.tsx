@@ -12,7 +12,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
   Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +27,7 @@ import {
   POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE,
   posOfflineBlocksVoucherByMethod,
 } from '../constants/posVoucherOffline';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 // Ödeme adımları enum'u
 enum PaymentStep {
@@ -333,7 +333,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         disabled={!validateCustomerId(customerId) || loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <WaveLoader size={20} color="#fff" />
         ) : (
           <Text style={styles.buttonText}>{t('payment:buttons.continue')}</Text>
         )}
@@ -410,7 +410,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
           disabled={!paymentAmount || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <WaveLoader size={20} color="#fff" />
           ) : (
             <Text style={styles.buttonText}>{t('payment:buttons.continue')}</Text>
           )}
@@ -458,7 +458,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
           }
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <WaveLoader size={20} color="#fff" />
           ) : (
             <Text style={styles.buttonText}>{t('payment:buttons.verify')}</Text>
           )}
@@ -502,7 +502,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <WaveLoader size={20} color="#fff" />
           ) : (
             <Text style={styles.buttonText}>{t('payment:buttons.confirmPayment')}</Text>
           )}
@@ -528,7 +528,7 @@ const MultiStepPaymentScreen: React.FC<MultiStepPaymentScreenProps> = ({
         disabled={loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <WaveLoader size={20} color="#fff" />
         ) : (
           <Text style={styles.buttonText}>{t('payment:receipt.view')}</Text>
         )}

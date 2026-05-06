@@ -9,7 +9,6 @@ import {
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
-  ActivityIndicator,
   Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +17,8 @@ import { storage } from '../../utils/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAuthError, getAuthErrorMessage } from '../../features/auth/authErrors';
 import { useTranslation } from 'react-i18next';
+
+import { WaveLoader } from '../../src/components/common/WaveLoader';
 
 const { width, height } = Dimensions.get('window');
 
@@ -195,7 +196,7 @@ export default function LoginScreen() {
                 activeOpacity={0.8}
               >
                 {isLoading ? (
-                  <ActivityIndicator color="#333" />
+                  <WaveLoader size={20} color="#333" />
                 ) : (
                   <Text style={styles.loginButtonText}>{t('loginButton')}</Text>
                 )}

@@ -23,7 +23,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +31,7 @@ import useEnhancedTaskMaster from '../hooks/useEnhancedTaskMaster';
 import { TaskCategory, TaskPriority } from '../services/TaskMasterService';
 import LanguageSwitcher from './LanguageSwitcher';
 import TurkishTaskDemo from './TurkishTaskDemo';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 const TaskSuggestionsDemo: React.FC = () => {
   const { t } = useTranslation();
@@ -330,7 +330,7 @@ const TaskSuggestionsDemo: React.FC = () => {
       {/* Loading Indicator */}
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2196F3" />
+          <WaveLoader size={32} color="#2196F3" />
           <Text style={styles.loadingText}>
             {selectedCategory ? 
               `${selectedCategory.replace('_', ' ')} Vorschläge werden geladen...` :

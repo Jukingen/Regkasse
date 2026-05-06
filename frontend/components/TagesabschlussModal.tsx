@@ -7,13 +7,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 /** Local time window where daily register close often collides with RKSV month-end duties. */
 function isClosingMidnightWarnHour(d: Date): boolean {
@@ -348,7 +348,7 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
 
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <WaveLoader size={32} color="#007AFF" />
           <Text style={styles.loadingText}>
             {t('tagesabschluss.processing', 'Processing...')}
           </Text>

@@ -1,11 +1,12 @@
 // Türkçe Açıklama: Rapor gösterim komponenti - farklı rapor tipleri için görsel gösterim ve filtreleme özellikleri.
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
 import ReportFilterPanel, { ReportFilter } from './ReportFilterPanel';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export interface ReportData {
   id: string;
@@ -346,7 +347,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
       {/* Yükleme Durumu */}
       {loading && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1976d2" />
+          <WaveLoader size={32} color="#1976d2" />
           <Text style={styles.loadingText}>{t('report.loading', 'Rapor yükleniyor...')}</Text>
         </View>
       )}

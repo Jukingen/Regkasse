@@ -10,11 +10,11 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { couponService, Coupon, CouponValidationResult } from '../services/api/couponService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface CouponModalProps {
   visible: boolean;
@@ -148,7 +148,7 @@ export default function CouponModal({
                 disabled={validating}
               >
                 {validating ? (
-                  <ActivityIndicator size="small" color="white" />
+                  <WaveLoader size={18} color="#FFFFFF" />
                 ) : (
                   <Ionicons name="checkmark" size={20} color="white" />
                 )}
@@ -193,7 +193,7 @@ export default function CouponModal({
 
           <ScrollView style={styles.couponsList}>
             {loading ? (
-              <ActivityIndicator size="large" color={Colors.light.primary} />
+              <WaveLoader size={32} color={Colors.light.primary} />
             ) : activeCoupons.length === 0 ? (
               <Text style={styles.noCouponsText}>Aktif kupon bulunmuyor</Text>
             ) : (

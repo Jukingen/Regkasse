@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  ActivityIndicator,
   TextInput,
   Switch,
   Pressable,
@@ -62,6 +61,7 @@ import {
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
 import { checkTseStatus } from '../services/api/tseService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 /**
  * Map backend blocked reason to short UI text. Fail-safe: unknown codes return neutral fallback;
@@ -1275,7 +1275,16 @@ export default function PaymentModal({
                 ) : null}
                 <Text style={styles.registerBannerText}>{registerGateBannerDetail(registerGateCtx)}</Text>
                 {registerListLoading || posReadinessLoading ? (
-                  <ActivityIndicator color={SoftColors.accent} style={{ marginVertical: SoftSpacing.sm }} />
+                  <View
+                    style={{
+                      width: '100%',
+                      marginVertical: SoftSpacing.sm,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <WaveLoader size={28} color={SoftColors.accent} />
+                  </View>
                 ) : registerPicklist.length > 0 ? (
                   <View style={styles.registerChipRow}>
                     {registerPicklist.map((r) => (
@@ -1339,7 +1348,12 @@ export default function PaymentModal({
                   </Text>
                 )}
                 {eligibilityPreviewLoading ? (
-                  <Text style={styles.benefitPreviewMuted}>Vorteile werden geladen…</Text>
+                  <View style={styles.benefitPreviewLoading}>
+                    <WaveLoader size={22} color={SoftColors.accent} />
+                    <Text style={[styles.benefitPreviewMuted, styles.benefitPreviewLoadingLabel]}>
+                      Vorteile werden geladen…
+                    </Text>
+                  </View>
                 ) : eligibilityPreview ? (
                   <>
                     {eligibilityPreview.applicableBenefits.length > 0 && (
@@ -1384,7 +1398,10 @@ export default function PaymentModal({
               >
               <View style={styles.paymentMethodsContainer}>
                 {methodsLoading ? (
-                  <Text style={styles.loadingText}>{t('common:loading')}</Text>
+                  <View style={styles.paymentMethodsLoading}>
+                    <WaveLoader color={SoftColors.accent} />
+                    <Text style={styles.paymentMethodsLoadingLabel}>{t('common:loading')}</Text>
+                  </View>
                 ) : settlementPaymentMethods && settlementPaymentMethods.length > 0 ? (
                   settlementPaymentMethods.map((method) => {
                     const isSelected = selectedPaymentMethod === method.type;
@@ -1598,7 +1615,7 @@ export default function PaymentModal({
                 >
                   {voucherCheckLoading ? (
                     <View style={styles.voucherCheckButtonInner}>
-                      <ActivityIndicator size="small" color={SoftColors.accent} />
+                      <WaveLoader size={18} color={SoftColors.accent} />
                       <Text style={styles.voucherCheckButtonText}>{t('checkout:posFlow.payment.voucher.checking')}</Text>
                     </View>
                   ) : (
@@ -1740,7 +1757,7 @@ export default function PaymentModal({
                 >
                   {showPayWorking ? (
                     <View style={styles.payButtonContent}>
-                      <ActivityIndicator size="small" color={SoftColors.textInverse} />
+                      <WaveLoader size={18} color={SoftColors.textInverse} />
                       <Text style={styles.payButtonText}>Wird verarbeitet…</Text>
                     </View>
                   ) : (
@@ -1770,7 +1787,7 @@ export default function PaymentModal({
             <View style={[styles.footerSecondary, { paddingBottom: Math.max(SoftSpacing.md, insets.bottom) }]}>
               {purchaseState === 'printing' && (
                 <View style={styles.statusBlock}>
-                  <ActivityIndicator size="large" color={SoftColors.accent} />
+                  <WaveLoader size={36} color={SoftColors.accent} />
                   <Text style={styles.statusText}>Beleg wird gedruckt…</Text>
                 </View>
               )}
@@ -1811,7 +1828,7 @@ export default function PaymentModal({
                       accessibilityLabel="Beleg-PDF"
                     >
                       {pdfLoading ? (
-                        <ActivityIndicator size="small" color={SoftColors.accent} />
+                        <WaveLoader size={20} color={SoftColors.accent} />
                       ) : (
                         <Text style={styles.successSecondaryBtnText}>Beleg-PDF</Text>
                       )}
@@ -1856,7 +1873,7 @@ export default function PaymentModal({
                       style={[styles.printErrorBtnSecondary, pdfLoading && styles.payButtonDisabled]}
                     >
                       {pdfLoading ? (
-                        <ActivityIndicator size="small" color={SoftColors.accent} />
+                        <WaveLoader size={20} color={SoftColors.accent} />
                       ) : (
                         <Text style={styles.printErrorBtnSecondaryText}>Beleg-PDF</Text>
                       )}
@@ -2040,6 +2057,16 @@ const styles = StyleSheet.create({
     marginTop: SoftSpacing.xs,
     fontStyle: 'italic',
   },
+  benefitPreviewLoading: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SoftSpacing.xs,
+  },
+  benefitPreviewLoadingLabel: {
+    marginTop: SoftSpacing.sm,
+    textAlign: 'center',
+  },
   paymentMethodsSectionWrap: {
     borderRadius: SoftRadius.md,
     padding: SoftSpacing.xs,
@@ -2057,6 +2084,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: SoftSpacing.sm,
+  },
+  paymentMethodsLoading: {
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SoftSpacing.md,
+  },
+  paymentMethodsLoadingLabel: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textSecondary,
+    textAlign: 'center',
+    marginTop: SoftSpacing.sm,
   },
   paymentMethod: {
     alignItems: 'center',
@@ -2294,6 +2334,7 @@ const styles = StyleSheet.create({
   payButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: SoftSpacing.sm,
   },
   payButtonText: {
@@ -2366,6 +2407,7 @@ const styles = StyleSheet.create({
   voucherCheckButtonInner: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: SoftSpacing.sm,
   },
   voucherCheckButtonText: {
@@ -2401,6 +2443,7 @@ const styles = StyleSheet.create({
   },
   statusBlock: {
     alignItems: 'center',
+    justifyContent: 'center',
     padding: SoftSpacing.lg,
     width: '100%',
   },

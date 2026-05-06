@@ -10,11 +10,11 @@ import {
   TextInput,
   ScrollView,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { customerService, Customer } from '../services/api/customerService';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 interface CustomerModalProps {
   visible: boolean;
@@ -179,7 +179,7 @@ export default function CustomerModal({
 
           <ScrollView style={styles.customersList}>
             {loading ? (
-              <ActivityIndicator size="large" color={Colors.light.primary} />
+              <WaveLoader size={32} color={Colors.light.primary} />
             ) : filteredCustomers.length === 0 ? (
               <Text style={styles.noCustomersText}>
                 {searchQuery.trim() ? t('customers:noSearchResults') : t('customers:noResults')}

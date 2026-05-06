@@ -1,12 +1,13 @@
 // RKSV: when ensure-ready returns monatsbeleg_required, offer in-app Monatsbeleg creation (German operator copy only).
 import React, { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { getViennaYearMonth, postCreateMonatsbeleg } from '../services/api/rksvSpecialReceiptsService';
 import { receiptPrinter } from '../services/receiptPrinter';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export function MonatsbelegRequiredBanner() {
   const { data, refreshAsync } = usePosRegisterReadiness();
@@ -91,7 +92,7 @@ export function MonatsbelegRequiredBanner() {
         accessibilityLabel={isDecemberAnnual ? 'Jahresbeleg jetzt erstellen' : 'Monatsbeleg jetzt erstellen'}
       >
         {busy ? (
-          <ActivityIndicator color={SoftColors.textInverse} />
+          <WaveLoader size={20} color={SoftColors.textInverse} />
         ) : (
           <Text style={styles.btnText}>{isDecemberAnnual ? 'Jahresbeleg erstellen' : 'Jetzt erstellen'}</Text>
         )}

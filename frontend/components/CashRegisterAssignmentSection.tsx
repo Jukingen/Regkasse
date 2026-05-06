@@ -5,7 +5,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +22,7 @@ import {
   registerGateBannerTitle,
 } from '../utils/posRegisterGateCopy';
 import type { RegisterListFailureKind } from '../utils/registerListError';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 import { classifyRegisterListError } from '../utils/registerListError';
 
 /**
@@ -156,7 +156,7 @@ export function CashRegisterAssignmentSection() {
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{t('settings:registerAssignment.title')}</Text>
-        <ActivityIndicator style={{ marginVertical: 12 }} />
+        <WaveLoader size={28} style={{ marginVertical: 12 }} />
       </View>
     );
   }
@@ -192,7 +192,7 @@ export function CashRegisterAssignmentSection() {
             </TouchableOpacity>
           ) : null}
           {listLoading || posReadiness.loading ? (
-            <ActivityIndicator style={{ marginVertical: 8 }} />
+            <WaveLoader size={28} style={{ marginVertical: 8 }} />
           ) : null}
           {!listLoading && picklist.length > 0 ? (
             <View style={styles.chipRow}>

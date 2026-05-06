@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice, formatPercent } from '../utils/formatPrice';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export interface CartItemModifier {
     id: string;
@@ -148,7 +149,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
 
                     <View style={styles.qtyValueContainer}>
                         {updating ? (
-                            <ActivityIndicator size="small" color={SoftColors.accent} />
+                            <WaveLoader size={18} color={SoftColors.accent} />
                         ) : (
                             <Text style={styles.qtyValue}>{quantity}</Text>
                         )}

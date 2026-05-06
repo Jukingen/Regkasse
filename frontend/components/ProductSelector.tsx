@@ -7,7 +7,6 @@ import {
   Modal,
   FlatList,
   TextInput,
-  ActivityIndicator,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +18,7 @@ import {
   Product 
 } from '../services/api/productService';
 import { Colors } from '../constants/Colors';
+import { WaveLoader } from '../src/components/common/WaveLoader';
 
 /**
  * Ürün seçici komponenti - Fatura oluşturma için
@@ -199,7 +199,7 @@ export const ProductSelector: React.FC<ProductSelectorProps> = ({
         {/* Ürün Listesi */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={Colors.primary} />
+            <WaveLoader size={32} color={Colors.primary} />
             <Text style={styles.loadingText}>Ürünler yükleniyor...</Text>
           </View>
         ) : (
