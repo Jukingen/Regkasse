@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Services;
 
 public partial class PaymentService
 {
-    private const decimal VoucherMoneyTolerance = 0.01m;
+    private static decimal VoucherMoneyTolerance => VoucherValidationRules.MoneyTolerance;
 
     private static bool IsVoucherLegacyPayment(string legacyRaw) =>
         string.Equals(legacyRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal);
@@ -23,10 +23,17 @@ public partial class PaymentService
 
     private async Task<(PaymentResult? Error, List<VoucherRedeemLine>? Lines)> BuildVoucherRedemptionPlanAsync(
         Guid tenantId,
+        Guid cashRegisterId,
         decimal fiscalTotal,
         PaymentMethodRequest payment,
         CancellationToken cancellationToken)
     {
+        var register = await _context.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+        if (register == null || register.TenantId != tenantId)
+            return (InvalidVoucherPayment(VoucherValidationRules.NotValidForLocationMessage), null);
+
         var aggregated = new Dictionary<string, decimal>(StringComparer.Ordinal);
 
         var hasMulti = payment.VoucherRedemptions != null && payment.VoucherRedemptions.Count > 0;
@@ -70,15 +77,12 @@ public partial class PaymentService
             if (voucher.Currency != "EUR")
             {
                 _logger.LogWarning("Voucher {VoucherId} currency {Currency} is not supported for POS redemption (EUR only).", voucher.Id, voucher.Currency);
-                return (InvalidVoucherPayment("Unsupported voucher currency for this register."), null);
+                return (InvalidVoucherPayment(VoucherValidationRules.NotValidForLocationMessage), null);
             }
 
-            var eval = VoucherValidationRules.Evaluate(voucher, DateTime.UtcNow);
+            var eval = VoucherValidationRules.Evaluate(voucher, DateTime.UtcNow, tenantId, amount);
             if (!eval.IsRedeemable)
-                return (InvalidVoucherPayment(eval.ErrorMessage ?? "Voucher cannot be redeemed."), null);
-
-            if (amount > voucher.RemainingAmount + VoucherMoneyTolerance)
-                return (InvalidVoucherPayment("Voucher redemption exceeds remaining balance."), null);
+                return (InvalidVoucherPayment(eval.ErrorMessage ?? VoucherValidationRules.NotValidForLocationMessage), null);
 
             lines.Add(new VoucherRedeemLine { Voucher = voucher, Amount = amount });
         }
@@ -128,12 +132,9 @@ public partial class PaymentService
                 .FirstAsync(x => x.Id == line.Voucher.Id && x.TenantId == tenantId, cancellationToken)
                 .ConfigureAwait(false);
 
-            var eval = VoucherValidationRules.Evaluate(v, DateTime.UtcNow);
+            var eval = VoucherValidationRules.Evaluate(v, DateTime.UtcNow, tenantId, line.Amount);
             if (!eval.IsRedeemable)
-                return InvalidVoucherPayment(eval.ErrorMessage ?? "Voucher cannot be redeemed.");
-
-            if (line.Amount > v.RemainingAmount + VoucherMoneyTolerance)
-                return InvalidVoucherPayment("Voucher balance changed; redemption exceeds remaining balance.");
+                return InvalidVoucherPayment(eval.ErrorMessage ?? VoucherValidationRules.NotValidForLocationMessage);
 
             var before = v.RemainingAmount;
             v.RemainingAmount = decimal.Round(before - line.Amount, 2, MidpointRounding.AwayFromZero);

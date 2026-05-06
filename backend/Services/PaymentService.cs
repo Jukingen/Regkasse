@@ -584,6 +584,7 @@ namespace KasseAPI_Final.Services
                     effectiveTseRequired = !_tseOptions.IsOff;
                     var (voucherPlanError, voucherLines) = await BuildVoucherRedemptionPlanAsync(
                         effectiveTenantId,
+                        cashRegisterId,
                         totalAmount,
                         request.Payment,
                         CancellationToken.None);
@@ -651,7 +652,13 @@ namespace KasseAPI_Final.Services
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex, "Failed to generate TSE signature for payment {PaymentId}", payment.Id);
+                            _logger.LogError(
+                                ex,
+                                "Failed to generate TSE signature (BelegNr={BelegNr}, effectiveTseRequired={Effective}, clientTseRequested={ClientTse}, paymentDraftId={PaymentId}). InnerException surface in logs from TseService phase.",
+                                preReceiptNumber,
+                                effectiveTseRequired,
+                                request.Payment.TseRequired,
+                                payment.Id);
                             await transaction.RollbackAsync();
                             _context.ChangeTracker.Clear();
                             return new PaymentResult
@@ -792,6 +799,18 @@ namespace KasseAPI_Final.Services
                         };
                     }
 
+                    if (TryGetPostgresException(ex, out var pgExIdem))
+                    {
+                        _logger.LogError(
+                            pgExIdem,
+                            "PostgreSQL violation (idempotency catch path): SqlState={SqlState}, Constraint={Constraint}, Detail={Detail}",
+                            pgExIdem.SqlState,
+                            pgExIdem.ConstraintName,
+                            pgExIdem.Detail);
+                        if (TryMapPaymentCommitPostgresException(pgExIdem, out var pgMappedIdem))
+                            return pgMappedIdem;
+                    }
+
                     _logger.LogError(ex, "Fiscal transaction failed (idempotency key violation) for payment");
                     throw;
                 }
@@ -801,6 +820,25 @@ namespace KasseAPI_Final.Services
                     _context.ChangeTracker.Clear();
                     _logger.LogWarning(ex, "Daily allowance unique constraint race for customer {CustomerId} during payment creation", request.CustomerId);
                     return ToDailyAllowanceConflictResult();
+                }
+                catch (DbUpdateException ex)
+                {
+                    await transaction.RollbackAsync();
+                    _context.ChangeTracker.Clear();
+                    if (TryGetPostgresException(ex, out var pgExSave))
+                    {
+                        _logger.LogError(
+                            pgExSave,
+                            "PostgreSQL violation (payment commit): SqlState={SqlState}, Constraint={Constraint}, Detail={Detail}",
+                            pgExSave.SqlState,
+                            pgExSave.ConstraintName,
+                            pgExSave.Detail);
+                        if (TryMapPaymentCommitPostgresException(pgExSave, out var pgMappedSave))
+                            return pgMappedSave;
+                    }
+
+                    _logger.LogError(ex, "Fiscal transaction failed for payment; DbUpdateException after rollback");
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -2571,6 +2609,119 @@ namespace KasseAPI_Final.Services
                     (pg.ConstraintName?.Contains("benefit", StringComparison.OrdinalIgnoreCase) ?? false))
                     return true;
             }
+            return false;
+        }
+
+        /// <summary>Walks inner exceptions for <see cref="PostgresException"/> (Npgsql may nest it).</summary>
+        private static bool TryGetPostgresException(Exception ex, out PostgresException pgEx)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is PostgresException pg)
+                {
+                    pgEx = pg;
+                    return true;
+                }
+            }
+
+            pgEx = null!;
+            return false;
+        }
+
+        /// <summary>
+        /// Maps PostgreSQL errors from payment fiscal transaction SaveChanges to a deterministic <see cref="PaymentResult"/>.
+        /// </summary>
+        private static bool TryMapPaymentCommitPostgresException(PostgresException pgEx, out PaymentResult result)
+        {
+            result = null!;
+            var constraint = pgEx.ConstraintName ?? "";
+
+            if (pgEx.SqlState == "23505")
+            {
+                if (constraint.Contains("voucher_ledger_entries_idempotency", StringComparison.OrdinalIgnoreCase))
+                {
+                    const string msg = "Voucher already used in this transaction. Please retry with a new idempotency key.";
+                    result = new PaymentResult
+                    {
+                        Success = false,
+                        Message = msg,
+                        Errors = { msg },
+                        IsDeterministicFailure = true,
+                        DiagnosticCode = "VOUCHER_LEDGER_IDEMPOTENCY_CONFLICT"
+                    };
+                    return true;
+                }
+
+                if (constraint.Contains("payment_details_idempotency", StringComparison.OrdinalIgnoreCase)
+                    || (constraint.Contains("payment_details", StringComparison.OrdinalIgnoreCase)
+                        && constraint.Contains("idempotency", StringComparison.OrdinalIgnoreCase)))
+                {
+                    const string msg = "Duplicate transaction detected. Please retry.";
+                    result = new PaymentResult
+                    {
+                        Success = false,
+                        Message = msg,
+                        Errors = { msg },
+                        IsDeterministicFailure = true,
+                        DiagnosticCode = "DUPLICATE_IDEMPOTENCY_KEY"
+                    };
+                    return true;
+                }
+
+                if (constraint.Contains("receipt_number", StringComparison.OrdinalIgnoreCase))
+                {
+                    const string msg = "Receipt number conflict. Please contact support.";
+                    result = new PaymentResult
+                    {
+                        Success = false,
+                        Message = msg,
+                        Errors = { msg },
+                        IsDeterministicFailure = true,
+                        DiagnosticCode = "RECEIPT_NUMBER_CONFLICT"
+                    };
+                    return true;
+                }
+
+                var uniqueMsg = $"Database constraint violation: {pgEx.ConstraintName}";
+                result = new PaymentResult
+                {
+                    Success = false,
+                    Message = uniqueMsg,
+                    Errors = { uniqueMsg },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "UNIQUE_VIOLATION"
+                };
+                return true;
+            }
+
+            if (pgEx.SqlState == "23503")
+            {
+                const string msg = "Referenced record not found. Please check voucher or customer data.";
+                result = new PaymentResult
+                {
+                    Success = false,
+                    Message = msg,
+                    Errors = { msg },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "FOREIGN_KEY_VIOLATION"
+                };
+                return true;
+            }
+
+            if (pgEx.SqlState == "23514")
+            {
+                const string msg = "Data validation failed. Please check voucher amount.";
+                result = new PaymentResult
+                {
+                    Success = false,
+                    Message = msg,
+                    Errors = { msg },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "CHECK_VIOLATION"
+                };
+                return true;
+            }
+
             return false;
         }
 

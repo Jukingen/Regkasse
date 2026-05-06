@@ -42,6 +42,13 @@ public class RolePermissionMatrixTests
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.VoucherCreate));
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.VoucherCancel));
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.VoucherAuditView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.VoucherIssue));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_Has_VoucherIssue()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.VoucherIssue));
     }
 
     [Fact]

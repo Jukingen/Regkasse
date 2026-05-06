@@ -9,6 +9,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -92,11 +93,13 @@ public class OfflineTransactionReplayIntegrationTests
             new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver),
             TenantTestDoubles.PrimaryTenantResolver);
 
+        var dataProtection = new EphemeralDataProtectionProvider();
         var offlineService = new OfflineTransactionService(
             context,
             paymentService,
             auditMock.Object,
-            new Mock<ILogger<OfflineTransactionService>>().Object);
+            new Mock<ILogger<OfflineTransactionService>>().Object,
+            dataProtection);
 
         return (paymentService, offlineService);
     }

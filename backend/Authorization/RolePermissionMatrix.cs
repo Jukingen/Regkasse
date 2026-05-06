@@ -89,6 +89,7 @@ public static class RolePermissionMatrix
                 AppPermissions.VoucherCreate,
                 AppPermissions.VoucherCancel,
                 AppPermissions.VoucherAuditView,
+                AppPermissions.VoucherIssue,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Cashier] = new[]
@@ -112,6 +113,7 @@ public static class RolePermissionMatrix
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,
                 AppPermissions.RksvJahresbelegCreate,
+                AppPermissions.VoucherIssue,
             }.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
 
             [Roles.Waiter] = new[]

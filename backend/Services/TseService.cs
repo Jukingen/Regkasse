@@ -124,15 +124,18 @@ namespace KasseAPI_Final.Services
             var kId = registerNumber.Trim();
             string compactJws = string.Empty;
             string prevSig = string.Empty;
+            var phase = "init";
 
             var ownTransaction = dbTransaction == null;
             if (ownTransaction)
                 dbTransaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                phase = "ensure_chain_row_lock";
                 var (prevSigLocked, _) = await EnsureChainRowAndLockAsync(dbTransaction!, cashRegisterId);
                 prevSig = prevSignatureValue ?? prevSigLocked;
 
+                phase = "build_beleg_payload";
                 var payload = new BelegdatenPayload
                 {
                     KassenId = kId,
@@ -144,8 +147,10 @@ namespace KasseAPI_Final.Services
                     TaxDetails = taxDetailsJson ?? "{}"
                 };
 
+                phase = "pipeline_sign_compact_jws";
                 compactJws = _pipeline.Sign(payload, correlationId);
 
+                phase = "attach_TseSignatures_row";
                 var tseSignature = new TseSignature
                 {
                     Id = Guid.NewGuid(),
@@ -159,13 +164,22 @@ namespace KasseAPI_Final.Services
                 };
 
                 _context.TseSignatures.Add(tseSignature);
+                phase = "update_signature_chain_state";
                 await UpdateChainWithNewSignatureAsync(dbTransaction!, cashRegisterId, compactJws);
+                phase = "save_changes";
                 await _context.SaveChangesAsync();
                 if (ownTransaction)
                     await dbTransaction!.CommitAsync();
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(
+                    ex,
+                    "CreateInvoiceSignatureAsync failed at phase={Phase}, correlationId={CorrelationId}, cashRegisterId={CashRegisterId}, invoiceNumber={InvoiceNumber}",
+                    phase,
+                    correlationId,
+                    cashRegisterId,
+                    invoiceNumber);
                 if (ownTransaction)
                     await dbTransaction!.RollbackAsync();
                 throw;

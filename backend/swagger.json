@@ -2061,6 +2061,61 @@
         }
       }
     },
+    "/api/admin/vouchers/{id}/verify-code": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyAdminVoucherCodeRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyAdminVoucherCodeRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyAdminVoucherCodeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyAdminVoucherCodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/admin/vouchers/{id}/cancel": {
       "post": {
         "tags": [
@@ -17773,6 +17828,29 @@
             "maxLength": 500,
             "minLength": 5,
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifyAdminVoucherCodeRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifyAdminVoucherCodeResponse": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

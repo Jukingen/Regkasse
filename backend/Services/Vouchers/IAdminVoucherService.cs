@@ -23,4 +23,14 @@ public interface IAdminVoucherService
         Guid id,
         string reason,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns whether the provided code matches the voucher's stored hash. Plaintext is never stored or returned.
+    /// </summary>
+    /// <returns>(response, errorCode). errorCode: NOT_FOUND, CODE_REQUIRED, or null on success.</returns>
+    Task<(VerifyAdminVoucherCodeResponse? Response, string? ErrorCode)> VerifyCodeMatchesAsync(
+        Guid tenantId,
+        Guid id,
+        string code,
+        CancellationToken cancellationToken = default);
 }

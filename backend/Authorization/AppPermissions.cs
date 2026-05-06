@@ -68,6 +68,8 @@ public static class AppPermissions
     public const string VoucherCreate = "voucher.create";
     public const string VoucherCancel = "voucher.cancel";
     public const string VoucherAuditView = "voucher.audit.view";
+    /// <summary>POS/back-office issuance of stored-value vouchers (RKSV-non-fiscal; no TSE).</summary>
+    public const string VoucherIssue = "voucher.issue";
 
     // --- Inventory, Customer ---
     public const string InventoryView = "inventory.view";

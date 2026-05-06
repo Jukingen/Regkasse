@@ -73,6 +73,7 @@ public static class PermissionCatalog
         AppPermissions.VoucherCreate,
         AppPermissions.VoucherCancel,
         AppPermissions.VoucherAuditView,
+        AppPermissions.VoucherIssue,
         // Invoice, CreditNote
         AppPermissions.InvoiceView,
         AppPermissions.InvoiceManage,

@@ -74,7 +74,7 @@ namespace KasseAPI_Final.Models
 
         // RKSV Zorunlu Alanlar
         [Required]
-        [StringLength(500)]
+        [Column(TypeName = "text")]
         public string TseSignature { get; set; } = string.Empty;
 
         [Required]
@@ -88,13 +88,13 @@ namespace KasseAPI_Final.Models
         [MaxLength(50)]
         public string? SignatureFormat { get; set; }
 
-        [MaxLength(1000)]
+        [Column(TypeName = "text")]
         public string? JwsHeader { get; set; }
 
-        [MaxLength(4000)]
+        [Column(TypeName = "text")]
         public string? JwsPayload { get; set; }
 
-        [MaxLength(500)]
+        [Column(TypeName = "text")]
         public string? JwsSignature { get; set; }
 
         [MaxLength(50)]
@@ -134,7 +134,7 @@ namespace KasseAPI_Final.Models
         [StringLength(50)]
         public string? StornoReasonCode { get; set; }
 
-        [StringLength(500)]
+        [Column(TypeName = "text")]
         public string? StornoReasonText { get; set; }
 
         /// <summary>

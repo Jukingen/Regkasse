@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260506023030_TseSignaturesSignatureHashIndex")]
+    partial class TseSignaturesSignatureHashIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2834,10 +2837,6 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("PayloadJson")
                         .IsRequired()
                         .HasColumnType("jsonb");
-
-                    b.Property<string>("PayloadSecretsProtected")
-                        .HasColumnType("text")
-                        .HasColumnName("payload_secrets_protected");
 
                     b.Property<int>("RetryCount")
                         .HasColumnType("integer");
@@ -5883,10 +5882,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(3)")
                         .HasColumnName("currency");
 
-                    b.Property<Guid?>("CustomerId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("customer_id");
-
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at_utc");
@@ -5927,8 +5922,6 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("CodeHash");
 
                     b.HasIndex("CreatedAtUtc");
-
-                    b.HasIndex("CustomerId");
 
                     b.HasIndex("ExpiresAtUtc");
 
@@ -6833,18 +6826,11 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.Voucher", b =>
                 {
-                    b.HasOne("KasseAPI_Final.Models.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Customer");
 
                     b.Navigation("Tenant");
                 });

@@ -418,25 +418,27 @@ public class VoucherPaymentRedemptionTests
     }
 
     [Fact]
-    public async Task VoucherService_Validate_Cancelled_ReturnsCancelled()
+    public async Task VoucherService_Validate_Cancelled_ReturnsNotFound()
     {
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 50m, DateTime.UtcNow.AddDays(30), VoucherStatus.Cancelled);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
         var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, null);
         Assert.False(r.Ok);
-        Assert.Equal(VoucherValidateErrorCodes.Cancelled, r.ErrorCode);
+        Assert.Equal(VoucherValidateErrorCodes.NotFound, r.ErrorCode);
+        Assert.Equal("Voucher not found or not valid for this location.", r.Message);
     }
 
     [Fact]
-    public async Task VoucherService_Validate_Redeemed_ReturnsRedeemed()
+    public async Task VoucherService_Validate_Redeemed_ReturnsNoBalance()
     {
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 0m, DateTime.UtcNow.AddDays(30), VoucherStatus.Redeemed);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
         var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, null);
         Assert.False(r.Ok);
-        Assert.Equal(VoucherValidateErrorCodes.Redeemed, r.ErrorCode);
+        Assert.Equal(VoucherValidateErrorCodes.NoBalance, r.ErrorCode);
+        Assert.Equal("Voucher has no remaining balance.", r.Message);
     }
 
     [Fact]
@@ -451,15 +453,27 @@ public class VoucherPaymentRedemptionTests
     }
 
     [Fact]
-    public async Task VoucherService_Validate_OptionalAmountCapsMaxRedeemable_ToRemaining()
+    public async Task VoucherService_Validate_OptionalAmount_WithinRemaining_CapsMaxRedeemable()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAndVoucherAsync(context, 20m, DateTime.UtcNow.AddDays(30), VoucherStatus.Active);
+        var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
+        var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, 10m);
+        Assert.True(r.Ok);
+        Assert.Equal(10m, r.MaxRedeemableAmount);
+        Assert.Equal(20m, r.RemainingAmount);
+    }
+
+    [Fact]
+    public async Task VoucherService_Validate_OptionalAmount_ExceedsRemaining_ReturnsAmountExceedsBalance()
     {
         await using var context = CreateContext();
         await SeedCatalogAndVoucherAsync(context, 20m, DateTime.UtcNow.AddDays(30), VoucherStatus.Active);
         var svc = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
         var r = await svc.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, PlainCode, 999m);
-        Assert.True(r.Ok);
-        Assert.Equal(20m, r.MaxRedeemableAmount);
-        Assert.Equal(20m, r.RemainingAmount);
+        Assert.False(r.Ok);
+        Assert.Equal(VoucherValidateErrorCodes.AmountExceedsBalance, r.ErrorCode);
+        Assert.Equal("Voucher redemption exceeds remaining balance.", r.Message);
     }
 
     [Fact]
@@ -700,6 +714,60 @@ public class VoucherPaymentRedemptionTests
     }
 
     [Fact]
+    public async Task AdminVoucher_VerifyCode_MatchesPlaintextFromCreate()
+    {
+        await using var context = CreateContext();
+        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>());
+        var (created, err) = await admin.CreateAsync(
+            LegacyDefaultTenantIds.Primary,
+            "admin1",
+            new CreateAdminVoucherRequest
+            {
+                InitialAmount = 12m,
+                Currency = "EUR",
+                ExpiryMode = "DefaultOneYear",
+            });
+        Assert.Null(err);
+        Assert.NotNull(created);
+
+        var (ok, codeErr) = await admin.VerifyCodeMatchesAsync(
+            LegacyDefaultTenantIds.Primary,
+            created!.Id,
+            created.PlaintextCode);
+        Assert.Null(codeErr);
+        Assert.NotNull(ok);
+        Assert.True(ok!.Matches);
+
+        var (wrong, _) = await admin.VerifyCodeMatchesAsync(
+            LegacyDefaultTenantIds.Primary,
+            created.Id,
+            "GUT-XXXXXXXXXXXXXX");
+        Assert.NotNull(wrong);
+        Assert.False(wrong!.Matches);
+    }
+
+    [Fact]
+    public async Task AdminVoucher_VerifyCode_Empty_ReturnsCodeRequired()
+    {
+        await using var context = CreateContext();
+        var admin = new AdminVoucherService(context, Mock.Of<ILogger<AdminVoucherService>>());
+        var (created, _) = await admin.CreateAsync(
+            LegacyDefaultTenantIds.Primary,
+            "admin1",
+            new CreateAdminVoucherRequest
+            {
+                InitialAmount = 3m,
+                Currency = "EUR",
+                ExpiryMode = "DefaultOneYear",
+            });
+        Assert.NotNull(created);
+
+        var (resp, codeErr) = await admin.VerifyCodeMatchesAsync(LegacyDefaultTenantIds.Primary, created!.Id, "   ");
+        Assert.Equal("CODE_REQUIRED", codeErr);
+        Assert.Null(resp);
+    }
+
+    [Fact]
     public async Task AdminVoucher_Cancel_ReasonTooShort_ReturnsReasonTooShort()
     {
         await using var context = CreateContext();
@@ -748,7 +816,7 @@ public class VoucherPaymentRedemptionTests
         var validate = new VoucherService(context, Mock.Of<ILogger<VoucherService>>());
         var vr = await validate.ValidateVoucherByCodeAsync(LegacyDefaultTenantIds.Primary, created.PlaintextCode, null);
         Assert.False(vr.Ok);
-        Assert.Equal(VoucherValidateErrorCodes.Cancelled, vr.ErrorCode);
+        Assert.Equal(VoucherValidateErrorCodes.NotFound, vr.ErrorCode);
 
         var paymentService = CreatePaymentService(context);
         var pay = new CreatePaymentRequest

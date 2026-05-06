@@ -53,7 +53,15 @@
     "cancel": "Cancel voucher",
     "internalNote": "Internal note",
     "cancellationReason": "Cancellation reason",
-    "cancelledAt": "Cancelled at"
+    "cancelledAt": "Cancelled at",
+    "codePrivacyNotice": "For security, the full voucher code is not stored on the server and cannot be displayed here. You can verify whether a code provided by the customer belongs to this voucher.",
+    "verifyCodeTitle": "Verify code",
+    "verifyCodeHint": "Support and troubleshooting",
+    "verifyCodePlaceholder": "Enter code (e.g. GUT-…)",
+    "verifyCodeSubmit": "Verify",
+    "verifyCodeMatch": "This code matches this voucher.",
+    "verifyCodeNoMatch": "This code does not match this voucher.",
+    "verifyCodeEmpty": "Please enter a code."
   },
   "cancel": {
     "title": "Cancel voucher",
@@ -83,6 +91,7 @@
   "errors": {
     "loadFailed": "Could not load data.",
     "createFailed": "Creation failed.",
-    "cancelFailed": "Cancellation failed."
+    "cancelFailed": "Cancellation failed.",
+    "verifyFailed": "Could not verify the code."
   }
 }

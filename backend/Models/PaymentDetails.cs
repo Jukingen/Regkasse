@@ -66,17 +66,17 @@ namespace KasseAPI_Final.Models
         [ForeignKey(nameof(CashRegisterId))]
         public virtual CashRegister? CashRegister { get; set; }
 
-        [MaxLength(500)]
+        [Column(TypeName = "text")]
         public string? Notes { get; set; }
         
         [MaxLength(100)]
         public string? TransactionId { get; set; }
         
         [Required]
-        [MaxLength(2000)]
+        [Column(TypeName = "text")]
         public string TseSignature { get; set; } = string.Empty; // RKSV §6 COMPACT JWS
         
-        [MaxLength(2000)]
+        [Column(TypeName = "text")]
         public string? PrevSignatureValueUsed { get; set; } // Imza zinciri için önceki signature
         
         [Required]
@@ -109,7 +109,7 @@ namespace KasseAPI_Final.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal? RefundAmount { get; set; }
         public DateTime? RefundedAt { get; set; }
-        [MaxLength(200)]
+        [Column(TypeName = "text")]
         public string? CancellationReason { get; set; }
         public DateTime? CancelledAt { get; set; }
 
@@ -118,15 +118,12 @@ namespace KasseAPI_Final.Models
         [Column("signature_format")]
         public string? SignatureFormat { get; set; }
 
-        [MaxLength(1000)]
         [Column("jws_header")]
         public string? JwsHeader { get; set; }
 
-        [MaxLength(4000)]
         [Column("jws_payload")]
         public string? JwsPayload { get; set; }
 
-        [MaxLength(500)]
         [Column("jws_signature")]
         public string? JwsSignature { get; set; }
 
@@ -146,7 +143,8 @@ namespace KasseAPI_Final.Models
         public JsonDocument PaymentItems { get; set; } = JsonDocument.Parse("[]");
         
         // Receipt/Invoice fields
-        [MaxLength(50)]
+        [Required]
+        [Column(TypeName = "text")]
         public string ReceiptNumber { get; set; } = string.Empty; // Format: AT-{TSE_ID}-{YYYYMMDD}-{SEQ}
         
         public bool IsPrinted { get; set; } = false;
@@ -172,8 +170,7 @@ namespace KasseAPI_Final.Models
         [MaxLength(30)]
         [Column("finanz_online_status")]
         public string? FinanzOnlineStatus { get; set; }
-        [MaxLength(500)]
-        [Column("finanz_online_error")]
+        [Column("finanz_online_error", TypeName = "text")]
         public string? FinanzOnlineError { get; set; }
         [MaxLength(100)]
         [Column("finanz_online_reference_id")]

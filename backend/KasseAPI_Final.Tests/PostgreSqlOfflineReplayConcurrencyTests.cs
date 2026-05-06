@@ -11,6 +11,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using Microsoft.AspNetCore.Http;
 using KasseAPI_Final.Tse;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
@@ -171,11 +172,13 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             new PricingRuleResolver(ctx, TenantTestDoubles.PrimaryTenantResolver),
             TenantTestDoubles.PrimaryTenantResolver);
 
+        var dataProtection = new EphemeralDataProtectionProvider();
         var offlineService = new OfflineTransactionService(
             ctx,
             paymentService,
             audit.Object,
-            Mock.Of<ILogger<OfflineTransactionService>>());
+            Mock.Of<ILogger<OfflineTransactionService>>(),
+            dataProtection);
 
         return (paymentService, offlineService);
     }

@@ -65,6 +65,30 @@ public class AdminVouchersController : ControllerBase
         return Ok(lines);
     }
 
+    /// <summary>
+    /// Check whether a customer-provided code belongs to this voucher (hash comparison). Full codes are not stored server-side.
+    /// </summary>
+    [HttpPost("{id:guid}/verify-code")]
+    [HasPermission(AppPermissions.VoucherRead)]
+    public async Task<ActionResult<VerifyAdminVoucherCodeResponse>> VerifyCode(
+        Guid id,
+        [FromBody] VerifyAdminVoucherCodeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var (response, error) = await _adminVouchers.VerifyCodeMatchesAsync(tenantId, id, request.Code, cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "NOT_FOUND")
+            return NotFound();
+        if (error == "CODE_REQUIRED")
+            return BadRequest(new { error = error, message = "Voucher code is required." });
+
+        return Ok(response);
+    }
+
     /// <summary>Issue a new voucher. Plaintext code is returned once in the response body.</summary>
     [HttpPost]
     [HasPermission(AppPermissions.VoucherCreate)]

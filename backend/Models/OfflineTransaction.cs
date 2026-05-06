@@ -24,6 +24,13 @@ namespace KasseAPI_Final.Models
         public string PayloadJson { get; set; } = "{}";
 
         /// <summary>
+        /// Data-protection ciphertext (base64) of UTF-8 full canonical PayloadJson when voucher plaintext was redacted from <see cref="PayloadJson"/>.
+        /// Null for legacy rows or non-voucher intents.
+        /// </summary>
+        [Column("payload_secrets_protected")]
+        public string? PayloadSecretsProtected { get; set; }
+
+        /// <summary>
         /// Normalized payload hash (SHA-256) to deduplicate identical intents across offline IDs.
         /// Unique constraint is enforced on (CashRegisterId, PayloadHash) for non-null values.
         /// </summary>

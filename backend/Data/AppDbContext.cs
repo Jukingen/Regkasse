@@ -370,7 +370,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CompanyAddress).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.CompanyPhone).HasMaxLength(20);
                 entity.Property(e => e.CompanyEmail).HasMaxLength(100);
-                entity.Property(e => e.TseSignature).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.TseSignature).IsRequired().HasColumnType("text");
+                entity.Property(e => e.JwsHeader).HasColumnType("text");
+                entity.Property(e => e.JwsPayload).HasColumnType("text");
+                entity.Property(e => e.JwsSignature).HasColumnType("text");
+                entity.Property(e => e.StornoReasonText).HasColumnType("text");
                 entity.Property(e => e.KassenId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.CashRegisterId).IsRequired();
                 entity.Property(e => e.PaymentReference).HasMaxLength(50);
@@ -558,10 +562,15 @@ namespace KasseAPI_Final.Data
                 // Ignore the NotMapped enum helper property
                 entity.Ignore(e => e.PaymentMethod);
                 
-                entity.Property(e => e.Notes).HasMaxLength(500);
+                entity.Property(e => e.Notes).HasColumnType("text");
+                entity.Property(e => e.ReceiptNumber).IsRequired().HasColumnType("text");
+                entity.Property(e => e.CancellationReason).HasColumnType("text");
                 entity.Property(e => e.TransactionId).HasMaxLength(100);
-                entity.Property(e => e.TseSignature).HasMaxLength(2000);
-                entity.Property(e => e.PrevSignatureValueUsed).HasMaxLength(2000);
+                entity.Property(e => e.TseSignature).IsRequired().HasColumnType("text");
+                entity.Property(e => e.PrevSignatureValueUsed).HasColumnType("text");
+                entity.Property(e => e.JwsHeader).HasColumnType("text");
+                entity.Property(e => e.JwsPayload).HasColumnType("text");
+                entity.Property(e => e.JwsSignature).HasColumnType("text");
                 entity.Property(e => e.TaxDetails)
                     .HasColumnType("jsonb")
                     .HasConversion(
@@ -612,7 +621,7 @@ namespace KasseAPI_Final.Data
 
                 entity.HasIndex(e => e.OfflineTransactionId);
                 entity.Property(e => e.FinanzOnlineStatus).HasMaxLength(30);
-                entity.Property(e => e.FinanzOnlineError).HasMaxLength(500);
+                entity.Property(e => e.FinanzOnlineError).HasColumnType("text");
                 entity.Property(e => e.FinanzOnlineReferenceId).HasMaxLength(100);
                 entity.HasIndex(e => e.FinanzOnlineStatus).HasFilter("\"finanz_online_status\" IS NOT NULL");
 
@@ -656,6 +665,7 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.CashRegisterId).IsRequired();
                 entity.Property(e => e.PayloadJson).IsRequired().HasColumnType("jsonb");
+                entity.Property(e => e.PayloadSecretsProtected).HasColumnName("payload_secrets_protected").HasColumnType("text");
                 entity.Property(e => e.PayloadHash).HasMaxLength(64).HasColumnName("payload_hash");
                 entity.Property(e => e.ServerReceivedAtUtc).IsRequired().HasColumnName("server_received_at_utc");
                 entity.Property(e => e.DeviceId).HasMaxLength(128).HasColumnName("device_id");
@@ -1280,7 +1290,10 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.JwsHeader).HasColumnType("text");
                 entity.Property(e => e.JwsPayload).HasColumnType("text");
                 entity.Property(e => e.JwsSignature).HasColumnType("text");
-                entity.HasIndex(e => e.Signature).IsUnique();
+                // B-tree unique index exceeds PG btree max index row size (~2704 B) for long compact JWS; hash supports equality lookups only.
+                entity.HasIndex(e => e.Signature)
+                    .HasDatabaseName("IX_TseSignatures_Signature_Hash")
+                    .HasMethod("hash");
                 entity.HasIndex(e => new { e.CashRegisterId, e.CreatedAt });
                 entity.HasOne(e => e.CashRegister).WithMany().HasForeignKey(e => e.CashRegisterId);
             });
@@ -1558,6 +1571,12 @@ namespace KasseAPI_Final.Data
             {
                entity.HasIndex(e => e.ReceiptNumber).IsUnique();
                entity.HasIndex(e => e.PaymentId);
+               entity.Property(e => e.ReceiptNumber).IsRequired().HasColumnType("text");
+               entity.Property(e => e.JwsHeader).HasColumnType("text");
+               entity.Property(e => e.JwsPayload).HasColumnType("text");
+               entity.Property(e => e.JwsSignature).HasColumnType("text");
+               entity.Property(e => e.SignatureValue).HasColumnType("text");
+               entity.Property(e => e.PrevSignatureValue).HasColumnType("text");
             });
 
             // Receipt sequence: one row per (CashRegisterId, date).
@@ -1687,13 +1706,20 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CancelledAtUtc).HasColumnName("cancelled_at_utc");
                 entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason").HasMaxLength(500);
                 entity.Property(e => e.InternalNote).HasColumnName("internal_note").HasMaxLength(500);
+                entity.Property(e => e.CustomerId).HasColumnName("customer_id");
 
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                entity.HasOne(e => e.Customer)
+                    .WithMany()
+                    .HasForeignKey(e => e.CustomerId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.CustomerId);
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.ExpiresAtUtc);
                 entity.HasIndex(e => e.CodeHash);

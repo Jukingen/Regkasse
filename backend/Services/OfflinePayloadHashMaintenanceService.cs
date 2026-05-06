@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -97,17 +98,22 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
     private readonly ILogger<OfflinePayloadHashMaintenanceService> _logger;
     private readonly PayloadHashGuardOptions _guardOptions;
     private readonly ICoreMetrics? _metrics;
+    private readonly IDataProtector? _offlinePayloadProtector;
 
     public OfflinePayloadHashMaintenanceService(
         AppDbContext context,
         ILogger<OfflinePayloadHashMaintenanceService> logger,
         IOptionsMonitor<PayloadHashGuardOptions>? guardOptions = null,
-        ICoreMetrics? metrics = null)
+        ICoreMetrics? metrics = null,
+        IDataProtectionProvider? dataProtectionProvider = null)
     {
         _context = context;
         _logger = logger;
         _guardOptions = guardOptions?.CurrentValue ?? new PayloadHashGuardOptions();
         _metrics = metrics;
+        _offlinePayloadProtector = dataProtectionProvider != null
+            ? OfflineVoucherPayloadProtector.CreateProtector(dataProtectionProvider)
+            : null;
     }
 
     public async Task<OfflinePayloadHashAnalyzeResult> AnalyzeAsync(
@@ -123,7 +129,7 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
         var rows = await query
             .OrderByDescending(x => x.CreatedAt)
             .Take(maxRows)
-            .Select(x => new { x.Id, x.CashRegisterId, x.PayloadJson, x.PayloadHash, x.CreatedAt })
+            .Select(x => new { x.Id, x.CashRegisterId, x.PayloadJson, x.PayloadSecretsProtected, x.PayloadHash, x.CreatedAt })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -142,7 +148,11 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
             string canonical;
             try
             {
-                canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(r.PayloadJson ?? "{}");
+                var fullJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
+                    r.PayloadJson ?? "{}",
+                    r.PayloadSecretsProtected,
+                    _offlinePayloadProtector);
+                canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(fullJson);
             }
             catch
             {
@@ -312,7 +322,11 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
             string canonical;
             try
             {
-                canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(row.PayloadJson);
+                var fullJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
+                    row.PayloadJson,
+                    row.PayloadSecretsProtected,
+                    _offlinePayloadProtector);
+                canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(fullJson);
             }
             catch
             {

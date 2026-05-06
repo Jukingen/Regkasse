@@ -74,6 +74,10 @@ export interface CreateAdminVoucherResponse {
   expiresAtUtc: string;
 }
 
+export interface VerifyAdminVoucherCodeResponse {
+  matches: boolean;
+}
+
 type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : never;
 
 function unwrapData<T>(res: unknown): T {
@@ -149,6 +153,22 @@ export function cancelAdminVoucher(
   ).then(() => undefined);
 }
 
+export function verifyAdminVoucherCode(
+  id: string,
+  code: string,
+  options?: SecondParameter<typeof customInstance>
+): Promise<VerifyAdminVoucherCodeResponse> {
+  return customInstance<VerifyAdminVoucherCodeResponse>(
+    {
+      url: `${BASE}/${id}/verify-code`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { code },
+    },
+    options
+  ).then((res) => unwrapData<VerifyAdminVoucherCodeResponse>(res));
+}
+
 export const adminVouchersQueryKeys = {
   all: ['admin', 'vouchers'] as const,
   lists: () => [...adminVouchersQueryKeys.all, 'list'] as const,
@@ -218,6 +238,15 @@ export function useCancelAdminVoucher(
       void qc.invalidateQueries({ queryKey: adminVouchersQueryKeys.detail(vars.id) });
       void qc.invalidateQueries({ queryKey: adminVouchersQueryKeys.ledger(vars.id) });
     },
+    ...options,
+  });
+}
+
+export function useVerifyAdminVoucherCode(
+  options?: UseMutationOptions<VerifyAdminVoucherCodeResponse, Error, { id: string; code: string }>
+) {
+  return useMutation({
+    mutationFn: ({ id, code }: { id: string; code: string }) => verifyAdminVoucherCode(id, code.trim()),
     ...options,
   });
 }

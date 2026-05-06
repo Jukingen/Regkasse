@@ -146,6 +146,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
 });
 
+builder.Services.AddDataProtection();
+
 // Identity servisleri
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -466,6 +468,7 @@ builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogSer
 builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();
 builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
+builder.Services.AddScoped<IVoucherIssuanceService, VoucherIssuanceService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IRksvSpecialReceiptFinanzOnlineSubmissionTracker, RksvSpecialReceiptFinanzOnlineSubmissionTracker>();
 builder.Services.AddScoped<IRksvSpecialReceiptService, RksvSpecialReceiptService>();

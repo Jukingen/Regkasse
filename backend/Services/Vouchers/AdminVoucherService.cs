@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Data;
@@ -166,10 +164,10 @@ public sealed class AdminVoucherService : IAdminVoucherService
         const int maxAttempts = 8;
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var plain = GeneratePlainVoucherCode();
+            var plain = VoucherPlainCodeFactory.GeneratePlainVoucherCode();
             var normalized = VoucherCodeHasher.NormalizeCode(plain);
             var hash = VoucherCodeHasher.HashNormalized(normalized);
-            var masked = BuildMaskedCode(normalized);
+            var masked = VoucherPlainCodeFactory.BuildMaskedCode(normalized);
 
             var exists = await _context.Vouchers.AsNoTracking()
                 .AnyAsync(v => v.TenantId == tenantId && v.CodeHash == hash, cancellationToken)
@@ -239,6 +237,29 @@ public sealed class AdminVoucherService : IAdminVoucherService
         }
 
         return (null, "CODE_GENERATION_FAILED");
+    }
+
+    public async Task<(VerifyAdminVoucherCodeResponse? Response, string? ErrorCode)> VerifyCodeMatchesAsync(
+        Guid tenantId,
+        Guid id,
+        string code,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = VoucherCodeHasher.NormalizeCode(code);
+        if (string.IsNullOrEmpty(normalized))
+            return (null, "CODE_REQUIRED");
+
+        var hash = VoucherCodeHasher.HashNormalized(normalized);
+        var storedHash = await _context.Vouchers.AsNoTracking()
+            .Where(v => v.TenantId == tenantId && v.Id == id)
+            .Select(v => v.CodeHash)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (storedHash == null)
+            return (null, "NOT_FOUND");
+
+        return (new VerifyAdminVoucherCodeResponse { Matches = storedHash == hash }, null);
     }
 
     public async Task<(bool Ok, string? ErrorCode)> CancelAsync(
@@ -318,25 +339,6 @@ public sealed class AdminVoucherService : IAdminVoucherService
         if (dt.Kind == DateTimeKind.Local)
             return dt.ToUniversalTime();
         return DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-    }
-
-    private static string GeneratePlainVoucherCode()
-    {
-        const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        Span<byte> bytes = stackalloc byte[14];
-        RandomNumberGenerator.Fill(bytes);
-        var sb = new StringBuilder(20);
-        sb.Append("GUT-");
-        foreach (var b in bytes)
-            sb.Append(alphabet[b % alphabet.Length]);
-        return sb.ToString();
-    }
-
-    private static string BuildMaskedCode(string normalized)
-    {
-        if (normalized.Length <= 4)
-            return "****" + normalized;
-        return "****" + normalized[^4..];
     }
 
     private static string StatusToApi(VoucherStatus s) =>

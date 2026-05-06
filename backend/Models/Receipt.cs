@@ -17,8 +17,7 @@ namespace KasseAPI_Final.Models
         public Guid PaymentId { get; set; }
 
         [Required]
-        [Column("receipt_number")]
-        [StringLength(50)]
+        [Column("receipt_number", TypeName = "text")]
         public string ReceiptNumber { get; set; } = string.Empty;
 
         [Required]
@@ -48,10 +47,10 @@ namespace KasseAPI_Final.Models
         [Column("qr_code_payload")]
         public string? QrCodePayload { get; set; }
 
-        [Column("signature_value")]
+        [Column("signature_value", TypeName = "text")]
         public string? SignatureValue { get; set; }
 
-        [Column("prev_signature_value")]
+        [Column("prev_signature_value", TypeName = "text")]
         public string? PrevSignatureValue { get; set; }
 
         [Column("created_at")]
@@ -62,16 +61,13 @@ namespace KasseAPI_Final.Models
         [Column("signature_format")]
         public string? SignatureFormat { get; set; }
 
-        [MaxLength(1000)]
-        [Column("jws_header")]
+        [Column("jws_header", TypeName = "text")]
         public string? JwsHeader { get; set; }
 
-        [MaxLength(4000)]
-        [Column("jws_payload")]
+        [Column("jws_payload", TypeName = "text")]
         public string? JwsPayload { get; set; }
 
-        [MaxLength(500)]
-        [Column("jws_signature")]
+        [Column("jws_signature", TypeName = "text")]
         public string? JwsSignature { get; set; }
 
         [MaxLength(50)]

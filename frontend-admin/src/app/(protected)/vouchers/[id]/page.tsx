@@ -30,6 +30,7 @@ import {
   useAdminVoucherDetail,
   useAdminVoucherLedger,
   useCancelAdminVoucher,
+  useVerifyAdminVoucherCode,
   type AdminVoucherLedgerLineDto,
 } from '@/api/admin/vouchers';
 import { formatCurrency, formatDateTime } from '@/i18n/formatting';
@@ -68,8 +69,10 @@ export default function AdminVoucherDetailPage() {
   const detailQuery = useAdminVoucherDetail(id, { enabled: canRead && !!id });
   const ledgerQuery = useAdminVoucherLedger(id, canRead && canAudit && !!id);
   const cancelMutation = useCancelAdminVoucher();
+  const verifyCodeMutation = useVerifyAdminVoucherCode();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelForm] = Form.useForm();
+  const [verifyCodeInput, setVerifyCodeInput] = useState('');
 
   const d = detailQuery.data;
 
@@ -182,6 +185,24 @@ export default function AdminVoucherDetailPage() {
     if (canAudit) await ledgerQuery.refetch();
   };
 
+  const submitVerifyCode = () => {
+    const code = verifyCodeInput.trim();
+    if (!code) {
+      void message.warning(t('vouchers.detail.verifyCodeEmpty'));
+      return;
+    }
+    verifyCodeMutation
+      .mutateAsync({ id, code })
+      .then((r) => {
+        setVerifyCodeInput('');
+        if (r.matches) void message.success(t('vouchers.detail.verifyCodeMatch'));
+        else void message.error(t('vouchers.detail.verifyCodeNoMatch'));
+      })
+      .catch(() => {
+        void message.error(t('vouchers.errors.verifyFailed'));
+      });
+  };
+
   if (!canRead) {
     return (
       <AdminPageShell>
@@ -265,6 +286,34 @@ export default function AdminVoucherDetailPage() {
                 </Descriptions.Item>
               ) : null}
             </Descriptions>
+          </Card>
+
+          <Card title={t('vouchers.detail.verifyCodeTitle')} style={{ marginBottom: 16 }}>
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+              message={t('vouchers.detail.verifyCodeHint')}
+              description={t('vouchers.detail.codePrivacyNotice')}
+            />
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space.Compact style={{ width: '100%', maxWidth: 520 }}>
+                <Input.Password
+                  autoComplete="off"
+                  placeholder={t('vouchers.detail.verifyCodePlaceholder')}
+                  value={verifyCodeInput}
+                  onChange={(e) => setVerifyCodeInput(e.target.value)}
+                  onPressEnter={() => submitVerifyCode()}
+                />
+                <Button
+                  type="primary"
+                  loading={verifyCodeMutation.isPending}
+                  onClick={() => submitVerifyCode()}
+                >
+                  {t('vouchers.detail.verifyCodeSubmit')}
+                </Button>
+              </Space.Compact>
+            </Space>
           </Card>
 
           <Card title={t('vouchers.ledger.title')}>

@@ -53,7 +53,15 @@
     "cancel": "Hediye çekini iptal et",
     "internalNote": "Dahili not",
     "cancellationReason": "İptal nedeni",
-    "cancelledAt": "İptal zamanı"
+    "cancelledAt": "İptal zamanı",
+    "codePrivacyNotice": "Güvenlik nedeniyle tam kod sunucuda saklanmaz ve burada gösterilemez. Müşterinin verdiği kodun bu kayda ait olup olmadığını doğrulayabilirsiniz.",
+    "verifyCodeTitle": "Kodu doğrula",
+    "verifyCodeHint": "Destek ve kontrol",
+    "verifyCodePlaceholder": "Kodu girin (ör. GUT-…)",
+    "verifyCodeSubmit": "Doğrula",
+    "verifyCodeMatch": "Kod bu hediye çekine ait.",
+    "verifyCodeNoMatch": "Kod bu hediye çekine ait değil.",
+    "verifyCodeEmpty": "Lütfen bir kod girin."
   },
   "cancel": {
     "title": "Hediye çekini iptal et",
@@ -83,6 +91,7 @@
   "errors": {
     "loadFailed": "Veriler yüklenemedi.",
     "createFailed": "Oluşturma başarısız.",
-    "cancelFailed": "İptal başarısız."
+    "cancelFailed": "İptal başarısız.",
+    "verifyFailed": "Kod doğrulanamadı."
   }
 }

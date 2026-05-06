@@ -95,3 +95,18 @@ public sealed class CancelAdminVoucherRequest
     [MaxLength(500)]
     public string Reason { get; set; } = string.Empty;
 }
+
+/// <summary>Admin compares a customer-provided code to a voucher row (hash-only storage; plaintext is never persisted).</summary>
+public sealed class VerifyAdminVoucherCodeRequest
+{
+    [Required]
+    [MinLength(1)]
+    [MaxLength(128)]
+    public string Code { get; set; } = string.Empty;
+}
+
+public sealed class VerifyAdminVoucherCodeResponse
+{
+    /// <summary>True when normalized code hash equals this voucher's stored hash.</summary>
+    public bool Matches { get; init; }
+}

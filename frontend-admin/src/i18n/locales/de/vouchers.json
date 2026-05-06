@@ -53,7 +53,15 @@
     "cancel": "Gutschein stornieren",
     "internalNote": "Interne Notiz",
     "cancellationReason": "Stornogrund",
-    "cancelledAt": "Storniert am"
+    "cancelledAt": "Storniert am",
+    "codePrivacyNotice": "Der vollständige Code wird aus Sicherheitsgründen nicht auf dem Server gespeichert und kann hier nicht angezeigt werden. Sie können einen vom Kunden mitgeteilten Code prüfen, ob er zu diesem Gutschein gehört.",
+    "verifyCodeTitle": "Code prüfen",
+    "verifyCodeHint": "Plausibilitätskontrolle für Support",
+    "verifyCodePlaceholder": "Code eingeben (z. B. GUT-…)",
+    "verifyCodeSubmit": "Prüfen",
+    "verifyCodeMatch": "Der Code passt zu diesem Gutschein.",
+    "verifyCodeNoMatch": "Der Code passt nicht zu diesem Gutschein.",
+    "verifyCodeEmpty": "Bitte einen Code eingeben."
   },
   "cancel": {
     "title": "Gutschein stornieren",
@@ -83,6 +91,7 @@
   "errors": {
     "loadFailed": "Daten konnten nicht geladen werden.",
     "createFailed": "Erstellung fehlgeschlagen.",
-    "cancelFailed": "Stornierung fehlgeschlagen."
+    "cancelFailed": "Stornierung fehlgeschlagen.",
+    "verifyFailed": "Code konnte nicht geprüft werden."
   }
 }

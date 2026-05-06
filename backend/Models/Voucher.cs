@@ -44,6 +44,13 @@ public class Voucher
     [ForeignKey(nameof(TenantId))]
     public virtual Tenant? Tenant { get; set; }
 
+    /// <summary>Optional buyer/recipient customer (POS issuance).</summary>
+    [Column("customer_id")]
+    public Guid? CustomerId { get; set; }
+
+    [ForeignKey(nameof(CustomerId))]
+    public virtual Customer? Customer { get; set; }
+
     /// <summary>SHA-256 hex (or app-defined normalized hash) of the canonical voucher code; not reversible.</summary>
     [Required]
     [MaxLength(64)]

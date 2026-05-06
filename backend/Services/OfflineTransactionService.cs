@@ -7,6 +7,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Configuration;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -32,12 +33,14 @@ public class OfflineTransactionService : IOfflineTransactionService
     private readonly ILogger<OfflineTransactionService> _logger;
     private readonly OfflineReplayOptions _replayOptions;
     private readonly ICoreMetrics? _metrics;
+    private readonly IDataProtector _offlineFullPayloadProtector;
 
     public OfflineTransactionService(
         AppDbContext context,
         IPaymentService paymentService,
         IAuditLogService auditLogService,
         ILogger<OfflineTransactionService> logger,
+        IDataProtectionProvider dataProtectionProvider,
         IOptions<OfflineReplayOptions>? replayOptions = null,
         ICoreMetrics? metrics = null)
     {
@@ -47,6 +50,7 @@ public class OfflineTransactionService : IOfflineTransactionService
         _logger = logger;
         _replayOptions = replayOptions?.Value ?? new OfflineReplayOptions();
         _metrics = metrics;
+        _offlineFullPayloadProtector = OfflineVoucherPayloadProtector.CreateProtector(dataProtectionProvider);
     }
 
     public async Task<ReplayOfflineTransactionsResponse> ReplayOfflineTransactionsAsync(
@@ -130,8 +134,11 @@ public class OfflineTransactionService : IOfflineTransactionService
             {
                 _metrics?.RecordReplayTotal(1);
                 var payloadRaw = GetPayloadRaw(item.Payload);
-                var (normalizedPayloadJson, payloadHash) =
-                    OfflinePayloadHashing.NormalizeAndHash(payloadRaw);
+                var payloadPrepared = OfflineVoucherPayloadProtector.PrepareForPersistence(
+                    payloadRaw,
+                    _offlineFullPayloadProtector);
+                var normalizedPayloadJson = payloadPrepared.StoredPayloadJson;
+                var payloadHash = payloadPrepared.PayloadHashHex;
 
                 if (item.OfflineTransactionId == Guid.Empty)
                 {
@@ -251,8 +258,7 @@ public class OfflineTransactionService : IOfflineTransactionService
                             // 5) Create new offline transaction row.
                             offline = await CreateOfflineTransactionRowAsync(
                                     item,
-                                    normalizedPayloadJson,
-                                    payloadHash,
+                                    payloadPrepared,
                                     userId,
                                     userRole,
                                     replayBatchCorrelationId,
@@ -277,10 +283,11 @@ public class OfflineTransactionService : IOfflineTransactionService
                     continue;
                 }
 
-                // For safety: payload immutability check (structural).
-                var payloadMatches = OfflinePayloadComparer.EqualsNormalized(
-                    offline.PayloadJson,
-                    normalizedPayloadJson);
+                // Immutability: content hash covers full voucher-bearing canonical JSON; structural compares stored PayloadJson vs this batch's normalized view (same shape: redacted+DP or legacy plaintext).
+                var hashMatches = string.Equals(payloadHash, offline.PayloadHash, StringComparison.OrdinalIgnoreCase);
+                var structuralMatches =
+                    OfflinePayloadComparer.EqualsNormalized(offline.PayloadJson, normalizedPayloadJson);
+                var payloadMatches = hashMatches || structuralMatches;
                 if (!payloadMatches)
                 {
                     // Fraud-resistant: mark offline intent as failed; never replay tampered payload.
@@ -386,8 +393,13 @@ public class OfflineTransactionService : IOfflineTransactionService
 
                 try
                 {
+                    var replayJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
+                        offline.PayloadJson,
+                        offline.PayloadSecretsProtected,
+                        _offlineFullPayloadProtector);
+
                     var paymentRequest =
-                        JsonSerializer.Deserialize<CreatePaymentRequest>(offline.PayloadJson);
+                        JsonSerializer.Deserialize<CreatePaymentRequest>(replayJson);
 
                     if (paymentRequest == null)
                         throw new InvalidOperationException("Offline payload could not be deserialized into CreatePaymentRequest.");
@@ -539,8 +551,7 @@ public class OfflineTransactionService : IOfflineTransactionService
 
     private async Task<OfflineTransaction> CreateOfflineTransactionRowAsync(
         ReplayOfflineTransactionItem item,
-        string normalizedPayloadJson,
-        string payloadHash,
+        OfflineVoucherPayloadProtector.PrepareResult prepared,
         string userId,
         string userRole,
         Guid replayBatchCorrelationId,
@@ -556,8 +567,9 @@ public class OfflineTransactionService : IOfflineTransactionService
             ServerReceivedAtUtc = now,
             CreatedAt = now, // BaseEntity.CreatedAt
             OfflineCreatedAtUtc = offlineCreatedAtUtc,
-            PayloadJson = normalizedPayloadJson,
-            PayloadHash = payloadHash,
+            PayloadJson = prepared.StoredPayloadJson,
+            PayloadHash = prepared.PayloadHashHex,
+            PayloadSecretsProtected = prepared.ProtectedBase64,
             Status = OfflineTransactionStatus.Pending,
             SyncedPaymentId = null,
             FiscalizedAtUtc = null,
@@ -650,7 +662,7 @@ public class OfflineTransactionService : IOfflineTransactionService
             var existing = await _context.OfflineTransactions
                 .FirstOrDefaultAsync(x =>
                     x.CashRegisterId == offline.CashRegisterId &&
-                    x.PayloadHash == payloadHash)
+                    x.PayloadHash == prepared.PayloadHashHex)
                 .ConfigureAwait(false);
             if (existing != null)
                 return existing;
@@ -661,7 +673,7 @@ public class OfflineTransactionService : IOfflineTransactionService
         // OFFLINE_CREATED audit: record was received by backend.
         await TryWriteOfflineCreatedAuditAsync(
             offline,
-            normalizedPayloadJson,
+            prepared.StoredPayloadJson,
             userId,
             userRole,
             replayBatchCorrelationId,
@@ -689,7 +701,7 @@ public class OfflineTransactionService : IOfflineTransactionService
             .Where(x => x.CashRegisterId == cashRegisterId)
             .OrderByDescending(x => x.CreatedAt)
             .Take(RuntimeRecomputedHashCandidateLimit)
-            .Select(x => new { x.Id, x.PayloadJson })
+            .Select(x => new { x.Id, x.PayloadJson, x.PayloadSecretsProtected })
             .ToListAsync()
             .ConfigureAwait(false);
 
@@ -700,7 +712,11 @@ public class OfflineTransactionService : IOfflineTransactionService
             string h;
             try
             {
-                h = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(c.PayloadJson);
+                var fullJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
+                    c.PayloadJson,
+                    c.PayloadSecretsProtected,
+                    _offlineFullPayloadProtector);
+                h = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(fullJson);
             }
             catch
             {
@@ -734,7 +750,11 @@ public class OfflineTransactionService : IOfflineTransactionService
         string canonical;
         try
         {
-            canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(row.PayloadJson);
+            var fullJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
+                row.PayloadJson,
+                row.PayloadSecretsProtected,
+                _offlineFullPayloadProtector);
+            canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(fullJson);
         }
         catch
         {
@@ -785,7 +805,12 @@ public class OfflineTransactionService : IOfflineTransactionService
             .ConfigureAwait(false);
 
         var matches = candidates
-            .Where(x => OfflinePayloadComparer.EqualsNormalized(x.PayloadJson, normalizedPayloadJson))
+            .Where(x => OfflinePayloadComparer.EqualsNormalized(
+                OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
+                    x.PayloadJson,
+                    x.PayloadSecretsProtected,
+                    _offlineFullPayloadProtector),
+                normalizedPayloadJson))
             .ToList();
         if (matches.Count != 1)
         {
