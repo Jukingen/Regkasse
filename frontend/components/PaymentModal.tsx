@@ -234,6 +234,8 @@ export default function PaymentModal({
 
   /** Gutschein: code, validate snapshot, redeem amount (must match fiscal total for single-code flow). */
   const [voucherCode, setVoucherCode] = useState('');
+  /** Gutschein: true when code has non-whitespace (inline ⚠️ when false while method is voucher). */
+  const [isVoucherCodeValid, setIsVoucherCodeValid] = useState(true);
   const [voucherRedeemAmountStr, setVoucherRedeemAmountStr] = useState('');
   const [voucherSnapshot, setVoucherSnapshot] = useState<VoucherValidateSuccess | null>(null);
   const [validatedVoucherCode, setValidatedVoucherCode] = useState<string | null>(null);
@@ -388,6 +390,14 @@ export default function PaymentModal({
     const r = parseLocaleDecimal(amountReceived);
     setIsAmountValid(Number.isFinite(r) && r > 0);
   }, [amountReceived, requiresCashAmount]);
+
+  useEffect(() => {
+    if (selectedPaymentMethod !== 'voucher') {
+      setIsVoucherCodeValid(true);
+      return;
+    }
+    setIsVoucherCodeValid(voucherCode.trim().length > 0);
+  }, [selectedPaymentMethod, voucherCode]);
 
   // Backend line toplamları kullan - FE hesaplama yapmaz (totalPrice = lineGross)
   const calculatedCartItems = useMemo(() => {
@@ -818,6 +828,10 @@ export default function PaymentModal({
     }
 
     if (selectedPaymentMethod === 'voucher') {
+      if (!voucherCode.trim()) {
+        debugPosPaymentTrace('submit_blocked_voucher_code_empty', {});
+        return;
+      }
       if (!voucherSnapshot || validatedVoucherCode?.trim() !== voucherCode.trim()) {
         Alert.alert(
           t('checkout:posFlow.payment.alerts.hintTitle'),
@@ -1483,7 +1497,14 @@ export default function PaymentModal({
                 {!isOnline ? (
                   <Text style={styles.voucherInlineError}>Gutschein ist offline nicht möglich.</Text>
                 ) : null}
-                <Text style={styles.voucherFieldLabel}>{t('checkout:posFlow.payment.voucher.codeLabel')}</Text>
+                <View style={styles.cashLabelWithHint}>
+                  <Text style={styles.voucherFieldLabel}>{t('checkout:posFlow.payment.voucher.codeLabel')}</Text>
+                  {!isVoucherCodeValid ? (
+                    <Text style={styles.cashAmountWarnIcon} accessibilityRole="image" accessibilityLabel="⚠">
+                      ⚠️
+                    </Text>
+                  ) : null}
+                </View>
                 <TextInput
                   style={styles.voucherCodeInput}
                   value={voucherCode}

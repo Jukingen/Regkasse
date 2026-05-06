@@ -778,6 +778,20 @@ namespace KasseAPI_Final.Services
                             };
                         }
                     }
+                    if (IsVoucherLedgerIdempotencyConstraintViolation(ex))
+                    {
+                        const string msg = "Voucher already used in this transaction. Please retry with a new idempotency key.";
+                        _logger.LogWarning(ex, "Voucher ledger idempotency unique constraint violated during payment create");
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = msg,
+                            Errors = { msg },
+                            IsDeterministicFailure = true,
+                            DiagnosticCode = "VOUCHER_LEDGER_IDEMPOTENCY_CONFLICT"
+                        };
+                    }
+
                     _logger.LogError(ex, "Fiscal transaction failed (idempotency key violation) for payment");
                     throw;
                 }
@@ -2511,6 +2525,20 @@ namespace KasseAPI_Final.Services
             {
                 if (e is PostgresException pg && pg.SqlState == "23505" &&
                     (pg.ConstraintName?.Contains("idempotency", StringComparison.OrdinalIgnoreCase) ?? false))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Unique violation on <c>voucher_ledger_entries.idempotency_key</c> (e.g. index IX_voucher_ledger_entries_idempotency_key).
+        /// </summary>
+        private static bool IsVoucherLedgerIdempotencyConstraintViolation(DbUpdateException ex)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is PostgresException pg && pg.SqlState == "23505" &&
+                    (pg.ConstraintName?.Contains("voucher_ledger_entries_idempotency", StringComparison.OrdinalIgnoreCase) ?? false))
                     return true;
             }
             return false;

@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -165,13 +167,18 @@ public partial class PaymentService
         return null;
     }
 
+    /// <summary>
+    /// Stable key for <see cref="VoucherLedgerEntry.IdempotencyKey"/> (max 128). Full canonical input is hashed with SHA256 to avoid unique-index collisions from truncation.
+    /// </summary>
     private static string BuildVoucherLedgerIdempotencyKey(string? paymentIdempotencyKey, Guid paymentId, Guid voucherId, string suffix)
     {
         var core = string.IsNullOrEmpty(paymentIdempotencyKey)
             ? $"{paymentId:N}"
             : $"{paymentIdempotencyKey.Trim()}:p";
-        var key = $"{core}:vr:{voucherId:N}:{suffix}";
-        return key.Length <= 128 ? key : key[..128];
+        var canonical = $"{core}:vr:{voucherId:N}:{suffix}";
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(canonical));
+        var hex = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        return $"vrk:{hex}";
     }
 
     /// <summary>
