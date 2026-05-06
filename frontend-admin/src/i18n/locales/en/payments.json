@@ -35,7 +35,8 @@
     "tagReceipt": "Receipt",
     "tagInvoice": "Invoice",
     "tagIncident": "Incident",
-    "foTagPrefix": "FO"
+    "foTagPrefix": "FO",
+    "mixedVoucherTag": "Voucher {{amount}}"
   },
   "stats": {
     "paymentCount": "Payment count",
@@ -67,6 +68,10 @@
     "labelTimestampServer": "Timestamp (server)",
     "labelAmount": "Amount",
     "labelPaymentMethodRaw": "Payment method (raw)",
+    "labelVoucherRedeemed": "Paid by voucher",
+    "labelSettlementAmount": "Paid by main settlement method",
+    "labelMixedPaymentHint": "Note",
+    "mixedPaymentHint": "This payment was combined: voucher + main settlement method.",
     "labelCashRegisterFk": "Register (FK, UUID)",
     "labelCustomerName": "Customer name",
     "labelIdempotencyKey": "Idempotency key",

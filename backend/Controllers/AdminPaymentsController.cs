@@ -145,7 +145,13 @@ public class AdminPaymentsController : ControllerBase
                     FinanzOnlineReferenceId = p.FinanzOnlineReferenceId,
                     FinanzOnlineLastAttemptAtUtc = p.FinanzOnlineLastAttemptAtUtc,
                     FinanzOnlineRetryCount = p.FinanzOnlineRetryCount,
-                    InvoicePersisted = _context.Invoices.Any(i => i.SourcePaymentId == p.Id)
+                    InvoicePersisted = _context.Invoices.Any(i => i.SourcePaymentId == p.Id),
+                    VoucherRedeemedAmount = _context.VoucherLedgerEntries
+                        .Where(l => l.PaymentId == p.Id && l.Type == VoucherTransactionType.Redeem)
+                        .Select(l => (decimal?)(-l.Amount))
+                        .Sum() ?? 0m,
+                    HasVoucherRedemption = _context.VoucherLedgerEntries
+                        .Any(l => l.PaymentId == p.Id && l.Type == VoucherTransactionType.Redeem)
                 })
                 .ToListAsync(cancellationToken);
 
@@ -180,6 +186,10 @@ public class AdminPaymentsController : ControllerBase
 
             var receipt = await _context.Receipts.AsNoTracking().FirstOrDefaultAsync(r => r.PaymentId == id, cancellationToken);
             var invoice = await _context.Invoices.AsNoTracking().FirstOrDefaultAsync(i => i.SourcePaymentId == id, cancellationToken);
+            var voucherRedeemedAmount = await _context.VoucherLedgerEntries.AsNoTracking()
+                .Where(l => l.PaymentId == id && l.Type == VoucherTransactionType.Redeem)
+                .Select(l => (decimal?)(-l.Amount))
+                .SumAsync(cancellationToken) ?? 0m;
 
             return Ok(new AdminPaymentDetailDto
             {
@@ -222,7 +232,10 @@ public class AdminPaymentsController : ControllerBase
                 FinanzOnlineReferenceId = p.FinanzOnlineReferenceId,
                 FinanzOnlineLastAttemptAtUtc = p.FinanzOnlineLastAttemptAtUtc,
                 FinanzOnlineRetryCount = p.FinanzOnlineRetryCount,
-                InvoicePersisted = invoice != null
+                InvoicePersisted = invoice != null,
+                VoucherRedeemedAmount = voucherRedeemedAmount,
+                SettlementAmount = decimal.Round(p.TotalAmount - voucherRedeemedAmount, 2, MidpointRounding.AwayFromZero),
+                HasVoucherRedemption = voucherRedeemedAmount > 0m
             });
         }
         catch (Exception ex)
@@ -379,6 +392,8 @@ public class AdminPaymentListItemDto
     public DateTime? FinanzOnlineLastAttemptAtUtc { get; set; }
     public int FinanzOnlineRetryCount { get; set; }
     public bool InvoicePersisted { get; set; }
+    public decimal VoucherRedeemedAmount { get; set; }
+    public bool HasVoucherRedemption { get; set; }
 }
 
 public class AdminPaymentDetailDto
@@ -423,6 +438,9 @@ public class AdminPaymentDetailDto
     public DateTime? FinanzOnlineLastAttemptAtUtc { get; set; }
     public int FinanzOnlineRetryCount { get; set; }
     public bool InvoicePersisted { get; set; }
+    public decimal VoucherRedeemedAmount { get; set; }
+    public decimal SettlementAmount { get; set; }
+    public bool HasVoucherRedemption { get; set; }
 }
 
 public class AdminPaymentActionResponse

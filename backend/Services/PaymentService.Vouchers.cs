@@ -24,7 +24,7 @@ public partial class PaymentService
     private async Task<(PaymentResult? Error, List<VoucherRedeemLine>? Lines)> BuildVoucherRedemptionPlanAsync(
         Guid tenantId,
         Guid cashRegisterId,
-        decimal fiscalTotal,
+        decimal expectedVoucherTotal,
         PaymentMethodRequest payment,
         CancellationToken cancellationToken)
     {
@@ -55,14 +55,14 @@ public partial class PaymentService
             var n = VoucherCodeHasher.NormalizeCode(payment.VoucherCode);
             if (string.IsNullOrEmpty(n))
                 return (InvalidVoucherPayment("Voucher code is empty."), null);
-            aggregated[n] = decimal.Round(fiscalTotal, 2, MidpointRounding.AwayFromZero);
+            aggregated[n] = decimal.Round(expectedVoucherTotal, 2, MidpointRounding.AwayFromZero);
         }
         else
             return (InvalidVoucherPayment("Voucher payment requires voucherCode or voucherRedemptions."), null);
 
         var sum = aggregated.Values.Sum();
-        if (Math.Abs(sum - fiscalTotal) > VoucherMoneyTolerance)
-            return (InvalidVoucherPayment("Voucher redemption total must match the fiscal sale total."), null);
+        if (Math.Abs(sum - expectedVoucherTotal) > VoucherMoneyTolerance)
+            return (InvalidVoucherPayment("Voucher redemption total must match the expected voucher amount."), null);
 
         var lines = new List<VoucherRedeemLine>();
         foreach (var (codeNorm, amount) in aggregated.OrderBy(kv => kv.Key, StringComparer.Ordinal))

@@ -74,6 +74,20 @@ interface PaymentStatisticsShape {
 
 type IntlFormatters = ReturnType<typeof createIntlFormatters>;
 
+function getVoucherRedeemedAmount(value: unknown): number {
+  if (!value || typeof value !== 'object') return 0;
+  const raw = (value as Record<string, unknown>).voucherRedeemedAmount;
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || raw <= 0) return 0;
+  return raw;
+}
+
+function getSettlementAmount(value: unknown, fallbackTotal: number): number {
+  if (!value || typeof value !== 'object') return fallbackTotal;
+  const raw = (value as Record<string, unknown>).settlementAmount;
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return fallbackTotal;
+  return raw;
+}
+
 function formatDetailValue(value: unknown, fmt: IntlFormatters, yes: string, no: string): string {
   if (value === null || value === undefined) return FORMAT_EMPTY_DISPLAY;
   if (typeof value === 'boolean') return value ? yes : no;
@@ -292,7 +306,21 @@ export default function PaymentsPage() {
         title: t('payments.table.colMethod'),
         dataIndex: 'method',
         key: 'method',
-        render: (method: string) => <Tag color="blue">{method || FORMAT_EMPTY_DISPLAY}</Tag>,
+        render: (method: string, row: AdminPaymentListItemDto) => {
+          const voucherRedeemed = getVoucherRedeemedAmount(row);
+          return (
+            <Space size={4} wrap>
+              <Tag color="blue">{method || FORMAT_EMPTY_DISPLAY}</Tag>
+              {voucherRedeemed > 0 ? (
+                <Tag color="purple">
+                  {t('payments.table.mixedVoucherTag', {
+                    amount: formatCurrency(voucherRedeemed, formatLocale, { currency: row.currency || 'EUR' }),
+                  })}
+                </Tag>
+              ) : null}
+            </Space>
+          );
+        },
       },
       {
         title: t('payments.table.colStatus'),
@@ -617,6 +645,28 @@ export default function PaymentsPage() {
                 <Descriptions.Item label={t('payments.detail.labelPaymentMethodRaw')}>
                   {detailStr(paymentDetailData.paymentMethodRaw ?? paymentDetailData.method)}
                 </Descriptions.Item>
+                {(() => {
+                  const voucherRedeemed = getVoucherRedeemedAmount(paymentDetailData);
+                  if (voucherRedeemed <= 0) return null;
+                  const settlementAmount = getSettlementAmount(paymentDetailData, Number(paymentDetailData.totalAmount ?? 0));
+                  return (
+                    <>
+                      <Descriptions.Item label={t('payments.detail.labelVoucherRedeemed')}>
+                        {formatCurrency(voucherRedeemed, formatLocale, {
+                          currency: paymentDetailData.currency || 'EUR',
+                        })}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t('payments.detail.labelSettlementAmount')}>
+                        {formatCurrency(settlementAmount, formatLocale, {
+                          currency: paymentDetailData.currency || 'EUR',
+                        })}
+                      </Descriptions.Item>
+                      <Descriptions.Item label={t('payments.detail.labelMixedPaymentHint')}>
+                        {t('payments.detail.mixedPaymentHint')}
+                      </Descriptions.Item>
+                    </>
+                  );
+                })()}
                 <Descriptions.Item label={t('payments.detail.labelCashRegisterFk')}>
                   <Typography.Text code copyable>
                     {detailStr(paymentDetailData.cashRegisterId)}

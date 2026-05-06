@@ -31,10 +31,9 @@ export const usePayment = () => {
       console.error('Failed to load payment methods', err);
       // Hata olsa bile UI bloklanmasın, default listeyi dön
       const defaultMethods: PaymentMethod[] = [
-        { id: 'cash', name: 'Nakit', type: 'cash', icon: 'cash-outline', isDefault: true, requiresReceivedAmount: true },
-        { id: 'card', name: 'Kart', type: 'card', icon: 'card-outline', requiresReceivedAmount: false },
-        { id: 'voucher', name: 'Gutschein', type: 'voucher', icon: 'gift-outline', requiresReceivedAmount: false },
-        { id: 'transfer', name: 'Havale', type: 'transfer', icon: 'swap-horizontal-outline', requiresReceivedAmount: false },
+        { id: 'cash', name: 'Bar', type: 'cash', icon: 'cash-outline', isDefault: true, requiresReceivedAmount: true },
+        { id: 'card', name: 'Kreditkarte', type: 'card', icon: 'card-outline', requiresReceivedAmount: false },
+        { id: 'transfer', name: 'Überweisung', type: 'transfer', icon: 'swap-horizontal-outline', requiresReceivedAmount: false },
       ];
       setPaymentMethods(defaultMethods);
       return defaultMethods;

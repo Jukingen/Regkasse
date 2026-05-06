@@ -895,6 +895,89 @@ public class VoucherPaymentRedemptionTests
     }
 
     [Fact]
+    public async Task CreatePayment_CashMethod_WithVoucherRedemption_MixedPayment_SucceedsAndRedeemsOnlyVoucherPortion()
+    {
+        await using var context = CreateContext();
+        var (_, productId, customerId, regId, voucherId) = await SeedCatalogAndVoucherAsync(context, 100m, DateTime.UtcNow.AddDays(10), VoucherStatus.Active);
+        var paymentService = CreatePaymentService(context);
+
+        var request = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            TotalAmount = 5.00m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = regId,
+            Payment = new PaymentMethodRequest
+            {
+                Method = "cash",
+                TseRequired = false,
+                Amount = 2.00m,
+                VoucherRedemptions = new List<VoucherRedemptionRequestItem>
+                {
+                    new() { Code = PlainCode, Amount = 3.00m }
+                }
+            },
+            Items = new List<PaymentItemRequest>
+            {
+                new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced }
+            }
+        };
+
+        var result = await paymentService.CreatePaymentAsync(request, "u1");
+        Assert.True(result.Success, result.Message);
+
+        var payment = await context.PaymentDetails.AsNoTracking().FirstAsync(p => p.Id == result.PaymentId!.Value);
+        Assert.Equal(((int)PaymentMethod.Cash).ToString(), payment.PaymentMethodRaw);
+
+        var voucher = await context.Vouchers.AsNoTracking().FirstAsync(v => v.Id == voucherId);
+        Assert.Equal(97.00m, voucher.RemainingAmount);
+
+        var ledger = await context.VoucherLedgerEntries.AsNoTracking()
+            .Where(l => l.PaymentId == result.PaymentId!.Value && l.Type == VoucherTransactionType.Redeem)
+            .ToListAsync();
+        Assert.Single(ledger);
+        Assert.Equal(-3.00m, ledger[0].Amount);
+    }
+
+    [Fact]
+    public async Task CreatePayment_CashMethod_WithVoucherRedemption_MissingSettlementAmount_Fails()
+    {
+        await using var context = CreateContext();
+        var (_, productId, customerId, regId, voucherId) = await SeedCatalogAndVoucherAsync(context, 100m, DateTime.UtcNow.AddDays(10), VoucherStatus.Active);
+        var paymentService = CreatePaymentService(context);
+
+        var request = new CreatePaymentRequest
+        {
+            CustomerId = customerId,
+            TableNumber = 1,
+            TotalAmount = 5.00m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = regId,
+            Payment = new PaymentMethodRequest
+            {
+                Method = "cash",
+                TseRequired = false,
+                VoucherRedemptions = new List<VoucherRedemptionRequestItem>
+                {
+                    new() { Code = PlainCode, Amount = 3.00m }
+                }
+            },
+            Items = new List<PaymentItemRequest>
+            {
+                new() { ProductId = productId, Quantity = 1, TaxType = TaxType.Reduced }
+            }
+        };
+
+        var result = await paymentService.CreatePaymentAsync(request, "u1");
+        Assert.False(result.Success);
+        Assert.Equal("VOUCHER_MIXED_SETTLEMENT_AMOUNT_REQUIRED", result.DiagnosticCode);
+
+        var voucher = await context.Vouchers.AsNoTracking().FirstAsync(v => v.Id == voucherId);
+        Assert.Equal(100m, voucher.RemainingAmount);
+    }
+
+    [Fact]
     public async Task CreatePayment_VoucherMethod_WithoutCode_ReturnsRksvVoucherCodeRequired()
     {
         await using var context = CreateContext();

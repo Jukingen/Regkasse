@@ -283,9 +283,12 @@ namespace KasseAPI_Final.Services
                     : request.Payment.Method.Trim().ToLowerInvariant();
                 var voucherLikelyFromClientMethod =
                     string.Equals(requestPaymentMethodCode, "voucher", StringComparison.Ordinal);
+                var hasVoucherRedemptions =
+                    request.Payment.VoucherRedemptions != null && request.Payment.VoucherRedemptions.Count > 0;
+                var hasVoucherCode = !string.IsNullOrWhiteSpace(request.Payment.VoucherCode);
+                var hasVoucherPayload = hasVoucherRedemptions || hasVoucherCode;
                 if (voucherLikelyFromClientMethod
-                    && (request.Payment.VoucherRedemptions == null || request.Payment.VoucherRedemptions.Count == 0)
-                    && string.IsNullOrWhiteSpace(request.Payment.VoucherCode))
+                    && !hasVoucherPayload)
                 {
                     const string msg = "Voucher payment requires voucherCode or voucherRedemptions when method is voucher.";
                     return new PaymentResult
@@ -298,7 +301,7 @@ namespace KasseAPI_Final.Services
                     };
                 }
                 var effectiveTseRequired =
-                    (request.Payment.TseRequired || voucherLikelyFromClientMethod) && !_tseOptions.IsOff;
+                    (request.Payment.TseRequired || voucherLikelyFromClientMethod || hasVoucherPayload) && !_tseOptions.IsOff;
                 if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
                 {
                     var tseStatus = await _tseService.GetDeviceStatusAsync();
@@ -578,14 +581,80 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // Voucher redemption when legacy maps to PaymentMethod.Voucher (4). Method code voucher with mismatched catalog legacy is rejected above.
-                if (IsVoucherLegacyPayment(methodResolution.LegacyRaw))
+                var isVoucherMethodResolved = IsVoucherLegacyPayment(methodResolution.LegacyRaw);
+                var expectedVoucherTotal = decimal.Round(totalAmount, 2, MidpointRounding.AwayFromZero);
+                if (!isVoucherMethodResolved && hasVoucherPayload)
+                {
+                    if (!request.Payment.Amount.HasValue)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Settlement amount is required when voucher redemption is combined with a non-voucher payment method.",
+                            Errors =
+                            {
+                                "Settlement amount is required when voucher redemption is combined with a non-voucher payment method."
+                            },
+                            IsDeterministicFailure = true,
+                            DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_AMOUNT_REQUIRED"
+                        };
+                    }
+
+                    var settlementAmount = decimal.Round(request.Payment.Amount.Value, 2, MidpointRounding.AwayFromZero);
+                    if (settlementAmount < 0)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Settlement amount cannot be negative.",
+                            Errors = { "Settlement amount cannot be negative." },
+                            IsDeterministicFailure = true,
+                            DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_NEGATIVE"
+                        };
+                    }
+
+                    if (settlementAmount > totalAmount + 0.01m)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Settlement amount cannot exceed total amount.",
+                            Errors = { "Settlement amount cannot exceed total amount." },
+                            IsDeterministicFailure = true,
+                            DiagnosticCode = "VOUCHER_MIXED_SETTLEMENT_EXCEEDS_TOTAL"
+                        };
+                    }
+
+                    expectedVoucherTotal = decimal.Round(totalAmount - settlementAmount, 2, MidpointRounding.AwayFromZero);
+                    if (expectedVoucherTotal <= 0)
+                    {
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Voucher redemption amount must be greater than zero in mixed voucher payments.",
+                            Errors = { "Voucher redemption amount must be greater than zero in mixed voucher payments." },
+                            IsDeterministicFailure = true,
+                            DiagnosticCode = "VOUCHER_MIXED_ZERO_REDEEM"
+                        };
+                    }
+                }
+
+                // Voucher redemption when method is voucher, or when voucher payload is explicitly combined with a non-voucher settlement.
+                if (isVoucherMethodResolved || hasVoucherPayload)
                 {
                     effectiveTseRequired = !_tseOptions.IsOff;
                     var (voucherPlanError, voucherLines) = await BuildVoucherRedemptionPlanAsync(
                         effectiveTenantId,
                         cashRegisterId,
-                        totalAmount,
+                        expectedVoucherTotal,
                         request.Payment,
                         CancellationToken.None);
                     if (voucherPlanError != null)

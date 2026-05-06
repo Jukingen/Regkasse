@@ -35,7 +35,8 @@
     "tagReceipt": "Beleg",
     "tagInvoice": "Rechnung",
     "tagIncident": "Incident",
-    "foTagPrefix": "FO"
+    "foTagPrefix": "FO",
+    "mixedVoucherTag": "Gutschein {{amount}}"
   },
   "stats": {
     "paymentCount": "Anzahl Zahlungen",
@@ -67,6 +68,10 @@
     "labelTimestampServer": "Zeitpunkt (Server)",
     "labelAmount": "Betrag",
     "labelPaymentMethodRaw": "Zahlungsart (Roh)",
+    "labelVoucherRedeemed": "Mit Gutschein bezahlt",
+    "labelSettlementAmount": "Mit Hauptzahlungsart bezahlt",
+    "labelMixedPaymentHint": "Hinweis",
+    "mixedPaymentHint": "Diese Zahlung wurde kombiniert: Gutschein + Hauptzahlungsart.",
     "labelCashRegisterFk": "Kasse (FK, UUID)",
     "labelCustomerName": "Kundenname",
     "labelIdempotencyKey": "Idempotency Key",

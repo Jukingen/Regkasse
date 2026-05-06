@@ -35,7 +35,8 @@
     "tagReceipt": "Fis",
     "tagInvoice": "Fatura",
     "tagIncident": "Olay",
-    "foTagPrefix": "FO"
+    "foTagPrefix": "FO",
+    "mixedVoucherTag": "Kupon {{amount}}"
   },
   "stats": {
     "paymentCount": "Odeme sayisi",
@@ -67,6 +68,10 @@
     "labelTimestampServer": "Zaman damgasi (sunucu)",
     "labelAmount": "Tutar",
     "labelPaymentMethodRaw": "Odeme yontemi (ham)",
+    "labelVoucherRedeemed": "Kupon ile odenen",
+    "labelSettlementAmount": "Ana odeme yontemi ile odenen",
+    "labelMixedPaymentHint": "Not",
+    "mixedPaymentHint": "Bu odeme birlesiktir: kupon + ana odeme yontemi.",
     "labelCashRegisterFk": "Kasa (FK, UUID)",
     "labelCustomerName": "Musteri adi",
     "labelIdempotencyKey": "Idempotency anahtari",

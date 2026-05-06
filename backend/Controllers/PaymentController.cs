@@ -91,7 +91,13 @@ namespace KasseAPI_Final.Controllers
                 var v2 = PaymentApiContractMapper.WantsV2Contract(Request);
                 var correlationId = PaymentApiContractMapper.GetCorrelationId(HttpContext);
 
-                _logger.LogInformation("CreatePayment called with request: {@Request}, contractV2={V2}", request, v2);
+                _logger.LogInformation(
+                    "CreatePayment called: contractV2={V2}, items={ItemCount}, method={Method}, hasVoucherCode={HasVoucherCode}, voucherLineCount={VoucherLineCount}",
+                    v2,
+                    request.Items?.Count ?? 0,
+                    request.Payment?.Method,
+                    !string.IsNullOrWhiteSpace(request.Payment?.VoucherCode),
+                    request.Payment?.VoucherRedemptions?.Count ?? 0);
 
                 if (!ModelState.IsValid)
                 {
