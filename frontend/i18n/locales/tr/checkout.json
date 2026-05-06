@@ -89,6 +89,7 @@
         "insufficientAmount": "Odeme tutari yetersiz.",
         "missingTableNumber": "Masa numarasi eksik.",
         "emptyCart": "Sepet bos.",
+        "paymentMethodRequired": "Lutfen bir odeme yontemi secin.",
         "invalidAmount": "Gecersiz tutar.",
         "invalidAmountDetailed": "Gecersiz tutar (0,01 € degerinden buyuk olmalidir).",
         "cartLoadFailed": "Sepet yuklenemedi. Lutfen tekrar deneyin.",

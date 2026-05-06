@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs, Redirect } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View, ActivityIndicator, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PaymentModal from '../../components/PaymentModal';
+import { ToastContainer } from '../../components/ToastNotification';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
@@ -49,7 +50,24 @@ function PosTabsInner({
 }: PosTabsInnerProps) {
   const posReadiness = usePosRegisterReadiness();
 
+  const [tabBarToasts, setTabBarToasts] = useState<
+    { id: string; type: 'success' | 'error' | 'info' | 'warning'; message: string; duration?: number }[]
+  >([]);
+
+  const removeTabBarToast = useCallback((id: string) => {
+    setTabBarToasts((prev) => prev.filter((x) => x.id !== id));
+  }, []);
+
   const tryOpenPaymentModal = () => {
+    if (cartCount === 0) {
+      const id = `${Date.now()}-empty-cart`;
+      const message = t('checkout:posFlow.toast.emptyCart');
+      setTabBarToasts((prev) => [...prev, { id, type: 'warning', message, duration: 2500 }]);
+      setTimeout(() => {
+        removeTabBarToast(id);
+      }, 2500);
+      return;
+    }
     if (isReadinessRegisterDecommissioned(posReadiness.data)) {
       Alert.alert('Verkauf', POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE);
       return;
@@ -66,6 +84,7 @@ function PosTabsInner({
 
   return (
     <View style={{ flex: 1 }}>
+      <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
       <MonatsbelegSessionBlockModal />
       <StartbelegRequiredBanner />
       <Tabs
@@ -154,7 +173,7 @@ function PosTabsInner({
 }
 
 export default function TabLayout() {
-    const { t } = useTranslation(['navigation']);
+    const { t } = useTranslation(['navigation', 'checkout']);
     const insets = useSafeAreaInsets();
     const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
     const checkAuthStatusRef = useRef(checkAuthStatus);

@@ -43,6 +43,7 @@ import { customerService, isWalkInCustomerId, type BenefitEligibilityPreviewResp
 import { WALK_IN_CUSTOMER_ID_FALLBACK } from '../constants/walkInCustomer';
 import { validateAmount } from '../utils/validation';
 import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
+import { usePosCheckoutUiStore } from '../stores/posCheckoutUiStore';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
@@ -202,8 +203,14 @@ export default function PaymentModal({
   const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings']);
   const { user } = useAuth();
   const { isOnline } = useSystem();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('cash');
+  const selectedPaymentMethod = usePosCheckoutUiStore((s) => s.selectedPaymentMethodType);
+  const setSelectedPaymentMethodType = usePosCheckoutUiStore((s) => s.setSelectedPaymentMethodType);
+  const paymentMethodSubmitAttempted = usePosCheckoutUiStore((s) => s.paymentMethodSubmitAttempted);
+  const setPaymentMethodSubmitAttempted = usePosCheckoutUiStore((s) => s.setPaymentMethodSubmitAttempted);
+  const resetCheckoutPaymentUi = usePosCheckoutUiStore((s) => s.resetCheckoutPaymentUi);
   const [amountReceived, setAmountReceived] = useState<string>('');
+  /** Cash (Bar): true when operator entered or preset-selected amount &gt; 0 (drives inline ⚠️ hint). */
+  const [isAmountValid, setIsAmountValid] = useState(true);
   const [notes, setNotes] = useState<string>('');
   const [guestCustomerId, setGuestCustomerId] = useState<string>(WALK_IN_CUSTOMER_ID_FALLBACK);
   // State for Purchase Flow
@@ -367,10 +374,20 @@ export default function PaymentModal({
   } = usePayment();
 
   const requiresCashAmount = useMemo(() => {
+    if (!selectedPaymentMethod) return false;
     const m = paymentMethods.find((x) => x.type === selectedPaymentMethod);
     if (m?.requiresReceivedAmount !== undefined) return m.requiresReceivedAmount;
     return selectedPaymentMethod === 'cash';
   }, [paymentMethods, selectedPaymentMethod]);
+
+  useEffect(() => {
+    if (!requiresCashAmount) {
+      setIsAmountValid(true);
+      return;
+    }
+    const r = parseLocaleDecimal(amountReceived);
+    setIsAmountValid(Number.isFinite(r) && r > 0);
+  }, [amountReceived, requiresCashAmount]);
 
   // Backend line toplamları kullan - FE hesaplama yapmaz (totalPrice = lineGross)
   const calculatedCartItems = useMemo(() => {
@@ -506,12 +523,10 @@ export default function PaymentModal({
   }, [visible, getPaymentMethods]);
 
   useEffect(() => {
-    if (!visible || !paymentMethods?.length) return;
-    const hasSelection = paymentMethods.some((m) => m.type === selectedPaymentMethod);
-    if (hasSelection) return;
-    const def = paymentMethods.find((m) => m.isDefault) ?? paymentMethods[0];
-    if (def) setSelectedPaymentMethod(def.type);
-  }, [visible, paymentMethods, selectedPaymentMethod]);
+    if (!visible) {
+      resetCheckoutPaymentUi();
+    }
+  }, [visible, resetCheckoutPaymentUi]);
 
   /** Cart total changed after voucher validation — require a new check (keep typed code). */
   useEffect(() => {
@@ -760,6 +775,16 @@ export default function PaymentModal({
       Alert.alert('Offline', 'Gutschein ist offline nicht möglich.');
       return;
     }
+
+    if (
+      !selectedPaymentMethod ||
+      !(paymentMethods ?? []).some((m) => m.type === selectedPaymentMethod)
+    ) {
+      setPaymentMethodSubmitAttempted(true);
+      debugPosPaymentTrace('submit_blocked_no_payment_method', {});
+      return;
+    }
+
     if (needFiscalTseForPay && payGateTseBlocked) {
       Alert.alert('TSE', 'TSE nicht bereit — fiskalische Zahlung nicht möglich.');
       return;
@@ -778,7 +803,11 @@ export default function PaymentModal({
 
     if (requiresCashAmount) {
       const received = parseLocaleDecimal(amountReceived);
-      if (!Number.isFinite(received) || received + 0.001 < totalAmount) {
+      if (!Number.isFinite(received) || received <= 0) {
+        debugPosPaymentTrace('submit_blocked_cash_amount_empty', { received, totalAmount });
+        return;
+      }
+      if (received + 0.001 < totalAmount) {
         debugPosPaymentTrace('submit_blocked_cash_amount', { received, totalAmount });
         Alert.alert(
           t('checkout:posFlow.payment.alerts.hintTitle'),
@@ -1132,7 +1161,7 @@ export default function PaymentModal({
   const handleClose = () => {
     clearError();
     resetVoucherUi();
-    setSelectedPaymentMethod('cash');
+    resetCheckoutPaymentUi();
     setAmountReceived('');
     setNotes('');
     setPurchaseState('input');
@@ -1309,6 +1338,14 @@ export default function PaymentModal({
             <View style={styles.section}>
               <Text style={styles.stepLabel}>2</Text>
               <Text style={styles.sectionTitle}>{t('payment:paymentMethod')}</Text>
+              <View
+                style={[
+                  styles.paymentMethodsSectionWrap,
+                  paymentMethodSubmitAttempted &&
+                    !selectedPaymentMethod &&
+                    styles.paymentMethodsSectionWrapInvalid,
+                ]}
+              >
               <View style={styles.paymentMethodsContainer}>
                 {methodsLoading ? (
                   <Text style={styles.loadingText}>{t('common:loading')}</Text>
@@ -1337,7 +1374,7 @@ export default function PaymentModal({
                             if (method.type === 'voucher' || selectedPaymentMethod === 'voucher') {
                               resetVoucherUi();
                             }
-                            setSelectedPaymentMethod(method.type);
+                            setSelectedPaymentMethodType(method.type);
                           }
                         }}
                         accessibilityRole="button"
@@ -1366,6 +1403,12 @@ export default function PaymentModal({
                     </Pressable>
                   </View>
                 )}
+              </View>
+              {paymentMethodSubmitAttempted && !selectedPaymentMethod ? (
+                <Text style={styles.paymentMethodRequiredHint} accessibilityRole="alert">
+                  {t('checkout:posFlow.payment.errors.paymentMethodRequired')}
+                </Text>
+              ) : null}
               </View>
             </View>
 
@@ -1405,7 +1448,14 @@ export default function PaymentModal({
                 </View>
 
                 <View style={styles.inputRow}>
-                  <Text style={styles.label}>Erhaltener Betrag</Text>
+                  <View style={styles.cashLabelWithHint}>
+                    <Text style={styles.label}>Erhaltener Betrag</Text>
+                    {!isAmountValid ? (
+                      <Text style={styles.cashAmountWarnIcon} accessibilityRole="image" accessibilityLabel="⚠">
+                        ⚠️
+                      </Text>
+                    ) : null}
+                  </View>
                   <TextInput
                     style={styles.amountInput}
                     value={amountReceived}
@@ -1905,6 +1955,19 @@ const styles = StyleSheet.create({
     marginTop: SoftSpacing.xs,
     fontStyle: 'italic',
   },
+  paymentMethodsSectionWrap: {
+    borderRadius: SoftRadius.md,
+    padding: SoftSpacing.xs,
+  },
+  paymentMethodsSectionWrapInvalid: {
+    borderWidth: 2,
+    borderColor: SoftColors.error,
+  },
+  paymentMethodRequiredHint: {
+    ...SoftTypography.caption,
+    color: SoftColors.error,
+    marginTop: SoftSpacing.sm,
+  },
   paymentMethodsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1997,6 +2060,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SoftSpacing.sm,
     gap: SoftSpacing.sm,
+  },
+  cashLabelWithHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SoftSpacing.xs,
+    flexShrink: 1,
+  },
+  cashAmountWarnIcon: {
+    fontSize: 14,
+    lineHeight: 18,
   },
   label: {
     ...SoftTypography.label,

@@ -89,6 +89,7 @@
         "insufficientAmount": "Zahlungsbetrag unzureichend.",
         "missingTableNumber": "Tischnummer fehlt.",
         "emptyCart": "Warenkorb ist leer.",
+        "paymentMethodRequired": "Bitte wählen Sie eine Zahlungsart aus.",
         "invalidAmount": "Ungültiger Betrag.",
         "invalidAmountDetailed": "Ungültiger Betrag (muss größer als 0,01 € sein).",
         "cartLoadFailed": "Warenkorb konnte nicht geladen werden. Bitte erneut versuchen.",

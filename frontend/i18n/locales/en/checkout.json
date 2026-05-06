@@ -89,6 +89,7 @@
         "insufficientAmount": "Insufficient payment amount.",
         "missingTableNumber": "Table number is missing.",
         "emptyCart": "Cart is empty.",
+        "paymentMethodRequired": "Please select a payment method.",
         "invalidAmount": "Invalid amount.",
         "invalidAmountDetailed": "Invalid amount (must be greater than 0.01 €).",
         "cartLoadFailed": "Could not load cart. Please try again.",
