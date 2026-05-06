@@ -13,6 +13,9 @@ public sealed class AdminVoucherListItemDto
     public DateTime ValidFromUtc { get; init; }
     public DateTime ExpiresAtUtc { get; init; }
     public string CreatedByUserId { get; init; } = string.Empty;
+    public string? CreatedByDisplayName { get; init; }
+    public string? CreatedByEmail { get; init; }
+    public IReadOnlyList<string>? CreatedByRoles { get; init; }
     public DateTime CreatedAtUtc { get; init; }
 }
 
@@ -27,6 +30,9 @@ public sealed class AdminVoucherDetailDto
     public DateTime ValidFromUtc { get; init; }
     public DateTime ExpiresAtUtc { get; init; }
     public string CreatedByUserId { get; init; } = string.Empty;
+    public string? CreatedByDisplayName { get; init; }
+    public string? CreatedByEmail { get; init; }
+    public IReadOnlyList<string>? CreatedByRoles { get; init; }
     public DateTime CreatedAtUtc { get; init; }
     public DateTime? CancelledAtUtc { get; init; }
     public string? CancellationReason { get; init; }
@@ -43,6 +49,9 @@ public sealed class AdminVoucherLedgerLineDto
     public Guid? ReceiptId { get; init; }
     public string? ReceiptNumber { get; init; }
     public string CreatedByUserId { get; init; } = string.Empty;
+    public string? CreatedByDisplayName { get; init; }
+    public string? CreatedByEmail { get; init; }
+    public IReadOnlyList<string>? CreatedByRoles { get; init; }
     public DateTime CreatedAtUtc { get; init; }
     public string? CorrelationId { get; init; }
 }

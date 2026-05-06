@@ -117,7 +117,9 @@ import type {
   UpdateCategoryRequest,
   UpdatePaymentMethodDefinitionRequest,
   UpdatePricingRuleRequest,
-  UpdateStockRequest
+  UpdateStockRequest,
+  VerifyAdminVoucherCodeRequest,
+  VerifyAdminVoucherCodeResponse
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -2931,7 +2933,59 @@ export const useGetApiAdminVouchersIdLedger = <TData = Awaited<ReturnType<typeof
 
 
 
-export const postApiAdminVouchersIdCancel = (
+export const postApiAdminVouchersIdVerifyCode = (
+    id: string,
+    verifyAdminVoucherCodeRequest: VerifyAdminVoucherCodeRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<VerifyAdminVoucherCodeResponse>(
+      {url: `/api/admin/vouchers/${id}/verify-code`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: verifyAdminVoucherCodeRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminVouchersIdVerifyCodeMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchersIdVerifyCode>>, TError,{id: string;data: VerifyAdminVoucherCodeRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchersIdVerifyCode>>, TError,{id: string;data: VerifyAdminVoucherCodeRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminVouchersIdVerifyCode>>, {id: string;data: VerifyAdminVoucherCodeRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  postApiAdminVouchersIdVerifyCode(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminVouchersIdVerifyCodeMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminVouchersIdVerifyCode>>>
+    export type PostApiAdminVouchersIdVerifyCodeMutationBody = VerifyAdminVoucherCodeRequest
+    export type PostApiAdminVouchersIdVerifyCodeMutationError = unknown
+
+    export const usePostApiAdminVouchersIdVerifyCode = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminVouchersIdVerifyCode>>, TError,{id: string;data: VerifyAdminVoucherCodeRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminVouchersIdVerifyCode>>,
+        TError,
+        {id: string;data: VerifyAdminVoucherCodeRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminVouchersIdVerifyCodeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminVouchersIdCancel = (
     id: string,
     cancelAdminVoucherRequest: CancelAdminVoucherRequest,
  options?: SecondParameter<typeof customInstance>,) => {

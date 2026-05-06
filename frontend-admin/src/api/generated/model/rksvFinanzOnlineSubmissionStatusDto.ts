@@ -16,7 +16,8 @@ export interface RksvFinanzOnlineSubmissionStatusDto {
   lastErrorCode?: string | null;
   /** @nullable */
   lastErrorMessage?: string | null;
-  status?: string;
+  /** @nullable */
+  status?: string | null;
   /** @nullable */
   submittedAtUtc?: string | null;
   /** @nullable */

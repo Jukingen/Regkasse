@@ -53,7 +53,6 @@ export interface ReceiptDTO {
   /** @nullable */
   receiptNumber?: string | null;
   receiptPersistedAtUtc?: string;
-  /** @nullable */
   rksvFinanzOnlineSubmission?: RksvFinanzOnlineSubmissionStatusDto;
   rksvNullbelegActsAsJahresbeleg?: boolean;
   /** @nullable */

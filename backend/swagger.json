@@ -2106,12 +2106,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
           }
         }
       }
@@ -12268,6 +12262,74 @@
         }
       }
     },
+    "/api/rksv/validate-receipt": {
+      "post": {
+        "tags": [
+          "RksvReceiptQrValidation"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RksvValidateReceiptQrRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RksvValidateReceiptQrRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RksvValidateReceiptQrRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvValidateReceiptQrResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvValidateReceiptQrResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvValidateReceiptQrResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/rksv/special-receipts/nullbeleg": {
       "post": {
         "tags": [
@@ -14972,6 +15034,54 @@
           }
         }
       }
+    },
+    "/api/vouchers/issue": {
+      "post": {
+        "tags": [
+          "Vouchers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueVoucherRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueVoucherRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueVoucherRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVoucherResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVoucherResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVoucherResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -15897,6 +16007,21 @@
             "type": "string",
             "nullable": true
           },
+          "createdByDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
           "createdAtUtc": {
             "type": "string",
             "format": "date-time"
@@ -15954,6 +16079,21 @@
             "type": "string",
             "nullable": true
           },
+          "createdByDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
           "createdAtUtc": {
             "type": "string",
             "format": "date-time"
@@ -16002,6 +16142,21 @@
           },
           "createdByUserId": {
             "type": "string",
+            "nullable": true
+          },
+          "createdByDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByEmail": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "nullable": true
           },
           "createdAtUtc": {
@@ -17828,29 +17983,6 @@
             "maxLength": 500,
             "minLength": 5,
             "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "VerifyAdminVoucherCodeRequest": {
-        "required": [
-          "code"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "VerifyAdminVoucherCodeResponse": {
-        "type": "object",
-        "properties": {
-          "matches": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -21724,8 +21856,7 @@
             "nullable": true
           },
           "tseSignature": {
-            "maxLength": 500,
-            "minLength": 0,
+            "minLength": 1,
             "type": "string"
           },
           "kassenId": {
@@ -21743,17 +21874,14 @@
             "nullable": true
           },
           "jwsHeader": {
-            "maxLength": 1000,
             "type": "string",
             "nullable": true
           },
           "jwsPayload": {
-            "maxLength": 4000,
             "type": "string",
             "nullable": true
           },
           "jwsSignature": {
-            "maxLength": 500,
             "type": "string",
             "nullable": true
           },
@@ -21809,8 +21937,6 @@
             "nullable": true
           },
           "stornoReasonText": {
-            "maxLength": 500,
-            "minLength": 0,
             "type": "string",
             "nullable": true
           },
@@ -21920,6 +22046,64 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "IssueVoucherRequest": {
+        "required": [
+          "amount",
+          "currency",
+          "validFrom",
+          "validUntil"
+        ],
+        "type": "object",
+        "properties": {
+          "amount": {
+            "maximum": 999999.99,
+            "minimum": 0.01,
+            "type": "number",
+            "format": "double"
+          },
+          "currency": {
+            "maxLength": 3,
+            "minLength": 3,
+            "type": "string"
+          },
+          "validFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssueVoucherResponse": {
+        "type": "object",
+        "properties": {
+          "voucherId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "maskedCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "fullCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
       },
       "JahresberichtAdjustmentDto": {
         "type": "object",
@@ -25019,46 +25203,6 @@
         },
         "additionalProperties": false
       },
-      "RksvFinanzOnlineSubmissionStatusDto": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string"
-          },
-          "lastAttemptAtUtc": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "lastErrorCode": {
-            "type": "string",
-            "nullable": true
-          },
-          "lastErrorMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "externalReference": {
-            "type": "string",
-            "nullable": true
-          },
-          "attemptCount": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "submittedAtUtc": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "verifiedAtUtc": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "ReceiptDTO": {
         "type": "object",
         "properties": {
@@ -25096,8 +25240,7 @@
             "type": "boolean"
           },
           "rksvFinanzOnlineSubmission": {
-            "$ref": "#/components/schemas/RksvFinanzOnlineSubmissionStatusDto",
-            "nullable": true
+            "$ref": "#/components/schemas/RksvFinanzOnlineSubmissionStatusDto"
           },
           "hasOfflineOrigin": {
             "type": "boolean"
@@ -26741,6 +26884,118 @@
           },
           "idempotentEnqueue": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvFinanzOnlineSubmissionStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastAttemptAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastErrorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastErrorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "attemptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submittedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "verifiedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvValidateReceiptQrParsedDto": {
+        "type": "object",
+        "properties": {
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "timestamp": {
+            "type": "string",
+            "nullable": true
+          },
+          "totals": {
+            "$ref": "#/components/schemas/RksvValidateReceiptQrTotalsDto"
+          },
+          "certificateSerial": {
+            "type": "string",
+            "nullable": true
+          },
+          "previousSignature": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvValidateReceiptQrRequest": {
+        "required": [
+          "qrPayload"
+        ],
+        "type": "object",
+        "properties": {
+          "qrPayload": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvValidateReceiptQrResponse": {
+        "type": "object",
+        "properties": {
+          "isValidFormat": {
+            "type": "boolean"
+          },
+          "parsed": {
+            "$ref": "#/components/schemas/RksvValidateReceiptQrParsedDto"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvValidateReceiptQrTotalsDto": {
+        "type": "object",
+        "properties": {
+          "grossTotal": {
+            "type": "string",
+            "nullable": true
+          },
+          "secondAmount": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -30040,6 +30295,29 @@
             "type": "number",
             "format": "double",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifyAdminVoucherCodeRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifyAdminVoucherCodeResponse": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false

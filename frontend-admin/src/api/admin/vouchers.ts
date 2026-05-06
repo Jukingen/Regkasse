@@ -17,6 +17,9 @@ export interface AdminVoucherListItemDto {
   validFromUtc: string;
   expiresAtUtc: string;
   createdByUserId: string;
+  createdByDisplayName?: string | null;
+  createdByEmail?: string | null;
+  createdByRoles?: string[] | null;
   createdAtUtc: string;
 }
 
@@ -37,6 +40,9 @@ export interface AdminVoucherDetailDto {
   validFromUtc: string;
   expiresAtUtc: string;
   createdByUserId: string;
+  createdByDisplayName?: string | null;
+  createdByEmail?: string | null;
+  createdByRoles?: string[] | null;
   createdAtUtc: string;
   cancelledAtUtc?: string | null;
   cancellationReason?: string | null;
@@ -52,6 +58,9 @@ export interface AdminVoucherLedgerLineDto {
   receiptId?: string | null;
   receiptNumber?: string | null;
   createdByUserId: string;
+  createdByDisplayName?: string | null;
+  createdByEmail?: string | null;
+  createdByRoles?: string[] | null;
   createdAtUtc: string;
   correlationId?: string | null;
 }

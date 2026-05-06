@@ -40,6 +40,29 @@ function shortId(value?: string | null): string {
   return value.length > 14 ? `${value.slice(0, 8)}…` : value;
 }
 
+function creatorFallback(userId?: string | null): string {
+  if (!userId) return '—';
+  const trimmed = userId.trim();
+  if (!trimmed) return '—';
+  return trimmed.length > 14 ? `${trimmed.slice(0, 8)}…` : trimmed;
+}
+
+function formatCreatorLabel(input: {
+  createdByUserId?: string | null;
+  createdByDisplayName?: string | null;
+  createdByEmail?: string | null;
+  createdByRoles?: string[] | null;
+}): string {
+  const parts = [input.createdByDisplayName?.trim(), input.createdByEmail?.trim()].filter(
+    (x): x is string => !!x
+  );
+  const roleText = (input.createdByRoles ?? []).filter(Boolean).join(', ');
+  if (parts.length > 0 && roleText) return `${parts.join(' · ')} (${roleText})`;
+  if (parts.length > 0) return parts.join(' · ');
+  if (roleText) return `${creatorFallback(input.createdByUserId)} (${roleText})`;
+  return creatorFallback(input.createdByUserId);
+}
+
 function statusColor(status: string): string {
   switch (status) {
     case 'Active':
@@ -163,6 +186,7 @@ export default function AdminVoucherDetailPage() {
         dataIndex: 'createdByUserId',
         key: 'createdByUserId',
         ellipsis: true,
+        render: (_: string, row) => formatCreatorLabel(row),
       },
     ],
     [t, formatLocale, d?.currency]
@@ -266,7 +290,9 @@ export default function AdminVoucherDetailPage() {
               <Descriptions.Item label={t('vouchers.list.columns.expiresAt')}>
                 {formatDateTime(d.expiresAtUtc, formatLocale)}
               </Descriptions.Item>
-              <Descriptions.Item label={t('vouchers.list.columns.createdBy')}>{d.createdByUserId}</Descriptions.Item>
+              <Descriptions.Item label={t('vouchers.list.columns.createdBy')}>
+                {formatCreatorLabel(d)}
+              </Descriptions.Item>
               <Descriptions.Item label={t('vouchers.list.columns.createdAt')}>
                 {formatDateTime(d.createdAtUtc, formatLocale)}
               </Descriptions.Item>

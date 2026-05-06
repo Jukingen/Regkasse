@@ -94,20 +94,11 @@ export interface Invoice {
    */
   invoiceNumber: string;
   isActive?: boolean;
-  /**
-   * @maxLength 1000
-   * @nullable
-   */
+  /** @nullable */
   jwsHeader?: string | null;
-  /**
-   * @maxLength 4000
-   * @nullable
-   */
+  /** @nullable */
   jwsPayload?: string | null;
-  /**
-   * @maxLength 500
-   * @nullable
-   */
+  /** @nullable */
   jwsSignature?: string | null;
   /**
    * @minLength 0
@@ -146,20 +137,13 @@ export interface Invoice {
    * @nullable
    */
   stornoReasonCode?: string | null;
-  /**
-   * @minLength 0
-   * @maxLength 500
-   * @nullable
-   */
+  /** @nullable */
   stornoReasonText?: string | null;
   subtotal: number;
   taxAmount: number;
   taxDetails: unknown;
   totalAmount: number;
-  /**
-   * @minLength 0
-   * @maxLength 500
-   */
+  /** @minLength 1 */
   tseSignature: string;
   tseTimestamp: string;
   /** @nullable */

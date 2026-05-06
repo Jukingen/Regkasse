@@ -13,6 +13,12 @@ export interface AdminVoucherDetailDto {
   cancelledAtUtc?: string | null;
   createdAtUtc?: string;
   /** @nullable */
+  createdByDisplayName?: string | null;
+  /** @nullable */
+  createdByEmail?: string | null;
+  /** @nullable */
+  createdByRoles?: string[] | null;
+  /** @nullable */
   createdByUserId?: string | null;
   /** @nullable */
   currency?: string | null;

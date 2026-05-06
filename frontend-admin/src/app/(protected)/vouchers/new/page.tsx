@@ -155,7 +155,13 @@ export default function AdminVoucherCreatePage() {
           </Button>,
         ]}
       >
-        <Alert type="warning" message={t('vouchers.create.plaintextWarning')} showIcon style={{ marginBottom: 16 }} />
+        <Alert
+          type="warning"
+          message={t('vouchers.create.plaintextWarning')}
+          description={t('vouchers.create.plaintextNoLaterHint')}
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
         <Typography.Paragraph strong>{t('vouchers.create.plaintextLabel')}</Typography.Paragraph>
         <Typography.Paragraph code copyable={{ text: success?.plaintextCode }}>
           {success?.plaintextCode}

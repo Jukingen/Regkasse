@@ -32,6 +32,25 @@ function statusColor(status: string): string {
   }
 }
 
+function creatorFallback(userId?: string | null): string {
+  if (!userId) return '—';
+  const trimmed = userId.trim();
+  if (!trimmed) return '—';
+  return trimmed.length > 12 ? `${trimmed.slice(0, 8)}…` : trimmed;
+}
+
+function formatCreator(value: AdminVoucherListItemDto): string {
+  const parts = [
+    value.createdByDisplayName?.trim(),
+    value.createdByEmail?.trim(),
+  ].filter((x): x is string => !!x);
+  const roleText = (value.createdByRoles ?? []).filter(Boolean).join(', ');
+  if (parts.length > 0 && roleText) return `${parts.join(' · ')} (${roleText})`;
+  if (parts.length > 0) return parts.join(' · ');
+  if (roleText) return `${creatorFallback(value.createdByUserId)} (${roleText})`;
+  return creatorFallback(value.createdByUserId);
+}
+
 export default function AdminVouchersListPage() {
   const { t, formatLocale } = useI18n();
   const { hasPermission } = usePermissions();
@@ -91,6 +110,7 @@ export default function AdminVouchersListPage() {
         dataIndex: 'createdByUserId',
         key: 'createdByUserId',
         ellipsis: true,
+        render: (_: string, row) => formatCreator(row),
       },
       {
         title: t('vouchers.list.columns.createdAt'),

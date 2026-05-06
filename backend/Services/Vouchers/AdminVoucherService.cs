@@ -59,10 +59,31 @@ public sealed class AdminVoucherService : IAdminVoucherService
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        var creators = await ResolveCreatorInfoAsync(items.Select(i => i.CreatedByUserId), cancellationToken).ConfigureAwait(false);
+        var enrichedItems = items.Select(item =>
+        {
+            creators.TryGetValue(item.CreatedByUserId, out var info);
+            return new AdminVoucherListItemDto
+            {
+                Id = item.Id,
+                MaskedCode = item.MaskedCode,
+                InitialAmount = item.InitialAmount,
+                RemainingAmount = item.RemainingAmount,
+                Currency = item.Currency,
+                Status = item.Status,
+                ValidFromUtc = item.ValidFromUtc,
+                ExpiresAtUtc = item.ExpiresAtUtc,
+                CreatedByUserId = item.CreatedByUserId,
+                CreatedByDisplayName = info?.DisplayName,
+                CreatedByEmail = info?.Email,
+                CreatedByRoles = info?.Roles,
+                CreatedAtUtc = item.CreatedAtUtc,
+            };
+        }).ToList();
 
         return new AdminVoucherListResponse
         {
-            Items = items,
+            Items = enrichedItems,
             TotalCount = total,
             Page = page,
             PageSize = pageSize,
@@ -71,7 +92,7 @@ public sealed class AdminVoucherService : IAdminVoucherService
 
     public async Task<AdminVoucherDetailDto?> GetDetailAsync(Guid tenantId, Guid id, CancellationToken cancellationToken = default)
     {
-        return await _context.Vouchers.AsNoTracking()
+        var dto = await _context.Vouchers.AsNoTracking()
             .Where(v => v.TenantId == tenantId && v.Id == id)
             .Select(v => new AdminVoucherDetailDto
             {
@@ -91,6 +112,29 @@ public sealed class AdminVoucherService : IAdminVoucherService
             })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
+        if (dto == null)
+            return null;
+        var creators = await ResolveCreatorInfoAsync([dto.CreatedByUserId], cancellationToken).ConfigureAwait(false);
+        creators.TryGetValue(dto.CreatedByUserId, out var creator);
+        return new AdminVoucherDetailDto
+        {
+            Id = dto.Id,
+            MaskedCode = dto.MaskedCode,
+            InitialAmount = dto.InitialAmount,
+            RemainingAmount = dto.RemainingAmount,
+            Currency = dto.Currency,
+            Status = dto.Status,
+            ValidFromUtc = dto.ValidFromUtc,
+            ExpiresAtUtc = dto.ExpiresAtUtc,
+            CreatedByUserId = dto.CreatedByUserId,
+            CreatedByDisplayName = creator?.DisplayName,
+            CreatedByEmail = creator?.Email,
+            CreatedByRoles = creator?.Roles,
+            CreatedAtUtc = dto.CreatedAtUtc,
+            CancelledAtUtc = dto.CancelledAtUtc,
+            CancellationReason = dto.CancellationReason,
+            InternalNote = dto.InternalNote,
+        };
     }
 
     public async Task<IReadOnlyList<AdminVoucherLedgerLineDto>> GetLedgerAsync(
@@ -126,7 +170,27 @@ public sealed class AdminVoucherService : IAdminVoucherService
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return rows;
+        var creatorLookup = await ResolveCreatorInfoAsync(rows.Select(r => r.CreatedByUserId), cancellationToken).ConfigureAwait(false);
+        return rows.Select(row =>
+        {
+            creatorLookup.TryGetValue(row.CreatedByUserId, out var info);
+            return new AdminVoucherLedgerLineDto
+            {
+                Id = row.Id,
+                Type = row.Type,
+                Amount = row.Amount,
+                BalanceAfter = row.BalanceAfter,
+                PaymentId = row.PaymentId,
+                ReceiptId = row.ReceiptId,
+                ReceiptNumber = row.ReceiptNumber,
+                CreatedByUserId = row.CreatedByUserId,
+                CreatedByDisplayName = info?.DisplayName,
+                CreatedByEmail = info?.Email,
+                CreatedByRoles = info?.Roles,
+                CreatedAtUtc = row.CreatedAtUtc,
+                CorrelationId = row.CorrelationId,
+            };
+        }).ToList();
     }
 
     public async Task<(CreateAdminVoucherResponse? Response, string? ErrorCode)> CreateAsync(
@@ -346,4 +410,66 @@ public sealed class AdminVoucherService : IAdminVoucherService
 
     private static string LedgerTypeToApi(VoucherTransactionType t) =>
         Enum.GetName(t) ?? t.ToString();
+
+    private sealed record CreatorInfo(string? DisplayName, string? Email, IReadOnlyList<string> Roles);
+
+    private async Task<Dictionary<string, CreatorInfo>> ResolveCreatorInfoAsync(
+        IEnumerable<string> rawUserIds,
+        CancellationToken cancellationToken)
+    {
+        var userIds = rawUserIds
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (userIds.Count == 0)
+            return new Dictionary<string, CreatorInfo>(StringComparer.Ordinal);
+
+        var users = await _context.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.UserName, u.Email })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var userIdSet = users.Select(u => u.Id).ToList();
+        var roleRows = await (
+                from ur in _context.UserRoles.AsNoTracking()
+                join r in _context.Roles.AsNoTracking() on ur.RoleId equals r.Id
+                where userIdSet.Contains(ur.UserId)
+                select new { ur.UserId, r.Name })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var rolesByUser = roleRows
+            .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+            .GroupBy(x => x.UserId, StringComparer.Ordinal)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<string>)g.Select(x => x.Name!)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                    .ToArray(),
+                StringComparer.Ordinal);
+
+        var result = new Dictionary<string, CreatorInfo>(StringComparer.Ordinal);
+        foreach (var u in users)
+        {
+            var displayName = BuildDisplayName(u.FirstName, u.LastName, u.UserName, u.Email, u.Id);
+            rolesByUser.TryGetValue(u.Id, out var roles);
+            result[u.Id] = new CreatorInfo(displayName, u.Email, roles ?? Array.Empty<string>());
+        }
+
+        return result;
+    }
+
+    private static string BuildDisplayName(string? firstName, string? lastName, string? userName, string? email, string fallbackId)
+    {
+        var fullName = $"{firstName} {lastName}".Trim();
+        if (!string.IsNullOrWhiteSpace(fullName))
+            return fullName;
+        if (!string.IsNullOrWhiteSpace(userName))
+            return userName;
+        if (!string.IsNullOrWhiteSpace(email))
+            return email;
+        return fallbackId;
+    }
 }
