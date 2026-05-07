@@ -281,12 +281,6 @@ export default function PaymentModal({
   const [completedPaymentTse, setCompletedPaymentTse] = useState<PaymentTseInfo | null>(null);
   /** Receipt payload for summary — GET /api/pos/payment/{id}/receipt */
   const [receiptData, setReceiptData] = useState<ReceiptDTO | null>(null);
-  /** When POST response has no qrPayload, show GET /pos/payment/{id}/qr.png as data URL. */
-  const [qrPngFallback, setQrPngFallback] = useState<string | null>(null);
-  /** True while fetching qr.png when qrPayload is missing (user-visible; avoids silent empty QR). */
-  const [qrPngLoading, setQrPngLoading] = useState(false);
-  /** True after qr.png fetch completed without a usable image and no qrPayload. */
-  const [qrPngFetchFailed, setQrPngFetchFailed] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   /** Prevents double-submit during async work before purchaseState becomes 'processing'. */
   const [paymentBusy, setPaymentBusy] = useState(false);
@@ -783,47 +777,6 @@ export default function PaymentModal({
         setReceiptData(null);
       });
   }, [completedPaymentId]);
-
-  useEffect(() => {
-    const showQrStates: Array<'completed' | 'print_error'> = ['completed', 'print_error'];
-    if (!completedPaymentId || !showQrStates.includes(purchaseState as 'completed' | 'print_error')) {
-      setQrPngFallback(null);
-      setQrPngLoading(false);
-      setQrPngFetchFailed(false);
-      return;
-    }
-    if (completedPaymentTse?.qrPayload) {
-      setQrPngFallback(null);
-      setQrPngLoading(false);
-      setQrPngFetchFailed(false);
-      return;
-    }
-    let cancelled = false;
-    setQrPngFallback(null);
-    setQrPngFetchFailed(false);
-    setQrPngLoading(true);
-    paymentService
-      .getQrPngAsBase64(completedPaymentId)
-      .then((url) => {
-        if (cancelled) return;
-        if (url) {
-          setQrPngFallback(url);
-          setQrPngFetchFailed(false);
-          debugPosPaymentTrace('success_flow_qr_ready', { source: 'qr_png_fallback' });
-        } else {
-          setQrPngFetchFailed(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setQrPngFetchFailed(true);
-      })
-      .finally(() => {
-        if (!cancelled) setQrPngLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [completedPaymentId, completedPaymentTse?.qrPayload, purchaseState]);
 
   const handleOpenReceiptPdf = async () => {
     if (!completedPaymentId || pdfLoading) return;
@@ -1391,9 +1344,6 @@ export default function PaymentModal({
     setCompletedPaymentId(null);
     setCompletedPaymentTse(null);
     setReceiptData(null);
-    setQrPngFallback(null);
-    setQrPngLoading(false);
-    setQrPngFetchFailed(false);
     setPaymentBusy(false);
     setPdfLoading(false);
     setEligibilityPreview(null);
@@ -1989,16 +1939,12 @@ export default function PaymentModal({
                       </View>
                     ) : null;
                   })()}
-                  <PaymentSuccessQr tse={completedPaymentTse} qrPngDataUrl={qrPngFallback} size={160} />
-                  {!completedPaymentTse?.qrPayload && qrPngLoading ? (
-                    <Text style={styles.qrStatusHint}>RKSV-QR wird geladen…</Text>
-                  ) : null}
-                  {!completedPaymentTse?.qrPayload && !qrPngLoading && qrPngFetchFailed ? (
-                    <Text style={styles.qrStatusHint}>
-                      RKSV-QR (PNG) konnte nicht geladen werden. Die Zahlung ist gültig — nutzen Sie den Druck oder
-                      wenden Sie sich an den Administrator.
-                    </Text>
-                  ) : null}
+                  <PaymentSuccessQr
+                    tse={completedPaymentTse}
+                    paymentId={completedPaymentId}
+                    fetchServerPng
+                    size={160}
+                  />
                   <View style={styles.successActionsRow}>
                     <Pressable
                       onPress={handleOpenReceiptPdf}
@@ -2040,16 +1986,12 @@ export default function PaymentModal({
                       </View>
                     ) : null;
                   })()}
-                  <PaymentSuccessQr tse={completedPaymentTse} qrPngDataUrl={qrPngFallback} size={140} />
-                  {!completedPaymentTse?.qrPayload && qrPngLoading ? (
-                    <Text style={styles.qrStatusHint}>RKSV-QR wird geladen…</Text>
-                  ) : null}
-                  {!completedPaymentTse?.qrPayload && !qrPngLoading && qrPngFetchFailed ? (
-                    <Text style={styles.qrStatusHint}>
-                      RKSV-QR (PNG) konnte nicht geladen werden. Die Zahlung ist gültig — nutzen Sie den Druck oder
-                      wenden Sie sich an den Administrator.
-                    </Text>
-                  ) : null}
+                  <PaymentSuccessQr
+                    tse={completedPaymentTse}
+                    paymentId={completedPaymentId}
+                    fetchServerPng
+                    size={140}
+                  />
                   <View style={styles.printErrorActions}>
                     <Pressable
                       onPress={handleOpenReceiptPdf}
@@ -2475,15 +2417,6 @@ const styles = StyleSheet.create({
     color: SoftColors.error,
     textAlign: 'center',
     paddingHorizontal: SoftSpacing.sm,
-  },
-  qrStatusHint: {
-    ...SoftTypography.caption,
-    color: SoftColors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: SoftSpacing.md,
-    marginTop: SoftSpacing.xs,
-    maxWidth: 340,
-    alignSelf: 'center',
   },
   cancelButton: {
     flex: 1,
