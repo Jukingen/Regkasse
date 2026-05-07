@@ -103,6 +103,9 @@ namespace KasseAPI_Final.Data
         /// <summary>Tek satır: admin yedek çalıştırma modu (Fake / PgDump / yapılandırmayı izle).</summary>
         public DbSet<BackupRuntimeExecutionPreference> BackupRuntimeExecutionPreferences { get; set; }
 
+        /// <summary>Singleton (Id=1): scheduled backup UTC cron + retention (see migration seed).</summary>
+        public DbSet<BackupSettings> BackupSettings { get; set; }
+
         /// <summary>Restore drill metadata (pg_restore --list + optional fiscal SQL + integrity); not artifact verification.</summary>
         public DbSet<RestoreVerificationRun> RestoreVerificationRuns { get; set; }
 
@@ -1647,6 +1650,15 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Mode).IsRequired();
                 entity.Property(e => e.UpdatedAtUtc).IsRequired();
                 entity.Property(e => e.UpdatedByUserId).HasMaxLength(450);
+            });
+
+            builder.Entity<BackupSettings>(entity =>
+            {
+                entity.ToTable("backup_settings");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ScheduleCron).IsRequired().HasMaxLength(120);
+                entity.Property(e => e.RetentionDays).IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
             });
 
             builder.Entity<BackupRun>(entity =>

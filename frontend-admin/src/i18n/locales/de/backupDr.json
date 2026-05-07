@@ -1181,5 +1181,31 @@
   "permission": {
     "noManage": "Nur Ansicht — zum Einreihen fehlt „Einstellungen verwalten“.",
     "manualActionsTooltip": "Deaktiviert: fehlende Berechtigung „Einstellungen verwalten“ — kein technischer oder Serverfehler."
+  },
+  "scheduleSettings": {
+    "cardTitle": "Geplantes Backup (Server)",
+    "cardHint": "Zeitplan und Aufbewahrung werden in der Datenbank gespeichert und vom Hintergrunddienst ausgeführt (UTC-Cron).",
+    "enabled": "Automatisierung aktiv",
+    "scheduleLabel": "Zeitplan (UTC)",
+    "presetDaily": "Täglich um 02:00 UTC",
+    "presetWeeklyMon": "Wöchentlich montags um 02:00 UTC",
+    "presetMonthly1": "Monatlich am 1. um 02:00 UTC",
+    "presetCustom": "Benutzerdefiniert",
+    "customCronPlaceholder": "Cron-Ausdruck (5 Felder, UTC)",
+    "customCronInvalid": "Bitte einen gültigen 5-Felder-Cron-Ausdruck eingeben (Leerzeichen getrennt).",
+    "retentionLabel": "Aufbewahrung erfolgreicher Backups (Tage)",
+    "retentionHint": "1–90 Tage in dieser Ansicht; ältere erfolgreiche Läufe werden nach einem erfolgreichen Backup bereinigt.",
+    "serverRetentionHigher": "Der Server speichert derzeit {{days}} Tage; diese Ansicht ist auf maximal 90 Tage begrenzt. Speichern überschreibt mit dem gewählten Wert.",
+    "statusTitle": "Status",
+    "nextRunComputed": "Nächster Lauf (berechnet, UTC)",
+    "nextRunStored": "Nächster Lauf (gespeichert)",
+    "lastRunStored": "Letzter erfolgreicher Lauf (Zeitpunkt)",
+    "lastScheduledRunLabel": "Letzter geplanter Backup-Lauf",
+    "noRunsYet": "—",
+    "runStatusSuffix": "(Status {{status}})",
+    "save": "Speichern",
+    "saveSuccess": "Einstellungen gespeichert.",
+    "saveError": "Speichern fehlgeschlagen.",
+    "loadError": "Zeitplaneinstellungen konnten nicht geladen werden."
   }
 }

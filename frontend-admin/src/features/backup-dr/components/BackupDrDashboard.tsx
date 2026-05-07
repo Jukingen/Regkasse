@@ -6,7 +6,6 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import axios from "axios";
 import {
   Alert,
   Button,
@@ -22,9 +21,7 @@ import {
   Tag,
   Tooltip,
   Typography,
-  message,
 } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import { ReloadOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
@@ -33,30 +30,19 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   getGetApiAdminBackupRecoverabilitySummaryQueryKey,
   getGetApiAdminBackupRunsIdQueryKey,
-  getGetApiAdminBackupRunsQueryKey,
   getGetApiAdminBackupVerificationLatestQueryKey,
   useGetApiAdminBackupRecoverabilitySummary,
   useGetApiAdminBackupRuns,
   useGetApiAdminBackupStatusLatest,
   useGetApiAdminBackupVerificationLatest,
   useGetApiAdminBackupRunsId,
-  usePostApiAdminBackupTrigger,
 } from "@/api/generated/admin-backup/admin-backup";
 import {
-  getGetApiAdminRestoreVerificationReadinessQueryKey,
-  getGetApiAdminRestoreVerificationRunsLatestQueryKey,
-  getGetApiAdminRestoreVerificationRunsQueryKey,
   useGetApiAdminRestoreVerificationReadiness,
-  useGetApiAdminRestoreVerificationRuns,
   useGetApiAdminRestoreVerificationRunsLatest,
-  usePostApiAdminRestoreVerificationTrigger,
 } from "@/api/generated/admin-restore-verification/admin-restore-verification";
 import {
   BackupRunResponseDtoStatus,
-  RestoreVerificationRunResponseDtoStatus,
-  RestoreVerificationTriggerOrchestrationState,
-  type BackupRunResponseDto,
-  type RestoreVerificationRunResponseDto,
 } from "@/api/generated/model";
 import {
   healthStatisticValueStyle,
@@ -82,25 +68,22 @@ import {
   buildDrProofScanTags,
 } from "@/features/backup-dr/logic/drProofLevelPresentation";
 import { extendRestoreVerificationRunDto } from "@/features/backup-dr/logic/backupDrRestoreRunDtoCompat";
-import { describeBackupTriggerOutcome } from "@/features/backup-dr/logic/backupTriggerOutcome";
 import { BackupArtifactsDownloadCard } from "@/features/backup-dr/components/BackupArtifactsDownloadCard";
 import { BackupRunProgressBanner } from "@/features/backup-dr/components/BackupRunProgressBanner";
+import { BackupRecoverabilityCard } from "@/features/backup-dr/components/BackupRecoverabilityCard";
+import { BackupManualActionsPanel } from "@/features/backup-dr/components/BackupManualActionsPanel";
+import { BackupRecentRestoreDrillsTable } from "@/features/backup-dr/components/BackupRecentRestoreDrillsTable";
+import { BackupRecentRunsTable } from "@/features/backup-dr/components/BackupRecentRunsTable";
 import { BackupStatusCard } from "@/features/backup-dr/components/BackupStatusCard";
 import { HealthBanner } from "@/features/backup-dr/components/HealthBanner";
-import {
-  ManualActionsPanel,
-  type ManualActionsPanelProps,
-} from "@/features/backup-dr/components/ManualActionsPanel";
-import { RecentRestoreDrillsTable } from "@/features/backup-dr/components/RecentRestoreDrillsTable";
-import { RecentRunsTable } from "@/features/backup-dr/components/RecentRunsTable";
 import { RestoreVerificationCard } from "@/features/backup-dr/components/RestoreVerificationCard";
-import { RecoverabilitySummaryCard } from "@/features/backup-dr/components/RecoverabilitySummaryCard";
 import { BackupDrPostureSummary } from "@/features/backup-dr/components/BackupDrPostureSummary";
 import { BackupDrDataFreshnessStrip } from "@/features/backup-dr/components/BackupDrDataFreshnessStrip";
 import { BackupDrEvidenceSurface } from "@/features/backup-dr/components/BackupDrEvidenceSurface";
 import { BackupDrRecentEvidenceGrid } from "@/features/backup-dr/components/BackupDrRecentEvidenceGrid";
 import { BackupDrSection } from "@/features/backup-dr/components/BackupDrSection";
 import { BackupExecutionModeCard } from "@/features/backup-dr/components/BackupExecutionModeCard";
+import { BackupScheduleSettings } from "@/features/backup-dr/components/BackupScheduleSettings";
 import {
   getBackupExecutionMode,
   getGetApiAdminBackupExecutionModeQueryKey,
@@ -109,17 +92,13 @@ import { isBackupPipelineClientFallbackEnabled } from "@/features/backup-dr/logi
 import { apiNullableToUndefined } from "@/features/backup-dr/logic/backupDrDtoNormalize";
 import { shouldOfferLastKnownGoodArtifactDownload } from "@/features/backup-dr/logic/backupArtifactDownloadTruth";
 import {
-  BACKUP_ACTIVE_POLL_MS,
-  RUN_DETAIL_CATCH_UP_POLL_MS,
-  computeRunDetailRefetchIntervalMs,
-  isBackupLatestRunActiveStatus,
-} from "@/features/backup-dr/logic/backupRunDetailPollPolicy";
-import {
-  PG_RESTORE_LIST_FAILED,
-  interpretPgRestoreListFailure,
-  pgRestoreListFailureKindToStatusLabelKey,
-  pgRestoreListFailureKindToTagColor,
-} from "@/features/backup-dr/logic/restoreVerificationFailurePresentation";
+  BACKUP_RECENT_RUNS_PAGE_SIZE,
+  usePollAlignedWithLatestDashboardBackup,
+  usePollBackupLatestDashboardInterval,
+  usePollRestoreVerificationDashboardInterval,
+  usePollRunDetailDashboardInterval,
+} from "@/features/backup-dr/logic/backupDashboardQueryTiming";
+import { isBackupLatestRunActiveStatus } from "@/features/backup-dr/logic/backupRunDetailPollPolicy";
 
 function formatDt(
   iso: string | undefined | null,
@@ -132,20 +111,6 @@ function formatDt(
     return iso;
   }
 }
-
-function triggerErrorMessage(err: unknown, t: (k: string) => string): string {
-  if (axios.isAxiosError(err)) {
-    const s = err.response?.status;
-    if (s === 403) return t("backupDr.errors.forbiddenTrigger");
-    if (s === 401) return t("backupDr.errors.unauthorizedTrigger");
-    if (s === 409) return t("backupDr.errors.conflictTrigger");
-    if (s === 422) return t("backupDr.errors.validationTrigger");
-    if (s !== undefined && s >= 500) return t("backupDr.errors.serverTrigger");
-  }
-  return t("backupDr.errors.triggerFailed");
-}
-
-const BACKUP_IDLE_POLL_MS = 60_000;
 
 /** Depo kökünde geliştirici yedek kılavuzu — UI’da gösterilir (Orval DTO ile aynı kaynak fikri). */
 const BACKUP_DEV_REAL_PG_DUMP_DOC_REPO_PATH =
@@ -172,24 +137,12 @@ export function BackupDrDashboard() {
     refetchOnWindowFocus: true,
   });
 
-  const runsParams = useMemo(() => ({ page: 1, pageSize: 15 }), []);
-  const restoreParams = useMemo(() => ({ page: 1, pageSize: 10 }), []);
+  const orchestrationRunsParams = useMemo(
+    () => ({ page: 1, pageSize: BACKUP_RECENT_RUNS_PAGE_SIZE }),
+    [],
+  );
 
-  const pollBackup = useCallback((q: { state: { data?: unknown } }) => {
-    const data = q.state.data as
-      | { latestRun?: { status?: number } }
-      | undefined;
-    const s = data?.latestRun?.status;
-    if (isBackupLatestRunActiveStatus(s)) return BACKUP_ACTIVE_POLL_MS;
-    return BACKUP_IDLE_POLL_MS;
-  }, []);
-
-  const pollRestore = useCallback((q: { state: { data?: unknown } }) => {
-    const row = q.state.data as { status?: number } | null | undefined;
-    const s = row?.status;
-    if (s === 0 || s === 1) return 8_000;
-    return 15_000;
-  }, []);
+  const pollBackup = usePollBackupLatestDashboardInterval();
 
   const statusQuery = useGetApiAdminBackupStatusLatest({
     query: { refetchInterval: pollBackup, refetchOnWindowFocus: true },
@@ -198,31 +151,13 @@ export function BackupDrDashboard() {
   const latest = apiNullableToUndefined(statusQuery.data?.latestRun);
 
   /** Latest-run ile aynı hızda: geçmiş / doğrulama / recoverability, yedek aktifken hizalanır. */
-  const pollAlignedWithLatestBackup = useCallback(
-    (_query: unknown) => {
-      return isBackupLatestRunActiveStatus(latest?.status)
-        ? BACKUP_ACTIVE_POLL_MS
-        : BACKUP_IDLE_POLL_MS;
-    },
-    [latest?.status],
-  );
+  const pollAlignedWithLatestBackup = usePollAlignedWithLatestDashboardBackup(latest?.status);
 
-  /**
-   * Run-by-id: aktifken status/latest ile aynı aralıkta yenilenir.
-   * Terminalde detail API’si bazen geride kalır — status ile eşleşene kadar kısa aralıkla yakalar, sonra durur.
-   */
-  const pollRunDetail = useCallback(
-    (query: { state: { data?: BackupRunResponseDto | undefined } }) => {
-      return computeRunDetailRefetchIntervalMs({
-        latestRunId: latest?.id,
-        latestStatus: latest?.status,
-        detail: query.state.data,
-      });
-    },
-    [latest?.id, latest?.status],
-  );
+  /** Run-by-id parity (shared with `BackupStatusCard` observers for the same ids). */
+  const pollRunDetail = usePollRunDetailDashboardInterval(latest?.id, latest?.status);
 
-  const runsQuery = useGetApiAdminBackupRuns(runsParams, {
+  /** First page kept on the shell for global loading parity (dedupes with table on page 1). */
+  const runsOrchestrationQuery = useGetApiAdminBackupRuns(orchestrationRunsParams, {
     query: {
       refetchInterval: pollAlignedWithLatestBackup,
       refetchOnWindowFocus: true,
@@ -240,15 +175,10 @@ export function BackupDrDashboard() {
       refetchOnWindowFocus: true,
     },
   });
+  const pollRestore = usePollRestoreVerificationDashboardInterval();
   const restoreLatestQuery = useGetApiAdminRestoreVerificationRunsLatest({
     query: { refetchInterval: pollRestore, refetchOnWindowFocus: true },
   });
-  const restoreHistoryQuery = useGetApiAdminRestoreVerificationRuns(
-    restoreParams,
-    {
-      query: { refetchInterval: pollRestore, refetchOnWindowFocus: true },
-    },
-  );
   const restoreReadinessQuery = useGetApiAdminRestoreVerificationReadiness({
     query: { refetchInterval: 60_000, refetchOnWindowFocus: true },
   });
@@ -321,72 +251,11 @@ export function BackupDrDashboard() {
           queryKey: getGetApiAdminBackupVerificationLatestQueryKey(),
         });
         void queryClient.invalidateQueries({
-          queryKey: getGetApiAdminBackupRunsQueryKey(runsParams),
+          queryKey: ["/api/admin/backup/runs"],
         });
       }
     }
-  }, [latest?.id, latest?.status, queryClient, runsParams]);
-
-  const invalidateReadiness = useCallback(async () => {
-    await queryClient.invalidateQueries({
-      queryKey: getGetApiAdminRestoreVerificationReadinessQueryKey(),
-    });
-  }, [queryClient]);
-
-  const backupTrigger = usePostApiAdminBackupTrigger({
-    mutation: {
-      onSuccess: async (res) => {
-        const fb = describeBackupTriggerOutcome(res);
-        const suffix = res.orchestrationState?.trim()
-          ? ` ${t("backupDr.messages.orchestrationStateSuffix", { state: res.orchestrationState })}`
-          : "";
-        const text = `${t(fb.messageKey)}${suffix}`;
-        if (fb.level === "success") message.success(text);
-        else message.info(text);
-        await queryClient.invalidateQueries({
-          queryKey: ["/api/admin/backup"],
-        });
-        await queryClient.invalidateQueries({
-          queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey(),
-        });
-        await invalidateReadiness();
-      },
-      onError: (err) => message.error(triggerErrorMessage(err, t)),
-    },
-  });
-
-  const restoreTrigger = usePostApiAdminRestoreVerificationTrigger({
-    mutation: {
-      onSuccess: async (res) => {
-        if (res.newQueuedRunCreated) {
-          message.success(t("backupDr.messages.restoreDrillEnqueued"));
-        } else if (res.existingRunReturned) {
-          if (
-            res.orchestrationState ===
-            RestoreVerificationTriggerOrchestrationState.NUMBER_1
-          ) {
-            message.info(t("backupDr.messages.restoreDrillIdempotent"));
-          } else {
-            message.info(t("backupDr.messages.restoreDrillExistingActive"));
-          }
-        }
-        await restoreLatestQuery.refetch();
-        await restoreHistoryQuery.refetch();
-        await queryClient.invalidateQueries({
-          queryKey: getGetApiAdminRestoreVerificationRunsLatestQueryKey(),
-        });
-        await queryClient.invalidateQueries({
-          queryKey: getGetApiAdminBackupRecoverabilitySummaryQueryKey(),
-        });
-        await queryClient.invalidateQueries({
-          queryKey:
-            getGetApiAdminRestoreVerificationRunsQueryKey(restoreParams),
-        });
-        await invalidateReadiness();
-      },
-      onError: (err) => message.error(triggerErrorMessage(err, t)),
-    },
-  });
+  }, [latest?.id, latest?.status, queryClient]);
 
   const invalidateAll = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ["/api/admin/backup"] });
@@ -490,160 +359,9 @@ export function BackupDrDashboard() {
 
   const isSimulatedAdapterEnvironment = operatorTruth.simulatedOperationalMode;
 
-  const columns: ColumnsType<BackupRunResponseDto> = useMemo(
-    () => [
-      {
-        title: t("backupDr.table.requestedAt"),
-        dataIndex: "requestedAt",
-        key: "requestedAt",
-        render: (v: string) => formatDt(v, formatLocale),
-      },
-      {
-        title: t("backupDr.table.status"),
-        dataIndex: "status",
-        key: "status",
-        render: (s: number | undefined) => (
-          <Tag color={mapBackupRunStatusAntdColor(s)}>
-            {operatorTruth.labels.backupStatus(s)}
-          </Tag>
-        ),
-      },
-      {
-        title: t("backupDr.table.adapter"),
-        dataIndex: "adapterKind",
-        key: "adapterKind",
-      },
-      {
-        title: t("backupDr.table.completedAt"),
-        dataIndex: "completedAt",
-        key: "completedAt",
-        render: (v: string | null) => formatDt(v, formatLocale),
-      },
-      {
-        title: t("backupDr.table.failure"),
-        dataIndex: "failureCode",
-        key: "failureCode",
-        render: (c: string | null) => c ?? "—",
-      },
-    ],
-    [formatLocale, operatorTruth.labels, t],
-  );
-
-  const restoreHistoryColumns: ColumnsType<RestoreVerificationRunResponseDto> =
-    useMemo(
-      () => [
-        {
-          title: t("backupDr.latestRun.requested"),
-          dataIndex: "requestedAt",
-          key: "requestedAt",
-          render: (x: string) => formatDt(x, formatLocale),
-        },
-        {
-          title: t("backupDr.table.status"),
-          dataIndex: "status",
-          key: "status",
-          render: (
-            s: number | undefined,
-            row: RestoreVerificationRunResponseDto,
-          ) => {
-            const listInterp =
-              s === RestoreVerificationRunResponseDtoStatus.NUMBER_3 &&
-              row.failureCode === PG_RESTORE_LIST_FAILED
-                ? interpretPgRestoreListFailure({
-                    run: row,
-                    isSimulatedPipelineHeuristic: isSimulatedAdapterEnvironment,
-                  })
-                : null;
-            const color =
-              listInterp != null
-                ? pgRestoreListFailureKindToTagColor(listInterp.kind)
-                : mapRestoreVerificationStatusAntdColor(s);
-            const label =
-              listInterp != null
-                ? t(pgRestoreListFailureKindToStatusLabelKey(listInterp.kind))
-                : operatorTruth.labels.restoreStatus(s);
-            return <Tag color={color}>{label}</Tag>;
-          },
-        },
-        {
-          title: t("backupDr.table.dumpInspection"),
-          key: "dump",
-          render: (_: unknown, row: RestoreVerificationRunResponseDto) => {
-            const p = mapDumpInspectionTriState(row);
-            if (p === undefined) return "—";
-            if (p) return t("backupDr.triState.ok");
-            const listInterp =
-              row.failureCode === PG_RESTORE_LIST_FAILED
-                ? interpretPgRestoreListFailure({
-                    run: row,
-                    isSimulatedPipelineHeuristic: isSimulatedAdapterEnvironment,
-                  })
-                : null;
-            if (listInterp?.kind === "fake_stub_expected")
-              return t("backupDr.triState.dumpInspectionNotApplicableStub");
-            return t("backupDr.triState.fail");
-          },
-        },
-        {
-          title: t("backupDr.table.restoreAttempt"),
-          key: "attempt",
-          render: (_: unknown, row) => {
-            if (!row.restoreAttemptExecuted)
-              return t("backupDr.restoreAttempt.notRun");
-            if (row.restoreAttemptPassed === true)
-              return t("backupDr.triState.ok");
-            if (row.restoreAttemptPassed === false)
-              return t("backupDr.triState.fail");
-            return "—";
-          },
-        },
-        {
-          title: t("backupDr.table.failure"),
-          dataIndex: "failureCode",
-          key: "failureCode",
-          render: (
-            c: string | null | undefined,
-            row: RestoreVerificationRunResponseDto,
-          ) => {
-            const code = c ?? "—";
-            if (row.failureCode === PG_RESTORE_LIST_FAILED) {
-              const listInterp = interpretPgRestoreListFailure({
-                run: row,
-                isSimulatedPipelineHeuristic: isSimulatedAdapterEnvironment,
-              });
-              if (listInterp?.kind === "fake_stub_expected") {
-                return (
-                  <Tooltip
-                    title={t(
-                      "backupDr.restoreVerification.fakePipeline.pgRestoreListTooltip",
-                    )}
-                  >
-                    <span>{code}</span>
-                  </Tooltip>
-                );
-              }
-              if (listInterp) {
-                const tk = `backupDr.restoreVerification.realPipeline.failureTooltips.${listInterp.kind}`;
-                const title = t(tk);
-                return title !== tk ? (
-                  <Tooltip title={title}>
-                    <span>{code}</span>
-                  </Tooltip>
-                ) : (
-                  code
-                );
-              }
-            }
-            return code;
-          },
-        },
-      ],
-      [formatLocale, isSimulatedAdapterEnvironment, operatorTruth.labels, t],
-    );
-
   const loading =
     statusQuery.isLoading ||
-    runsQuery.isLoading ||
+    runsOrchestrationQuery.isLoading ||
     verificationQuery.isLoading ||
     restoreLatestQuery.isLoading ||
     restoreReadinessQuery.isLoading;
@@ -702,6 +420,7 @@ export function BackupDrDashboard() {
         <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
           {t("backupDr.page.subtitle")}
         </Typography.Paragraph>
+        <BackupScheduleSettings canManage={canManage} />
         <Card size="small">
           <Space direction="vertical" size="small" style={{ width: "100%" }}>
             <Space wrap align="center">
@@ -1045,17 +764,11 @@ export function BackupDrDashboard() {
                 ]}
               />
 
-              <RecoverabilitySummaryCard
-                summary={recoverabilityQuery.data}
-                loading={recoverabilityQuery.isLoading}
-                queryError={recoverabilityQuery.isError}
-                onRetry={() => void recoverabilityQuery.refetch()}
+              <BackupRecoverabilityCard
                 formatDt={formatDt}
                 formatLocale={formatLocale}
                 backupStatusLabel={(s) => operatorTruth.labels.backupStatus(s)}
-                restoreStatusLabel={(s) =>
-                  operatorTruth.labels.restoreStatus(s)
-                }
+                restoreStatusLabel={(s) => operatorTruth.labels.restoreStatus(s)}
                 simulatedOperationalMode={isSimulatedAdapterEnvironment}
                 omitSimulatedEnvironmentStrip={isSimulatedAdapterEnvironment}
                 omitProofGapCaveat
@@ -1110,13 +823,6 @@ export function BackupDrDashboard() {
                   t={t}
                 />
                 <BackupStatusCard
-                  latest={latest}
-                  detail={detailForPipeline}
-                  policy={policy}
-                  loadingDetail={
-                    runDetailQuery.isFetching && Boolean(latest?.id)
-                  }
-                  detailError={runDetailQuery.isError}
                   formatDt={formatDt}
                   formatLocale={formatLocale}
                   backupStatusTagColor={mapBackupRunStatusAntdColor}
@@ -1815,14 +1521,8 @@ export function BackupDrDashboard() {
             titleKey="backupDr.dashboardSections.manualActions"
             t={t}
           >
-            <ManualActionsPanel
+            <BackupManualActionsPanel
               canManage={canManage}
-              backupTrigger={
-                backupTrigger as ManualActionsPanelProps["backupTrigger"]
-              }
-              restoreTrigger={
-                restoreTrigger as ManualActionsPanelProps["restoreTrigger"]
-              }
               simulatedOperationalMode={isSimulatedAdapterEnvironment}
               modeAwareConfirmations={
                 operatorTruth.manualActionsModeConfirmations
@@ -1833,27 +1533,23 @@ export function BackupDrDashboard() {
 
           <BackupDrSection titleKey="backupDr.dashboardSections.history" t={t}>
             <Space direction="vertical" size="large" style={{ width: "100%" }}>
-              <RecentRunsTable
-                title={t("backupDr.runs.title")}
-                rowKey="id"
-                dataSource={runsQuery.data?.items ?? []}
-                columns={columns}
-                loading={runsQuery.isFetching}
-                queryError={runsQuery.isError}
+              <BackupRecentRunsTable
+                backupStatusLabel={(s) => operatorTruth.labels.backupStatus(s)}
+                formatDt={formatDt}
+                formatLocale={formatLocale}
                 t={t}
-                onRetry={() => invalidateAll()}
+                onRetryInvalidate={invalidateAll}
               />
 
-              <RecentRestoreDrillsTable
-                title={t("backupDr.restoreHistory.title")}
-                rowKey="id"
-                dataSource={restoreHistoryQuery.data?.items ?? []}
-                columns={restoreHistoryColumns}
-                loading={restoreHistoryQuery.isFetching}
-                queryError={restoreHistoryQuery.isError}
-                emptyText={t("backupDr.restoreHistory.empty")}
+              <BackupRecentRestoreDrillsTable
+                formatDt={formatDt}
+                formatLocale={formatLocale}
+                restoreStatusLabel={(s) =>
+                  operatorTruth.labels.restoreStatus(s)
+                }
+                isSimulatedAdapterEnvironment={isSimulatedAdapterEnvironment}
                 t={t}
-                onRetry={() => invalidateAll()}
+                onRetryInvalidate={invalidateAll}
               />
             </Space>
           </BackupDrSection>

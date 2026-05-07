@@ -553,9 +553,10 @@ function ChangeMyPasswordTab() {
     );
 }
 
+/** Matches `DemoResetController` JSON body for `/api/admin/demo/reset`. */
 type DemoResetApiResponse = {
-    success?: boolean;
-    message?: string;
+    success: boolean;
+    message: string;
     resetAt?: string;
 };
 
@@ -566,15 +567,13 @@ function DemoResetTab() {
     const canReset = isDevelopment;
 
     const resetMutation = useMutation({
-        mutationFn: async () => {
-            const response = await customInstance<DemoResetApiResponse>({
+        mutationFn: async (): Promise<DemoResetApiResponse> =>
+            customInstance<DemoResetApiResponse>({
                 url: '/api/admin/demo/reset',
                 method: 'POST',
-            });
-            return response.data;
-        },
-        onSuccess: () => {
-            message.success('Demo reset completed. Bitte Seite neu laden.');
+            }),
+        onSuccess: (payload: DemoResetApiResponse) => {
+            message.success(`${payload.message} Bitte Seite neu laden.`);
             setConfirmOpen(false);
             setConfirmText('');
         },

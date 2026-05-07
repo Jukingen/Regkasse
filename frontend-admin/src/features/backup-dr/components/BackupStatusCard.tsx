@@ -2,11 +2,16 @@
 
 /**
  * Son yedek özeti: API durumu + pipeline adımları; storageLocator/path gösterilmez.
+ * `BackupStatusCard`: GET status/latest + run-by-id with legacy polling timings.
  */
 
 import React, { useMemo } from 'react';
 import { Alert, Card, Descriptions, Space, Spin, Tag, Typography } from 'antd';
 import type { BackupArtifactPipelinePolicyResponseDto, BackupRunResponseDto } from '@/api/generated/model';
+import {
+  useGetApiAdminBackupRunsId,
+  useGetApiAdminBackupStatusLatest,
+} from '@/api/generated/admin-backup/admin-backup';
 import { BackupPipelineStepper } from '@/features/backup-dr/components/BackupPipelineStepper';
 import {
   formatRunDurationMs,
@@ -15,8 +20,13 @@ import {
 } from '@/features/backup-dr/logic/backupPipelineDerived';
 import type { RunTruth } from '@/features/backup-dr/logic/backupDrOperatorTruthModel';
 import { isSimulatedBackupAdapterKind } from '@/features/backup-dr/logic/backupDrMappers';
+import {
+  usePollBackupLatestDashboardInterval,
+  usePollRunDetailDashboardInterval,
+} from '@/features/backup-dr/logic/backupDashboardQueryTiming';
+import { apiNullableToUndefined } from '@/features/backup-dr/logic/backupDrDtoNormalize';
 
-export interface BackupStatusCardProps {
+export interface BackupLatestRunCardPresentationProps {
   latest: BackupRunResponseDto | undefined | null;
   detail: BackupRunResponseDto | undefined | null;
   policy: BackupArtifactPipelinePolicyResponseDto | undefined;
@@ -42,6 +52,14 @@ export interface BackupStatusCardProps {
   operatorRunTruth?: Pick<RunTruth, 'technicalSuccess' | 'simulatedEvidence'>;
 }
 
+/** @deprecated Prefer `BackupLatestRunCardPresentationProps` for unit tests/pure rendering. */
+export type BackupStatusCardProps = BackupLatestRunCardPresentationProps;
+
+export type BackupStatusCardOrchestrationProps = Omit<
+  BackupLatestRunCardPresentationProps,
+  'latest' | 'detail' | 'policy' | 'loadingDetail' | 'detailError'
+>;
+
 function formatDurationMs(ms: number | undefined, t: (key: string, options?: Record<string, string | number>) => string): string {
   if (ms === undefined) return '—';
   if (ms < 1000) return t('backupDr.latestRun.durationMs', { ms: String(Math.round(ms)) });
@@ -61,7 +79,7 @@ function formatBytes(n: number | undefined, t: (key: string, options?: Record<st
   return t('backupDr.latestRun.bytesMb', { n: mb.toFixed(2) });
 }
 
-export function BackupStatusCard({
+export function BackupLatestRunCardPresentation({
   latest,
   detail,
   policy,
@@ -77,7 +95,7 @@ export function BackupStatusCard({
   simulatedOperationalMode = false,
   omitFakeOperationalNotice = false,
   operatorRunTruth,
-}: BackupStatusCardProps) {
+}: BackupLatestRunCardPresentationProps) {
   const allowFb = allowClientPipelineFallback === true;
   const resolved = useMemo(
     () =>
@@ -191,5 +209,36 @@ export function BackupStatusCard({
         </>
       )}
     </Card>
+  );
+}
+
+/** Latest backup snapshot + pipeline: owns `GET /api/admin/backup/status/latest` and run detail polling. */
+export function BackupStatusCard(props: BackupStatusCardOrchestrationProps) {
+  const pollBackup = usePollBackupLatestDashboardInterval();
+  const statusQuery = useGetApiAdminBackupStatusLatest({
+    query: { refetchInterval: pollBackup, refetchOnWindowFocus: true },
+  });
+  const latest = apiNullableToUndefined(statusQuery.data?.latestRun);
+  const policy = statusQuery.data?.artifactPipelinePolicy;
+  const pollRunDetail = usePollRunDetailDashboardInterval(latest?.id, latest?.status);
+
+  const runDetailQuery = useGetApiAdminBackupRunsId(latest?.id ?? '', {
+    query: {
+      enabled: Boolean(latest?.id),
+      refetchInterval: pollRunDetail,
+      refetchOnWindowFocus: true,
+    },
+  });
+  const detailForPipeline = runDetailQuery.data ?? null;
+
+  return (
+    <BackupLatestRunCardPresentation
+      latest={latest}
+      detail={detailForPipeline}
+      policy={policy}
+      loadingDetail={runDetailQuery.isFetching && Boolean(latest?.id)}
+      detailError={runDetailQuery.isError}
+      {...props}
+    />
   );
 }

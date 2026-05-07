@@ -142,6 +142,67 @@
         }
       }
     },
+    "/api/admin/backup/settings": {
+      "get": {
+        "tags": ["Admin"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupSettingsResponseDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Admin"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupSettingsPutRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupSettingsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/admin/backup/schedule/status": {
+      "get": {
+        "tags": ["Admin"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupScheduleStatusResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/backup/status/latest": {
       "get": {
         "tags": [
@@ -18127,6 +18188,116 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "BackupSettingsPutRequestDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "scheduleCron": {
+            "type": "string",
+            "nullable": true
+          },
+          "retentionDays": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupScheduleLatestRunSummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BackupRunStatus"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureDetail": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupScheduleStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "databaseAutomationEnabled": {
+            "type": "boolean"
+          },
+          "scheduleCronUtc": {
+            "type": "string",
+            "nullable": true
+          },
+          "storedLastRunAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "storedNextRunAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "computedNextRunAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "latestScheduledBackupRun": {
+            "$ref": "#/components/schemas/BackupScheduleLatestRunSummaryDto",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "scheduleCron": {
+            "type": "string",
+            "nullable": true
+          },
+          "retentionDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastRunAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "nextRunAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
       },
       "BackupTriggerRequestDto": {
         "type": "object",

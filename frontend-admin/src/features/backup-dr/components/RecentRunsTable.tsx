@@ -3,6 +3,7 @@
 import React from 'react';
 import { Alert, Button, Card, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { TablePaginationConfig } from 'antd/es/table/interface';
 import type { BackupRunResponseDto } from '@/api/generated/model';
 
 export interface RecentRunsTableProps {
@@ -14,6 +15,7 @@ export interface RecentRunsTableProps {
   queryError: boolean;
   t: (k: string) => string;
   onRetry?: () => void;
+  pagination?: false | TablePaginationConfig;
 }
 
 export function RecentRunsTable({
@@ -25,6 +27,7 @@ export function RecentRunsTable({
   queryError,
   t,
   onRetry,
+  pagination = false,
 }: RecentRunsTableProps) {
   return (
     <Card title={title} size="small">
@@ -49,7 +52,7 @@ export function RecentRunsTable({
         loading={loading}
         dataSource={dataSource}
         columns={columns}
-        pagination={false}
+        pagination={pagination}
       />
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
         {t('backupDr.runs.statusHint')}

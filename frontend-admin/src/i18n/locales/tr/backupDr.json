@@ -1181,5 +1181,31 @@
   "permission": {
     "noManage": "Salt okunur — kuyruğa almak için „Ayarları yönet“ gerekir.",
     "manualActionsTooltip": "Kapalı: „Ayarları yönet“ yetkisi yok — teknik veya sunucu hatası değil."
+  },
+  "scheduleSettings": {
+    "cardTitle": "Zamanlanmış yedek (sunucu)",
+    "cardHint": "Zamanlama ve saklama veritabanında tutulur; arka plan işçisi uygular (UTC cron).",
+    "enabled": "Otomasyon etkin",
+    "scheduleLabel": "Zamanlama (UTC)",
+    "presetDaily": "Her gün 02:00 UTC",
+    "presetWeeklyMon": "Her Pazartesi 02:00 UTC",
+    "presetMonthly1": "Ayın 1'i 02:00 UTC",
+    "presetCustom": "Özel",
+    "customCronPlaceholder": "Cron ifadesi (5 alan, UTC)",
+    "customCronInvalid": "Geçerli 5 alanlı bir cron girin (boşlukla ayrılmış).",
+    "retentionLabel": "Başarılı yedek saklama (gün)",
+    "retentionHint": "Bu arayüzde 1–90 gün; bir sonraki başarılı yedekten sonra daha eski başarılı koşular temizlenebilir.",
+    "serverRetentionHigher": "Sunucu şu an {{days}} gün saklıyor; bu form en fazla 90 gün — kaydetmek seçilen değerle günceller.",
+    "statusTitle": "Durum",
+    "nextRunComputed": "Sonraki çalışma (hesaplanan, UTC)",
+    "nextRunStored": "Sonraki çalışma (saklı)",
+    "lastRunStored": "Son başarılı otomasyon (saklı)",
+    "lastScheduledRunLabel": "Son zamanlanmış yedek koşusu",
+    "noRunsYet": "—",
+    "runStatusSuffix": "(durum {{status}})",
+    "save": "Kaydet",
+    "saveSuccess": "Ayarlar kaydedildi.",
+    "saveError": "Ayarlar kaydedilemedi.",
+    "loadError": "Zamanlama ayarları yüklenemedi."
   }
 }

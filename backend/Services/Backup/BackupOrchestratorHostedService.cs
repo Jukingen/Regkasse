@@ -113,7 +113,6 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 return;
             }
 
-            await TryEnqueueScheduledBackupIfDueUnderLockAsync(ct);
             await TryProcessAutomaticRetriesUnderLockAsync(ct);
             await ProcessNextExclusiveBodyAsync(ct);
         }
@@ -122,14 +121,6 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
             if (lease != null)
                 await lease.DisposeAsync();
         }
-    }
-
-    private async Task TryEnqueueScheduledBackupIfDueUnderLockAsync(CancellationToken ct)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var enqueue = scope.ServiceProvider.GetRequiredService<IBackupScheduledEnqueueService>();
-        await enqueue.TryEnqueueIfDueAsync(db, ct);
     }
 
     private async Task TryProcessAutomaticRetriesUnderLockAsync(CancellationToken ct)
@@ -149,6 +140,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var verifier = scope.ServiceProvider.GetRequiredService<IBackupVerificationService>();
+        var postSuccess = scope.ServiceProvider.GetRequiredService<IBackupPostSuccessOrchestrationHook>();
 
         var run = await db.BackupRuns
             .Where(r => r.Status == BackupRunStatus.Queued)
@@ -183,7 +175,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 () => _options.CurrentValue.HeartbeatInterval,
                 () => _options.CurrentValue.RunLeaseTimeout,
                 runId,
-                () => ExecuteBackupRunWorkAsync(db, verifier, run, ct),
+                () => ExecuteBackupRunWorkAsync(db, verifier, run, postSuccess, ct),
                 _logger,
                 ct);
         }
@@ -240,6 +232,7 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         AppDbContext db,
         IBackupVerificationService verifier,
         BackupRun run,
+        IBackupPostSuccessOrchestrationHook postSuccess,
         CancellationToken ct)
     {
         var opts = _options.CurrentValue;
@@ -503,6 +496,16 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
                 run.FailureDetail = null;
                 BackupAutomaticRetryCoordinator.ClearAutomaticRetryPlanningFieldsOnSuccess(run);
                 await db.SaveChangesAsync(ct);
+                try
+                {
+                    await postSuccess.NotifySucceededAsync(db, run, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex,
+                        "Backup post-success hook failed after terminal success runId={RunId}",
+                        run.Id);
+                }
                 _logger.LogInformation(
                     "Backup run succeeded (staging verification; external archive skipped): runId={RunId}, adapterKind={AdapterKind}",
                     run.Id,
@@ -622,10 +625,20 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
             run.FailureDetail = null;
             BackupAutomaticRetryCoordinator.ClearAutomaticRetryPlanningFieldsOnSuccess(run);
             await db.SaveChangesAsync(ct);
+            try
+            {
+                await postSuccess.NotifySucceededAsync(db, run, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Backup post-success hook failed after terminal success runId={RunId}",
+                    run.Id);
+            }
 
-        _logger.LogInformation(
-            "Backup run succeeded after staging + external archive verification: runId={RunId}, adapterKind={AdapterKind}",
-            run.Id,
-            adapter.AdapterKind);
+            _logger.LogInformation(
+                "Backup run succeeded after staging + external archive verification: runId={RunId}, adapterKind={AdapterKind}",
+                run.Id,
+                adapter.AdapterKind);
     }
 }

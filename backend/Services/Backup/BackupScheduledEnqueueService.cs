@@ -10,7 +10,8 @@ using Microsoft.Extensions.Options;
 namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
-/// Manuel API kullanmadan <see cref="BackupTriggerSource.Scheduled"/> satırları üretir; aktif zamanlanmış yedek varken çift sıraya almaz.
+/// UTC cron ile zamanlanmış yedek sıraya alma; <c>backup_settings.enabled</c> açıkken DB cron’u,
+/// kapalıyken <see cref="BackupOptions.ScheduledBackupEnabled"/> + yapılandırma cron’unu kullanır.
 /// </summary>
 public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueService
 {
@@ -35,24 +36,41 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
     public async Task<bool> TryEnqueueIfDueAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
         var opts = _options.CurrentValue;
-        if (!opts.ScheduledBackupEnabled || !opts.WorkerEnabled)
+        if (!opts.WorkerEnabled)
             return false;
+
+        await BackupSettingsEnsure.EnsureSingletonAsync(db, cancellationToken);
+        var settingsRow = await db.BackupSettings.FirstAsync(x => x.Id == BackupSettings.SingletonId, cancellationToken);
+
+        var useDbSchedule = settingsRow.Enabled;
+        string? cronText = useDbSchedule
+            ? settingsRow.ScheduleCron?.Trim()
+            : opts.GetEffectiveScheduledBackupCronExpression();
+
+        if (string.IsNullOrWhiteSpace(cronText))
+        {
+            if (useDbSchedule)
+                _logger.LogDebug(
+                    "Scheduled backup enqueue skipped: database automation enabled but schedule_cron empty.");
+            return false;
+        }
+
+        if (!useDbSchedule && !opts.ScheduledBackupEnabled)
+            return false;
+
+        if (!CronExpression.TryParse(cronText, CronFormat.Standard, out var expr))
+        {
+            _logger.LogWarning(
+                "Scheduled backup enqueue skipped: cron expression failed to parse ({Source}).",
+                useDbSchedule ? "database" : "configuration");
+            return false;
+        }
 
         var health = _readiness.GetConfigurationHealth();
         if (health.Level == BackupConfigurationHealthLevel.Unhealthy)
         {
             _logger.LogWarning(
                 "Scheduled backup enqueue skipped: backup configuration health is Unhealthy.");
-            return false;
-        }
-
-        var cronText = opts.GetEffectiveScheduledBackupCronExpression();
-        if (string.IsNullOrWhiteSpace(cronText))
-            return false;
-
-        if (!CronExpression.TryParse(cronText, CronFormat.Standard, out var expr))
-        {
-            _logger.LogWarning("Scheduled backup enqueue skipped: cron expression failed to parse at runtime.");
             return false;
         }
 
@@ -68,10 +86,7 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
         if (hasActiveScheduled)
             return false;
 
-        var lastScheduledRequestedAt = await db.BackupRuns.AsNoTracking()
-            .Where(r => r.TriggerSource == BackupTriggerSource.Scheduled)
-            .Select(r => (DateTime?)r.RequestedAt)
-            .MaxAsync(cancellationToken);
+        var lastScheduledRequestedAt = await BackupScheduleProjection.GetLastScheduledRequestedAtAsync(db, cancellationToken);
 
         var anchor = lastScheduledRequestedAt ?? utcNow.AddYears(-10);
         var nextFire = expr.GetNextOccurrence(anchor, TimeZoneInfo.Utc, inclusive: false);
@@ -96,15 +111,24 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
                 effectiveKind,
                 health.AdminRuntimeExecutionMode)
         };
-        run.CorrelationId = $"sched-{run.Id:N}";
 
         db.BackupRuns.Add(run);
         await db.SaveChangesAsync(cancellationToken);
 
+        run.CorrelationId = $"sched-{run.Id:N}";
+        if (useDbSchedule)
+        {
+            settingsRow.NextRunAt = expr.GetNextOccurrence(capturedAt, TimeZoneInfo.Utc, inclusive: false);
+            settingsRow.UpdatedAtUtc = capturedAt;
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
         _logger.LogInformation(
-            "Enqueued scheduled backup run: runId={RunId}, adapterKind={AdapterKind}",
+            "Enqueued scheduled backup run: runId={RunId}, adapterKind={AdapterKind}, scheduleSource={Source}",
             run.Id,
-            adapterKind);
+            adapterKind,
+            useDbSchedule ? "database" : "configuration");
 
         return true;
     }

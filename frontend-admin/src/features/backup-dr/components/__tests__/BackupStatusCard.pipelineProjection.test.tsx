@@ -7,7 +7,7 @@ import '@testing-library/jest-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import type { BackupPipelineSnapshotDto, BackupRunResponseDto } from '@/api/generated/model';
-import { BackupStatusCard } from '@/features/backup-dr/components/BackupStatusCard';
+import { BackupLatestRunCardPresentation } from '@/features/backup-dr/components/BackupStatusCard';
 import { SERVER_PIPELINE_PROJECTION_VERSION } from '@/features/backup-dr/logic/backupPipelineDerived';
 
 beforeAll(() => {
@@ -51,10 +51,10 @@ function latestBase(): BackupRunResponseDto {
   };
 }
 
-describe('BackupStatusCard — dashboard pipeline projection preference', () => {
+describe('BackupLatestRunCardPresentation — dashboard pipeline projection preference', () => {
   it('does not show client-fallback notice when server snapshot is valid', () => {
     render(
-      <BackupStatusCard
+      <BackupLatestRunCardPresentation
         latest={latestBase()}
         detail={{
           ...latestBase(),
@@ -79,7 +79,7 @@ describe('BackupStatusCard — dashboard pipeline projection preference', () => 
 
   it('shows explicit notice when using client-derived steps', () => {
     render(
-      <BackupStatusCard
+      <BackupLatestRunCardPresentation
         latest={latestBase()}
         detail={{ ...latestBase() }}
         policy={{}}
@@ -99,7 +99,7 @@ describe('BackupStatusCard — dashboard pipeline projection preference', () => 
 
   it('shows disabled notice and no stepper when client fallback is off and snapshot missing', () => {
     render(
-      <BackupStatusCard
+      <BackupLatestRunCardPresentation
         latest={latestBase()}
         detail={{ ...latestBase() }}
         policy={{}}
@@ -119,7 +119,7 @@ describe('BackupStatusCard — dashboard pipeline projection preference', () => 
 
   it('shows version-blocked notice when snapshot is incompatible and client fallback is off', () => {
     render(
-      <BackupStatusCard
+      <BackupLatestRunCardPresentation
         latest={latestBase()}
         detail={{
           ...latestBase(),

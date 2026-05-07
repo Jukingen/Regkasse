@@ -38,6 +38,7 @@ public sealed class AdminBackupController : ControllerBase
     private readonly ILogger<AdminBackupController> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly AppDbContext _db;
+    private readonly IBackupSettingsAdminService _backupSettings;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -50,7 +51,8 @@ public sealed class AdminBackupController : ControllerBase
         IAuditLogService audit,
         ILogger<AdminBackupController> logger,
         IHostEnvironment hostEnvironment,
-        AppDbContext db)
+        AppDbContext db,
+        IBackupSettingsAdminService backupSettings)
     {
         _trigger = trigger;
         _query = query;
@@ -63,6 +65,7 @@ public sealed class AdminBackupController : ControllerBase
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _db = db;
+        _backupSettings = backupSettings;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -96,6 +99,41 @@ public sealed class AdminBackupController : ControllerBase
 
         return AcceptedAtAction(nameof(GetRunById), new { id = outcome.Run.Id }, dto);
     }
+
+    [HttpGet("settings")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupSettingsResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<BackupSettingsResponseDto>> GetAutomationSettings(CancellationToken cancellationToken)
+        => Ok(await _backupSettings.GetAsync(cancellationToken));
+
+    /// <summary>Updates singleton automation settings (cron is UTC CronFormat.Standard).</summary>
+    [HttpPut("settings")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [ProducesResponseType(typeof(BackupSettingsResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<BackupSettingsResponseDto>> PutAutomationSettings(
+        [FromBody] BackupSettingsPutRequestDto? body,
+        CancellationToken cancellationToken)
+    {
+        if (body == null)
+            return BadRequest(new { code = "BACKUP_SETTINGS_BODY_REQUIRED", message = "Request body is required." });
+
+        try
+        {
+            var updated = await _backupSettings.PutAsync(body, cancellationToken);
+            return Ok(updated);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { code = "BACKUP_SETTINGS_INVALID", message = ex.Message });
+        }
+    }
+
+    [HttpGet("schedule/status")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupScheduleStatusResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<BackupScheduleStatusResponseDto>> GetScheduleStatus(CancellationToken cancellationToken)
+        => Ok(await _backupSettings.GetScheduleStatusAsync(cancellationToken));
 
     [HttpGet("status/latest")]
     [HasPermission(AppPermissions.SettingsView)]

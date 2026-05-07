@@ -572,7 +572,10 @@ builder.Services.AddSingleton<IBackupOperationalReadiness, BackupOperationalRead
 builder.Services.AddSingleton<IBackupScheduledEnqueueService, BackupScheduledEnqueueService>();
 builder.Services.AddSingleton<IBackupOrchestratorMetrics, PrometheusBackupOrchestratorMetrics>();
 builder.Services.AddSingleton<IBackupOrchestratorDistributedLock, BackupOrchestratorPostgreSqlAdvisoryLock>();
+builder.Services.AddScoped<IBackupPostSuccessOrchestrationHook, BackupPostSuccessOrchestrationHook>();
+builder.Services.AddScoped<IBackupSettingsAdminService, BackupSettingsAdminService>();
 builder.Services.AddHostedService<BackupOrchestratorHostedService>();
+builder.Services.AddHostedService<BackupSchedulerService>();
 builder.Services.AddHostedService<BackupRetentionPolicyDiagnosticsHostedService>();
 
 builder.Services.AddSingleton<IPgRestoreListInspector, PgRestoreListInspector>();

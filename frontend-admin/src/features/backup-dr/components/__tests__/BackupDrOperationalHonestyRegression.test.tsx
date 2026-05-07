@@ -63,7 +63,7 @@ import {
 } from '@/api/generated/admin-restore-verification/admin-restore-verification';
 import { BackupDrDashboard } from '@/features/backup-dr/components/BackupDrDashboard';
 import { BackupArtifactsDownloadCard } from '@/features/backup-dr/components/BackupArtifactsDownloadCard';
-import { BackupStatusCard } from '@/features/backup-dr/components/BackupStatusCard';
+import { BackupLatestRunCardPresentation } from '@/features/backup-dr/components/BackupStatusCard';
 import { RecoverabilitySummaryCard } from '@/features/backup-dr/components/RecoverabilitySummaryCard';
 import { RestoreVerificationCard } from '@/features/backup-dr/components/RestoreVerificationCard';
 import type { BackupRunResponseDto } from '@/api/generated/model';
@@ -335,7 +335,7 @@ describe('RecoverabilitySummaryCard — real pg_dump path visible', () => {
   });
 });
 
-describe('BackupStatusCard — technical success vs simulated vs real status label', () => {
+describe('BackupLatestRunCardPresentation — technical success vs simulated vs real status label', () => {
   const latestFake: BackupRunResponseDto = {
     id: 'run-1',
     status: 3,
@@ -347,7 +347,7 @@ describe('BackupStatusCard — technical success vs simulated vs real status lab
 
   it('Fake + success: simulated technical success — not a “Succeeded” production backup label', () => {
     render(
-      <BackupStatusCard
+      <BackupLatestRunCardPresentation
         latest={latestFake}
         detail={{ isSimulatedExecution: true, adapterKind: 'Fake', artifacts: [] } as never}
         policy={undefined}
@@ -375,7 +375,7 @@ describe('BackupStatusCard — technical success vs simulated vs real status lab
       adapterKind: 'PgDump',
     };
     render(
-      <BackupStatusCard
+      <BackupLatestRunCardPresentation
         latest={latestPg}
         detail={{ isSimulatedExecution: false, adapterKind: 'PgDump', artifacts: [] } as never}
         policy={undefined}

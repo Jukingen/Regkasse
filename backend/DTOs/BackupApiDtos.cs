@@ -169,6 +169,61 @@ public sealed class BackupTriggerRequestDto
     public string? IdempotencyKey { get; init; }
 }
 
+/// <summary>Singleton backup automation knobs (PostgreSQL backup_settings).</summary>
+public sealed class BackupSettingsResponseDto
+{
+    public bool Enabled { get; init; }
+
+    /// <summary>Five-field UTC cron (CronFormat.Standard).</summary>
+    public string ScheduleCron { get; init; } = string.Empty;
+
+    public int RetentionDays { get; init; }
+
+    public DateTime? LastRunAtUtc { get; init; }
+
+    public DateTime? NextRunAtUtc { get; init; }
+
+    public DateTime UpdatedAtUtc { get; init; }
+}
+
+public sealed class BackupSettingsPutRequestDto
+{
+    public bool Enabled { get; init; }
+
+    /// <inheritdoc cref="BackupSettings.ScheduleCron"/>
+    public string? ScheduleCron { get; init; }
+
+    /// <inheritdoc cref="BackupSettings.RetentionDays"/>
+    public int RetentionDays { get; init; }
+}
+
+/// <summary>Latest scheduled backup row summary for scheduler UI.</summary>
+public sealed class BackupScheduleLatestRunSummaryDto
+{
+    public Guid Id { get; init; }
+    public BackupRunStatus Status { get; init; }
+    public DateTime RequestedAt { get; init; }
+    public DateTime? CompletedAt { get; init; }
+    public string? FailureCode { get; init; }
+    public string? FailureDetail { get; init; }
+}
+
+public sealed class BackupScheduleStatusResponseDto
+{
+    public bool DatabaseAutomationEnabled { get; init; }
+
+    public string ScheduleCronUtc { get; init; } = string.Empty;
+
+    public DateTime? StoredLastRunAtUtc { get; init; }
+
+    public DateTime? StoredNextRunAtUtc { get; init; }
+
+    /// <summary>Live projection from cron (may differ briefly from StoredNextRunAtUtc).</summary>
+    public DateTime? ComputedNextRunAtUtc { get; init; }
+
+    public BackupScheduleLatestRunSummaryDto? LatestScheduledBackupRun { get; init; }
+}
+
 public sealed class BackupTriggerResponseDto
 {
     public BackupRunResponseDto Run { get; init; } = null!;

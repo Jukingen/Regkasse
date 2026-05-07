@@ -34,6 +34,15 @@ public sealed class OrchestratorRunFinalizerAndHostedServiceTests
         var services = new ServiceCollection();
         services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(inMemoryDbName));
         services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
+        services.AddSingleton(OptionsMonitorOf(new BackupOptions { ExecutionAdapterKind = BackupExecutionAdapterKind.Fake }));
+        services.AddSingleton<IHostEnvironment>(_ =>
+        {
+            var m = new Mock<IHostEnvironment>();
+            m.Setup(h => h.EnvironmentName).Returns(Environments.Development);
+            return m.Object;
+        });
+        services.AddLogging(b => { });
+        services.AddScoped<IBackupPostSuccessOrchestrationHook, BackupPostSuccessOrchestrationHook>();
         extra?.Invoke(services);
         var sp = services.BuildServiceProvider();
         return sp.GetRequiredService<IServiceScopeFactory>();

@@ -1181,5 +1181,31 @@
   "permission": {
     "noManage": "View only — “Manage settings” is required to enqueue jobs.",
     "manualActionsTooltip": "Disabled: missing “Manage settings” permission — not a technical or server error."
+  },
+  "scheduleSettings": {
+    "cardTitle": "Scheduled backup (server)",
+    "cardHint": "Schedule and retention are stored in the database and enforced by the background worker (UTC cron).",
+    "enabled": "Automation enabled",
+    "scheduleLabel": "Schedule (UTC)",
+    "presetDaily": "Daily at 02:00 UTC",
+    "presetWeeklyMon": "Weekly on Monday at 02:00 UTC",
+    "presetMonthly1": "Monthly on day 1 at 02:00 UTC",
+    "presetCustom": "Custom",
+    "customCronPlaceholder": "Cron expression (5 fields, UTC)",
+    "customCronInvalid": "Enter a valid 5-field cron expression (space-separated).",
+    "retentionLabel": "Retain successful backups (days)",
+    "retentionHint": "1–90 days in this form; older successful runs may be cleaned up after the next successful backup.",
+    "serverRetentionHigher": "The server currently stores {{days}} days; this form is capped at 90 days — saving replaces with the chosen value.",
+    "statusTitle": "Status",
+    "nextRunComputed": "Next run (computed, UTC)",
+    "nextRunStored": "Next run (stored)",
+    "lastRunStored": "Last successful automation run (stored)",
+    "lastScheduledRunLabel": "Latest scheduled backup run",
+    "noRunsYet": "—",
+    "runStatusSuffix": "(status {{status}})",
+    "save": "Save",
+    "saveSuccess": "Settings saved.",
+    "saveError": "Could not save settings.",
+    "loadError": "Could not load schedule settings."
   }
 }
