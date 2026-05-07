@@ -133,6 +133,15 @@ export default function RksvSonderbelegePage() {
         if (q) setRegisterId(q);
     }, [searchParams]);
 
+    useEffect(() => {
+        const focus = searchParams.get('focus')?.trim();
+        if (focus !== 'startbeleg' && focus !== 'schlussbeleg') return;
+        const id = focus === 'startbeleg' ? 'rksv-focus-startbeleg' : 'rksv-focus-schlussbeleg';
+        requestAnimationFrame(() => {
+            document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }, [searchParams]);
+
     const { data: receiptScan, isLoading: scanLoading } = useQuery({
         queryKey: ['rksv-sonderbelege-recent-special', 300],
         queryFn: async () => {
@@ -531,9 +540,11 @@ export default function RksvSonderbelegePage() {
                         ) : null}
 
                         {canStart ? (
-                            <Button onClick={() => void onStartbeleg()} disabled={!registerId || busy !== null} loading={busy === 'start'}>
-                                Startbeleg erstellen
-                            </Button>
+                            <div id="rksv-focus-startbeleg">
+                                <Button onClick={() => void onStartbeleg()} disabled={!registerId || busy !== null} loading={busy === 'start'}>
+                                    Startbeleg erstellen
+                                </Button>
+                            </div>
                         ) : null}
 
                         {canMonat ? (
@@ -566,9 +577,11 @@ export default function RksvSonderbelegePage() {
                         ) : null}
 
                         {canSchluss ? (
-                            <Button danger onClick={openSchlussModal} disabled={!registerId || busy !== null} loading={busy === 'schluss'}>
-                                Endbeleg erstellen
-                            </Button>
+                            <div id="rksv-focus-schlussbeleg">
+                                <Button danger onClick={openSchlussModal} disabled={!registerId || busy !== null} loading={busy === 'schluss'}>
+                                    Endbeleg erstellen
+                                </Button>
+                            </div>
                         ) : null}
                     </Space>
                 </Space>

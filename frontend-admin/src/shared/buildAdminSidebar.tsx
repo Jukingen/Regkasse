@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import type { MenuProps } from 'antd';
+import { Tag, Tooltip, type MenuProps } from 'antd';
 import * as Icons from '@ant-design/icons';
 import { AdminSidebarLeafLink } from '@/components/admin-layout/AdminSidebarLeafLink';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
@@ -20,6 +20,11 @@ import {
     type SidebarLayoutBlock,
 } from '@/shared/adminSidebarRegistry';
 import { filterCatalogIdsForInventoryNav } from '@/shared/config/adminInventoryNavUi';
+import {
+    FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES,
+    fiscalRksvClosingBadgeLabel,
+} from '@/shared/fiscalRksvClosingSidebar';
+import sidebarStyles from '@/components/admin-layout/adminSidebarFiscal.module.css';
 
 const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     ThunderboltOutlined: Icons.ThunderboltOutlined,
@@ -81,6 +86,39 @@ function catalogLeaf(
     };
 }
 
+function fiscalRksvClosingLeaves(t: (key: string) => string): NonNullable<MenuProps['items']> {
+    return FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES.map((item) => {
+        const text = t(item.labelKey);
+        const badgeText = fiscalRksvClosingBadgeLabel(item.badge);
+        const titleCollapsed = `${text} (${badgeText})`;
+        return {
+            key: item.menuKey,
+            title: titleCollapsed,
+            className: sidebarStyles.fiscalClosingMenuItem,
+            label: (
+                <Tooltip title={item.tooltipTr} placement="right">
+                    <span
+                        className={sidebarStyles.fiscalClosingLeafRow}
+                        style={{ borderLeft: `3px solid ${item.accentColor}` }}
+                    >
+                        <span className={sidebarStyles.fiscalClosingEmoji} aria-hidden>
+                            {item.emoji}
+                        </span>
+                        <AdminSidebarLeafLink href={item.href}>
+                            <span className={sidebarStyles.fiscalClosingLeafLinkInner}>
+                                <span className={sidebarStyles.fiscalClosingLeafText}>{text}</span>
+                                <Tag className={sidebarStyles.fiscalClosingBadge} bordered={false}>
+                                    {badgeText}
+                                </Tag>
+                            </span>
+                        </AdminSidebarLeafLink>
+                    </span>
+                </Tooltip>
+            ),
+        };
+    });
+}
+
 function buildDomainBlocks(
     t: (key: string) => string,
     blocks: SidebarLayoutBlock[],
@@ -104,6 +142,17 @@ function buildDomainBlocks(
                 label: text,
                 title: text,
                 children: nestedIds.map((id) => catalogLeaf(t, id)),
+            });
+            continue;
+        }
+        if (block.kind === 'fiscalRksvClosing') {
+            const text = t(block.labelKey);
+            out.push({
+                key: block.menuKey,
+                icon: iconEl(block.icon),
+                label: text,
+                title: text,
+                children: fiscalRksvClosingLeaves(t),
             });
             continue;
         }

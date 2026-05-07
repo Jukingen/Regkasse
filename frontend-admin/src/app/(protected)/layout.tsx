@@ -5,10 +5,10 @@
  * Permissions: `MENU_PERMISSION` / `ROUTE_PERMISSIONS`. Desktop Sider width: `usePersistedAdminSiderWidth`.
  */
 
-import React, { useState, useEffect, useMemo, useLayoutEffect, ReactNode } from 'react';
+import React, { Suspense, useState, useEffect, useMemo, useLayoutEffect, ReactNode } from 'react';
 import { Layout, Menu, Button, theme, Dropdown, Avatar, Drawer, Grid, MenuProps } from 'antd';
 import { MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { AuthGate } from '@/shared/auth/AuthGate';
 import { PermissionRouteGuard } from '@/shared/auth/PermissionRouteGuard';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -40,6 +40,65 @@ const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
 
 const EMPTY_PERMISSIONS: string[] = [];
+
+type ProtectedShellMenuProps = {
+    menuInlineCollapsed: boolean;
+    openKeys: string[];
+    setOpenKeys: React.Dispatch<React.SetStateAction<string[]>>;
+    menuItems: MenuProps['items'];
+    pathname: string | null;
+    selectableRouteKeys: readonly string[];
+    isMobile: boolean;
+    setDrawerVisible: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+function ProtectedShellMenuFallback(props: ProtectedShellMenuProps) {
+    const { menuInlineCollapsed, openKeys, setOpenKeys, menuItems, pathname, selectableRouteKeys, isMobile, setDrawerVisible } =
+        props;
+    const selectedKeys = useMemo(
+        () => resolveAdminMenuSelectedKeys(pathname, selectableRouteKeys),
+        [pathname, selectableRouteKeys],
+    );
+    return (
+        <Menu
+            theme="light"
+            mode="inline"
+            className={sidebarStyles.siderMenu}
+            selectedKeys={selectedKeys}
+            {...(menuInlineCollapsed ? {} : { openKeys, onOpenChange: setOpenKeys })}
+            items={menuItems}
+            inlineCollapsed={menuInlineCollapsed}
+            onClick={() => {
+                if (isMobile) setDrawerVisible(false);
+            }}
+        />
+    );
+}
+
+function ProtectedShellMenuWithSearch(props: ProtectedShellMenuProps) {
+    const searchParams = useSearchParams();
+    const search = searchParams.toString();
+    const { menuInlineCollapsed, openKeys, setOpenKeys, menuItems, pathname, selectableRouteKeys, isMobile, setDrawerVisible } =
+        props;
+    const selectedKeys = useMemo(
+        () => resolveAdminMenuSelectedKeys(pathname, selectableRouteKeys, search),
+        [pathname, selectableRouteKeys, search],
+    );
+    return (
+        <Menu
+            theme="light"
+            mode="inline"
+            className={sidebarStyles.siderMenu}
+            selectedKeys={selectedKeys}
+            {...(menuInlineCollapsed ? {} : { openKeys, onOpenChange: setOpenKeys })}
+            items={menuItems}
+            inlineCollapsed={menuInlineCollapsed}
+            onClick={() => {
+                if (isMobile) setDrawerVisible(false);
+            }}
+        />
+    );
+}
 
 export default function DashboardLayout({
     children,
@@ -103,11 +162,6 @@ export default function DashboardLayout({
         [menuItems],
     );
 
-    const menuSelectedKeys = useMemo(
-        () => resolveAdminMenuSelectedKeys(pathname, selectableRouteKeys),
-        [pathname, selectableRouteKeys],
-    );
-
     const [openKeys, setOpenKeys] = useState<string[]>([]);
 
     useLayoutEffect(() => {
@@ -160,23 +214,31 @@ export default function DashboardLayout({
             >
                 {collapsed && !isMobile ? t('adminShell.branding.sidebarCompact') : t('adminShell.branding.sidebarExpanded')}
             </div>
-            <Menu
-                theme="light"
-                mode="inline"
-                className={sidebarStyles.siderMenu}
-                selectedKeys={menuSelectedKeys}
-                {...(menuInlineCollapsed
-                    ? {}
-                    : {
-                          openKeys,
-                          onOpenChange: setOpenKeys,
-                      })}
-                items={menuItems}
-                inlineCollapsed={menuInlineCollapsed}
-                onClick={() => {
-                    if (isMobile) setDrawerVisible(false);
-                }}
-            />
+            <Suspense
+                fallback={
+                    <ProtectedShellMenuFallback
+                        menuInlineCollapsed={menuInlineCollapsed}
+                        openKeys={openKeys}
+                        setOpenKeys={setOpenKeys}
+                        menuItems={menuItems}
+                        pathname={pathname}
+                        selectableRouteKeys={selectableRouteKeys}
+                        isMobile={isMobile}
+                        setDrawerVisible={setDrawerVisible}
+                    />
+                }
+            >
+                <ProtectedShellMenuWithSearch
+                    menuInlineCollapsed={menuInlineCollapsed}
+                    openKeys={openKeys}
+                    setOpenKeys={setOpenKeys}
+                    menuItems={menuItems}
+                    pathname={pathname}
+                    selectableRouteKeys={selectableRouteKeys}
+                    isMobile={isMobile}
+                    setDrawerVisible={setDrawerVisible}
+                />
+            </Suspense>
         </>
     );
 

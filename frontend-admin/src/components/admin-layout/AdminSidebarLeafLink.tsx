@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 type AdminSidebarLeafLinkProps = {
     href: string;
-    children: string;
+    children: React.ReactNode;
 };
 
 /**
@@ -14,7 +14,11 @@ type AdminSidebarLeafLinkProps = {
 export function AdminSidebarLeafLink({ href, children }: AdminSidebarLeafLinkProps) {
     return (
         <Link href={href} className="admin-sidebar-leaf-link" prefetch={false}>
-            <span className="admin-sidebar-leaf-link__text">{children}</span>
+            {typeof children === 'string' || typeof children === 'number' ? (
+                <span className="admin-sidebar-leaf-link__text">{children}</span>
+            ) : (
+                children
+            )}
         </Link>
     );
 }

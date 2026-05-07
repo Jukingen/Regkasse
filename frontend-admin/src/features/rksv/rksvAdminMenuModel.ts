@@ -61,11 +61,6 @@ export function buildRksvMenuGroups(t: (key: string) => string, verificationNavL
             items: [
                 { key: '/rksv/operations', href: '/rksv', label: t('nav.rksvLeafOverview') },
                 {
-                    key: '/rksv/sonderbelege',
-                    href: '/rksv/sonderbelege',
-                    label: t('nav.rksvLeafSonderbelege'),
-                },
-                {
                     key: '/rksv/finanz-online-outbox',
                     href: '/rksv/finanz-online-outbox',
                     label: t('nav.finanzOnlineOutbox'),

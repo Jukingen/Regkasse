@@ -7,6 +7,7 @@
 
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { collectRksvMenuLeafKeys } from '@/shared/rksvMenuModel';
+import { FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS } from '@/shared/fiscalRksvClosingSidebar';
 import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
 import { registerRksvSidebar, type RksvSidebarRegistryAttachment } from '@/features/rksv/sidebarPlugin';
 
@@ -358,6 +359,7 @@ export type SidebarLayoutBlock =
           icon: SidebarIconToken;
           catalogIds: SidebarCatalogId[];
       }
+    | { kind: 'fiscalRksvClosing'; menuKey: string; labelKey: string; icon: SidebarIconToken }
     | { kind: 'rksvHub'; menuKey: '/rksv'; labelKey: string; icon: SidebarIconToken };
 
 export type SidebarLayoutRow =
@@ -371,7 +373,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     {
         kind: 'domain',
         domain: 'operations',
-        blocks: [{ kind: 'leaves', catalogIds: ['operationsCenter', 'tables', 'tagesabschluss'] }],
+        blocks: [{ kind: 'leaves', catalogIds: ['operationsCenter', 'tables'] }],
     },
     {
         kind: 'domain',
@@ -412,13 +414,6 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 kind: 'leaves',
                 catalogIds: ['reportingDashboard', 'reportingOverview', 'reportCenter', 'staffPerformance'],
             },
-            {
-                kind: 'nested',
-                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.reportingFormal,
-                labelKey: 'nav.reportingFormalReports',
-                icon: 'FileTextOutlined',
-                catalogIds: ['tagesbericht', 'monatsbericht', 'jahresbericht'],
-            },
         ],
     },
     { kind: 'divider', key: 'nav-divider-fiscal' },
@@ -426,6 +421,12 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'domain',
         domain: 'fiscalCompliance',
         blocks: [
+            {
+                kind: 'fiscalRksvClosing',
+                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing,
+                labelKey: 'nav.fiscalRksvClosingHub',
+                icon: 'SafetyOutlined',
+            },
             { kind: 'leaves', catalogIds: ['auditLogs', 'fiscalExportAuditLogs', 'offlineTransactionsAdmin'] },
             {
                 kind: 'rksvHub',
@@ -473,5 +474,5 @@ export function getSidebarCatalogLeafMenuKeys(): string[] {
 
 /** Catalog + RKSV leaves for guard coverage tests. */
 export function getAllSidebarLeafMenuKeysForCoverage(rksvGroups: RksvMenuGroup[]): string[] {
-    return [...getSidebarCatalogLeafMenuKeys(), ...collectRksvMenuLeafKeys(rksvGroups)];
+    return [...getSidebarCatalogLeafMenuKeys(), ...FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS, ...collectRksvMenuLeafKeys(rksvGroups)];
 }

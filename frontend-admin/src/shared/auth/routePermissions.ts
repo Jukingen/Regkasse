@@ -51,6 +51,9 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv': PERMISSIONS.FINANZONLINE_MANAGE,
   /** Explicit hub alias path (same access as `/rksv`; avoids prefix-only drift in audits). */
   '/rksv/operations': PERMISSIONS.FINANZONLINE_MANAGE,
+  /** Sidebar-only virtual keys: same access as Sonderbelege page (query focus deep links). */
+  '/rksv/sb/startbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/sb/schlussbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sonderbelege': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/status': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/cmc-certificate': PERMISSIONS.SETTINGS_VIEW,
