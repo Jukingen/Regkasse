@@ -30,20 +30,6 @@ public sealed class CreateNullbelegResponse
     public bool ActsAsJahresbeleg { get; set; }
 }
 
-/// <summary>RKSV Startbeleg (first zero signed receipt for a cash register).</summary>
-public sealed class CreateStartbelegRequest
-{
-    [Required]
-    public Guid CashRegisterId { get; set; }
-
-    /// <summary>Optional client correlation (stored on payment <c>CorrelationId</c> when short enough).</summary>
-    [MaxLength(100)]
-    public string? CorrelationId { get; set; }
-
-    [MaxLength(450)]
-    public string? Reason { get; set; }
-}
-
 public sealed class CreateStartbelegResponse
 {
     public Guid PaymentId { get; set; }

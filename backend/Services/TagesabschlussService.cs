@@ -4,9 +4,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Time;
+using KasseAPI_Final.Tse;
 
 namespace KasseAPI_Final.Services
 {
@@ -27,16 +31,28 @@ namespace KasseAPI_Final.Services
     {
         private readonly AppDbContext _context;
         private readonly ITseService _tseService;
+        private readonly ITseProvider _tseProvider;
         private readonly IFinanzOnlineService _finanzOnlineService;
+        private readonly TseOptions _tseOptions;
+        private readonly IHostEnvironment _hostEnvironment;
+        private readonly ILogger<TagesabschlussService> _logger;
 
         public TagesabschlussService(
             AppDbContext context,
             ITseService tseService,
-            IFinanzOnlineService finanzOnlineService)
+            ITseProvider tseProvider,
+            IFinanzOnlineService finanzOnlineService,
+            IOptions<TseOptions> tseOptions,
+            IHostEnvironment hostEnvironment,
+            ILogger<TagesabschlussService> logger)
         {
             _context = context;
             _tseService = tseService;
+            _tseProvider = tseProvider;
             _finanzOnlineService = finanzOnlineService;
+            _tseOptions = tseOptions.Value;
+            _hostEnvironment = hostEnvironment;
+            _logger = logger;
         }
 
         /// <summary>Sprint 4: Count active payments in scope (register + date range) that have no Invoice with SourcePaymentId. Used to block closing when &gt; 0.</summary>
@@ -67,7 +83,22 @@ namespace KasseAPI_Final.Services
                 var tseStatus = await _tseService.GetTseStatusAsync();
                 if (!tseStatus.IsConnected)
                 {
-                    throw new InvalidOperationException("TSE device is not connected. Daily closing cannot be performed.");
+                    var isFakeProvider = _tseProvider is FakeTseProvider;
+                    var allowConfiguredSimulatedBypass =
+                        _tseOptions.AllowSimulatedDailyClosing && isFakeProvider;
+
+                    // Bypass connection validation only when explicitly enabled and fake provider is active.
+                    if (!allowConfiguredSimulatedBypass)
+                    {
+                        throw new InvalidOperationException("TSE device is not connected. Daily closing cannot be performed.");
+                    }
+
+                    _logger.LogWarning(
+                        "TSE device is not connected, but daily closing is allowed by configuration. Provider={ProviderType}, Mode={Mode}, Environment={EnvironmentName}, AllowSimulatedDailyClosing={AllowSimulatedDailyClosing}",
+                        _tseProvider.GetType().Name,
+                        _tseOptions.Mode,
+                        _hostEnvironment.EnvironmentName,
+                        _tseOptions.AllowSimulatedDailyClosing);
                 }
 
                 var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();

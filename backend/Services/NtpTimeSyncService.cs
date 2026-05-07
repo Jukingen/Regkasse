@@ -1,4 +1,5 @@
 using KasseAPI_Final.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -10,19 +11,16 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public sealed class NtpTimeSyncService : BackgroundService
 {
-    private readonly INtpEffectiveSettingsProvider _effectiveSettings;
-    private readonly INtpSynchronizationCoordinator _coordinator;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<NtpTimeSyncService> _logger;
 
     private static readonly TimeSpan DisabledPollInterval = TimeSpan.FromMinutes(1);
 
     public NtpTimeSyncService(
-        INtpEffectiveSettingsProvider effectiveSettings,
-        INtpSynchronizationCoordinator coordinator,
+        IServiceScopeFactory scopeFactory,
         ILogger<NtpTimeSyncService> logger)
     {
-        _effectiveSettings = effectiveSettings;
-        _coordinator = coordinator;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -33,7 +31,9 @@ public sealed class NtpTimeSyncService : BackgroundService
             NtpSettings eff;
             try
             {
-                eff = await _effectiveSettings.GetEffectiveAsync(stoppingToken).ConfigureAwait(false);
+                using var scope = _scopeFactory.CreateScope();
+                var effectiveSettings = scope.ServiceProvider.GetRequiredService<INtpEffectiveSettingsProvider>();
+                eff = await effectiveSettings.GetEffectiveAsync(stoppingToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -65,7 +65,11 @@ public sealed class NtpTimeSyncService : BackgroundService
                 continue;
             }
 
-            await _coordinator.RunSynchronizationCycleAsync(eff, ignoreDisabled: false, stoppingToken).ConfigureAwait(false);
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var coordinator = scope.ServiceProvider.GetRequiredService<INtpSynchronizationCoordinator>();
+                await coordinator.RunSynchronizationCycleAsync(eff, ignoreDisabled: false, stoppingToken).ConfigureAwait(false);
+            }
 
             var interval = TimeSpan.FromMinutes(Math.Max(1, eff.SyncIntervalMinutes));
             try

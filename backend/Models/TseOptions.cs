@@ -30,6 +30,12 @@ namespace KasseAPI_Final.Models
         /// <summary>TSE tamamen kapalı mı.</summary>
         public bool IsOff => string.Equals(TseMode, "Off", StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Development safety valve: when true, daily closing may continue without a connected device,
+        /// but only when the active provider is fake/simulated.
+        /// </summary>
+        public bool AllowSimulatedDailyClosing { get; set; } = false;
+
         /// <summary>Background probe interval for hardware TSE readiness (seconds).</summary>
         public int HealthCheckIntervalSeconds { get; set; } = 30;
 

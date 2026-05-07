@@ -89,8 +89,10 @@ builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
     builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
 builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
 builder.Services.AddSingleton<INtpTimeSyncStatus, NtpTimeSyncStatus>();
-builder.Services.AddSingleton<INtpEffectiveSettingsProvider, NtpEffectiveSettingsProvider>();
-builder.Services.AddSingleton<INtpSynchronizationCoordinator, NtpSynchronizationCoordinator>();
+// builder.Services.AddScoped<NtpEffectiveSettingsProvider>();
+// builder.Services.AddScoped<INtpEffectiveSettingsProvider>(sp => sp.GetRequiredService<NtpEffectiveSettingsProvider>());
+// builder.Services.AddScoped<NtpSynchronizationCoordinator>();
+// builder.Services.AddScoped<INtpSynchronizationCoordinator>(sp => sp.GetRequiredService<NtpSynchronizationCoordinator>());
 builder.Services.AddSingleton<FinanzOnlineDeveloperSimulationEngine>();
 if (!OpenApiExportMode.IsEnabled)
 {
@@ -161,7 +163,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
         options.EnableSensitiveDataLogging();
         options.EnableDetailedErrors();
     }
-});
+}, ServiceLifetime.Scoped);
 
 builder.Services.AddDataProtection();
 
@@ -516,7 +518,7 @@ builder.Services.AddSingleton<IFinanzOnlineMetrics, FinanzOnlineMetrics>();
 builder.Services.AddSingleton<IFinanzOnlineAlertSink, NoOpFinanzOnlineAlertSink>();
 builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
 builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
-builder.Services.AddHostedService<NtpTimeSyncService>();
+// builder.Services.AddHostedService<NtpTimeSyncService>();
 
 // 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
 builder.Services.AddHostedService<CartLifecycleService>();

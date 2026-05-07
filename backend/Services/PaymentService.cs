@@ -2478,8 +2478,24 @@ namespace KasseAPI_Final.Services
                 var tseStatus = await _tseService.GetDeviceStatusAsync();
                 if (!tseStatus.IsConnected)
                 {
-                    _logger.LogError("TSE device not connected. Cannot generate signature for payment {PaymentId}", payment.Id);
-                    throw new InvalidOperationException("TSE device is not connected");
+                    // Bypass: allow operation when signing mode is explicitly Fake/Simulation.
+                    var isFakeOrSimulationMode =
+                        _tseOptions.IsFakeSigningMode ||
+                        string.Equals(_tseOptions.Mode, "Simulation", StringComparison.OrdinalIgnoreCase);
+
+                    if (isFakeOrSimulationMode)
+                    {
+                        // Do not block in simulated environments; continue with warning for operator visibility.
+                        _logger.LogWarning(
+                            "TSE device is not connected, but operation is allowed because TSE mode is {TseMode} for payment {PaymentId}.",
+                            _tseOptions.Mode,
+                            payment.Id);
+                    }
+                    else
+                    {
+                        _logger.LogError("TSE device not connected. Cannot generate signature for payment {PaymentId}", payment.Id);
+                        throw new InvalidOperationException("TSE device is not connected");
+                    }
                 }
 
                 // TSE cihazı hazır mı kontrolü

@@ -2,27 +2,29 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
 public sealed class NtpEffectiveSettingsProvider : INtpEffectiveSettingsProvider
 {
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IOptions<NtpSettings> _defaults;
 
     public NtpEffectiveSettingsProvider(
-        IDbContextFactory<AppDbContext> dbFactory,
+        IServiceScopeFactory scopeFactory,
         IOptions<NtpSettings> defaults)
     {
-        _dbFactory = dbFactory;
+        _scopeFactory = scopeFactory;
         _defaults = defaults;
     }
 
     public async Task<NtpSettings> GetEffectiveAsync(CancellationToken cancellationToken = default)
     {
         var d = _defaults.Value;
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var row = await db.NtpAdminSettings
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == NtpAdminSettings.SingletonId, cancellationToken)

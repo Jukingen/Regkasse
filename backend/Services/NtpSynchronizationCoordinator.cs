@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services;
@@ -13,16 +14,16 @@ public sealed class NtpSynchronizationCoordinator : INtpSynchronizationCoordinat
 {
     private static readonly TimeSpan PerServerTimeout = TimeSpan.FromSeconds(3);
 
-    private readonly IDbContextFactory<AppDbContext> _dbFactory;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly INtpTimeSyncStatus _status;
     private readonly ILogger<NtpSynchronizationCoordinator> _logger;
 
     public NtpSynchronizationCoordinator(
-        IDbContextFactory<AppDbContext> dbFactory,
+        IServiceScopeFactory scopeFactory,
         INtpTimeSyncStatus status,
         ILogger<NtpSynchronizationCoordinator> logger)
     {
-        _dbFactory = dbFactory;
+        _scopeFactory = scopeFactory;
         _status = status;
         _logger = logger;
     }
@@ -151,7 +152,8 @@ public sealed class NtpSynchronizationCoordinator : INtpSynchronizationCoordinat
     {
         try
         {
-            await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             await db.Database.ExecuteSqlInterpolatedAsync(
                 $"""
                 UPDATE cash_registers
@@ -176,7 +178,8 @@ public sealed class NtpSynchronizationCoordinator : INtpSynchronizationCoordinat
         CancellationToken cancellationToken,
         string? ntpServersUsed = null)
     {
-        await using var db = await _dbFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var row = new SystemTimeSyncLog
         {

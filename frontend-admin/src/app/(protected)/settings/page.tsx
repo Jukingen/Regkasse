@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography, Alert, Empty } from 'antd';
+import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography, Alert, Empty, Badge, Modal } from 'antd';
 import { SaveOutlined, LockOutlined } from '@ant-design/icons';
+import { useMutation } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import {
     useGetApiCompanySettings,
@@ -158,6 +159,11 @@ export default function SettingsPage() {
                             label: t('settings.tabs.password'),
                             icon: <LockOutlined />,
                             children: <ChangeMyPasswordTab />,
+                        },
+                        {
+                            key: '6',
+                            label: 'Demo Reset',
+                            children: <DemoResetTab />,
                         },
                     ]}
                 />
@@ -543,6 +549,116 @@ function ChangeMyPasswordTab() {
                     </Button>
                 </Form.Item>
             </Form>
+        </Card>
+    );
+}
+
+type DemoResetApiResponse = {
+    success?: boolean;
+    message?: string;
+    resetAt?: string;
+};
+
+function DemoResetTab() {
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmText, setConfirmText] = useState('');
+    const isDevelopment = process.env.NODE_ENV !== 'production';
+    const canReset = isDevelopment;
+
+    const resetMutation = useMutation({
+        mutationFn: async () => {
+            const response = await customInstance<DemoResetApiResponse>({
+                url: '/api/admin/demo/reset',
+                method: 'POST',
+            });
+            return response.data;
+        },
+        onSuccess: () => {
+            message.success('Demo reset completed. Bitte Seite neu laden.');
+            setConfirmOpen(false);
+            setConfirmText('');
+        },
+        onError: (err: unknown) => {
+            const apiMessage =
+                (err as { response?: { data?: { message?: string; detail?: string; title?: string } } })?.response?.data?.message
+                ?? (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+                ?? (err as { response?: { data?: { title?: string } } })?.response?.data?.title
+                ?? (err as Error)?.message
+                ?? 'Demo reset failed.';
+            message.error(`Demo reset failed: ${apiMessage}`);
+        },
+    });
+
+    const openConfirmation = () => {
+        setConfirmText('');
+        setConfirmOpen(true);
+    };
+
+    const handleConfirm = async () => {
+        if (confirmText.trim() !== 'RESET') {
+            message.error("Bitte 'RESET' eingeben, um fortzufahren.");
+            return;
+        }
+
+        await resetMutation.mutateAsync();
+    };
+
+    return (
+        <Card title="Demo Database Reset">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                    <Badge
+                        status={canReset ? 'processing' : 'default'}
+                        text={canReset ? 'Environment: Development (reset allowed)' : 'Environment: Production (reset disabled)'}
+                    />
+                </div>
+
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                    Dieser Vorgang löscht Zahlungs-, Beleg- und Gutschein-Daten und erstellt eine neue Demo-Kasse samt Startbeleg.
+                </Typography.Paragraph>
+
+                <div>
+                    <Button
+                        danger
+                        type="primary"
+                        onClick={openConfirmation}
+                        disabled={!canReset}
+                        loading={resetMutation.isPending}
+                    >
+                        Demo Database Reset
+                    </Button>
+                </div>
+            </div>
+
+            <Modal
+                title="Demo Database Reset bestätigen"
+                open={confirmOpen}
+                onCancel={() => {
+                    if (!resetMutation.isPending) {
+                        setConfirmOpen(false);
+                        setConfirmText('');
+                    }
+                }}
+                confirmLoading={resetMutation.isPending}
+                onOk={() => void handleConfirm()}
+                okText="Reset ausführen"
+                okButtonProps={{ danger: true }}
+                cancelText="Abbrechen"
+                maskClosable={!resetMutation.isPending}
+                closable={!resetMutation.isPending}
+            >
+                <Typography.Paragraph>
+                    Are you sure? This will delete ALL payments, receipts, vouchers, and reset the cash register.
+                    This cannot be undone. Type 'RESET' to confirm.
+                </Typography.Paragraph>
+                <Input
+                    autoFocus
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="Type RESET"
+                    disabled={resetMutation.isPending}
+                />
+            </Modal>
         </Card>
     );
 }
