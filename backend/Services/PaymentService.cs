@@ -13,6 +13,7 @@ using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Configuration;
+using Microsoft.Extensions.Options;
 using KasseAPI_Final.Rksv;
 using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
@@ -26,6 +27,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text;
 using System.Globalization;
+using KasseAPI_Final.Services.Tse;
+using Microsoft.AspNetCore.DataProtection;
 
 namespace KasseAPI_Final.Services
 {
@@ -56,6 +59,10 @@ namespace KasseAPI_Final.Services
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly InventoryOptions _inventoryOptions;
         private readonly IPosCriticalActionAuditService _posCriticalAudit;
+        private readonly ITseHealthMonitor _tseHealthMonitor;
+        private readonly IDataProtectionProvider _dataProtectionProvider;
+        private readonly INtpEffectiveSettingsProvider _ntpEffectiveSettings;
+        private readonly INtpTimeSyncStatus _ntpTimeSyncStatus;
 
         public PaymentService(
             AppDbContext context,
@@ -79,7 +86,12 @@ namespace KasseAPI_Final.Services
             IPricingRuleResolver pricingRuleResolver,
             ISettingsTenantResolver settingsTenantResolver,
             IFinanzOnlineMetrics? finanzOnlineMetrics = null,
-            IPosCriticalActionAuditService? posCriticalAudit = null)
+            IPosCriticalActionAuditService? posCriticalAudit = null,
+            IOptions<NtpSettings>? ntpSettings = null,
+            INtpEffectiveSettingsProvider? ntpEffectiveSettings = null,
+            INtpTimeSyncStatus? ntpTimeSyncStatus = null,
+            ITseHealthMonitor? tseHealthMonitor = null,
+            IDataProtectionProvider? dataProtectionProvider = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -103,6 +115,11 @@ namespace KasseAPI_Final.Services
             _settingsTenantResolver = settingsTenantResolver;
             _finanzOnlineMetrics = finanzOnlineMetrics;
             _posCriticalAudit = posCriticalAudit ?? PosCriticalActionAuditNoOp.Instance;
+            var ntpOpt = ntpSettings ?? Options.Create(new NtpSettings { Enabled = false });
+            _ntpEffectiveSettings = ntpEffectiveSettings ?? new OptionsOnlyNtpEffectiveSettingsProvider(ntpOpt);
+            _ntpTimeSyncStatus = ntpTimeSyncStatus ?? PermissiveNtpTimeSyncStatus.Instance;
+            _tseHealthMonitor = tseHealthMonitor ?? AlwaysOnlineTseHealthMonitor.Instance;
+            _dataProtectionProvider = dataProtectionProvider ?? FallbackOfflinePayloadProtection;
         }
 
         /// <summary>
@@ -181,6 +198,134 @@ namespace KasseAPI_Final.Services
                     resolvedCustomerKind,
                     customer.Id);
 
+                if (request.IsStorno || request.IsRefund)
+                {
+                    if (request.IsStorno && request.IsRefund)
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Storno and refund are mutually exclusive",
+                            Errors = { "IsStorno and IsRefund cannot both be true." },
+                            IsDeterministicFailure = true
+                        };
+                    }
+
+                    if (request.CashRegisterId == Guid.Empty)
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "CashRegisterId is required",
+                            Errors = { "CashRegisterId must be a non-empty GUID referencing an authorized open cash register." },
+                            DiagnosticCode = CashRegisterResolutionCodes.Required,
+                            IsDeterministicFailure = true
+                        };
+                    }
+
+                    var principalStornoRefund = _httpContextAccessor.HttpContext?.User ?? new ClaimsPrincipal();
+                    var registerValidationSr = await _cashRegisterResolution.ValidatePaymentRegisterAsync(
+                        userId,
+                        request.CashRegisterId,
+                        principalStornoRefund);
+                    if (!registerValidationSr.Ok)
+                    {
+                        _logger.LogWarning(
+                            "Storno/refund payment create rejected: cash register policy. UserId={UserId} RegisterId={RegisterId} Code={Code}",
+                            userId,
+                            request.CashRegisterId,
+                            registerValidationSr.Code);
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = registerValidationSr.Message,
+                            Errors = { registerValidationSr.Message },
+                            DiagnosticCode = MapCashRegisterDiagnosticToRksvPaymentCode(registerValidationSr.Code)
+                        };
+                    }
+
+                    var registerIdResolved = registerValidationSr.ResolvedRegisterId!.Value;
+                    var belegNr = request.OriginalReceiptNumber!.Trim();
+                    var originalSale = await FindOriginalSalePaymentByReceiptNumberAsync(registerIdResolved, belegNr);
+                    if (originalSale == null)
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Original receipt not found",
+                            Errors = { "No active sale payment matches OriginalReceiptNumber for this cash register." },
+                            IsDeterministicFailure = true
+                        };
+                    }
+
+                    if (!await PaymentBelongsToEffectiveTenantAsync(originalSale))
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Original receipt not found",
+                            Errors = { "No active sale payment matches OriginalReceiptNumber for this cash register." },
+                            IsDeterministicFailure = true
+                        };
+                    }
+
+                    if (originalSale.CustomerId != request.CustomerId)
+                    {
+                        return new PaymentResult
+                        {
+                            Success = false,
+                            Message = "Customer does not match original receipt",
+                            Errors = { "CustomerId must match the original sale for storno or refund." },
+                            IsDeterministicFailure = true
+                        };
+                    }
+
+                    const decimal parityTol = 0.01m;
+                    if (request.IsStorno)
+                    {
+                        if (Math.Abs(request.TotalAmount - originalSale.TotalAmount) > parityTol)
+                        {
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Storno total does not match original receipt",
+                                Errors = { "TotalAmount must match the original sale gross total for a full storno." },
+                                IsDeterministicFailure = true
+                            };
+                        }
+
+                        var refundRowsExist = await _context.PaymentDetails.AsNoTracking()
+                            .AnyAsync(p => p.OriginalPaymentId == originalSale.Id && p.IsRefund && p.IsActive);
+                        if (refundRowsExist)
+                        {
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Cannot storno: partial refunds already exist for this receipt",
+                                Errors = { "A full storno is not allowed after partial refunds on the same sale." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = "STORNO_BLOCKED_BY_REFUNDS"
+                            };
+                        }
+
+                        var auditReason = FormatStornoReasonForAudit(request.StornoReason!.Value);
+                        return await CreateStornoReversalAsync(
+                            originalSale,
+                            auditReason,
+                            userId,
+                            string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim(),
+                            request.StornoReason);
+                    }
+
+                    var refundNotes = string.IsNullOrWhiteSpace(request.Notes) ? "Refund (POS create)" : request.Notes.Trim();
+                    return await RefundPaymentAsync(
+                        originalSale.Id,
+                        decimal.Round(request.TotalAmount, 2, MidpointRounding.AwayFromZero),
+                        refundNotes,
+                        userId,
+                        string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim());
+                }
+
                 // Idempotency: normalized key; duplicate requests return existing payment (no duplicate creation). Enforced by unique index on idempotency_key.
                 var idempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey) ? null : request.IdempotencyKey.Trim();
                 if (idempotencyKey != null)
@@ -219,7 +364,8 @@ namespace KasseAPI_Final.Services
                             IsDemoFiscal = demo,
                             TseProvider = provider,
                             InvoicePersisted = invoiceExists,
-                            IdempotentReplay = true
+                            IdempotentReplay = true,
+                            TimeSyncWarning = existing.TimeSyncWarning
                         };
                     }
                 }
@@ -304,25 +450,54 @@ namespace KasseAPI_Final.Services
                     (request.Payment.TseRequired || voucherLikelyFromClientMethod || hasVoucherPayload) && !_tseOptions.IsOff;
                 if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
                 {
-                    var tseStatus = await _tseService.GetDeviceStatusAsync();
-                    if (!tseStatus.IsConnected)
+                    var health = _tseHealthMonitor.Snapshot;
+                    if (health.Status == TseOperationalHealth.Offline)
                     {
-                        _logger.LogError("TSE device not connected. Cannot create payment requiring TSE signature");
+                        if (_tseOptions.OfflineModeEnabled)
+                        {
+                            if (voucherLikelyFromClientMethod || hasVoucherPayload)
+                            {
+                                return new PaymentResult
+                                {
+                                    Success = false,
+                                    Message = "TSE offline: Gutschein-Zahlungen sind derzeit nicht möglich.",
+                                    Errors =
+                                    {
+                                        "TSE offline: voucher payments cannot be queued without an active signing device."
+                                    },
+                                    DiagnosticCode = "TSE_OFFLINE_VOUCHER_BLOCKED",
+                                    IsDeterministicFailure = true
+                                };
+                            }
+
+                            var methodLower = requestPaymentMethodCode ?? string.Empty;
+                            if (methodLower is not ("cash" or "card"))
+                            {
+                                return new PaymentResult
+                                {
+                                    Success = false,
+                                    Message =
+                                        "TSE offline: only cash or card payments can be queued as non-fiscal intents.",
+                                    Errors = { "Unsupported payment method while TSE is offline." },
+                                    DiagnosticCode = "TSE_OFFLINE_METHOD_UNSUPPORTED",
+                                    IsDeterministicFailure = true
+                                };
+                            }
+
+                            return await TryQueueServerNonFiscalOfflineAsync(
+                                    request,
+                                    userId,
+                                    registerValidation.ResolvedRegisterId!.Value)
+                                .ConfigureAwait(false);
+                        }
+
+                        _logger.LogError("TSE offline (health monitor); OfflineMode disabled.");
                         return new PaymentResult
                         {
                             Success = false,
-                            Message = "TSE device not connected",
-                            Errors = { "TSE device must be connected for this payment type" }
-                        };
-                    }
-                    if (!tseStatus.IsReady)
-                    {
-                        _logger.LogError("TSE device not ready. Status: {Status}", tseStatus.Status);
-                        return new PaymentResult
-                        {
-                            Success = false,
-                            Message = "TSE device not ready",
-                            Errors = { $"TSE device is not ready. Status: {tseStatus.Status}" }
+                            Message = "TSE temporarily unavailable",
+                            Errors = { "TSE is offline." },
+                            DiagnosticCode = "TSE_HEALTH_OFFLINE"
                         };
                     }
                 }
@@ -335,6 +510,7 @@ namespace KasseAPI_Final.Services
                 var paymentStockLinesSkipped = 0;
 
                 await using var transaction = await _context.Database.BeginTransactionAsync();
+                var timeSyncWarningForPayment = false;
                 try
                 {
                     if (idempotencyKey != null)
@@ -359,7 +535,8 @@ namespace KasseAPI_Final.Services
                                 IsDemoFiscal = demoInTx,
                                 TseProvider = providerInTx,
                                 InvoicePersisted = invoiceExistsInTx,
-                                IdempotentReplay = true
+                                IdempotentReplay = true,
+                                TimeSyncWarning = existingByKeyInTx.TimeSyncWarning
                             };
                         }
                     }
@@ -667,6 +844,38 @@ namespace KasseAPI_Final.Services
                     voucherRedeemLinesForCommit = voucherLines;
                 }
 
+                var ntpEff = await _ntpEffectiveSettings.GetEffectiveAsync(CancellationToken.None)
+                    .ConfigureAwait(false);
+                if (effectiveTseRequired && ntpEff.Enabled)
+                {
+                    if (!_ntpTimeSyncStatus.ShouldAllowOnlineFiscalPayment(
+                            ntpEff,
+                            out var clockMsg))
+                    {
+                        if (offlineTransactionId.HasValue)
+                        {
+                            timeSyncWarningForPayment = true;
+                            _logger.LogWarning(
+                                "Fiscal payment from offline replay accepted with NTP drift flag (TimeSyncWarning). OfflineTransactionId={OfflineId}",
+                                offlineTransactionId);
+                        }
+                        else
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            _logger.LogWarning("Payment rejected: NTP/system time outside RKSV tolerance.");
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = clockMsg ?? "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren",
+                                Errors = { clockMsg ?? "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren" },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = "NTP_TIME_SYNC"
+                            };
+                        }
+                    }
+                }
+
                 // Single database transaction: register row lock + stock + BelegNr + payment + invoice + receipt commit together.
                 PaymentDetails? payment = null;
                 Invoice? posInvoice = null;
@@ -698,7 +907,8 @@ namespace KasseAPI_Final.Services
                         AppliedBenefitsSnapshot = appliedBenefitsSnapshot,
                         IdempotencyKey = idempotencyKey,
                         OfflineTransactionId = offlineTransactionId,
-                        OfflineReplayBatchCorrelationId = offlineReplayBatchCorrelationId
+                        OfflineReplayBatchCorrelationId = offlineReplayBatchCorrelationId,
+                        TimeSyncWarning = timeSyncWarningForPayment
                     };
 
                     // TSE imzası oluştur (eğer gerekliyse). External call; if it fails we rollback the transaction (no DB changes committed yet).
@@ -850,7 +1060,8 @@ namespace KasseAPI_Final.Services
                                 IsDemoFiscal = demo,
                                 TseProvider = provider,
                                 InvoicePersisted = invoiceExists,
-                                IdempotentReplay = true
+                                IdempotentReplay = true,
+                                TimeSyncWarning = existing.TimeSyncWarning
                             };
                         }
                     }
@@ -944,7 +1155,8 @@ namespace KasseAPI_Final.Services
                         QrPayload = qrPayload,
                         IsDemoFiscal = isDemoFiscal,
                         TseProvider = tseProvider,
-                        InvoicePersisted = true
+                        InvoicePersisted = true,
+                        TimeSyncWarning = createdPayment.TimeSyncWarning
                     };
                 }
 
@@ -1341,6 +1553,20 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                var hasRefundRows = await _context.PaymentDetails.AsNoTracking()
+                    .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsRefund && p.IsActive);
+                if (hasRefundRows)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Cannot cancel: partial refunds exist for this payment",
+                        Errors = { "Full storno is not allowed after partial refunds on the same sale." },
+                        DiagnosticCode = "STORNO_BLOCKED_BY_REFUNDS",
+                        IsDeterministicFailure = true
+                    };
+                }
+
                 // Already cancelled = a storno (reversal) already exists for this payment. Original payment is never modified.
                 var alreadyHasStorno = await _context.PaymentDetails.AsNoTracking()
                     .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
@@ -1365,7 +1591,7 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                return await CreateStornoReversalAsync(payment, reason, userId, key);
+                return await CreateStornoReversalAsync(payment, reason, userId, key, stornoReasonEnum: null);
             }
             catch (Exception ex)
             {
@@ -1379,11 +1605,39 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        private async Task<PaymentDetails?> FindOriginalSalePaymentByReceiptNumberAsync(Guid cashRegisterId, string receiptNumber)
+        {
+            var key = receiptNumber.Trim();
+            return await _context.PaymentDetails.AsNoTracking()
+                .FirstOrDefaultAsync(p =>
+                    p.CashRegisterId == cashRegisterId &&
+                    p.ReceiptNumber == key &&
+                    p.IsActive &&
+                    !p.IsStorno &&
+                    !p.IsRefund &&
+                    p.RksvSpecialReceiptKind == null);
+        }
+
+        private static string FormatStornoReasonForAudit(StornoReason reason) =>
+            reason switch
+            {
+                StornoReason.FalscherBetrag => "Falscher Betrag",
+                StornoReason.KundeStorniert => "Kunde storniert",
+                StornoReason.TechnischerFehler => "Technischer Fehler",
+                StornoReason.Anderes => "Anderes",
+                _ => reason.ToString()
+            };
+
         /// <summary>
         /// Creates a fiscal storno (reversal) record for the given payment. Original payment is never modified.
         /// Creates: storno PaymentDetails, credit note Invoice, Receipt, TSE signature; reverts stock.
         /// </summary>
-        private async Task<PaymentResult> CreateStornoReversalAsync(PaymentDetails payment, string reason, string userId, string? cancelIdempotencyKey)
+        private async Task<PaymentResult> CreateStornoReversalAsync(
+            PaymentDetails payment,
+            string reason,
+            string userId,
+            string? cancelIdempotencyKey,
+            StornoReason? stornoReasonEnum = null)
         {
             var paymentId = payment.Id;
             if (payment.CashRegisterId == Guid.Empty)
@@ -1471,6 +1725,7 @@ namespace KasseAPI_Final.Services
                     OriginalReceiptId = originalReceipt?.ReceiptId,
                     IsRefund = false,
                     IsStorno = true,
+                    StornoReason = stornoReasonEnum,
                     CancellationReason = reason,
                     CancelledAt = DateTime.UtcNow,
                     TotalAmount = -payment.TotalAmount,
@@ -1548,7 +1803,7 @@ namespace KasseAPI_Final.Services
                     TaxDetails = storno.TaxDetails,
                     DocumentType = DocumentType.CreditNote,
                     OriginalInvoiceId = originalInvoice?.Id,
-                    StornoReasonCode = null,
+                    StornoReasonCode = stornoReasonEnum?.ToString(),
                     StornoReasonText = reason,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = userId,
@@ -1725,33 +1980,6 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // Already cancelled: legacy (IsActive=false) or fiscal storno exists. Do not refund.
-                var hasStorno = await _context.PaymentDetails.AsNoTracking()
-                    .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
-                if (!payment.IsActive || hasStorno)
-                {
-                    return new PaymentResult
-                    {
-                        Success = false,
-                        Message = "Cannot refund cancelled payment",
-                        Errors = { "Payment has been cancelled (or has a reversal) and cannot be refunded" }
-                    };
-                }
-
-                // İade tutarı kontrolü
-                if (amount > payment.TotalAmount)
-                {
-                    return new PaymentResult
-                    {
-                        Success = false,
-                        Message = "Refund amount cannot exceed payment amount",
-                        Errors = { "Refund amount exceeds payment amount" }
-                    };
-                }
-
-                decimal refundRatio = amount / payment.TotalAmount;
-                decimal refundTaxAmount = -payment.TaxAmount * refundRatio;
-
                 // Sprint 6: Idempotency — if key provided and we already have a refund for this payment with this key, return it.
                 var refundKey = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
                 if (refundKey != null)
@@ -1778,6 +2006,51 @@ namespace KasseAPI_Final.Services
                         };
                     }
                 }
+
+                // Already cancelled: legacy (IsActive=false) or fiscal storno exists. Do not refund.
+                var hasStorno = await _context.PaymentDetails.AsNoTracking()
+                    .AnyAsync(p => p.OriginalPaymentId == paymentId && p.IsStorno);
+                if (!payment.IsActive || hasStorno)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Cannot refund cancelled payment",
+                        Errors = { "Payment has been cancelled (or has a reversal) and cannot be refunded" }
+                    };
+                }
+
+                const decimal refundTol = 0.01m;
+                if (amount <= 0)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Refund amount must be greater than zero",
+                        Errors = { "Refund amount must be greater than zero" },
+                        IsDeterministicFailure = true
+                    };
+                }
+
+                var refundedSoFar = await _context.PaymentDetails.AsNoTracking()
+                    .Where(p => p.OriginalPaymentId == paymentId && p.IsRefund && p.IsActive)
+                    .SumAsync(p => (decimal?)-p.TotalAmount) ?? 0m;
+
+                var remainingRefundable = payment.TotalAmount - refundedSoFar;
+                if (amount > remainingRefundable + refundTol)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Refund amount exceeds remaining refundable amount",
+                        Errors = { $"Refund amount exceeds remaining refundable amount (remaining={remainingRefundable:N2})." },
+                        IsDeterministicFailure = true,
+                        DiagnosticCode = "REFUND_EXCEEDS_REMAINING"
+                    };
+                }
+
+                decimal refundRatio = amount / payment.TotalAmount;
+                decimal refundTaxAmount = -payment.TaxAmount * refundRatio;
 
                 if (payment.CashRegisterId == Guid.Empty)
                 {

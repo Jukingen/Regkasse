@@ -27,22 +27,27 @@ public static class PaymentApiContractMapper
 
     public static PaymentApiEnvelope<PaymentCreateSuccessData> CreatePaymentSuccessEnvelope(
         PaymentResult result,
-        object sanitizedPayment,
+        object? sanitizedPayment,
         string? correlationId,
         string? idempotencyKeyEcho)
     {
         var data = new PaymentCreateSuccessData
         {
             PaymentId = result.PaymentId ?? result.Payment?.Id ?? Guid.Empty,
-            Payment = sanitizedPayment,
+            Payment = result.NonFiscalOfflineQueued ? null : sanitizedPayment,
             InvoicePersisted = result.InvoicePersisted,
-            Tse = new PaymentCreateTseData
-            {
-                Provider = result.TseProvider,
-                IsDemoFiscal = result.IsDemoFiscal,
-                QrPayload = result.QrPayload,
-                ReceiptNumber = result.Payment?.ReceiptNumber
-            }
+            Tse = result.NonFiscalOfflineQueued
+                ? null
+                : new PaymentCreateTseData
+                {
+                    Provider = result.TseProvider,
+                    IsDemoFiscal = result.IsDemoFiscal,
+                    QrPayload = result.QrPayload,
+                    ReceiptNumber = result.Payment?.ReceiptNumber
+                },
+            TimeSyncWarning = result.TimeSyncWarning,
+            NonFiscalOfflineQueued = result.NonFiscalOfflineQueued,
+            OfflineTransactionId = result.OfflineTransactionId
         };
 
         return new PaymentApiEnvelope<PaymentCreateSuccessData>

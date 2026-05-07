@@ -1,0 +1,59 @@
+{
+  "pageTitle": "Fiscal export · indirme denetimi",
+  "intro": "İzlenebilirlik: kim hangi DEP/fiş exportunu hangi dönem ve biçimle indirdi. Boyut, fiş/kapanış sayılarından tahmindir; gerçek bayt ölçümü değildir.",
+  "filters": {
+    "downloadRange": "İndirme zaman aralığı",
+    "userSearch": "Kullanıcı (ad, e-posta veya id)",
+    "userSearchPlaceholder": "Ara …",
+    "exportType": "Export türü",
+    "apply": "Filtrele"
+  },
+  "exportType": {
+    "all": "Tümü",
+    "pdf": "PDF",
+    "json": "JSON",
+    "csv": "CSV (parça)"
+  },
+  "table": {
+    "empty": "Bu filtreler için export indirmesi yok.",
+    "downloadTime": "İndirme zamanı",
+    "username": "Kullanıcı adı",
+    "ip": "IP adresi",
+    "exportType": "Export türü",
+    "period": "Export dönemi",
+    "fileSize": "Dosya boyutu (tahmini)",
+    "status": "Durum",
+    "actions": "İşlemler",
+    "success": "Başarılı",
+    "failed": "Başarısız",
+    "openDetail": "Ayrıntı"
+  },
+  "detail": {
+    "title": "Export parametreleri",
+    "action": "Denetim eylemi",
+    "role": "Rol",
+    "requestJson": "İstek (JSON)",
+    "responseJson": "Yanıt / metrikler (JSON)",
+    "errors": "Hata ayrıntıları"
+  },
+  "warnings": {
+    "bulkRange": "Geniş tarih aralığı (>1 yıl)"
+  },
+  "actions": {
+    "exportCsv": "Denetimi CSV olarak dışa aktar",
+    "exportCsvNoPermission": "CSV dışa aktarma için audit.export gerekir",
+    "refresh": "Yenile",
+    "clearFilters": "Filtreleri sıfırla",
+    "clientExportPage": "Görünen satırları CSV indir"
+  },
+  "export": {
+    "started": "Dışa aktarma başlatıldı",
+    "failed": "Dışa aktarma başarısız",
+    "truncatedNotice": "Sonuçlar sınırlandı — CSV eksik olabilir (X-Fiscal-Audit-Export-Truncated)."
+  },
+  "retention": {
+    "title": "Saklama (Avusturya / RKSV uygulaması)",
+    "body": "Fiş ve export ile ilgili denetim olayları en az 7 yıl saklanmalıdır (ticari bağlamda yasal saklama). Teknik silme/retention işleri bu süreyi aşmamalıdır; yedekleme ve arşiv politikasıyla hizalayın."
+  },
+  "estimatedSizeUnavailable": "—"
+}

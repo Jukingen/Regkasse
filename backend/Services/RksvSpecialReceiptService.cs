@@ -266,6 +266,16 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         }
     }
 
+    private async Task<bool> GetDecemberMonatsbelegCountsAsJahresbelegAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var flag = await _db.CompanySettings.AsNoTracking()
+            .Where(s => s.TenantId == tenantId)
+            .Select(s => (bool?)s.UseDecemberMonatsbelegAsJahresbeleg)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return flag ?? true;
+    }
+
     private Guid ResolveReceiptIdFromChangeTracker(Guid paymentId)
     {
         foreach (var e in _db.ChangeTracker.Entries<Receipt>())
@@ -500,6 +510,11 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RksvSpecialReceiptKinds.Startbeleg,
                 cancellationToken).ConfigureAwait(false);
 
+            var cashRegStart = await _db.CashRegisters
+                .FirstAsync(r => r.Id == request.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            cashRegStart.StartbelegCreatedAt = issuedAtUtc;
+
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -547,8 +562,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 $"Monatsbeleg can only be created for the current Vienna calendar month ({viennaYear}-{viennaMonth:00}), not {request.Year}-{request.Month:00}.");
         }
 
-        // December: RKSV annual receipt is Jahresbeleg (not a separate Monatsbeleg row).
-        if (viennaMonth == 12)
+        var tenantIdForDecember = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+
+        // December: Jahresbeleg flow vs separate Monatsbeleg row is controlled by tenant company settings.
+        if (viennaMonth == 12 && await GetDecemberMonatsbelegCountsAsJahresbelegAsync(tenantIdForDecember, cancellationToken).ConfigureAwait(false))
         {
             var jResp = await CreateJahresbelegAsync(
                     new CreateJahresbelegRequest
@@ -699,6 +716,11 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             _db.Invoices.Add(invoice);
             await _receiptService.AddReceiptFromPaymentToContextAsync(payment).ConfigureAwait(false);
 
+            var cashRegMonatsbeleg = await _db.CashRegisters
+                .FirstAsync(r => r.Id == request.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            cashRegMonatsbeleg.LastMonatsbelegUtc = issuedAtUtc;
+
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
 
@@ -758,19 +780,36 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
         EnsureRegisterNotDecommissioned(register);
 
-        var duplicate = await _db.PaymentDetails.AsNoTracking()
-            .AnyAsync(
-                p => p.CashRegisterId == request.CashRegisterId &&
-                     p.IsActive &&
-                     (
-                         (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Jahresbeleg &&
-                          p.RksvSpecialReceiptYear == request.Year) ||
-                         (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
-                          p.RksvSpecialReceiptYear == request.Year &&
-                          p.RksvSpecialReceiptMonth == 12)
-                     ),
-                cancellationToken)
-            .ConfigureAwait(false);
+        var decemberMbAsJb = await GetDecemberMonatsbelegCountsAsJahresbelegAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        bool duplicate;
+        if (decemberMbAsJb)
+        {
+            duplicate = await _db.PaymentDetails.AsNoTracking()
+                .AnyAsync(
+                    p => p.CashRegisterId == request.CashRegisterId &&
+                         p.IsActive &&
+                         (
+                             (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Jahresbeleg &&
+                              p.RksvSpecialReceiptYear == request.Year) ||
+                             (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
+                              p.RksvSpecialReceiptYear == request.Year &&
+                              p.RksvSpecialReceiptMonth == 12)
+                         ),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            duplicate = await _db.PaymentDetails.AsNoTracking()
+                .AnyAsync(
+                    p => p.CashRegisterId == request.CashRegisterId &&
+                         p.IsActive &&
+                         p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Jahresbeleg &&
+                         p.RksvSpecialReceiptYear == request.Year,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         if (duplicate)
         {
             throw new RksvOperationGuardException(
@@ -896,6 +935,14 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 receiptNumber,
                 RksvSpecialReceiptKinds.Jahresbeleg,
                 cancellationToken).ConfigureAwait(false);
+
+            var cashRegJahresbeleg = await _db.CashRegisters
+                .FirstAsync(r => r.Id == request.CashRegisterId, cancellationToken)
+                .ConfigureAwait(false);
+            cashRegJahresbeleg.LastJahresbelegUtc = issuedAtUtc;
+            var (viennaYearJb, viennaMonthJb) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+            if (viennaMonthJb == 12 && request.Year == viennaYearJb)
+                cashRegJahresbeleg.LastMonatsbelegUtc = issuedAtUtc;
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);

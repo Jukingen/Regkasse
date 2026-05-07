@@ -78,6 +78,13 @@
       "tableClearGenericFailed": "Tisch konnte nicht geleert werden",
       "emptyCart": "Warenkorb ist leer. Bitte zuerst Artikel hinzufügen."
     },
+    "monatsbelegBanner": {
+      "yellow": "Monatsbeleg in {{days}} Tagen fällig",
+      "red": "Monatsbeleg ÜBERFÄLLIG! Bitte sofort erstellen",
+      "createNow": "Jetzt erstellen",
+      "dismissA11y": "Hinweis ausblenden",
+      "loadingHint": "RKSV-Monatsbeleg-Status wird geladen…"
+    },
     "payment": {
       "title": "Zahlungsarten",
       "totalLabel": "Gesamt",
@@ -163,6 +170,79 @@
         "forbidden": "{{prefix}} Keine Berechtigung für PDF-Export. QR-Code und Druck bleiben nutzbar. Bei Bedarf den Administrator bitten (Berechtigung „Rechnung ansehen“ / InvoiceView).",
         "notFound": "{{prefix}} PDF wurde nicht gefunden. Bitte später erneut versuchen oder den Administrator informieren.",
         "httpGeneric": "{{prefix}} PDF konnte nicht geladen werden (HTTP {{status}}). Bitte später erneut versuchen."
+      }
+    },
+    "stornoRefund": {
+      "paymentModalEntry": "Storno / Rückerstattung",
+      "headerTitle": "Storno / Rückerstattung",
+      "menu": {
+        "intro": "Bitte wählen Sie die passende fiskalische Aktion. Storno und Teilrückerstattung sind verschiedene Vorgänge.",
+        "optionFullStorno": "VOLLSTÄNDIGE STORNIERUNG",
+        "hintFullStorno": "Gesamter Originalbeleg wird rückgängig gemacht (neuer Storno-Beleg).",
+        "optionRefund": "TEILRÜCKERSTATTUNG",
+        "hintRefund": "Nur ein Teilbetrag wird erstattet (neuer Berichtigungsbeleg).",
+        "optionBack": "ZURÜCK"
+      },
+      "fields": {
+        "receiptNumber": "Belegnummer (Original)",
+        "stornoReason": "Storno-Grund",
+        "refundAmount": "Erstattungsbetrag"
+      },
+      "placeholders": {
+        "receiptNumber": "z. B. AT-KASSE-…",
+        "amount": "0,00"
+      },
+      "reasons": {
+        "FalscherBetrag": "Falscher Betrag",
+        "KundeStorniert": "Kunde storniert",
+        "TechnischerFehler": "Technischer Fehler",
+        "Anderes": "Anderes"
+      },
+      "storno": {
+        "title": "Vollständige Stornierung",
+        "originalTotal": "Originalbetrag: {{amount}}",
+        "irreversibleWarning": "Diese Aktion kann NICHT rückgängig gemacht werden. Der gesamte Beleg wird ungültig.",
+        "confirmCheckbox": "Ich habe verstanden und möchte den gesamten Beleg stornieren.",
+        "auditNote": "Storno über POS-Auswahl"
+      },
+      "refund": {
+        "title": "Teilrückerstattung",
+        "note": "Teilrückerstattung erstellt neuen Beleg mit korrigiertem Betrag.",
+        "selectLines": "Positionen für die Erstattung markieren",
+        "selectedSum": "Summe markierter Positionen: {{amount}}",
+        "maxHint": "Höchstbetrag (Original): {{max}}",
+        "auditNote": "Teilrückerstattung über POS-Auswahl"
+      },
+      "actions": {
+        "loadReceipt": "Beleg laden",
+        "loadReceiptLines": "Positionen laden",
+        "backToMenu": "Zurück zur Auswahl",
+        "executeStorno": "Storno ausführen",
+        "executeRefund": "Erstattung buchen"
+      },
+      "loading": "Bitte warten…",
+      "alerts": {
+        "successTitle": "Erfolg",
+        "stornoSuccessBody": "Storno wurde gebucht.",
+        "refundSuccessBody": "Teilrückerstattung wurde gebucht.",
+        "loadedTitle": "Beleg geladen",
+        "loadedBody": "Originalbetrag: {{amount}}"
+      },
+      "errors": {
+        "receiptRequired": "Bitte Belegnummer eingeben.",
+        "noCashRegister": "Keine Kasse zugewiesen.",
+        "receiptNotFound": "Kein Beleg mit dieser Nummer gefunden.",
+        "specialReceipt": "Sonderbelege können hier nicht mit diesem Dialog bearbeitet werden.",
+        "paymentLoadFailed": "Zahlungsdaten konnten nicht geladen werden.",
+        "notOriginalSale": "Dies ist kein normaler Verkaufsbeleg.",
+        "registerMismatch": "Beleg gehört nicht zu dieser Kasse.",
+        "lookupFailed": "Belegsuche fehlgeschlagen.",
+        "receiptLinesMissing": "Keine Positionsdaten zum Beleg.",
+        "confirmRequired": "Bitte Bestätigung aktivieren.",
+        "invalidRefundAmount": "Ungültiger Erstattungsbetrag.",
+        "refundExceedsMax": "Betrag zu hoch (max. {{max}}).",
+        "selectOneLine": "Mindestens eine Position auswählen.",
+        "submitFailed": "Vorgang fehlgeschlagen."
       }
     }
   }

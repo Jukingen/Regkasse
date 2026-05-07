@@ -1192,6 +1192,57 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const postApiPosPaymentStorno = (
+    createPaymentRequest: CreatePaymentRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/pos/payment/storno`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createPaymentRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosPaymentStornoMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreatePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreatePaymentRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, {data: CreatePaymentRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPosPaymentStorno(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosPaymentStornoMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosPaymentStorno>>>
+    export type PostApiPosPaymentStornoMutationBody = CreatePaymentRequest
+    export type PostApiPosPaymentStornoMutationError = unknown
+
+    export const usePostApiPosPaymentStorno = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosPaymentStorno>>, TError,{data: CreatePaymentRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosPaymentStorno>>,
+        TError,
+        {data: CreatePaymentRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosPaymentStornoMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiPosPaymentId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal

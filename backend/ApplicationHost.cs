@@ -36,6 +36,7 @@ using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.AdminProducts;
+using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
 using Microsoft.Extensions.Configuration;
 
@@ -86,6 +87,10 @@ builder.Services.Configure<FinanzOnlineSimulationOptions>(
     builder.Configuration.GetSection(FinanzOnlineSimulationOptions.SectionName));
 builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
     builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
+builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
+builder.Services.AddSingleton<INtpTimeSyncStatus, NtpTimeSyncStatus>();
+builder.Services.AddSingleton<INtpEffectiveSettingsProvider, NtpEffectiveSettingsProvider>();
+builder.Services.AddSingleton<INtpSynchronizationCoordinator, NtpSynchronizationCoordinator>();
 builder.Services.AddSingleton<FinanzOnlineDeveloperSimulationEngine>();
 if (!OpenApiExportMode.IsEnabled)
 {
@@ -139,6 +144,18 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
     // Dev: InvalidCastException (Guid vs text) teşhisi için kolon/veri loglama
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableSensitiveDataLogging();
+        options.EnableDetailedErrors();
+    }
+});
+
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
+{
+    options.UseNpgsql(defaultConnection);
+    options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
     if (builder.Environment.IsDevelopment())
     {
         options.EnableSensitiveDataLogging();
@@ -474,6 +491,8 @@ builder.Services.AddScoped<IRksvSpecialReceiptFinanzOnlineSubmissionTracker, Rks
 builder.Services.AddScoped<IRksvSpecialReceiptService, RksvSpecialReceiptService>();
 builder.Services.AddScoped<IRksvStartbelegPolicy, RksvStartbelegPolicy>();
 builder.Services.AddScoped<IRksvMonatsbelegPolicy, RksvMonatsbelegPolicy>();
+builder.Services.AddScoped<IMonatsbelegReminderService, MonatsbelegReminderService>();
+builder.Services.AddScoped<IRksvReminderService, RksvReminderService>();
 builder.Services.AddSingleton<IRksvReceiptQrPayloadFormatValidator, RksvReceiptQrPayloadFormatValidator>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
@@ -497,6 +516,7 @@ builder.Services.AddSingleton<IFinanzOnlineMetrics, FinanzOnlineMetrics>();
 builder.Services.AddSingleton<IFinanzOnlineAlertSink, NoOpFinanzOnlineAlertSink>();
 builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
 builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
+builder.Services.AddHostedService<NtpTimeSyncService>();
 
 // 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
 builder.Services.AddHostedService<CartLifecycleService>();
@@ -505,6 +525,7 @@ builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IFiscalExportAuditLogReader, FiscalExportAuditLogReader>();
 builder.Services.AddScoped<IPosCriticalActionAuditService, PosCriticalActionAuditService>();
 
 // Phase 1: backup orchestration (execution off HTTP thread; see BackupOrchestratorHostedService)
@@ -575,6 +596,11 @@ builder.Services.AddHostedService<StaleRunReaperHostedService>();
 builder.Services.Configure<KasseAPI_Final.Configuration.OfflineReplayOptions>(
     builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineReplayOptions.SectionName));
 builder.Services.AddScoped<IOfflineTransactionService, OfflineTransactionService>();
+builder.Services.AddSingleton<TseHealthStateStore>();
+builder.Services.AddSingleton<ITseHealthMonitor>(sp => sp.GetRequiredService<TseHealthStateStore>());
+builder.Services.AddSingleton<IOfflineReplayCompletionNotifier, LoggingOfflineReplayCompletionNotifier>();
+builder.Services.AddHostedService<TseHealthCheckService>();
+builder.Services.AddHostedService<OfflineReplayHostedService>();
 builder.Services.Configure<KasseAPI_Final.Configuration.PayloadHashGuardOptions>(
     builder.Configuration.GetSection(KasseAPI_Final.Configuration.PayloadHashGuardOptions.SectionName));
 builder.Services.Configure<KasseAPI_Final.Configuration.CoverageGuardOptions>(
@@ -586,6 +612,11 @@ builder.Services.AddHostedService<KasseAPI_Final.Services.PayloadHashGuardStartu
 builder.Services.AddHostedService<KasseAPI_Final.Services.PayloadHashRepairHostedService>();
 builder.Services.AddScoped<ILegalHoldService, LegalHoldService>();
 builder.Services.AddScoped<IIntegrityCheckService, IntegrityCheckService>();
+builder.Services.Configure<KasseAPI_Final.Configuration.FiscalExportOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.FiscalExportOptions.SectionName));
+builder.Services.AddScoped<KasseAPI_Final.Filters.RequireDisclaimerAcknowledgmentFilter>();
+builder.Services.AddSingleton<IFiscalExportDownloadTicketStore, FiscalExportDownloadTicketStore>();
+builder.Services.AddSingleton<IDisclaimerService, DisclaimerService>();
 builder.Services.AddScoped<IFiscalExportService, FiscalExportService>();
 builder.Services.AddScoped<ILegalExportCompletenessService, LegalExportCompletenessService>();
 builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();

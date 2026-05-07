@@ -57,6 +57,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     [ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions]: [
         '/receipts',
         '/payments',
+        '/payments/storno-refund-audit',
         '/invoices',
         '/receipt-templates',
         '/receipt-generate',
@@ -77,8 +78,8 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/reporting/monatsbericht',
         '/reporting/jahresbericht',
     ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance]: ['/audit-logs', '/rksv'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', ...SETTINGS_AREA_ROUTE_PATHS],
+    [ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance]: ['/audit-logs', '/admin/audit/fiscal-exports', '/admin/tse', '/rksv'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', ...SETTINGS_AREA_ROUTE_PATHS, '/admin/system/time-sync'],
 };
 
 /**
@@ -128,7 +129,7 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     for (const [groupKey, routes] of Object.entries(ADMIN_SIDEBAR_GROUP_ROUTES)) {
         if (routes.some((r) => p === r || p.startsWith(`${r}/`))) keys.push(groupKey);
     }
-    if (p === '/settings' || p.startsWith('/settings/')) {
+    if (p === '/settings' || p.startsWith('/settings/') || p === '/admin/system/time-sync') {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
     }
     return keys;
@@ -234,6 +235,10 @@ export function computeSidebarOpenKeysMerge(params: SidebarOpenKeysMergeParams):
     const fiscalActive =
         p === '/audit-logs' ||
         p.startsWith('/audit-logs/') ||
+        p === '/admin/audit/fiscal-exports' ||
+        p.startsWith('/admin/audit/') ||
+        p.startsWith('/admin/tse/') ||
+        p === '/admin/tse/offline-transactions' ||
         (params.canSeeRksv && p.startsWith('/rksv'));
     if (!fiscalActive) {
         keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);

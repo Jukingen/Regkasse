@@ -454,7 +454,10 @@ public class OfflineTransactionService : IOfflineTransactionService
 
                     offline.LastErrorCode = errCode;
                     offline.LastErrorMessageSafe = safeMsg;
-                    offline.Status = isFinalRetry ? OfflineTransactionStatus.Failed : OfflineTransactionStatus.Pending;
+                    var pendingStatus = offline.Status == OfflineTransactionStatus.NonFiscalPending
+                        ? OfflineTransactionStatus.NonFiscalPending
+                        : OfflineTransactionStatus.Pending;
+                    offline.Status = isFinalRetry ? OfflineTransactionStatus.Failed : pendingStatus;
                     offline.UpdatedAt = DateTime.UtcNow;
                     await _context.SaveChangesAsync().ConfigureAwait(false);
 
@@ -498,7 +501,10 @@ public class OfflineTransactionService : IOfflineTransactionService
                     var isFinalRetry = offline.RetryCount >= MaxRetryLimit;
                     offline.LastErrorCode = "REPLAY_EXCEPTION";
                     offline.LastErrorMessageSafe = safeMsg;
-                    offline.Status = isFinalRetry ? OfflineTransactionStatus.Failed : OfflineTransactionStatus.Pending;
+                    var pendingAfterException = offline.Status == OfflineTransactionStatus.NonFiscalPending
+                        ? OfflineTransactionStatus.NonFiscalPending
+                        : OfflineTransactionStatus.Pending;
+                    offline.Status = isFinalRetry ? OfflineTransactionStatus.Failed : pendingAfterException;
                     offline.UpdatedAt = DateTime.UtcNow;
                     await _context.SaveChangesAsync().ConfigureAwait(false);
 
@@ -948,7 +954,7 @@ public class OfflineTransactionService : IOfflineTransactionService
             ErrorCode = errCode,
             RetryCount = row.RetryCount,
             LastErrorMessageSafe = row.LastErrorMessageSafe ?? safeMsg,
-            ExponentialBackoffHintSeconds = row.Status == OfflineTransactionStatus.Pending
+            ExponentialBackoffHintSeconds = row.Status is OfflineTransactionStatus.Pending or OfflineTransactionStatus.NonFiscalPending
                 ? nextBackoffHintSeconds
                 : null,
             ReplayBatchCorrelationId = replayBatchCorrelationId

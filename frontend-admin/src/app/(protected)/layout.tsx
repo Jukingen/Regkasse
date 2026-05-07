@@ -26,6 +26,7 @@ import {
 } from '@/shared/adminSidebarNavigation';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
+import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
     ADMIN_SIDER_WIDTH_MAX,
@@ -267,6 +268,7 @@ export default function DashboardLayout({
                                 aria-label={t('adminShell.header.headerActionsAria')}
                             >
                                 <HeaderLanguageQuickSwitch />
+                                <MonatsbelegGlobalBadge />
                                 <Dropdown menu={userMenu} placement="bottomRight">
                                     <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <Avatar icon={<UserOutlined />} />

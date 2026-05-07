@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "Zaman senkronizasyonu",
+    "subtitle": "RKSV uyumlu çevrimiçi ödemeler için sunucu saati ve NTP ayarları."
+  },
+  "statusCard": {
+    "title": "Mevcut durum",
+    "systemUtc": "Sistem saati (UTC)",
+    "systemLocal": "Sistem saati (Viyana)",
+    "ntpReference": "NTP referansı (UTC)",
+    "offset": "Sapma (saniye)",
+    "lastSync": "Son senkronizasyon",
+    "badge": "Durum"
+  },
+  "badge": {
+    "synchronized": "Senkron",
+    "warning": "Uyarı",
+    "critical": "Kritik"
+  },
+  "actions": {
+    "syncNow": "Şimdi senkronize et",
+    "syncSuccess": "Senkronizasyon tamamlandı.",
+    "syncFailed": "Senkronizasyon başarısız.",
+    "saveConfig": "Yapılandırmayı kaydet",
+    "saved": "Kaydedildi."
+  },
+  "history": {
+    "title": "Senkronizasyon geçmişi",
+    "syncTime": "Zaman (UTC)",
+    "offset": "Sapma (s)",
+    "ntpServer": "NTP sunucusu",
+    "result": "Sonuç",
+    "success": "Tamam",
+    "failed": "Hata"
+  },
+  "config": {
+    "title": "Yapılandırma",
+    "autoSync": "Otomatik senkronizasyon",
+    "intervalMinutes": "Aralık (dakika)",
+    "maxOffset": "İzin verilen max. sapma (saniye)",
+    "criticalOffset": "Kritik eşik (saniye)",
+    "dbOverrideHint": "Değerler veritabanında saklanıyor (yönetici geçersiz kılması)."
+  },
+  "dashboard": {
+    "alertTitle": "Yazarkasa saat sapması",
+    "alertDescription": "{{count}} yazarkasa eşiği aşıyor (±{{threshold}} s). En büyük sapma: {{max}} s.",
+    "link": "Zaman senkronizasyonunu aç"
+  }
+}

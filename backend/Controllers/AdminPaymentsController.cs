@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using KasseAPI_Final.Authorization;
@@ -54,6 +55,9 @@ public class AdminPaymentsController : ControllerBase
         [FromQuery] string? method = null,
         [FromQuery] string? status = null,
         [FromQuery] Guid? cashRegisterId = null,
+        [FromQuery] bool? isStorno = null,
+        [FromQuery] bool? isRefund = null,
+        [FromQuery] string? stornoReason = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 100,
         CancellationToken cancellationToken = default)
@@ -107,6 +111,20 @@ public class AdminPaymentsController : ControllerBase
                 query = query.Where(p => ResolvePaymentStatus(p) == normalizedStatus);
             }
 
+            // Storno/refund audit filters: both true => OR (all reversal rows). Single flag => that type only.
+            if (isStorno == true && isRefund == true)
+                query = query.Where(p => p.IsStorno || p.IsRefund);
+            else if (isStorno == true)
+                query = query.Where(p => p.IsStorno);
+            else if (isRefund == true)
+                query = query.Where(p => p.IsRefund);
+
+            if (!string.IsNullOrWhiteSpace(stornoReason) &&
+                Enum.TryParse<StornoReason>(stornoReason.Trim(), ignoreCase: true, out var reasonEnum))
+            {
+                query = query.Where(p => p.IsStorno && p.StornoReason == reasonEnum);
+            }
+
             var total = await query.CountAsync(cancellationToken);
 
             var items = await query
@@ -151,7 +169,24 @@ public class AdminPaymentsController : ControllerBase
                         .Select(l => (decimal?)(-l.Amount))
                         .Sum() ?? 0m,
                     HasVoucherRedemption = _context.VoucherLedgerEntries
-                        .Any(l => l.PaymentId == p.Id && l.Type == VoucherTransactionType.Redeem)
+                        .Any(l => l.PaymentId == p.Id && l.Type == VoucherTransactionType.Redeem),
+                    IsStorno = p.IsStorno,
+                    IsRefund = p.IsRefund,
+                    StornoReason = p.StornoReason,
+                    OriginalPaymentId = p.OriginalPaymentId,
+                    OriginalReceiptNumber = _context.PaymentDetails
+                        .Where(op => op.Id == p.OriginalPaymentId)
+                        .Select(op => op.ReceiptNumber)
+                        .FirstOrDefault(),
+                    CashierDisplayName = _context.Users
+                        .Where(u => u.Id == p.CashierId)
+                        .Select(u => u.FirstName + " " + u.LastName)
+                        .FirstOrDefault(),
+                    ReversalCompletionStatus =
+                        p.FinanzOnlineStatus != null &&
+                        p.FinanzOnlineStatus.ToLower() == "failed"
+                            ? "Failed"
+                            : "Completed"
                 })
                 .ToListAsync(cancellationToken);
 
@@ -191,6 +226,13 @@ public class AdminPaymentsController : ControllerBase
                 .Select(l => (decimal?)(-l.Amount))
                 .SumAsync(cancellationToken) ?? 0m;
 
+            var cashierDisplay = await _context.Users.AsNoTracking()
+                .Where(u => u.Id == p.CashierId)
+                .Select(u => u.FirstName + " " + u.LastName)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var stornoRefundAudit = await BuildStornoRefundAuditSectionAsync(p, tenantId, cancellationToken);
+
             return Ok(new AdminPaymentDetailDto
             {
                 Id = p.Id,
@@ -206,6 +248,7 @@ public class AdminPaymentsController : ControllerBase
                 CustomerId = p.CustomerId,
                 CustomerName = p.CustomerName,
                 CashierId = p.CashierId,
+                CashierDisplayName = string.IsNullOrWhiteSpace(cashierDisplay?.Trim()) ? p.CashierId : cashierDisplay!.Trim(),
                 CashRegisterId = p.CashRegisterId,
                 TableNumber = p.TableNumber,
                 ReceiptNumber = p.ReceiptNumber,
@@ -215,6 +258,7 @@ public class AdminPaymentsController : ControllerBase
                 IsActive = p.IsActive,
                 IsRefund = p.IsRefund,
                 IsStorno = p.IsStorno,
+                StornoReason = p.StornoReason,
                 OriginalPaymentId = p.OriginalPaymentId,
                 OriginalReceiptId = p.OriginalReceiptId,
                 RefundReason = p.RefundReason,
@@ -235,7 +279,8 @@ public class AdminPaymentsController : ControllerBase
                 InvoicePersisted = invoice != null,
                 VoucherRedeemedAmount = voucherRedeemedAmount,
                 SettlementAmount = decimal.Round(p.TotalAmount - voucherRedeemedAmount, 2, MidpointRounding.AwayFromZero),
-                HasVoucherRedemption = voucherRedeemedAmount > 0m
+                HasVoucherRedemption = voucherRedeemedAmount > 0m,
+                StornoRefundAudit = stornoRefundAudit
             });
         }
         catch (Exception ex)
@@ -336,6 +381,87 @@ public class AdminPaymentsController : ControllerBase
         }
     }
 
+    private async Task<AdminPaymentStornoRefundAuditDto?> BuildStornoRefundAuditSectionAsync(
+        PaymentDetails reversal,
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        if (!reversal.IsStorno && !reversal.IsRefund)
+            return null;
+
+        PaymentDetails? original = null;
+        if (reversal.OriginalPaymentId.HasValue)
+        {
+            original = await _context.PaymentDetails.AsNoTracking()
+                .Where(x => x.Id == reversal.OriginalPaymentId.Value)
+                .Where(x => _context.CashRegisters.Any(cr => cr.Id == x.CashRegisterId && cr.TenantId == tenantId))
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        var originalLines = ParseAuditLineItems(original?.PaymentItems);
+        var reversalLines = ParseAuditLineItems(reversal.PaymentItems);
+
+        double? deltaSeconds = original != null
+            ? (reversal.CreatedAt - original.CreatedAt).TotalSeconds
+            : null;
+
+        var entityIds = new List<Guid> { reversal.Id };
+        if (reversal.OriginalPaymentId.HasValue)
+            entityIds.Add(reversal.OriginalPaymentId.Value);
+
+        var relatedAuditEvents = await _context.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityId != null && entityIds.Contains(a.EntityId.Value))
+            .OrderByDescending(a => a.Timestamp)
+            .Take(80)
+            .Select(a => new AdminPaymentAuditEventDto
+            {
+                TimestampUtc = a.Timestamp,
+                Action = a.Action,
+                UserId = a.UserId,
+                UserRole = a.UserRole,
+                Description = a.Description,
+                HttpStatusCode = a.HttpStatusCode
+            })
+            .ToListAsync(cancellationToken);
+
+        return new AdminPaymentStornoRefundAuditDto
+        {
+            OriginalPaymentId = original?.Id,
+            OriginalReceiptNumber = original?.ReceiptNumber,
+            OriginalCreatedAtUtc = original?.CreatedAt,
+            OriginalTotalAmount = original?.TotalAmount,
+            OriginalLineItems = originalLines,
+            ReversalLineItems = reversalLines,
+            SecondsBetweenOriginalAndReversal = deltaSeconds,
+            RelatedAuditEvents = relatedAuditEvents
+        };
+    }
+
+    private static IReadOnlyList<AdminPaymentAuditLineItemDto> ParseAuditLineItems(JsonDocument? doc)
+    {
+        if (doc == null)
+            return Array.Empty<AdminPaymentAuditLineItemDto>();
+        try
+        {
+            var items = JsonSerializer.Deserialize<List<PaymentItem>>(doc.RootElement.GetRawText(),
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (items == null || items.Count == 0)
+                return Array.Empty<AdminPaymentAuditLineItemDto>();
+            return items.Select(i => new AdminPaymentAuditLineItemDto
+            {
+                ProductName = i.ProductName,
+                Quantity = i.Quantity,
+                UnitPrice = i.UnitPrice,
+                TotalPrice = i.TotalPrice,
+                TaxAmount = i.TaxAmount
+            }).ToList();
+        }
+        catch
+        {
+            return Array.Empty<AdminPaymentAuditLineItemDto>();
+        }
+    }
+
     private static string ResolvePaymentStatus(PaymentDetails p)
     {
         if (p.IsStorno || !p.IsActive)
@@ -394,6 +520,14 @@ public class AdminPaymentListItemDto
     public bool InvoicePersisted { get; set; }
     public decimal VoucherRedeemedAmount { get; set; }
     public bool HasVoucherRedemption { get; set; }
+    public bool IsStorno { get; set; }
+    public bool IsRefund { get; set; }
+    public StornoReason? StornoReason { get; set; }
+    public Guid? OriginalPaymentId { get; set; }
+    public string? OriginalReceiptNumber { get; set; }
+    public string? CashierDisplayName { get; set; }
+    /// <summary>Completed when FinanzOnline (or derived pipeline) did not report failure; Failed otherwise.</summary>
+    public string ReversalCompletionStatus { get; set; } = "Completed";
 }
 
 public class AdminPaymentDetailDto
@@ -411,6 +545,8 @@ public class AdminPaymentDetailDto
     public Guid CustomerId { get; set; }
     public string? CustomerName { get; set; }
     public string? CashierId { get; set; }
+    /// <summary>Resolved cashier display name for admin UX (falls back to <see cref="CashierId"/>).</summary>
+    public string? CashierDisplayName { get; set; }
     public Guid CashRegisterId { get; set; }
     public int TableNumber { get; set; }
     public string? ReceiptNumber { get; set; }
@@ -420,6 +556,7 @@ public class AdminPaymentDetailDto
     public bool IsActive { get; set; }
     public bool IsRefund { get; set; }
     public bool IsStorno { get; set; }
+    public StornoReason? StornoReason { get; set; }
     public Guid? OriginalPaymentId { get; set; }
     public Guid? OriginalReceiptId { get; set; }
     public string? RefundReason { get; set; }
@@ -441,6 +578,7 @@ public class AdminPaymentDetailDto
     public decimal VoucherRedeemedAmount { get; set; }
     public decimal SettlementAmount { get; set; }
     public bool HasVoucherRedemption { get; set; }
+    public AdminPaymentStornoRefundAuditDto? StornoRefundAudit { get; set; }
 }
 
 public class AdminPaymentActionResponse

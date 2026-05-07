@@ -199,8 +199,9 @@ Important fields/concepts:
 - `RksvNullbelegActsAsJahresbeleg`
 - `IsRefund`
 - `IsStorno`
+- `StornoReason` (enum: e.g. wrong amount, customer cancel, technical, other)
 - `OriginalPaymentId`
-- `OriginalReceiptId`
+- `OriginalReceiptId` (expected for storno flows when enforcing linkage)
 
 ### Receipt
 
@@ -401,9 +402,32 @@ Do not claim legal completeness or guaranteed FinanzOnline acceptance.
 
 ### DEP / export
 
-Fiscal export builds JSON (optional CSV) packages for diagnostics, accounting handoff, and internal analysis. Every profile carries an explicit **not legal proof** notice in the payload (`NotLegalProofNotice` / documented as `notLegalProofNotice` in onboarding lists). This is **not** an official DEP substitute or legal RKSV attestation—see `FiscalExportService` and admin `GET /api/admin/fiscal-export`.
+Fiscal export builds JSON (optional CSV) packages for diagnostics, accounting handoff, and internal analysis. Every profile carries an explicit **not legal proof** notice in the payload (`NotLegalProofNotice` / documented as `notLegalProofNotice` in onboarding lists). This is **not** an official DEP substitute or legal RKSV attestation—see `FiscalExportService` and admin fiscal-export endpoints.
+
+**Disclaimer acknowledgment (when enabled):** `FiscalExportOptions.RequireDisclaimerAcknowledgment` gates generate/download actions until the client sends `X-Disclaimer-Acknowledged: true` (see `RequireDisclaimerAcknowledgmentFilter`, `FiscalExportDisclaimerHeaders`). Operators obtain disclaimer text via `GET /api/admin/fiscal-export/disclaimer` (`FiscalExportDisclaimerPaths`); failed attempts without the header may be logged.
+
+### QR payload / receipt QR (voucher-heavy payloads)
+
+RKSV QR image generation (`QrImageService`) tries **ECC levels M then L**, sweeping **QR versions 10–20 then 1–9** so long voucher-heavy RKSV strings still encode. If the string remains too large, it may **truncate UTF-8** to a safe byte budget (~2200) and retry—a last resort for printable QR reliability, not a semantic change to signing.
+
+### RKSV compliance reminders (Monatsbeleg / Jahresbeleg / Startbeleg)
+
+`RksvReminderService` exposes consolidated status for a register: **Startbeleg** missing vs present, **Monatsbeleg** for current/previous Vienna calendar months (ok / upcoming / overdue), and **Jahresbeleg** expectations respecting `CompanySettings.UseDecemberMonatsbelegAsJahresbeleg`. POS and admin consume this to warn before illegal gaps widen.
+
+### NTP time synchronization
+
+A background NTP sync loop (`NtpTimeSyncService`, `NtpSynchronizationCoordinator`) records drift. When `NtpSettings.Enabled` is true, **online fiscal payments** are rejected if the last sync failed, no offset is known, or **`|offset| > MaxAllowedOffsetSeconds`** (see `NtpTimeSyncStatus.ShouldAllowOnlineFiscalPayment`; example default in `appsettings.example.json` is **5** seconds). **`CriticalOffsetSeconds`** (example default **60**) drives warning severity in `/api/system/time/status` and operator-facing banners—not the same numeric threshold as the payment gate unless configuration aligns them.
+
+### TSE health monitoring and offline replay
+
+TSE availability is tracked with configurable health intervals and failure counts (`TseOptions`: e.g. `HealthCheckIntervalSeconds`, offline/degraded thresholds). **Voucher (Gutschein) payments** must not enter the server **NonFiscalPending** offline queue when TSE is unavailable—backend rejects that path (`PaymentService`); other methods may still queue per policy. Admin surfaces TSE health and offline queue summaries where implemented.
+
+### Storno vs refund (classification)
+
+**Full receipt cancellation (Storno)** is classified by **`StornoReason`** on `PaymentDetails` and must be tied to the original receipt via **`OriginalReceiptId`** (and related fields) when applicable—distinct from partial **refund** flows. APIs/contracts map these explicitly for audit (`PaymentDTOs`, admin payment audit views).
 
 ---
+
 
 ## 8. Payment Flow
 
@@ -765,7 +789,7 @@ Known or suspected risks:
 - Real BMF / FinanzOnline webservice integration requires official credentials and documentation.
 - Manual BMF Belegcheck workflow remains important.
 - Voucher refund / partial refund balance restoration may need further implementation.
-- Fiscal export is NOT a legal RKSV proof. All export profiles include explicit disclaimer text ("notLegalProofNotice"). Exports are for diagnostics and internal analysis only.
+- Fiscal export is NOT a legal RKSV proof. Payloads include explicit disclaimer text; when enabled, API calls may also require **`X-Disclaimer-Acknowledged: true`**. Exports are for diagnostics and internal analysis only.
 - The codebase references Epson-style TSE devices and generic providers (e.g., Epson-TSE, fiskaly) through model comments and simulation logic. Runtime signing is provider-based (Fake vs Real) and not tied to a single OEM SDK. Supported vendors are configuration-driven, not defined as a fixed compatibility list.
 - This repository does not define a production deployment architecture. CI uses GitHub Actions with PostgreSQL containers for testing, but production hosting (cloud, on-prem, containers, etc.) is deployment-specific.
 - Canonical roles are defined in backend/Authorization/Roles.cs: SuperAdmin → full access; Manager → admin + RKSV + voucher + reporting; Cashier → POS + payment + TSE signing; Waiter → limited POS usage; Accountant → reporting + FinanzOnline + RKSV (no Schlussbeleg); Kitchen / ReportViewer → specialized roles. Always treat RolePermissionMatrix as the source of truth.

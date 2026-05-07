@@ -9,26 +9,29 @@ namespace KasseAPI_Final.DTOs
     /// POS payment create request. Authoritative inputs: <see cref="CustomerId"/>, <see cref="Items"/>, <see cref="Payment"/>, <see cref="CashRegisterId"/> (register FK).
     /// <see cref="TotalAmount"/> is a client gross hint; the server recomputes totals from catalog pricing and rejects on mismatch (not authoritative).
     /// <see cref="Steuernummer"/> is optional; when empty or invalid, the server substitutes from company profile — do not treat the raw request field as sole fiscal authority.
+    /// When <see cref="IsStorno"/> or <see cref="IsRefund"/> is set, this request performs a fiscal reversal linked by <see cref="OriginalReceiptNumber"/> (RKSV: Storno vs partial refund).
     /// </summary>
-    public class CreatePaymentRequest
+    public class CreatePaymentRequest : IValidatableObject
     {
         [Required]
         public Guid CustomerId { get; set; }
-        
-        [Required]
+
+        /// <summary>Required for normal sales; may be empty when <see cref="IsStorno"/> or <see cref="IsRefund"/> is true.</summary>
         public List<PaymentItemRequest> Items { get; set; } = new();
-        
+
         [Required]
         public PaymentMethodRequest Payment { get; set; } = new();
-        
+
         [Required]
         public int TableNumber { get; set; }
-        
-        /// <summary>Client-reported gross total for parity check only; persisted totals come from server calculation.</summary>
-        [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Total amount must be greater than 0")]
+
+        /// <summary>
+        /// Normal sale: client gross hint for parity with server catalog totals.
+        /// Refund via create: positive refund gross amount.
+        /// Storno via create: must match original receipt gross total (parity).
+        /// </summary>
         public decimal TotalAmount { get; set; }
-        
+
         /// <summary>Optional UID hint (ATU########). Normalized from company profile when omitted or invalid after validation rules.</summary>
         [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer must be in format ATU12345678")]
         public string? Steuernummer { get; set; }
@@ -36,7 +39,7 @@ namespace KasseAPI_Final.DTOs
         /// <summary>Required: POS cash register row (FK). Must not be empty GUID.</summary>
         [Required]
         public Guid CashRegisterId { get; set; }
-        
+
         public string? Notes { get; set; }
 
         /// <summary>Optional idempotency key for this payment attempt. When retried with the same key, the existing payment result is returned.</summary>
@@ -45,6 +48,66 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>Optional explicit customer classification; when omitted, derived from customer id (e.g. walk-in sentinel).</summary>
         public CustomerKind? CustomerKind { get; set; }
+
+        /// <summary>True: full receipt cancellation (Storno); mutually exclusive with <see cref="IsRefund"/>.</summary>
+        public bool IsStorno { get; set; }
+
+        /// <summary>True: partial return (Refund); mutually exclusive with <see cref="IsStorno"/>.</summary>
+        public bool IsRefund { get; set; }
+
+        /// <summary>Original sale BelegNr / receipt number; required when <see cref="IsStorno"/> or <see cref="IsRefund"/>.</summary>
+        [MaxLength(256)]
+        public string? OriginalReceiptNumber { get; set; }
+
+        /// <summary>RKSV Storno reason; required when <see cref="IsStorno"/>.</summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public StornoReason? StornoReason { get; set; }
+
+        /// <inheritdoc />
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (IsStorno && IsRefund)
+            {
+                yield return new ValidationResult(
+                    "IsStorno and IsRefund cannot both be true.",
+                    [nameof(IsStorno), nameof(IsRefund)]);
+            }
+
+            if (IsStorno || IsRefund)
+            {
+                if (string.IsNullOrWhiteSpace(OriginalReceiptNumber))
+                {
+                    yield return new ValidationResult(
+                        "OriginalReceiptNumber is required for storno or refund.",
+                        [nameof(OriginalReceiptNumber)]);
+                }
+
+                if (IsStorno && !StornoReason.HasValue)
+                {
+                    yield return new ValidationResult(
+                        "StornoReason is required when IsStorno is true.",
+                        [nameof(StornoReason)]);
+                }
+            }
+
+            if (!IsStorno && !IsRefund)
+            {
+                if (Items == null || Items.Count == 0)
+                    yield return new ValidationResult("At least one payment line item is required.", [nameof(Items)]);
+                if (TotalAmount < 0.01m)
+                    yield return new ValidationResult("Total amount must be greater than 0.", [nameof(TotalAmount)]);
+            }
+            else if (IsRefund)
+            {
+                if (TotalAmount < 0.01m)
+                    yield return new ValidationResult("Refund amount (TotalAmount) must be greater than zero.", [nameof(TotalAmount)]);
+            }
+            else if (IsStorno)
+            {
+                if (TotalAmount < 0.01m)
+                    yield return new ValidationResult("TotalAmount must be greater than zero for storno parity.", [nameof(TotalAmount)]);
+            }
+        }
     }
     
     /// <summary>
@@ -145,6 +208,17 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>True if failure is deterministic (e.g. invalid register, missing customer). Replays should not retry.</summary>
         public bool IsDeterministicFailure { get; set; }
+
+        /// <summary>
+        /// True when payment was accepted as a server-side offline intent (NonFiscalPending); fiscal receipt is produced later via replay.
+        /// </summary>
+        public bool NonFiscalOfflineQueued { get; set; }
+
+        /// <summary>Offline intent id when <see cref="NonFiscalOfflineQueued"/> is true.</summary>
+        public Guid? OfflineTransactionId { get; set; }
+
+        /// <summary>True when the payment was stored while NTP clock drift was outside tolerance (typically offline replay only).</summary>
+        public bool TimeSyncWarning { get; set; }
     }
     
     /// <summary>

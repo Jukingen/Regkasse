@@ -67,3 +67,15 @@ export type CreateJahresbelegResponse = {
 export async function postCreateJahresbeleg(body: CreateJahresbelegRequest): Promise<CreateJahresbelegResponse> {
   return apiClient.post<CreateJahresbelegResponse>('/rksv/special-receipts/jahresbeleg', body);
 }
+
+/** GET /api/rksv/monatsbeleg/status/{cashRegisterId} */
+export type MonatsbelegStatusDto = {
+  isRequired: boolean;
+  daysUntilDeadline: number;
+  lastMonatsbelegDate: string | null;
+  warningLevel: string;
+};
+
+export async function getMonatsbelegStatus(cashRegisterId: string): Promise<MonatsbelegStatusDto> {
+  return apiClient.get<MonatsbelegStatusDto>(`/rksv/monatsbeleg/status/${cashRegisterId}`);
+}

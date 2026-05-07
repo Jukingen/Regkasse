@@ -10,8 +10,12 @@ import type { PaymentCreateTseData } from './paymentCreateTseData';
 
 export interface PaymentCreateSuccessData {
   invoicePersisted?: boolean;
+  nonFiscalOfflineQueued?: boolean;
+  /** @nullable */
+  offlineTransactionId?: string | null;
   /** @nullable */
   payment?: PaymentCreateSuccessDataPayment;
   paymentId?: string;
+  timeSyncWarning?: boolean;
   tse?: PaymentCreateTseData;
 }

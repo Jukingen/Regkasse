@@ -142,5 +142,69 @@
       "Failed": "Basarisiz",
       "NeedsReconciliation": "Mutabakat gerekli"
     }
+  },
+  "stornoRefundAudit": {
+    "pageTitle": "Storno ve iade denetimi",
+    "intro": "Secilen donemdeki tam iptaller (Storno) ve kismi iadelerin uyum odakli gorunumu. Detaylar orijinal ile duzeltme fisini, sure farkini ve ilgili denetim kayitlarini karsilastirir.",
+    "exportCsv": "CSV indir",
+    "filterRegister": "Yazici / kasa",
+    "filterTypeAll": "Storno ve iade",
+    "filterTypeStorno": "Yalnizca Storno",
+    "filterTypeRefund": "Yalnizca iade",
+    "filterStornoReason": "Storno nedeni",
+    "type": {
+      "storno": "Storno",
+      "refund": "Iade"
+    },
+    "status": {
+      "completed": "Tamamlandi",
+      "failed": "Basarisiz"
+    },
+    "stornoReason": {
+      "falscherBetrag": "Yanlis tutar",
+      "kundeStorniert": "Musteri iptal",
+      "technischerFehler": "Teknik hata",
+      "anderes": "Diger"
+    },
+    "table": {
+      "colOriginalReceipt": "Orijinal fis numarasi",
+      "colNewReceipt": "Yeni fis (storno/iade)",
+      "colType": "Tip",
+      "colAmount": "Tutar",
+      "colReason": "Neden (storno)",
+      "colCashier": "Kasiyer",
+      "colWhen": "Tarih/saat",
+      "colStatus": "Durum",
+      "colActions": "Eylemler",
+      "viewDetail": "Detay"
+    },
+    "detail": {
+      "title": "Denetim detayi",
+      "loading": "Detaylar yukleniyor…",
+      "empty": "Detay verisi yok.",
+      "labelCashier": "Kasiyer",
+      "labelReversalAmount": "Tutar (duzeltme)",
+      "labelRefundReason": "Iade nedeni",
+      "labelOriginalWhen": "Orijinal zaman",
+      "labelOriginalTotal": "Orijinal brut tutar",
+      "timeDeltaTitle": "Gecen sure (orijinal → duzeltme)",
+      "durationHours": "{{count}} sa",
+      "durationMinutes": "{{count}} dk",
+      "durationSeconds": "{{count}} sn",
+      "sectionOriginal": "Orijinal fis (satirlar)",
+      "sectionReversal": "Duzeltme fis (satirlar)",
+      "sectionAuditTrail": "Onay ve denetim izi",
+      "auditTrailHint": "Bu odeme ve orijinal satisa bagli denetim gunlugu kayitlari (or. API eylemleri). Supervisor ayri adimi yalnizca politika gerektiriyorsa gorunur.",
+      "colProduct": "Urun",
+      "colQty": "Adet",
+      "colUnit": "Birim fiyat",
+      "colLineTotal": "Satir tutari",
+      "colTime": "Zaman",
+      "colAction": "Eylem",
+      "colRole": "Rol",
+      "colDescription": "Aciklama",
+      "noLines": "Satir yok",
+      "noAuditEvents": "Eslesen denetim kaydi yok"
+    }
   }
 }

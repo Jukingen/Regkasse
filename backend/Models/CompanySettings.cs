@@ -152,5 +152,12 @@ namespace KasseAPI_Final.Models
         public bool TseAutoConnect { get; set; } = false;
 
         public int TseConnectionTimeout { get; set; } = 30; // saniye
+
+        /// <summary>
+        /// When true (default), Vienna December uses Jahresbeleg flow instead of a separate Monatsbeleg row,
+        /// and December Monatsbeleg may satisfy Jahresbeleg detection where configured.
+        /// </summary>
+        [Column("use_december_monatsbeleg_as_jahresbeleg")]
+        public bool UseDecemberMonatsbelegAsJahresbeleg { get; set; } = true;
     }
 }

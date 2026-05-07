@@ -14,5 +14,6 @@ internal static class OpenApiExportConfiguration
             ["JwtSettings:SecretKey"] = new string('x', 32),
             ["JwtSettings:Issuer"] = "OpenApiExport",
             ["JwtSettings:Audience"] = "OpenApiExport",
+            ["NtpSettings:Enabled"] = "false",
         };
 }

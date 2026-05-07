@@ -55,7 +55,9 @@ export type SidebarIconToken =
     | 'SettingOutlined'
     | 'ShopOutlined'
     | 'CloudServerOutlined'
-    | 'WalletOutlined';
+    | 'WalletOutlined'
+    | 'ClockCircleOutlined'
+    | 'CloudDownloadOutlined';
 
 export type SidebarNavCatalogItem = {
     /** Stable id for tests and layout references */
@@ -105,6 +107,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/payments',
         labelKey: 'nav.payments',
         icon: 'CreditCardOutlined',
+    },
+    stornoRefundAudit: {
+        id: 'stornoRefundAudit',
+        menuKey: '/payments/storno-refund-audit',
+        href: '/payments/storno-refund-audit',
+        labelKey: 'nav.stornoRefundAudit',
+        icon: 'AuditOutlined',
     },
     vouchers: {
         id: 'vouchers',
@@ -246,6 +255,20 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.auditLogs',
         icon: 'SafetyCertificateOutlined',
     },
+    fiscalExportAuditLogs: {
+        id: 'fiscalExportAuditLogs',
+        menuKey: '/admin/audit/fiscal-exports',
+        href: '/admin/audit/fiscal-exports',
+        labelKey: 'nav.fiscalExportAuditLogs',
+        icon: 'CloudDownloadOutlined',
+    },
+    offlineTransactionsAdmin: {
+        id: 'offlineTransactionsAdmin',
+        menuKey: '/admin/tse/offline-transactions',
+        href: '/admin/tse/offline-transactions',
+        labelKey: 'nav.offlineTransactionsAdmin',
+        icon: 'InboxOutlined',
+    },
     users: {
         id: 'users',
         menuKey: '/users',
@@ -273,6 +296,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/settings/backup-dr',
         labelKey: 'nav.backupDr',
         icon: 'CloudServerOutlined',
+    },
+    timeSync: {
+        id: 'timeSync',
+        menuKey: '/admin/system/time-sync',
+        href: '/admin/system/time-sync',
+        labelKey: 'nav.timeSync',
+        icon: 'ClockCircleOutlined',
     },
 };
 
@@ -349,7 +379,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['receipts', 'payments', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
+                catalogIds: ['receipts', 'payments', 'stornoRefundAudit', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
             },
         ],
     },
@@ -396,7 +426,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'domain',
         domain: 'fiscalCompliance',
         blocks: [
-            { kind: 'leaves', catalogIds: ['auditLogs'] },
+            { kind: 'leaves', catalogIds: ['auditLogs', 'fiscalExportAuditLogs', 'offlineTransactionsAdmin'] },
             {
                 kind: 'rksvHub',
                 menuKey: '/rksv',
@@ -416,7 +446,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
                 labelKey: 'nav.settingsHub',
                 icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'paymentMethods', 'backupDr'],
+                catalogIds: ['companySettings', 'paymentMethods', 'backupDr', 'timeSync'],
             },
         ],
     },

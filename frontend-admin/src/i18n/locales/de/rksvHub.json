@@ -246,7 +246,13 @@
     "notLegalProofFallback": "Kein gesetzlicher Nachweis",
     "statutoryDisclaimerBody": "Gesetzlicher Hinweis: kein RKSV-Nachweis — gilt für alle Profile.",
     "globalIntegrityHint": "Für datenbankweite Integrität nutzen Sie «Datenintegrität»; die Export-Karten zeigen nur Slice-Risiken.",
-    "sliceVsGlobalTitle": "Export (Slice) vs. globale Integrität"
+    "sliceVsGlobalTitle": "Export (Slice) vs. globale Integrität",
+    "disclaimerModalTitle": "RECHTLICHER HINWEIS",
+    "disclaimerModalBody": "DIESER EXPORT IST KEIN RECHTSVERBINDLICHER FISKALBELEG NACH § 8 RKSV.\n\nEr dient ausschließlich der internen Analyse und Diagnostik. Für steuerliche Zwecke ist der Originalbeleg mit gültiger TSE-Signatur maßgeblich.\n\nBei Anfragen des Finanzamts muss der ORIGINALBELEG vorgelegt werden – dieser Export ersetzt diesen nicht.\n\nMöchten Sie trotzdem fortfahren?",
+    "disclaimerModalUnderstandCheckbox": "Verstanden, ich möchte trotzdem exportieren",
+    "disclaimerModalSkip24hCheckbox": "Nicht mehr anzeigen (24h)",
+    "disclaimerModalCancel": "Abbrechen",
+    "disclaimerModalProceed": "Trotzdem exportieren"
   },
   "incident": {
     "pageTitle": "Incident (Correlation) — Untersuchung",

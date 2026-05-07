@@ -23,6 +23,9 @@ import type {
   AdminCreateUserRequest,
   AdminDeactivateRequest,
   AdminForcePasswordResetRequest,
+  AdminOfflineTransactionRetryResponseDto,
+  AdminOfflineTransactionsListResponse,
+  AdminOfflineTransactionsSummaryDto,
   AdminOperationsSummaryResponse,
   AdminPatchUserRequest,
   AdminPaymentActionResponse,
@@ -76,6 +79,8 @@ import type {
   GetApiAdminOfflineIntentCoverageParams,
   GetApiAdminOfflineIntentCoverageTopRiskParams,
   GetApiAdminOfflinePayloadHashExportParams,
+  GetApiAdminOfflineTransactionsExportFailedParams,
+  GetApiAdminOfflineTransactionsParams,
   GetApiAdminOperationsSummaryParams,
   GetApiAdminPaymentsParams,
   GetApiAdminPaymentsStatisticsParams,
@@ -781,7 +786,272 @@ export const useGetApiAdminIncidentsCorrelationId = <TData = Awaited<ReturnType<
 
 
 
-export const getApiAdminOperationsSummary = (
+export const getApiAdminOfflineTransactionsSummary = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminOfflineTransactionsSummaryDto>(
+      {url: `/api/admin/offline-transactions/summary`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineTransactionsSummaryQueryKey = () => {
+    return [`/api/admin/offline-transactions/summary`] as const;
+    }
+
+    
+export const getGetApiAdminOfflineTransactionsSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineTransactionsSummaryQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>> = ({ signal }) => getApiAdminOfflineTransactionsSummary(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineTransactionsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>>
+export type GetApiAdminOfflineTransactionsSummaryQueryError = unknown
+
+export const useGetApiAdminOfflineTransactionsSummary = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsSummary>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineTransactionsSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOfflineTransactions = (
+    params?: GetApiAdminOfflineTransactionsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminOfflineTransactionsListResponse>(
+      {url: `/api/admin/offline-transactions`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineTransactionsQueryKey = (params?: GetApiAdminOfflineTransactionsParams,) => {
+    return [`/api/admin/offline-transactions`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminOfflineTransactionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>, TError = unknown>(params?: GetApiAdminOfflineTransactionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineTransactionsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>> = ({ signal }) => getApiAdminOfflineTransactions(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineTransactionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>>
+export type GetApiAdminOfflineTransactionsQueryError = unknown
+
+export const useGetApiAdminOfflineTransactions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>, TError = unknown>(
+ params?: GetApiAdminOfflineTransactionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineTransactionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOfflineTransactionsExportFailed = (
+    params?: GetApiAdminOfflineTransactionsExportFailedParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/offline-transactions/export-failed`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineTransactionsExportFailedQueryKey = (params?: GetApiAdminOfflineTransactionsExportFailedParams,) => {
+    return [`/api/admin/offline-transactions/export-failed`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminOfflineTransactionsExportFailedQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>, TError = unknown>(params?: GetApiAdminOfflineTransactionsExportFailedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineTransactionsExportFailedQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>> = ({ signal }) => getApiAdminOfflineTransactionsExportFailed(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineTransactionsExportFailedQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>>
+export type GetApiAdminOfflineTransactionsExportFailedQueryError = unknown
+
+export const useGetApiAdminOfflineTransactionsExportFailed = <TData = Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>, TError = unknown>(
+ params?: GetApiAdminOfflineTransactionsExportFailedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineTransactionsExportFailed>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineTransactionsExportFailedQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminOfflineTransactionsIdRetry = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AdminOfflineTransactionRetryResponseDto>(
+      {url: `/api/admin/offline-transactions/${id}/retry`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminOfflineTransactionsIdRetryMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsIdRetry>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsIdRetry>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsIdRetry>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiAdminOfflineTransactionsIdRetry(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminOfflineTransactionsIdRetryMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsIdRetry>>>
+    
+    export type PostApiAdminOfflineTransactionsIdRetryMutationError = unknown
+
+    export const usePostApiAdminOfflineTransactionsIdRetry = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsIdRetry>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminOfflineTransactionsIdRetry>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminOfflineTransactionsIdRetryMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminOfflineTransactionsRetryAll = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AdminOfflineTransactionRetryResponseDto>(
+      {url: `/api/admin/offline-transactions/retry-all`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminOfflineTransactionsRetryAllMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsRetryAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsRetryAll>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsRetryAll>>, void> = () => {
+          
+
+          return  postApiAdminOfflineTransactionsRetryAll(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminOfflineTransactionsRetryAllMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsRetryAll>>>
+    
+    export type PostApiAdminOfflineTransactionsRetryAllMutationError = unknown
+
+    export const usePostApiAdminOfflineTransactionsRetryAll = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineTransactionsRetryAll>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminOfflineTransactionsRetryAll>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminOfflineTransactionsRetryAllMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminOperationsSummary = (
     params?: GetApiAdminOperationsSummaryParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

@@ -5,6 +5,8 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { StornoReason } from './stornoReason';
+import type { AdminPaymentStornoRefundAuditDto } from './adminPaymentStornoRefundAuditDto';
 
 export interface AdminPaymentDetailDto {
   /** @nullable */
@@ -13,6 +15,8 @@ export interface AdminPaymentDetailDto {
   cancellationReason?: string | null;
   /** @nullable */
   cancelledAt?: string | null;
+  /** @nullable */
+  cashierDisplayName?: string | null;
   /** @nullable */
   cashierId?: string | null;
   cashRegisterId?: string;
@@ -31,6 +35,7 @@ export interface AdminPaymentDetailDto {
   finanzOnlineRetryCount?: number;
   /** @nullable */
   finanzOnlineStatus?: string | null;
+  hasVoucherRedemption?: boolean;
   id?: string;
   /** @nullable */
   idempotencyKey?: string | null;
@@ -65,8 +70,12 @@ export interface AdminPaymentDetailDto {
   refundedAt?: string | null;
   /** @nullable */
   refundReason?: string | null;
+  settlementAmount?: number;
   /** @nullable */
   status?: string | null;
+  stornoReason?: StornoReason;
+  /** @nullable */
+  stornoRefundAudit?: AdminPaymentStornoRefundAuditDto;
   tableNumber?: number;
   taxAmount?: number;
   totalAmount?: number;
@@ -74,4 +83,5 @@ export interface AdminPaymentDetailDto {
   transactionId?: string | null;
   /** @nullable */
   updatedAt?: string | null;
+  voucherRedeemedAmount?: number;
 }

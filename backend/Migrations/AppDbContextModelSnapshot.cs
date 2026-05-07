@@ -1084,6 +1084,22 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime>("LastBalanceUpdate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("LastJahresbelegUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("last_jahresbeleg_utc");
+
+                    b.Property<DateTime?>("LastMonatsbelegUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("last_monatsbeleg_utc");
+
+                    b.Property<DateTime?>("LastServerTimeDriftAtUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("last_server_time_drift_at_utc");
+
+                    b.Property<double?>("LastServerTimeOffsetSeconds")
+                        .HasColumnType("double precision")
+                        .HasColumnName("last_server_time_offset_seconds");
+
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1093,6 +1109,10 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("StartbelegCreatedAt")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("startbeleg_created_at");
 
                     b.Property<decimal>("StartingBalance")
                         .HasColumnType("decimal(18,2)");
@@ -1463,6 +1483,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)")
                         .HasColumnName("updated_by");
+
+                    b.Property<bool>("UseDecemberMonatsbelegAsJahresbeleg")
+                        .HasColumnType("boolean")
+                        .HasColumnName("use_december_monatsbeleg_as_jahresbeleg");
 
                     b.HasKey("Id");
 
@@ -2733,6 +2757,36 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("monatsbericht_reports", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.NtpAdminSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("AutoSyncEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("auto_sync_enabled");
+
+                    b.Property<int>("CriticalOffsetSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("critical_offset_seconds");
+
+                    b.Property<int>("MaxAllowedOffsetSeconds")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_allowed_offset_seconds");
+
+                    b.Property<int>("SyncIntervalMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("sync_interval_minutes");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at_utc");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ntp_admin_settings", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OfflineIntentCoverageSample", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3238,6 +3292,10 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)");
 
+                    b.Property<int?>("StornoReason")
+                        .HasColumnType("integer")
+                        .HasColumnName("storno_reason");
+
                     b.Property<int>("TableNumber")
                         .HasColumnType("integer");
 
@@ -3247,6 +3305,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("TaxDetails")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<bool>("TimeSyncWarning")
+                        .HasColumnType("boolean")
+                        .HasColumnName("time_sync_warning");
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
@@ -5077,6 +5139,50 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique();
 
                     b.ToTable("system_settings");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.SystemTimeSyncLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("error_message");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_success");
+
+                    b.Property<string>("NtpServerUsed")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("ntp_server_used");
+
+                    b.Property<DateTime>("NtpTimeUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ntp_time_utc");
+
+                    b.Property<double>("OffsetSeconds")
+                        .HasColumnType("double precision")
+                        .HasColumnName("offset_seconds");
+
+                    b.Property<DateTime>("SyncTimeUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sync_time_utc");
+
+                    b.Property<DateTime>("SystemTimeUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("system_time_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SyncTimeUtc");
+
+                    b.ToTable("system_time_sync_logs", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TableOrder", b =>

@@ -250,5 +250,8 @@ namespace KasseAPI_Final.Models
 
             /// <summary>Structured POS operator audit rows (payment outcome, ensure-ready, Sonderbelege).</summary>
             public const string POS_CRITICAL = "PosCritical";
+
+            /// <summary>RKSV DEP / fiscal diagnostic export access (see <c>FiscalExportController</c> audit rows).</summary>
+            public const string FISCAL_EXPORT = "FiscalExport";
         }
 }

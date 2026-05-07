@@ -89,6 +89,9 @@ namespace KasseAPI_Final.Models
         /// <summary>True when this row is a storno (cancellation reversal). Original payment is never modified; this reversal references it via OriginalPaymentId.</summary>
         public bool IsStorno { get; set; } = false;
 
+        /// <summary>RKSV Storno classification when <see cref="IsStorno"/> is true; null for legacy or non-storno rows.</summary>
+        public StornoReason? StornoReason { get; set; }
+
         /// <summary>For storno/refund rows: canonical receipt id of the original sale (forensic link).</summary>
         public Guid? OriginalReceiptId { get; set; }
 
@@ -196,6 +199,12 @@ namespace KasseAPI_Final.Models
         /// <summary>December Nullbeleg may later be treated as Jahresbeleg; no extra business logic in phase 1.</summary>
         [Column("rksv_nullbeleg_acts_as_jahresbeleg")]
         public bool RksvNullbelegActsAsJahresbeleg { get; set; }
+
+        /// <summary>
+        /// Set when this fiscal payment was accepted from an offline replay while NTP/system clock was outside RKSV tolerance.
+        /// </summary>
+        [Column("time_sync_warning")]
+        public bool TimeSyncWarning { get; set; }
 
         // Navigation properties
         public virtual Customer? Customer { get; set; }

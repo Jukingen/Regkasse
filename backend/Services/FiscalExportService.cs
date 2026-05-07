@@ -13,15 +13,12 @@ namespace KasseAPI_Final.Services;
 
 public class FiscalExportService : IFiscalExportService
 {
-    /// <summary>Misuse guard: always included in export and as first ExportScopeWarnings entry so the payload is never interpreted as legal proof.</summary>
-    public const string NotLegalProofNoticeText =
-        "NOT LEGAL PROOF — This export is for support and analysis only; it does not constitute a legal RKSV attestation or compliance certificate.";
-
     private const int MaxReceiptRows = 50_000;
     private static readonly TimeSpan MaxPeriod = TimeSpan.FromDays(366);
 
     private readonly AppDbContext _context;
     private readonly ILogger<FiscalExportService> _logger;
+    private readonly IDisclaimerService _disclaimer;
     private readonly IOfflinePayloadHashMaintenanceService? _payloadHashMaintenance;
     private readonly int _payloadHashSampleSize;
     private readonly CoverageGuardOptions _coverageGuardOptions;
@@ -29,12 +26,14 @@ public class FiscalExportService : IFiscalExportService
     public FiscalExportService(
         AppDbContext context,
         ILogger<FiscalExportService> logger,
+        IDisclaimerService disclaimer,
         IOfflinePayloadHashMaintenanceService? payloadHashMaintenance = null,
         Microsoft.Extensions.Options.IOptions<PayloadHashGuardOptions>? guardOptions = null,
         Microsoft.Extensions.Options.IOptions<CoverageGuardOptions>? coverageGuardOptions = null)
     {
         _context = context;
         _logger = logger;
+        _disclaimer = disclaimer;
         _payloadHashMaintenance = payloadHashMaintenance;
         _payloadHashSampleSize = guardOptions?.Value?.SampleSizeForExportCheck ?? 500;
         _coverageGuardOptions = coverageGuardOptions?.Value ?? new CoverageGuardOptions();
@@ -46,8 +45,10 @@ public class FiscalExportService : IFiscalExportService
         DateTime toUtc,
         bool includeCsv,
         FiscalExportProfile exportProfile = FiscalExportProfile.OperationalPreview,
+        string disclaimerLanguage = "de",
         CancellationToken cancellationToken = default)
     {
+        var rksvDisclaimer = _disclaimer.GetRksvDisclaimer(disclaimerLanguage);
         var from = NormalizeUtc(fromUtc);
         var to = NormalizeUtc(toUtc);
         if (to < from)
@@ -103,7 +104,7 @@ public class FiscalExportService : IFiscalExportService
 
         var exportScopeWarnings = new List<string>
         {
-            NotLegalProofNoticeText,
+            rksvDisclaimer,
             "Integrity and chain flags in this export are best-effort diagnostics only; they are not a legal RKSV compliance certificate or guarantee.",
             "Signature linkage is observed only between consecutive receipts in this export (issued-at order); it is not validated against the full register history unless the export contains all receipts (observed-within-scope only)."
         };
@@ -181,7 +182,8 @@ public class FiscalExportService : IFiscalExportService
         var totalOfflineTransactions = offlineTransactionsInPeriod.Count;
         var syncedOfflineTransactions = offlineTransactionsInPeriod.Count(o => o.Status == OfflineTransactionStatus.Synced);
         var failedOfflineTransactions = offlineTransactionsInPeriod.Count(o => o.Status == OfflineTransactionStatus.Failed);
-        var offlineReplayGaps = offlineTransactionsInPeriod.Count(o => o.Status == OfflineTransactionStatus.Pending);
+        var offlineReplayGaps = offlineTransactionsInPeriod.Count(o =>
+            o.Status == OfflineTransactionStatus.Pending || o.Status == OfflineTransactionStatus.NonFiscalPending);
 
         // DeviceId/Sequence coverage (observability): samples in same UTC window for this register
         var coverageInPeriod = await _context.OfflineIntentCoverageSamples
@@ -211,7 +213,7 @@ public class FiscalExportService : IFiscalExportService
 
         var package = new FiscalExportPackageDto
         {
-            NotLegalProofNotice = NotLegalProofNoticeText,
+            NotLegalProofNotice = rksvDisclaimer,
             GeneratedAtUtc = DateTime.UtcNow,
             CashRegisterId = cashRegisterId,
             RegisterNumber = register.RegisterNumber,
@@ -279,8 +281,8 @@ public class FiscalExportService : IFiscalExportService
 
         if (includeCsv)
         {
-            package.ReceiptsCsv = BuildReceiptsCsv(receiptDtos);
-            package.ClosingsCsv = BuildClosingsCsv(closingDtos);
+            package.ReceiptsCsv = BuildReceiptsCsv(receiptDtos, rksvDisclaimer);
+            package.ClosingsCsv = BuildClosingsCsv(closingDtos, rksvDisclaimer);
         }
 
         FiscalExportProfileMetadata.Apply(package, exportProfile);
@@ -432,14 +434,14 @@ public class FiscalExportService : IFiscalExportService
         };
     }
 
-    private static string BuildReceiptsCsv(IReadOnlyList<FiscalReceiptExportDto> receipts)
+    private static string BuildReceiptsCsv(IReadOnlyList<FiscalReceiptExportDto> receipts, string disclaimer)
     {
         var sb = new StringBuilder();
         sb.AppendLine(
             "receipt_id,payment_id,receipt_number,issued_at_utc,cashier_id,cash_register_id," +
             "sub_total,tax_total,grand_total,signature_value,prev_signature_value,signature_format," +
             "provider,correlation_id,created_at_utc,is_storno,is_refund,original_payment_id,original_receipt_id,reversal_reason," +
-            "has_offline_origin,offline_created_at_utc,fiscalized_at_utc,offline_replay_batch_correlation_id");
+            "has_offline_origin,offline_created_at_utc,fiscalized_at_utc,offline_replay_batch_correlation_id,disclaimer");
         var inv = CultureInfo.InvariantCulture;
         foreach (var r in receipts)
         {
@@ -466,19 +468,20 @@ public class FiscalExportService : IFiscalExportService
                 .Append(r.HasOfflineOrigin ? "1" : "0").Append(',')
                 .Append(Csv(r.OfflineCreatedAtUtc?.ToString("o", inv))).Append(',')
                 .Append(Csv(r.FiscalizedAtUtc?.ToString("o", inv))).Append(',')
-                .Append(Csv(r.OfflineReplayBatchCorrelationId?.ToString("D", inv)))
+                .Append(Csv(r.OfflineReplayBatchCorrelationId?.ToString("D", inv))).Append(',')
+                .Append(Csv(disclaimer))
                 .AppendLine();
         }
 
         return sb.ToString();
     }
 
-    private static string BuildClosingsCsv(IReadOnlyList<FiscalClosingExportDto> closings)
+    private static string BuildClosingsCsv(IReadOnlyList<FiscalClosingExportDto> closings, string disclaimer)
     {
         var sb = new StringBuilder();
         sb.AppendLine(
             "closing_id,cash_register_id,user_id,closing_date_utc,closing_type,total_amount,total_tax_amount," +
-            "transaction_count,tse_signature,status,finanz_online_status,finanz_online_reference_id,created_at_utc");
+            "transaction_count,tse_signature,status,finanz_online_status,finanz_online_reference_id,created_at_utc,disclaimer");
         var inv = CultureInfo.InvariantCulture;
         foreach (var c in closings)
         {
@@ -494,7 +497,8 @@ public class FiscalExportService : IFiscalExportService
                 .Append(Csv(c.Status)).Append(',')
                 .Append(Csv(c.FinanzOnlineStatus)).Append(',')
                 .Append(Csv(c.FinanzOnlineReferenceId)).Append(',')
-                .Append(Csv(c.CreatedAtUtc.ToString("o", inv)))
+                .Append(Csv(c.CreatedAtUtc.ToString("o", inv))).Append(',')
+                .Append(Csv(disclaimer))
                 .AppendLine();
         }
 

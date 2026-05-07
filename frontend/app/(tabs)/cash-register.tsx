@@ -8,40 +8,113 @@
 //     pendingModifiersByProduct (legacy chip state).
 // =============================================================================
 
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
 
 import { CartDisplay } from '../../components/CartDisplay';
-import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
-import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
 import CategoryFilter from '../../components/CategoryFilter';
+import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
 import { ToastContainer } from '../../components/ToastNotification';
-import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography, Space8 } from '../../constants/SoftTheme';
+import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
+import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
-import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
+import { useCashRegister } from '../../hooks/useCashRegister';
+import { useProductsUnified } from '../../hooks/useProductsUnified';
+import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
+import { customerService, isWalkInCustomerId } from '../../services/api/customerService';
+import type { AddOnSelection } from '../../services/api/productModifiersService';
+import { Product } from '../../services/api/productService';
+import {
+  getMonatsbelegStatus,
+  type MonatsbelegStatusDto,
+} from '../../services/api/rksvSpecialReceiptsService';
+import { formatPrice } from '../../utils/formatPrice';
+import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
 import {
   isReadinessRegisterDecommissioned,
   isReadinessStartbelegGateActive,
   POS_DECOMMISSIONED_SALES_BLOCK_MESSAGE_DE,
 } from '../../utils/posRegisterGateCopy';
-import { useCashRegister } from '../../hooks/useCashRegister';
-import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
-import { useProductsUnified } from '../../hooks/useProductsUnified';
-import type { AddOnSelection } from '../../services/api/productModifiersService';
-import { Product } from '../../services/api/productService';
-import { formatPrice } from '../../utils/formatPrice';
 
 /** POS modifier selection (quantity independent from product qty). Cart is source of truth. */
 type SelectedModifier = { id: string; name: string; price: number; quantity?: number };
+
+/** RKSV Monatsbeleg reminder strip (Vienna month); yellow dismissible, red must be resolved. */
+function MonatsbelegWarningBannerStrip({
+  monatsbelegStatus,
+  yellowDismissed,
+  onDismissYellow,
+  onNavigateCreate,
+  t,
+}: {
+  monatsbelegStatus:
+    | { phase: 'idle' }
+    | { phase: 'loading' }
+    | { phase: 'success'; data: MonatsbelegStatusDto }
+    | { phase: 'error' };
+  yellowDismissed: boolean;
+  onDismissYellow: () => void;
+  onNavigateCreate: () => void;
+  t: (key: string, options?: Record<string, string | number>) => string;
+}) {
+  if (monatsbelegStatus.phase !== 'success') {
+    return null;
+  }
+  const { warningLevel, daysUntilDeadline } = monatsbelegStatus.data;
+  if (warningLevel !== 'yellow' && warningLevel !== 'red') {
+    return null;
+  }
+  if (warningLevel === 'yellow' && yellowDismissed) {
+    return null;
+  }
+
+  const isRed = warningLevel === 'red';
+  const message = isRed
+    ? t('checkout:posFlow.monatsbelegBanner.red')
+    : t('checkout:posFlow.monatsbelegBanner.yellow', { days: daysUntilDeadline });
+
+  return (
+    <View
+      style={[styles.mbBanner, isRed ? styles.mbBannerRed : styles.mbBannerYellow]}
+      accessibilityRole="alert"
+    >
+      <Text style={[styles.mbBannerText, isRed && styles.mbBannerTextRed]}>{message}</Text>
+      <View style={styles.mbBannerRow}>
+        <Pressable
+          onPress={onNavigateCreate}
+          style={({ pressed }) => [styles.mbBannerCta, pressed && styles.mbBannerCtaPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t('checkout:posFlow.monatsbelegBanner.createNow')}
+        >
+          <Text style={styles.mbBannerCtaText}>{t('checkout:posFlow.monatsbelegBanner.createNow')}</Text>
+        </Pressable>
+        {!isRed ? (
+          <Pressable
+            onPress={onDismissYellow}
+            style={({ pressed }) => [styles.mbDismissBtn, pressed && styles.mbBannerCtaPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('checkout:posFlow.monatsbelegBanner.dismissA11y')}
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={22} color={SoftColors.textPrimary} />
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
+}
 
 /** Presentational: step number + section title (used for Category and Summary headers). */
 function SectionHeader({
@@ -236,6 +309,24 @@ function usePOSOrderFlow(
 
 export default function CashRegisterScreen() {
   const { t } = useTranslation(['checkout', 'common']);
+  const router = useRouter();
+  const [monatsbelegStatus, setMonatsbelegStatus] = useState<
+    | { phase: 'idle' }
+    | { phase: 'loading' }
+    | { phase: 'success'; data: MonatsbelegStatusDto }
+    | { phase: 'error' }
+  >({ phase: 'idle' });
+  const [yellowBannerDismissed, setYellowBannerDismissed] = useState(false);
+  const prevMbWarningLevelRef = useRef<string | null>(null);
+  const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
+  const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
+  const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
+  /** Assignment-level benefit count for current sale customer; null when not loaded or guest. */
+  const [benefitSummaryCount, setBenefitSummaryCount] = useState<number | null>(null);
+  const benefitFetchRef = useRef<string | null>(null);
+
   const { categories } = useProductsUnified();
   const { toasts, addToast, removeToast } = useCashRegister();
   const {
@@ -266,14 +357,42 @@ export default function CashRegisterScreen() {
 
   const posReadiness = usePosRegisterReadiness();
 
-  const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
-  const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
-  const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
-  /** Assignment-level benefit count for current sale customer; null when not loaded or guest. */
-  const [benefitSummaryCount, setBenefitSummaryCount] = useState<number | null>(null);
-  const benefitFetchRef = useRef<string | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const id = posReadiness.data?.effectiveRegisterId?.trim();
+      if (!id || !isValidPosCashRegisterId(id)) {
+        setMonatsbelegStatus({ phase: 'idle' });
+        return;
+      }
+      let cancelled = false;
+      setMonatsbelegStatus({ phase: 'loading' });
+      getMonatsbelegStatus(id)
+        .then((data) => {
+          if (cancelled) return;
+          setMonatsbelegStatus({ phase: 'success', data });
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setMonatsbelegStatus({ phase: 'error' });
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [posReadiness.data?.effectiveRegisterId])
+  );
+
+  useEffect(() => {
+    if (monatsbelegStatus.phase !== 'success') return;
+    const w = monatsbelegStatus.data.warningLevel;
+    if (w !== prevMbWarningLevelRef.current) {
+      prevMbWarningLevelRef.current = w;
+      setYellowBannerDismissed(false);
+    }
+  }, [monatsbelegStatus]);
+
+  const handleMonatsbelegNavigate = useCallback(() => {
+    router.push('/(tabs)/settings' as const);
+  }, [router]);
 
   // Fetch benefit-summary when sale customer changes (skip guest); request guard to avoid race.
   useEffect(() => {
@@ -309,7 +428,7 @@ export default function CashRegisterScreen() {
   const summaryTotals = useMemo(() => getCartDisplayTotals(cart), [cart]);
   /** productId → modifiers on the last cart line (for chip selection display). */
   const lastCartItemModifiersByProductId = useMemo(() => {
-    const map: Record<string, Array<{ id: string; name: string; price: number }>> = {};
+    const map: Record<string, { id: string; name: string; price: number }[]> = {};
     const items = cart?.items ?? [];
     for (let i = items.length - 1; i >= 0; i--) {
       const item = items[i];
@@ -522,7 +641,7 @@ export default function CashRegisterScreen() {
       {/* Add-on selection bottom sheet: base + add-ons as flat cart lines */}
       {modifierSheetProduct && (
         <ModifierSelectionBottomSheet
-          visible={true}
+          visible
           productId={modifierSheetProduct.id}
           productName={modifierSheetProduct.name}
           productPrice={modifierSheetProduct.price ?? 0}
@@ -539,6 +658,14 @@ export default function CashRegisterScreen() {
         provisioningMessage={recoveryProvisioningMessage}
       />
 
+      <MonatsbelegWarningBannerStrip
+        monatsbelegStatus={monatsbelegStatus}
+        yellowDismissed={yellowBannerDismissed}
+        onDismissYellow={() => setYellowBannerDismissed(true)}
+        onNavigateCreate={handleMonatsbelegNavigate}
+        t={t}
+      />
+
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
       <ProductList
@@ -548,7 +675,7 @@ export default function CashRegisterScreen() {
         onAddAddOn={handleAddAddOn}
         onOpenAddOnSheet={setModifierSheetProduct}
         showStockInfo={false}
-        showTaxInfo={true}
+        showTaxInfo
         ListHeaderComponent={
           <>
             {/* Table Selector */}
@@ -604,6 +731,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: SoftColors.bgPrimary,
+  },
+
+  mbBanner: {
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SoftColors.borderLight,
+    gap: SoftSpacing.sm,
+  },
+  mbBannerYellow: {
+    backgroundColor: SoftColors.warningBg,
+  },
+  mbBannerRed: {
+    backgroundColor: SoftColors.errorBg,
+    borderLeftWidth: 4,
+    borderLeftColor: SoftColors.error,
+  },
+  mbBannerText: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textPrimary,
+    fontWeight: '600',
+  },
+  mbBannerTextRed: {
+    color: SoftColors.error,
+  },
+  mbBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SoftSpacing.sm,
+  },
+  mbBannerCta: {
+    alignSelf: 'flex-start',
+    backgroundColor: SoftColors.accent,
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
+  },
+  mbBannerCtaPressed: {
+    opacity: 0.85,
+  },
+  mbBannerCtaText: {
+    color: SoftColors.textInverse,
+    fontWeight: '600',
+    ...SoftTypography.label,
+  },
+  mbDismissBtn: {
+    padding: SoftSpacing.xs,
+    marginLeft: 'auto',
   },
 
   categorySection: {

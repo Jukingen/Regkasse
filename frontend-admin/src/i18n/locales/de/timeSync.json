@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "Zeitsynchronisation",
+    "subtitle": "Serverzeit, NTP-Referenz und Konfiguration für RKSV-konforme Online-Zahlungen."
+  },
+  "statusCard": {
+    "title": "Aktueller Status",
+    "systemUtc": "Systemzeit (UTC)",
+    "systemLocal": "Systemzeit (Wien)",
+    "ntpReference": "NTP-Referenz (UTC)",
+    "offset": "Abweichung (Sekunden)",
+    "lastSync": "Letzte Synchronisation",
+    "badge": "Status"
+  },
+  "badge": {
+    "synchronized": "Synchronisiert",
+    "warning": "Warnung",
+    "critical": "Kritisch"
+  },
+  "actions": {
+    "syncNow": "Jetzt synchronisieren",
+    "syncSuccess": "Synchronisation ausgeführt.",
+    "syncFailed": "Synchronisation fehlgeschlagen.",
+    "saveConfig": "Konfiguration speichern",
+    "saved": "Gespeichert."
+  },
+  "history": {
+    "title": "Synchronisationsverlauf",
+    "syncTime": "Zeit (UTC)",
+    "offset": "Offset (s)",
+    "ntpServer": "NTP-Server",
+    "result": "Ergebnis",
+    "success": "OK",
+    "failed": "Fehler"
+  },
+  "config": {
+    "title": "Konfiguration",
+    "autoSync": "Automatische Synchronisation",
+    "intervalMinutes": "Intervall (Minuten)",
+    "maxOffset": "Max. zulässige Abweichung (Sekunden)",
+    "criticalOffset": "Kritischer Schwellenwert (Sekunden)",
+    "dbOverrideHint": "Werte stammen aus der Datenbank (Admin-Override)."
+  },
+  "dashboard": {
+    "alertTitle": "Zeitabweichung an Kassen",
+    "alertDescription": "{{count}} Kasse(n) über dem Schwellenwert (±{{threshold}} s). Größte Abweichung: {{max}} s.",
+    "link": "Zeitsynchronisation öffnen"
+  }
+}

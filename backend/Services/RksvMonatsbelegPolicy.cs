@@ -21,7 +21,7 @@ public sealed class RksvMonatsbelegPolicy : IRksvMonatsbelegPolicy
     public bool SessionGateApplies => !_tseOptions.IsOff && !_tseOptions.UseSoftTseWhenNoDevice;
 
     /// <inheritdoc />
-    public Task<bool> HasMonatsbelegForRegisterMonthAsync(
+    public async Task<bool> HasMonatsbelegForRegisterMonthAsync(
         Guid cashRegisterId,
         int year,
         int month,
@@ -29,28 +29,55 @@ public sealed class RksvMonatsbelegPolicy : IRksvMonatsbelegPolicy
     {
         if (month == 12)
         {
-            // December: Jahresbeleg for the year satisfies the monthly gate (RKSV annual close).
-            return _db.PaymentDetails.AsNoTracking()
+            var tenantId = await _db.CashRegisters.AsNoTracking()
+                .Where(r => r.Id == cashRegisterId)
+                .Select(r => r.TenantId)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var decemberCountsAsJahresbeleg = await _db.CompanySettings.AsNoTracking()
+                .Where(s => s.TenantId == tenantId)
+                .Select(s => (bool?)s.UseDecemberMonatsbelegAsJahresbeleg)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false) ?? true;
+
+            if (decemberCountsAsJahresbeleg)
+            {
+                // December: Jahresbeleg for the year satisfies the monthly gate (RKSV annual close).
+                return await _db.PaymentDetails.AsNoTracking()
+                    .AnyAsync(
+                        p => p.CashRegisterId == cashRegisterId &&
+                             p.IsActive &&
+                             (
+                                 (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Jahresbeleg &&
+                                  p.RksvSpecialReceiptYear == year) ||
+                                 (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
+                                  p.RksvSpecialReceiptYear == year &&
+                                  p.RksvSpecialReceiptMonth == 12)
+                             ),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            return await _db.PaymentDetails.AsNoTracking()
                 .AnyAsync(
                     p => p.CashRegisterId == cashRegisterId &&
                          p.IsActive &&
-                         (
-                             (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Jahresbeleg &&
-                              p.RksvSpecialReceiptYear == year) ||
-                             (p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
-                              p.RksvSpecialReceiptYear == year &&
-                              p.RksvSpecialReceiptMonth == 12)
-                         ),
-                    cancellationToken);
+                         p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
+                         p.RksvSpecialReceiptYear == year &&
+                         p.RksvSpecialReceiptMonth == 12,
+                    cancellationToken)
+                .ConfigureAwait(false);
         }
 
-        return _db.PaymentDetails.AsNoTracking()
+        return await _db.PaymentDetails.AsNoTracking()
             .AnyAsync(
                 p => p.CashRegisterId == cashRegisterId &&
                      p.IsActive &&
                      p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Monatsbeleg &&
                      p.RksvSpecialReceiptYear == year &&
                      p.RksvSpecialReceiptMonth == month,
-                cancellationToken);
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 }

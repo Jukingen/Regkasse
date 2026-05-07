@@ -5,7 +5,12 @@ import Link from 'next/link';
 import { Card, Col, Row, Statistic, DatePicker, Table, Spin, Typography } from 'antd';
 import { DollarOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { MonatsbelegComplianceTable } from '@/features/dashboard/components/MonatsbelegComplianceTable';
+import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
+import { useAdminMonatsbelegOverview } from '@/features/dashboard/hooks/useAdminMonatsbelegOverview';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
 import {
     useGetApiReportsSales,
@@ -14,12 +19,19 @@ import {
     useGetApiReportsCustomers
 } from '@/api/generated/reports/reports';
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
+import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 
 export default function DashboardPage() {
     const { t } = useI18n();
+    const { hasPermission } = usePermissions();
+    const offlineQueueCardEnabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
+    const monatsbelegOverviewEnabled = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
+    const timeSyncDriftAlertEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
+    const monatsbelegOverview = useAdminMonatsbelegOverview(monatsbelegOverviewEnabled);
+
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
         dayjs().startOf('month'),
         dayjs().endOf('month')
@@ -75,6 +87,17 @@ export default function DashboardPage() {
                     <Link href="/reporting">{t('nav.reporting')}</Link>. RKSV: Seitenleiste unter «RKSV».
                 </Typography.Paragraph>
             </AdminPageHeader>
+
+            {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
+
+            {timeSyncDriftAlertEnabled ? <TimeSyncDriftAlertCard /> : null}
+
+            {monatsbelegOverviewEnabled ? (
+                <MonatsbelegComplianceTable
+                    rows={monatsbelegOverview.rows}
+                    loading={monatsbelegOverview.registersLoading || monatsbelegOverview.statusPending}
+                />
+            ) : null}
 
             {loading ? (
                 <div

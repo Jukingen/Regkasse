@@ -283,7 +283,7 @@ public class OfflineTransactionReplayIntegrationTests
         var receiptRow = await context.Receipts.FirstOrDefaultAsync(r => r.PaymentId == paymentRow.Id);
         Assert.NotNull(receiptRow);
 
-        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object);
+        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object, new DisclaimerService());
         var fromUtc = offlineCreatedAt.AddHours(-1);
         var toUtc = DateTime.UtcNow.AddHours(1);
         var export = await exportService.BuildExportAsync(cashRegisterId, fromUtc, toUtc, includeCsv: false);

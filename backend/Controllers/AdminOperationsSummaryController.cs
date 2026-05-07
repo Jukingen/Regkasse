@@ -58,7 +58,10 @@ public class AdminOperationsSummaryController : ControllerBase
         {
             var replayPendingCount = await _context.OfflineTransactions
                 .AsNoTracking()
-                .CountAsync(x => x.Status == OfflineTransactionStatus.Pending, cancellationToken);
+                .CountAsync(
+                    x => x.Status == OfflineTransactionStatus.Pending ||
+                         x.Status == OfflineTransactionStatus.NonFiscalPending,
+                    cancellationToken);
 
             var replayFailedCount = await _context.OfflineTransactions
                 .AsNoTracking()

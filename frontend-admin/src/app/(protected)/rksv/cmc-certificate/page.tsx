@@ -6,8 +6,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { FORMAT_EMPTY_DISPLAY, useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
-import { useGetApiTseStatus } from '@/api/generated/tse/tse';
-import { useGetApiTseDevices } from '@/api/generated/tse/tse';
+import { useGetApiTseDevices, useGetApiTseStatus } from '@/features/rksv/useTseStatusCompat';
 import Link from 'next/link';
 
 /**

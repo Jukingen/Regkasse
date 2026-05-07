@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "Time synchronization",
+    "subtitle": "Server time, NTP reference, and settings for RKSV-compliant online payments."
+  },
+  "statusCard": {
+    "title": "Current status",
+    "systemUtc": "System time (UTC)",
+    "systemLocal": "System time (Vienna)",
+    "ntpReference": "NTP reference (UTC)",
+    "offset": "Offset (seconds)",
+    "lastSync": "Last synchronization",
+    "badge": "Status"
+  },
+  "badge": {
+    "synchronized": "Synchronized",
+    "warning": "Warning",
+    "critical": "Critical"
+  },
+  "actions": {
+    "syncNow": "Synchronize now",
+    "syncSuccess": "Synchronization completed.",
+    "syncFailed": "Synchronization failed.",
+    "saveConfig": "Save configuration",
+    "saved": "Saved."
+  },
+  "history": {
+    "title": "Synchronization history",
+    "syncTime": "Time (UTC)",
+    "offset": "Offset (s)",
+    "ntpServer": "NTP server",
+    "result": "Result",
+    "success": "OK",
+    "failed": "Failed"
+  },
+  "config": {
+    "title": "Configuration",
+    "autoSync": "Automatic synchronization",
+    "intervalMinutes": "Interval (minutes)",
+    "maxOffset": "Max allowed offset (seconds)",
+    "criticalOffset": "Critical threshold (seconds)",
+    "dbOverrideHint": "Values are stored in the database (admin override)."
+  },
+  "dashboard": {
+    "alertTitle": "Time drift on registers",
+    "alertDescription": "{{count}} register(s) exceed threshold (±{{threshold}} s). Largest drift: {{max}} s.",
+    "link": "Open time sync"
+  }
+}

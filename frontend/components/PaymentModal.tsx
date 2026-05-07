@@ -61,7 +61,12 @@ import {
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
 import { checkTseStatus } from '../services/api/tseService';
+import { useTseHealth } from '../hooks/useTseHealth';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import StornoRefundSelection from './StornoRefundSelection';
+import { canShowPosStornoRefundButton } from '../utils/posStornoRefundGate';
+import { useTimeSyncStatus } from '../hooks/useTimeSyncStatus';
+import { POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE } from '../constants/posTimeSyncContact';
 
 /**
  * Map backend blocked reason to short UI text. Fail-safe: unknown codes return neutral fallback;
@@ -233,6 +238,8 @@ interface PaymentModalProps {
   onClose: () => void;
   /** Called after payment and print; pass tableNumber so caller can clear the paid table. */
   onSuccess: (paymentId: string, tableNumber?: number) => void;
+  /** Optional toast sink (tab bar) for server offline-queue messages. */
+  onPosToast?: (payload: { type?: 'success' | 'warning' | 'info'; message: string }) => void;
   cartItems: Array<{
     id: string;
     productId: string;
@@ -257,11 +264,16 @@ export default function PaymentModal({
   cartItems,
   grandTotalGross,
   customerId = '00000000-0000-0000-0000-000000000000', // Default Guid formatında
-  tableNumber
+  tableNumber,
+  onPosToast,
 }: PaymentModalProps) {
   const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings']);
   const { user } = useAuth();
+  const showStornoRefundEntry = canShowPosStornoRefundButton(user);
+  const { refetch: refetchTimeSync, timeSyncCritical, timeSyncWarningBand } = useTimeSyncStatus();
   const { isOnline } = useSystem();
+  const tseHealth = useTseHealth();
+  const tseServerOffline = String(tseHealth.status) === 'Offline';
   const selectedPaymentMethod = usePosCheckoutUiStore((s) => s.selectedPaymentMethodType);
   const setSelectedPaymentMethodType = usePosCheckoutUiStore((s) => s.setSelectedPaymentMethodType);
   const paymentMethodSubmitAttempted = usePosCheckoutUiStore((s) => s.paymentMethodSubmitAttempted);
@@ -284,6 +296,9 @@ export default function PaymentModal({
   const [pdfLoading, setPdfLoading] = useState(false);
   /** Prevents double-submit during async work before purchaseState becomes 'processing'. */
   const [paymentBusy, setPaymentBusy] = useState(false);
+
+  /** RKSV: separate wizard for Storno vs Teilrückerstattung (elevated permissions). */
+  const [stornoRefundWizardVisible, setStornoRefundWizardVisible] = useState(false);
 
   /** Gutschein: code, validate snapshot, redeem amount (must match fiscal total for single-code flow). */
   const [voucherCode, setVoucherCode] = useState('');
@@ -439,10 +454,13 @@ export default function PaymentModal({
     return selectedPaymentMethod === 'cash';
   }, [paymentMethods, selectedPaymentMethod]);
 
-  const settlementPaymentMethods = useMemo(
-    () => (paymentMethods ?? []).filter((m) => m.type !== 'voucher'),
-    [paymentMethods]
-  );
+  const settlementPaymentMethods = useMemo(() => {
+    let list = (paymentMethods ?? []).filter((m) => m.type !== 'voucher');
+    if (tseServerOffline) {
+      list = list.filter((m) => m.type === 'cash');
+    }
+    return list;
+  }, [paymentMethods, tseServerOffline]);
 
   const selectedSettlementMethod = useMemo(
     () => settlementPaymentMethods.find((m) => m.type === selectedPaymentMethod) ?? null,
@@ -505,6 +523,19 @@ export default function PaymentModal({
     setVoucherCheckLoading(false);
     voucherValidatedTotalRef.current = null;
   };
+
+  useEffect(() => {
+    if (!visible || !tseServerOffline) return;
+    setVoucherEnabled(false);
+    resetVoucherUi();
+  }, [visible, tseServerOffline]);
+
+  useEffect(() => {
+    if (!visible || !tseServerOffline) return;
+    if (selectedPaymentMethod && selectedPaymentMethod !== 'cash') {
+      setSelectedPaymentMethodType('cash');
+    }
+  }, [visible, tseServerOffline, selectedPaymentMethod, setSelectedPaymentMethodType]);
 
   const voucherRedeemParsed = parseLocaleDecimal(voucherRedeemAmountStr);
   const voucherRequestedAmount = Number.isFinite(voucherRedeemParsed) ? Math.max(0, voucherRedeemParsed) : 0;
@@ -599,11 +630,15 @@ export default function PaymentModal({
    * Omit hook `loading`: it can block unrelated actions and caused silent early-return in handlePayment without matching disabled state in edge races.
    */
   const registerHardStopDecommissioned = isRegisterGateDecommissioned(registerGateCtx);
-  const paymentInteractionsLocked = registerHardStopDecommissioned;
+  /** Blocks payment method / cash / voucher controls (register decommissioned or NTP clock critical). */
+  const paymentInteractionsLocked = registerHardStopDecommissioned || timeSyncCritical;
 
   const needFiscalTseForPay = __DEV__ ? !isTseSimulationEnabled : true;
-  const payGateTseBlocked = needFiscalTseForPay && fiscalTseGateOk !== true;
-  const offlineBlocksVoucher = !isOnline && voucherEnabled;
+  /** When backend health is Offline, cash-only queue is allowed — do not block on local device probe. */
+  const payGateTseBlocked =
+    needFiscalTseForPay && !tseServerOffline && fiscalTseGateOk !== true;
+  const offlineBlocksVoucher =
+    (!isOnline && voucherEnabled) || (tseServerOffline && voucherEnabled);
 
   const paymentCoverageOk =
     (totalAmount <= PAYMENT_COVERAGE_TOLERANCE_EUR &&
@@ -620,27 +655,30 @@ export default function PaymentModal({
     payGateTseBlocked ||
     offlineBlocksVoucher ||
     !paymentCoverageOk ||
-    (voucherEnabled && !voucherSettlementValid);
+    (voucherEnabled && !voucherSettlementValid) ||
+    timeSyncCritical;
 
   const showPayWorking = purchaseState === 'processing' || paymentBusy;
 
   const paySubmitBlockedHint =
     paySubmitDisabled && !showPayWorking
-      ? methodsLoading
-        ? 'Zahlungsarten werden geladen…'
-        : !hasValidSettlementMethod
-          ? 'Bitte eine Zahlungsart wählen (Schritt 2).'
-          : !paymentCoverageOk
-            ? 'Deckung fehlt: Gutschein + Barbetrag erreicht nicht den Gesamtbetrag.'
-            : voucherEnabled && !voucherSettlementValid
-              ? 'Gutschein ungültig — bitte „Prüfen“ und Betrag prüfen.'
-              : isRegisterGateBlockingPayment
-                ? registerGateFooterHint(registerGateCtx)
-                : payGateTseBlocked
-                  ? 'TSE nicht bereit — fiskalische Zahlung nicht möglich.'
-                  : offlineBlocksVoucher
-                    ? 'Gutschein ist offline nicht möglich.'
-                    : undefined
+      ? timeSyncCritical
+        ? 'Systemzeit fehlerhaft — Zahlungen blockiert. Administrator kontaktieren.'
+        : methodsLoading
+          ? 'Zahlungsarten werden geladen…'
+          : !hasValidSettlementMethod
+            ? 'Bitte eine Zahlungsart wählen (Schritt 2).'
+            : !paymentCoverageOk
+              ? 'Deckung fehlt: Gutschein + Barbetrag erreicht nicht den Gesamtbetrag.'
+              : voucherEnabled && !voucherSettlementValid
+                ? 'Gutschein ungültig — bitte „Prüfen“ und Betrag prüfen.'
+                : isRegisterGateBlockingPayment
+                  ? registerGateFooterHint(registerGateCtx)
+                  : payGateTseBlocked
+                    ? 'TSE nicht bereit — fiskalische Zahlung nicht möglich.'
+                    : offlineBlocksVoucher
+                      ? 'Gutschein ist offline nicht möglich.'
+                      : undefined
       : undefined;
 
   useEffect(() => {
@@ -651,6 +689,11 @@ export default function PaymentModal({
       customerId: customerId?.slice(0, 8) ?? null,
     });
   }, [visible, cartItems.length, totalAmount, customerId]);
+
+  useEffect(() => {
+    if (!visible) return;
+    void refetchTimeSync();
+  }, [visible, refetchTimeSync]);
 
   useEffect(() => {
     if (!visible) return;
@@ -885,10 +928,15 @@ export default function PaymentModal({
   };
 
   /** POST /api/pos/payment — exhaustive logs + Debug Error on every guard exit (operator confirmations log only). */
-  const handlePayment = async () => {
+  const executePaymentSubmission = async () => {
     const logPay = (step: string, detail?: Record<string, unknown>) => {
       console.log(`[PaymentModal] ${step}`, detail ?? '');
     };
+
+    if (timeSyncCritical) {
+      logPay('Guard exit: system time / NTP critical (fiscal payments blocked)');
+      return;
+    }
 
     const submitCoverage = computeVoucherPlusCashCoversTotal({
       voucherEnabled,
@@ -1056,7 +1104,7 @@ export default function PaymentModal({
               text: t('checkout:posFlow.payment.operatorWarnings.largeCashProceed'),
               onPress: () => {
                 largeCashWarningAckKeyRef.current = warnKey;
-                void handlePayment();
+                void executePaymentSubmission();
               },
             },
           ]
@@ -1200,6 +1248,35 @@ export default function PaymentModal({
         return;
       }
 
+      if (response.fiscalStatus === 'SERVER_OFFLINE_QUEUED') {
+        debugPosPaymentTrace('payment_server_offline_queued', {
+          offlineTransactionId: response.offlineTransactionId ?? null,
+        });
+        setPurchaseState('input');
+        onPosToast?.({
+          type: 'success',
+          message:
+            'Zahlung offline gespeichert – wird automatisch signiert wenn TSE wieder online',
+        });
+        try {
+          await cartService.completeCart(currentCartId, notes || '');
+        } catch (completeErr) {
+          console.error('[CART] Complete failed (offline queue):', completeErr);
+          Alert.alert(
+            t('checkout:posFlow.payment.alerts.hintTitle'),
+            t('checkout:posFlow.payment.errors.completeCartFailed')
+          );
+        }
+        try {
+          await cartService.resetCartAfterPayment(currentCartId, 'Payment queued offline (TSE)');
+        } catch (resetErr) {
+          console.warn('[CART] Reset warning (offline queue):', resetErr);
+        }
+        const pseudoId = response.paymentId || response.offlineTransactionId || 'offline-queued';
+        handleSuccessAndClose(pseudoId);
+        return;
+      }
+
       // 6. STRICT: only FISCAL_COMPLETE + paymentId counts as paid sale
       if (
         !response.success ||
@@ -1302,6 +1379,32 @@ export default function PaymentModal({
     } finally {
       setPaymentBusy(false);
     }
+  };
+
+  const handlePayment = async () => {
+    if (timeSyncCritical) {
+      return;
+    }
+    if (timeSyncWarningBand) {
+      return new Promise<void>((resolve) => {
+        Alert.alert(
+          'Zeitabweichung',
+          'Zeitabweichung erkannt. Fortfahren trotz möglicher DEP-Probleme?',
+          [
+            { text: 'Abbrechen', style: 'cancel', onPress: () => resolve() },
+            {
+              text: 'Fortfahren',
+              onPress: () => {
+                void executePaymentSubmission();
+                resolve();
+              },
+            },
+          ],
+          { cancelable: true, onDismiss: () => resolve() }
+        );
+      });
+    }
+    await executePaymentSubmission();
   };
 
   // Helper to finish up: pass tableNumber so layout can clear the paid table
@@ -1663,7 +1766,7 @@ export default function PaymentModal({
                 <View style={styles.paymentMethodsContainer}>
                   <Pressable
                     onPress={() => {
-                      if (paymentInteractionsLocked) return;
+                      if (paymentInteractionsLocked || tseServerOffline) return;
                       if (!isOnline && !voucherEnabled) {
                         Alert.alert('Offline', 'Gutschein ist offline nicht möglich.');
                         return;
@@ -1678,12 +1781,15 @@ export default function PaymentModal({
                     style={({ pressed }) => [
                       styles.paymentMethod,
                       voucherEnabled && styles.selectedPaymentMethod,
-                      paymentInteractionsLocked && styles.paymentMethodDisabled,
-                      pressed && !paymentInteractionsLocked && SoftState.pressedScale,
+                      (paymentInteractionsLocked || tseServerOffline) && styles.paymentMethodDisabled,
+                      pressed && !paymentInteractionsLocked && !tseServerOffline && SoftState.pressedScale,
                     ]}
-                    disabled={paymentInteractionsLocked}
+                    disabled={paymentInteractionsLocked || tseServerOffline}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: voucherEnabled, disabled: paymentInteractionsLocked }}
+                    accessibilityState={{
+                      selected: voucherEnabled,
+                      disabled: paymentInteractionsLocked || tseServerOffline,
+                    }}
                     accessibilityLabel={`Gutschein einlösen${voucherEnabled ? ', ausgewählt' : ''}`}
                   >
                     <Ionicons
@@ -1701,7 +1807,9 @@ export default function PaymentModal({
                     </Text>
                   </Pressable>
                 </View>
-                {!isOnline && voucherEnabled ? (
+                {tseServerOffline ? (
+                  <Text style={styles.voucherInlineError}>Gutscheine offline nicht verfügbar</Text>
+                ) : !isOnline && voucherEnabled ? (
                   <Text style={styles.voucherInlineError}>Gutschein ist offline nicht möglich.</Text>
                 ) : null}
                 {voucherEnabled ? (
@@ -1854,6 +1962,23 @@ export default function PaymentModal({
 
           {purchaseState === 'input' || purchaseState === 'processing' ? (
             <View style={[styles.footer, { paddingBottom: Math.max(SoftSpacing.md, insets.bottom) }]}>
+              {timeSyncCritical ? (
+                <View style={styles.timeSyncCriticalBanner} accessibilityRole="alert">
+                  <Text style={styles.timeSyncCriticalText}>
+                    SYSTEMZEIT FEHLERHAFT – Zahlungen blockiert! Bitte Admin kontaktieren
+                  </Text>
+                  <Pressable
+                    onPress={() =>
+                      Alert.alert('Administrator kontaktieren', POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE)
+                    }
+                    style={({ pressed }) => [styles.timeSyncAdminButton, pressed && SoftState.pressed]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Administrator kontaktieren"
+                  >
+                    <Text style={styles.timeSyncAdminButtonText}>Admin kontaktieren</Text>
+                  </Pressable>
+                </View>
+              ) : null}
               {needFiscalTseForPay && tseCheckFailureStreak >= POS_TSE_STATUS_FAILURE_WARN_STREAK ? (
                 <View style={styles.operatorWarnBanner} accessibilityRole="alert">
                   <Text style={styles.operatorWarnBannerText}>
@@ -1875,10 +2000,29 @@ export default function PaymentModal({
                 >
                   <Text style={styles.cancelButtonText}>Abbrechen</Text>
                 </Pressable>
+                {showStornoRefundEntry ? (
+                  <Pressable
+                    onPress={() => setStornoRefundWizardVisible(true)}
+                    style={({ pressed }) => [
+                      styles.stornoRefundSideBtn,
+                      pressed && SoftState.pressed,
+                      showPayWorking && styles.payButtonDisabled,
+                    ]}
+                    disabled={showPayWorking}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    accessibilityLabel={t('checkout:posFlow.stornoRefund.paymentModalEntry')}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.stornoRefundSideBtnText} numberOfLines={2}>
+                      {t('checkout:posFlow.stornoRefund.paymentModalEntry')}
+                    </Text>
+                  </Pressable>
+                ) : null}
                 <Pressable
                   onPress={handlePayment}
                   style={({ pressed }) => [
                     styles.payButton,
+                    showStornoRefundEntry && styles.payButtonWhenStornoPresent,
                     paySubmitDisabled && styles.payButtonDisabled,
                     pressed && !paySubmitDisabled && SoftState.pressedScale,
                   ]}
@@ -2043,6 +2187,19 @@ export default function PaymentModal({
         </View>
       </View>
     </Modal>
+
+    <StornoRefundSelection
+      visible={stornoRefundWizardVisible}
+      onClose={() => setStornoRefundWizardVisible(false)}
+      cashRegisterId={cashRegisterId ?? '00000000-0000-0000-0000-000000000000'}
+      tableNumber={tableNumber ?? 0}
+      onSuccess={() => {
+        onPosToast?.({
+          type: 'success',
+          message: t('checkout:posFlow.stornoRefund.alerts.successTitle'),
+        });
+      }}
+    />
     </>
   );
 }
@@ -2392,6 +2549,35 @@ const styles = StyleSheet.create({
     borderTopColor: SoftColors.borderLight,
     backgroundColor: SoftColors.bgCard,
   },
+  timeSyncCriticalBanner: {
+    marginHorizontal: SoftSpacing.md,
+    marginBottom: SoftSpacing.sm,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.md,
+    borderRadius: SoftRadius.md,
+    backgroundColor: '#b71c1c',
+    borderWidth: 1,
+    borderColor: '#7f0000',
+    gap: SoftSpacing.sm,
+  },
+  timeSyncCriticalText: {
+    ...SoftTypography.caption,
+    color: SoftColors.textInverse,
+    textAlign: 'center',
+    fontWeight: '700',
+  },
+  timeSyncAdminButton: {
+    alignSelf: 'center',
+    backgroundColor: SoftColors.textInverse,
+    paddingVertical: SoftSpacing.sm,
+    paddingHorizontal: SoftSpacing.lg,
+    borderRadius: SoftRadius.md,
+  },
+  timeSyncAdminButtonText: {
+    ...SoftTypography.label,
+    color: '#b71c1c',
+    fontWeight: '700',
+  },
   operatorWarnBanner: {
     marginHorizontal: SoftSpacing.md,
     marginBottom: SoftSpacing.sm,
@@ -2433,6 +2619,24 @@ const styles = StyleSheet.create({
     ...SoftTypography.body,
     color: SoftColors.textPrimary,
   },
+  stornoRefundSideBtn: {
+    flex: 1.15,
+    minHeight: 48,
+    paddingVertical: SoftSpacing.xs,
+    paddingHorizontal: SoftSpacing.xs,
+    borderRadius: SoftRadius.md,
+    borderWidth: 1.5,
+    borderColor: '#c62828',
+    backgroundColor: SoftColors.bgCard,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stornoRefundSideBtnText: {
+    ...SoftTypography.caption,
+    fontWeight: '700',
+    color: '#c62828',
+    textAlign: 'center',
+  },
   payButton: {
     flex: 2,
     minHeight: 48,
@@ -2442,6 +2646,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...SoftShadows.sm,
+  },
+  payButtonWhenStornoPresent: {
+    flex: 1.55,
   },
   payButtonDisabled: {
     // Darker than textMuted so white label stays readable (disabled Zahlen was washing out on web).

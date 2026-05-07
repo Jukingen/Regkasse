@@ -1,0 +1,59 @@
+{
+  "pageTitle": "Fiscal-Export · Download-Audit",
+  "intro": "Nachvollziehbarkeit: wer welchen DEP-/Receipt-Export geladen hat, mit Zeitraum und Format. Größe ist eine Schätzung aus Beleg-/Abschluss-Zählungen, nicht die exakte Dateigröße.",
+  "filters": {
+    "downloadRange": "Download-Zeitraum",
+    "userSearch": "Benutzer (Name, E-Mail oder ID)",
+    "userSearchPlaceholder": "Suche …",
+    "exportType": "Export-Typ",
+    "apply": "Filtern"
+  },
+  "exportType": {
+    "all": "Alle",
+    "pdf": "PDF",
+    "json": "JSON",
+    "csv": "CSV (Fragment)"
+  },
+  "table": {
+    "empty": "Keine Export-Downloads für die aktuellen Filter.",
+    "downloadTime": "Download-Zeit",
+    "username": "Benutzer",
+    "ip": "IP-Adresse",
+    "exportType": "Export-Typ",
+    "period": "Zeitraum (Export)",
+    "fileSize": "Dateigröße (geschätzt)",
+    "status": "Status",
+    "actions": "Aktionen",
+    "success": "Erfolg",
+    "failed": "Fehler",
+    "openDetail": "Details"
+  },
+  "detail": {
+    "title": "Export-Parameter",
+    "action": "Audit-Aktion",
+    "role": "Rolle",
+    "requestJson": "Request (JSON)",
+    "responseJson": "Response / Metriken (JSON)",
+    "errors": "Fehlerdetails"
+  },
+  "warnings": {
+    "bulkRange": "Großer Datenzeitraum (>1 Jahr)"
+  },
+  "actions": {
+    "exportCsv": "Audit als CSV exportieren",
+    "exportCsvNoPermission": "CSV-Export erfordert audit.export",
+    "refresh": "Aktualisieren",
+    "clearFilters": "Filter zurücksetzen",
+    "clientExportPage": "Sichtbare Zeilen als CSV"
+  },
+  "export": {
+    "started": "Export gestartet",
+    "failed": "Export fehlgeschlagen",
+    "truncatedNotice": "Treffer wurden begrenzt — CSV ist unvollständig (Header X-Fiscal-Audit-Export-Truncated)."
+  },
+  "retention": {
+    "title": "Aufbewahrung (Österreich / RKSV-Praxis)",
+    "body": "Beleg- und Export-bezogene Audit-Ereignisse sind mindestens 7 Jahre aufzubewahren (gesetzliche Aufbewahrungspflichten im unternehmerischen Kontext). Technische Löschkonzepte (Retention Jobs) dürfen diese Frist nicht unterschreiten; siehe operative Backup- und Archivierungsrichtlinien."
+  },
+  "estimatedSizeUnavailable": "—"
+}

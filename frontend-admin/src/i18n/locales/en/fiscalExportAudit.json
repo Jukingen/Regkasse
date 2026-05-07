@@ -1,0 +1,59 @@
+{
+  "pageTitle": "Fiscal export · download audit",
+  "intro": "Traceability: who downloaded which DEP/receipt export, period, and channel. Size is estimated from receipt/closing counts, not measured wire bytes.",
+  "filters": {
+    "downloadRange": "Download time range",
+    "userSearch": "User (name, email, or id)",
+    "userSearchPlaceholder": "Search …",
+    "exportType": "Export type",
+    "apply": "Apply filters"
+  },
+  "exportType": {
+    "all": "All",
+    "pdf": "PDF",
+    "json": "JSON",
+    "csv": "CSV (fragment)"
+  },
+  "table": {
+    "empty": "No export downloads for the current filters.",
+    "downloadTime": "Download time",
+    "username": "Username",
+    "ip": "IP address",
+    "exportType": "Export type",
+    "period": "Export period",
+    "fileSize": "File size (est.)",
+    "status": "Status",
+    "actions": "Actions",
+    "success": "Success",
+    "failed": "Failed",
+    "openDetail": "Details"
+  },
+  "detail": {
+    "title": "Export parameters",
+    "action": "Audit action",
+    "role": "Role",
+    "requestJson": "Request (JSON)",
+    "responseJson": "Response / metrics (JSON)",
+    "errors": "Error details"
+  },
+  "warnings": {
+    "bulkRange": "Large date range (>1 year)"
+  },
+  "actions": {
+    "exportCsv": "Export audit as CSV",
+    "exportCsvNoPermission": "CSV export requires audit.export",
+    "refresh": "Refresh",
+    "clearFilters": "Reset filters",
+    "clientExportPage": "Download visible rows (CSV)"
+  },
+  "export": {
+    "started": "Export started",
+    "failed": "Export failed",
+    "truncatedNotice": "Results were capped — CSV may be incomplete (see X-Fiscal-Audit-Export-Truncated)."
+  },
+  "retention": {
+    "title": "Retention (Austria / RKSV practice)",
+    "body": "Receipt and export-related audit events must be kept for at least 7 years (statutory retention in a business context). Technical deletion/retention jobs must not expire these records early; align with backup and archive policy."
+  },
+  "estimatedSizeUnavailable": "—"
+}

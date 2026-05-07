@@ -100,6 +100,8 @@ public sealed class PosCriticalActionAuditService : IPosCriticalActionAuditServi
                 idempotentReplay = result.IdempotentReplay,
                 invoicePersisted = result.InvoicePersisted,
                 paymentId = result.PaymentId,
+                nonFiscalOfflineQueued = result.NonFiscalOfflineQueued,
+                offlineTransactionId = result.OfflineTransactionId,
             };
 
             await _audit.LogPaymentOperationAsync(

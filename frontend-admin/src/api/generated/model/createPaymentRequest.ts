@@ -8,6 +8,7 @@
 import type { CustomerKind } from './customerKind';
 import type { PaymentItemRequest } from './paymentItemRequest';
 import type { PaymentMethodRequest } from './paymentMethodRequest';
+import type { StornoReason } from './stornoReason';
 
 export interface CreatePaymentRequest {
   cashRegisterId: string;
@@ -18,16 +19,24 @@ export interface CreatePaymentRequest {
    * @nullable
    */
   idempotencyKey?: string | null;
-  items: PaymentItemRequest[];
+  isRefund?: boolean;
+  isStorno?: boolean;
+  /** @nullable */
+  items?: PaymentItemRequest[] | null;
   /** @nullable */
   notes?: string | null;
+  /**
+   * @maxLength 256
+   * @nullable
+   */
+  originalReceiptNumber?: string | null;
   payment: PaymentMethodRequest;
   /**
    * @nullable
    * @pattern ^ATU\d{8}$
    */
   steuernummer?: string | null;
+  stornoReason?: StornoReason;
   tableNumber: number;
-  /** @minimum 0.01 */
-  totalAmount: number;
+  totalAmount?: number;
 }

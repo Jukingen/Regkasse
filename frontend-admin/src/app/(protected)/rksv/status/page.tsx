@@ -5,7 +5,7 @@ import { Card, Row, Col, Tag, Spin, Alert, Typography, Button, Space, Divider, T
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import { useGetApiTseStatus } from '@/api/generated/tse/tse';
+import { useGetApiTseStatus } from '@/features/rksv/useTseStatusCompat';
 import { useGetApiFinanzOnlineStatus } from '@/api/generated/finanz-online/finanz-online';
 import Link from 'next/link';
 import {

@@ -22,10 +22,8 @@ public sealed class RksvStartbelegPolicy : IRksvStartbelegPolicy
 
     /// <inheritdoc />
     public Task<bool> HasStartbelegForRegisterAsync(Guid cashRegisterId, CancellationToken cancellationToken = default) =>
-        _db.PaymentDetails.AsNoTracking()
+        _db.CashRegisters.AsNoTracking()
             .AnyAsync(
-                p => p.CashRegisterId == cashRegisterId &&
-                     p.IsActive &&
-                     p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Startbeleg,
+                r => r.Id == cashRegisterId && r.StartbelegCreatedAt != null,
                 cancellationToken);
 }

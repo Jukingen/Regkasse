@@ -208,4 +208,5 @@ export interface CompanySettings {
    * @nullable
    */
   updatedBy?: string | null;
+  useDecemberMonatsbelegAsJahresbeleg?: boolean;
 }

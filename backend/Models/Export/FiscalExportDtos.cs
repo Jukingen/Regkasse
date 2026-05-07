@@ -4,7 +4,7 @@ namespace KasseAPI_Final.Models.Export;
 public sealed class FiscalExportPackageDto
 {
     /// <summary>Increment when export shape or semantics change materially.</summary>
-    public string SchemaVersion { get; set; } = "1.3";
+    public string SchemaVersion { get; set; } = "1.4";
 
     /// <summary>Mandatory misuse guard: this export is NOT legal proof. Always present; clients must not treat the export as a legal RKSV attestation.</summary>
     public string NotLegalProofNotice { get; set; } = string.Empty;

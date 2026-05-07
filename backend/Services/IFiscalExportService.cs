@@ -16,5 +16,6 @@ public interface IFiscalExportService
         DateTime toUtc,
         bool includeCsv,
         FiscalExportProfile exportProfile = FiscalExportProfile.OperationalPreview,
+        string disclaimerLanguage = "de",
         CancellationToken cancellationToken = default);
 }

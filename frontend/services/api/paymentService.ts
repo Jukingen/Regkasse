@@ -90,6 +90,15 @@ export interface PaymentRequest {
 
   /** Optional explicit customer classification (server infers when omitted). */
   customerKind?: CustomerKind;
+
+  /** Full receipt cancellation (RKSV Storno); mutually exclusive with `isRefund`. */
+  isStorno?: boolean;
+  /** Partial refund; mutually exclusive with `isStorno`. */
+  isRefund?: boolean;
+  /** Original sale BelegNr when `isStorno` or `isRefund`. */
+  originalReceiptNumber?: string;
+  /** RKSV Storno reason when `isStorno`. */
+  stornoReason?: 'FalscherBetrag' | 'KundeStorniert' | 'TechnischerFehler' | 'Anderes';
 }
 
 /** Backend'den gelen TSE/QR bilgisi - payment.tse */
@@ -100,10 +109,11 @@ export interface PaymentTseInfo {
   receiptNumber?: string;
 }
 
-/** FISCAL_COMPLETE = server confirmed; NON_FISCAL_PENDING = queued locally; FAILED = server error response or replay failure. */
+/** FISCAL_COMPLETE = server confirmed; NON_FISCAL_PENDING = queued locally; SERVER_OFFLINE_QUEUED = server-side intent when TSE offline; FAILED = server error response or replay failure. */
 export type FiscalPaymentStatus =
   | 'FISCAL_COMPLETE'
   | 'NON_FISCAL_PENDING'
+  | 'SERVER_OFFLINE_QUEUED'
   | 'FAILED';
 
 export interface PaymentResponse {
@@ -114,6 +124,8 @@ export interface PaymentResponse {
   /** Set when fiscalStatus is NON_FISCAL_PENDING */
   pendingQueueId?: string;
   paymentId: string;
+  /** Server offline-queue intent id (SERVER_OFFLINE_QUEUED). */
+  offlineTransactionId?: string;
   error?: string;
   message?: string;
   tseSignature?: string;
@@ -301,7 +313,21 @@ class PaymentService {
   // Helper to handle inconsistent backend responses (e.g. nested Value object)
   private normalizePaymentResponse(response: any): PaymentResponse {
     // 1. Unwrap "Value" if present (ASP.NET Core ActionResult serialization issue)
-    const raw = response?.Value ? response.Value : response;
+    const outer = response?.Value ? response.Value : response;
+    // Payment API v2 envelope: { success, data: { paymentId, ... } }
+    let raw: any = outer;
+    if (
+      outer &&
+      typeof outer === 'object' &&
+      outer.data &&
+      typeof outer.data === 'object' &&
+      (outer.data.paymentId !== undefined ||
+        outer.data.PaymentId !== undefined ||
+        outer.data.nonFiscalOfflineQueued !== undefined ||
+        outer.data.NonFiscalOfflineQueued !== undefined)
+    ) {
+      raw = outer.data;
+    }
 
     // 2. Normalize Success
     // Check top-level success, data.Success, or Value.success
@@ -365,6 +391,31 @@ class PaymentService {
       : undefined;
 
     const invoicePersisted = raw?.invoicePersisted !== false;
+
+    const nonFiscalOfflineQueued =
+      raw?.nonFiscalOfflineQueued === true || raw?.NonFiscalOfflineQueued === true;
+    const offlineTxRaw = raw?.offlineTransactionId ?? raw?.OfflineTransactionId;
+    const offlineTransactionId =
+      offlineTxRaw !== undefined && offlineTxRaw !== null && String(offlineTxRaw).length > 0
+        ? String(offlineTxRaw)
+        : undefined;
+
+    if (success && nonFiscalOfflineQueued) {
+      return {
+        success: true,
+        isSynced: true,
+        fiscalStatus: 'SERVER_OFFLINE_QUEUED',
+        paymentId: offlineTransactionId ?? '',
+        offlineTransactionId,
+        message:
+          typeof message === 'string' && message.length > 0
+            ? message
+            : 'Payment queued for fiscal signing when TSE is available.',
+        tseSignature,
+        tse,
+        invoicePersisted: false,
+      };
+    }
 
     return {
       success: !!success,

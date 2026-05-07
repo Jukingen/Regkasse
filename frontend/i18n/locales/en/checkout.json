@@ -78,6 +78,13 @@
       "tableClearGenericFailed": "Could not clear table",
       "emptyCart": "Cart is empty. Please add items first."
     },
+    "monatsbelegBanner": {
+      "yellow": "Monatsbeleg due in {{days}} days",
+      "red": "Monatsbeleg OVERDUE! Please create it immediately",
+      "createNow": "Create now",
+      "dismissA11y": "Dismiss notice",
+      "loadingHint": "Loading RKSV Monatsbeleg status…"
+    },
     "payment": {
       "title": "Payment methods",
       "totalLabel": "Total",
@@ -163,6 +170,79 @@
         "forbidden": "{{prefix}} No permission for PDF export. QR and print remain available. Ask an administrator if needed (InvoiceView).",
         "notFound": "{{prefix}} PDF was not found. Please try again later or contact an administrator.",
         "httpGeneric": "{{prefix}} PDF could not be loaded (HTTP {{status}}). Please try again later."
+      }
+    },
+    "stornoRefund": {
+      "paymentModalEntry": "Cancel / refund",
+      "headerTitle": "Cancellation / refund",
+      "menu": {
+        "intro": "Choose the correct fiscal action. Full cancellation and partial refund are different processes.",
+        "optionFullStorno": "FULL CANCELLATION",
+        "hintFullStorno": "The entire original receipt is reversed (new storno receipt).",
+        "optionRefund": "PARTIAL REFUND",
+        "hintRefund": "Only part of the amount is refunded (new correcting receipt).",
+        "optionBack": "BACK"
+      },
+      "fields": {
+        "receiptNumber": "Receipt number (original)",
+        "stornoReason": "Cancellation reason",
+        "refundAmount": "Refund amount"
+      },
+      "placeholders": {
+        "receiptNumber": "e.g. AT-REGISTER-…",
+        "amount": "0.00"
+      },
+      "reasons": {
+        "FalscherBetrag": "Wrong amount",
+        "KundeStorniert": "Customer cancelled",
+        "TechnischerFehler": "Technical error",
+        "Anderes": "Other"
+      },
+      "storno": {
+        "title": "Full cancellation",
+        "originalTotal": "Original total: {{amount}}",
+        "irreversibleWarning": "This action CANNOT be undone. The entire receipt becomes invalid.",
+        "confirmCheckbox": "I understand and want to cancel the entire receipt.",
+        "auditNote": "Cancellation via POS selector"
+      },
+      "refund": {
+        "title": "Partial refund",
+        "note": "Partial refund creates a new receipt with the corrected amount.",
+        "selectLines": "Select lines to refund",
+        "selectedSum": "Sum of selected lines: {{amount}}",
+        "maxHint": "Maximum (original): {{max}}",
+        "auditNote": "Partial refund via POS selector"
+      },
+      "actions": {
+        "loadReceipt": "Load receipt",
+        "loadReceiptLines": "Load lines",
+        "backToMenu": "Back to menu",
+        "executeStorno": "Execute cancellation",
+        "executeRefund": "Post refund"
+      },
+      "loading": "Please wait…",
+      "alerts": {
+        "successTitle": "Success",
+        "stornoSuccessBody": "Cancellation has been posted.",
+        "refundSuccessBody": "Partial refund has been posted.",
+        "loadedTitle": "Receipt loaded",
+        "loadedBody": "Original total: {{amount}}"
+      },
+      "errors": {
+        "receiptRequired": "Please enter a receipt number.",
+        "noCashRegister": "No cash register assigned.",
+        "receiptNotFound": "No receipt found with this number.",
+        "specialReceipt": "Special receipts cannot be handled with this dialog.",
+        "paymentLoadFailed": "Could not load payment data.",
+        "notOriginalSale": "This is not a normal sale receipt.",
+        "registerMismatch": "Receipt does not belong to this register.",
+        "lookupFailed": "Receipt lookup failed.",
+        "receiptLinesMissing": "No line items for this receipt.",
+        "confirmRequired": "Please confirm the checkbox.",
+        "invalidRefundAmount": "Invalid refund amount.",
+        "refundExceedsMax": "Amount too high (max {{max}}).",
+        "selectOneLine": "Select at least one line.",
+        "submitFailed": "Operation failed."
       }
     }
   }

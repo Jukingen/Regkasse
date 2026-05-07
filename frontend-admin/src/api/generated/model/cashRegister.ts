@@ -24,6 +24,10 @@ export interface CashRegister {
   id?: string;
   isActive?: boolean;
   lastBalanceUpdate: string;
+  /** @nullable */
+  lastJahresbelegUtc?: string | null;
+  /** @nullable */
+  lastMonatsbelegUtc?: string | null;
   /**
    * @minLength 1
    * @maxLength 100
@@ -34,6 +38,8 @@ export interface CashRegister {
    * @maxLength 20
    */
   registerNumber: string;
+  /** @nullable */
+  startbelegCreatedAt?: string | null;
   startingBalance: number;
   status: RegisterStatus;
   tenant?: Tenant;

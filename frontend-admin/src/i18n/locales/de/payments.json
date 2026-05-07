@@ -142,5 +142,69 @@
       "Failed": "Fehlgeschlagen",
       "NeedsReconciliation": "Abgleich nötig"
     }
+  },
+  "stornoRefundAudit": {
+    "pageTitle": "Storno & Rückerstattung (Audit)",
+    "intro": "Revisionssichere Übersicht aller Vollstornos und Teilrückerstattungen im gewählten Zeitraum. Details zeigen Original- vs. Korrekturbeleg inkl. Zeitabstand und relevante Audit-Ereignisse.",
+    "exportCsv": "CSV exportieren",
+    "filterRegister": "Kasse",
+    "filterTypeAll": "Storno und Rückerstattung",
+    "filterTypeStorno": "Nur Storno",
+    "filterTypeRefund": "Nur Rückerstattung",
+    "filterStornoReason": "Storno-Grund",
+    "type": {
+      "storno": "Storno",
+      "refund": "Rückerstattung"
+    },
+    "status": {
+      "completed": "Abgeschlossen",
+      "failed": "Fehlgeschlagen"
+    },
+    "stornoReason": {
+      "falscherBetrag": "Falscher Betrag",
+      "kundeStorniert": "Kunde storniert",
+      "technischerFehler": "Technischer Fehler",
+      "anderes": "Anderes"
+    },
+    "table": {
+      "colOriginalReceipt": "Original-Belegnummer",
+      "colNewReceipt": "Neuer Beleg (Storno/Rückerstattung)",
+      "colType": "Typ",
+      "colAmount": "Betrag",
+      "colReason": "Grund (Storno)",
+      "colCashier": "Kassierer/in",
+      "colWhen": "Datum/Zeit",
+      "colStatus": "Status",
+      "colActions": "Aktionen",
+      "viewDetail": "Details"
+    },
+    "detail": {
+      "title": "Audit-Details",
+      "loading": "Details werden geladen…",
+      "empty": "Keine Detaildaten verfügbar.",
+      "labelCashier": "Kassierer/in",
+      "labelReversalAmount": "Betrag (Korrektur)",
+      "labelRefundReason": "Rückerstattungsgrund",
+      "labelOriginalWhen": "Originalzeitpunkt",
+      "labelOriginalTotal": "Originalbetrag (Brutto)",
+      "timeDeltaTitle": "Zeitabstand Original → Korrektur",
+      "durationHours": "{{count}} Std.",
+      "durationMinutes": "{{count}} Min.",
+      "durationSeconds": "{{count}} Sek.",
+      "sectionOriginal": "Originalbeleg (Positionen)",
+      "sectionReversal": "Korrekturbeleg (Positionen)",
+      "sectionAuditTrail": "Freigabe & Audit-Protokoll",
+      "auditTrailHint": "Relevante Einträge aus dem Audit-Log für diese Zahlung und das Original (z. B. API-Aktionen). Kein separater Supervisor-Schritt, falls die Rolle nicht erzwungen wurde.",
+      "colProduct": "Artikel",
+      "colQty": "Menge",
+      "colUnit": "Einzelpreis",
+      "colLineTotal": "Zeile",
+      "colTime": "Zeitpunkt",
+      "colAction": "Aktion",
+      "colRole": "Rolle",
+      "colDescription": "Beschreibung",
+      "noLines": "Keine Positionsdaten",
+      "noAuditEvents": "Keine passenden Audit-Einträge"
+    }
   }
 }

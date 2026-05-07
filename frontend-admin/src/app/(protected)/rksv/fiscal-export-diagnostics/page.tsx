@@ -35,6 +35,11 @@ import {
     getAdminCashRegisters,
     getFiscalExportPreview,
 } from '@/api/admin-rksv/client';
+import { FiscalExportDisclaimerModal } from '@/features/rksv/components/FiscalExportDisclaimerModal';
+import {
+    isFiscalExportDisclaimerSkipped,
+    setFiscalExportDisclaimerSkip24h,
+} from '@/features/rksv/fiscalExportDisclaimerSession';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { GetApiAdminFiscalExportParams } from '@/api/generated/model';
 
@@ -125,6 +130,8 @@ export default function FiscalExportDiagnosticsPage() {
     const [exportLoading, setExportLoading] = useState(false);
     const [exportError, setExportError] = useState<string | null>(null);
     const [preview, setPreview] = useState<FiscalExportPackage | null>(null);
+    const [disclaimerModalOpen, setDisclaimerModalOpen] = useState(false);
+    const [pendingExportAction, setPendingExportAction] = useState<'preview' | 'download' | null>(null);
 
     const { data: cashRegisters, isLoading: cashLoading } = useQuery({
         queryKey: rksvAdminQueryKeys.cashRegisters,
@@ -211,6 +218,59 @@ export default function FiscalExportDiagnosticsPage() {
         } finally {
             setExportLoading(false);
         }
+    };
+
+    const requestPreview = () => {
+        if (!cashRegisterId || !fromUtc || !toUtc) {
+            setExportError(t('rksvHub.fiscalExportPage.selectRegisterAndUtcError'));
+            return;
+        }
+        if (profileBlocked) {
+            setExportError(t('rksvHub.fiscalExportPage.profileForbidden'));
+            return;
+        }
+        if (isFiscalExportDisclaimerSkipped()) {
+            void runPreview();
+            return;
+        }
+        setPendingExportAction('preview');
+        setDisclaimerModalOpen(true);
+    };
+
+    const requestDownload = () => {
+        if (!cashRegisterId || !fromUtc || !toUtc) {
+            setExportError(t('rksvHub.fiscalExportPage.selectRegisterAndUtcError'));
+            return;
+        }
+        if (profileBlocked) {
+            setExportError(t('rksvHub.fiscalExportPage.profileForbidden'));
+            return;
+        }
+        if (isFiscalExportDisclaimerSkipped()) {
+            void runDownload();
+            return;
+        }
+        setPendingExportAction('download');
+        setDisclaimerModalOpen(true);
+    };
+
+    const handleDisclaimerConfirm = ({ skip24h }: { skip24h: boolean }) => {
+        setDisclaimerModalOpen(false);
+        if (skip24h) {
+            setFiscalExportDisclaimerSkip24h();
+        }
+        const next = pendingExportAction;
+        setPendingExportAction(null);
+        if (next === 'preview') {
+            void runPreview();
+        } else if (next === 'download') {
+            void runDownload();
+        }
+    };
+
+    const handleDisclaimerCancel = () => {
+        setDisclaimerModalOpen(false);
+        setPendingExportAction(null);
     };
 
     const previewJson = preview ? JSON.stringify(preview, null, 2) : '';
@@ -343,13 +403,13 @@ export default function FiscalExportDiagnosticsPage() {
                             <Space>
                                 <Button
                                     type="primary"
-                                    onClick={runPreview}
+                                    onClick={requestPreview}
                                     loading={exportLoading}
                                     disabled={!canRun || profileBlocked}
                                 >
                                     {t('rksvHub.fiscalExportPage.previewJsonButton')}
                                 </Button>
-                                <Button onClick={runDownload} loading={exportLoading} disabled={!canRun || profileBlocked}>
+                                <Button onClick={requestDownload} loading={exportLoading} disabled={!canRun || profileBlocked}>
                                     {t('rksvHub.fiscalExportPage.downloadJsonButton')}
                                 </Button>
                             </Space>
@@ -494,6 +554,12 @@ export default function FiscalExportDiagnosticsPage() {
                     {t('rksvHub.fiscalExportPage.emptyHintCardBody')}
                 </Card>
             ) : null}
+
+            <FiscalExportDisclaimerModal
+                open={disclaimerModalOpen}
+                onCancel={handleDisclaimerCancel}
+                onConfirm={handleDisclaimerConfirm}
+            />
         </>
     );
 }

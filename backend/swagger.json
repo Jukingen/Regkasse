@@ -459,6 +459,182 @@
         }
       }
     },
+    "/api/admin/offline-transactions/summary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOfflineTransactionsSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/offline-transactions": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "statusGroup",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOfflineTransactionsListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/offline-transactions/export-failed": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/offline-transactions/{id}/retry": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOfflineTransactionRetryResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/offline-transactions/retry-all": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOfflineTransactionRetryResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/operations/summary": {
       "get": {
         "tags": [
@@ -531,6 +707,27 @@
             "schema": {
               "type": "string",
               "format": "uuid"
+            }
+          },
+          {
+            "name": "isStorno",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "isRefund",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "stornoReason",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           },
           {
@@ -10182,6 +10379,37 @@
         }
       }
     },
+    "/api/pos/payment/storno": {
+      "post": {
+        "tags": [
+          "POS"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/pos/payment/{id}": {
       "get": {
         "tags": [
@@ -12262,6 +12490,126 @@
         }
       }
     },
+    "/api/rksv/monatsbeleg/status/{cashRegisterId}": {
+      "get": {
+        "tags": [
+          "Rksv"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegStatusDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegStatusDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonatsbelegStatusDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rksv/reminder/status/{cashRegisterId}": {
+      "get": {
+        "tags": [
+          "Rksv"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvReminderStatusDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvReminderStatusDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvReminderStatusDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/rksv/validate-receipt": {
       "post": {
         "tags": [
@@ -13000,6 +13348,25 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/system/time/status": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemTimeStatusDto"
+                }
+              }
+            }
           }
         }
       }
@@ -13937,135 +14304,20 @@
         }
       }
     },
-    "/api/Tse/status": {
+    "/api/tse/health": {
       "get": {
         "tags": [
           "Tse"
         ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseStatusResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseStatusResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseStatusResponse"
-                }
-              }
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
-        }
-      }
-    },
-    "/api/Tse/connect": {
-      "post": {
-        "tags": [
-          "Tse"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TseConnectionRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TseConnectionRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/TseConnectionRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseConnectionResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseConnectionResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseConnectionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/Tse/signature": {
-      "post": {
-        "tags": [
-          "Tse"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TseSignatureRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TseSignatureRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/TseSignatureRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseSignatureResponse"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseSignatureResponse"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TseSignatureResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/Tse/disconnect": {
-      "post": {
-        "tags": [
-          "Tse"
         ],
         "responses": {
           "200": {
@@ -14073,55 +14325,17 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/TseConnectionResponse"
+                  "$ref": "#/components/schemas/TseHealthResponseDto"
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TseConnectionResponse"
+                  "$ref": "#/components/schemas/TseHealthResponseDto"
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TseConnectionResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/Tse/devices": {
-      "get": {
-        "tags": [
-          "Tse"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TseDevice"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TseDevice"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TseDevice"
-                  }
+                  "$ref": "#/components/schemas/TseHealthResponseDto"
                 }
               }
             }
@@ -15408,6 +15622,123 @@
         },
         "additionalProperties": false
       },
+      "AdminOfflineTransactionRetryResponseDto": {
+        "type": "object",
+        "properties": {
+          "replayBatchCorrelationId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplayOfflineTransactionsResponseItem"
+            },
+            "nullable": true
+          },
+          "queuedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminOfflineTransactionRowDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "serverReceivedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "retryCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastErrorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastErrorMessageSafe": {
+            "type": "string",
+            "nullable": true
+          },
+          "syncedPaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminOfflineTransactionsListResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminOfflineTransactionRowDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminOfflineTransactionsSummaryDto": {
+        "type": "object",
+        "properties": {
+          "pendingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastReplayAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminOperationsSummaryResponse": {
         "type": "object",
         "properties": {
@@ -15584,6 +15915,10 @@
             "type": "string",
             "nullable": true
           },
+          "cashierDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
           "cashRegisterId": {
             "type": "string",
             "format": "uuid"
@@ -15618,6 +15953,9 @@
           },
           "isStorno": {
             "type": "boolean"
+          },
+          "stornoReason": {
+            "$ref": "#/components/schemas/StornoReason"
           },
           "originalPaymentId": {
             "type": "string",
@@ -15696,6 +16034,125 @@
           },
           "invoicePersisted": {
             "type": "boolean"
+          },
+          "voucherRedeemedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "settlementAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "hasVoucherRedemption": {
+            "type": "boolean"
+          },
+          "stornoRefundAudit": {
+            "$ref": "#/components/schemas/AdminPaymentStornoRefundAuditDto",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPaymentAuditLineItemDto": {
+        "type": "object",
+        "properties": {
+          "productName": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxAmount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPaymentAuditEventDto": {
+        "type": "object",
+        "properties": {
+          "timestampUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "userRole": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "httpStatusCode": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPaymentStornoRefundAuditDto": {
+        "type": "object",
+        "properties": {
+          "originalPaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "originalReceiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalCreatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "originalTotalAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "originalLineItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPaymentAuditLineItemDto"
+            },
+            "nullable": true
+          },
+          "reversalLineItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPaymentAuditLineItemDto"
+            },
+            "nullable": true
+          },
+          "secondsBetweenOriginalAndReversal": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "relatedAuditEvents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPaymentAuditEventDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -15793,6 +16250,40 @@
           },
           "invoicePersisted": {
             "type": "boolean"
+          },
+          "voucherRedeemedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "hasVoucherRedemption": {
+            "type": "boolean"
+          },
+          "isStorno": {
+            "type": "boolean"
+          },
+          "isRefund": {
+            "type": "boolean"
+          },
+          "stornoReason": {
+            "$ref": "#/components/schemas/StornoReason",
+            "nullable": true
+          },
+          "originalPaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "originalReceiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "cashierDisplayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reversalCompletionStatus": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -18296,6 +18787,21 @@
             "type": "string",
             "nullable": true
           },
+          "lastMonatsbelegUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastJahresbelegUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "startbelegCreatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "tenant": {
             "$ref": "#/components/schemas/Tenant"
           },
@@ -18887,6 +19393,9 @@
           "tseConnectionTimeout": {
             "type": "integer",
             "format": "int32"
+          },
+          "useDecemberMonatsbelegAsJahresbeleg": {
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -19687,10 +20196,8 @@
         "required": [
           "cashRegisterId",
           "customerId",
-          "items",
           "payment",
-          "tableNumber",
-          "totalAmount"
+          "tableNumber"
         ],
         "type": "object",
         "properties": {
@@ -19702,7 +20209,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PaymentItemRequest"
-            }
+            },
+            "nullable": true
           },
           "payment": {
             "$ref": "#/components/schemas/PaymentMethodRequest"
@@ -19712,7 +20220,6 @@
             "format": "int32"
           },
           "totalAmount": {
-            "minimum": 0.01,
             "type": "number",
             "format": "double"
           },
@@ -19736,6 +20243,20 @@
           },
           "customerKind": {
             "$ref": "#/components/schemas/CustomerKind"
+          },
+          "isStorno": {
+            "type": "boolean"
+          },
+          "isRefund": {
+            "type": "boolean"
+          },
+          "originalReceiptNumber": {
+            "maxLength": 256,
+            "type": "string",
+            "nullable": true
+          },
+          "stornoReason": {
+            "$ref": "#/components/schemas/StornoReason"
           }
         },
         "additionalProperties": false
@@ -22790,6 +23311,33 @@
         },
         "additionalProperties": false
       },
+      "MonatsbelegStatusDto": {
+        "required": [
+          "daysUntilDeadline",
+          "isRequired",
+          "warningLevel"
+        ],
+        "type": "object",
+        "properties": {
+          "isRequired": {
+            "type": "boolean"
+          },
+          "daysUntilDeadline": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastMonatsbelegDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "warningLevel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "MonatsberichtAdjustmentDto": {
         "type": "object",
         "properties": {
@@ -23983,6 +24531,17 @@
           },
           "tse": {
             "$ref": "#/components/schemas/PaymentCreateTseData"
+          },
+          "timeSyncWarning": {
+            "type": "boolean"
+          },
+          "nonFiscalOfflineQueued": {
+            "type": "boolean"
+          },
+          "offlineTransactionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -26091,6 +26650,54 @@
         },
         "additionalProperties": false
       },
+      "ReplayOfflineTransactionsResponseItem": {
+        "type": "object",
+        "properties": {
+          "requestedOfflineTransactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "offlineTransactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "syncedPaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "retryCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastErrorMessageSafe": {
+            "type": "string",
+            "nullable": true
+          },
+          "exponentialBackoffHintSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "replayBatchCorrelationId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
       "ReportHistoryItemDto": {
         "type": "object",
         "properties": {
@@ -26929,6 +27536,87 @@
         },
         "additionalProperties": false
       },
+      "RksvReminderJahresbelegDto": {
+        "required": [
+          "isRequired",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "isRequired": {
+            "type": "boolean"
+          },
+          "daysUntilDeadline": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvReminderMonatsbelegDto": {
+        "required": [
+          "isRequired",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "isRequired": {
+            "type": "boolean"
+          },
+          "daysUntilDeadline": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvReminderStartbelegDto": {
+        "required": [
+          "isRequired",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "isRequired": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvReminderStatusDto": {
+        "required": [
+          "jahresbeleg",
+          "monatsbeleg",
+          "startbeleg"
+        ],
+        "type": "object",
+        "properties": {
+          "startbeleg": {
+            "$ref": "#/components/schemas/RksvReminderStartbelegDto"
+          },
+          "monatsbeleg": {
+            "$ref": "#/components/schemas/RksvReminderMonatsbelegDto"
+          },
+          "jahresbeleg": {
+            "$ref": "#/components/schemas/RksvReminderJahresbelegDto"
+          }
+        },
+        "additionalProperties": false
+      },
       "RksvValidateReceiptQrParsedDto": {
         "type": "object",
         "properties": {
@@ -27457,6 +28145,16 @@
         },
         "additionalProperties": false
       },
+      "StornoReason": {
+        "enum": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "type": "integer",
+        "format": "int32"
+      },
       "SubmissionAttemptDto": {
         "type": "object",
         "properties": {
@@ -27677,6 +28375,38 @@
             "additionalProperties": {
               "type": "string"
             },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SystemTimeStatusDto": {
+        "type": "object",
+        "properties": {
+          "systemTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ntpTimeUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "offsetSeconds": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isSynchronized": {
+            "type": "boolean"
+          },
+          "lastSyncAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "warningLevel": {
+            "type": "string",
             "nullable": true
           }
         },
@@ -28477,278 +29207,40 @@
         },
         "additionalProperties": false
       },
-      "TseConnectionRequest": {
-        "required": [
-          "serialNumber"
-        ],
+      "TseHealthResponseDto": {
         "type": "object",
         "properties": {
-          "serialNumber": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TseConnectionResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "message": {
+          "status": {
             "type": "string",
             "nullable": true
           },
-          "errorMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "deviceInfo": {
-            "$ref": "#/components/schemas/TseDeviceInfo"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TseDevice": {
-        "required": [
-          "canCreateInvoices",
-          "certificateStatus",
-          "createdAt",
-          "deviceType",
-          "finanzOnlineEnabled",
-          "finanzOnlineUsername",
-          "isConnected",
-          "kassenId",
-          "lastConnectionTime",
-          "lastFinanzOnlineSync",
-          "lastSignatureTime",
-          "memoryStatus",
-          "pendingInvoices",
-          "pendingReports",
-          "productId",
-          "serialNumber",
-          "timeoutSeconds",
-          "vendorId"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
+          "lastCheckUtc": {
             "type": "string",
             "format": "date-time",
             "nullable": true
           },
-          "createdBy": {
-            "maxLength": 450,
+          "lastSuccessfulPingUtc": {
             "type": "string",
+            "format": "date-time",
             "nullable": true
           },
-          "updatedBy": {
-            "maxLength": 450,
-            "type": "string",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "serialNumber": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string"
-          },
-          "deviceType": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string"
-          },
-          "vendorId": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string"
-          },
-          "productId": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string"
-          },
-          "isConnected": {
-            "type": "boolean"
-          },
-          "lastConnectionTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "lastSignatureTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "certificateStatus": {
-            "maxLength": 20,
-            "minLength": 0,
-            "type": "string"
-          },
-          "memoryStatus": {
-            "maxLength": 20,
-            "minLength": 0,
-            "type": "string"
-          },
-          "canCreateInvoices": {
-            "type": "boolean"
-          },
-          "errorMessage": {
-            "maxLength": 500,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "timeoutSeconds": {
+          "consecutiveFailures": {
             "type": "integer",
             "format": "int32"
           },
-          "kassenId": {
+          "estimatedRecoveryTimeUtc": {
             "type": "string",
-            "format": "uuid"
+            "format": "date-time",
+            "nullable": true
           },
-          "finanzOnlineUsername": {
-            "maxLength": 100,
-            "minLength": 0,
-            "type": "string"
-          },
-          "finanzOnlineEnabled": {
-            "type": "boolean"
-          },
-          "lastFinanzOnlineSync": {
+          "lastErrorMessageSafe": {
             "type": "string",
-            "format": "date-time"
+            "nullable": true
           },
-          "pendingInvoices": {
+          "nonFiscalPendingQueueCount": {
             "type": "integer",
-            "format": "int32"
-          },
-          "pendingReports": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TseDeviceInfo": {
-        "type": "object",
-        "properties": {
-          "serialNumber": {
-            "type": "string",
+            "format": "int32",
             "nullable": true
-          },
-          "deviceType": {
-            "type": "string",
-            "nullable": true
-          },
-          "kassenId": {
-            "type": "string",
-            "nullable": true
-          },
-          "certificateStatus": {
-            "type": "string",
-            "nullable": true
-          },
-          "memoryStatus": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TseSignatureRequest": {
-        "required": [
-          "invoiceNumber",
-          "taxDetails",
-          "totalAmount"
-        ],
-        "type": "object",
-        "properties": {
-          "invoiceNumber": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "totalAmount": {
-            "type": "number",
-            "format": "double"
-          },
-          "taxDetails": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "TseSignatureResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          },
-          "tseSignature": {
-            "type": "string",
-            "nullable": true
-          },
-          "timestamp": {
-            "type": "string",
-            "nullable": true
-          },
-          "kassenId": {
-            "type": "string",
-            "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "TseStatusResponse": {
-        "type": "object",
-        "properties": {
-          "isConnected": {
-            "type": "boolean"
-          },
-          "serialNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "certificateStatus": {
-            "type": "string",
-            "nullable": true
-          },
-          "memoryStatus": {
-            "type": "string",
-            "nullable": true
-          },
-          "lastSignatureTime": {
-            "type": "string",
-            "nullable": true
-          },
-          "canCreateInvoices": {
-            "type": "boolean"
-          },
-          "errorMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "kassenId": {
-            "type": "string",
-            "nullable": true
-          },
-          "finanzOnlineEnabled": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false

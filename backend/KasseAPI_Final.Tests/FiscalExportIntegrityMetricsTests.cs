@@ -211,7 +211,7 @@ public class FiscalExportIntegrityMetricsTests
 
         await context.SaveChangesAsync();
 
-        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object);
+        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object, new DisclaimerService());
         var export = await exportService.BuildExportAsync(cashRegisterId, fromUtc, toUtc, includeCsv: false);
 
         Assert.NotNull(export.Integrity);
@@ -364,7 +364,7 @@ public class FiscalExportIntegrityMetricsTests
 
         await context.SaveChangesAsync();
 
-        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object);
+        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object, new DisclaimerService());
         var export = await exportService.BuildExportAsync(cashRegisterId, fromUtc, toUtc, includeCsv: false);
 
         Assert.NotNull(export.Integrity);
@@ -461,7 +461,7 @@ public class FiscalExportIntegrityMetricsTests
 
         await context.SaveChangesAsync();
 
-        var export = await new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object)
+        var export = await new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object, new DisclaimerService())
             .BuildExportAsync(cashRegisterId, fromUtc, toUtc, false);
 
         Assert.Contains(export.ExportScopeWarnings, w => w.Contains("before the export start", StringComparison.OrdinalIgnoreCase));
@@ -470,7 +470,7 @@ public class FiscalExportIntegrityMetricsTests
     }
 
     /// <summary>
-    /// Misuse guard: ExportScopeWarnings and NotLegalProofNotice must never be empty; payload must explicitly state NOT LEGAL PROOF.
+    /// Misuse guard: ExportScopeWarnings and NotLegalProofNotice must never be empty; payload must explicitly deny § 8 RKSV legal proof.
     /// </summary>
     [Fact]
     public async Task Export_MisuseGuard_ExportScopeWarningsAndNotLegalProofNotice_NeverEmptyAndContainNotLegalProof()
@@ -494,18 +494,18 @@ public class FiscalExportIntegrityMetricsTests
 
         var fromUtc = DateTime.UtcNow.AddDays(-1);
         var toUtc = DateTime.UtcNow.AddDays(1);
-        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object);
+        var exportService = new FiscalExportService(context, new Mock<ILogger<FiscalExportService>>().Object, new DisclaimerService());
         var export = await exportService.BuildExportAsync(cashRegisterId, fromUtc, toUtc, includeCsv: false);
 
         Assert.NotNull(export.ExportScopeWarnings);
         Assert.NotEmpty(export.ExportScopeWarnings);
         Assert.True(
-            export.ExportScopeWarnings.Any(w => w.Contains("NOT LEGAL PROOF", StringComparison.OrdinalIgnoreCase)),
-            "ExportScopeWarnings must contain an entry with 'NOT LEGAL PROOF'.");
+            export.ExportScopeWarnings.Any(w => w.Contains("§ 8 RKSV", StringComparison.Ordinal)),
+            "ExportScopeWarnings must contain the RKSV § 8 non-proof disclaimer.");
 
         Assert.False(string.IsNullOrEmpty(export.NotLegalProofNotice));
-        Assert.Contains("NOT LEGAL PROOF", export.NotLegalProofNotice, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal(FiscalExportService.NotLegalProofNoticeText, export.NotLegalProofNotice);
+        Assert.Contains("§ 8 RKSV", export.NotLegalProofNotice, StringComparison.Ordinal);
+        Assert.Equal(DisclaimerService.RksvDisclaimerDe, export.NotLegalProofNotice);
         Assert.Equal("operational_preview", export.ExportProfile);
         Assert.Contains("Operational preview profile", export.ExportProfileIntentNotice, StringComparison.OrdinalIgnoreCase);
     }

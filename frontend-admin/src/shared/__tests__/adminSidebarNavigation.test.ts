@@ -58,6 +58,9 @@ describe('adminSidebarNavigation', () => {
         expect(getNonRksvSidebarOpenGroupKeys('/operations-center')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.operations);
         expect(getNonRksvSidebarOpenGroupKeys('/tables')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.operations);
         expect(getNonRksvSidebarOpenGroupKeys('/payments')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions);
+        expect(getNonRksvSidebarOpenGroupKeys('/payments/storno-refund-audit')).toContain(
+            ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions,
+        );
         expect(getNonRksvSidebarOpenGroupKeys('/products')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.catalogPricing);
         expect(getNonRksvSidebarOpenGroupKeys('/customers')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.customersBenefits);
         expect(getNonRksvSidebarOpenGroupKeys('/reporting/tagesbericht')).toContain(
@@ -67,6 +70,12 @@ describe('adminSidebarNavigation', () => {
             ADMIN_SIDEBAR_GROUP_KEYS.reportingFormal,
         );
         expect(getNonRksvSidebarOpenGroupKeys('/audit-logs')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
+        expect(getNonRksvSidebarOpenGroupKeys('/admin/audit/fiscal-exports')).toContain(
+            ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance,
+        );
+        expect(getNonRksvSidebarOpenGroupKeys('/admin/tse/offline-transactions')).toContain(
+            ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance,
+        );
         expect(getNonRksvSidebarOpenGroupKeys('/rksv/incident')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
         expect(getNonRksvSidebarOpenGroupKeys('/settings')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.verwaltung);
         expect(getNonRksvSidebarOpenGroupKeys('/settings')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
@@ -127,6 +136,17 @@ describe('computeSidebarOpenKeysMerge', () => {
     it('opens fiscal for audit without RKSV keys', () => {
         const next = computeSidebarOpenKeysMerge({
             pathname: '/audit-logs',
+            prevOpenKeys: [],
+            canSeeRksv: true,
+            rksvGroups: groups,
+        });
+        expect(next).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
+        expect(next).not.toContain('/rksv');
+    });
+
+    it('opens fiscal for fiscal-export audit route', () => {
+        const next = computeSidebarOpenKeysMerge({
+            pathname: '/admin/audit/fiscal-exports',
             prevOpenKeys: [],
             canSeeRksv: true,
             rksvGroups: groups,

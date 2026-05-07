@@ -38,6 +38,12 @@ namespace KasseAPI_Final.Data
         public DbSet<InventoryItem> Inventory { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
+
+        /// <summary>RKSV: NTP vs system clock audit samples.</summary>
+        public DbSet<SystemTimeSyncLog> SystemTimeSyncLogs { get; set; }
+
+        /// <summary>Singleton (Id=1): admin NTP auto-sync and drift threshold overrides.</summary>
+        public DbSet<NtpAdminSettings> NtpAdminSettings { get; set; }
         public DbSet<UserSettings> UserSettings { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<CompanySettings> CompanySettings { get; set; }
@@ -627,6 +633,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.RksvSpecialReceiptYear).HasColumnName("rksv_special_receipt_year");
                 entity.Property(e => e.RksvSpecialReceiptMonth).HasColumnName("rksv_special_receipt_month");
                 entity.Property(e => e.RksvNullbelegActsAsJahresbeleg).HasColumnName("rksv_nullbeleg_acts_as_jahresbeleg");
+                entity.Property(e => e.TimeSyncWarning).HasColumnName("time_sync_warning");
+
+                entity.Property(e => e.StornoReason)
+                    .HasColumnName("storno_reason")
+                    .HasConversion<int>();
 
                 entity.HasIndex(e => new { e.CashRegisterId, e.RksvSpecialReceiptYear, e.RksvSpecialReceiptMonth })
                     .IsUnique()
@@ -750,6 +761,26 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Slug).IsRequired().HasMaxLength(64);
                 entity.HasIndex(e => e.Slug).IsUnique();
+            });
+
+            builder.Entity<SystemTimeSyncLog>(entity =>
+            {
+                entity.ToTable("system_time_sync_logs");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.SyncTimeUtc).HasColumnName("sync_time_utc").IsRequired();
+                entity.Property(e => e.SystemTimeUtc).HasColumnName("system_time_utc").IsRequired();
+                entity.Property(e => e.NtpTimeUtc).HasColumnName("ntp_time_utc").IsRequired();
+                entity.Property(e => e.OffsetSeconds).HasColumnName("offset_seconds").IsRequired();
+                entity.Property(e => e.NtpServerUsed).HasColumnName("ntp_server_used").HasMaxLength(512).IsRequired();
+                entity.Property(e => e.IsSuccess).HasColumnName("is_success").IsRequired();
+                entity.Property(e => e.ErrorMessage).HasColumnName("error_message").HasMaxLength(2000);
+                entity.HasIndex(e => e.SyncTimeUtc);
+            });
+
+            builder.Entity<NtpAdminSettings>(entity =>
+            {
+                entity.ToTable("ntp_admin_settings");
+                entity.HasKey(e => e.Id);
             });
 
             // SystemSettings configuration

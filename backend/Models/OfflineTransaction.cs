@@ -105,7 +105,9 @@ namespace KasseAPI_Final.Models
     {
         Pending = 0,
         Synced = 1,
-        Failed = 2
+        Failed = 2,
+        /// <summary>Server-accepted non-fiscal intent when TSE is offline (cash/card only); replayed by the offline replay worker.</summary>
+        NonFiscalPending = 3
     }
 }
 

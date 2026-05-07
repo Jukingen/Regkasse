@@ -127,6 +127,12 @@ These principles always apply:
 - no speculative architecture changes
 - explicit risk notes for sensitive flows
 
+### Fiscal compliance (mandatory)
+- Check NTP time sync status before treating online fiscal payments as allowed (`NtpSettings` / `NtpTimeSyncStatus`; block when sync failed or offset exceeds configured `MaxAllowedOffsetSeconds`).
+- Never queue voucher (Gutschein) payments for offline non-fiscal replay—backend must reject; POS must not enqueue voucher payloads.
+- Storno flows must supply **`OriginalReceiptId`** and a **`StornoReason`** where the contract requires them; do not conflate with partial refund.
+- DEP-style fiscal export generation/download may require disclaimer acknowledgment: send **`X-Disclaimer-Acknowledged: true`** when `FiscalExportOptions.RequireDisclaimerAcknowledgment` is enabled.
+
 ### Context-driven rules
 When touching backend or persistence, increase caution around:
 - controllers, services, use-cases

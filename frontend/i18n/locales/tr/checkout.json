@@ -78,6 +78,13 @@
       "tableClearGenericFailed": "Masa temizlenemedi",
       "emptyCart": "Sepet boş. Lütfen önce ürün ekleyin."
     },
+    "monatsbelegBanner": {
+      "yellow": "Monatsbeleg {{days}} gün içinde",
+      "red": "Monatsbeleg GECİKTİ! Lütfen hemen oluşturun",
+      "createNow": "Şimdi oluştur",
+      "dismissA11y": "Uyarıyı kapat",
+      "loadingHint": "RKSV Monatsbeleg durumu yükleniyor…"
+    },
     "payment": {
       "title": "Odeme yontemleri",
       "totalLabel": "Toplam",
@@ -163,6 +170,79 @@
         "forbidden": "{{prefix}} PDF dışa aktarma izni yok. QR ve yazdırma kullanılabilir. Gerekirse yöneticiye danışın (InvoiceView).",
         "notFound": "{{prefix}} PDF bulunamadı. Daha sonra tekrar deneyin veya yöneticiye bildirin.",
         "httpGeneric": "{{prefix}} PDF yüklenemedi (HTTP {{status}}). Daha sonra tekrar deneyin."
+      }
+    },
+    "stornoRefund": {
+      "paymentModalEntry": "İptal / iade",
+      "headerTitle": "İptal / kısmi iade",
+      "menu": {
+        "intro": "Doğru mali işlemi seçin. Tam iptal ve kısmi iade farklı süreçlerdir.",
+        "optionFullStorno": "TAM İPTAL",
+        "hintFullStorno": "Orijinal fişin tamamı ters kayıt ile iptal edilir (yeni storno fişi).",
+        "optionRefund": "KISMİ İADE",
+        "hintRefund": "Yalnızca bir tutar iade edilir (yeni düzeltme fişi).",
+        "optionBack": "GERİ"
+      },
+      "fields": {
+        "receiptNumber": "Fiş numarası (orijinal)",
+        "stornoReason": "İptal nedeni",
+        "refundAmount": "İade tutarı"
+      },
+      "placeholders": {
+        "receiptNumber": "ör. AT-KASSE-…",
+        "amount": "0,00"
+      },
+      "reasons": {
+        "FalscherBetrag": "Yanlış tutar",
+        "KundeStorniert": "Müşteri iptal",
+        "TechnischerFehler": "Teknik hata",
+        "Anderes": "Diğer"
+      },
+      "storno": {
+        "title": "Tam iptal",
+        "originalTotal": "Orijinal tutar: {{amount}}",
+        "irreversibleWarning": "Bu işlem GERİ ALINAMAZ. Tüm fiş geçersiz olur.",
+        "confirmCheckbox": "Anladım ve tüm fişi iptal etmek istiyorum.",
+        "auditNote": "POS seçimi üzerinden iptal"
+      },
+      "refund": {
+        "title": "Kısmi iade",
+        "note": "Kısmi iade, düzeltilmiş tutarla yeni bir fiş oluşturur.",
+        "selectLines": "İade için satırları işaretleyin",
+        "selectedSum": "İşaretli satırların toplamı: {{amount}}",
+        "maxHint": "Üst sınır (orijinal): {{max}}",
+        "auditNote": "POS seçimi üzerinden kısmi iade"
+      },
+      "actions": {
+        "loadReceipt": "Fişi yükle",
+        "loadReceiptLines": "Satırları yükle",
+        "backToMenu": "Menüye dön",
+        "executeStorno": "İptali kaydet",
+        "executeRefund": "İadeyi kaydet"
+      },
+      "loading": "Lütfen bekleyin…",
+      "alerts": {
+        "successTitle": "Başarılı",
+        "stornoSuccessBody": "İptal kaydedildi.",
+        "refundSuccessBody": "Kısmi iade kaydedildi.",
+        "loadedTitle": "Fiş yüklendi",
+        "loadedBody": "Orijinal tutar: {{amount}}"
+      },
+      "errors": {
+        "receiptRequired": "Fiş numarası girin.",
+        "noCashRegister": "Kasa atanmadı.",
+        "receiptNotFound": "Bu numarada fiş yok.",
+        "specialReceipt": "Özel fişler bu pencerede işlenemez.",
+        "paymentLoadFailed": "Ödeme verisi yüklenemedi.",
+        "notOriginalSale": "Bu normal bir satış fişi değil.",
+        "registerMismatch": "Fiş bu kasaya ait değil.",
+        "lookupFailed": "Fiş araması başarısız.",
+        "receiptLinesMissing": "Satır verisi yok.",
+        "confirmRequired": "Onay kutusunu işaretleyin.",
+        "invalidRefundAmount": "Geçersiz iade tutarı.",
+        "refundExceedsMax": "Tutar çok yüksek (en fazla {{max}}).",
+        "selectOneLine": "En az bir satır seçin.",
+        "submitFailed": "İşlem başarısız."
       }
     }
   }

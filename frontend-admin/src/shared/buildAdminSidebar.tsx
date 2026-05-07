@@ -57,6 +57,8 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     ShopOutlined: Icons.ShopOutlined,
     CloudServerOutlined: Icons.CloudServerOutlined,
     WalletOutlined: Icons.WalletOutlined,
+    ClockCircleOutlined: Icons.ClockCircleOutlined,
+    CloudDownloadOutlined: Icons.CloudDownloadOutlined,
 };
 
 function iconEl(token?: SidebarIconToken): React.ReactNode {

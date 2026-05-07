@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using KasseAPI_Final.Authorization;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -12,7 +13,6 @@ using System.Text;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Tse;
-using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -31,6 +31,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IPaymentService _paymentService;
         private readonly IPaymentMethodCatalogService _paymentMethodCatalog;
         private readonly SignaturePipeline _signaturePipeline;
+        private readonly IAuthorizationService _authorizationService;
 
         private readonly IQrImageService _qrImageService;
 
@@ -39,6 +40,7 @@ namespace KasseAPI_Final.Controllers
             IPaymentMethodCatalogService paymentMethodCatalog,
             IQrImageService qrImageService,
             SignaturePipeline signaturePipeline,
+            IAuthorizationService authorizationService,
             ILogger<PaymentController> logger) 
             : base(logger)
         {
@@ -46,6 +48,7 @@ namespace KasseAPI_Final.Controllers
             _paymentMethodCatalog = paymentMethodCatalog;
             _qrImageService = qrImageService;
             _signaturePipeline = signaturePipeline;
+            _authorizationService = authorizationService;
         }
 
         /// <summary>
@@ -136,10 +139,57 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("User not authenticated", 401);
                 }
 
+                if (request.IsStorno)
+                {
+                    var stornoAuth = await _authorizationService.AuthorizeAsync(
+                        User,
+                        null,
+                        PermissionCatalog.PolicyPrefix + AppPermissions.PaymentCancel);
+                    if (!stornoAuth.Succeeded)
+                        return Forbid();
+                }
+
+                if (request.IsRefund)
+                {
+                    var refundAuth = await _authorizationService.AuthorizeAsync(
+                        User,
+                        null,
+                        PermissionCatalog.PolicyPrefix + AppPermissions.RefundCreate);
+                    if (!refundAuth.Succeeded)
+                        return Forbid();
+                }
+
                 var result = await _paymentService.CreatePaymentAsync(request, userId);
 
                 if (result.Success)
                 {
+                    if (result.NonFiscalOfflineQueued)
+                    {
+                        if (v2)
+                        {
+                            var envelope = PaymentApiContractMapper.CreatePaymentSuccessEnvelope(
+                                result,
+                                sanitizedPayment: null,
+                                correlationId,
+                                request.IdempotencyKey);
+                            return StatusCode(StatusCodes.Status202Accepted, envelope);
+                        }
+
+                        var offlineBody = new
+                        {
+                            success = true,
+                            message = result.Message,
+                            nonFiscalOfflineQueued = true,
+                            offlineTransactionId = result.OfflineTransactionId,
+                            invoicePersisted = false,
+                            paymentId = (Guid?)null,
+                            payment = (object?)null,
+                            idempotentReplay = result.IdempotentReplay,
+                            tse = (object?)null
+                        };
+                        return StatusCode(StatusCodes.Status202Accepted, offlineBody);
+                    }
+
                     var paymentSafe = SanitizePaymentForResponse(result.Payment);
                     if (v2)
                     {
@@ -190,6 +240,18 @@ namespace KasseAPI_Final.Controllers
             {
                 return HandleException(ex, "Create Payment");
             }
+        }
+
+        /// <summary>
+        /// Full receipt storno via dedicated route (sets <see cref="CreatePaymentRequest.IsStorno"/>). Same body contract as POST /; requires <c>payment.cancel</c> in addition to <c>payment.take</c>.
+        /// </summary>
+        [HttpPost("storno")]
+        [HasPermission(AppPermissions.PaymentCancel)]
+        public async Task<IActionResult> CreateStornoPayment([FromBody] CreatePaymentRequest request)
+        {
+            request.IsStorno = true;
+            request.IsRefund = false;
+            return await CreatePayment(request);
         }
 
         /// <summary>

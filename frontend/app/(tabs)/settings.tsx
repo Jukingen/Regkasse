@@ -1,15 +1,31 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import LanguageSelector from '../../components/LanguageSelector';
 import { CashRegisterAssignmentSection } from '../../components/CashRegisterAssignmentSection';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useTimeSyncStatus } from '../../hooks/useTimeSyncStatus';
+
+function formatDeDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('de-AT', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { t } = useTranslation(['settings', 'auth', 'common']);
   const { logout } = useAuth();
+  const { status, loading, error, refetch } = useTimeSyncStatus();
 
   // CRITICAL FIX: Translation değerlerini useMemo ile cache'le
   const translations = useMemo(() => ({
@@ -33,6 +49,25 @@ export default function SettingsScreen() {
       </View>
       <View style={styles.section}>
         <CashRegisterAssignmentSection />
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Systemzeit (NTP)</Text>
+        <Text style={styles.description}>
+          Letzter Abgleich (Server): {formatDeDateTime(status?.lastSyncAt)}
+        </Text>
+        {typeof status?.offsetSeconds === 'number' && Number.isFinite(status.offsetSeconds) ? (
+          <Text style={styles.descriptionMuted}>
+            Abweichung: {Math.round(status.offsetSeconds * 10) / 10} s ({status.warningLevel})
+          </Text>
+        ) : null}
+        {loading ? (
+          <ActivityIndicator style={{ marginTop: 8 }} color="#007AFF" />
+        ) : error ? (
+          <Text style={styles.syncError}>Status konnte nicht geladen werden.</Text>
+        ) : null}
+        <TouchableOpacity style={styles.queueLinkButton} onPress={() => void refetch()}>
+          <Text style={styles.queueLinkText}>Zeitstatus aktualisieren</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.offlineQueueTitle}</Text>
@@ -103,6 +138,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  descriptionMuted: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  syncError: {
+    fontSize: 14,
+    color: '#c62828',
+    marginTop: 8,
   },
   queueLinkButton: {
     backgroundColor: '#007AFF',

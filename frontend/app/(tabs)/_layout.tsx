@@ -8,6 +8,9 @@ import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PaymentModal from '../../components/PaymentModal';
+import { TimeSyncBanner } from '../../components/TimeSyncBanner';
+import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
+import { TseStatusBanner } from '../../components/TseStatusBanner';
 import { ToastContainer } from '../../components/ToastNotification';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
@@ -16,6 +19,7 @@ import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftShadows } from '../../constants/SoftTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { PosRegisterReadinessProvider, usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
+import { TseHealthProvider } from '../../contexts/TseHealthContext';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
@@ -84,9 +88,29 @@ function PosTabsInner({
     setIsPaymentModalVisible(true);
   };
 
+  const pushTabBarToast = useCallback(
+    (payload: { type?: 'success' | 'warning' | 'info' | 'error'; message: string; duration?: number }) => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      setTabBarToasts((prev) => [
+        ...prev,
+        {
+          id,
+          type: payload.type ?? 'info',
+          message: payload.message,
+          duration: payload.duration ?? 4500,
+        },
+      ]);
+      setTimeout(() => removeTabBarToast(id), (payload.duration ?? 4500) + 400);
+    },
+    [removeTabBarToast]
+  );
+
   return (
-    <View style={{ flex: 1 }}>
-      <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
+    <TseHealthProvider>
+      <View style={{ flex: 1 }}>
+        <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
+        <TimeSyncBanner />
+        <TseStatusBanner />
       <MonatsbelegSessionBlockModal />
       <StartbelegRequiredBanner />
       <Tabs
@@ -156,6 +180,7 @@ function PosTabsInner({
         visible={isPaymentModalVisible}
         onClose={() => setIsPaymentModalVisible(false)}
         onSuccess={handlePaymentSuccess}
+        onPosToast={(p) => pushTabBarToast({ type: p.type ?? 'info', message: p.message })}
         cartItems={(currentCart?.items || []).map((item) => ({
           id: item.itemId ?? item.clientId ?? item.productId,
           productId: item.productId,
@@ -170,7 +195,8 @@ function PosTabsInner({
         customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
         tableNumber={activeTableId}
       />
-    </View>
+      </View>
+    </TseHealthProvider>
   );
 }
 
@@ -261,18 +287,20 @@ export default function TabLayout() {
 
     return (
         <PosRegisterReadinessProvider>
-            <PosTabsInner
-                t={t}
-                insets={insets}
-                cartCount={cartCount}
-                isPaymentModalVisible={isPaymentModalVisible}
-                setIsPaymentModalVisible={setIsPaymentModalVisible}
-                handlePaymentSuccess={handlePaymentSuccess}
-                currentCart={currentCart}
-                totals={totals}
-                activeTableId={activeTableId}
-                saleCustomer={saleCustomer}
-            />
+            <TimeSyncStatusProvider enabled>
+                <PosTabsInner
+                    t={t}
+                    insets={insets}
+                    cartCount={cartCount}
+                    isPaymentModalVisible={isPaymentModalVisible}
+                    setIsPaymentModalVisible={setIsPaymentModalVisible}
+                    handlePaymentSuccess={handlePaymentSuccess}
+                    currentCart={currentCart}
+                    totals={totals}
+                    activeTableId={activeTableId}
+                    saleCustomer={saleCustomer}
+                />
+            </TimeSyncStatusProvider>
         </PosRegisterReadinessProvider>
     );
 }

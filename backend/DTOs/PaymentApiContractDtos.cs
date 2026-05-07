@@ -59,6 +59,18 @@ public sealed class PaymentCreateSuccessData
 
     [JsonPropertyName("tse")]
     public PaymentCreateTseData? Tse { get; set; }
+
+    /// <summary>Set when server-side NTP guard flagged clock drift (offline replay tolerance).</summary>
+    [JsonPropertyName("timeSyncWarning")]
+    public bool TimeSyncWarning { get; set; }
+
+    /// <summary>True when payment was stored as server-side non-fiscal intent (TSE offline queue).</summary>
+    [JsonPropertyName("nonFiscalOfflineQueued")]
+    public bool NonFiscalOfflineQueued { get; set; }
+
+    /// <summary>Offline intent row id when NonFiscalOfflineQueued is true.</summary>
+    [JsonPropertyName("offlineTransactionId")]
+    public Guid? OfflineTransactionId { get; set; }
 }
 
 public sealed class PaymentCreateTseData

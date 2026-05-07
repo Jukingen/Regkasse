@@ -29,5 +29,25 @@ namespace KasseAPI_Final.Models
 
         /// <summary>TSE tamamen kapalı mı.</summary>
         public bool IsOff => string.Equals(TseMode, "Off", StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Background probe interval for hardware TSE readiness (seconds).</summary>
+        public int HealthCheckIntervalSeconds { get; set; } = 30;
+
+        /// <summary>
+        /// When true and cached health is Offline, eligible cash/card payments are accepted as server-side offline intents.
+        /// </summary>
+        public bool OfflineModeEnabled { get; set; } = true;
+
+        /// <summary>Cap of NonFiscalPending rows per cash register (server-side offline queue).</summary>
+        public int MaxOfflineTransactionsPerCashRegister { get; set; } = 50;
+
+        /// <summary>Background replay worker cadence for NonFiscalPending intents (seconds).</summary>
+        public int AutoReplayIntervalSeconds { get; set; } = 60;
+
+        /// <summary>Consecutive probe failures before status becomes Offline.</summary>
+        public int OfflineAfterConsecutiveFailures { get; set; } = 3;
+
+        /// <summary>Minimum consecutive failures before leaving Online (first step toward Degraded/Offline ladder).</summary>
+        public int DegradedAfterConsecutiveFailures { get; set; } = 1;
     }
 }

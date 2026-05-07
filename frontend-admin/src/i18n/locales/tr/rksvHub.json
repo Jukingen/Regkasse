@@ -246,7 +246,13 @@
     "notLegalProofFallback": "Yasal kanıt değil",
     "statutoryDisclaimerBody": "Yasal uyarı: RKSV teyidi değildir — tüm profiller için geçerlidir.",
     "globalIntegrityHint": "Veritabanı geneli için «Veri bütünlüğü» sayfasını kullanın; export yalnızca dilim riski gösterir.",
-    "sliceVsGlobalTitle": "Export (dilim) ve genel bütünlük"
+    "sliceVsGlobalTitle": "Export (dilim) ve genel bütünlük",
+    "disclaimerModalTitle": "YASAL UYARI",
+    "disclaimerModalBody": "BU DIŞA AKTARIM § 8 RKSV KAPSAMINDA YASAL OLARAK BAĞLAYICI BİR FİSKAL BELGE DEĞİLDİR.\n\nYalnızca iç analiz ve tanı amaçlıdır. Vergi açısından geçerli olan, geçerli TSE imzası taşıyan orijinal fiştir.\n\nFinanzamt taleplerinde ORİJİNAL FİŞ sunulmalıdır — bu dışa aktarım onun yerine geçmez.\n\nYine de devam etmek istiyor musunuz?",
+    "disclaimerModalUnderstandCheckbox": "Anladım — yine de dışa aktarmak istiyorum",
+    "disclaimerModalSkip24hCheckbox": "24 saat boyunca tekrar gösterme",
+    "disclaimerModalCancel": "İptal",
+    "disclaimerModalProceed": "Yine de dışa aktar"
   },
   "incident": {
     "pageTitle": "Olay (correlation) — inceleme",

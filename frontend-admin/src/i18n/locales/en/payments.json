@@ -142,5 +142,69 @@
       "Failed": "Failed",
       "NeedsReconciliation": "Needs reconciliation"
     }
+  },
+  "stornoRefundAudit": {
+    "pageTitle": "Storno & refund audit",
+    "intro": "Compliance-focused view of full cancellations (Storno) and partial refunds in the selected period. Details compare original vs. correction receipt, elapsed time, and related audit log entries.",
+    "exportCsv": "Export CSV",
+    "filterRegister": "Cash register",
+    "filterTypeAll": "Storno and refund",
+    "filterTypeStorno": "Storno only",
+    "filterTypeRefund": "Refund only",
+    "filterStornoReason": "Storno reason",
+    "type": {
+      "storno": "Storno",
+      "refund": "Refund"
+    },
+    "status": {
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "stornoReason": {
+      "falscherBetrag": "Incorrect amount",
+      "kundeStorniert": "Customer cancelled",
+      "technischerFehler": "Technical error",
+      "anderes": "Other"
+    },
+    "table": {
+      "colOriginalReceipt": "Original receipt number",
+      "colNewReceipt": "New receipt (storno/refund)",
+      "colType": "Type",
+      "colAmount": "Amount",
+      "colReason": "Reason (storno)",
+      "colCashier": "Cashier",
+      "colWhen": "Date/time",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "viewDetail": "Details"
+    },
+    "detail": {
+      "title": "Audit details",
+      "loading": "Loading details…",
+      "empty": "No detail data available.",
+      "labelCashier": "Cashier",
+      "labelReversalAmount": "Amount (correction)",
+      "labelRefundReason": "Refund reason",
+      "labelOriginalWhen": "Original timestamp",
+      "labelOriginalTotal": "Original gross total",
+      "timeDeltaTitle": "Elapsed time (original → correction)",
+      "durationHours": "{{count}} h",
+      "durationMinutes": "{{count}} min",
+      "durationSeconds": "{{count}} s",
+      "sectionOriginal": "Original receipt (lines)",
+      "sectionReversal": "Correction receipt (lines)",
+      "sectionAuditTrail": "Approval & audit trail",
+      "auditTrailHint": "Audit log entries linked to this payment and the original sale (e.g. API actions). No separate supervisor step appears unless your deployment enforces it.",
+      "colProduct": "Item",
+      "colQty": "Qty",
+      "colUnit": "Unit price",
+      "colLineTotal": "Line total",
+      "colTime": "Timestamp",
+      "colAction": "Action",
+      "colRole": "Role",
+      "colDescription": "Description",
+      "noLines": "No line items",
+      "noAuditEvents": "No matching audit entries"
+    }
   }
 }
