@@ -79,6 +79,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         if (string.IsNullOrWhiteSpace(actorUserId))
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
+        var (_, viennaCurrentMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var resolvedMonth = request.Month ?? viennaCurrentMonth;
+
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
@@ -97,13 +100,13 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                      p.IsActive &&
                      p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Nullbeleg &&
                      p.RksvSpecialReceiptYear == request.Year &&
-                     p.RksvSpecialReceiptMonth == request.Month,
+                     p.RksvSpecialReceiptMonth == resolvedMonth,
                 cancellationToken)
             .ConfigureAwait(false);
         if (duplicate)
         {
             throw new InvalidOperationException(
-                $"A Nullbeleg already exists for register {register.RegisterNumber} in {request.Year}-{request.Month:00}.");
+                $"A Nullbeleg already exists for register {register.RegisterNumber} in {request.Year}-{resolvedMonth:00}.");
         }
 
         var guest = await _db.Customers.AsNoTracking()
@@ -111,10 +114,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             .ConfigureAwait(false)
             ?? throw new InvalidOperationException("Guest customer is not available; cannot create Nullbeleg.");
 
-        var lastDayOfMonth = new DateTime(request.Year, request.Month, DateTime.DaysInMonth(request.Year, request.Month), 23, 59, 59, DateTimeKind.Unspecified);
+        var lastDayOfMonth = new DateTime(request.Year, resolvedMonth, DateTime.DaysInMonth(request.Year, resolvedMonth), 23, 59, 59, DateTimeKind.Unspecified);
         var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(lastDayOfMonth, PostgreSqlUtcDateTime.AustriaTimeZone);
-        var sequenceAnchor = new DateTime(request.Year, request.Month, DateTime.DaysInMonth(request.Year, request.Month), 0, 0, 0, DateTimeKind.Unspecified);
-        var actsAsJahres = request.ActsAsJahresbeleg ?? (request.Month == 12);
+        var sequenceAnchor = new DateTime(request.Year, resolvedMonth, DateTime.DaysInMonth(request.Year, resolvedMonth), 0, 0, 0, DateTimeKind.Unspecified);
+        var actsAsJahres = request.ActsAsJahresbeleg ?? (resolvedMonth == 12);
 
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -163,7 +166,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 IsPrinted = false,
                 RksvSpecialReceiptKind = RksvSpecialReceiptKinds.Nullbeleg,
                 RksvSpecialReceiptYear = request.Year,
-                RksvSpecialReceiptMonth = request.Month,
+                RksvSpecialReceiptMonth = resolvedMonth,
                 RksvNullbelegActsAsJahresbeleg = actsAsJahres,
                 CreatedAt = issuedAtUtc,
                 CreatedBy = actorUserId,
@@ -215,7 +218,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
 
             _logger.LogInformation(
                 "Nullbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Period={Y}-{M}",
-                paymentId, receiptNumber, register.RegisterNumber, request.Year, request.Month);
+                paymentId, receiptNumber, register.RegisterNumber, request.Year, resolvedMonth);
 
             return new CreateNullbelegResponse
             {

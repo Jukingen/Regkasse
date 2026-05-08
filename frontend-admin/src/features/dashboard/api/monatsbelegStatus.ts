@@ -1,11 +1,19 @@
 import { customInstance } from '@/lib/axios';
 
 /** Matches backend `MonatsbelegStatusDto` (GET /api/rksv/monatsbeleg/status/{id}). */
+export type MissingMonth = {
+    year: number;
+    month: number;
+    isOverdue: boolean;
+    deadline: string;
+};
+
 export type MonatsbelegStatusDto = {
-    isRequired: boolean;
-    daysUntilDeadline: number;
-    lastMonatsbelegDate: string | null;
-    warningLevel: string;
+    lastCompletedMonth: string | null;
+    nextRequiredMonth: string | null;
+    missingMonths: MissingMonth[];
+    requiresAttention: boolean;
+    totalMissingCount: number;
 };
 
 export async function getMonatsbelegStatus(cashRegisterId: string): Promise<MonatsbelegStatusDto> {

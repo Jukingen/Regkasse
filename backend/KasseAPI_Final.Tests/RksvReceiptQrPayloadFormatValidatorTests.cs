@@ -39,6 +39,19 @@ public sealed class RksvReceiptQrPayloadFormatValidatorTests
     }
 
     [Fact]
+    public void Validate_NegativeAndCommaDecimalTotals_NormalizesToDot()
+    {
+        var qr = "_R1-AT1_REG_AT-REG-20200101-1_2020-01-01T00:00:00_-1,25_0,00_CERT_eyJhbGciOiJFUzI1NiJ9.e30.sig";
+
+        var r = _sut.Validate(qr);
+
+        Assert.True(r.IsValidFormat);
+        Assert.NotNull(r.Parsed);
+        Assert.Equal("-1.25", r.Parsed!.Totals.GrossTotal);
+        Assert.Equal("0.00", r.Parsed.Totals.SecondAmount);
+    }
+
+    [Fact]
     public void Validate_WrongPrefix_ReturnsFalse()
     {
         var r = _sut.Validate("NON_FISCAL_DEMO_x");

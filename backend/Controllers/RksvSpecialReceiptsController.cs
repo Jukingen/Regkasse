@@ -50,7 +50,7 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
             or RksvGuardErrorCodes.DuplicateSchlussbeleg
             or RksvGuardErrorCodes.RegisterAlreadyDecommissioned;
 
-    /// <summary>Creates a Monats-Nullbeleg (zero TSE receipt in normal Beleg sequence).</summary>
+    /// <summary>Creates a Monats-Nullbeleg (zero TSE receipt in normal Beleg sequence) for year and optional month (defaults to current Vienna month).</summary>
     [HttpPost("nullbeleg")]
     [HasPermission(AppPermissions.RksvNullbelegCreate)]
     [ProducesResponseType(typeof(CreateNullbelegResponse), StatusCodes.Status200OK)]

@@ -83,10 +83,7 @@ export function useAdminMonatsbelegOverview(enabled = true) {
         return out;
     }, [registerIds, registers, statusQueries]);
 
-    const redCount = useMemo(
-        () => rows.filter((r) => r.status?.warningLevel?.toLowerCase() === 'red').length,
-        [rows],
-    );
+    const redCount = useMemo(() => rows.filter((r) => r.status?.missingMonths?.some((m) => m.isOverdue)).length, [rows]);
 
     const statusPending = statusQueries.some((q) => q.isPending || q.isLoading);
 

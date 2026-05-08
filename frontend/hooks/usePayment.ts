@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Alert } from 'react-native';
 import {
   paymentService,
   PaymentRequest,
@@ -9,6 +10,7 @@ import {
 import { getPaymentErrorDisplayMessage, normalizePaymentError } from '../features/payment/paymentErrors';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
 import { sessionManager } from '../services/session/sessionManager';
+import { extractApiMessage, showToast } from '../utils/toast';
 
 // Türkçe Açıklama: Ödeme işlemleri için hook - Backend API ile entegre çalışır
 export const usePayment = () => {
@@ -45,9 +47,16 @@ export const usePayment = () => {
   const validateVoucher = useCallback(async (voucherCode: string, amount?: number): Promise<VoucherValidateResult> => {
     const token = await sessionManager.getAccessToken();
     if (!token) {
+      showToast('Fehler', 'Nicht angemeldet.');
       return { ok: false, errorCode: 'NO_TOKEN', message: 'Nicht angemeldet.' };
     }
-    return paymentService.validateVoucher(voucherCode, amount);
+    const result = await paymentService.validateVoucher(voucherCode, amount);
+    if (result.ok) {
+      showToast('Gutschein', extractApiMessage(result, 'Gutschein erfolgreich validiert.'));
+    } else {
+      showToast('Gutschein', extractApiMessage(result, 'Gutschein konnte nicht validiert werden.'));
+    }
+    return result;
   }, []);
 
   // Ödeme işlemi
@@ -71,6 +80,7 @@ export const usePayment = () => {
 
       if (response.fiscalStatus === 'NON_FISCAL_PENDING') {
         debugPosPaymentTrace('use_payment_non_fiscal_pending', { pendingQueueId: response.pendingQueueId });
+        showToast('Zahlung', extractApiMessage(response, 'Zahlung ist in der Warteschlange gespeichert.'));
         return response;
       }
 
@@ -83,16 +93,19 @@ export const usePayment = () => {
           (typeof response.message === 'string' && response.message.trim()) ||
           response.error ||
           'Zahlung fehlgeschlagen';
+        showToast('Fehler', msg);
         throw new Error(msg);
       }
 
       debugPosPaymentTrace('use_payment_hook_success', { paymentId: response.paymentId });
+      showToast('Zahlung', extractApiMessage(response, 'Zahlung erfolgreich verarbeitet.'));
       return response;
     } catch (err) {
       const normalized = normalizePaymentError(err);
       const errorMessage = getPaymentErrorDisplayMessage(normalized);
       setError(errorMessage);
       debugPosPaymentTrace('use_payment_hook_caught', { errorMessage });
+      showToast('Fehler', errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -140,10 +153,22 @@ export const usePayment = () => {
       setError(null);
 
       const response = await paymentService.refundPayment(paymentId, amount, reason);
+      showToast('Erstattung', extractApiMessage(response, 'Erstattung erfolgreich verarbeitet.'));
+      const responseData =
+        (response as unknown as { data?: { receiptNumber?: string }; receiptNumber?: string }).data;
+      const receiptNumber =
+        (typeof responseData?.receiptNumber === 'string' && responseData.receiptNumber.trim()) ||
+        (typeof (response as unknown as { receiptNumber?: string }).receiptNumber === 'string' &&
+        (response as unknown as { receiptNumber?: string }).receiptNumber?.trim()) ||
+        '';
+      if (receiptNumber) {
+        console.log('[refund] receiptNumber:', receiptNumber);
+      }
       return response;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ödeme iade edilemedi';
       setError(errorMessage);
+      showToast('Fehler', errorMessage);
       throw err;
     } finally {
       setLoading(false);

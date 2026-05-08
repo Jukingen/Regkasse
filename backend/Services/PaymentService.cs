@@ -1283,6 +1283,7 @@ namespace KasseAPI_Final.Services
             var receiptNumber = payment.ReceiptNumber ?? "";
             var createdAt = payment.CreatedAt;
             var totalAmount = payment.TotalAmount;
+            var formattedTotalAmount = totalAmount.ToString("F2", CultureInfo.InvariantCulture);
             var signatureValue = payment.TseSignature ?? "";
 
             string qrPayload;
@@ -1290,12 +1291,12 @@ namespace KasseAPI_Final.Services
             {
                 var certInfo = await _tseService.GetTseCertificateInfoAsync(kassenId);
                 var certSerial = certInfo.CertificateNumber ?? "DEMO-CERT";
-                qrPayload = $"_R1-AT1_{kassenId}_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{totalAmount:F2}_0.00_{certSerial}_{signatureValue}";
+                qrPayload = $"_R1-AT1_{kassenId}_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{formattedTotalAmount}_0.00_{certSerial}_{signatureValue}";
             }
             else
             {
                 // tseRequired=false: Açık NON_FISCAL marker (sadece flag değil) - UI fiskal sanmasın
-                qrPayload = $"NON_FISCAL_DEMO_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{totalAmount:F2}";
+                qrPayload = $"NON_FISCAL_DEMO_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{formattedTotalAmount}";
             }
 
             return (qrPayload, isDemoFiscal, tseProvider);

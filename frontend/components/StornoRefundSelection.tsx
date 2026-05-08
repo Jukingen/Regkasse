@@ -318,13 +318,25 @@ export default function StornoRefundSelection({
         setLocalError(msg);
         return;
       }
+      const refundMessage =
+        typeof res.message === 'string' && res.message.trim().length > 0
+          ? res.message.trim()
+          : t('checkout:posFlow.stornoRefund.alerts.refundSuccessBody');
+      const refundReceiptNumber =
+        res.tse?.receiptNumber ||
+        ((res as unknown as { receiptNumber?: string }).receiptNumber ?? '');
+      const successBody =
+        typeof refundReceiptNumber === 'string' && refundReceiptNumber.trim().length > 0
+          ? `${refundMessage}\n${t('checkout:posFlow.stornoRefund.fields.receiptNumber')}: ${refundReceiptNumber.trim()}`
+          : refundMessage;
       Alert.alert(
-        t('checkout:posFlow.stornoRefund.alerts.successTitle'),
-        t('checkout:posFlow.stornoRefund.alerts.refundSuccessBody'),
+        'Erstattung erfolgreich',
+        successBody,
         [
           {
-            text: t('common:ok'),
+            text: 'Zurück zur Kasse',
             onPress: () => {
+              // Parent onSuccess callback can route back to payment/cart flow.
               onSuccess?.(res.paymentId);
               handleClose();
             },

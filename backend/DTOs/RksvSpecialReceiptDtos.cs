@@ -11,13 +11,13 @@ public sealed class CreateNullbelegRequest
     public int Year { get; set; }
 
     [Range(1, 12)]
-    public int Month { get; set; }
+    public int? Month { get; set; }
 
     /// <summary>Optional operator note (stored on payment <c>Notes</c> when short enough).</summary>
     [MaxLength(450)]
     public string? Reason { get; set; }
 
-    /// <summary>When null, true if <see cref="Month"/> is 12 (December = Jahres-Nullbeleg tag for future use).</summary>
+    /// <summary>When null, true if resolved month is 12 (December = Jahres-Nullbeleg tag for future use).</summary>
     public bool? ActsAsJahresbeleg { get; set; }
 }
 

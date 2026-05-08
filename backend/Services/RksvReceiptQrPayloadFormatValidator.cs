@@ -19,7 +19,7 @@ public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadF
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex DecimalSegmentRegex = new(
-        @"^\d+(\.\d{1,2})?$",
+        @"^-?\d+([.,]\d{1,2})?$",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     public RksvValidateReceiptQrResponse Validate(string? qrPayload)
@@ -95,6 +95,9 @@ public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadF
         if (errors.Count > 0)
             return Fail(errors);
 
+        var normalizedTotal1 = NormalizeDecimalSegment(total1);
+        var normalizedTotal2 = NormalizeDecimalSegment(total2);
+
         return new RksvValidateReceiptQrResponse
         {
             IsValidFormat = true,
@@ -104,8 +107,8 @@ public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadF
                 Timestamp = p.Timestamp,
                 Totals = new RksvValidateReceiptQrTotalsDto
                 {
-                    GrossTotal = total1.Trim(),
-                    SecondAmount = total2.Trim()
+                    GrossTotal = normalizedTotal1,
+                    SecondAmount = normalizedTotal2
                 },
                 CertificateSerial = p.CertificateSerial.Trim(),
                 PreviousSignature = p.PreviousSignature
@@ -113,6 +116,9 @@ public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadF
             Errors = new List<string>()
         };
     }
+
+    private static string NormalizeDecimalSegment(string value) =>
+        value.Trim().Replace(',', '.');
 
     private static RksvValidateReceiptQrResponse Fail(IReadOnlyList<string> errors) =>
         new()

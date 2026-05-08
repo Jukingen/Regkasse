@@ -8,6 +8,7 @@ import { AXIOS_INSTANCE } from '@/lib/axios';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { consumeBelegcheckPrefillSession } from '@/features/rksv/belegcheckPrefillStorage';
+import { parseRksvAmount } from '@/features/rksv/parseRksvAmount';
 
 type ValidateReceiptParsed = {
     receiptNumber: string;
@@ -56,7 +57,36 @@ export default function RksvBelegcheckPage() {
             const { data } = await AXIOS_INSTANCE.post<ValidateReceiptResponse>('/api/rksv/validate-receipt', {
                 qrPayload: trimmed,
             });
-            setResult(data);
+            const grossRaw = data.parsed?.totals?.grossTotal ?? '';
+            const secondRaw = data.parsed?.totals?.secondAmount ?? '';
+            const grossParsed = data.parsed ? parseRksvAmount(grossRaw) : null;
+            const secondParsed = data.parsed ? parseRksvAmount(secondRaw) : null;
+
+            const amountErrors: string[] = [];
+            if (data.parsed && grossParsed == null) {
+                amountErrors.push(`Invalid gross total amount format: "${grossRaw}"`);
+            }
+            if (data.parsed && secondParsed == null) {
+                amountErrors.push(`Invalid second amount format: "${secondRaw}"`);
+            }
+
+            const normalizedData: ValidateReceiptResponse =
+                data.parsed == null
+                    ? data
+                    : {
+                          ...data,
+                          parsed: {
+                              ...data.parsed,
+                              totals: {
+                                  grossTotal: grossParsed == null ? grossRaw : grossParsed.toFixed(2),
+                                  secondAmount: secondParsed == null ? secondRaw : secondParsed.toFixed(2),
+                              },
+                          },
+                          isValidFormat: data.isValidFormat && amountErrors.length === 0,
+                          errors: amountErrors.length > 0 ? [...data.errors, ...amountErrors] : data.errors,
+                      };
+
+            setResult(normalizedData);
         } catch (e) {
             setRequestError(e);
         } finally {
