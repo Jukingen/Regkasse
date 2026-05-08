@@ -9,9 +9,12 @@ dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# Native / release signing (never commit real secrets)
 *.orig.*
 *.jks
+*.keystore
+credentials.json
+secrets/
 *.p8
 *.p12
 *.key

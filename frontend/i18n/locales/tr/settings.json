@@ -16,6 +16,25 @@
     "description": "Bekleyen ödemeleri görüntüleyin, tekrar gönderin veya tümünü senkronize edin.",
     "open": "Kuyruğu Aç"
   },
+  "appUpdate": {
+    "title": "Uygulama güncellemesi",
+    "description": "Regkasse POS uygulamasının yeni bir sürümü olup olmadığını kontrol eder, APK'yı indirir ve yükleyiciyi açar.",
+    "androidOnly": "Uygulama içi güncellemeler yalnızca Android cihazlarda kullanılabilir.",
+    "currentVersion": "Yüklü sürüm",
+    "latestVersion": "En son sürüm",
+    "available": "Yeni bir sürüm mevcut.",
+    "upToDate": "En son sürümü kullanıyorsunuz.",
+    "mandatory": "Bu güncelleme satıcı tarafından şiddetle önerilir.",
+    "blocked": "Bu sürüm artık desteklenmiyor. Lütfen kullanmaya devam etmeden önce güncelleyin.",
+    "checking": "Kontrol ediliyor …",
+    "downloading": "APK indiriliyor …",
+    "check": "Güncellemeleri kontrol et",
+    "download": "Şimdi indir",
+    "install": "Yüklemeyi başlat",
+    "installFailedTitle": "Yükleme başarısız",
+    "error": "Hata",
+    "unknownSourcesNote": "Not: Tablette dosya/paylaşım uygulaması için „Bilinmeyen kaynaklardan yüklemeye izin ver\" açık olmalıdır."
+  },
   "languageSelector": {
     "de": "Almanca",
     "en": "Ingilizce",

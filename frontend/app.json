@@ -3,6 +3,7 @@
     "name": "Cash Register",
     "slug": "cash-register",
     "version": "1.0.0",
+    "runtimeVersion": "1.0.0",
     "orientation": "portrait",
     "scheme": "cashregister",
     "userInterfaceStyle": "automatic",

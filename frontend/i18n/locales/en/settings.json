@@ -16,6 +16,25 @@
     "description": "View pending payments, retry them, or sync all.",
     "open": "Open Queue"
   },
+  "appUpdate": {
+    "title": "App update",
+    "description": "Checks whether a newer version of the Regkasse POS app is available, downloads the APK and opens the system installer.",
+    "androidOnly": "In-app updates are only available on Android devices.",
+    "currentVersion": "Installed version",
+    "latestVersion": "Latest version",
+    "available": "A newer version is available.",
+    "upToDate": "You are running the latest version.",
+    "mandatory": "This update is strongly recommended by the vendor.",
+    "blocked": "This version is no longer supported. Please update the app before continuing.",
+    "checking": "Checking …",
+    "downloading": "Downloading APK …",
+    "check": "Check for updates",
+    "download": "Download now",
+    "install": "Start installation",
+    "installFailedTitle": "Installation failed",
+    "error": "Error",
+    "unknownSourcesNote": "Note: \"Install from unknown sources\" must be allowed on the tablet for the file/share app."
+  },
   "languageSelector": {
     "de": "Deutsch",
     "en": "English",

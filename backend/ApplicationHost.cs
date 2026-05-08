@@ -89,6 +89,7 @@ builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
     builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
 builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
 builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
+builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
 builder.Services.Configure<EmailSmtpOptions>(builder.Configuration.GetSection(EmailSmtpOptions.SectionName));
 builder.Services.AddHttpClient("LicenseRemote", client =>
 {
@@ -510,6 +511,8 @@ builder.Services.AddScoped<IRksvMonatsbelegPolicy, RksvMonatsbelegPolicy>();
 builder.Services.AddScoped<IMonatsbelegReminderService, MonatsbelegReminderService>();
 builder.Services.AddScoped<IRksvReminderService, RksvReminderService>();
 builder.Services.AddSingleton<IRksvReceiptQrPayloadFormatValidator, RksvReceiptQrPayloadFormatValidator>();
+builder.Services.AddScoped<IRksvComplianceReportService, RksvComplianceReportService>();
+builder.Services.AddScoped<IRksvEvidenceBundleService, RksvEvidenceBundleService>();
 builder.Services.AddScoped<IQrImageService, QrImageService>();
 builder.Services.AddScoped<TableOrderService>(); // Masa siparişleri persistence servisi
 builder.Services.AddScoped<LegacyRouteDeprecationFilter>();

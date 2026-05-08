@@ -5,6 +5,7 @@ import LanguageSelector from '../../components/LanguageSelector';
 import { CashRegisterAssignmentSection } from '../../components/CashRegisterAssignmentSection';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { LicenseTransferHelpSection } from '../../components/LicenseTransferHelpSection';
+import { AppUpdateChecker } from '../../components/AppUpdateChecker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useTimeSyncStatus } from '../../hooks/useTimeSyncStatus';
@@ -96,6 +97,11 @@ export default function SettingsScreen() {
           <Text style={styles.queueLinkText}>{translations.offlineQueueOpen}</Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t('settings:appUpdate.title', { defaultValue: 'App-Aktualisierung' })}</Text>
+        <AppUpdateChecker />
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.otherSettings}</Text>
         <Text style={styles.description}>

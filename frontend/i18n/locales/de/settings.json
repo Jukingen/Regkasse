@@ -16,6 +16,25 @@
     "description": "Ausstehende Zahlungen anzeigen, erneut senden oder alle synchronisieren.",
     "open": "Warteschlange öffnen"
   },
+  "appUpdate": {
+    "title": "App-Aktualisierung",
+    "description": "Prüft, ob eine neuere Version der Regkasse POS App verfügbar ist, lädt die APK herunter und öffnet die Installation.",
+    "androidOnly": "In-App-Updates sind nur auf Android-Geräten verfügbar.",
+    "currentVersion": "Installierte Version",
+    "latestVersion": "Aktuellste Version",
+    "available": "Eine neuere Version ist verfügbar.",
+    "upToDate": "Sie verwenden die neueste Version.",
+    "mandatory": "Diese Aktualisierung wird vom Anbieter dringend empfohlen.",
+    "blocked": "Diese Version wird nicht mehr unterstützt. Bitte aktualisieren Sie die App, bevor Sie sie weiter verwenden.",
+    "checking": "Wird geprüft …",
+    "downloading": "APK wird heruntergeladen …",
+    "check": "Auf Updates prüfen",
+    "download": "Jetzt herunterladen",
+    "install": "Installation starten",
+    "installFailedTitle": "Installation fehlgeschlagen",
+    "error": "Fehler",
+    "unknownSourcesNote": "Hinweis: Auf dem Tablet muss „Installation aus unbekannten Quellen\" für die Datei-/Share-App erlaubt sein."
+  },
   "languageSelector": {
     "de": "Deutsch",
     "en": "English",
