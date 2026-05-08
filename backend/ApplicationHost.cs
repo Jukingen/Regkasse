@@ -88,6 +88,20 @@ builder.Services.Configure<FinanzOnlineSimulationOptions>(
 builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
     builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
 builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
+builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
+builder.Services.Configure<EmailSmtpOptions>(builder.Configuration.GetSection(EmailSmtpOptions.SectionName));
+builder.Services.AddHttpClient("LicenseRemote", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+builder.Services.AddSingleton<ILicenseStorageService, LicenseStorageService>();
+builder.Services.AddSingleton<ILicenseService, LicenseService>();
+// Scoped: holds AppDbContext per request for the issuance audit row.
+builder.Services.AddScoped<ILicenseIssuanceService, LicenseIssuanceService>();
+builder.Services.AddHostedService<LicenseComplianceHostedService>();
+builder.Services.AddSingleton<ILicenseReminderNotificationStore, LicenseReminderNotificationStore>();
+builder.Services.AddSingleton<ILicenseReminderEmailSender, LicenseReminderEmailSender>();
+builder.Services.AddHostedService<LicenseReminderHostedService>();
 builder.Services.AddSingleton<INtpTimeSyncStatus, NtpTimeSyncStatus>();
 // builder.Services.AddScoped<NtpEffectiveSettingsProvider>();
 // builder.Services.AddScoped<INtpEffectiveSettingsProvider>(sp => sp.GetRequiredService<NtpEffectiveSettingsProvider>());
@@ -731,6 +745,7 @@ app.UseCors("AllowAll");
 
 // CorrelationId: propagate from request (X-Correlation-Id) or generate; required for audit traceability
 app.UseMiddleware<KasseAPI_Final.Middleware.CorrelationIdMiddleware>();
+app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
 
 // Public GET for product images saved by admin upload (anonymous; unguessable file names).
 var productMediaOpts = app.Services.GetRequiredService<IOptions<ProductMediaOptions>>().Value;
@@ -769,6 +784,23 @@ app.MapGet("/health", () => "OK");
 app.MapGet("/health/finanzonline", (IServiceProvider services) =>
     Results.Json(FinanzOnlineReadinessEvaluator.EvaluateFromRootServices(services)))
     .AllowAnonymous();
+app.MapGet("/api/health/license", (ILicenseService lic, ILicenseReminderNotificationStore licenseReminders) =>
+{
+    var status = lic.GetStatus();
+    var headerStatus = LicenseMiddleware.ResolveLicenseHeaderStatus(status, lic.IsLicenseSnapshotInitialized);
+    var reminders = licenseReminders.GetReminders();
+    return Results.Json(new
+    {
+        headerStatus,
+        isValid = status.IsValid,
+        isTrial = status.IsTrial,
+        isExpired = status.IsExpired,
+        daysRemaining = status.DaysRemaining,
+        expiryDate = status.ExpiryDate,
+        machineHash = status.MachineHash,
+        reminders,
+    });
+}).AllowAnonymous();
 app.MapGet("/health/auth-schema", async (AppDbContext db) =>
 {
     static async Task<bool> TableExistsAsync(AppDbContext context, string tableName)

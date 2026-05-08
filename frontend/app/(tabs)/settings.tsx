@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { useRouter } from 'expo-router';
 import LanguageSelector from '../../components/LanguageSelector';
 import { CashRegisterAssignmentSection } from '../../components/CashRegisterAssignmentSection';
+import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
+import { LicenseTransferHelpSection } from '../../components/LicenseTransferHelpSection';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { useTimeSyncStatus } from '../../hooks/useTimeSyncStatus';
@@ -23,7 +25,7 @@ function formatDeDateTime(iso: string | null | undefined): string {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { t } = useTranslation(['settings', 'auth', 'common']);
+  const { t } = useTranslation(['settings', 'auth', 'common', 'license']);
   const { logout } = useAuth();
   const { status, loading, error, refetch } = useTimeSyncStatus();
 
@@ -36,6 +38,8 @@ export default function SettingsScreen() {
     offlineQueueTitle: t('settings:offlineQueue.title'),
     offlineQueueDescription: t('settings:offlineQueue.description'),
     offlineQueueOpen: t('settings:offlineQueue.open'),
+    licenseHeading: t('license:modalTitle'),
+    licenseTransferHeading: t('license:transferSectionTitle'),
   }), [t]);
 
   return (
@@ -50,6 +54,17 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <CashRegisterAssignmentSection />
       </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{translations.licenseHeading}</Text>
+        <LicenseStatusIndicator badgeAlignSelf="stretch" expandedTouchTarget />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{translations.licenseTransferHeading}</Text>
+        <LicenseTransferHelpSection />
+      </View>
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Systemzeit (NTP)</Text>
         <Text style={styles.description}>

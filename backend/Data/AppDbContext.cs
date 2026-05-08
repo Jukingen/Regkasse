@@ -118,6 +118,9 @@ namespace KasseAPI_Final.Data
         /// <summary>Hospitality: saat/gün/kasa kapsamında fiyat kuralları (Happy Hour vb.).</summary>
         public DbSet<PricingRule> PricingRules { get; set; }
 
+        /// <summary>Audit trail of admin-issued offline licenses (REGK key + signed JWT). Indexed unique on license_key.</summary>
+        public DbSet<IssuedLicense> IssuedLicenses { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -784,6 +787,32 @@ namespace KasseAPI_Final.Data
             {
                 entity.ToTable("ntp_admin_settings");
                 entity.HasKey(e => e.Id);
+            });
+
+            // Admin-issued offline licenses: unique on the display key, indexed for audit lookups.
+            builder.Entity<IssuedLicense>(entity =>
+            {
+                entity.ToTable("issued_licenses");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.LicenseKey).IsUnique();
+                entity.HasIndex(e => e.IssuedAtUtc);
+                entity.HasIndex(e => e.ExpiryAtUtc);
+                entity.HasIndex(e => e.IsRevoked).HasFilter("is_revoked = TRUE");
+                entity.HasIndex(e => e.SupersededByLicenseId);
+                entity.HasOne(e => e.SupersededByLicense)
+                    .WithMany()
+                    .HasForeignKey(e => e.SupersededByLicenseId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TransferredToLicenseId);
+                entity.HasOne<IssuedLicense>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TransferredToLicenseId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.Property(e => e.LicenseKey).IsRequired();
+                entity.Property(e => e.CustomerName).IsRequired();
+                entity.Property(e => e.SignedJwt).IsRequired();
+                entity.Property(e => e.IssuedAtUtc).IsRequired();
+                entity.Property(e => e.ExpiryAtUtc).IsRequired();
             });
 
             // SystemSettings configuration

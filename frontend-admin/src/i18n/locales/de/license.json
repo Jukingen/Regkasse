@@ -1,0 +1,120 @@
+{
+  "page": {
+    "title": "Lizenz (On-Premise)"
+  },
+  "status": {
+    "label": "Lizenzstatus",
+    "valid": "Gültig",
+    "trial": "Testversion",
+    "expired": "Abgelaufen"
+  },
+  "banner": {
+    "warning": {
+      "title": "Lizenz läuft bald ab",
+      "message": "Ihre Lizenz läuft in {{days}} Tag(en) ab. Bitte rechtzeitig verlängern, um Zahlungsausfälle zu vermeiden.",
+      "messageWithDate": "Ihre Lizenz läuft in {{days}} Tag(en) ab ({{date}}). Bitte rechtzeitig verlängern."
+    },
+    "expired": {
+      "title": "Lizenz abgelaufen",
+      "message": "Die Zahlungserstellung ist gesperrt. Bitte kontaktieren Sie den Support, um die Lizenz zu erneuern.",
+      "messageWithDate": "Abgelaufen am {{date}}. Die Zahlungserstellung ist gesperrt – bitte Support kontaktieren."
+    }
+  },
+  "trialDays": "Verbleibende Testtage",
+  "machineHash": "Maschinen-Fingerprint (SHA-256)",
+  "floatingWarning": "Hinweis: Die letzte Aktivierung erfolgte ohne Offline-Zertifikat (JWT). Bei einer Floating-Lizenz ohne Maschinenbindung ist kein Geräte-Fingerprint erforderlich; teilen Sie den Hash nur bei gebundenen Lizenzen.",
+  "activation": {
+    "title": "Lizenz aktivieren",
+    "licenseKey": "Lizenzschlüssel",
+    "offlineJwt": "Offline-Aktivierungs-JWT (optional)",
+    "offlineJwtHelp": "Nur ausfüllen, wenn Ihr Anbieter ein Zertifikat mitgeliefert hat.",
+    "activate": "Aktivieren",
+    "success": "Lizenz wurde aktiviert.",
+    "failed": "Aktivierung fehlgeschlagen.",
+    "noPermission": "Keine Berechtigung zur Aktivierung (Einstellungen verwalten erforderlich)."
+  },
+  "generation": {
+    "title": "Lizenz generieren",
+    "customerName": "Kundenname",
+    "customerNamePlaceholder": "z.B. Café Adler GmbH",
+    "expiryDate": "Ablaufdatum",
+    "expiryDateHelp": "Letzter gültiger Tag (Ortszeit am Server als 23:59 UTC interpretiert).",
+    "requireFingerprint": "An Maschinen-Fingerprint binden",
+    "requireFingerprintHelp": "Wenn aktiviert, ist die Lizenz nur auf der angegebenen Maschine gültig.",
+    "machineHash": "Maschinen-Fingerprint (SHA-256 hex)",
+    "machineHashPlaceholder": "64-stelliger Hex-Wert vom Kunden-POS",
+    "submit": "Lizenz generieren",
+    "success": "Lizenz erfolgreich generiert.",
+    "failed": "Lizenz konnte nicht generiert werden.",
+    "unavailable": "Lizenzgenerierung ist auf diesem Server nicht aktiviert (Signaturschlüssel fehlt).",
+    "noPermission": "Keine Berechtigung zur Generierung (Einstellungen verwalten erforderlich).",
+    "result": {
+      "title": "Generierte Lizenz",
+      "licenseKey": "Lizenzschlüssel",
+      "signedJwt": "Aktivierungs-JWT",
+      "expiry": "Gültig bis",
+      "warning": "Diese Werte werden nur einmal angezeigt. Bitte sicher an den Kunden übergeben.",
+      "copy": "Kopieren",
+      "copied": "In Zwischenablage kopiert."
+    }
+  },
+  "issued": {
+    "title": "Ausgestellte Lizenzen",
+    "searchPlaceholder": "Kundenname durchsuchen…",
+    "empty": "Keine Lizenz ausgestellt oder keine Treffer für die Suche.",
+    "loadError": "Liste konnte nicht geladen werden.",
+    "columns": {
+      "customerName": "Kundenname",
+      "licenseKey": "Lizenzschlüssel",
+      "expiryDate": "Ablaufdatum",
+      "type": "Typ",
+      "typeFloating": "Floating",
+      "typeBound": "Gebunden",
+      "status": "Status",
+      "statusActive": "Aktiv",
+      "statusSuperseded": "Ersetzt",
+      "statusRevoked": "Widerrufen",
+      "issuedDate": "Ausgestellt am",
+      "actions": "Aktionen"
+    },
+    "copy": "Kopieren",
+    "copied": "In Zwischenablage kopiert.",
+    "copyFailed": "Kopieren fehlgeschlagen.",
+    "revoke": "Widerrufen",
+    "revokeConfirmTitle": "Lizenz widerrufen?",
+    "revokeConfirmDescription": "Der Eintrag wird als widerrufen markiert. Aktivierte Clients mit diesem Schlüssel verlieren die Gültigkeit (je nach Auswertung).",
+    "revokeConfirmCustomerHint": "Kunde: {{customer}}",
+    "revokeConfirmOk": "Widerrufen",
+    "revokeSuccess": "Lizenz wurde widerrufen.",
+    "revokeFailed": "Widerruf fehlgeschlagen.",
+    "renewUpgrade": "Verlängern / Upgrade",
+    "renew": "Verlängern",
+    "renewTitle": "Lizenz verlängern",
+    "renewCustomerHint": "Kunde: {{customer}}",
+    "renewExpiryLabel": "Neues Ablaufdatum",
+    "renewExpiryHelp": "Kalendertag (YYYY-MM-DD); Server setzt Ende des Tages auf 23:59 UTC. Muss in der Zukunft liegen.",
+    "renewSubmit": "Verlängern",
+    "renewSuccess": "Lizenz verlängert. Neuer Schlüssel und JWT werden angezeigt.",
+    "renewFailed": "Verlängerung fehlgeschlagen.",
+    "renewResultTitle": "Neue Lizenz (Verlängerung)",
+    "renewResultWarning": "Der alte Schlüssel ist widerrufen. Diese Werte sicher an den Kunden übergeben.",
+    "renewResultExpiry": "Gültig bis",
+    "upgrade": {
+      "modalTitle": "Lizenz verlängern (Upgrade)",
+      "customerHint": "Kunde: {{customer}}",
+      "currentExpiry": "Aktuelles Ablaufdatum",
+      "newExpiryLabel": "Neues Ablaufdatum",
+      "newExpiryHelp": "Muss nach dem aktuell gespeicherten Ablauf liegen. Kalendertag (YYYY-MM-DD); der Server setzt 23:59 UTC am gewählten Tag.",
+      "reasonLabel": "Grund (optional)",
+      "reasonPlaceholder": "z.B. Vertrag verlängert",
+      "submit": "Upgrade ausführen",
+      "success": "Upgrade abgeschlossen.",
+      "failed": "Upgrade fehlgeschlagen.",
+      "pickAfterExpiry": "Bitte ein Datum nach dem aktuellen Ablauf wählen.",
+      "resultTitle": "Neue Lizenz nach Upgrade",
+      "resultWarning": "Sicher an den Kunden übergeben — diese Daten werden nur hier angezeigt.",
+      "reActivateNotice": "Der Kunde muss die Registrierkasse mit dem neuen Offline-JWT neu aktivieren."
+    }
+  },
+  "supportNotice": "Lizenzschlüssel eingeben. Bei Problemen kontaktieren Sie support@regkasse.at"
+}

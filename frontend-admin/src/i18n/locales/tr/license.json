@@ -1,0 +1,120 @@
+{
+  "page": {
+    "title": "Lisans (on-premise)"
+  },
+  "status": {
+    "label": "Lisans durumu",
+    "valid": "Geçerli",
+    "trial": "Deneme",
+    "expired": "Süresi doldu"
+  },
+  "banner": {
+    "warning": {
+      "title": "Lisans süresi yakında doluyor",
+      "message": "Lisansınız {{days}} gün sonra doluyor. Ödeme aksamalarını önlemek için zamanında yenileyin.",
+      "messageWithDate": "Lisansınız {{days}} gün sonra doluyor ({{date}}). Lütfen zamanında yenileyin."
+    },
+    "expired": {
+      "title": "Lisans süresi doldu",
+      "message": "Ödeme oluşturma engellendi. Lisansı yenilemek için destek ekibiyle iletişime geçin.",
+      "messageWithDate": "{{date}} tarihinde sona erdi. Ödeme oluşturma engellendi — lütfen destek ekibiyle iletişime geçin."
+    }
+  },
+  "trialDays": "Kalan deneme günü",
+  "machineHash": "Makine parmak izi (SHA-256)",
+  "floatingWarning": "Not: Son aktivasyon çevrimdışı JWT olmadan yapıldı. Floating lisans için cihaz parmak izi gerekmez; hash’i yalnızca makineye bağlı lisanslarda paylaşın.",
+  "activation": {
+    "title": "Lisansı etkinleştir",
+    "licenseKey": "Lisans anahtarı",
+    "offlineJwt": "Çevrimdışı JWT (isteğe bağlı)",
+    "offlineJwtHelp": "Yalnızca sağlayıcı sertifika verdiyse doldurun.",
+    "activate": "Etkinleştir",
+    "success": "Lisans etkinleştirildi.",
+    "failed": "Etkinleştirme başarısız.",
+    "noPermission": "Etkinleştirme yetkisi yok (ayarları yönetme gerekli)."
+  },
+  "generation": {
+    "title": "Lisans oluştur",
+    "customerName": "Müşteri adı",
+    "customerNamePlaceholder": "örn. Café Adler GmbH",
+    "expiryDate": "Son kullanma tarihi",
+    "expiryDateHelp": "Geçerli olan son gün (sunucuda 23:59 UTC olarak yorumlanır).",
+    "requireFingerprint": "Makine parmak izine bağla",
+    "requireFingerprintHelp": "Etkinleştirilirse lisans yalnızca belirtilen makinede geçerlidir.",
+    "machineHash": "Makine parmak izi (SHA-256 hex)",
+    "machineHashPlaceholder": "Müşteri POS'undan 64 karakterlik hex",
+    "submit": "Lisans oluştur",
+    "success": "Lisans başarıyla oluşturuldu.",
+    "failed": "Lisans oluşturulamadı.",
+    "unavailable": "Bu sunucuda lisans üretimi etkin değil (imzalama anahtarı yok).",
+    "noPermission": "Oluşturma yetkisi yok (ayarları yönetme gerekli).",
+    "result": {
+      "title": "Oluşturulan lisans",
+      "licenseKey": "Lisans anahtarı",
+      "signedJwt": "Aktivasyon JWT'si",
+      "expiry": "Geçerli olduğu tarih",
+      "warning": "Bu değerler yalnızca bir kez gösterilir. Müşteriye güvenli şekilde iletin.",
+      "copy": "Kopyala",
+      "copied": "Panoya kopyalandı."
+    }
+  },
+  "issued": {
+    "title": "Verilen lisanslar",
+    "searchPlaceholder": "Müşteri adı ara…",
+    "empty": "Kayıtlı lisans yok veya filtreye uyan sonuç yok.",
+    "loadError": "Liste yüklenemedi.",
+    "columns": {
+      "customerName": "Müşteri adı",
+      "licenseKey": "Lisans anahtarı",
+      "expiryDate": "Bitiş tarihi",
+      "type": "Tür",
+      "typeFloating": "Floating",
+      "typeBound": "Bağlı",
+      "status": "Durum",
+      "statusActive": "Etkin",
+      "statusSuperseded": "Üst lisansa geçti",
+      "statusRevoked": "İptal edildi",
+      "issuedDate": "Veriliş tarihi",
+      "actions": "İşlemler"
+    },
+    "copy": "Kopyala",
+    "copied": "Panoya kopyalandı.",
+    "copyFailed": "Kopyalanamadı.",
+    "revoke": "İptal et",
+    "revokeConfirmTitle": "Lisans iptal edilsin mi?",
+    "revokeConfirmDescription": "Kayıt iptal edilmiş olarak işaretlenecek. Bu anahtarı kullanan istemciler lisans doğrulamasından düşecektir.",
+    "revokeConfirmCustomerHint": "Müşteri: {{customer}}",
+    "revokeConfirmOk": "İptal et",
+    "revokeSuccess": "Lisans iptal edildi.",
+    "revokeFailed": "İptal başarısız.",
+    "renewUpgrade": "Yenile / yükselt",
+    "renew": "Yenile",
+    "renewTitle": "Lisansı yenile",
+    "renewCustomerHint": "Müşteri: {{customer}}",
+    "renewExpiryLabel": "Yeni bitiş tarihi",
+    "renewExpiryHelp": "Takvim günü (YYYY-MM-DD); sunucu gün sonunu 23:59 UTC olarak uygular. Gelecekte olmalıdır.",
+    "renewSubmit": "Yenile",
+    "renewSuccess": "Lisans yenilendi. Yeni anahtar ve JWT gösteriliyor.",
+    "renewFailed": "Yenileme başarısız.",
+    "renewResultTitle": "Yeni lisans (yenileme)",
+    "renewResultWarning": "Önceki anahtar iptal edildi. Bu değerleri müşteriye güvenli şekilde iletin.",
+    "renewResultExpiry": "Geçerlilik bitişi",
+    "upgrade": {
+      "modalTitle": "Lisansı yenile (upgrade)",
+      "customerHint": "Müşteri: {{customer}}",
+      "currentExpiry": "Mevcut bitiş tarihi",
+      "newExpiryLabel": "Yeni bitiş tarihi",
+      "newExpiryHelp": "Kayıtlı bitişten sonra olmalı. Takvim günü (YYYY-MM-DD); sunucu o günün sonunu 23:59 UTC uygular.",
+      "reasonLabel": "Not (isteğe bağlı)",
+      "reasonPlaceholder": "ör. sözleşme uzatıldı",
+      "submit": "Upgrade uygula",
+      "success": "Upgrade tamamlandı.",
+      "failed": "Upgrade başarısız.",
+      "pickAfterExpiry": "Bitiş tarihinden sonraki bir gün seçin.",
+      "resultTitle": "Upgrade sonrası yeni lisans",
+      "resultWarning": "Bu değerleri müşteriye güvenli iletin — yalnızca burada gösterilir.",
+      "reActivateNotice": "Müşteri POS'u yeni çevrimdışı JWT ile yeniden aktive etmelidir."
+    }
+  },
+  "supportNotice": "Lisans anahtarını girin. Sorun olursa support@regkasse.at adresine yazın."
+}

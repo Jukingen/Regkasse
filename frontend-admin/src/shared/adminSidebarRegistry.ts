@@ -58,7 +58,8 @@ export type SidebarIconToken =
     | 'CloudServerOutlined'
     | 'WalletOutlined'
     | 'ClockCircleOutlined'
-    | 'CloudDownloadOutlined';
+    | 'CloudDownloadOutlined'
+    | 'KeyOutlined';
 
 export type SidebarNavCatalogItem = {
     /** Stable id for tests and layout references */
@@ -305,6 +306,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.timeSync',
         icon: 'ClockCircleOutlined',
     },
+    licenseManagement: {
+        id: 'licenseManagement',
+        menuKey: '/admin/license',
+        href: '/admin/license',
+        labelKey: 'nav.licenseManagement',
+        icon: 'KeyOutlined',
+    },
 };
 
 export const SIDEBAR_DOMAIN_GROUP_META: Record<
@@ -447,7 +455,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
                 labelKey: 'nav.settingsHub',
                 icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'paymentMethods', 'backupDr', 'timeSync'],
+                catalogIds: ['companySettings', 'paymentMethods', 'backupDr', 'timeSync', 'licenseManagement'],
             },
         ],
     },

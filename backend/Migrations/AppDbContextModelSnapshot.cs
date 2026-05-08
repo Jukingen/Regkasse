@@ -2400,6 +2400,97 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("invoices");
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.IssuedLicense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("customer_name");
+
+                    b.Property<DateTime>("ExpiryAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expiry_at_utc");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_revoked");
+
+                    b.Property<DateTime>("IssuedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("issued_at_utc");
+
+                    b.Property<string>("IssuedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("issued_by_user_id");
+
+                    b.Property<string>("LicenseKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("license_key");
+
+                    b.Property<string>("MachineHashHex")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("machine_hash_hex");
+
+                    b.Property<bool>("RequireFingerprint")
+                        .HasColumnType("boolean")
+                        .HasColumnName("require_fingerprint");
+
+                    b.Property<string>("RevocationReason")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("revocation_reason");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at_utc");
+
+                    b.Property<string>("RevokedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("revoked_by_user_id");
+
+                    b.Property<string>("SignedJwt")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("signed_jwt");
+
+                    b.Property<Guid?>("SupersededByLicenseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("superseded_by_license_id");
+
+                    b.Property<Guid?>("TransferredToLicenseId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("transferred_to_license_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpiryAtUtc");
+
+                    b.HasIndex("IsRevoked")
+                        .HasFilter("is_revoked = TRUE");
+
+                    b.HasIndex("IssuedAtUtc");
+
+                    b.HasIndex("LicenseKey")
+                        .IsUnique();
+
+                    b.HasIndex("SupersededByLicenseId");
+
+                    b.HasIndex("TransferredToLicenseId");
+
+                    b.ToTable("issued_licenses", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.JahresberichtReport", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6564,6 +6655,21 @@ namespace KasseAPI_Final.Migrations
                     b.HasOne("KasseAPI_Final.Models.Customer", null)
                         .WithMany("Invoices")
                         .HasForeignKey("CustomerId");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.IssuedLicense", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.IssuedLicense", "SupersededByLicense")
+                        .WithMany()
+                        .HasForeignKey("SupersededByLicenseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("KasseAPI_Final.Models.IssuedLicense", null)
+                        .WithMany()
+                        .HasForeignKey("TransferredToLicenseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("SupersededByLicense");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.JahresberichtReport", b =>

@@ -63,6 +63,7 @@ namespace KasseAPI_Final.Services
         private readonly IDataProtectionProvider _dataProtectionProvider;
         private readonly INtpEffectiveSettingsProvider _ntpEffectiveSettings;
         private readonly INtpTimeSyncStatus _ntpTimeSyncStatus;
+        private readonly ILicenseService? _licenseService;
 
         public PaymentService(
             AppDbContext context,
@@ -91,7 +92,8 @@ namespace KasseAPI_Final.Services
             INtpEffectiveSettingsProvider? ntpEffectiveSettings = null,
             INtpTimeSyncStatus? ntpTimeSyncStatus = null,
             ITseHealthMonitor? tseHealthMonitor = null,
-            IDataProtectionProvider? dataProtectionProvider = null)
+            IDataProtectionProvider? dataProtectionProvider = null,
+            ILicenseService? licenseService = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -120,6 +122,7 @@ namespace KasseAPI_Final.Services
             _ntpTimeSyncStatus = ntpTimeSyncStatus ?? PermissiveNtpTimeSyncStatus.Instance;
             _tseHealthMonitor = tseHealthMonitor ?? AlwaysOnlineTseHealthMonitor.Instance;
             _dataProtectionProvider = dataProtectionProvider ?? FallbackOfflinePayloadProtection;
+            _licenseService = licenseService;
         }
 
         /// <summary>
@@ -144,12 +147,48 @@ namespace KasseAPI_Final.Services
             }
         }
 
+        /// <summary>
+        /// Ücretli lisans veya aktif trial yoksa <see cref="LicenseExpiredException"/> fırlatır.
+        /// Tek noktadan ödeme oluşturma akışını korur; GET ve admin panel rotalarına dokunmaz.
+        /// </summary>
+        private void EnsureLicenseNotExpired()
+        {
+            // DI kayıt edilmemişse (ör. eski test kurulumları) sessizce geçer; üretimde her zaman kayıtlıdır.
+            if (_licenseService is null)
+                return;
+
+            var status = _licenseService.GetStatus();
+
+            // Geçerli ücretli lisans varsa ya da trial hâlâ aktifse engelleme.
+            var hasValidPaidLicense = status.IsValid;
+            var hasActiveTrial = status.IsTrial && status.DaysRemaining > 0;
+            if (hasValidPaidLicense || hasActiveTrial)
+                return;
+
+            _logger.LogWarning(
+                "Payment blocked: license expired (IsValid={IsValid}, IsTrial={IsTrial}, DaysRemaining={DaysRemaining}, MachineHashPrefix={MachineHashPrefix})",
+                status.IsValid,
+                status.IsTrial,
+                status.DaysRemaining,
+                string.IsNullOrEmpty(status.MachineHash) || status.MachineHash.Length <= 12
+                    ? status.MachineHash
+                    : status.MachineHash[..12]);
+
+            throw new LicenseExpiredException();
+        }
+
         private async Task<PaymentResult> CreatePaymentCoreAsync(
             CreatePaymentRequest request,
             string userId,
             Guid? offlineTransactionId = null,
             Guid? offlineReplayBatchCorrelationId = null)
         {
+            // Lisans kontrolü: trial bitmiş ve geçerli ücretli lisans yoksa ödeme oluşturmayı engelle.
+            // GET istekleri ve admin panel erişimi etkilenmez; yalnızca ödeme akışı bloke edilir.
+            // Try bloğundan önce yapılır ki aşağıdaki genel catch (Exception) bloğu exception'ı yutmasın
+            // ve LicenseExpiredException controller katmanına kadar yayılabilsin.
+            EnsureLicenseNotExpired();
+
             try
             {
                 PaymentActorConstraints.EnsurePrincipalDerivedActor(userId);

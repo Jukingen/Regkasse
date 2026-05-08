@@ -39,6 +39,7 @@
   "paymentMethods": "Payment methods",
   "backupDr": "Backup & DR",
   "timeSync": "Time sync",
+  "licenseManagement": "License",
   "myProfile": "My profile",
   "logout": "Log out",
   "rksvOperationsOverview": "RKSV overview",

@@ -54,7 +54,8 @@
         "benefits",
         "backupDr",
         "customers",
-        "invoices"
+        "invoices",
+        "license"
       ]
     }
   }

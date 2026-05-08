@@ -12,6 +12,7 @@ import enCustomers from './locales/en/customers.json';
 import enEmployees from './locales/en/employees.json';
 import enNavigation from './locales/en/navigation.json';
 import enInvoices from './locales/en/invoices.json';
+import enLicense from './locales/en/license.json';
 import enOrders from './locales/en/orders.json';
 import enPayment from './locales/en/payment.json';
 import enProducts from './locales/en/products.json';
@@ -27,6 +28,7 @@ import deCustomers from './locales/de/customers.json';
 import deEmployees from './locales/de/employees.json';
 import deNavigation from './locales/de/navigation.json';
 import deInvoices from './locales/de/invoices.json';
+import deLicense from './locales/de/license.json';
 import deOrders from './locales/de/orders.json';
 import dePayment from './locales/de/payment.json';
 import deProducts from './locales/de/products.json';
@@ -42,6 +44,7 @@ import trCustomers from './locales/tr/customers.json';
 import trEmployees from './locales/tr/employees.json';
 import trNavigation from './locales/tr/navigation.json';
 import trInvoices from './locales/tr/invoices.json';
+import trLicense from './locales/tr/license.json';
 import trOrders from './locales/tr/orders.json';
 import trPayment from './locales/tr/payment.json';
 import trProducts from './locales/tr/products.json';
@@ -73,6 +76,7 @@ export const FRONTEND_REGISTERED_NAMESPACES = [
   'customers',
   'employees',
   'invoices',
+  'license',
   'navigation',
   'orders',
   'payment',
@@ -91,6 +95,7 @@ export const resources = {
     customers: enCustomers,
     employees: enEmployees,
     invoices: enInvoices,
+    license: enLicense,
     navigation: enNavigation,
     orders: enOrders,
     payment: enPayment,
@@ -107,6 +112,7 @@ export const resources = {
     customers: deCustomers,
     employees: deEmployees,
     invoices: deInvoices,
+    license: deLicense,
     navigation: deNavigation,
     orders: deOrders,
     payment: dePayment,
@@ -123,6 +129,7 @@ export const resources = {
     customers: trCustomers,
     employees: trEmployees,
     invoices: trInvoices,
+    license: trLicense,
     navigation: trNavigation,
     orders: trOrders,
     payment: trPayment,

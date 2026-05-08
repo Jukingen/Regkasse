@@ -26,6 +26,7 @@ import {
 } from '@/shared/adminSidebarNavigation';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
+import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
@@ -355,6 +356,7 @@ export default function DashboardLayout({
                                 overflow: 'initial',
                             }}
                         >
+                            <LicenseExpiryBanner />
                             <main id="main-content" tabIndex={-1}>
                                 {children}
                             </main>

@@ -7,6 +7,8 @@ import { View, Text, Pressable, StyleSheet, Alert } from 'react-native';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
+import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import PaymentModal from '../../components/PaymentModal';
 import { TimeSyncBanner } from '../../components/TimeSyncBanner';
 import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
@@ -16,7 +18,7 @@ import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessio
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
-import { SoftColors, SoftShadows } from '../../constants/SoftTheme';
+import { SoftColors, SoftShadows, SoftSpacing } from '../../constants/SoftTheme';
 import { useAuth } from '../../contexts/AuthContext';
 import { PosRegisterReadinessProvider, usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
 import { TseHealthProvider } from '../../contexts/TseHealthContext';
@@ -109,6 +111,10 @@ function PosTabsInner({
     <TseHealthProvider>
       <View style={{ flex: 1 }}>
         <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
+        <LicenseExpiryBanner />
+        <View style={styles.licenseStatusBar}>
+          <LicenseStatusIndicator />
+        </View>
         <TimeSyncBanner />
         <TseStatusBanner />
       <MonatsbelegSessionBlockModal />
@@ -306,6 +312,16 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+    licenseStatusBar: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        paddingHorizontal: SoftSpacing.sm,
+        paddingVertical: 6,
+        backgroundColor: SoftColors.bgPrimary,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: SoftColors.border,
+    },
     cartTabButton: {
         flex: 1,
         justifyContent: 'center',

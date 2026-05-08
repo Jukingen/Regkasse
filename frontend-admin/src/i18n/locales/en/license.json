@@ -1,0 +1,120 @@
+{
+  "page": {
+    "title": "License (on-premise)"
+  },
+  "status": {
+    "label": "License status",
+    "valid": "Valid",
+    "trial": "Trial",
+    "expired": "Expired"
+  },
+  "banner": {
+    "warning": {
+      "title": "License expiring soon",
+      "message": "Your license expires in {{days}} day(s). Please renew in time to avoid payment outages.",
+      "messageWithDate": "Your license expires in {{days}} day(s) ({{date}}). Please renew in time."
+    },
+    "expired": {
+      "title": "License expired",
+      "message": "Payment creation is blocked. Please contact support to renew the license.",
+      "messageWithDate": "Expired on {{date}}. Payment creation is blocked — please contact support."
+    }
+  },
+  "trialDays": "Trial days remaining",
+  "machineHash": "Machine fingerprint (SHA-256)",
+  "floatingWarning": "Note: The last activation used no offline certificate (JWT). For a floating license, no device fingerprint is required; share the hash only for machine-bound licenses.",
+  "activation": {
+    "title": "Activate license",
+    "licenseKey": "License key",
+    "offlineJwt": "Offline activation JWT (optional)",
+    "offlineJwtHelp": "Only if your vendor supplied a certificate.",
+    "activate": "Activate",
+    "success": "License activated.",
+    "failed": "Activation failed.",
+    "noPermission": "No permission to activate (settings manage required)."
+  },
+  "generation": {
+    "title": "Generate license",
+    "customerName": "Customer name",
+    "customerNamePlaceholder": "e.g. Café Adler GmbH",
+    "expiryDate": "Expiry date",
+    "expiryDateHelp": "Last valid day (interpreted by the server as 23:59 UTC).",
+    "requireFingerprint": "Bind to machine fingerprint",
+    "requireFingerprintHelp": "If enabled, the license is only valid on the specified machine.",
+    "machineHash": "Machine fingerprint (SHA-256 hex)",
+    "machineHashPlaceholder": "64-char hex from the customer POS",
+    "submit": "Generate license",
+    "success": "License generated successfully.",
+    "failed": "Could not generate the license.",
+    "unavailable": "License generation is not enabled on this server (signing key missing).",
+    "noPermission": "No permission to generate (settings manage required).",
+    "result": {
+      "title": "Generated license",
+      "licenseKey": "License key",
+      "signedJwt": "Activation JWT",
+      "expiry": "Valid until",
+      "warning": "These values are shown only once. Hand them to the customer securely.",
+      "copy": "Copy",
+      "copied": "Copied to clipboard."
+    }
+  },
+  "issued": {
+    "title": "Issued licenses",
+    "searchPlaceholder": "Search customer name…",
+    "empty": "No licenses issued or no matching rows.",
+    "loadError": "Could not load the list.",
+    "columns": {
+      "customerName": "Customer name",
+      "licenseKey": "License key",
+      "expiryDate": "Expiry date",
+      "type": "Type",
+      "typeFloating": "Floating",
+      "typeBound": "Bound",
+      "status": "Status",
+      "statusActive": "Active",
+      "statusSuperseded": "Superseded",
+      "statusRevoked": "Revoked",
+      "issuedDate": "Issued date",
+      "actions": "Actions"
+    },
+    "copy": "Copy",
+    "copied": "Copied to clipboard.",
+    "copyFailed": "Could not copy.",
+    "revoke": "Revoke",
+    "revokeConfirmTitle": "Revoke license?",
+    "revokeConfirmDescription": "The license will be marked as revoked. Clients using this key will stop validating as licensed (according to enforcement).",
+    "revokeConfirmCustomerHint": "Customer: {{customer}}",
+    "revokeConfirmOk": "Revoke",
+    "revokeSuccess": "License revoked.",
+    "revokeFailed": "Revocation failed.",
+    "renewUpgrade": "Renew / Upgrade",
+    "renew": "Renew",
+    "renewTitle": "Renew license",
+    "renewCustomerHint": "Customer: {{customer}}",
+    "renewExpiryLabel": "New expiry date",
+    "renewExpiryHelp": "Calendar day (YYYY-MM-DD); server uses end-of-day 23:59 UTC. Must be in the future.",
+    "renewSubmit": "Renew",
+    "renewSuccess": "License renewed. New key and JWT are shown.",
+    "renewFailed": "Renewal failed.",
+    "renewResultTitle": "New license (renewal)",
+    "renewResultWarning": "The previous key is revoked. Hand these values to the customer securely.",
+    "renewResultExpiry": "Valid until",
+    "upgrade": {
+      "modalTitle": "Renew license (upgrade)",
+      "customerHint": "Customer: {{customer}}",
+      "currentExpiry": "Current expiry date",
+      "newExpiryLabel": "New expiry date",
+      "newExpiryHelp": "Must be after the stored expiry. Calendar day (YYYY-MM-DD); the server uses end of that day at 23:59 UTC.",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "e.g. contract extended",
+      "submit": "Apply upgrade",
+      "success": "Upgrade completed.",
+      "failed": "Upgrade failed.",
+      "pickAfterExpiry": "Please choose a date after the current expiry.",
+      "resultTitle": "New license after upgrade",
+      "resultWarning": "Hand these values to the customer securely — they are only shown here.",
+      "reActivateNotice": "The customer must re-activate the POS with the new offline JWT."
+    }
+  },
+  "supportNotice": "Enter your license key. If you need help, contact support@regkasse.at"
+}
