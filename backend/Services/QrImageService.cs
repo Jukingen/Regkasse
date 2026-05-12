@@ -107,52 +107,80 @@ public class QrImageService : IQrImageService
     /// <summary>
     /// Generates PNG bytes: layered RKSV candidates, then QR versions 10–20 (then 1–9), ECC M/L; last resort UTF-8 truncate to 2200 bytes and retry same version sweep.
     /// </summary>
-    private byte[] GeneratePng(string payload, decimal voucherRedemptionGross)
+    /// <inheritdoc />
+    public byte[]? GetQrPngFromExactPayload(string? payload)
     {
-        byte[]? TryEncodeWithVersionSweep(string text)
+        if (string.IsNullOrWhiteSpace(payload))
+            return null;
+
+        var text = payload.Trim();
+        var png = TryEncodePayloadToPng(text);
+        if (png != null)
+            return png;
+
+        var truncated = TruncateStringToUtf8ByteLength(text, PngPayloadMaxUtf8Bytes);
+        if (truncated.Length > 0 && !string.Equals(truncated, text, StringComparison.Ordinal))
         {
-            if (string.IsNullOrEmpty(text))
-                return null;
+            _logger.LogWarning(
+                "QR reprint PNG: UTF-8 truncation to {MaxBytes} bytes after version sweep; original length {OriginalLen} chars",
+                PngPayloadMaxUtf8Bytes,
+                text.Length);
+            var pngTrunc = TryEncodePayloadToPng(truncated);
+            if (pngTrunc != null)
+                return pngTrunc;
+        }
 
-            foreach (var ecc in new[] { QRCodeGenerator.ECCLevel.M, QRCodeGenerator.ECCLevel.L })
+        _logger.LogError("QR reprint PNG encoding failed for payload length {Len}", text.Length);
+        return null;
+    }
+
+    /// <summary>Single-string QR PNG (version / ECC sweep). Used for fiscal reprint from stored payload only.</summary>
+    private static byte[]? TryEncodePayloadToPng(string text)
+    {
+        if (string.IsNullOrEmpty(text))
+            return null;
+
+        foreach (var ecc in new[] { QRCodeGenerator.ECCLevel.M, QRCodeGenerator.ECCLevel.L })
+        {
+            for (var version = MinQrVersion; version <= MaxQrVersion; version++)
             {
-                for (var version = MinQrVersion; version <= MaxQrVersion; version++)
+                try
                 {
-                    try
-                    {
-                        using var gen = new QRCodeGenerator();
-                        using var qrData = gen.CreateQrCode(text, ecc, false, false, QRCodeGenerator.EciMode.Default, version);
-                        using var pngQr = new PngByteQRCode(qrData);
-                        return pngQr.GetGraphic(PixelsPerModule, drawQuietZones: true);
-                    }
-                    catch (DataTooLongException)
-                    {
-                        // next version
-                    }
+                    using var gen = new QRCodeGenerator();
+                    using var qrData = gen.CreateQrCode(text, ecc, false, false, QRCodeGenerator.EciMode.Default, version);
+                    using var pngQr = new PngByteQRCode(qrData);
+                    return pngQr.GetGraphic(PixelsPerModule, drawQuietZones: true);
                 }
-
-                for (var version = 1; version < MinQrVersion; version++)
+                catch (DataTooLongException)
                 {
-                    try
-                    {
-                        using var gen = new QRCodeGenerator();
-                        using var qrData = gen.CreateQrCode(text, ecc, false, false, QRCodeGenerator.EciMode.Default, version);
-                        using var pngQr = new PngByteQRCode(qrData);
-                        return pngQr.GetGraphic(PixelsPerModule, drawQuietZones: true);
-                    }
-                    catch (DataTooLongException)
-                    {
-                        // next version
-                    }
+                    // next version
                 }
             }
 
-            return null;
+            for (var version = 1; version < MinQrVersion; version++)
+            {
+                try
+                {
+                    using var gen = new QRCodeGenerator();
+                    using var qrData = gen.CreateQrCode(text, ecc, false, false, QRCodeGenerator.EciMode.Default, version);
+                    using var pngQr = new PngByteQRCode(qrData);
+                    return pngQr.GetGraphic(PixelsPerModule, drawQuietZones: true);
+                }
+                catch (DataTooLongException)
+                {
+                    // next version
+                }
+            }
         }
 
+        return null;
+    }
+
+    private byte[] GeneratePng(string payload, decimal voucherRedemptionGross)
+    {
         foreach (var candidate in BuildEncodingCandidates(payload, voucherRedemptionGross))
         {
-            var png = TryEncodeWithVersionSweep(candidate);
+            var png = TryEncodePayloadToPng(candidate);
             if (png != null)
                 return png;
         }
@@ -164,7 +192,7 @@ public class QrImageService : IQrImageService
                 "QR PNG: UTF-8 truncation to {MaxBytes} bytes after version 1–20 sweep; original length {OriginalLen} chars",
                 PngPayloadMaxUtf8Bytes,
                 payload.Length);
-            var pngTrunc = TryEncodeWithVersionSweep(truncated);
+            var pngTrunc = TryEncodePayloadToPng(truncated);
             if (pngTrunc != null)
                 return pngTrunc;
         }

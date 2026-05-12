@@ -42,6 +42,7 @@
     "colCashier": "Cashier (id)",
     "colSpecialKind": "Special receipt (RKSV)",
     "colGrandTotal": "Grand total",
+    "colPdfReprint": "Reprint",
     "colNext": "Action",
     "open": "Open",
     "paginationTotal": "{{from}}–{{to}} of {{total}} receipts"

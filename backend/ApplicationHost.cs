@@ -39,11 +39,59 @@ using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
 using Microsoft.Extensions.Configuration;
+using System.Net;
+using System.Net.Sockets;
 
 namespace KasseAPI_Final;
 
 internal static class ApplicationHost
 {
+    /// <summary>
+    /// Development-only CORS origin check: loopback (any port) and RFC1918 IPv4 (Expo on LAN).
+    /// Avoids brittle hard-coded LAN IPs and IPv6 (::1) mismatches vs localhost.
+    /// </summary>
+    private static bool IsTrustedDevelopmentCorsOrigin(string? origin)
+    {
+        if (string.IsNullOrWhiteSpace(origin)) return false;
+        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return false;
+        if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)) return true;
+        if (!IPAddress.TryParse(uri.Host, out var ip)) return false;
+        if (IPAddress.IsLoopback(ip)) return true;
+        if (ip.AddressFamily != AddressFamily.InterNetwork) return false;
+        var b = ip.GetAddressBytes();
+        if (b.Length != 4) return false;
+        if (b[0] == 10) return true;
+        if (b[0] == 172 && b[1] >= 16 && b[1] <= 31) return true;
+        return b[0] == 192 && b[1] == 168;
+    }
+
+    /// <summary>
+    /// Development HTTP listen port: first non-default port from semicolon-separated configuration <c>Urls</c>, else 5184.
+    /// </summary>
+    private static int GetDevelopmentHttpListenPort(IConfiguration configuration)
+    {
+        const int defaultPort = 5184;
+        var raw = configuration["Urls"];
+        if (string.IsNullOrWhiteSpace(raw))
+            return defaultPort;
+
+        foreach (var segment in raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!Uri.TryCreate(segment, UriKind.Absolute, out var uri))
+                continue;
+            if (uri.Port <= 0)
+                continue;
+            var isDefaultWellKnown =
+                (uri.Scheme == Uri.UriSchemeHttp && uri.Port == 80)
+                || (uri.Scheme == Uri.UriSchemeHttps && uri.Port == 443);
+            if (!isDefaultWellKnown)
+                return uri.Port;
+        }
+
+        return defaultPort;
+    }
+
     public static WebApplication CreateWebApplication(string[] args)
     {
         WebApplicationBuilder builder;
@@ -88,6 +136,8 @@ builder.Services.Configure<FinanzOnlineSimulationOptions>(
 builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
     builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
 builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
+builder.Services.Configure<OfflineVoucherEncryptionOptions>(
+    builder.Configuration.GetSection(OfflineVoucherEncryptionOptions.SectionName));
 builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
 builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
 builder.Services.Configure<EmailSmtpOptions>(builder.Configuration.GetSection(EmailSmtpOptions.SectionName));
@@ -132,13 +182,14 @@ else
 // Local development için explicit host binding; production host binding platform tarafından yönetilmelidir.
 if (isDevelopment && !OpenApiExportMode.IsEnabled)
 {
+    var devListenPort = GetDevelopmentHttpListenPort(builder.Configuration);
+    // Single listen: LAN and loopback share one port (from Urls / default 5184).
     builder.WebHost.ConfigureKestrel(serverOptions =>
     {
-        serverOptions.ListenAnyIP(5183); // 0.0.0.0:5183
-        serverOptions.ListenLocalhost(5183); // 127.0.0.1:5183 (backward compatibility)
+        serverOptions.ListenAnyIP(devListenPort);
     });
 
-    Console.WriteLine("🌐 Development host binding: 0.0.0.0:5183 and localhost:5183");
+    Console.WriteLine($"🌐 Development host binding: 0.0.0.0:{devListenPort} (includes localhost and LAN; set Urls in appsettings.Development.json to change)");
 }
 
 // Entity Framework ve PostgreSQL bağlantısı
@@ -166,7 +217,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         options.EnableSensitiveDataLogging();
         options.EnableDetailedErrors();
     }
-});
+}, ServiceLifetime.Scoped, ServiceLifetime.Singleton);
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
 {
@@ -178,7 +229,7 @@ builder.Services.AddDbContextFactory<AppDbContext>(options =>
         options.EnableSensitiveDataLogging();
         options.EnableDetailedErrors();
     }
-}, ServiceLifetime.Scoped);
+});
 
 builder.Services.AddDataProtection();
 
@@ -320,17 +371,7 @@ builder.Services.AddCors(options =>
 
         if (isDevelopment)
         {
-            policy.WithOrigins(
-                      "http://localhost:8081",     // Frontend Expo dev server
-                      "http://localhost:3000",     // Frontend web dev server
-                      "http://localhost:19006",    // Expo web
-                      "http://192.168.1.2:8081",  // iOS Expo client
-                      "http://192.168.1.2:3000",  // iOS Web client
-                      "http://192.168.1.2:19006", // iOS Expo web
-                      "http://localhost:5173",     // Vite dev server
-                      "http://127.0.0.1:8081",    // Localhost alternative
-                      "http://127.0.0.1:3000"     // Localhost alternative
-                  )
+            policy.SetIsOriginAllowed(IsTrustedDevelopmentCorsOrigin)
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();
@@ -483,6 +524,7 @@ builder.Services.AddScoped<IRksvFinanzOnlineSubmissionClient>(sp =>
 builder.Services.AddScoped<IFinanzOnlineService, FinanzOnlineService>();
 builder.Services.AddScoped<IFinanzOnlineAdminConnectivityService, FinanzOnlineAdminConnectivityService>();
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
+builder.Services.AddScoped<IDailyClosingService, DailyClosingService>();
 builder.Services.AddScoped<IOperationalReportingService, OperationalReportingService>();
 builder.Services.AddScoped<ITagesberichtService, TagesberichtService>();
 builder.Services.AddScoped<IMonatsberichtService, MonatsberichtService>();
@@ -491,6 +533,8 @@ builder.Services.AddScoped<IReportSubmissionCompatibilityService, ReportSubmissi
 builder.Services.AddScoped<IReportHistoryService, ReportHistoryService>();
 builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi eklendi
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
+// Watermarked receipt reprint PDF (no new TSE signing); routes: GET api/admin/payments/{id}/reprint-pdf and .../reprint.
+builder.Services.AddScoped<IReceiptPdfService, ReceiptPdfService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 // builder.Services.AddScoped<ITestService, TestService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle
 builder.Services.AddScoped<IProductModifierValidationService, NoOpProductModifierValidationService>();
@@ -657,6 +701,7 @@ builder.Services.AddHttpContextAccessor();
             app.MapMetrics();
             app.MapGet("/", () => "Kasse API is running!");
             app.MapGet("/health", () => "OK");
+            app.MapGet("/api/health", () => "OK");
         }
 
         return app;
@@ -711,8 +756,9 @@ if (!OpenApiExportMode.IsEnabled)
 // Port ayarını sadece development ortamında zorla.
 if (app.Environment.IsDevelopment())
 {
+    var devListenPort = GetDevelopmentHttpListenPort(app.Configuration);
     app.Urls.Clear();
-    app.Urls.Add("http://localhost:5183");
+    app.Urls.Add($"http://localhost:{devListenPort}");
 }
 
 // Middleware pipeline
@@ -784,6 +830,8 @@ app.MapMetrics();
 // Test endpoint
 app.MapGet("/", () => "Kasse API is running!");
 app.MapGet("/health", () => "OK");
+// Alias for scripts/docs that probe /api/health (same liveness as /health).
+app.MapGet("/api/health", () => "OK");
 app.MapGet("/health/finanzonline", (IServiceProvider services) =>
     Results.Json(FinanzOnlineReadinessEvaluator.EvaluateFromRootServices(services)))
     .AllowAnonymous();
@@ -839,11 +887,12 @@ app.MapGet("/health/auth-schema", async (AppDbContext db) =>
     });
 });
 
+var devPortForBanner = GetDevelopmentHttpListenPort(app.Configuration);
 Console.WriteLine("=== KASSE API STARTED ===");
-Console.WriteLine("=== LOCALHOST: http://localhost:5183 ===");
-Console.WriteLine("=== NETWORK: http://0.0.0.0:5183 ===");
-Console.WriteLine("=== LOCAL IP: http://192.168.1.2:5183 ===");
-Console.WriteLine("=== SWAGGER: http://localhost:5183/ ===");
+Console.WriteLine($"=== LOCALHOST: http://localhost:{devPortForBanner} ===");
+Console.WriteLine($"=== NETWORK: http://0.0.0.0:{devPortForBanner} ===");
+Console.WriteLine($"=== LOCAL IP: http://192.168.1.2:{devPortForBanner} ===");
+Console.WriteLine($"=== SWAGGER: http://localhost:{devPortForBanner}/ ===");
 
 BackupStartupDiagnostics.LogAtStartup(app.Services);
 

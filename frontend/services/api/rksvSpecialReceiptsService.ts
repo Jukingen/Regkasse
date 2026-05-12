@@ -68,12 +68,30 @@ export async function postCreateJahresbeleg(body: CreateJahresbelegRequest): Pro
   return apiClient.post<CreateJahresbelegResponse>('/rksv/special-receipts/jahresbeleg', body);
 }
 
-/** GET /api/rksv/monatsbeleg/status/{cashRegisterId} */
+/** GET /api/rksv/monatsbeleg/status/{cashRegisterId} — matches backend `MonatsbelegStatusDto` (camelCase JSON). */
+export type MissingMonthDto = {
+  year: number;
+  month: number;
+  isOverdue: boolean;
+  /** ISO date string (Vienna legal deadline). */
+  deadline: string;
+};
+
 export type MonatsbelegStatusDto = {
+  lastCompletedMonth: string | null;
+  nextRequiredMonth: string | null;
+  missingMonths: MissingMonthDto[];
+  requiresAttention: boolean;
+  totalMissingCount: number;
   isRequired: boolean;
   daysUntilDeadline: number;
   lastMonatsbelegDate: string | null;
   warningLevel: string;
+  currentMonthExists: boolean;
+  lastMonthExists: boolean;
+  currentMonthOverdue: boolean;
+  lastMonthMissing: boolean;
+  warningMessage: string | null;
 };
 
 export async function getMonatsbelegStatus(cashRegisterId: string): Promise<MonatsbelegStatusDto> {

@@ -27,6 +27,21 @@ public sealed class RksvReminderMonatsbelegDto
 
     /// <summary>ok | upcoming | overdue</summary>
     public required string Status { get; init; }
+
+    /// <summary>Monatsbeleg present for current Vienna month (policy includes December Jahresbeleg substitute when configured).</summary>
+    public bool CurrentMonthExists { get; init; }
+
+    /// <summary>Monatsbeleg present for the immediately preceding Vienna calendar month.</summary>
+    public bool LastMonthExists { get; init; }
+
+    /// <summary>No current-month Monatsbeleg and Vienna calendar day &gt; 7 (grace elapsed).</summary>
+    public bool CurrentMonthOverdue { get; init; }
+
+    /// <summary>Previous Vienna month has no Monatsbeleg (within obligation window).</summary>
+    public bool LastMonthMissing { get; init; }
+
+    /// <summary>German operator hint; null when nothing specific.</summary>
+    public string? WarningMessageDe { get; init; }
 }
 
 public sealed class RksvReminderJahresbelegDto

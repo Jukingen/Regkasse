@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Tse;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,7 +43,9 @@ public sealed class TseHealthCheckService : BackgroundService
 
             if (opts.IsOff || opts.UseSoftTseWhenNoDevice)
             {
+                var beforeSoft = _state.Snapshot;
                 _state.ApplyProbeResult(pingSucceeded: true, errorSafe: null);
+                await TryPersistHealthChangeAuditAsync(beforeSoft, _state.Snapshot, stoppingToken).ConfigureAwait(false);
                 try
                 {
                     await Task.Delay(interval, stoppingToken).ConfigureAwait(false);
@@ -58,6 +61,7 @@ public sealed class TseHealthCheckService : BackgroundService
             {
                 await using var scope = _scopeFactory.CreateAsyncScope();
                 var tse = scope.ServiceProvider.GetRequiredService<ITseService>();
+                var before = _state.Snapshot;
                 var status = await tse.GetDeviceStatusAsync().ConfigureAwait(false);
                 var ok = status.IsConnected && status.IsReady;
                 var err = ok
@@ -67,6 +71,7 @@ public sealed class TseHealthCheckService : BackgroundService
                         : status.ErrorMessage;
 
                 _state.ApplyProbeResult(ok, err);
+                await TryPersistHealthChangeAuditAsync(before, _state.Snapshot, stoppingToken).ConfigureAwait(false);
                 if (!ok)
                 {
                     _logger.LogWarning(
@@ -80,9 +85,11 @@ public sealed class TseHealthCheckService : BackgroundService
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogError(ex, "TSE health probe exception");
+                var before = _state.Snapshot;
                 _state.ApplyProbeResult(
                     false,
                     ex.Message.Length > 400 ? ex.Message[..400] : ex.Message);
+                await TryPersistHealthChangeAuditAsync(before, _state.Snapshot, stoppingToken).ConfigureAwait(false);
             }
 
             try
@@ -93,6 +100,44 @@ public sealed class TseHealthCheckService : BackgroundService
             {
                 break;
             }
+        }
+    }
+
+    private async Task TryPersistHealthChangeAuditAsync(
+        TseHealthSnapshot previous,
+        TseHealthSnapshot current,
+        CancellationToken cancellationToken)
+    {
+        if (previous.Status == current.Status)
+            return;
+
+        try
+        {
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var reason = current.Status == TseOperationalHealth.Degraded ? current.LastErrorMessageSafe : null;
+            db.TseHealthAuditLogs.Add(new TseHealthAuditLog
+            {
+                Id = Guid.NewGuid(),
+                TimestampUtc = current.LastCheckUtc ?? DateTime.UtcNow,
+                OldStatus = previous.Status,
+                NewStatus = current.Status,
+                ConsecutiveFailures = current.ConsecutiveFailures,
+                ReasonSafe = reason
+            });
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            _logger.LogWarning(
+                "TSE health changed: {OldStatus} → {NewStatus}, Failures: {FailureCount}",
+                previous.Status,
+                current.Status,
+                current.ConsecutiveFailures);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "TSE health audit persist failed (Old={Old}, New={New})",
+                previous.Status,
+                current.Status);
         }
     }
 }

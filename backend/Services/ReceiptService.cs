@@ -421,6 +421,8 @@ namespace KasseAPI_Final.Services
                     GrandTotal = r.GrandTotal,
                     CreatedAt = r.CreatedAt,
                     RksvSpecialReceiptKind = r.Payment != null ? r.Payment.RksvSpecialReceiptKind : null,
+                    RksvSpecialReceiptYear = r.Payment != null ? r.Payment.RksvSpecialReceiptYear : null,
+                    RksvSpecialReceiptMonth = r.Payment != null ? r.Payment.RksvSpecialReceiptMonth : null,
                     RksvFinanzOnlineSubmissionStatus = _context.RksvSpecialReceiptFinanzOnlineSubmissions
                         .Where(s => s.PaymentId == r.PaymentId)
                         .Select(s => s.Status)

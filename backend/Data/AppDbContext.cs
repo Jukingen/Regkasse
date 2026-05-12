@@ -52,6 +52,9 @@ namespace KasseAPI_Final.Data
         public DbSet<ReceiptTemplate> ReceiptTemplates { get; set; }
         public DbSet<GeneratedReceipt> GeneratedReceipts { get; set; }
         public DbSet<TseDevice> TseDevices { get; set; }
+
+        /// <summary>Append-only log when TSE operational health classification changes.</summary>
+        public DbSet<TseHealthAuditLog> TseHealthAuditLogs { get; set; }
         public DbSet<DailyClosing> DailyClosings { get; set; }
         public DbSet<TagesberichtReport> TagesberichtReports { get; set; }
         public DbSet<MonatsberichtReport> MonatsberichtReports { get; set; }

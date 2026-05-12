@@ -85,6 +85,11 @@
       "dismissA11y": "Hinweis ausblenden",
       "loadingHint": "RKSV-Monatsbeleg-Status wird geladen…"
     },
+    "monatsbelegCurrentMonthOverdue": {
+      "title": "Monatsbeleg für aktuellen Monat überfällig!",
+      "description": "Bitte erstellen Sie den Monatsbeleg sofort.",
+      "cta": "Jetzt erstellen"
+    },
     "payment": {
       "title": "Zahlungsarten",
       "totalLabel": "Gesamt",

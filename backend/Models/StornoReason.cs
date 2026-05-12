@@ -5,6 +5,8 @@ namespace KasseAPI_Final.Models;
 /// </summary>
 public enum StornoReason
 {
+    /// <summary>Sentinel only — must not be persisted; use a concrete RKSV reason.</summary>
+    None = -1,
     FalscherBetrag = 0,
     KundeStorniert = 1,
     TechnischerFehler = 2,

@@ -6,15 +6,20 @@
  * OpenAPI spec version: v1
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query'
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  NtpManualSyncResponseDto,
   SystemTimeStatusDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -78,3 +83,53 @@ export const useGetApiSystemTimeStatus = <TData = Awaited<ReturnType<typeof getA
 
 
 
+export const postApiSystemTimeSync = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<NtpManualSyncResponseDto>(
+      {url: `/api/system/time/sync`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiSystemTimeSyncMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSystemTimeSync>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiSystemTimeSync>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiSystemTimeSync>>, void> = () => {
+          
+
+          return  postApiSystemTimeSync(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiSystemTimeSyncMutationResult = NonNullable<Awaited<ReturnType<typeof postApiSystemTimeSync>>>
+    
+    export type PostApiSystemTimeSyncMutationError = unknown
+
+    export const usePostApiSystemTimeSync = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiSystemTimeSync>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiSystemTimeSync>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiSystemTimeSyncMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    

@@ -43,5 +43,5 @@ jobs:
         working-directory: frontend-admin
         env:
           NEXT_PUBLIC_RKSV_ENVIRONMENT: TEST
-          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5183
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5184
         run: npm run build

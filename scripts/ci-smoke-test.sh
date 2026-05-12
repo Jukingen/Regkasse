@@ -26,7 +26,7 @@ sleep 10
 # 4. Execute 200 OK Smoke Test
 echo "🔍 Validating /api/Cart/table-orders-recovery endpoint..."
 # Fails pipeline if endpoint returns 500
-STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5183/api/Cart/table-orders-recovery)
+STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5184/api/Cart/table-orders-recovery)
 
 if [ "$STATUS_CODE" -ne 200 ] && [ "$STATUS_CODE" -ne 401 ]; then
   echo "🚨 Smoke test failed! Expected 200 or 401, got $STATUS_CODE"

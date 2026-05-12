@@ -52,6 +52,7 @@ import { getReceiptByPaymentForensics } from '@/features/receipts/api/forensics-
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
+import { ReprintButton } from '@/features/payments/components/ReprintButton';
 import {
   FORMAT_EMPTY_DISPLAY,
   createIntlFormatters,
@@ -150,7 +151,6 @@ export default function PaymentsPage() {
   const canCancel = hasPermission(PERMISSIONS.PAYMENT_CANCEL);
   const canRefund = hasPermission(PERMISSIONS.REFUND_CREATE);
   const canOpenReceipt = hasPermission(PERMISSIONS.SALE_VIEW);
-
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs(DEFAULT_DATE_RANGE.startDate),
     dayjs(DEFAULT_DATE_RANGE.endDate),
@@ -161,7 +161,6 @@ export default function PaymentsPage() {
   const [cancelReason, setCancelReason] = useState('');
   const [refundReason, setRefundReason] = useState('');
   const [refundAmount, setRefundAmount] = useState<number | null>(null);
-
   useEffect(() => {
     const pid = searchParams?.get('paymentId')?.trim();
     if (pid) setSelectedPaymentId(pid);
@@ -836,9 +835,12 @@ export default function PaymentsPage() {
             />
 
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <Button type="primary" onClick={openReceipt} disabled={!canOpenReceipt}>
-                {t('payments.detail.buttonOpenReceipt')}
-              </Button>
+              <Space wrap>
+                <Button type="primary" onClick={openReceipt} disabled={!canOpenReceipt}>
+                  {t('payments.detail.buttonOpenReceipt')}
+                </Button>
+                <ReprintButton paymentId={selectedPaymentId} receiptNumber={paymentDetailData?.receiptNumber} />
+              </Space>
 
               {!canCancel && (
                 <Alert

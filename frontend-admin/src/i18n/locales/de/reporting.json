@@ -230,5 +230,38 @@
         "deltaGrossMonthlyVsRaw": "Δ Brutto (Monate − Roh)"
       }
     }
+  },
+  "dailyClosing": {
+    "pageTitle": "Tagesabschluss (Übersicht)",
+    "breadcrumb": "Tagesabschluss-Übersicht",
+    "intro": "Operative Summen aus Zahlungszeilen für den gewählten Kalendertag (Europe/Vienna). Kein Ersatz für den formalen Tagesbericht oder den RKSV-Tagesabschluss.",
+    "dateLabel": "Datum",
+    "registerLabel": "Kasse",
+    "allRegisters": "Alle Kassen",
+    "stats": {
+      "totalSales": "Gesamtumsatz (Verkauf)",
+      "totalCash": "Bar",
+      "totalCard": "Karte",
+      "totalVoucher": "Gutschein",
+      "totalOther": "Sonstige Zahlungsarten",
+      "receiptCount": "Belege (Verkauf)",
+      "stornoCount": "Storno-Zeilen",
+      "stornoTotal": "Storno-Summe"
+    },
+    "tables": {
+      "specialTitle": "Sonderbelege (RKSV)",
+      "stornoTitle": "Stornos",
+      "empty": "Keine Einträge",
+      "columns": {
+        "time": "Zeit (UTC)",
+        "receipt": "Belegnr.",
+        "amount": "Betrag",
+        "method": "Zahlungsart",
+        "kind": "Sonderbeleg",
+        "register": "Kasse",
+        "stornoReason": "Storno-Grund",
+        "originalReceipt": "Original-Beleg"
+      }
+    }
   }
 }

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
  */
 describe('generated admin FinanzOnline outbox client (OpenAPI / Orval)', () => {
     it('exports list and detail request functions', async () => {
-        process.env.NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5183';
+        process.env.NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5184';
         const { getApiAdminFinanzonlineOutbox, getApiAdminFinanzonlineOutboxId } = await import(
             '@/api/generated/admin/admin'
         );

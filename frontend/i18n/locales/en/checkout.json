@@ -85,6 +85,11 @@
       "dismissA11y": "Dismiss notice",
       "loadingHint": "Loading RKSV Monatsbeleg status…"
     },
+    "monatsbelegCurrentMonthOverdue": {
+      "title": "Monatsbeleg for the current month is overdue!",
+      "description": "Please create the Monatsbeleg immediately.",
+      "cta": "Create now"
+    },
     "payment": {
       "title": "Payment methods",
       "totalLabel": "Total",

@@ -38,7 +38,7 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { formatEUR } from '@/shared/utils/currency';
 import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
-import ReceiptReprintWizard from '@/features/operations-center/components/ReceiptReprintWizard';
+import { ReprintButton } from '@/features/payments/components/ReprintButton';
 import { rksvSpecialReceiptKindLabelDe } from '@/features/rksv-operations/rksvSpecialReceiptDisplay';
 import {
     isRksvFinanzOnlineTrackedSpecialReceiptKind,
@@ -173,7 +173,6 @@ export default function RksvSonderbelegePage() {
     const canMonat = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
     const canJahr = hasPermission(PERMISSIONS.RKSV_JAHRESBELEG_CREATE);
     const canSchluss = hasPermission(PERMISSIONS.RKSV_SCHLUSSBELEG_CREATE);
-    const canReprint = hasPermission(PERMISSIONS.RECEIPT_REPRINT);
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     const { data: registersRaw, isLoading: registersLoading } = useGetApiCashRegister();
@@ -190,9 +189,6 @@ export default function RksvSonderbelegePage() {
     const [reasonShort, setReasonShort] = useState('');
     const [busy, setBusy] = useState<string | null>(null);
 
-    const [reprintOpen, setReprintOpen] = useState(false);
-    const [reprintPaymentId, setReprintPaymentId] = useState('');
-    const [reprintHint, setReprintHint] = useState<string | undefined>();
     const [schlussModalOpen, setSchlussModalOpen] = useState(false);
     const [schlussConfirmText, setSchlussConfirmText] = useState('');
 
@@ -609,27 +605,22 @@ export default function RksvSonderbelegePage() {
                 title: 'Aktionen',
                 key: 'actions',
                 render: (_: unknown, row) => (
-                    <Space>
+                    <Space wrap>
                         <Link href={`/receipts/${row.receiptId}`}>
                             <Button size="small">Anzeigen</Button>
                         </Link>
-                        {canReprint && row.paymentId ? (
-                            <Button
+                        {row.paymentId ? (
+                            <ReprintButton
+                                paymentId={row.paymentId}
+                                receiptNumber={row.receiptNumber}
                                 size="small"
-                                onClick={() => {
-                                    setReprintPaymentId(String(row.paymentId));
-                                    setReprintHint(row.receiptNumber ?? undefined);
-                                    setReprintOpen(true);
-                                }}
-                            >
-                                Nachdruck
-                            </Button>
+                            />
                         ) : null}
                     </Space>
                 ),
             },
         ],
-        [canReprint],
+        [],
     );
 
     const actionDisabledBase = !registerId || busy !== null || selectedRegisterIsDecommissioned;
@@ -934,11 +925,20 @@ export default function RksvSonderbelegePage() {
                                             </Typography.Text>
                                             <Typography.Text>{periodText}</Typography.Text>
                                             <Typography.Text type="secondary">{specialReceiptPurposeDe(kind)}</Typography.Text>
-                                            {row.receiptId ? (
-                                                <Link href={`/receipts/${row.receiptId}`}>
-                                                    <Button size="small">Details öffnen</Button>
-                                                </Link>
-                                            ) : null}
+                                            <Space wrap>
+                                                {row.receiptId ? (
+                                                    <Link href={`/receipts/${row.receiptId}`}>
+                                                        <Button size="small">Details öffnen</Button>
+                                                    </Link>
+                                                ) : null}
+                                                {row.paymentId ? (
+                                                    <ReprintButton
+                                                        paymentId={row.paymentId}
+                                                        receiptNumber={row.receiptNumber}
+                                                        size="small"
+                                                    />
+                                                ) : null}
+                                            </Space>
                                         </Space>
                                     </Card>
                                 </Col>
@@ -1042,16 +1042,6 @@ export default function RksvSonderbelegePage() {
                 />
             </Modal>
 
-            <ReceiptReprintWizard
-                open={reprintOpen}
-                onClose={() => {
-                    setReprintOpen(false);
-                    setReprintPaymentId('');
-                    setReprintHint(undefined);
-                }}
-                paymentId={reprintPaymentId}
-                receiptNumberHint={reprintHint}
-            />
         </>
     );
 }

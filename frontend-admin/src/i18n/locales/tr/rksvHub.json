@@ -249,10 +249,10 @@
     "sliceVsGlobalTitle": "Export (dilim) ve genel bütünlük",
     "disclaimerModalTitle": "YASAL UYARI",
     "disclaimerModalBody": "BU DIŞA AKTARIM § 8 RKSV KAPSAMINDA YASAL OLARAK BAĞLAYICI BİR FİSKAL BELGE DEĞİLDİR.\n\nYalnızca iç analiz ve tanı amaçlıdır. Vergi açısından geçerli olan, geçerli TSE imzası taşıyan orijinal fiştir.\n\nFinanzamt taleplerinde ORİJİNAL FİŞ sunulmalıdır — bu dışa aktarım onun yerine geçmez.\n\nYine de devam etmek istiyor musunuz?",
-    "disclaimerModalUnderstandCheckbox": "Anladım — yine de dışa aktarmak istiyorum",
+    "disclaimerModalUnderstandCheckbox": "Bu dışa aktarımın yasal bir RKSV kanıtı veya fişi olmadığını onaylıyorum",
     "disclaimerModalSkip24hCheckbox": "24 saat boyunca tekrar gösterme",
     "disclaimerModalCancel": "İptal",
-    "disclaimerModalProceed": "Yine de dışa aktar"
+    "disclaimerModalProceed": "Dışa aktarımı oluştur"
   },
   "incident": {
     "pageTitle": "Olay (correlation) — inceleme",

@@ -230,5 +230,38 @@
         "deltaGrossMonthlyVsRaw": "Δ Gross (monthly − raw)"
       }
     }
+  },
+  "dailyClosing": {
+    "pageTitle": "Daily closing (summary)",
+    "breadcrumb": "Daily closing summary",
+    "intro": "Operational totals from payment rows for the selected calendar day (Europe/Vienna). Not a substitute for the formal daily report or RKSV daily closing.",
+    "dateLabel": "Date",
+    "registerLabel": "Cash register",
+    "allRegisters": "All registers",
+    "stats": {
+      "totalSales": "Gross sales",
+      "totalCash": "Cash",
+      "totalCard": "Card",
+      "totalVoucher": "Voucher",
+      "totalOther": "Other payment methods",
+      "receiptCount": "Receipts (sales)",
+      "stornoCount": "Storno rows",
+      "stornoTotal": "Storno total"
+    },
+    "tables": {
+      "specialTitle": "Special receipts (RKSV)",
+      "stornoTitle": "Stornos",
+      "empty": "No rows",
+      "columns": {
+        "time": "Time (UTC)",
+        "receipt": "Receipt no.",
+        "amount": "Amount",
+        "method": "Payment method",
+        "kind": "Special receipt",
+        "register": "Register",
+        "stornoReason": "Storno reason",
+        "originalReceipt": "Original receipt"
+      }
+    }
   }
 }

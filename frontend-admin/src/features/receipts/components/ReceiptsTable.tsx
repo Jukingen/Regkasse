@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useI18n } from '@/i18n';
 import { formatRksvSpecialReceiptKindDisplay } from '@/features/receipts/utils/formatRksvSpecialReceiptKind';
+import { ReprintButton } from '@/features/payments/components/ReprintButton';
 
 interface ReceiptsTableProps {
     data: ReceiptListItemDto[];
@@ -36,6 +37,8 @@ interface ReceiptsTableProps {
     reprintEnabled?: boolean;
     reprintActionLabel?: string;
     onStartReprint?: (row: ReceiptListItemDto) => void;
+    /** Admin PDF reprint (GET /api/admin/payments/.../reprint) on the receipts list. */
+    showPaymentPdfReprint?: boolean;
 }
 
 function buildColumns(
@@ -43,6 +46,7 @@ function buildColumns(
     reprintEnabled: boolean | undefined,
     reprintActionLabel: string | undefined,
     onStartReprint: ((row: ReceiptListItemDto) => void) | undefined,
+    showPaymentPdfReprint: boolean | undefined,
 ): ColumnsType<ReceiptListItemDto> {
     const base: ColumnsType<ReceiptListItemDto> = [
         {
@@ -153,6 +157,19 @@ function buildColumns(
         });
     }
 
+    if (showPaymentPdfReprint) {
+        base.push({
+            title: t('receipts.table.colPdfReprint'),
+            key: 'pdfReprint',
+            width: 150,
+            fixed: 'right',
+            align: 'center',
+            render: (_: unknown, record: ReceiptListItemDto) => (
+                <ReprintButton paymentId={record.paymentId} receiptNumber={record.receiptNumber} size="small" />
+            ),
+        });
+    }
+
     base.push({
         title: t('receipts.table.colNext'),
         key: 'actions',
@@ -187,12 +204,13 @@ export default function ReceiptsTable({
     reprintEnabled,
     reprintActionLabel,
     onStartReprint,
+    showPaymentPdfReprint,
 }: ReceiptsTableProps) {
     const { t, formatLocale } = useI18n();
 
     const columns = React.useMemo(
-        () => buildColumns(t, reprintEnabled, reprintActionLabel, onStartReprint),
-        [t, reprintEnabled, reprintActionLabel, onStartReprint],
+        () => buildColumns(t, reprintEnabled, reprintActionLabel, onStartReprint, showPaymentPdfReprint),
+        [t, reprintEnabled, reprintActionLabel, onStartReprint, showPaymentPdfReprint],
     );
 
     // Apply current sort indicator to the matching column
@@ -203,7 +221,7 @@ export default function ReceiptsTable({
         return col;
     });
 
-    const scrollX = reprintEnabled ? 1410 : 1230;
+    const scrollX = 1230 + (reprintEnabled ? 180 : 0) + (showPaymentPdfReprint ? 170 : 0);
 
     return (
         <Table<ReceiptListItemDto>

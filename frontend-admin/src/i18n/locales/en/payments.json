@@ -2,6 +2,13 @@
   "page": {
     "intro": "Payments in the selected period. Select a row for details, cancellation and refund, and links to receipt and FinanzOnline."
   },
+  "standaloneDetail": {
+    "pageTitle": "Payment details",
+    "backToPayments": "Back to payments",
+    "loading": "Loading payment …",
+    "loadFailed": "Could not load payment.",
+    "notFound": "Payment not found."
+  },
   "toolbar": {
     "refresh": "Refresh",
     "retryAfterError": "Try again",
@@ -93,6 +100,10 @@
     "labelFoLastAttemptUtc": "Last attempt (UTC)",
     "labelFoRetries": "Retries",
     "buttonOpenReceipt": "Open receipt",
+    "buttonReprintPdf": "Reprint (PDF)",
+    "reprintPdfLoading": "Creating PDF …",
+    "reprintPdfSuccess": "PDF downloaded",
+    "reprintPdfError": "Could not generate reprint PDF",
     "backendMessageTooltip": "Unreviewed server message (language not guaranteed)",
     "cancelPermissionTitle": "Cancellation not allowed",
     "cancelPermissionDesc": "You do not have permission to cancel payments.",

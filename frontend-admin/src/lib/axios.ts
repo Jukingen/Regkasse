@@ -7,7 +7,7 @@ import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 const isDev = process.env.NODE_ENV === 'development';
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-const baseURL = configuredBaseUrl || (isDev ? 'http://localhost:5183' : '');
+const baseURL = configuredBaseUrl || (isDev ? 'http://localhost:5184' : '');
 
 if (!baseURL) {
     throw new Error('NEXT_PUBLIC_API_BASE_URL must be configured for non-development environments.');
@@ -21,7 +21,9 @@ declare global {
 const createAxiosInstance = () => {
     const instance = axios.create({
         baseURL: baseURL,
-        withCredentials: true,
+        // JWT is sent via Authorization header (localStorage); cookies are not used for auth.
+        // false avoids credentialed CORS preflight coupling; matches POS api client.
+        withCredentials: false,
         headers: {
             'Content-Type': 'application/json',
         },

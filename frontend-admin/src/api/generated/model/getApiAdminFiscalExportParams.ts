@@ -13,4 +13,5 @@ toUtc?: string;
 includeCsv?: boolean;
 format?: string;
 exportProfile?: string;
+lang?: string;
 };

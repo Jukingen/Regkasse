@@ -85,6 +85,11 @@
       "dismissA11y": "Uyarıyı kapat",
       "loadingHint": "RKSV Monatsbeleg durumu yükleniyor…"
     },
+    "monatsbelegCurrentMonthOverdue": {
+      "title": "Cari ay için Monatsbeleg gecikti!",
+      "description": "Lütfen Monatsbelegi hemen oluşturun.",
+      "cta": "Şimdi oluştur"
+    },
     "payment": {
       "title": "Odeme yontemleri",
       "totalLabel": "Toplam",

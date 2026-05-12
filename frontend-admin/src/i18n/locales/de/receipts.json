@@ -42,6 +42,7 @@
     "colCashier": "Kassierer (Id)",
     "colSpecialKind": "Sonderbeleg (RKSV)",
     "colGrandTotal": "Gesamtbetrag",
+    "colPdfReprint": "Nachdruck",
     "colNext": "Aktion",
     "open": "Öffnen",
     "paginationTotal": "{{from}}–{{to}} von {{total}} Belegen"

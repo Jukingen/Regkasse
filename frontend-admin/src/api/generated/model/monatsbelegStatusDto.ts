@@ -5,12 +5,27 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { MissingMonth } from './missingMonth';
 
 export interface MonatsbelegStatusDto {
-  daysUntilDeadline: number;
-  isRequired: boolean;
+  currentMonthExists?: boolean;
+  currentMonthOverdue?: boolean;
+  daysUntilDeadline?: number;
+  isRequired?: boolean;
+  /** @nullable */
+  lastCompletedMonth?: string | null;
   /** @nullable */
   lastMonatsbelegDate?: string | null;
+  lastMonthExists?: boolean;
+  lastMonthMissing?: boolean;
   /** @nullable */
-  warningLevel: string | null;
+  missingMonths: MissingMonth[] | null;
+  /** @nullable */
+  nextRequiredMonth?: string | null;
+  requiresAttention: boolean;
+  totalMissingCount: number;
+  /** @nullable */
+  warningLevel?: string | null;
+  /** @nullable */
+  warningMessage?: string | null;
 }

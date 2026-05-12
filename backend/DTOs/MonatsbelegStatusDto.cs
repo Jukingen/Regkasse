@@ -17,6 +17,33 @@ public sealed class MonatsbelegStatusDto
 
     /// <summary>Total number of missing months.</summary>
     public required int TotalMissingCount { get; init; }
+
+    /// <summary>POS banner: same as <see cref="RequiresAttention"/>.</summary>
+    public bool IsRequired { get; init; }
+
+    /// <summary>Days until the legal deadline of the earliest missing month (0 when none).</summary>
+    public int DaysUntilDeadline { get; init; }
+
+    /// <summary>ISO-8601 UTC timestamp of the latest Monatsbeleg row for this register, if any.</summary>
+    public string? LastMonatsbelegDate { get; init; }
+
+    /// <summary>POS strip: <c>none</c>, <c>yellow</c> (reminder after the 7th Vienna calendar day when attention is needed), or <c>red</c> (overdue).</summary>
+    public string WarningLevel { get; init; } = "none";
+
+    /// <summary>True when a Monatsbeleg (or December Jahresbeleg substitute per policy) exists for the current Vienna calendar month.</summary>
+    public bool CurrentMonthExists { get; init; }
+
+    /// <summary>True when the immediately preceding Vienna calendar month is satisfied (same policy as current month).</summary>
+    public bool LastMonthExists { get; init; }
+
+    /// <summary>True when the current Vienna month is in scope, has no Monatsbeleg yet, and the calendar day is after the 7th (operator grace).</summary>
+    public bool CurrentMonthOverdue { get; init; }
+
+    /// <summary>True when the previous Vienna month is in the compliance window and has no Monatsbeleg.</summary>
+    public bool LastMonthMissing { get; init; }
+
+    /// <summary>Optional German operator copy for POS/dashboard banners (null when no dedicated message).</summary>
+    public string? WarningMessage { get; init; }
 }
 
 public sealed class MissingMonth

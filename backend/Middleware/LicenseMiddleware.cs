@@ -1,3 +1,4 @@
+using System;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Http;
 
@@ -20,6 +21,13 @@ namespace KasseAPI_Final.Middleware
 
         public async Task InvokeAsync(HttpContext context, ILicenseService licenseService)
         {
+            // Anonymous auth endpoints must not depend on license evaluation or response header hooks.
+            if (context.Request.Path.StartsWithSegments("/api/Auth", StringComparison.OrdinalIgnoreCase))
+            {
+                await _next(context);
+                return;
+            }
+
             context.Response.OnStarting(() =>
             {
                 ApplyHeaders(context, licenseService);
@@ -43,9 +51,10 @@ namespace KasseAPI_Final.Middleware
 
             if (snapshot.IsTrial && !context.Response.Headers.ContainsKey(LicenseWarningHeaderName))
             {
+                // HTTP response header values must be ASCII (Kestrel rejects non-Latin-1 / extended chars).
                 context.Response.Headers.Append(
                     LicenseWarningHeaderName,
-                    $"Testmodus - noch {snapshot.DaysRemaining} Tage gültig");
+                    $"Testmodus - noch {snapshot.DaysRemaining} Tage gueltig");
             }
         }
 

@@ -144,7 +144,9 @@
     },
     "/api/admin/backup/settings": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -159,10 +161,22 @@
         }
       },
       "put": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupSettingsPutRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BackupSettingsPutRequestDto"
+              }
+            },
+            "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/BackupSettingsPutRequestDto"
               }
@@ -181,14 +195,23 @@
             }
           },
           "400": {
-            "description": "Bad Request"
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/admin/backup/schedule/status": {
       "get": {
-        "tags": ["Admin"],
+        "tags": [
+          "Admin"
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -491,6 +514,231 @@
         }
       }
     },
+    "/api/admin/reports/daily-closing": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyClosingSummaryDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/audit/fiscal-export-logs": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "downloadFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "downloadTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "userSearch",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exportType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiscalExportAuditLogsPagedResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/audit/fiscal-export-logs/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiscalExportAuditLogDetailDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/audit/fiscal-export-logs/export": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "downloadFrom",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "downloadTo",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "userSearch",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exportType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "all"
+            }
+          },
+          {
+            "name": "maxRows",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 5000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/incidents/{correlationId}": {
       "get": {
         "tags": [
@@ -516,6 +764,393 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/license/status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/list": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuedLicensesListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/activate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateLicenseRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateLicenseRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateLicenseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseActivationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/generate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateLicenseRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateLicenseRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateLicenseRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateLicenseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/upgrade": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeLicenseRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeLicenseRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpgradeLicenseRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateLicenseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/transfer-request/{licenseKey}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "licenseKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseTransferRequestInfoResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/transfer": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferLicenseRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferLicenseRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferLicenseRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateLicenseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/renewal-info/{licenseKey}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "licenseKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseRenewalInfoResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/renew": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewLicenseRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewLicenseRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewLicenseRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateLicenseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/revoke": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeLicenseRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeLicenseRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeLicenseRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/license/revoke/{id}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         }
       }
@@ -850,6 +1485,113 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/payments/{id}/reprint-pdf": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/payments/{paymentId}/reprint": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "paymentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
       }
@@ -1704,6 +2446,244 @@
         }
       }
     },
+    "/api/admin/rksv/compliance-report": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "cashRegisterId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "json"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/rksv/evidence-bundle": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RksvEvidenceBundleRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RksvEvidenceBundleRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RksvEvidenceBundleRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/system/time-sync/configuration": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NtpAdminConfigurationDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NtpAdminConfigurationUpdateDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NtpAdminConfigurationUpdateDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/NtpAdminConfigurationUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NtpAdminConfigurationDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/system/time-sync": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminTimeSyncStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/system/time-sync/logs": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SystemTimeSyncLogEntryDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/system/time-sync/drift-summary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TimeSyncDriftSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/users": {
       "get": {
         "tags": [
@@ -2406,6 +3386,25 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/app/version": {
+      "get": {
+        "tags": [
+          "AppVersion"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppVersionResponseDto"
+                }
+              }
+            }
           }
         }
       }
@@ -5255,6 +6254,41 @@
         }
       }
     },
+    "/api/admin/demo/reset": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
     "/api/Employee/by-number/{employeeNumber}": {
       "get": {
         "tags": [
@@ -5796,6 +6830,63 @@
         "deprecated": true
       }
     },
+    "/api/admin/fiscal-export/disclaimer": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RksvExportDisclaimerResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fiscal-export/generate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FiscalExportGenerateRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FiscalExportGenerateRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/FiscalExportGenerateRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiscalExportDisclaimerRequiredResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/fiscal-export": {
       "get": {
         "tags": [
@@ -5848,11 +6939,67 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "de"
+            }
           }
         ],
         "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiscalExportDisclaimerRequiredResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fiscal-export/download/{exportId}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "exportId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FiscalExportDisclaimerRequiredResponseDto"
+                }
+              }
+            }
+          },
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           }
         }
       }
@@ -13432,6 +14579,25 @@
         }
       }
     },
+    "/api/system/time/sync": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NtpManualSyncResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Table": {
       "get": {
         "tags": [
@@ -15361,6 +16527,23 @@
   },
   "components": {
     "schemas": {
+      "ActivateLicenseRequest": {
+        "required": [
+          "licenseKey"
+        ],
+        "type": "object",
+        "properties": {
+          "licenseKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "offlineActivationJwt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "AddCartItemRequest": {
         "type": "object",
         "properties": {
@@ -15920,6 +17103,63 @@
         },
         "additionalProperties": false
       },
+      "AdminPaymentAuditEventDto": {
+        "type": "object",
+        "properties": {
+          "timestampUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "userRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "httpStatusCode": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPaymentAuditLineItemDto": {
+        "type": "object",
+        "properties": {
+          "productName": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "taxAmount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
       "AdminPaymentDetailDto": {
         "type": "object",
         "properties": {
@@ -16108,112 +17348,7 @@
             "type": "boolean"
           },
           "stornoRefundAudit": {
-            "$ref": "#/components/schemas/AdminPaymentStornoRefundAuditDto",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "AdminPaymentAuditLineItemDto": {
-        "type": "object",
-        "properties": {
-          "productName": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "unitPrice": {
-            "type": "number",
-            "format": "double"
-          },
-          "totalPrice": {
-            "type": "number",
-            "format": "double"
-          },
-          "taxAmount": {
-            "type": "number",
-            "format": "double"
-          }
-        },
-        "additionalProperties": false
-      },
-      "AdminPaymentAuditEventDto": {
-        "type": "object",
-        "properties": {
-          "timestampUtc": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "action": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "userRole": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "httpStatusCode": {
-            "type": "integer",
-            "format": "int32",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "AdminPaymentStornoRefundAuditDto": {
-        "type": "object",
-        "properties": {
-          "originalPaymentId": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "originalReceiptNumber": {
-            "type": "string",
-            "nullable": true
-          },
-          "originalCreatedAtUtc": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "originalTotalAmount": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "originalLineItems": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AdminPaymentAuditLineItemDto"
-            },
-            "nullable": true
-          },
-          "reversalLineItems": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AdminPaymentAuditLineItemDto"
-            },
-            "nullable": true
-          },
-          "secondsBetweenOriginalAndReversal": {
-            "type": "number",
-            "format": "double",
-            "nullable": true
-          },
-          "relatedAuditEvents": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AdminPaymentAuditEventDto"
-            },
-            "nullable": true
+            "$ref": "#/components/schemas/AdminPaymentStornoRefundAuditDto"
           }
         },
         "additionalProperties": false
@@ -16326,8 +17461,7 @@
             "type": "boolean"
           },
           "stornoReason": {
-            "$ref": "#/components/schemas/StornoReason",
-            "nullable": true
+            "$ref": "#/components/schemas/StornoReason"
           },
           "originalPaymentId": {
             "type": "string",
@@ -16344,6 +17478,57 @@
           },
           "reversalCompletionStatus": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminPaymentStornoRefundAuditDto": {
+        "type": "object",
+        "properties": {
+          "originalPaymentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "originalReceiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalCreatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "originalTotalAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "originalLineItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPaymentAuditLineItemDto"
+            },
+            "nullable": true
+          },
+          "reversalLineItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPaymentAuditLineItemDto"
+            },
+            "nullable": true
+          },
+          "secondsBetweenOriginalAndReversal": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "relatedAuditEvents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminPaymentAuditEventDto"
+            },
             "nullable": true
           }
         },
@@ -16381,6 +17566,49 @@
             "maxLength": 500,
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AdminTimeSyncStatusDto": {
+        "type": "object",
+        "properties": {
+          "systemTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "systemTimeLocalVienna": {
+            "type": "string",
+            "nullable": true
+          },
+          "ntpTimeUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "offsetSeconds": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isSynchronized": {
+            "type": "boolean"
+          },
+          "lastSyncAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "warningLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "statusBadge": {
+            "type": "string",
+            "nullable": true
+          },
+          "effectiveConfiguration": {
+            "$ref": "#/components/schemas/NtpAdminConfigurationDto"
           }
         },
         "additionalProperties": false
@@ -16796,6 +18024,48 @@
               }
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AppVersionResponseDto": {
+        "type": "object",
+        "properties": {
+          "latestVersionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latestVersionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "downloadUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "releaseNotesUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "mandatory": {
+            "type": "boolean"
+          },
+          "minimumSupportedVersionCode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sha256": {
+            "type": "string",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "serverTimeUtc": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -18189,23 +19459,6 @@
         "type": "integer",
         "format": "int32"
       },
-      "BackupSettingsPutRequestDto": {
-        "type": "object",
-        "properties": {
-          "enabled": {
-            "type": "boolean"
-          },
-          "scheduleCron": {
-            "type": "string",
-            "nullable": true
-          },
-          "retentionDays": {
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
       "BackupScheduleLatestRunSummaryDto": {
         "type": "object",
         "properties": {
@@ -18262,8 +19515,24 @@
             "nullable": true
           },
           "latestScheduledBackupRun": {
-            "$ref": "#/components/schemas/BackupScheduleLatestRunSummaryDto",
+            "$ref": "#/components/schemas/BackupScheduleLatestRunSummaryDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupSettingsPutRequestDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "scheduleCron": {
+            "type": "string",
             "nullable": true
+          },
+          "retentionDays": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -18969,6 +20238,16 @@
             "nullable": true
           },
           "startbelegCreatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastServerTimeOffsetSeconds": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "lastServerTimeDriftAtUtc": {
             "type": "string",
             "format": "date-time",
             "nullable": true
@@ -20215,7 +21494,8 @@
             "maximum": 12,
             "minimum": 1,
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
           },
           "reason": {
             "maxLength": 450,
@@ -21003,6 +22283,117 @@
           "cashRegisterId": {
             "type": "string",
             "format": "uuid"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingSummaryDto": {
+        "type": "object",
+        "properties": {
+          "businessDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "totalSales": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalVoucherRedemptions": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCash": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalCard": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOtherPaymentMethods": {
+            "type": "number",
+            "format": "double"
+          },
+          "receiptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stornoRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stornoTotalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "specialReceipts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyClosingSummaryLineDto"
+            },
+            "nullable": true
+          },
+          "stornos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyClosingSummaryLineDto"
+            },
+            "nullable": true
+          },
+          "snapshotDisclaimerDe": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyClosingSummaryLineDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "receiptNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "paymentMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "rksvSpecialReceiptKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "isStorno": {
+            "type": "boolean"
+          },
+          "stornoReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "originalReceiptId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -21862,6 +23253,225 @@
         },
         "additionalProperties": false
       },
+      "FiscalExportAuditLogDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "downloadTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "exportTypeLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "includesCsvFragment": {
+            "type": "boolean"
+          },
+          "exportPeriodFromUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "exportPeriodToUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "estimatedFileSizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "longRangeBulkWarning": {
+            "type": "boolean"
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "userRole": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestDataJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseDataJson": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorDetails": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiscalExportAuditLogListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "downloadTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "ipAddress": {
+            "type": "string",
+            "nullable": true
+          },
+          "exportTypeLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "includesCsvFragment": {
+            "type": "boolean"
+          },
+          "exportPeriodFromUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "exportPeriodToUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "estimatedFileSizeBytes": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "longRangeBulkWarning": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiscalExportAuditLogsPagedResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FiscalExportAuditLogListItemDto"
+            },
+            "nullable": true
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiscalExportDisclaimerRequiredResponseDto": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "englishMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "disclaimerUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "disclaimer": {
+            "$ref": "#/components/schemas/RksvExportDisclaimerResponseDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "FiscalExportGenerateRequestDto": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fromUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "toUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "includeCsv": {
+            "type": "boolean"
+          },
+          "format": {
+            "type": "string",
+            "nullable": true
+          },
+          "exportProfile": {
+            "type": "string",
+            "nullable": true
+          },
+          "lang": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ForceCleanupRequest": {
         "type": "object",
         "properties": {
@@ -21937,6 +23547,53 @@
             "nullable": true
           },
           "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GenerateLicenseRequestBody": {
+        "type": "object",
+        "properties": {
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "requireFingerprint": {
+            "type": "boolean"
+          },
+          "machineHashHex": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "GenerateLicenseResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "signedJwt": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "message": {
             "type": "string",
             "nullable": true
           }
@@ -22797,6 +24454,90 @@
         },
         "additionalProperties": false
       },
+      "IssuedLicenseListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requireFingerprint": {
+            "type": "boolean"
+          },
+          "machineHashHex": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issuedByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRevoked": {
+            "type": "boolean"
+          },
+          "revokedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "revocationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "supersededByLicenseId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "transferredToLicenseId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssuedLicensesListResponse": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssuedLicenseListItemDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "JahresberichtAdjustmentDto": {
         "type": "object",
         "properties": {
@@ -23297,6 +25038,119 @@
         },
         "additionalProperties": false
       },
+      "LicenseActivationResult": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseReminderNotice": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "raisedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseRenewalInfoResponse": {
+        "type": "object",
+        "properties": {
+          "originalExpiryAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "suggestedNewExpiryDate": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseStatusResponse": {
+        "type": "object",
+        "properties": {
+          "isValid": {
+            "type": "boolean"
+          },
+          "isTrial": {
+            "type": "boolean"
+          },
+          "isExpired": {
+            "type": "boolean"
+          },
+          "daysRemaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiryDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "machineHash": {
+            "type": "string",
+            "nullable": true
+          },
+          "reminders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LicenseReminderNotice"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseTransferRequestInfoResponse": {
+        "type": "object",
+        "properties": {
+          "eligible": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerNameMasked": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "newServerRequiresMachineFingerprint": {
+            "type": "boolean"
+          },
+          "licenseKeyMasked": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "LinkedMonatsberichtLineDto": {
         "type": "object",
         "properties": {
@@ -23482,14 +25336,63 @@
         },
         "additionalProperties": false
       },
-      "MonatsbelegStatusDto": {
+      "MissingMonth": {
         "required": [
-          "daysUntilDeadline",
-          "isRequired",
-          "warningLevel"
+          "deadline",
+          "isOverdue",
+          "month",
+          "year"
         ],
         "type": "object",
         "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isOverdue": {
+            "type": "boolean"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MonatsbelegStatusDto": {
+        "required": [
+          "missingMonths",
+          "requiresAttention",
+          "totalMissingCount"
+        ],
+        "type": "object",
+        "properties": {
+          "lastCompletedMonth": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextRequiredMonth": {
+            "type": "string",
+            "nullable": true
+          },
+          "missingMonths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MissingMonth"
+            },
+            "nullable": true
+          },
+          "requiresAttention": {
+            "type": "boolean"
+          },
+          "totalMissingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
           "isRequired": {
             "type": "boolean"
           },
@@ -23499,10 +25402,25 @@
           },
           "lastMonatsbelegDate": {
             "type": "string",
-            "format": "date-time",
             "nullable": true
           },
           "warningLevel": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentMonthExists": {
+            "type": "boolean"
+          },
+          "lastMonthExists": {
+            "type": "boolean"
+          },
+          "currentMonthOverdue": {
+            "type": "boolean"
+          },
+          "lastMonthMissing": {
+            "type": "boolean"
+          },
+          "warningMessage": {
             "type": "string",
             "nullable": true
           }
@@ -23925,6 +25843,78 @@
               "type": "string"
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "NtpAdminConfigurationDto": {
+        "type": "object",
+        "properties": {
+          "autoSyncEnabled": {
+            "type": "boolean"
+          },
+          "syncIntervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxAllowedOffsetSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "criticalOffsetSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasDatabaseOverride": {
+            "type": "boolean"
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "NtpAdminConfigurationUpdateDto": {
+        "type": "object",
+        "properties": {
+          "autoSyncEnabled": {
+            "type": "boolean"
+          },
+          "syncIntervalMinutes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxAllowedOffsetSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "criticalOffsetSeconds": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "NtpManualSyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "offsetSeconds": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "syncTimeUtc": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -26234,6 +28224,16 @@
             "type": "string",
             "nullable": true
           },
+          "rksvSpecialReceiptYear": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "rksvSpecialReceiptMonth": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "rksvFinanzOnlineSubmissionStatus": {
             "type": "string",
             "nullable": true
@@ -26635,6 +28635,28 @@
         ],
         "type": "integer",
         "format": "int32"
+      },
+      "RenewLicenseRequestBody": {
+        "required": [
+          "newExpiryDate"
+        ],
+        "type": "object",
+        "properties": {
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuedLicenseId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "newExpiryDate": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
       },
       "ReorderSuggestionDto": {
         "type": "object",
@@ -27666,6 +29688,66 @@
         },
         "additionalProperties": false
       },
+      "RevokeLicenseRequestBody": {
+        "required": [
+          "licenseKey"
+        ],
+        "type": "object",
+        "properties": {
+          "licenseKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvEvidenceBundleRequestDto": {
+        "required": [
+          "fromUtc",
+          "toUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fromUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "toUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "includeReceiptItems": {
+            "type": "boolean"
+          },
+          "includeTseSignatureLog": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RksvExportDisclaimerResponseDto": {
+        "type": "object",
+        "properties": {
+          "de": {
+            "type": "string",
+            "nullable": true
+          },
+          "en": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RksvFinanzOnlineSubmissionStatusDto": {
         "type": "object",
         "properties": {
@@ -27745,6 +29827,22 @@
             "nullable": true
           },
           "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentMonthExists": {
+            "type": "boolean"
+          },
+          "lastMonthExists": {
+            "type": "boolean"
+          },
+          "currentMonthOverdue": {
+            "type": "boolean"
+          },
+          "lastMonthMissing": {
+            "type": "boolean"
+          },
+          "warningMessageDe": {
             "type": "string",
             "nullable": true
           }
@@ -28321,7 +30419,8 @@
           0,
           1,
           2,
-          3
+          3,
+          -1
         ],
         "type": "integer",
         "format": "int32"
@@ -28577,6 +30676,35 @@
             "nullable": true
           },
           "warningLevel": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SystemTimeSyncLogEntryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "syncTimeUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "offsetSeconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "ntpServerUsed": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSuccess": {
+            "type": "boolean"
+          },
+          "errorMessage": {
             "type": "string",
             "nullable": true
           }
@@ -29298,6 +31426,28 @@
         },
         "additionalProperties": false
       },
+      "TimeSyncDriftSummaryDto": {
+        "type": "object",
+        "properties": {
+          "hasActiveDrift": {
+            "type": "boolean"
+          },
+          "registerCountOverThreshold": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "largestAbsoluteOffsetSeconds": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "maxAllowedOffsetSecondsThreshold": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "TopCustomer": {
         "type": "object",
         "properties": {
@@ -29372,6 +31522,28 @@
             "format": "int32"
           },
           "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TransferLicenseRequestBody": {
+        "required": [
+          "licenseKey",
+          "newMachineHashHex"
+        ],
+        "type": "object",
+        "properties": {
+          "licenseKey": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "newMachineHashHex": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "reason": {
             "type": "string",
             "nullable": true
           }
@@ -30686,6 +32858,32 @@
             "nullable": true
           },
           "cashRegisterId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpgradeLicenseRequestBody": {
+        "required": [
+          "newExpiryDate"
+        ],
+        "type": "object",
+        "properties": {
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuedLicenseId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "newExpiryDate": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "reason": {
             "type": "string",
             "nullable": true
           }

@@ -65,7 +65,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.catalogPricing]: ['/products', '/modifier-groups', '/categories', '/inventory', '/pricing-rules'],
     [ADMIN_SIDEBAR_GROUP_KEYS.customersBenefits]: ['/customers', '/benefit-definitions', '/benefit-assignments'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics]: ['/dashboard', '/reporting', '/reporting/report-center', '/reporting/staff'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics]: ['/dashboard', '/reporting', '/reporting/report-center', '/reporting/staff', '/reports/daily-closing'],
     [ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing]: [
         '/tagesabschluss',
         '/reporting/tagesbericht',

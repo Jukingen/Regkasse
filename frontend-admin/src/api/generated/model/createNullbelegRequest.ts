@@ -13,8 +13,9 @@ export interface CreateNullbelegRequest {
   /**
    * @minimum 1
    * @maximum 12
+   * @nullable
    */
-  month?: number;
+  month?: number | null;
   /**
    * @maxLength 450
    * @nullable

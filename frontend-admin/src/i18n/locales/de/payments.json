@@ -2,6 +2,13 @@
   "page": {
     "intro": "Zahlungen im gewählten Zeitraum. Zeile wählen für Details, Storno und Rückerstattung sowie Verknüpfungen zu Beleg und FinanzOnline."
   },
+  "standaloneDetail": {
+    "pageTitle": "Zahlungsdetails",
+    "backToPayments": "Zurück zu Zahlungen",
+    "loading": "Zahlung wird geladen …",
+    "loadFailed": "Zahlung konnte nicht geladen werden.",
+    "notFound": "Zahlung nicht gefunden."
+  },
   "toolbar": {
     "refresh": "Aktualisieren",
     "retryAfterError": "Erneut versuchen",
@@ -93,6 +100,10 @@
     "labelFoLastAttemptUtc": "Letzter Versuch (UTC)",
     "labelFoRetries": "Retries",
     "buttonOpenReceipt": "Beleg öffnen",
+    "buttonReprintPdf": "Nachdruck (PDF)",
+    "reprintPdfLoading": "PDF wird erstellt …",
+    "reprintPdfSuccess": "PDF wurde heruntergeladen",
+    "reprintPdfError": "Nachdruck-PDF konnte nicht erstellt werden",
     "backendMessageTooltip": "Ungeprüfte Servermeldung (Sprache nicht garantiert)",
     "cancelPermissionTitle": "Storno nicht erlaubt",
     "cancelPermissionDesc": "Für Storno fehlt die erforderliche Berechtigung.",

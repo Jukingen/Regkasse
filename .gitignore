@@ -139,6 +139,8 @@ backend/**/ConnectionStrings.json
 backend/**/AzureKeyVault.json
 
 # Backend - Geçici Dosyalar
+# Ephemeral OpenAPI baseline for scripts/validate-api-contract.mjs (CI or local)
+backend/swagger-old.json
 backend/**/bin/
 backend/**/obj/
 backend/**/.vs/

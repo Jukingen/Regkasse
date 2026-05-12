@@ -7,7 +7,8 @@
  */
 
 export interface AdminPaymentAuditLineItemDto {
-  productName?: string;
+  /** @nullable */
+  productName?: string | null;
   quantity?: number;
   taxAmount?: number;
   totalPrice?: number;

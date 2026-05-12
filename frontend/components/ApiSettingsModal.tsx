@@ -23,7 +23,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
   onClose
 }) => {
   const [ipAddress, setIpAddress] = useState('192.168.1.100');
-  const [port, setPort] = useState('5183');
+  const [port, setPort] = useState('5184');
 
   useEffect(() => {
     loadCurrentSettings();
@@ -114,7 +114,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
               style={styles.input}
               value={port}
               onChangeText={setPort}
-              placeholder="5183"
+              placeholder="5184"
               keyboardType="numeric"
               editable={false}
             />

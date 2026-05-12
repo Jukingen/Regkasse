@@ -230,5 +230,38 @@
         "deltaGrossMonthlyVsRaw": "Δ Brut (aylik − ham)"
       }
     }
+  },
+  "dailyClosing": {
+    "pageTitle": "Gun sonu (ozet)",
+    "breadcrumb": "Gun sonu ozeti",
+    "intro": "Secilen takvim gunu (Europe/Vienna) icin odeme satirlarindan operasyonel toplamlar. Resmi gunluk rapor veya RKSV gun sonunun yerine gecmez.",
+    "dateLabel": "Tarih",
+    "registerLabel": "Kasa",
+    "allRegisters": "Tum kasalar",
+    "stats": {
+      "totalSales": "Brut satis",
+      "totalCash": "Nakit",
+      "totalCard": "Kart",
+      "totalVoucher": "Hediye ceki",
+      "totalOther": "Diger odeme yontemleri",
+      "receiptCount": "Fisler (satis)",
+      "stornoCount": "Iptal satirlari",
+      "stornoTotal": "Iptal toplami"
+    },
+    "tables": {
+      "specialTitle": "Ozel fisler (RKSV)",
+      "stornoTitle": "Stornolar",
+      "empty": "Kayit yok",
+      "columns": {
+        "time": "Saat (UTC)",
+        "receipt": "Fis no.",
+        "amount": "Tutar",
+        "method": "Odeme yontemi",
+        "kind": "Ozel fis",
+        "register": "Kasa",
+        "stornoReason": "Iptal nedeni",
+        "originalReceipt": "Orijinal fis"
+      }
+    }
   }
 }

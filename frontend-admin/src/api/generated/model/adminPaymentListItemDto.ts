@@ -53,7 +53,6 @@ export interface AdminPaymentListItemDto {
   reversalCompletionStatus?: string | null;
   /** @nullable */
   status?: string | null;
-  /** @nullable */
   stornoReason?: StornoReason;
   totalAmount?: number;
   /** @nullable */

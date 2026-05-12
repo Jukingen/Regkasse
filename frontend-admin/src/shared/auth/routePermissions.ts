@@ -28,6 +28,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/reporting/tagesbericht': PERMISSIONS.REPORT_VIEW,
   '/reporting/monatsbericht': PERMISSIONS.REPORT_VIEW,
   '/reporting/jahresbericht': PERMISSIONS.REPORT_VIEW,
+  '/reports/daily-closing': PERMISSIONS.REPORT_VIEW,
   '/tables': PERMISSIONS.TABLE_VIEW,
   '/tagesabschluss': PERMISSIONS.TSE_SIGN,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,

@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.DataProtection;
@@ -26,6 +27,9 @@ public partial class PaymentService
         string userId,
         Guid resolvedCashRegisterId)
     {
+        if (IsVoucherPaymentForOfflineQueue(request))
+            throw new InvalidOperationException("Voucher payments cannot be processed offline.");
+
         var max = Math.Clamp(_tseOptions.MaxOfflineTransactionsPerCashRegister, 1, 10000);
         var pendingCount = await _context.OfflineTransactions.CountAsync(x =>
                 x.CashRegisterId == resolvedCashRegisterId &&
@@ -51,7 +55,8 @@ public partial class PaymentService
 
         var payloadRaw = JsonSerializer.Serialize(request, OfflineIntentJsonOptions);
         var protector = OfflineVoucherPayloadProtector.CreateProtector(_dataProtectionProvider);
-        var prepared = OfflineVoucherPayloadProtector.PrepareForPersistence(payloadRaw, protector);
+        var aesKey = OfflineVoucherEncryptionOptions.TryResolveKeyBytes(_offlineVoucherEncryption.Value);
+        var prepared = OfflineVoucherPayloadProtector.PrepareForPersistence(payloadRaw, protector, aesKey);
 
         var row = new OfflineTransaction
         {
@@ -84,5 +89,15 @@ public partial class PaymentService
             InvoicePersisted = false,
             DiagnosticCode = "NON_FISCAL_QUEUED"
         };
+    }
+
+    /// <summary>Non-fiscal offline intents must never carry Gutschein plaintext for replay (RKSV / GDPR).</summary>
+    private static bool IsVoucherPaymentForOfflineQueue(CreatePaymentRequest request)
+    {
+        var method = request.Payment.Method?.Trim();
+        var voucherMethod = string.Equals(method, "voucher", StringComparison.OrdinalIgnoreCase);
+        var hasCode = !string.IsNullOrWhiteSpace(request.Payment.VoucherCode);
+        var hasRedemptions = request.Payment.VoucherRedemptions is { Count: > 0 };
+        return voucherMethod || hasCode || hasRedemptions;
     }
 }

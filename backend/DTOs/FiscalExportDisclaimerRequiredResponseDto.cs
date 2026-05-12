@@ -12,4 +12,7 @@ public sealed class FiscalExportDisclaimerRequiredResponseDto
         "You must acknowledge the legal disclaimer before downloading this export.";
 
     public string DisclaimerUrl { get; set; } = FiscalExportDisclaimerPaths.RelativeDisclaimerUrl;
+
+    /// <summary>Same dual-language texts as <c>GET /api/admin/fiscal-export/disclaimer</c> for inline UI display.</summary>
+    public RksvExportDisclaimerResponseDto? Disclaimer { get; set; }
 }

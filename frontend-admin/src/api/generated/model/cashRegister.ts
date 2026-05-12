@@ -28,6 +28,10 @@ export interface CashRegister {
   lastJahresbelegUtc?: string | null;
   /** @nullable */
   lastMonatsbelegUtc?: string | null;
+  /** @nullable */
+  lastServerTimeDriftAtUtc?: string | null;
+  /** @nullable */
+  lastServerTimeOffsetSeconds?: number | null;
   /**
    * @minLength 1
    * @maxLength 100

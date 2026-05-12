@@ -74,8 +74,11 @@ public sealed class RksvReminderService : IRksvReminderService
 
         var mbRequired = !hasCurrentMonth || !hasPreviousMonth;
 
+        var currentMonthGraceOverdue = !hasCurrentMonth && today.Day > 7;
+        var lastMonthMissing = !hasPreviousMonth;
+
         string mbStatus;
-        if (!hasPreviousMonth || (!hasCurrentMonth && daysUntilMonthEnd <= 1))
+        if (!hasPreviousMonth || currentMonthGraceOverdue || (!hasCurrentMonth && daysUntilMonthEnd <= 1))
             mbStatus = MbOverdue;
         else if (hasCurrentMonth && hasPreviousMonth)
             mbStatus = MbOk;
@@ -84,11 +87,18 @@ public sealed class RksvReminderService : IRksvReminderService
 
         int? mbDays = mbRequired ? daysUntilMonthEnd : null;
 
+        var warningMessageDe = BuildMonatsbelegReminderWarningDe(lastMonthMissing, currentMonthGraceOverdue);
+
         var monatsbeleg = new RksvReminderMonatsbelegDto
         {
             IsRequired = mbRequired,
             DaysUntilDeadline = mbDays,
             Status = mbStatus,
+            CurrentMonthExists = hasCurrentMonth,
+            LastMonthExists = hasPreviousMonth,
+            CurrentMonthOverdue = currentMonthGraceOverdue,
+            LastMonthMissing = lastMonthMissing,
+            WarningMessageDe = warningMessageDe,
         };
 
         var hasJbPriorYear = await HasJahresbelegForViennaYearAsync(
@@ -166,6 +176,15 @@ public sealed class RksvReminderService : IRksvReminderService
                      p.RksvSpecialReceiptKind == RksvSpecialReceiptKinds.Jahresbeleg &&
                      p.RksvSpecialReceiptYear == year,
                 cancellationToken)
-            .ConfigureAwait(false);
+                .ConfigureAwait(false);
+    }
+
+    private static string? BuildMonatsbelegReminderWarningDe(bool lastMonthMissing, bool currentMonthGraceOverdue)
+    {
+        if (lastMonthMissing)
+            return "Monatsbeleg für den Vormonat fehlt. Bitte umgehend erstellen.";
+        if (currentMonthGraceOverdue)
+            return "Monatsbeleg für aktuellen Monat überfällig! Bitte erstellen Sie den Monatsbeleg sofort.";
+        return null;
     }
 }

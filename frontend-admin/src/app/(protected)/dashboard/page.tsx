@@ -20,6 +20,7 @@ import {
 } from '@/api/generated/reports/reports';
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
+import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -29,6 +30,7 @@ export default function DashboardPage() {
     const { hasPermission } = usePermissions();
     const offlineQueueCardEnabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
     const monatsbelegOverviewEnabled = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
+    const tseHealthCardEnabled = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
     const timeSyncDriftAlertEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
     const monatsbelegOverview = useAdminMonatsbelegOverview(monatsbelegOverviewEnabled);
 
@@ -91,6 +93,8 @@ export default function DashboardPage() {
             {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
 
             {timeSyncDriftAlertEnabled ? <TimeSyncDriftAlertCard /> : null}
+
+            {tseHealthCardEnabled ? <TseHealthCard /> : null}
 
             {monatsbelegOverviewEnabled ? (
                 <MonatsbelegComplianceTable

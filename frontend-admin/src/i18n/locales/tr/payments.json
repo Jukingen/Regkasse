@@ -2,6 +2,13 @@
   "page": {
     "intro": "Secilen donemdeki odemeler. Satir secerek detay, iptal ve iade ile fis ve FinanzOnline baglantilarina gidin."
   },
+  "standaloneDetail": {
+    "pageTitle": "Odeme detayi",
+    "backToPayments": "Odemelere don",
+    "loading": "Odeme yukleniyor …",
+    "loadFailed": "Odeme yuklenemedi.",
+    "notFound": "Odeme bulunamadi."
+  },
   "toolbar": {
     "refresh": "Yenile",
     "retryAfterError": "Tekrar dene",
@@ -93,6 +100,10 @@
     "labelFoLastAttemptUtc": "Son deneme (UTC)",
     "labelFoRetries": "Yeniden deneme",
     "buttonOpenReceipt": "Fisi ac",
+    "buttonReprintPdf": "Yeniden yazdir (PDF)",
+    "reprintPdfLoading": "PDF olusturuluyor …",
+    "reprintPdfSuccess": "PDF indirildi",
+    "reprintPdfError": "Yeniden yazdirma PDF'i olusturulamadi",
     "backendMessageTooltip": "Denetlenmemis sunucu mesaji (dil garanti degil)",
     "cancelPermissionTitle": "Iptal yetkisi yok",
     "cancelPermissionDesc": "Odeme iptali icin gerekli yetki yok.",

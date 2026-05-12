@@ -14,4 +14,10 @@ public interface IQrImageService
     /// SVG formatında QR image döner. Vektörel, baskı için uygun.
     /// </summary>
     Task<string?> GetQrSvgAsync(Guid paymentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// RKSV receipt reprint: encodes the exact stored QR string (e.g. <see cref="Models.Receipt.QrCodePayload"/>) to PNG
+    /// without alternate compression layers so the scanned payload matches the persisted receipt.
+    /// </summary>
+    byte[]? GetQrPngFromExactPayload(string? payload);
 }

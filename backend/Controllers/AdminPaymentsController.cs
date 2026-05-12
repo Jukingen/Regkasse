@@ -13,6 +13,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,17 +33,20 @@ public class AdminPaymentsController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IPaymentService _paymentService;
+    private readonly IReceiptPdfService _receiptPdfService;
     private readonly ILogger<AdminPaymentsController> _logger;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
 
     public AdminPaymentsController(
         AppDbContext context,
         IPaymentService paymentService,
+        IReceiptPdfService receiptPdfService,
         ILogger<AdminPaymentsController> logger,
         ISettingsTenantResolver settingsTenantResolver)
     {
         _context = context;
         _paymentService = paymentService;
+        _receiptPdfService = receiptPdfService;
         _logger = logger;
         _settingsTenantResolver = settingsTenantResolver;
     }
@@ -287,6 +291,57 @@ public class AdminPaymentsController : ControllerBase
         {
             _logger.LogError(ex, "Admin payment detail failed for PaymentId={PaymentId}", id);
             return StatusCode(500, new { message = "Failed to retrieve payment detail", code = "ADMIN_PAYMENT_DETAIL_ERROR" });
+        }
+    }
+
+    /// <summary>
+    /// RKSV-compliant receipt reprint as PDF (watermarked). Uses persisted receipt/QR/TSE snapshot only; no new signing or DB rows.
+    /// </summary>
+    [HttpGet("{id:guid}/reprint-pdf")]
+    [HasPermission(AppPermissions.ReceiptReprint)]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadReprintPdf(Guid id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var bytes = await _receiptPdfService.GenerateReprintPdfAsync(id, cancellationToken).ConfigureAwait(false);
+            var fileName = $"Beleg-Nachdruck-{id:N}.pdf";
+            return File(bytes, "application/pdf", fileName);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogInformation(ex, "Admin receipt reprint PDF: not found PaymentId={PaymentId}", id);
+            return NotFound(new { message = "Receipt not found for this payment", code = "ADMIN_PAYMENT_REPRINT_NOT_FOUND" });
+        }
+    }
+
+    /// <summary>
+    /// Same RKSV-safe reprint PDF as <see cref="DownloadReprintPdf"/>; alternate path and filename for integrations.
+    /// </summary>
+    [HttpGet("{paymentId:guid}/reprint")]
+    [HasPermission(AppPermissions.ReceiptReprint)]
+    [Produces("application/pdf")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ReprintReceipt(Guid paymentId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var pdfBytes = await _receiptPdfService.GenerateReprintPdfAsync(paymentId, cancellationToken).ConfigureAwait(false);
+            var fileName = $"beleg_{paymentId}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Payment not found" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Admin receipt reprint failed PaymentId={PaymentId}", paymentId);
+            return StatusCode(500, new { error = "Failed to generate reprint", details = ex.Message });
         }
     }
 

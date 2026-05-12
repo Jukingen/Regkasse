@@ -1,5 +1,6 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
+using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Services;
 
@@ -8,6 +9,7 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
 {
+    private readonly ILogger<NtpTimeSyncStatus> _logger;
     private readonly object _gate = new();
 
     private DateTime _lastSyncAtUtc;
@@ -16,6 +18,11 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
     private double? _offsetSeconds;
     private bool _lastAttemptSuccess;
     private string? _lastErrorMessage;
+
+    public NtpTimeSyncStatus(ILogger<NtpTimeSyncStatus> logger)
+    {
+        _logger = logger;
+    }
 
     public void RecordSynchronizationAttempt(
         DateTime syncTimeUtc,
@@ -72,12 +79,17 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
     {
         operatorMessageDe = null;
         if (!settings.Enabled)
+        {
+            _logger.LogWarning(
+                "NTP fiscal guard disabled (NtpSettings.Enabled=false); online fiscal payments are not blocked by clock sync — not recommended for production.");
             return true;
+        }
 
         lock (_gate)
         {
             if (!_lastAttemptSuccess)
             {
+                _logger.LogWarning("NTP sync failed — blocking fiscal payments.");
                 operatorMessageDe =
                     "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren";
                 return false;
@@ -85,6 +97,7 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
 
             if (!_offsetSeconds.HasValue)
             {
+                _logger.LogWarning("NTP sync has no measured offset — blocking fiscal payments.");
                 operatorMessageDe =
                     "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren";
                 return false;
@@ -92,6 +105,10 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
 
             if (Math.Abs(_offsetSeconds.Value) > settings.MaxAllowedOffsetSeconds)
             {
+                _logger.LogWarning(
+                    "Time offset {OffsetSeconds}s exceeds MaxAllowedOffsetSeconds={MaxAllowedSeconds}s — blocking fiscal payments.",
+                    _offsetSeconds.Value,
+                    settings.MaxAllowedOffsetSeconds);
                 operatorMessageDe =
                     "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren";
                 return false;

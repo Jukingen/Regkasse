@@ -1,6 +1,7 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
@@ -13,13 +14,16 @@ namespace KasseAPI_Final.Filters;
 public sealed class RequireDisclaimerAcknowledgmentFilter : IAsyncActionFilter
 {
     private readonly IOptions<FiscalExportOptions> _options;
+    private readonly IDisclaimerService _disclaimer;
     private readonly ILogger<RequireDisclaimerAcknowledgmentFilter> _logger;
 
     public RequireDisclaimerAcknowledgmentFilter(
         IOptions<FiscalExportOptions> options,
+        IDisclaimerService disclaimer,
         ILogger<RequireDisclaimerAcknowledgmentFilter> logger)
     {
         _options = options;
+        _disclaimer = disclaimer;
         _logger = logger;
     }
 
@@ -51,9 +55,15 @@ public sealed class RequireDisclaimerAcknowledgmentFilter : IAsyncActionFilter
                 ctx.Request.Path.Value ?? string.Empty);
         }
 
-        context.Result = new ObjectResult(new FiscalExportDisclaimerRequiredResponseDto())
+        var body = new FiscalExportDisclaimerRequiredResponseDto
         {
-            StatusCode = StatusCodes.Status403Forbidden
+            Disclaimer = new RksvExportDisclaimerResponseDto
+            {
+                De = _disclaimer.GetRksvDisclaimer("de"),
+                En = _disclaimer.GetRksvDisclaimer("en"),
+            },
         };
+
+        context.Result = new ObjectResult(body) { StatusCode = StatusCodes.Status400BadRequest };
     }
 }

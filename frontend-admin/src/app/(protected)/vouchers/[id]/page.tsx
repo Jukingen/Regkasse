@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Button,
@@ -11,13 +11,10 @@ import {
   Modal,
   Space,
   Spin,
-  Table,
   Tag,
   Typography,
   message,
 } from 'antd';
-import { LinkOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -28,23 +25,15 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import {
   useAdminVoucherDetail,
-  useAdminVoucherLedger,
   useCancelAdminVoucher,
   useVerifyAdminVoucherCode,
-  type AdminVoucherLedgerLineDto,
 } from '@/api/admin/vouchers';
 import { formatCurrency, formatDateTime } from '@/i18n/formatting';
+import { VoucherHistory } from '@/features/vouchers/components/VoucherHistory';
 
-function shortId(value?: string | null): string {
+function shortId(value: string): string {
   if (!value) return '—';
   return value.length > 14 ? `${value.slice(0, 8)}…` : value;
-}
-
-function creatorFallback(userId?: string | null): string {
-  if (!userId) return '—';
-  const trimmed = userId.trim();
-  if (!trimmed) return '—';
-  return trimmed.length > 14 ? `${trimmed.slice(0, 8)}…` : trimmed;
 }
 
 function formatCreatorLabel(input: {
@@ -59,8 +48,14 @@ function formatCreatorLabel(input: {
   const roleText = (input.createdByRoles ?? []).filter(Boolean).join(', ');
   if (parts.length > 0 && roleText) return `${parts.join(' · ')} (${roleText})`;
   if (parts.length > 0) return parts.join(' · ');
-  if (roleText) return `${creatorFallback(input.createdByUserId)} (${roleText})`;
-  return creatorFallback(input.createdByUserId);
+  if (roleText) {
+    const uid = input.createdByUserId?.trim();
+    const short = uid && uid.length > 14 ? `${uid.slice(0, 8)}…` : uid || '—';
+    return `${short} (${roleText})`;
+  }
+  const uid = input.createdByUserId?.trim();
+  if (!uid) return '—';
+  return uid.length > 14 ? `${uid.slice(0, 8)}…` : uid;
 }
 
 function statusColor(status: string): string {
@@ -90,7 +85,6 @@ export default function AdminVoucherDetailPage() {
   const canCancel = hasPermission(PERMISSIONS.VOUCHER_CANCEL);
 
   const detailQuery = useAdminVoucherDetail(id, { enabled: canRead && !!id });
-  const ledgerQuery = useAdminVoucherLedger(id, canRead && canAudit && !!id);
   const cancelMutation = useCancelAdminVoucher();
   const verifyCodeMutation = useVerifyAdminVoucherCode();
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -104,93 +98,6 @@ export default function AdminVoucherDetailPage() {
     const lbl = t(key);
     return lbl === key ? s : lbl;
   };
-
-  const ledgerColumns: ColumnsType<AdminVoucherLedgerLineDto> = useMemo(
-    () => [
-      {
-        title: t('vouchers.ledger.type'),
-        dataIndex: 'type',
-        key: 'type',
-        render: (type: string) => {
-          const map: Record<string, string> = {
-            Issue: 'vouchers.ledger.typeIssue',
-            Redeem: 'vouchers.ledger.typeRedeem',
-            Refund: 'vouchers.ledger.typeRefund',
-            Cancel: 'vouchers.ledger.typeCancel',
-            Expire: 'vouchers.ledger.typeExpire',
-          };
-          const k = map[type];
-          return k ? t(k) : type;
-        },
-      },
-      {
-        title: t('vouchers.ledger.amount'),
-        dataIndex: 'amount',
-        key: 'amount',
-        render: (v: number) =>
-          formatCurrency(v, formatLocale, { currency: d?.currency ?? 'EUR' }),
-      },
-      {
-        title: t('vouchers.ledger.balanceAfter'),
-        dataIndex: 'balanceAfter',
-        key: 'balanceAfter',
-        render: (v: number) =>
-          formatCurrency(v, formatLocale, { currency: d?.currency ?? 'EUR' }),
-      },
-      {
-        title: t('vouchers.ledger.paymentId'),
-        dataIndex: 'paymentId',
-        key: 'paymentId',
-        render: (pid: string | null | undefined) => {
-          const full = typeof pid === 'string' ? pid.trim() : '';
-          if (!full) return '—';
-          return (
-            <Space size="small" align="center" wrap>
-              <Typography.Text copyable={{ text: full }}>{shortId(full)}</Typography.Text>
-              <Link
-                href={`/payments?paymentId=${encodeURIComponent(full)}`}
-                title={t('vouchers.ledger.linkOpenPayments')}
-                aria-label={t('vouchers.ledger.linkOpenPayments')}
-              >
-                <LinkOutlined />
-              </Link>
-            </Space>
-          );
-        },
-      },
-      {
-        title: t('vouchers.ledger.receiptNumber'),
-        dataIndex: 'receiptNumber',
-        key: 'receiptNumber',
-        render: (x: string | null | undefined) => {
-          const rn = typeof x === 'string' ? x.trim() : '';
-          if (!rn) return '—';
-          return (
-            <Link
-              href={`/receipts?receiptNumber=${encodeURIComponent(rn)}`}
-              title={t('vouchers.ledger.linkOpenReceipts')}
-            >
-              {rn}
-            </Link>
-          );
-        },
-      },
-      {
-        title: t('vouchers.ledger.createdAt'),
-        dataIndex: 'createdAtUtc',
-        key: 'createdAtUtc',
-        render: (iso: string) => formatDateTime(iso, formatLocale),
-      },
-      {
-        title: t('vouchers.ledger.createdBy'),
-        dataIndex: 'createdByUserId',
-        key: 'createdByUserId',
-        ellipsis: true,
-        render: (_: string, row) => formatCreatorLabel(row),
-      },
-    ],
-    [t, formatLocale, d?.currency]
-  );
 
   const showCancel =
     canCancel &&
@@ -206,7 +113,6 @@ export default function AdminVoucherDetailPage() {
     setCancelOpen(false);
     cancelForm.resetFields();
     await detailQuery.refetch();
-    if (canAudit) await ledgerQuery.refetch();
   };
 
   const submitVerifyCode = () => {
@@ -343,19 +249,11 @@ export default function AdminVoucherDetailPage() {
           </Card>
 
           <Card title={t('vouchers.ledger.title')}>
-            {!canAudit ? (
-              <Alert type="info" message={t('vouchers.ledger.permissionDenied')} showIcon />
-            ) : (
-              <Table<AdminVoucherLedgerLineDto>
-                rowKey="id"
-                loading={ledgerQuery.isLoading}
-                dataSource={ledgerQuery.data ?? []}
-                columns={ledgerColumns}
-                scroll={{ x: true }}
-                locale={{ emptyText: t('vouchers.ledger.empty') }}
-                pagination={false}
-              />
-            )}
+            <VoucherHistory
+              voucherId={id}
+              ledgerEnabled={canRead && canAudit}
+              currency={d.currency || 'EUR'}
+            />
           </Card>
         </>
       )}

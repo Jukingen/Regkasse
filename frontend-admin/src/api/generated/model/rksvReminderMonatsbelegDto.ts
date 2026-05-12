@@ -7,9 +7,15 @@
  */
 
 export interface RksvReminderMonatsbelegDto {
+  currentMonthExists?: boolean;
+  currentMonthOverdue?: boolean;
   /** @nullable */
   daysUntilDeadline?: number | null;
   isRequired: boolean;
+  lastMonthExists?: boolean;
+  lastMonthMissing?: boolean;
   /** @nullable */
   status: string | null;
+  /** @nullable */
+  warningMessageDe?: string | null;
 }

@@ -74,7 +74,6 @@ export interface AdminPaymentDetailDto {
   /** @nullable */
   status?: string | null;
   stornoReason?: StornoReason;
-  /** @nullable */
   stornoRefundAudit?: AdminPaymentStornoRefundAuditDto;
   tableNumber?: number;
   taxAmount?: number;

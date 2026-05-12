@@ -116,7 +116,13 @@ public sealed class PaymentTenantIsolationTests
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
         var mockPay = new Mock<IPaymentService>(MockBehavior.Strict);
-        var c = new AdminPaymentsController(ctx, mockPay.Object, NullLogger<AdminPaymentsController>.Instance, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var mockPdf = new Mock<IReceiptPdfService>(MockBehavior.Loose);
+        var c = new AdminPaymentsController(
+            ctx,
+            mockPay.Object,
+            mockPdf.Object,
+            NullLogger<AdminPaymentsController>.Instance,
+            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
         var result = await c.GetList(startDate: new DateTime(2026, 3, 15), endDate: new DateTime(2026, 3, 15), cancellationToken: CancellationToken.None);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var body = Assert.IsType<AdminPaymentsListResponse>(ok.Value);
@@ -130,7 +136,13 @@ public sealed class PaymentTenantIsolationTests
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
         var mockPay = new Mock<IPaymentService>(MockBehavior.Strict);
-        var c = new AdminPaymentsController(ctx, mockPay.Object, NullLogger<AdminPaymentsController>.Instance, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var mockPdf = new Mock<IReceiptPdfService>(MockBehavior.Loose);
+        var c = new AdminPaymentsController(
+            ctx,
+            mockPay.Object,
+            mockPdf.Object,
+            NullLogger<AdminPaymentsController>.Instance,
+            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
         var result = await c.GetDetail(payB, CancellationToken.None);
         Assert.IsType<NotFoundObjectResult>(result.Result);
     }

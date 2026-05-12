@@ -9,6 +9,10 @@ namespace KasseAPI_Final.Services;
 /// Background NTP sampling for RKSV clock drift detection; persists rows to <see cref="Models.SystemTimeSyncLog"/>.
 /// Interval and enable flag follow effective settings (DB + appsettings).
 /// </summary>
+/// <remarks>
+/// Online fiscal payment blocking when NTP is enabled is implemented on <see cref="INtpTimeSyncStatus.ShouldAllowOnlineFiscalPayment"/>
+/// (<see cref="NtpTimeSyncStatus"/>) — not in this hosted loop.
+/// </remarks>
 public sealed class NtpTimeSyncService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;

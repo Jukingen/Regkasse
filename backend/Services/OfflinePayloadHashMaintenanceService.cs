@@ -99,13 +99,15 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
     private readonly PayloadHashGuardOptions _guardOptions;
     private readonly ICoreMetrics? _metrics;
     private readonly IDataProtector? _offlinePayloadProtector;
+    private readonly IOptionsMonitor<OfflineVoucherEncryptionOptions>? _offlineVoucherEncryption;
 
     public OfflinePayloadHashMaintenanceService(
         AppDbContext context,
         ILogger<OfflinePayloadHashMaintenanceService> logger,
         IOptionsMonitor<PayloadHashGuardOptions>? guardOptions = null,
         ICoreMetrics? metrics = null,
-        IDataProtectionProvider? dataProtectionProvider = null)
+        IDataProtectionProvider? dataProtectionProvider = null,
+        IOptionsMonitor<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null)
     {
         _context = context;
         _logger = logger;
@@ -114,7 +116,11 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
         _offlinePayloadProtector = dataProtectionProvider != null
             ? OfflineVoucherPayloadProtector.CreateProtector(dataProtectionProvider)
             : null;
+        _offlineVoucherEncryption = offlineVoucherEncryption;
     }
+
+    private byte[]? GetOfflineVoucherFieldAesKeyBytes() =>
+        OfflineVoucherEncryptionOptions.TryResolveKeyBytes(_offlineVoucherEncryption?.CurrentValue);
 
     public async Task<OfflinePayloadHashAnalyzeResult> AnalyzeAsync(
         int maxRows,
@@ -151,7 +157,8 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
                 var fullJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
                     r.PayloadJson ?? "{}",
                     r.PayloadSecretsProtected,
-                    _offlinePayloadProtector);
+                    _offlinePayloadProtector,
+                    GetOfflineVoucherFieldAesKeyBytes());
                 canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(fullJson);
             }
             catch
@@ -325,7 +332,8 @@ public sealed class OfflinePayloadHashMaintenanceService : IOfflinePayloadHashMa
                 var fullJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
                     row.PayloadJson,
                     row.PayloadSecretsProtected,
-                    _offlinePayloadProtector);
+                    _offlinePayloadProtector,
+                    GetOfflineVoucherFieldAesKeyBytes());
                 canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(fullJson);
             }
             catch

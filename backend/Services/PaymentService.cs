@@ -64,6 +64,7 @@ namespace KasseAPI_Final.Services
         private readonly INtpEffectiveSettingsProvider _ntpEffectiveSettings;
         private readonly INtpTimeSyncStatus _ntpTimeSyncStatus;
         private readonly ILicenseService? _licenseService;
+        private readonly IOptions<OfflineVoucherEncryptionOptions> _offlineVoucherEncryption;
 
         public PaymentService(
             AppDbContext context,
@@ -93,7 +94,8 @@ namespace KasseAPI_Final.Services
             INtpTimeSyncStatus? ntpTimeSyncStatus = null,
             ITseHealthMonitor? tseHealthMonitor = null,
             IDataProtectionProvider? dataProtectionProvider = null,
-            ILicenseService? licenseService = null)
+            ILicenseService? licenseService = null,
+            IOptions<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -123,6 +125,7 @@ namespace KasseAPI_Final.Services
             _tseHealthMonitor = tseHealthMonitor ?? AlwaysOnlineTseHealthMonitor.Instance;
             _dataProtectionProvider = dataProtectionProvider ?? FallbackOfflinePayloadProtection;
             _licenseService = licenseService;
+            _offlineVoucherEncryption = offlineVoucherEncryption ?? Options.Create(new OfflineVoucherEncryptionOptions());
         }
 
         /// <summary>
@@ -1631,7 +1634,8 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                return await CreateStornoReversalAsync(payment, reason, userId, key, stornoReasonEnum: null);
+                // RKSV: reversal row must carry a concrete StornoReason (CancelPayment has no client enum → Anderes).
+                return await CreateStornoReversalAsync(payment, reason, userId, key, StornoReason.Anderes);
             }
             catch (Exception ex)
             {
@@ -1661,6 +1665,7 @@ namespace KasseAPI_Final.Services
         private static string FormatStornoReasonForAudit(StornoReason reason) =>
             reason switch
             {
+                StornoReason.None => "None",
                 StornoReason.FalscherBetrag => "Falscher Betrag",
                 StornoReason.KundeStorniert => "Kunde storniert",
                 StornoReason.TechnischerFehler => "Technischer Fehler",
@@ -1680,6 +1685,32 @@ namespace KasseAPI_Final.Services
             StornoReason? stornoReasonEnum = null)
         {
             var paymentId = payment.Id;
+            if (payment.IsStorno)
+            {
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Cannot storno a storno payment",
+                    Errors = { "The selected payment is already a reversal row; use the original sale payment." },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "STORNO_TARGET_IS_STORNO"
+                };
+            }
+
+            if (!stornoReasonEnum.HasValue || stornoReasonEnum.Value == StornoReason.None)
+            {
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Storno reason is required",
+                    Errors = { "A valid StornoReason must be supplied for RKSV compliance." },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "STORNO_REASON_REQUIRED"
+                };
+            }
+
+            var resolvedStornoReason = stornoReasonEnum.Value;
+
             if (payment.CashRegisterId == Guid.Empty)
             {
                 return new PaymentResult
@@ -1708,6 +1739,18 @@ namespace KasseAPI_Final.Services
                 .FirstOrDefaultAsync(r => r.PaymentId == paymentId);
             var originalInvoice = await _context.Invoices.AsNoTracking()
                 .FirstOrDefaultAsync(i => i.SourcePaymentId == paymentId);
+
+            if (originalReceipt == null || originalReceipt.ReceiptId == Guid.Empty)
+            {
+                return new PaymentResult
+                {
+                    Success = false,
+                    Message = "Original receipt is required for storno",
+                    Errors = { "RKSV storno requires an existing receipt linked to the original payment." },
+                    IsDeterministicFailure = true,
+                    DiagnosticCode = "STORNO_ORIGINAL_RECEIPT_REQUIRED"
+                };
+            }
 
             var originalItems = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
             var stornoItems = originalItems.Select(i => new PaymentItem
@@ -1762,10 +1805,10 @@ namespace KasseAPI_Final.Services
                     PaymentItems = JsonDocument.Parse(JsonSerializer.Serialize(stornoItems)),
                     TaxDetails = JsonDocument.Parse(JsonSerializer.Serialize(stornoTaxDetails)),
                     OriginalPaymentId = paymentId,
-                    OriginalReceiptId = originalReceipt?.ReceiptId,
+                    OriginalReceiptId = originalReceipt.ReceiptId,
                     IsRefund = false,
                     IsStorno = true,
-                    StornoReason = stornoReasonEnum,
+                    StornoReason = resolvedStornoReason,
                     CancellationReason = reason,
                     CancelledAt = DateTime.UtcNow,
                     TotalAmount = -payment.TotalAmount,
@@ -1843,7 +1886,7 @@ namespace KasseAPI_Final.Services
                     TaxDetails = storno.TaxDetails,
                     DocumentType = DocumentType.CreditNote,
                     OriginalInvoiceId = originalInvoice?.Id,
-                    StornoReasonCode = stornoReasonEnum?.ToString(),
+                    StornoReasonCode = resolvedStornoReason.ToString(),
                     StornoReasonText = reason,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = userId,

@@ -7,12 +7,15 @@
  */
 
 export interface AdminPaymentAuditEventDto {
-  action?: string;
+  /** @nullable */
+  action?: string | null;
   /** @nullable */
   description?: string | null;
   /** @nullable */
   httpStatusCode?: number | null;
   timestampUtc?: string;
-  userId?: string;
-  userRole?: string;
+  /** @nullable */
+  userId?: string | null;
+  /** @nullable */
+  userRole?: string | null;
 }

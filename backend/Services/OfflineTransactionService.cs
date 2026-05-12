@@ -34,6 +34,7 @@ public class OfflineTransactionService : IOfflineTransactionService
     private readonly OfflineReplayOptions _replayOptions;
     private readonly ICoreMetrics? _metrics;
     private readonly IDataProtector _offlineFullPayloadProtector;
+    private readonly IOptionsMonitor<OfflineVoucherEncryptionOptions>? _offlineVoucherEncryption;
 
     public OfflineTransactionService(
         AppDbContext context,
@@ -42,7 +43,8 @@ public class OfflineTransactionService : IOfflineTransactionService
         ILogger<OfflineTransactionService> logger,
         IDataProtectionProvider dataProtectionProvider,
         IOptions<OfflineReplayOptions>? replayOptions = null,
-        ICoreMetrics? metrics = null)
+        ICoreMetrics? metrics = null,
+        IOptionsMonitor<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null)
     {
         _context = context;
         _paymentService = paymentService;
@@ -51,7 +53,12 @@ public class OfflineTransactionService : IOfflineTransactionService
         _replayOptions = replayOptions?.Value ?? new OfflineReplayOptions();
         _metrics = metrics;
         _offlineFullPayloadProtector = OfflineVoucherPayloadProtector.CreateProtector(dataProtectionProvider);
+        _offlineVoucherEncryption = offlineVoucherEncryption;
     }
+
+    /// <summary>Optional AES layer for voucher-bearing offline payloads (before Data Protection seal).</summary>
+    private byte[]? GetOfflineVoucherFieldAesKeyBytes() =>
+        OfflineVoucherEncryptionOptions.TryResolveKeyBytes(_offlineVoucherEncryption?.CurrentValue);
 
     public async Task<ReplayOfflineTransactionsResponse> ReplayOfflineTransactionsAsync(
         ReplayOfflineTransactionsRequest request,
@@ -136,7 +143,8 @@ public class OfflineTransactionService : IOfflineTransactionService
                 var payloadRaw = GetPayloadRaw(item.Payload);
                 var payloadPrepared = OfflineVoucherPayloadProtector.PrepareForPersistence(
                     payloadRaw,
-                    _offlineFullPayloadProtector);
+                    _offlineFullPayloadProtector,
+                    GetOfflineVoucherFieldAesKeyBytes());
                 var normalizedPayloadJson = payloadPrepared.StoredPayloadJson;
                 var payloadHash = payloadPrepared.PayloadHashHex;
 
@@ -396,7 +404,8 @@ public class OfflineTransactionService : IOfflineTransactionService
                     var replayJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
                         offline.PayloadJson,
                         offline.PayloadSecretsProtected,
-                        _offlineFullPayloadProtector);
+                        _offlineFullPayloadProtector,
+                        GetOfflineVoucherFieldAesKeyBytes());
 
                     var paymentRequest =
                         JsonSerializer.Deserialize<CreatePaymentRequest>(replayJson);
@@ -721,7 +730,8 @@ public class OfflineTransactionService : IOfflineTransactionService
                 var fullJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
                     c.PayloadJson,
                     c.PayloadSecretsProtected,
-                    _offlineFullPayloadProtector);
+                    _offlineFullPayloadProtector,
+                    GetOfflineVoucherFieldAesKeyBytes());
                 h = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(fullJson);
             }
             catch
@@ -759,7 +769,8 @@ public class OfflineTransactionService : IOfflineTransactionService
             var fullJson = OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
                 row.PayloadJson,
                 row.PayloadSecretsProtected,
-                _offlineFullPayloadProtector);
+                _offlineFullPayloadProtector,
+                GetOfflineVoucherFieldAesKeyBytes());
             canonical = OfflinePayloadHashing.ComputeRuntimeCanonicalHashHex(fullJson);
         }
         catch
@@ -815,7 +826,8 @@ public class OfflineTransactionService : IOfflineTransactionService
                 OfflineVoucherPayloadProtector.ResolveNormalizedPayloadJson(
                     x.PayloadJson,
                     x.PayloadSecretsProtected,
-                    _offlineFullPayloadProtector),
+                    _offlineFullPayloadProtector,
+                    GetOfflineVoucherFieldAesKeyBytes()),
                 normalizedPayloadJson))
             .ToList();
         if (matches.Count != 1)

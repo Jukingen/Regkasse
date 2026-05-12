@@ -1,0 +1,78 @@
+name: API contract validation
+
+# OpenAPI backward-compatibility diff vs base revision + focused backend contract tests.
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: api-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  CI: 'true'
+
+jobs:
+  validate-api-contract:
+    name: Swagger diff + backend tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Write OpenAPI baseline (swagger-old.json)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+              BASE_SHA="$(git rev-parse HEAD~1)"
+            else
+              echo "Single-commit push; skipping baseline diff (no parent)."
+              cp backend/swagger.json backend/swagger-old.json
+              BASE_SHA=""
+            fi
+          else
+            # workflow_dispatch: compare against remote default branch tip if available
+            git fetch origin main 2>/dev/null || git fetch origin master 2>/dev/null || true
+            if git rev-parse --verify origin/main >/dev/null 2>&1; then
+              BASE_SHA="$(git rev-parse origin/main)"
+            elif git rev-parse --verify origin/master >/dev/null 2>&1; then
+              BASE_SHA="$(git rev-parse origin/master)"
+            else
+              cp backend/swagger.json backend/swagger-old.json
+              BASE_SHA=""
+            fi
+          fi
+          if [[ -n "${BASE_SHA:-}" ]]; then
+            git show "${BASE_SHA}:backend/swagger.json" > backend/swagger-old.json
+          fi
+
+      - name: Validate API contract (OpenAPI diff)
+        run: node scripts/validate-api-contract.mjs
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Backend tests (Rksv special receipt + offline replay)
+        working-directory: backend
+        run: >
+          dotnet test KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj
+          --verbosity minimal
+          --filter "FullyQualifiedName~RksvSpecialReceiptTests|FullyQualifiedName~OfflineReplayTests"

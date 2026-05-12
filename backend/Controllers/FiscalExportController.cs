@@ -72,6 +72,7 @@ public class FiscalExportController : ControllerBase
     /// </summary>
     [HttpPost("generate")]
     [RequireDisclaimerAcknowledgment]
+    [ProducesResponseType(typeof(FiscalExportDisclaimerRequiredResponseDto), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GenerateExport(
         [FromBody] FiscalExportGenerateRequestDto body,
         CancellationToken cancellationToken = default)
@@ -86,6 +87,7 @@ public class FiscalExportController : ControllerBase
     /// <param name="lang">Disclaimer language for CSV, PDF, and embedded notices: de (default) | en</param>
     [HttpGet]
     [RequireDisclaimerAcknowledgment]
+    [ProducesResponseType(typeof(FiscalExportDisclaimerRequiredResponseDto), StatusCodes.Status400BadRequest)]
     public Task<IActionResult> GetExport(
         [FromQuery] Guid cashRegisterId,
         [FromQuery] DateTime fromUtc,
@@ -100,6 +102,7 @@ public class FiscalExportController : ControllerBase
     /// <summary>Downloads a deferred export created via POST generate (single use).</summary>
     [HttpGet("download/{exportId:guid}")]
     [RequireDisclaimerAcknowledgment]
+    [ProducesResponseType(typeof(FiscalExportDisclaimerRequiredResponseDto), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     public IActionResult DownloadExport(Guid exportId)
     {

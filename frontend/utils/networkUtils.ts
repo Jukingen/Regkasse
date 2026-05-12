@@ -79,7 +79,7 @@ export const testNetworkConnection = async (ipAddress: string): Promise<boolean>
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
-    const response = await fetch(`http://${ipAddress}:5183/api/health`, {
+    const response = await fetch(`http://${ipAddress}:5184/api/health`, {
       method: 'GET',
       signal: controller.signal,
     });

@@ -33,12 +33,12 @@ const getApiBaseUrl = () => {
   }
 
   if (Platform.OS === 'web') {
-    const backendApiUrl = 'http://localhost:5183/api';
+    const backendApiUrl = 'http://localhost:5184/api';
     console.warn(`[config] ${API_BASE_URL_ENV} is missing. Using web-only development fallback: ${backendApiUrl}. Set ${API_BASE_URL_ENV} for beta or device testing.`);
     return backendApiUrl;
   }
 
-  throw new Error(`${API_BASE_URL_ENV} is required for native development builds. Set it in frontend/.env, for example ${API_BASE_URL_ENV}=http://YOUR_DEV_MACHINE_IP:5183/api. No LAN IP fallback is used.`);
+  throw new Error(`${API_BASE_URL_ENV} is required for native development builds. Set it in frontend/.env, for example ${API_BASE_URL_ENV}=http://YOUR_DEV_MACHINE_IP:5184/api. No LAN IP fallback is used.`);
 };
 
 export const API_BASE_URL = getApiBaseUrl();

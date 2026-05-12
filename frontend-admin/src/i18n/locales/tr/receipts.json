@@ -42,6 +42,7 @@
     "colCashier": "Kasiyer (kimlik)",
     "colSpecialKind": "Ozel belge (RKSV)",
     "colGrandTotal": "Genel toplam",
+    "colPdfReprint": "Yeniden yazdir",
     "colNext": "Islem",
     "open": "Ac",
     "paginationTotal": "{{from}}–{{to}} / {{total}} fis"

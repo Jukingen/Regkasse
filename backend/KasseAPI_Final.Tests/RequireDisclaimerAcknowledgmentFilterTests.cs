@@ -2,6 +2,7 @@ using System.Security.Claims;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Filters;
+using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
@@ -38,6 +39,7 @@ public class RequireDisclaimerAcknowledgmentFilterTests
 
     private static RequireDisclaimerAcknowledgmentFilter CreateFilter(FiscalExportOptions? options = null) =>
         new(Options.Create(options ?? new FiscalExportOptions()),
+            new DisclaimerService(),
             NullLogger<RequireDisclaimerAcknowledgmentFilter>.Instance);
 
     [Fact]
@@ -59,11 +61,14 @@ public class RequireDisclaimerAcknowledgmentFilterTests
 
         Assert.False(ranNext);
         var obj = Assert.IsType<ObjectResult>(executing.Result);
-        Assert.Equal(StatusCodes.Status403Forbidden, obj.StatusCode);
+        Assert.Equal(StatusCodes.Status400BadRequest, obj.StatusCode);
         var dto = Assert.IsType<FiscalExportDisclaimerRequiredResponseDto>(obj.Value);
         Assert.Equal("disclaimer_required", dto.Error);
         Assert.Contains("rechtlichen Hinweis", dto.Message, StringComparison.Ordinal);
         Assert.Equal(FiscalExportDisclaimerPaths.RelativeDisclaimerUrl, dto.DisclaimerUrl);
+        Assert.NotNull(dto.Disclaimer);
+        Assert.False(string.IsNullOrWhiteSpace(dto.Disclaimer.De));
+        Assert.False(string.IsNullOrWhiteSpace(dto.Disclaimer.En));
     }
 
     [Fact]

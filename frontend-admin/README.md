@@ -18,10 +18,10 @@ Built with Ant Design, TanStack Query, and Orval.
 2. Environment Setup:
    Copy `.env.example` to **`.env.local` in the `frontend-admin/` directory** (same folder as `package.json` and `next.config.mjs`). This monorepo has **no root-level Next.js app** — a `.env.local` at the repository root is **not** read when you run `npm run dev` here; each app (`frontend-admin`, `frontend`) uses its own package root.
    ```env
-   NEXT_PUBLIC_API_BASE_URL=http://localhost:5183
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:5184
    NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST
    ```
-   (Backend API varsayılan port: 5183)
+   (Backend API varsayılan port: 5184; `backend/appsettings.Development.json` içindeki `Urls` ile uyumlu olmalı)
 
 ### Next.js: `NEXT_PUBLIC_*` variables (build-time, not runtime-only)
 

@@ -229,6 +229,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.staffPerformance',
         icon: 'TeamOutlined',
     },
+    dailyClosingSummary: {
+        id: 'dailyClosingSummary',
+        menuKey: '/reports/daily-closing',
+        href: '/reports/daily-closing',
+        labelKey: 'nav.dailyClosingSummary',
+        icon: 'SnippetsOutlined',
+    },
     tagesbericht: {
         id: 'tagesbericht',
         menuKey: '/reporting/tagesbericht',
@@ -420,7 +427,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['reportingDashboard', 'reportingOverview', 'reportCenter', 'staffPerformance'],
+                catalogIds: ['reportingDashboard', 'reportingOverview', 'reportCenter', 'staffPerformance', 'dailyClosingSummary'],
             },
         ],
     },

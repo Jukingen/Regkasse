@@ -249,10 +249,10 @@
     "sliceVsGlobalTitle": "Export (slice) vs. global integrity",
     "disclaimerModalTitle": "LEGAL NOTICE",
     "disclaimerModalBody": "THIS EXPORT IS NOT A LEGALLY BINDING FISCAL RECEIPT ACCORDING TO § 8 RKSV.\n\nIt is for internal analysis and diagnostics only. For tax purposes, the original receipt with a valid TSE signature is binding.\n\nFor Finanzamt inquiries, the ORIGINAL RECEIPT must be presented — this export does not replace it.\n\nDo you still want to continue?",
-    "disclaimerModalUnderstandCheckbox": "Understood — I still want to export",
+    "disclaimerModalUnderstandCheckbox": "I confirm that this export is not a legal RKSV receipt or proof",
     "disclaimerModalSkip24hCheckbox": "Do not show again (24h)",
     "disclaimerModalCancel": "Cancel",
-    "disclaimerModalProceed": "Export anyway"
+    "disclaimerModalProceed": "Generate export"
   },
   "incident": {
     "pageTitle": "Incident (correlation) — investigation",

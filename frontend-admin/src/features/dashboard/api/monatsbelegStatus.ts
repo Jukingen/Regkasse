@@ -14,6 +14,15 @@ export type MonatsbelegStatusDto = {
     missingMonths: MissingMonth[];
     requiresAttention: boolean;
     totalMissingCount: number;
+    isRequired?: boolean;
+    daysUntilDeadline?: number;
+    lastMonatsbelegDate?: string | null;
+    warningLevel?: string;
+    currentMonthExists?: boolean;
+    lastMonthExists?: boolean;
+    currentMonthOverdue?: boolean;
+    lastMonthMissing?: boolean;
+    warningMessage?: string | null;
 };
 
 export async function getMonatsbelegStatus(cashRegisterId: string): Promise<MonatsbelegStatusDto> {

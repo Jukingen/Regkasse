@@ -116,6 +116,39 @@ function MonatsbelegWarningBannerStrip({
   );
 }
 
+/** RKSV: prominent notice when the current Vienna month Monatsbeleg is past the 7th-day grace (server: currentMonthOverdue). */
+function MonatsbelegCurrentMonthOverduePanel({
+  monatsbelegStatus,
+  onNavigateCreate,
+  t,
+}: {
+  monatsbelegStatus:
+    | { phase: 'idle' }
+    | { phase: 'loading' }
+    | { phase: 'success'; data: MonatsbelegStatusDto }
+    | { phase: 'error' };
+  onNavigateCreate: () => void;
+  t: (key: string, options?: Record<string, string | number>) => string;
+}) {
+  if (monatsbelegStatus.phase !== 'success' || monatsbelegStatus.data.currentMonthOverdue !== true) {
+    return null;
+  }
+  return (
+    <View style={styles.mbOverduePanel} accessibilityRole="alert">
+      <Text style={styles.mbOverdueTitle}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.title')}</Text>
+      <Text style={styles.mbOverdueBody}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.description')}</Text>
+      <Pressable
+        onPress={onNavigateCreate}
+        style={({ pressed }) => [styles.mbBannerCta, pressed && styles.mbBannerCtaPressed]}
+        accessibilityRole="button"
+        accessibilityLabel={t('checkout:posFlow.monatsbelegCurrentMonthOverdue.cta')}
+      >
+        <Text style={styles.mbBannerCtaText}>{t('checkout:posFlow.monatsbelegCurrentMonthOverdue.cta')}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 /** Presentational: step number + section title (used for Category and Summary headers). */
 function SectionHeader({
   step,
@@ -666,6 +699,12 @@ export default function CashRegisterScreen() {
         t={t}
       />
 
+      <MonatsbelegCurrentMonthOverduePanel
+        monatsbelegStatus={monatsbelegStatus}
+        onNavigateCreate={handleMonatsbelegNavigate}
+        t={t}
+      />
+
       {/* Root List - ProductList acts as the main scrollable container */}
       {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
       <ProductList
@@ -780,6 +819,26 @@ const styles = StyleSheet.create({
   mbDismissBtn: {
     padding: SoftSpacing.xs,
     marginLeft: 'auto',
+  },
+
+  mbOverduePanel: {
+    paddingHorizontal: SoftSpacing.md,
+    paddingVertical: SoftSpacing.md,
+    backgroundColor: SoftColors.warningBg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: SoftColors.borderLight,
+    borderLeftWidth: 4,
+    borderLeftColor: SoftColors.warning,
+    gap: SoftSpacing.xs,
+  },
+  mbOverdueTitle: {
+    ...SoftTypography.body,
+    color: SoftColors.textPrimary,
+    fontWeight: '700',
+  },
+  mbOverdueBody: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textPrimary,
   },
 
   categorySection: {

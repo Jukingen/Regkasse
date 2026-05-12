@@ -88,6 +88,13 @@ namespace KasseAPI_Final.DTOs
                         "StornoReason is required when IsStorno is true.",
                         [nameof(StornoReason)]);
                 }
+
+                if (IsStorno && StornoReason == global::KasseAPI_Final.Models.StornoReason.None)
+                {
+                    yield return new ValidationResult(
+                        "StornoReason must be a concrete RKSV value (not None).",
+                        [nameof(StornoReason)]);
+                }
             }
 
             if (!IsStorno && !IsRefund)

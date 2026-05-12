@@ -181,6 +181,7 @@ function ReceiptsPageContent() {
                     sortOrder={sortOrder}
                     onTableChange={handleTableChange}
                     emptyText={emptyText}
+                    showPaymentPdfReprint
                 />
             ) : null}
         </Space>

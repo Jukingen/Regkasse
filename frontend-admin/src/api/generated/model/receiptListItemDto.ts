@@ -25,6 +25,10 @@ export interface ReceiptListItemDto {
   rksvFinanzOnlineSubmissionStatus?: string | null;
   /** @nullable */
   rksvSpecialReceiptKind?: string | null;
+  /** @nullable */
+  rksvSpecialReceiptMonth?: number | null;
+  /** @nullable */
+  rksvSpecialReceiptYear?: number | null;
   subTotal?: number;
   taxTotal?: number;
 }
