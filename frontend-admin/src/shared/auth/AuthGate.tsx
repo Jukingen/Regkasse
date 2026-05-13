@@ -49,6 +49,23 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
         }
     }, [authStatus, isAuthInitializing, router, mode, pathname]);
 
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'production') return;
+        if (isAuthInitializing) {
+            technicalConsole.devLog(`[AuthGate] path=${pathname} mode=${mode} decision=spinner (auth initializing)`);
+            return;
+        }
+        if (mode === 'protected' && authStatus === AuthStatus.Unauthenticated) {
+            technicalConsole.devLog(`[AuthGate] path=${pathname} mode=${mode} decision=null+replaceLogin`);
+            return;
+        }
+        if (mode === 'public' && authStatus === AuthStatus.Authenticated) {
+            technicalConsole.devLog(`[AuthGate] path=${pathname} mode=${mode} decision=null+replaceDashboard`);
+            return;
+        }
+        technicalConsole.devLog(`[AuthGate] path=${pathname} mode=${mode} decision=renderChildren authStatus=${authStatus}`);
+    }, [pathname, mode, isAuthInitializing, authStatus]);
+
     if (isAuthInitializing) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>

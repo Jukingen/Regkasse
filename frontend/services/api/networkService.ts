@@ -33,7 +33,7 @@ class NetworkService {
   async getNetworkStatus(): Promise<NetworkStatus> {
     try {
       const response = await apiClient.get<NetworkStatus>(`${this.baseUrl}/status`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Network status fetch failed:', error);
       // Fallback durumu
@@ -56,7 +56,7 @@ class NetworkService {
         `${this.baseUrl}/test`,
         { url }
       );
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Connection test failed:', error);
       throw error;
@@ -67,7 +67,7 @@ class NetworkService {
   async getHealthStatus(): Promise<HealthStatus> {
     try {
       const response = await apiClient.get<HealthStatus>(`${this.baseUrl}/health`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Health check failed:', error);
       throw error;
@@ -78,7 +78,7 @@ class NetworkService {
   async startMonitoring(): Promise<{ message: string }> {
     try {
       const response = await apiClient.post<{ message: string }>(`${this.baseUrl}/monitoring/start`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Start monitoring failed:', error);
       throw error;
@@ -89,7 +89,7 @@ class NetworkService {
   async stopMonitoring(): Promise<{ message: string }> {
     try {
       const response = await apiClient.post<{ message: string }>(`${this.baseUrl}/monitoring/stop`);
-      return response.data;
+      return response;
     } catch (error) {
       console.error('Stop monitoring failed:', error);
       throw error;

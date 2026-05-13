@@ -149,7 +149,7 @@ builder.Services.AddHttpClient("LicenseRemote", client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 builder.Services.AddSingleton<ILicenseStorageService, LicenseStorageService>();
-builder.Services.AddSingleton<ILicenseService, LicenseService>();
+builder.Services.AddLicenseServices(builder.Environment);
 // Scoped: holds AppDbContext per request for the issuance audit row.
 builder.Services.AddScoped<ILicenseIssuanceService, LicenseIssuanceService>();
 builder.Services.AddHostedService<LicenseComplianceHostedService>();
@@ -287,29 +287,29 @@ builder.Services.AddAuthentication(options =>
     // Debug için JWT events ekle
     options.Events = new JwtBearerEvents
     {
-        OnTokenValidated = context =>
+        OnTokenValidated = async context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
-            var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = context.Principal?.GetActorUserId();
             var sidRaw = context.Principal?.FindFirst("sid")?.Value;
             if (!string.IsNullOrWhiteSpace(userId) && Guid.TryParse(sidRaw, out var sessionId))
             {
                 var refreshTokenService = context.HttpContext.RequestServices.GetRequiredService<IRefreshTokenService>();
-                var isActive = refreshTokenService.IsSessionActiveAsync(userId, sessionId, context.HttpContext.RequestAborted)
-                    .GetAwaiter()
-                    .GetResult();
+                var isActive = await refreshTokenService.IsSessionActiveAsync(
+                    userId,
+                    sessionId,
+                    context.HttpContext.RequestAborted).ConfigureAwait(false);
                 if (!isActive)
                 {
                     context.Fail("Session invalidated");
-                    return Task.CompletedTask;
+                    return;
                 }
             }
             logger.LogInformation(
                 "JWT token validated successfully: userId={UserId}, correlationId={CorrelationId}",
                 userId,
                 correlationId);
-            return Task.CompletedTask;
         },
         OnAuthenticationFailed = context =>
         {

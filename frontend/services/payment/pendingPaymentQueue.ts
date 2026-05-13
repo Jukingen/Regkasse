@@ -1,5 +1,5 @@
 /**
- * Controlled offline transaction queue (NON_FISCAL_PENDING -> Synced/Failed).
+ * Controlled offline transaction queue (NON_FISCAL_PENDING -> Synced/Failed/Unknown).
  * Invariant: offline entries never contain receipt number / signature, or plaintext Gutschein codes.
  */
 import { apiClient } from '../api/config';
@@ -45,7 +45,43 @@ export function paymentPayloadContainsVoucherSecrets(
   );
 }
 
-export type OfflineTransactionStatus = 'Pending' | 'Synced' | 'Failed';
+export type OfflineTransactionStatus = 'Pending' | 'Synced' | 'Failed' | 'Unknown';
+
+export type ReplayOfflineTransactionsResponseItem = {
+  requestedOfflineTransactionId: string;
+  /** Server row id; if missing despite a matched request id, treat as incomplete response (do not mark Failed). */
+  offlineTransactionId?: string | null;
+  status: string;
+  syncedPaymentId?: string | null;
+  error?: string | null;
+  errorCode?: string | null;
+  retryCount?: number;
+  lastErrorMessageSafe?: string | null;
+  exponentialBackoffHintSeconds?: number | null;
+  /** Same for all items in one replay batch; for support/audit correlation. */
+  replayBatchCorrelationId?: string | null;
+};
+
+export type ReplayOfflineTransactionsResponse = {
+  success: boolean;
+  /** Server-generated id for this replay batch; ties audits and payment rows together. */
+  replayBatchCorrelationId?: string | null;
+  data?: ReplayOfflineTransactionsResponseItem[];
+};
+
+/** Consecutive replay responses without a complete row for this queue entry; reset when server returns a complete item. */
+const MAX_REPLAY_RESPONSE_MISS_RETRIES = 3;
+
+function isReplayResponseItemComplete(
+  entryQueueId: string,
+  it: ReplayOfflineTransactionsResponseItem | undefined
+): boolean {
+  if (!it) return false;
+  if (String(it.requestedOfflineTransactionId ?? '').trim() !== entryQueueId) return false;
+  const oid = it.offlineTransactionId;
+  if (oid == null || String(oid).trim() === '') return false;
+  return true;
+}
 
 export interface PendingPaymentEntry {
   /**
@@ -74,6 +110,12 @@ export interface PendingPaymentEntry {
 
   /** Replay batch correlation ID from last replay response; for support/incident correlation. */
   replayBatchCorrelationId?: string | null;
+
+  /**
+   * Consecutive times a replay HTTP response omitted this entry or omitted `offlineTransactionId`.
+   * Reset when a complete matching response item is received. Used to escalate to Unknown after max retries.
+   */
+  replayResponseMissStreak?: number;
 
   /** Legacy flag (kept for backward compatibility with old code). */
   isSynced: boolean;
@@ -143,6 +185,7 @@ function normalizeEntry(e: PendingPaymentEntry): PendingPaymentEntry {
     deviceId: e.deviceId ?? null,
     clientSequenceNumber: e.clientSequenceNumber ?? null,
     replayBatchCorrelationId: e.replayBatchCorrelationId ?? null,
+    replayResponseMissStreak: e.replayResponseMissStreak ?? 0,
   };
 }
 
@@ -221,7 +264,7 @@ export async function getPendingPaymentQueue(): Promise<PendingPaymentEntry[]> {
 }
 
 /**
- * Returns all queue entries (Pending, Synced, Failed) for operator visibility.
+ * Returns all queue entries (Pending, Synced, Failed, Unknown) for operator visibility.
  * Sorted by createdAt descending (newest first).
  */
 export async function getAllQueueEntries(): Promise<PendingPaymentEntry[]> {
@@ -258,27 +301,6 @@ async function touchAttempt(queueId: string, err: string, status?: OfflineTransa
     await writeQueue(q);
   }
 }
-
-export type ReplayOfflineTransactionsResponseItem = {
-  requestedOfflineTransactionId: string;
-  offlineTransactionId: string;
-  status: string;
-  syncedPaymentId?: string | null;
-  error?: string | null;
-  errorCode?: string | null;
-  retryCount?: number;
-  lastErrorMessageSafe?: string | null;
-  exponentialBackoffHintSeconds?: number | null;
-  /** Same for all items in one replay batch; for support/audit correlation. */
-  replayBatchCorrelationId?: string | null;
-};
-
-export type ReplayOfflineTransactionsResponse = {
-  success: boolean;
-  /** Server-generated id for this replay batch; ties audits and payment rows together. */
-  replayBatchCorrelationId?: string | null;
-  data?: ReplayOfflineTransactionsResponseItem[];
-};
 
 /**
  * Replay all pending offline transactions against backend in original order.
@@ -330,11 +352,37 @@ export async function syncPendingPaymentQueue(): Promise<{
     }
 
     for (const entry of pending) {
-      const it = byId.get(entry.queueId);
+      const rawIt = byId.get(entry.queueId);
       const e = q.find((x) => x.queueId === entry.queueId);
       if (!e) continue;
       e.lastAttemptAt = new Date().toISOString();
       if (batchIdStr) e.replayBatchCorrelationId = batchIdStr;
+
+      if (!isReplayResponseItemComplete(entry.queueId, rawIt)) {
+        const prev = e.replayResponseMissStreak ?? 0;
+        const streak = prev + 1;
+        e.replayResponseMissStreak = streak;
+        console.warn(
+          '[pendingPaymentQueue] Replay response missing or incomplete row for offline entry; operator should verify server logs.',
+          { queueId: entry.queueId, replayBatchCorrelationId: batchIdStr, missStreak: streak }
+        );
+        if (streak >= MAX_REPLAY_RESPONSE_MISS_RETRIES) {
+          e.status = 'Unknown';
+          e.isSynced = false;
+          e.syncedPaymentId = null;
+          e.lastError =
+            'Server-Antwort wiederholt unvollständig (offlineTransactionId fehlt). Bitte Support mit Replay-Batch-ID informieren.';
+        } else {
+          e.status = 'Pending';
+          e.isSynced = false;
+          e.syncedPaymentId = null;
+          e.lastError = `replay_response_incomplete (Versuch ${streak}/${MAX_REPLAY_RESPONSE_MISS_RETRIES}, erneuter Sync empfohlen)`;
+        }
+        continue;
+      }
+
+      const it = rawIt!;
+      e.replayResponseMissStreak = 0;
 
       if (it?.status === 'Synced' || it?.status === 'synced') {
         e.status = 'Synced';
@@ -380,7 +428,7 @@ export async function syncPendingPaymentQueue(): Promise<{
 
 /**
  * Retry sync for a single queue entry. Sends one transaction to replay endpoint.
- * Safe: only Pending/Failed entries should be retried; backend handles idempotency.
+ * Safe: Pending, Failed, or Unknown entries; backend handles idempotency. Unknown is cleared to Pending when operator retries.
  */
 export async function retrySinglePending(queueId: string): Promise<{
   processed: number;
@@ -389,9 +437,23 @@ export async function retrySinglePending(queueId: string): Promise<{
   const all = (await readQueue()).map(normalizeEntry);
   const entry = all.find((e) => e.queueId === queueId);
   if (!entry) return { processed: 0, failed: 0 };
-  if (entry.status !== 'Pending' && entry.status !== 'Failed') {
+  if (entry.status !== 'Pending' && entry.status !== 'Failed' && entry.status !== 'Unknown') {
     return { processed: 0, failed: 0 };
   }
+
+  {
+    const qReset = (await readQueue()).map(normalizeEntry);
+    const er = qReset.find((x) => x.queueId === queueId);
+    if (er) {
+      er.replayResponseMissStreak = 0;
+      if (er.status === 'Unknown') {
+        er.status = 'Pending';
+        er.isSynced = false;
+      }
+      await writeQueue(qReset);
+    }
+  }
+
   const req = {
     transactions: [
       {
@@ -413,7 +475,9 @@ export async function retrySinglePending(queueId: string): Promise<{
     );
     const items =
       (raw as ReplayOfflineTransactionsResponse)?.data ?? (raw as any)?.Value?.data ?? [];
-    const it = items?.[0];
+    const rawIt = items?.find(
+      (x) => String(x?.requestedOfflineTransactionId ?? '').trim() === queueId
+    );
     const batchCorrelationId =
       (raw as ReplayOfflineTransactionsResponse)?.replayBatchCorrelationId ??
       (raw as any)?.replayBatchCorrelationId ??
@@ -423,6 +487,34 @@ export async function retrySinglePending(queueId: string): Promise<{
     if (!e) return { processed: 0, failed: 0 };
     e.lastAttemptAt = new Date().toISOString();
     if (batchCorrelationId != null) e.replayBatchCorrelationId = String(batchCorrelationId);
+
+    if (!isReplayResponseItemComplete(queueId, rawIt)) {
+      const streak = (e.replayResponseMissStreak ?? 0) + 1;
+      e.replayResponseMissStreak = streak;
+      const batchStr = batchCorrelationId != null ? String(batchCorrelationId) : null;
+      console.warn(
+        '[pendingPaymentQueue] Replay response missing or incomplete row for offline entry; operator should verify server logs.',
+        { queueId, replayBatchCorrelationId: batchStr, missStreak: streak }
+      );
+      if (streak >= MAX_REPLAY_RESPONSE_MISS_RETRIES) {
+        e.status = 'Unknown';
+        e.isSynced = false;
+        e.syncedPaymentId = null;
+        e.lastError =
+          'Server-Antwort wiederholt unvollständig (offlineTransactionId fehlt). Bitte Support mit Replay-Batch-ID informieren.';
+      } else {
+        e.status = 'Pending';
+        e.isSynced = false;
+        e.syncedPaymentId = null;
+        e.lastError = `replay_response_incomplete (Versuch ${streak}/${MAX_REPLAY_RESPONSE_MISS_RETRIES}, erneuter Sync empfohlen)`;
+      }
+      await writeQueue(q);
+      return { processed: 0, failed: 0 };
+    }
+
+    const it = rawIt!;
+    e.replayResponseMissStreak = 0;
+
     if (it?.status === 'Synced' || it?.status === 'synced') {
       e.status = 'Synced';
       e.isSynced = true;

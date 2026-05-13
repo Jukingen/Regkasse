@@ -8,6 +8,31 @@
     "trial": "Deneme",
     "expired": "Süresi doldu"
   },
+  "badge": {
+    "loading": "Lisans durumu…",
+    "unavailable": "Lisans bilinmiyor",
+    "unavailableTooltip": "Lisans durumu yüklenemedi (yetki eksikliği veya sunucu hatası).",
+    "expired": {
+      "label": "SÜRESİ DOLDU",
+      "tooltip": "Lisans süresi doldu — lütfen yenileyin. Ödeme oluşturma engellenmiş olabilir."
+    },
+    "trial": {
+      "label": "DENEME ({{days}} gün)",
+      "tooltip": "Deneme sürümü aktif. Kalan: {{days}} gün."
+    },
+    "licensed": {
+      "label": "LİSANSLI",
+      "tooltip": "Tam lisans — geçerli üretim lisansı."
+    },
+    "demo": {
+      "label": "DEMO",
+      "tooltip": "Demo kullanıcı hesabı — veriler üretim dışı veya kısıtlı olabilir."
+    },
+    "devExport": {
+      "label": "DEV / EXPORT",
+      "tooltip": "OpenAPI dışa aktarma modu — gerçek lisans kurulumu yok."
+    }
+  },
   "banner": {
     "warning": {
       "title": "Lisans süresi yakında doluyor",
@@ -137,6 +162,7 @@
     "title": "Genel lisans durumu (API, POS ile aynı)",
     "subtitle": "Kaynak: GET /api/license/status — POS istemcisiyle aynı sözleşme.",
     "licenseType": "Tür",
+    "mode": "Mod",
     "validUntil": "Geçerlilik (UTC)",
     "daysRemaining": "Kalan gün",
     "features": "Özellikler",

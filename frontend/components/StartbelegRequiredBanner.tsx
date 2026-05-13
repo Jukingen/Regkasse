@@ -1,17 +1,22 @@
-// RKSV: when ensure-ready returns startbeleg_required, offer in-app creation (German operator copy only).
+// RKSV: when ensure-ready returns startbeleg_required, offer in-app creation (German operator copy in UI strings).
 import React, { useCallback, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
+import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { postCreateStartbeleg } from '../services/api/rksvSpecialReceiptsService';
 import { receiptPrinter } from '../services/receiptPrinter';
+import { ensureLicenseAllowsCriticalAction } from '../utils/licenseCriticalActionGuard';
 import { SoftColors, SoftRadius, SoftSpacing } from '../constants/SoftTheme';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export function StartbelegRequiredBanner() {
   const { data, refreshAsync } = usePosRegisterReadiness();
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation('license');
+  const { status: licenseSnapshot } = useLicenseStatus();
 
   const needs =
     POS_ENSURE_READY_ON_ENTRY &&
@@ -22,6 +27,8 @@ export function StartbelegRequiredBanner() {
 
   const onCreate = useCallback(async () => {
     if (!registerId) return;
+    const licenseOk = await ensureLicenseAllowsCriticalAction(licenseSnapshot, t, 'specialReceipt');
+    if (!licenseOk) return;
     setBusy(true);
     try {
       const created = await postCreateStartbeleg({ cashRegisterId: registerId, reason: 'POS Startbeleg' });
@@ -42,7 +49,7 @@ export function StartbelegRequiredBanner() {
     } finally {
       setBusy(false);
     }
-  }, [registerId, refreshAsync]);
+  }, [registerId, refreshAsync, licenseSnapshot, t]);
 
   if (!needs) {
     return null;

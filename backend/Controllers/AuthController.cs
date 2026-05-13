@@ -14,6 +14,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Security;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 
@@ -41,6 +42,10 @@ namespace KasseAPI_Final.Controllers
         private readonly IAuthTenantSnapshotProvider _authTenantSnapshotProvider;
         private readonly ILoginTenantResolver _loginTenantResolver;
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
+
+        /// <summary>Throttles diagnostic logs when /me is called without a resolvable user id claim.</summary>
+        private static readonly object GetCurrentUserMissingIdLogSync = new();
+        private static DateTime s_lastGetCurrentUserMissingIdLogUtc = DateTime.MinValue;
 
         public AuthController(
             AppDbContext context,
@@ -261,19 +266,32 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        // 🔐 GET CURRENT USER - F5 refresh'te kullanıcı durumunu kontrol eder
+        /// <summary>GET /me — returns current user; 401 if token missing/invalid or no user id claims.</summary>
+        [Authorize]
         [HttpGet("me")]
         public async Task<IActionResult> GetCurrentUser()
         {
             try
             {
-                _logger.LogInformation("GetCurrentUser endpoint called");
-                
-                // JWT token'dan user ID'yi al
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (User?.Identity?.IsAuthenticated != true)
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var userId = User.GetActorUserId();
                 if (string.IsNullOrEmpty(userId))
                 {
-                    _logger.LogWarning("GetCurrentUser: User ID not found in token claims");
+                    var now = DateTime.UtcNow;
+                    lock (GetCurrentUserMissingIdLogSync)
+                    {
+                        if (now - s_lastGetCurrentUserMissingIdLogUtc >= TimeSpan.FromMinutes(1))
+                        {
+                            s_lastGetCurrentUserMissingIdLogUtc = now;
+                            _logger.LogDebug(
+                                "GetCurrentUser: User ID not found in token claims (no resolvable user id); returning 401. Suppressing similar logs for 60s.");
+                        }
+                    }
+
                     return Unauthorized(new { message = "User not authenticated" });
                 }
 

@@ -43,5 +43,19 @@
   "transferNextSteps": "Support ile iletişime geçin: REGK anahtarı, bu parmak izi ve sunucu değişikliği notu. Taşımayı yalnızca support tamamlar.",
   "transferErrorKeyRequired": "Tam REGK anahtarını girin.",
   "transferErrorNotFound": "Bu anahtarla eşleşen kayıt yok.",
-  "transferErrorGeneric": "İstek başarısız. Ağ veya API'yi kontrol edin."
+  "transferErrorGeneric": "İstek başarısız. Ağ veya API'yi kontrol edin.",
+  "modeBanner": {
+    "demoAccount": "DEMO modu – yalnızca test için",
+    "trialDays_one": "DEMO: {{count}} gün geçerli",
+    "trialDays_other": "DEMO: {{count}} gün geçerli"
+  },
+  "criticalGuard": {
+    "expiredTitle": "Lisans süresi doldu",
+    "expiredBody": "Deneme lisansınızın süresi doldu. Ödemeler engellenmiş olabilir. Yöneticinize başvurun.",
+    "trialSoonTitle": "Demo / deneme – lisans bitiyor",
+    "trialSoonBody": "Deneme lisansınız {{count}} gün içinde bitiyor. Yine de devam etmek istiyor musunuz?",
+    "cancel": "İptal",
+    "proceed": "Devam",
+    "ok": "Tamam"
+  }
 }

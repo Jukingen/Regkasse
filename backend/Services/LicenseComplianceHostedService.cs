@@ -10,14 +10,21 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public sealed class LicenseComplianceHostedService : BackgroundService
 {
-    private readonly IServiceProvider _services;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IHostApplicationLifetime _lifetime;
     private readonly ILogger<LicenseComplianceHostedService> _logger;
 
+    /// <summary>Creates the hosted compliance loop (startup re-check and 24-hour timer).</summary>
+    /// <param name="scopeFactory">Used to resolve scoped <see cref="ILicenseService"/> in production hosting.</param>
+    /// <param name="lifetime">Host application lifetime (wait for startup before first check).</param>
+    /// <param name="logger">Structured logger.</param>
     public LicenseComplianceHostedService(
-        IServiceProvider services,
+        IServiceScopeFactory scopeFactory,
+        IHostApplicationLifetime lifetime,
         ILogger<LicenseComplianceHostedService> logger)
     {
-        _services = services;
+        _scopeFactory = scopeFactory;
+        _lifetime = lifetime;
         _logger = logger;
     }
 
@@ -26,8 +33,7 @@ public sealed class LicenseComplianceHostedService : BackgroundService
         if (OpenApiExportMode.IsEnabled)
             return;
 
-        var lifetime = _services.GetRequiredService<IHostApplicationLifetime>();
-        await WaitForApplicationStartedAsync(lifetime, stoppingToken).ConfigureAwait(false);
+        await WaitForApplicationStartedAsync(_lifetime, stoppingToken).ConfigureAwait(false);
 
         _ = Task.Run(RunLicenseComplianceCheck, CancellationToken.None);
 
@@ -52,7 +58,8 @@ public sealed class LicenseComplianceHostedService : BackgroundService
     {
         try
         {
-            var lic = _services.GetRequiredService<ILicenseService>();
+            using var scope = _scopeFactory.CreateScope();
+            var lic = scope.ServiceProvider.GetRequiredService<ILicenseService>();
             lic.EvaluateOnStartup();
             var s = lic.GetStatus();
             if (!s.IsValid && !s.IsTrial)

@@ -1,4 +1,3 @@
-using System.Globalization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
@@ -30,27 +29,13 @@ public sealed class LicenseController : ControllerBase
         _environment = environment;
     }
 
-    /// <summary>Current license snapshot (trial vs paid, expiry, coarse feature tags).</summary>
+    /// <summary>Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).</summary>
     [HttpGet("status")]
     [AllowAnonymous]
-    public ActionResult<LicensePublicStatusDto> GetPublicStatus()
+    public ActionResult<LicensePublicStatusDto> GetStatus()
     {
-        // Development-only: POS reads this endpoint for banners; bypass stored license so local work is not blocked.
-        if (_environment.IsDevelopment())
-        {
-            var days = LicenseService.TrialDays;
-            var untilUtc = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(days), DateTimeKind.Utc);
-            return Ok(new LicensePublicStatusDto
-            {
-                LicenseType = "Trial",
-                ValidUntil = untilUtc.ToString("o", CultureInfo.InvariantCulture),
-                DaysRemaining = days,
-                Features = new[] { "pos", "admin", "fiscal" },
-                IsExpired = false,
-                IsValid = true,
-            });
-        }
-
+        // Same mapping in all environments so POS/admin anonymous status matches activated license
+        // Development uses <see cref="DevelopmentLicenseService"/> (synthetic licensed snapshot for local testing).
         var s = _licenseService.GetStatus();
         return Ok(MapPublicStatus(s));
     }
@@ -60,6 +45,15 @@ public sealed class LicenseController : ControllerBase
     [AllowAnonymous]
     public ActionResult<LicenseFeaturesDto> GetFeatures()
     {
+        if (_environment.IsDevelopment())
+        {
+            return Ok(new LicenseFeaturesDto
+            {
+                AllowOffline = true,
+                MaxCashiers = -1,
+            });
+        }
+
         var o = _licenseOptions.Value;
         return Ok(new LicenseFeaturesDto
         {
@@ -72,7 +66,7 @@ public sealed class LicenseController : ControllerBase
     {
         var paid = s.IsValid && !s.IsTrial;
         var trialActive = s.IsTrial && !s.IsExpired;
-        var licenseType = paid ? "Paid" : "Trial";
+        var licenseType = paid ? "Licensed" : trialActive ? "Trial" : "Expired";
         var isValidPublic = paid || trialActive;
 
         IReadOnlyList<string> features;
@@ -81,9 +75,11 @@ public sealed class LicenseController : ControllerBase
         else
             features = new[] { "pos", "admin", "fiscal" };
 
-        var validUntil = s.ExpiryDate.HasValue
-            ? DateTime.SpecifyKind(s.ExpiryDate.Value, DateTimeKind.Utc).ToString("o")
+        DateTime? validUntil = s.ExpiryDate.HasValue
+            ? DateTime.SpecifyKind(s.ExpiryDate.Value, DateTimeKind.Utc)
             : null;
+
+        var mode = trialActive ? "Trial" : "Production";
 
         return new LicensePublicStatusDto
         {
@@ -93,6 +89,7 @@ public sealed class LicenseController : ControllerBase
             Features = features,
             IsExpired = s.IsExpired,
             IsValid = isValidPublic,
+            Mode = mode,
         };
     }
 }

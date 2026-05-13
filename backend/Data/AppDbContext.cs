@@ -124,6 +124,9 @@ namespace KasseAPI_Final.Data
         /// <summary>Audit trail of admin-issued offline licenses (REGK key + signed JWT). Indexed unique on license_key.</summary>
         public DbSet<IssuedLicense> IssuedLicenses { get; set; }
 
+        /// <summary>Per-machine activation rows (survives API restarts; used with encrypted license file).</summary>
+        public DbSet<ActivatedLicense> ActivatedLicenses { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -816,6 +819,20 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.SignedJwt).IsRequired();
                 entity.Property(e => e.IssuedAtUtc).IsRequired();
                 entity.Property(e => e.ExpiryAtUtc).IsRequired();
+            });
+
+            builder.Entity<ActivatedLicense>(entity =>
+            {
+                entity.ToTable("activated_licenses");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.MachineFingerprint, e.LicenseKey }).IsUnique();
+                entity.HasIndex(e => e.ValidUntilUtc);
+                entity.HasIndex(e => e.ActivatedAtUtc);
+                entity.Property(e => e.LicenseKey).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(256);
+                entity.Property(e => e.MachineFingerprint).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.ValidUntilUtc).IsRequired();
+                entity.Property(e => e.ActivatedAtUtc).IsRequired();
             });
 
             // SystemSettings configuration

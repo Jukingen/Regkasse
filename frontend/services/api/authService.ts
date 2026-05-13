@@ -1,7 +1,16 @@
+import axios from 'axios';
 import { apiClient } from './config';
 import { normalizeLoginError } from '../../features/auth/authErrors';
 import { sessionManager } from '../session/sessionManager';
 const isDev = __DEV__;
+
+function getHttpStatusFromError(error: unknown): number | undefined {
+  if (axios.isAxiosError(error)) {
+    return error.response?.status;
+  }
+  const legacy = error as { status?: number; response?: { status?: number } };
+  return legacy.response?.status ?? legacy.status;
+}
 
 export interface LoginRequest {
   email: string;
@@ -153,18 +162,20 @@ export const validateToken = async (): Promise<User | null> => {
       }
       return null;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (isDev) {
       console.error('❌ Backend token validation hatası:', error);
     }
 
-    // Token geçersizse storage'ı temizle
-    if (error.status === 401) {
+    const status = getHttpStatusFromError(error);
+
+    // 401: do not retry /auth/me with the same session — clear storage and surface session expiry (web).
+    if (status === 401) {
       if (isDev) {
         console.log('🚨 Token geçersiz (401), storage temizleniyor...');
       }
       await sessionManager.clearSession();
-    } else if (error.status === 500) {
+    } else if (status === 500) {
       if (isDev) {
         console.log('🚨 Backend hatası (500), storage temizleniyor...');
       }

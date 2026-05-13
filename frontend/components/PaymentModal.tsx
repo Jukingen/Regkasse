@@ -66,7 +66,14 @@ import { WaveLoader } from '../src/components/common/WaveLoader';
 import StornoRefundSelection from './StornoRefundSelection';
 import { canShowPosStornoRefundButton } from '../utils/posStornoRefundGate';
 import { useTimeSyncStatus } from '../hooks/useTimeSyncStatus';
+import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE } from '../constants/posTimeSyncContact';
+import {
+  areLicenseChecksBypassedInDevelopment,
+  ensureLicenseAllowsCriticalAction,
+  isLicenseExpiredForCriticalActions,
+  isTrialLikeLicenseStatus,
+} from '../utils/licenseCriticalActionGuard';
 
 /**
  * Map backend blocked reason to short UI text. Fail-safe: unknown codes return neutral fallback;
@@ -268,7 +275,9 @@ export default function PaymentModal({
   onPosToast,
 }: PaymentModalProps) {
   const { t, i18n } = useTranslation(['checkout', 'common', 'invoices', 'settings']);
+  const { t: tLicense } = useTranslation('license');
   const { user } = useAuth();
+  const { status: licenseSnapshot } = useLicenseStatus();
   const showStornoRefundEntry = canShowPosStornoRefundButton(user);
   const { refetch: refetchTimeSync, timeSyncCritical, timeSyncWarningBand } = useTimeSyncStatus();
   const { isOnline } = useSystem();
@@ -646,6 +655,21 @@ export default function PaymentModal({
       voucherSettlementValid) || // FIX: full voucher coverage
     mixedCoverage.coversTotal;
 
+  const showPayTrialWarningIcon = useMemo(() => {
+    if (areLicenseChecksBypassedInDevelopment()) return false;
+    if (!licenseSnapshot) return false;
+    return (
+      isTrialLikeLicenseStatus(licenseSnapshot) &&
+      !isLicenseExpiredForCriticalActions(licenseSnapshot)
+    );
+  }, [licenseSnapshot]);
+
+  const licenseBlocksPaymentUi = Boolean(
+    !areLicenseChecksBypassedInDevelopment() &&
+      licenseSnapshot &&
+      isLicenseExpiredForCriticalActions(licenseSnapshot)
+  );
+
   const paySubmitDisabled =
     purchaseState === 'processing' ||
     paymentBusy ||
@@ -656,13 +680,16 @@ export default function PaymentModal({
     offlineBlocksVoucher ||
     !paymentCoverageOk ||
     (voucherEnabled && !voucherSettlementValid) ||
-    timeSyncCritical;
+    timeSyncCritical ||
+    licenseBlocksPaymentUi;
 
   const showPayWorking = purchaseState === 'processing' || paymentBusy;
 
   const paySubmitBlockedHint =
     paySubmitDisabled && !showPayWorking
-      ? timeSyncCritical
+      ? licenseBlocksPaymentUi
+        ? tLicense('criticalGuard.expiredBody')
+        : timeSyncCritical
         ? 'Systemzeit fehlerhaft — Zahlungen blockiert. Administrator kontaktieren.'
         : methodsLoading
           ? 'Zahlungsarten werden geladen…'
@@ -1365,6 +1392,10 @@ export default function PaymentModal({
     if (timeSyncCritical) {
       return;
     }
+    const licenseOk = await ensureLicenseAllowsCriticalAction(licenseSnapshot, tLicense, 'payment');
+    if (!licenseOk) {
+      return;
+    }
     if (timeSyncWarningBand) {
       return new Promise<void>((resolve) => {
         Alert.alert(
@@ -2020,13 +2051,18 @@ export default function PaymentModal({
                       <Text style={styles.payButtonText}>Wird verarbeitet…</Text>
                     </View>
                   ) : (
-                    <Text style={styles.payButtonText}>
-                      {voucherEnabled && voucherSettlementValid && paymentCoverageOk && settlementAmountDue <= 0.01
-                        ? t('checkout:posFlow.payment.voucher.payCta', { amount: formatPrice(totalAmount) })
-                        : settlementAmountDue > 0.01 && selectedSettlementMethod
-                          ? `${formatPrice(settlementAmountDue)} ${selectedSettlementMethod.name.toLowerCase()} zahlen`
-                          : `${formatPrice(totalAmount)} zahlen`}
-                    </Text>
+                    <View style={styles.payButtonContent}>
+                      {showPayTrialWarningIcon ? (
+                        <Ionicons name="warning" size={18} color="#FFB300" accessibilityLabel="Lizenz-Hinweis" />
+                      ) : null}
+                      <Text style={styles.payButtonText} numberOfLines={2}>
+                        {voucherEnabled && voucherSettlementValid && paymentCoverageOk && settlementAmountDue <= 0.01
+                          ? t('checkout:posFlow.payment.voucher.payCta', { amount: formatPrice(totalAmount) })
+                          : settlementAmountDue > 0.01 && selectedSettlementMethod
+                            ? `${formatPrice(settlementAmountDue)} ${selectedSettlementMethod.name.toLowerCase()} zahlen`
+                            : `${formatPrice(totalAmount)} zahlen`}
+                      </Text>
+                    </View>
                   )}
                 </Pressable>
               </View>

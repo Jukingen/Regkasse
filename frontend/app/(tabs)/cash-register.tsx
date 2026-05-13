@@ -21,6 +21,7 @@ import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import CategoryFilter from '../../components/CategoryFilter';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
+import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
@@ -658,6 +659,7 @@ export default function CashRegisterScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LicenseModeIndicator />
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 

@@ -8,7 +8,7 @@ import { usePostApiAuthLogin } from '@/api/generated/auth/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import type { LoginModel } from '@/api/generated/model';
 import { authStorage } from '@/features/auth/services/authStorage';
-import { AUTH_KEYS } from '../hooks/useAuth';
+import { AUTH_KEYS, fetchAuthUser } from '../hooks/useAuth';
 import { useI18n } from '@/i18n';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
@@ -39,13 +39,26 @@ export const LoginForm: FC = () => {
 
                 message.success(t('common.auth.loginSuccess'));
 
-                // Invalidate 'me' query to fetch user profile and update auth state
-                await queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
+                // No AuthContext: session user lives in TanStack Query (AUTH_KEYS.user). fetchQuery always runs /me
+                // after token is stored so cache is populated before navigation (avoids stale error state).
+                try {
+                    await queryClient.fetchQuery({
+                        queryKey: AUTH_KEYS.user,
+                        queryFn: fetchAuthUser,
+                    });
+                } catch (bootstrapErr) {
+                    technicalConsole.warn('[LoginForm] /me after login failed; aborting redirect', bootstrapErr);
+                    message.error(t('common.auth.loginFailedGeneric'));
+                    return;
+                }
 
                 if (process.env.NODE_ENV === 'development') {
-                    technicalConsole.devLog('[LoginForm] redirecting to /dashboard');
+                    technicalConsole.devLog('[LoginForm] user cache set; redirecting to /dashboard');
                 }
-                router.replace('/dashboard');
+                // Defer so subscribers (useAuth) see updated cache before route change / AuthGate effects.
+                queueMicrotask(() => {
+                    router.push('/dashboard');
+                });
             },
             onError: (error: unknown) => {
                 message.error(

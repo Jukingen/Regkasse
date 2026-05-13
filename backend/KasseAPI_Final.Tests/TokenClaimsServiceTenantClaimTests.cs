@@ -9,6 +9,20 @@ namespace KasseAPI_Final.Tests;
 public class TokenClaimsServiceTenantClaimTests
 {
     [Fact]
+    public async Task BuildClaimsAsync_Includes_UserId_Claim()
+    {
+        var resolver = new MockRolePermissionResolver(Array.Empty<string>());
+        var svc = new TokenClaimsService(resolver);
+        var user = new ApplicationUser { Id = "user-guid-1", Email = "a@b.c", UserName = "a@b.c", FirstName = "A", LastName = "B" };
+
+        var claims = await svc.BuildClaimsAsync(user, new List<string> { "Cashier" });
+
+        var userIdClaim = claims.FirstOrDefault(c => c.Type == "userId");
+        Assert.NotNull(userIdClaim);
+        Assert.Equal(user.Id, userIdClaim!.Value);
+    }
+
+    [Fact]
     public async Task BuildClaimsAsync_Includes_Tenant_Id_When_Provided()
     {
         var resolver = new MockRolePermissionResolver(Array.Empty<string>());

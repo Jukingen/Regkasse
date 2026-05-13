@@ -18,7 +18,7 @@ using Microsoft.IdentityModel.Tokens;
 namespace KasseAPI_Final.Services;
 
 /// <summary>License evaluation for on-premise deployments (trial, offline JWS, optional remote check).
-/// Persistence is delegated to <see cref="ILicenseStorageService"/> (cross-platform encrypted file).</summary>
+/// Persistence: <see cref="ILicenseStorageService"/> (encrypted file) plus <c>activated_licenses</c> rows for activation audit and restart recovery.</summary>
 public interface ILicenseService
 {
     /// <summary>Load state, evaluate trial/license, log warnings. Call once per process startup.</summary>
@@ -137,6 +137,16 @@ public sealed class LicenseService : ILicenseService
         lock (_gate)
         {
             _persisted = LoadOrCreatePersisted();
+            if (string.IsNullOrWhiteSpace(_persisted.LicenseKey))
+            {
+                var restoredKey = TryRestoreLicenseKeyFromActivatedLicenses();
+                if (!string.IsNullOrWhiteSpace(restoredKey))
+                {
+                    _persisted.LicenseKey = restoredKey.Trim().ToUpperInvariant();
+                    _storage.SaveLicenseToFile(_persisted);
+                }
+            }
+
             var paid = TryValidatePaidLicense(_persisted);
             _snapshot = BuildSnapshot(_persisted, paid);
             _snapshotInitialized = true;
@@ -258,6 +268,15 @@ public sealed class LicenseService : ILicenseService
                 if (string.IsNullOrWhiteSpace(opts.OfflineVerificationPublicKeyPem))
                     return new LicenseActivationResult(false, "OfflineVerificationPublicKeyPem is not configured.");
 
+                _logger.LogInformation(
+                    "License activation: offline JWT verification starting. LicenseKeyPrefix={LicenseKeyPrefix}, JwtLength={JwtLength}, PemConfigured={PemConfigured}, ValidateIssuer={ValidateIssuer}, ValidateAudience={ValidateAudience}, RequireMachineBinding={RequireMachineBinding}",
+                    SafePrefix(normalizedKey),
+                    offlineJwt.Length,
+                    true,
+                    !string.IsNullOrWhiteSpace(opts.LicenseJwtIssuer),
+                    !string.IsNullOrWhiteSpace(opts.LicenseJwtAudience),
+                    opts.RequireMachineBinding);
+
                 if (!TryVerifyOfflineJwt(offlineJwt, normalizedKey, out var err))
                     return new LicenseActivationResult(false, err ?? "Offline JWT verification failed.");
 
@@ -283,9 +302,20 @@ public sealed class LicenseService : ILicenseService
             }
             else
             {
-                return new LicenseActivationResult(
-                    false,
-                    "Provide OfflineActivationJwt (offline) or configure License:RemoteValidationUrl (online).");
+                // Same-host fallback: licence was issued on this deployment (issued_licenses).
+                // Honour the form "(optional) Offline-Aktivierungs-JWT" contract — if the row exists for this host
+                // (non-revoked, non-transferred, non-superseded, non-expired, fingerprint-bound when required),
+                // accept activation without remote validation. Mirrors the snapshot logic in TryValidatePaidLicense.
+                if (!TryResolveIssuedRegistryPaid(normalizedKey, out _))
+                {
+                    return new LicenseActivationResult(
+                        false,
+                        "Provide OfflineActivationJwt (offline) or configure License:RemoteValidationUrl (online).");
+                }
+
+                _logger.LogInformation(
+                    "License activation: same-host issued_licenses match accepted (no JWT, no remote). LicenseKeyPrefix={LicenseKeyPrefix}",
+                    SafePrefix(normalizedKey));
             }
 
             lock (_gate)
@@ -299,8 +329,17 @@ public sealed class LicenseService : ILicenseService
                 _snapshotInitialized = true;
             }
 
-            _logger.LogInformation("License: activation succeeded for key prefix {Prefix}.", SafePrefix(normalizedKey));
             var st = GetStatus();
+            try
+            {
+                await UpsertActivatedLicenseAsync(normalizedKey, st.ExpiryDate, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "License: activation file succeeded but activated_licenses DB upsert failed.");
+            }
+
+            _logger.LogInformation("License: activation succeeded for key prefix {Prefix}.", SafePrefix(normalizedKey));
             return new LicenseActivationResult(true, "License activated.", st.ExpiryDate);
         }
         catch (Exception ex)
@@ -323,9 +362,20 @@ public sealed class LicenseService : ILicenseService
 
         if (paidValid)
         {
-            // Paid lisans aktif: ExpiryDate = JWT exp varsa o, yoksa null (süresiz/exp claim'i yok).
-            // DaysRemaining: exp varsa kalan gün; yoksa "uzak" anlamına gelen sentinel (365) → ≤15 banner tetiklenmez.
-            var expiryUtc = jwtExpUtc;
+            // Paid: JWT exp, then activated_licenses (this host), then issued_licenses, else UI sentinel.
+            DateTime? activatedExpiryUtc = null;
+            DateTime? registryExpiryUtc = null;
+            if (jwtExpUtc is null && !string.IsNullOrWhiteSpace(blob.LicenseKey))
+            {
+                var k = blob.LicenseKey.Trim().ToUpperInvariant();
+                if (LicenseKeyRegex.IsMatch(k))
+                {
+                    TryResolveActivatedDbPaid(k, out activatedExpiryUtc);
+                    TryResolveIssuedRegistryPaid(k, out registryExpiryUtc);
+                }
+            }
+
+            var expiryUtc = jwtExpUtc ?? activatedExpiryUtc ?? registryExpiryUtc;
             var days = expiryUtc.HasValue
                 ? Math.Max(0, (int)Math.Ceiling((expiryUtc.Value - nowUtc).TotalDays))
                 : 365;
@@ -410,6 +460,13 @@ public sealed class LicenseService : ILicenseService
         if (!string.IsNullOrWhiteSpace(blob.OfflineJwt) && !string.IsNullOrWhiteSpace(opts.OfflineVerificationPublicKeyPem))
             return TryVerifyOfflineJwt(blob.OfflineJwt.Trim(), key, out _);
 
+        if (TryResolveActivatedDbPaid(key, out _))
+            return true;
+
+        // Same-host issuance: persisted key matches an active row (survives restarts without remote or JWT on disk).
+        if (TryResolveIssuedRegistryPaid(key, out _))
+            return true;
+
         if (!string.IsNullOrWhiteSpace(opts.RemoteValidationUrl))
         {
             // Senkron sentinel kontrol; başlangıçta blocking kullanmamak için cache benzeri optimist yol.
@@ -425,6 +482,142 @@ public sealed class LicenseService : ILicenseService
         }
 
         return false;
+    }
+
+    private string? TryRestoreLicenseKeyFromActivatedLicenses()
+    {
+        try
+        {
+            var machine = _storage.MachineHashHex;
+            using var db = _dbContextFactory.CreateDbContext();
+            return db.ActivatedLicenses.AsNoTracking()
+                .Where(a => a.MachineFingerprint == machine && a.ValidUntilUtc > DateTime.UtcNow)
+                .OrderByDescending(a => a.ActivatedAtUtc)
+                .Select(a => a.LicenseKey)
+                .FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License: could not read activated_licenses for key restore.");
+            return null;
+        }
+    }
+
+    /// <summary>True when <c>activated_licenses</c> has a non-expired row for this machine and the persisted key.</summary>
+    private bool TryResolveActivatedDbPaid(string normalizedKeyUpper, out DateTime? expiryUtc)
+    {
+        expiryUtc = null;
+        try
+        {
+            var machine = _storage.MachineHashHex;
+            using var db = _dbContextFactory.CreateDbContext();
+            var row = db.ActivatedLicenses.AsNoTracking()
+                .Where(a => a.MachineFingerprint == machine && a.ValidUntilUtc > DateTime.UtcNow)
+                .Where(a => EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+                .OrderByDescending(a => a.ActivatedAtUtc)
+                .FirstOrDefault();
+
+            if (row is null)
+                return false;
+
+            expiryUtc = DateTime.SpecifyKind(row.ValidUntilUtc, DateTimeKind.Utc);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License: activated_licenses paid resolution failed.");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Resolves paid entitlement from <c>issued_licenses</c> when this deployment issued the key (on-prem registry).
+    /// Ignores revoked, transferred-away, superseded rows and enforces fingerprint when required.
+    /// </summary>
+    private bool TryResolveIssuedRegistryPaid(string normalizedKeyUpper, out DateTime? expiryUtc)
+    {
+        expiryUtc = null;
+        try
+        {
+            using var db = _dbContextFactory.CreateDbContext();
+            var row = db.IssuedLicenses.AsNoTracking()
+                .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
+                .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
+                .OrderByDescending(il => il.IssuedAtUtc)
+                .FirstOrDefault();
+
+            if (row is null)
+                return false;
+
+            if (row.ExpiryAtUtc <= DateTime.UtcNow)
+                return false;
+
+            if (row.RequireFingerprint)
+            {
+                if (string.IsNullOrWhiteSpace(row.MachineHashHex))
+                    return false;
+                if (!string.Equals(row.MachineHashHex.Trim(), _storage.MachineHashHex, StringComparison.OrdinalIgnoreCase))
+                    return false;
+            }
+
+            expiryUtc = DateTime.SpecifyKind(row.ExpiryAtUtc, DateTimeKind.Utc);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License: issued_licenses paid resolution failed.");
+            return false;
+        }
+    }
+
+    private async Task UpsertActivatedLicenseAsync(
+        string normalizedKeyUpper,
+        DateTime? snapshotExpiryUtc,
+        CancellationToken cancellationToken)
+    {
+        var machine = _storage.MachineHashHex;
+        var validUntil = snapshotExpiryUtc.HasValue
+            ? DateTime.SpecifyKind(snapshotExpiryUtc.Value, DateTimeKind.Utc)
+            : new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+
+        var customerName = await db.IssuedLicenses.AsNoTracking()
+            .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
+            .OrderByDescending(il => il.IssuedAtUtc)
+            .Select(il => il.CustomerName)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var displayCustomer = string.IsNullOrWhiteSpace(customerName) ? "Unknown" : customerName.Trim();
+
+        var existing = await db.ActivatedLicenses
+            .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var now = DateTime.UtcNow;
+        if (existing is null)
+        {
+            db.ActivatedLicenses.Add(new ActivatedLicense
+            {
+                Id = Guid.NewGuid(),
+                LicenseKey = normalizedKeyUpper,
+                CustomerName = displayCustomer,
+                ValidUntilUtc = validUntil,
+                MachineFingerprint = machine,
+                ActivatedAtUtc = now,
+            });
+        }
+        else
+        {
+            existing.ValidUntilUtc = validUntil;
+            existing.ActivatedAtUtc = now;
+            if (!string.IsNullOrWhiteSpace(customerName))
+                existing.CustomerName = displayCustomer;
+        }
+
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<bool> ValidateRemoteAsync(string licenseKey, CancellationToken cancellationToken)
@@ -484,9 +677,11 @@ public sealed class LicenseService : ILicenseService
     private bool TryVerifyOfflineJwt(string jwt, string expectedLicenseKey, out string? error)
     {
         error = null;
+        var licenseKeyPrefix = SafePrefix(expectedLicenseKey);
         var pem = _options.Value.OfflineVerificationPublicKeyPem?.Trim();
         if (string.IsNullOrEmpty(pem))
         {
+            _logger.LogWarning("License JWT: verification aborted — OfflineVerificationPublicKeyPem is empty. LicenseKeyPrefix={LicenseKeyPrefix}", licenseKeyPrefix);
             error = "Public key missing.";
             return false;
         }
@@ -494,6 +689,11 @@ public sealed class LicenseService : ILicenseService
         var parts = jwt.Split('.');
         if (parts.Length != 3)
         {
+            _logger.LogWarning(
+                "License JWT: malformed JWS (expected 3 segments). LicenseKeyPrefix={LicenseKeyPrefix}, SegmentCount={SegmentCount}, JwtLength={JwtLength}",
+                licenseKeyPrefix,
+                parts.Length,
+                jwt.Length);
             error = "JWT must have three segments.";
             return false;
         }
@@ -505,13 +705,15 @@ public sealed class LicenseService : ILicenseService
             var rsaKey = new RsaSecurityKey(rsa.ExportParameters(false));
 
             var opts = _options.Value;
+            var validateIssuer = !string.IsNullOrWhiteSpace(opts.LicenseJwtIssuer);
+            var validateAudience = !string.IsNullOrWhiteSpace(opts.LicenseJwtAudience);
             var parms = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = rsaKey,
-                ValidateIssuer = !string.IsNullOrWhiteSpace(opts.LicenseJwtIssuer),
+                ValidateIssuer = validateIssuer,
                 ValidIssuer = opts.LicenseJwtIssuer,
-                ValidateAudience = !string.IsNullOrWhiteSpace(opts.LicenseJwtAudience),
+                ValidateAudience = validateAudience,
                 ValidAudience = opts.LicenseJwtAudience,
                 RequireExpirationTime = true,
                 ValidateLifetime = true,
@@ -522,26 +724,111 @@ public sealed class LicenseService : ILicenseService
             var handler = new JwtSecurityTokenHandler();
             handler.InboundClaimTypeMap.Clear();
 
+            JwtSecurityToken? diagnosticToken = null;
             try
             {
-                handler.ValidateToken(jwt, parms, out _);
+                diagnosticToken = handler.ReadJwtToken(jwt);
+            }
+            catch (Exception parseEx)
+            {
+                _logger.LogWarning(parseEx, "License JWT: could not read token for diagnostics (malformed Base64/header). LicenseKeyPrefix={LicenseKeyPrefix}", licenseKeyPrefix);
+            }
+
+            var headerAlg = diagnosticToken?.Header?.Alg ?? "(unknown)";
+            _logger.LogDebug(
+                "License JWT: validation parameters. LicenseKeyPrefix={LicenseKeyPrefix}, HeaderAlg={HeaderAlg}, ValidateIssuer={ValidateIssuer}, ValidateAudience={ValidateAudience}, ExpectedIssuer={ExpectedIssuer}, ExpectedAudience={ExpectedAudience}, ClockSkewMinutes={ClockSkewMinutes}, RequireMachineBinding={RequireMachineBinding}",
+                licenseKeyPrefix,
+                headerAlg,
+                validateIssuer,
+                validateAudience,
+                validateIssuer ? SafeLogFragment(opts.LicenseJwtIssuer) : "(skipped)",
+                validateAudience ? SafeLogFragment(opts.LicenseJwtAudience) : "(skipped)",
+                2,
+                opts.RequireMachineBinding);
+
+            JwtSecurityToken jwtToken;
+            try
+            {
+                handler.ValidateToken(jwt, parms, out var validatedToken);
+                jwtToken = (JwtSecurityToken)validatedToken;
+            }
+            catch (SecurityTokenExpiredException ex)
+            {
+                error = ex.Message;
+                _logger.LogWarning(
+                    "License JWT: lifetime validation failed — token expired (ValidateLifetime=true). LicenseKeyPrefix={LicenseKeyPrefix}, HeaderAlg={HeaderAlg}, ExpiresUtc={ExpiresUtc}, UtcNow={UtcNow}",
+                    licenseKeyPrefix,
+                    headerAlg,
+                    ex.Expires,
+                    DateTime.UtcNow);
+                return false;
+            }
+            catch (SecurityTokenInvalidSignatureException ex)
+            {
+                error = ex.Message;
+                _logger.LogWarning(
+                    ex,
+                    "License JWT: signature invalid — wrong key, wrong algorithm, or corrupted token. LicenseKeyPrefix={LicenseKeyPrefix}, HeaderAlg={HeaderAlg}, SigningKeyType=RsaSecurityKey",
+                    licenseKeyPrefix,
+                    headerAlg);
+                return false;
+            }
+            catch (SecurityTokenInvalidIssuerException ex)
+            {
+                error = ex.Message;
+                _logger.LogWarning(
+                    "License JWT: issuer mismatch. LicenseKeyPrefix={LicenseKeyPrefix}, HeaderAlg={HeaderAlg}, Message={Message}",
+                    licenseKeyPrefix,
+                    headerAlg,
+                    ex.Message);
+                return false;
+            }
+            catch (SecurityTokenInvalidAudienceException ex)
+            {
+                error = ex.Message;
+                _logger.LogWarning(
+                    "License JWT: audience mismatch. LicenseKeyPrefix={LicenseKeyPrefix}, HeaderAlg={HeaderAlg}, Message={Message}",
+                    licenseKeyPrefix,
+                    headerAlg,
+                    ex.Message);
+                return false;
             }
             catch (SecurityTokenException ex)
             {
                 error = ex.Message;
+                _logger.LogWarning(
+                    ex,
+                    "License JWT: validation failed (SecurityTokenException). LicenseKeyPrefix={LicenseKeyPrefix}, ExceptionType={ExceptionType}, HeaderAlg={HeaderAlg}, Message={Message}",
+                    licenseKeyPrefix,
+                    ex.GetType().Name,
+                    headerAlg,
+                    ex.Message);
                 return false;
             }
 
-            var jwtToken = handler.ReadJwtToken(jwt);
+            _logger.LogInformation(
+                "License JWT: signature and standard claims validated successfully. LicenseKeyPrefix={LicenseKeyPrefix}, HeaderAlg={HeaderAlg}, ValidFromUtc={ValidFromUtc:o}, ValidToUtc={ValidToUtc:o}, Issuer={Issuer}, Audience={Audience}",
+                licenseKeyPrefix,
+                jwtToken.Header?.Alg ?? headerAlg,
+                jwtToken.ValidFrom,
+                jwtToken.ValidTo,
+                SafeLogFragment(jwtToken.Issuer),
+                SafeLogFragment(jwtToken.Audiences?.FirstOrDefault()));
+
             var licenseKeyClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "licenseKey")?.Value;
             if (string.IsNullOrEmpty(licenseKeyClaim))
             {
+                _logger.LogWarning("License JWT: required claim missing. LicenseKeyPrefix={LicenseKeyPrefix}, Claim=licenseKey", licenseKeyPrefix);
                 error = "licenseKey claim missing.";
                 return false;
             }
 
             if (!string.Equals(licenseKeyClaim, expectedLicenseKey, StringComparison.OrdinalIgnoreCase))
             {
+                _logger.LogWarning(
+                    "License JWT: licenseKey claim does not match request key. LicenseKeyPrefix={LicenseKeyPrefix}, ClaimKeyPrefix={ClaimKeyPrefix}",
+                    licenseKeyPrefix,
+                    SafePrefix(licenseKeyClaim.Trim().ToUpperInvariant()));
                 error = "licenseKey mismatch.";
                 return false;
             }
@@ -552,25 +839,58 @@ public sealed class LicenseService : ILicenseService
 
             if (!licenseIsFloating)
             {
+                var boundFp = boundHash!.Trim();
                 var requireBinding = _options.Value.RequireMachineBinding;
+                var localFp = _storage.MachineHashHex;
+                var match = string.Equals(boundFp, localFp, StringComparison.OrdinalIgnoreCase);
                 if (!requireBinding)
                 {
                     _logger.LogWarning(
-                        "License: machineHash binding bypassed because License:RequireMachineBinding=false. License is portable across machines. BoundHashPrefix={BoundPrefix} LocalHashPrefix={LocalPrefix}",
-                        SafePrefix(boundHash!),
-                        SafePrefix(_storage.MachineHashHex));
+                        "License JWT: machineHash present but binding bypassed (RequireMachineBinding=false). LicenseKeyPrefix={LicenseKeyPrefix}, JwtMachineHashPrefix={JwtMachineHashPrefix}, LocalMachineHashPrefix={LocalMachineHashPrefix}, FingerprintMatch={FingerprintMatch}",
+                        licenseKeyPrefix,
+                        SafePrefix(boundFp),
+                        SafePrefix(localFp),
+                        match);
                 }
-                else if (!string.Equals(boundHash, _storage.MachineHashHex, StringComparison.OrdinalIgnoreCase))
+                else if (!match)
                 {
+                    _logger.LogWarning(
+                        "License JWT: machine fingerprint mismatch (machine-bound license). LicenseKeyPrefix={LicenseKeyPrefix}, JwtMachineHashPrefix={JwtMachineHashPrefix}, LocalMachineHashPrefix={LocalMachineHashPrefix}, FingerprintMatch={FingerprintMatch}",
+                        licenseKeyPrefix,
+                        SafePrefix(boundFp),
+                        SafePrefix(localFp),
+                        false);
                     error = "Machine hash mismatch.";
                     return false;
                 }
+                else
+                {
+                    _logger.LogInformation(
+                        "License JWT: machine fingerprint matched (machine-bound license). LicenseKeyPrefix={LicenseKeyPrefix}, JwtMachineHashPrefix={JwtMachineHashPrefix}, LocalMachineHashPrefix={LocalMachineHashPrefix}, FingerprintMatch={FingerprintMatch}",
+                        licenseKeyPrefix,
+                        SafePrefix(boundFp),
+                        SafePrefix(localFp),
+                        true);
+                }
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "License JWT: floating license (no machine binding in token). LicenseKeyPrefix={LicenseKeyPrefix}, MachineBindingMode={MachineBindingMode}",
+                    licenseKeyPrefix,
+                    "FLOATING");
             }
 
+            _logger.LogInformation(
+                "License JWT: full offline verification succeeded. LicenseKeyPrefix={LicenseKeyPrefix}, NotExpired={NotExpired}, MachineBindingOutcome={MachineBindingOutcome}",
+                licenseKeyPrefix,
+                jwtToken.ValidTo >= DateTime.UtcNow,
+                licenseIsFloating ? "FLOATING" : (_options.Value.RequireMachineBinding ? "BOUND_MATCHED" : "BOUND_BYPASS"));
             return true;
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, "License JWT: unexpected error during verification. LicenseKeyPrefix={LicenseKeyPrefix}", licenseKeyPrefix);
             error = "Invalid JWT: " + ex.Message;
             return false;
         }
@@ -606,6 +926,15 @@ public sealed class LicenseService : ILicenseService
         if (string.IsNullOrEmpty(value))
             return "(empty)";
         return value.Length <= 12 ? value : value[..12] + "…";
+    }
+
+    /// <summary>Shortens issuer/audience strings for structured logs (no secrets).</summary>
+    private static string SafeLogFragment(string? value, int maxLen = 72)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "(none)";
+        var t = value.Trim();
+        return t.Length <= maxLen ? t : t[..maxLen] + "…";
     }
 
     private sealed record RemoteLicenseRequest(string MachineHash, string LicenseKey);

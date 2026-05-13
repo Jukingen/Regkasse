@@ -1,13 +1,17 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
-/** Anonymous POS-aligned snapshot from <c>GET /api/license/status</c>. */
+/** Anonymous POS/FA snapshot from <c>GET /api/license/status</c>. */
 export type LicensePublicStatusDto = {
-    licenseType: 'Trial' | 'Paid' | string;
+    /** Trial, Licensed, Expired, or Demo (development snapshot). */
+    licenseType: 'Trial' | 'Licensed' | 'Expired' | 'Demo' | 'Paid' | string;
+    /** ISO 8601 UTC from backend <c>DateTime?</c> JSON. */
     validUntil: string | null;
     daysRemaining: number;
     features: string[];
     isExpired: boolean;
     isValid: boolean;
+    /** Demo (local dev bypass), Trial, or Production. */
+    mode?: 'Demo' | 'Trial' | 'Production' | string;
 };
 
 export type LicenseStatusResponse = {

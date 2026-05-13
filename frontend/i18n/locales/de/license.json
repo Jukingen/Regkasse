@@ -43,5 +43,19 @@
   "transferNextSteps": "Support kontaktieren: geben Sie gültigen REGK-Schlüssel, diesen Fingerabdruck und Hinweis zum Serverwechsel an. Nur der Support führt die Übertragung durch.",
   "transferErrorKeyRequired": "Bitte den vollständigen REGK-Schlüssel eingeben.",
   "transferErrorNotFound": "Kein passender Eintrag für diesen Schlüssel.",
-  "transferErrorGeneric": "Anfrage fehlgeschlagen. Netzwerk oder API prüfen."
+  "transferErrorGeneric": "Anfrage fehlgeschlagen. Netzwerk oder API prüfen.",
+  "modeBanner": {
+    "demoAccount": "DEMO-MODUS – Nur zu Testzwecken",
+    "trialDays_one": "DEMO-MODUS: Noch {{count}} Tag gültig",
+    "trialDays_other": "DEMO-MODUS: Noch {{count}} Tage gültig"
+  },
+  "criticalGuard": {
+    "expiredTitle": "Lizenz abgelaufen",
+    "expiredBody": "Ihre Testlizenz ist abgelaufen. Zahlungen sind blockiert. Bitte kontaktieren Sie Ihren Administrator.",
+    "trialSoonTitle": "Demo-Modus – Lizenz läuft bald ab",
+    "trialSoonBody": "Ihre Testlizenz endet in {{count}} Tag(en). Möchten Sie trotzdem fortfahren?",
+    "cancel": "Abbrechen",
+    "proceed": "Fortfahren",
+    "ok": "OK"
+  }
 }

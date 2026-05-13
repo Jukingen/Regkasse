@@ -8,6 +8,31 @@
     "trial": "Trial",
     "expired": "Expired"
   },
+  "badge": {
+    "loading": "License status…",
+    "unavailable": "License unknown",
+    "unavailableTooltip": "Could not load license status (missing permission or server error).",
+    "expired": {
+      "label": "EXPIRED",
+      "tooltip": "License expired — please renew. Payment creation may be blocked."
+    },
+    "trial": {
+      "label": "TRIAL ({{days}} days)",
+      "tooltip": "Trial active. {{days}} day(s) remaining."
+    },
+    "licensed": {
+      "label": "LICENSED",
+      "tooltip": "Full license — valid production license."
+    },
+    "demo": {
+      "label": "DEMO",
+      "tooltip": "Demo user account — data may be non-production or limited."
+    },
+    "devExport": {
+      "label": "DEV / EXPORT",
+      "tooltip": "OpenAPI export mode — no real license setup."
+    }
+  },
   "banner": {
     "warning": {
       "title": "License expiring soon",
@@ -137,6 +162,7 @@
     "title": "Public license status (API, POS view)",
     "subtitle": "Source: GET /api/license/status — same contract as the POS client.",
     "licenseType": "Type",
+    "mode": "Mode",
     "validUntil": "Valid until (UTC)",
     "daysRemaining": "Days remaining",
     "features": "Features",

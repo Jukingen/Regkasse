@@ -10,8 +10,27 @@ export const AUTH_SESSION_CLEARED_EVENT = 'rk-admin-auth-cleared';
 
 const ACCESS_TOKEN_KEY = 'rk_admin_access_token';
 const REFRESH_TOKEN_KEY = 'rk_admin_refresh_token';
+/** Must stay aligned with `ACCESS_TOKEN_COOKIE` in `src/middleware.ts` (Edge middleware cannot read localStorage). */
+const ACCESS_TOKEN_COOKIE_NAME = 'rk_admin_access_token';
 let accessTokenMemory: string | null = null;
 const normalizeToken = (token: string): string => token.startsWith('Bearer ') ? token.slice(7) : token;
+
+function writeAccessTokenCookie(jwt: string): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+    const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+    const maxAgeSec = 60 * 60 * 24 * 7;
+    document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=${encodeURIComponent(jwt)}; Path=/; SameSite=Lax; Max-Age=${maxAgeSec}${secure}`;
+}
+
+function clearAccessTokenCookie(): void {
+    if (typeof document === 'undefined') {
+        return;
+    }
+    const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${ACCESS_TOKEN_COOKIE_NAME}=; Path=/; SameSite=Lax; Max-Age=0${secure}`;
+}
 
 function readAccessFromPersistence(): string | null {
     if (typeof window === 'undefined') {
@@ -55,6 +74,9 @@ export const authStorage = {
         }
         const token = readAccessFromPersistence();
         accessTokenMemory = token;
+        if (token) {
+            writeAccessTokenCookie(token);
+        }
         return token;
     },
 
@@ -70,6 +92,7 @@ export const authStorage = {
         if (typeof window !== 'undefined') {
             window.localStorage.setItem(ACCESS_TOKEN_KEY, cleanToken);
             window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+            writeAccessTokenCookie(cleanToken);
         }
     },
 
@@ -98,6 +121,7 @@ export const authStorage = {
             window.localStorage.removeItem(REFRESH_TOKEN_KEY);
             window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
             window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+            clearAccessTokenCookie();
             window.dispatchEvent(new CustomEvent(AUTH_SESSION_CLEARED_EVENT));
         }
     },

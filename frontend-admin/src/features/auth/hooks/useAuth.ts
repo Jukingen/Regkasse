@@ -29,7 +29,8 @@ function isAuthHttpError(err: unknown): boolean {
     return status === 401 || status === 403;
 }
 
-const fetchUser = async (): Promise<AuthUser> => {
+/** Shared with `LoginForm` so post-login bootstrap uses the same /me mapping as `useAuth`. */
+export async function fetchAuthUser(): Promise<AuthUser> {
     if (process.env.NODE_ENV === 'development') {
         technicalConsole.devLog('[API] Fetching GET /api/Auth/me');
     }
@@ -39,7 +40,7 @@ const fetchUser = async (): Promise<AuthUser> => {
     });
 
     return mapMeResponseToAuthUser(res);
-};
+}
 
 export enum AuthStatus {
     Loading = 'loading',
@@ -55,9 +56,9 @@ export const useAuth = () => {
     const isBrowser = useSyncExternalStore(emptySubscribe, () => true, () => false);
     const hasCredentials = isBrowser && authStorage.hasToken();
 
-    const { data: user, isError, error, refetch, isFetched } = useQuery({
+    const { data: user, isError, error, refetch, isFetched, isFetching, fetchStatus } = useQuery({
         queryKey: AUTH_KEYS.user,
-        queryFn: fetchUser,
+        queryFn: fetchAuthUser,
         retry: false, // Strictly no retries for /me (refresh handled inside axios for 401)
         staleTime: 1000 * 30, // 30 seconds
         gcTime: 1000 * 60 * 10,
@@ -108,14 +109,20 @@ export const useAuth = () => {
 
     let authStatus: AuthStatus = AuthStatus.Loading;
 
+    const meInFlightWithCredentials =
+        hasCredentials && !user && (isFetching || fetchStatus === 'fetching');
+
     if (user) {
         authStatus = AuthStatus.Authenticated;
     } else if (!querySettled) {
         authStatus = AuthStatus.Loading;
-    } else if (isError && isAuthHttpError(error)) {
-        authStatus = AuthStatus.Unauthenticated;
+    } else if (meInFlightWithCredentials) {
+        // After login or token change: prior /me error can stay until refetch completes — avoid flashing Unauthenticated.
+        authStatus = AuthStatus.Loading;
     } else if (isError && hasCredentials && !isAuthHttpError(error)) {
         authStatus = AuthStatus.Loading;
+    } else if (isError && isAuthHttpError(error)) {
+        authStatus = AuthStatus.Unauthenticated;
     } else if (isError && !hasCredentials) {
         authStatus = AuthStatus.Unauthenticated;
     } else {
@@ -125,14 +132,17 @@ export const useAuth = () => {
     const isAuthInitializing =
         !isBrowser ||
         !querySettled ||
-        (Boolean(isError && hasCredentials && !isAuthHttpError(error)));
+        (Boolean(isError && hasCredentials && !isAuthHttpError(error))) ||
+        Boolean(meInFlightWithCredentials);
 
     const isInitialized = !isAuthInitializing;
 
     const lastLoggedStatus = useRef<string | null>(null);
 
     if (process.env.NODE_ENV === 'development' && lastLoggedStatus.current !== authStatus) {
-        technicalConsole.devLog(`[useAuth] authStatus=${authStatus} isAuthInitializing=${isAuthInitializing}`);
+        technicalConsole.devLog(
+            `[useAuth] authStatus=${authStatus} isAuthInitializing=${isAuthInitializing} fetchStatus=${fetchStatus} isFetching=${isFetching} hasCredentials=${hasCredentials}`,
+        );
         lastLoggedStatus.current = authStatus;
     }
 

@@ -27,6 +27,7 @@ import {
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
+import { LicenseStatusBadge } from '@/components/LicenseStatusBadge';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
@@ -243,6 +244,7 @@ export default function DashboardLayout({
         </>
     );
 
+    // AuthGate: wait for /me (see useAuth.isAuthInitializing). PermissionRouteGuard: ROUTE_PERMISSIONS vs user.permissions.
     return (
         <AuthGate mode="protected">
             <PermissionRouteGuard>
@@ -330,6 +332,7 @@ export default function DashboardLayout({
                                 role="toolbar"
                                 aria-label={t('adminShell.header.headerActionsAria')}
                             >
+                                <LicenseStatusBadge />
                                 <HeaderLanguageQuickSwitch />
                                 <MonatsbelegGlobalBadge />
                                 <Dropdown menu={userMenu} placement="bottomRight">

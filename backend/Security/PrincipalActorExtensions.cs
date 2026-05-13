@@ -1,18 +1,36 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 
 namespace KasseAPI_Final.Security;
 
 /// <summary>
-/// Central JWT / claims extraction for authenticated actor (matches legacy user_id fallback).
+/// Central JWT / claims extraction for authenticated actor. Order matches issued tokens from <see cref="KasseAPI_Final.Services.TokenClaimsService"/>.
 /// </summary>
 public static class PrincipalActorExtensions
 {
     private const string LegacyUserIdClaimType = "user_id";
 
-    public static string? GetActorUserId(this ClaimsPrincipal? principal) =>
-        principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-        ?? principal?.FindFirst(LegacyUserIdClaimType)?.Value;
+    /// <summary>
+    /// Resolves application user id: explicit <c>userId</c>, then standard JWT / Identity claim types (inbound mapping varies).
+    /// </summary>
+    public static string? GetActorUserId(this ClaimsPrincipal? principal)
+    {
+        if (principal?.Identities == null)
+            return null;
+
+        static string? FirstNonEmpty(ClaimsPrincipal p, string claimType)
+        {
+            var v = p.FindFirst(claimType)?.Value;
+            return string.IsNullOrWhiteSpace(v) ? null : v;
+        }
+
+        return FirstNonEmpty(principal, "userId")
+               ?? FirstNonEmpty(principal, "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")
+               ?? FirstNonEmpty(principal, JwtRegisteredClaimNames.Sub)
+               ?? FirstNonEmpty(principal, LegacyUserIdClaimType)
+               ?? FirstNonEmpty(principal, ClaimTypes.NameIdentifier);
+    }
 
     public static string? GetActorRole(this ClaimsPrincipal? principal) =>
         principal?.FindFirst(ClaimTypes.Role)?.Value;

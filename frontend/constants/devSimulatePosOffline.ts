@@ -1,9 +1,12 @@
 /**
  * Development-only POS offline / TSE / NTP simulation for QA.
  * Never active when __DEV__ is false (production / release builds).
+ *
+ * Axios "offline" simulation: see `src/config/devFlags.ts` (`isSimulateOfflineModeActive`) and
+ * `EXPO_PUBLIC_SIMULATE_OFFLINE_MODE` in `frontend/.env` (Metro restart after changes).
  */
 
-import { isDevelopmentSimulationEnvironment } from '../src/config/devFlags';
+import { isDevelopmentSimulationEnvironment, isSimulateOfflineModeActive } from '../src/config/devFlags';
 
 function envFlagTrue(value: string | undefined): boolean {
   const v = value?.trim().toLowerCase();

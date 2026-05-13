@@ -43,5 +43,19 @@
   "transferNextSteps": "Contact support with your REGK key, this fingerprint, and a short note that you are moving servers. Only support completes the transfer.",
   "transferErrorKeyRequired": "Enter the full REGK key.",
   "transferErrorNotFound": "No issued license matched that key.",
-  "transferErrorGeneric": "Request failed. Check network or API."
+  "transferErrorGeneric": "Request failed. Check network or API.",
+  "modeBanner": {
+    "demoAccount": "DEMO mode – for testing only",
+    "trialDays_one": "TRIAL: {{count}} day remaining",
+    "trialDays_other": "TRIAL: {{count}} days remaining"
+  },
+  "criticalGuard": {
+    "expiredTitle": "License expired",
+    "expiredBody": "Your trial license has expired. Payments are blocked. Please contact your administrator.",
+    "trialSoonTitle": "Demo / trial – license ending soon",
+    "trialSoonBody": "Your trial license ends in {{count}} day(s). Continue anyway?",
+    "cancel": "Cancel",
+    "proceed": "Continue",
+    "ok": "OK"
+  }
 }

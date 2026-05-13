@@ -404,6 +404,52 @@ public class AuthControllerTests
     }
 
     [Fact]
+    public async Task GetCurrentUser_Resolves_UserId_From_Sub_When_NameIdentifier_Absent()
+    {
+        var user = ActiveUser();
+        var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
+        tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", null, null));
+
+        var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
+        var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        http.User = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity(
+                new[] { new System.Security.Claims.Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub, user.Id) },
+                "Test"));
+        controller.ControllerContext = new ControllerContext { HttpContext = http };
+
+        var result = await controller.GetCurrentUser();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        Assert.Contains(user.Id, json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetCurrentUser_Resolves_UserId_From_UserId_Claim_Only()
+    {
+        var user = ActiveUser();
+        var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
+        tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", null, null));
+
+        var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
+        var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        http.User = new System.Security.Claims.ClaimsPrincipal(
+            new System.Security.Claims.ClaimsIdentity(
+                new[] { new System.Security.Claims.Claim("userId", user.Id) },
+                "Test"));
+        controller.ControllerContext = new ControllerContext { HttpContext = http };
+
+        var result = await controller.GetCurrentUser();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        Assert.Contains(user.Id, json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Login_RequireTenantMembershipForLogin_ReturnsBadRequest_When_No_Membership()
     {
         var loginMock = new Mock<ILoginTenantResolver>();

@@ -1,18 +1,23 @@
 // RKSV: full-screen blocking modal when Monatsbeleg is overdue (ensure-ready monatsbeleg_required).
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { POS_ENSURE_READY_ON_ENTRY } from '../constants/posFeatureFlags';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
+import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { getViennaYearMonth, postCreateMonatsbeleg } from '../services/api/rksvSpecialReceiptsService';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { isReadinessMonatsbelegGateActive } from '../utils/posRegisterGateCopy';
+import { ensureLicenseAllowsCriticalAction } from '../utils/licenseCriticalActionGuard';
 import { WaveLoader } from '../src/components/common/WaveLoader';
 
 export function MonatsbelegSessionBlockModal() {
   const { data, loading, error, refreshAsync } = usePosRegisterReadiness();
   const [busy, setBusy] = useState(false);
+  const { t } = useTranslation('license');
+  const { status: licenseSnapshot } = useLicenseStatus();
   const { year, month } = useMemo(() => getViennaYearMonth(), []);
   const isDecemberAnnual = month === 12;
 
@@ -27,6 +32,8 @@ export function MonatsbelegSessionBlockModal() {
 
   const runCreate = useCallback(async () => {
     if (!registerId) return;
+    const licenseOk = await ensureLicenseAllowsCriticalAction(licenseSnapshot, t, 'specialReceipt');
+    if (!licenseOk) return;
     setBusy(true);
     try {
       const created = await postCreateMonatsbeleg({
@@ -56,7 +63,7 @@ export function MonatsbelegSessionBlockModal() {
     } finally {
       setBusy(false);
     }
-  }, [registerId, refreshAsync, year, month, isDecemberAnnual]);
+  }, [registerId, refreshAsync, year, month, isDecemberAnnual, licenseSnapshot, t]);
 
   const onCreate = useCallback(() => {
     if (!registerId) return;

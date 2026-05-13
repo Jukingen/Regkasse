@@ -1,0 +1,40 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace KasseAPI_Final.Models;
+
+/// <summary>
+/// Deployment-local activation record: which REGK key is active for which machine fingerprint until when.
+/// Survives process restarts and complements the encrypted on-disk license file.
+/// </summary>
+[Table("activated_licenses")]
+public sealed class ActivatedLicense
+{
+    [Key]
+    [Column("id")]
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    [Required]
+    [Column("license_key")]
+    [MaxLength(64)]
+    public string LicenseKey { get; set; } = string.Empty;
+
+    [Required]
+    [Column("customer_name")]
+    [MaxLength(256)]
+    public string CustomerName { get; set; } = string.Empty;
+
+    [Required]
+    [Column("valid_until_utc")]
+    public DateTime ValidUntilUtc { get; set; }
+
+    /// <summary>SHA-256 machine hash (hex, lowercase); matches the host fingerprint used for license binding.</summary>
+    [Required]
+    [Column("machine_fingerprint")]
+    [MaxLength(128)]
+    public string MachineFingerprint { get; set; } = string.Empty;
+
+    [Required]
+    [Column("activated_at_utc")]
+    public DateTime ActivatedAtUtc { get; set; }
+}

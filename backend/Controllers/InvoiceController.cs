@@ -674,7 +674,7 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
-        [HasPermission(AppPermissions.CreditNoteCreate)]
+        [HasPermission(AppPermissions.InvoiceManage)]
         [HttpPost("{id}/credit-note")]
         public async Task<ActionResult<Invoice>> CreateCreditNote(Guid id, [FromBody] CreateCreditNoteRequest request)
         {

@@ -28,6 +28,7 @@ import { WaveLoader } from '../../src/components/common/WaveLoader';
 const FILTER_ALL = 'All';
 const FILTER_PENDING = 'Pending';
 const FILTER_FAILED = 'Failed';
+const FILTER_UNKNOWN = 'Unknown';
 const RKSV_HANDOFF_PREFIX = 'RKSV_HANDOFF_V1';
 
 function formatDate(iso: string): string {
@@ -54,6 +55,8 @@ function getStatusLabel(status: OfflineTransactionStatus): string {
       return 'Synchronisiert';
     case 'Failed':
       return 'Fehlgeschlagen';
+    case 'Unknown':
+      return 'Manuelle Prüfung';
     default:
       return status ?? '—';
   }
@@ -67,6 +70,8 @@ function getStatusColor(status: OfflineTransactionStatus): string {
       return '#eab308';
     case 'Failed':
       return '#ef4444';
+    case 'Unknown':
+      return '#a855f7';
     default:
       return '#6b7280';
   }
@@ -80,6 +85,9 @@ function getErrorSummary(lastError: string | undefined): string {
   }
   if (lastError.toLowerCase().includes('duplicate') || lastError.toLowerCase().includes('already')) {
     return 'Bereits übertragen / Duplikat';
+  }
+  if (lastError.includes('replay_response_incomplete')) {
+    return 'Server-Antwort unvollständig — erneut synchronisieren oder Support';
   }
   if (lastError.includes('NON_FISCAL_PENDING') || lastError.includes('offline')) {
     return 'Noch nicht an Server gesendet';
@@ -222,6 +230,7 @@ export default function OfflineQueueScreen() {
 
   const pendingCount = entries.filter((e) => e.status === 'Pending').length;
   const failedCount = entries.filter((e) => e.status === 'Failed').length;
+  const unknownCount = entries.filter((e) => e.status === 'Unknown').length;
 
   return (
     <View style={styles.container}>
@@ -249,14 +258,20 @@ export default function OfflineQueueScreen() {
           </Text>
         </View>
         <View style={styles.filterRow}>
-          {[FILTER_ALL, FILTER_PENDING, FILTER_FAILED].map((f) => (
+          {[FILTER_ALL, FILTER_PENDING, FILTER_FAILED, FILTER_UNKNOWN].map((f) => (
             <TouchableOpacity
               key={f}
               style={[styles.filterChip, filter === f && styles.filterChipActive]}
               onPress={() => setFilter(f)}
             >
               <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
-                {f === FILTER_ALL ? 'Alle' : f === FILTER_PENDING ? `Ausstehend (${pendingCount})` : `Fehlgeschlagen (${failedCount})`}
+                {f === FILTER_ALL
+                  ? 'Alle'
+                  : f === FILTER_PENDING
+                    ? `Ausstehend (${pendingCount})`
+                    : f === FILTER_FAILED
+                      ? `Fehlgeschlagen (${failedCount})`
+                      : `Prüfung (${unknownCount})`}
               </Text>
             </TouchableOpacity>
           ))}
@@ -284,7 +299,11 @@ export default function OfflineQueueScreen() {
           <Text style={styles.emptyText}>
             {filter === FILTER_ALL
               ? 'Keine Einträge in der Offline-Warteschlange.'
-              : `Keine Einträge mit Status „${filter === FILTER_PENDING ? 'Ausstehend' : 'Fehlgeschlagen'}“.`}
+              : filter === FILTER_PENDING
+                ? 'Keine Einträge mit Status „Ausstehend“.'
+                : filter === FILTER_FAILED
+                  ? 'Keine Einträge mit Status „Fehlgeschlagen“.'
+                  : 'Keine Einträge mit Status „Manuelle Prüfung“.'}
           </Text>
         </View>
       ) : (
@@ -346,7 +365,9 @@ export default function OfflineQueueScreen() {
                 </Text>
               )}
               <View style={styles.actions}>
-                {(entry.status === 'Pending' || entry.status === 'Failed') && (
+                {(entry.status === 'Pending' ||
+                  entry.status === 'Failed' ||
+                  entry.status === 'Unknown') && (
                   <TouchableOpacity
                     style={styles.retryBtn}
                     onPress={() => handleRetrySingle(entry.queueId)}

@@ -6,7 +6,7 @@ using KasseAPI_Final.Models;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Builds JWT/cookie claims: sub, name, role (canonical), permission claims, optional tenant_id/branch_id.
+/// Builds JWT/cookie claims: user id (<c>userId</c>, NameIdentifier, <c>user_id</c>, maps to <c>sub</c> in JWT), name, role (canonical), permission claims, optional tenant_id/branch_id.
 /// Deterministic model: system roles => RolePermissionMatrix; custom roles => AspNetRoleClaims (via IRolePermissionResolver).
 /// </summary>
 public sealed class TokenClaimsService : ITokenClaimsService
@@ -29,6 +29,7 @@ public sealed class TokenClaimsService : ITokenClaimsService
         var list = new List<Claim>();
 
         list.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
+        list.Add(new Claim("userId", user.Id));
         list.Add(new Claim(ClaimTypes.Email, user.Email ?? string.Empty));
         list.Add(new Claim(ClaimTypes.Name, user.Name));
         list.Add(new Claim("user_id", user.Id));

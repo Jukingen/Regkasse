@@ -8,6 +8,31 @@
     "trial": "Testversion",
     "expired": "Abgelaufen"
   },
+  "badge": {
+    "loading": "Lizenzstatus…",
+    "unavailable": "Lizenz unbekannt",
+    "unavailableTooltip": "Lizenzstatus konnte nicht geladen werden (fehlende Berechtigung oder Serverfehler).",
+    "expired": {
+      "label": "ABGELAUFEN",
+      "tooltip": "Lizenz abgelaufen — bitte verlängern. Zahlungserstellung kann gesperrt sein."
+    },
+    "trial": {
+      "label": "TESTVERSION ({{days}} Tage)",
+      "tooltip": "Testversion aktiv. Noch {{days}} Tag(e) gültig."
+    },
+    "licensed": {
+      "label": "LIZENZIERT",
+      "tooltip": "Vollversion — gültige Produktivlizenz."
+    },
+    "demo": {
+      "label": "DEMO",
+      "tooltip": "Demo-Benutzerkonto — Daten können eingeschränkt oder nicht produktiv sein."
+    },
+    "devExport": {
+      "label": "DEV / EXPORT",
+      "tooltip": "OpenAPI-Export-Modus — kein echtes Lizenz-Setup."
+    }
+  },
   "banner": {
     "warning": {
       "title": "Lizenz läuft bald ab",
@@ -137,6 +162,7 @@
     "title": "Öffentlicher Lizenzstatus (API, wie POS)",
     "subtitle": "Quelle: GET /api/license/status — gleiche Datenbasis wie die Kassen-App.",
     "licenseType": "Typ",
+    "mode": "Modus",
     "validUntil": "Gültig bis (UTC)",
     "daysRemaining": "Verbleibend (Tage)",
     "features": "Funktionen",

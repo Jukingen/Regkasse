@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { SoftColors, SoftSpacing } from '../constants/SoftTheme';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
+import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
 
 const WARNING_THRESHOLD_DAYS = 15;
 
@@ -17,6 +18,8 @@ const WARNING_THRESHOLD_DAYS = 15;
  */
 export function LicenseExpiryBanner() {
   const { status } = useLicenseStatus();
+
+  if (areLicenseChecksBypassedInDevelopment()) return null;
 
   if (!status) return null;
 

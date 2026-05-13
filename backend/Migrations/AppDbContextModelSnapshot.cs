@@ -2491,6 +2491,51 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("issued_licenses", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.ActivatedLicense", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("ActivatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("activated_at_utc");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("customer_name");
+
+                    b.Property<string>("LicenseKey")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("license_key");
+
+                    b.Property<string>("MachineFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("machine_fingerprint");
+
+                    b.Property<DateTime>("ValidUntilUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("valid_until_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivatedAtUtc");
+
+                    b.HasIndex("ValidUntilUtc");
+
+                    b.HasIndex("MachineFingerprint", "LicenseKey")
+                        .IsUnique();
+
+                    b.ToTable("activated_licenses", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.JahresberichtReport", b =>
                 {
                     b.Property<Guid>("Id")

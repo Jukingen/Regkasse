@@ -478,9 +478,22 @@ export default function AdminLicensePage() {
                 ) : publicStatusQuery.data ? (
                     <Descriptions bordered column={1} size="small">
                         <Descriptions.Item label={t('license.publicStatus.licenseType')}>
-                            <Tag color={publicStatusQuery.data.licenseType === 'Paid' ? 'green' : 'blue'}>
+                            <Tag
+                                color={
+                                    publicStatusQuery.data.licenseType === 'Licensed' ||
+                                    publicStatusQuery.data.licenseType === 'Paid'
+                                        ? 'green'
+                                        : publicStatusQuery.data.licenseType === 'Trial' ||
+                                            publicStatusQuery.data.licenseType === 'Demo'
+                                          ? 'blue'
+                                          : 'red'
+                                }
+                            >
                                 {publicStatusQuery.data.licenseType}
                             </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.publicStatus.mode')}>
+                            <Tag>{publicStatusQuery.data.mode ?? '—'}</Tag>
                         </Descriptions.Item>
                         <Descriptions.Item label={t('license.publicStatus.isValid')}>
                             {publicStatusQuery.data.isValid ? (
