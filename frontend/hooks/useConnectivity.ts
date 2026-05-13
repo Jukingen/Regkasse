@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { Alert } from 'react-native';
 
+import { isDevSimulatePosNetworkOffline } from '../constants/devSimulatePosOffline';
+
 /**
  * Subscribes to connectivity changes and surfaces German operator alerts for offline/online transitions.
  */
@@ -12,7 +14,8 @@ export const useConnectivity = () => {
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
-      const connected = state.isConnected ?? false;
+      const connectedRaw = state.isConnected ?? false;
+      const connected = connectedRaw && !isDevSimulatePosNetworkOffline();
 
       if (!connected && !wasOfflineRef.current) {
         Alert.alert(

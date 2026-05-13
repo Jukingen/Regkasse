@@ -1,11 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   Modal,
   Pressable,
   StyleSheet,
@@ -14,9 +12,14 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { LICENSE_RENEWAL_URL, LICENSE_SUPPORT_EMAIL } from '../constants/licenseRenewal';
+import {
+  buildLicenseRenewalMailtoUrl,
+  getLicenseExtensionHttpUrl,
+  LICENSE_SUPPORT_EMAIL,
+} from '../constants/licenseRenewal';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useLicenseStatus, type LicenseStatus } from '../hooks/useLicenseStatus';
+import { openHttpOrHttpsUrl, openMailtoUrl } from '../utils/openLink';
 
 type BadgeTone = 'neutral' | 'green' | 'yellow' | 'orange' | 'red';
 
@@ -109,17 +112,36 @@ export function LicenseStatusIndicator({
     return t('license:badge.daysShort', { count: status.daysRemaining });
   }, [loading, status, unlimitedPaid, t]);
 
-  const openRenewWeb = useCallback(async () => {
-    try {
-      await WebBrowser.openBrowserAsync(LICENSE_RENEWAL_URL);
-    } catch {
-      Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedBody'));
-    }
-  }, [t]);
+  const hasConfiguredExtensionUrl = useMemo(() => Boolean(getLicenseExtensionHttpUrl()), []);
 
-  const openRenewMail = useCallback(() => {
-    void Linking.openURL(`mailto:${LICENSE_SUPPORT_EMAIL}`);
-  }, []);
+  const openRenewPrimary = useCallback(async () => {
+    let httpUrl = getLicenseExtensionHttpUrl();
+    if (httpUrl) {
+      if (status?.machineHash) {
+        const sep = httpUrl.includes('?') ? '&' : '?';
+        httpUrl = `${httpUrl}${sep}machineHash=${encodeURIComponent(status.machineHash)}`;
+      }
+      const ok = await openHttpOrHttpsUrl(httpUrl);
+      if (!ok) {
+        Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedBody'));
+      }
+      return;
+    }
+
+    const mailto = buildLicenseRenewalMailtoUrl(status);
+    const ok = await openMailtoUrl(mailto);
+    if (!ok) {
+      Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedMailBody'));
+    }
+  }, [t, status]);
+
+  const openRenewMail = useCallback(async () => {
+    const mailto = buildLicenseRenewalMailtoUrl(status);
+    const ok = await openMailtoUrl(mailto);
+    if (!ok) {
+      Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedMailBody'));
+    }
+  }, [t, status]);
 
   const accessibilityLabel = useMemo(() => {
     if (!status) return t('license:badge.unknown');
@@ -181,7 +203,7 @@ export function LicenseStatusIndicator({
             accessibilityRole="button"
             accessibilityLabel={t('license:close')}
           />
-          <View style={styles.modalCenterWrap} pointerEvents="box-none">
+          <View style={styles.modalLayerAboveBackdrop} pointerEvents="box-none">
             <View style={styles.sheet}>
             <Text style={styles.sheetTitle}>{t('license:modalTitle')}</Text>
 
@@ -228,34 +250,45 @@ export function LicenseStatusIndicator({
               </>
             ) : null}
 
-            {!status?.isExpired ? (
+            {!loading ? (
               <>
-                <Pressable style={styles.ctaPrimary} onPress={openRenewWeb}>
-                  <Ionicons name="open-outline" size={18} color={SoftColors.textInverse} />
+                <Pressable
+                  style={({ pressed }) => [styles.ctaPrimary, pressed && { opacity: 0.88 }]}
+                  onPress={() => void openRenewPrimary()}
+                >
+                  <Ionicons
+                    name={hasConfiguredExtensionUrl ? 'open-outline' : 'mail-outline'}
+                    size={18}
+                    color={SoftColors.textInverse}
+                  />
                   <Text style={styles.ctaPrimaryText}>{t('license:renewCta')}</Text>
                 </Pressable>
-                <Text style={styles.ctaHint}>{t('license:renewOpenWebHint')}</Text>
-
-                <Pressable style={styles.ctaSecondary} onPress={openRenewMail}>
-                  <Ionicons name="mail-outline" size={18} color={SoftColors.accentDark} />
-                  <Text style={styles.ctaSecondaryText}>{t('license:renewOpenMail')}</Text>
+                <Pressable
+                  onPress={() => void openRenewPrimary()}
+                  hitSlop={12}
+                  style={({ pressed }) => [styles.ctaHintPressable, pressed && { opacity: 0.7 }]}
+                >
+                  <Text style={styles.ctaHint}>
+                    {t(
+                      hasConfiguredExtensionUrl
+                        ? 'license:renewPrimaryHintBrowser'
+                        : 'license:renewPrimaryHintMail',
+                    )}
+                  </Text>
                 </Pressable>
+
+                {hasConfiguredExtensionUrl ? (
+                  <Pressable style={styles.ctaSecondary} onPress={() => void openRenewMail()}>
+                    <Ionicons name="mail-outline" size={18} color={SoftColors.accentDark} />
+                    <Text style={styles.ctaSecondaryText}>{t('license:renewOpenMail')}</Text>
+                  </Pressable>
+                ) : null}
 
                 <Text style={styles.contactFoot}>
                   {t('license:contactBody', { email: LICENSE_SUPPORT_EMAIL })}
                 </Text>
               </>
-            ) : (
-              <>
-                <Pressable style={styles.ctaSecondary} onPress={openRenewMail}>
-                  <Ionicons name="mail-outline" size={18} color={SoftColors.accentDark} />
-                  <Text style={styles.ctaSecondaryText}>{t('license:renewOpenMail')}</Text>
-                </Pressable>
-                <Text style={styles.contactFoot}>
-                  {t('license:contactBody', { email: LICENSE_SUPPORT_EMAIL })}
-                </Text>
-              </>
-            )}
+            ) : null}
 
             <View style={styles.modalFooter}>
               <Pressable style={styles.dismissBtnFlex} onPress={() => setDetailOpen(false)}>
@@ -310,11 +343,14 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  modalCenterWrap: {
+  /** Keeps sheet CTAs above the full-screen dismiss backdrop on Android. */
+  modalLayerAboveBackdrop: {
     flex: 1,
     justifyContent: 'center',
     padding: SoftSpacing.lg,
     width: '100%',
+    zIndex: 1,
+    elevation: 4,
   },
   sheet: {
     backgroundColor: SoftColors.bgCard,
@@ -382,11 +418,17 @@ const styles = StyleSheet.create({
     color: SoftColors.textInverse,
     fontWeight: '700',
   },
+  ctaHintPressable: {
+    alignSelf: 'center',
+    marginTop: 4,
+    paddingVertical: 4,
+    paddingHorizontal: SoftSpacing.sm,
+  },
   ctaHint: {
     ...SoftTypography.caption,
-    color: SoftColors.textMuted,
+    color: SoftColors.accentDark,
     textAlign: 'center',
-    marginTop: 4,
+    textDecorationLine: 'underline',
   },
   ctaSecondary: {
     flexDirection: 'row',

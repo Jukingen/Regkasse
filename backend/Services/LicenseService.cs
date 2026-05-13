@@ -1,13 +1,19 @@
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 
 namespace KasseAPI_Final.Services;
 
@@ -22,6 +28,9 @@ public interface ILicenseService
 
     /// <summary>True only after <see cref="EvaluateOnStartup"/> has produced a real snapshot (used by header/visibility middleware to distinguish "None" from "Expired").</summary>
     bool IsLicenseSnapshotInitialized { get; }
+
+    /// <summary>Lightweight async validation used by <see cref="Middleware.LicenseMiddleware"/> (snapshot + revocation overlay).</summary>
+    Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default);
 
     Task<LicenseActivationResult> ActivateAsync(ActivateLicenseRequest request, CancellationToken cancellationToken = default);
 }
@@ -48,9 +57,13 @@ public sealed class ActivateLicenseRequest
     public string LicenseKey { get; set; } = "";
 
     public string? OfflineActivationJwt { get; set; }
+
+    /// <summary>Optional client-reported fingerprint; when set, must match this host.</summary>
+    [JsonPropertyName("machineFingerprint")]
+    public string? MachineFingerprint { get; set; }
 }
 
-public sealed record LicenseActivationResult(bool Success, string? Message);
+public sealed record LicenseActivationResult(bool Success, string? Message, DateTime? ValidUntil = null);
 
 /// <summary>
 /// Lisans iş kurallarını yürütür; saklama (şifreli dosya) tamamen <see cref="ILicenseStorageService"/>'e delege edilir.
@@ -74,6 +87,8 @@ public sealed class LicenseService : ILicenseService
     private readonly ILicenseStorageService _storage;
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly ILogger<LicenseService> _logger;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
 
     private readonly object _gate = new();
     private LicenseStatusResponse _snapshot = new(false, false, false, 0, null, "");
@@ -85,13 +100,17 @@ public sealed class LicenseService : ILicenseService
         IHttpClientFactory httpClientFactory,
         ILicenseStorageService storage,
         IDbContextFactory<AppDbContext> dbContextFactory,
-        ILogger<LicenseService> logger)
+        ILogger<LicenseService> logger,
+        IHostEnvironment hostEnvironment,
+        IOptionsMonitor<DevelopmentOptions> developmentOptions)
     {
         _options = options;
         _httpClientFactory = httpClientFactory;
         _storage = storage;
         _dbContextFactory = dbContextFactory;
         _logger = logger;
+        _hostEnvironment = hostEnvironment;
+        _developmentOptions = developmentOptions;
     }
 
     public bool IsLicenseSnapshotInitialized
@@ -168,7 +187,39 @@ public sealed class LicenseService : ILicenseService
             };
         }
 
+        if (!OpenApiExportMode.IsEnabled
+            && _hostEnvironment.IsDevelopment()
+            && _developmentOptions.CurrentValue.SimulateLicenseExpired)
+        {
+            return snapshot with
+            {
+                IsValid = false,
+                IsTrial = false,
+                IsExpired = true,
+                DaysRemaining = 0,
+                ExpiryDate = DateTime.UtcNow.Date,
+            };
+        }
+
         return snapshot;
+    }
+
+    public Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var s = GetStatus();
+        var paid = s.IsValid && !s.IsTrial;
+        var trialActive = s.IsTrial && !s.IsExpired;
+        var operational = paid || trialActive;
+        return Task.FromResult(new LicenseValidationResult
+        {
+            IsLicenseOperational = operational,
+            IsTrial = s.IsTrial,
+            IsExpired = s.IsExpired,
+            IsPaidValid = paid,
+            DaysRemaining = s.DaysRemaining,
+            ExpiryUtc = s.ExpiryDate,
+        });
     }
 
     public async Task<LicenseActivationResult> ActivateAsync(ActivateLicenseRequest request, CancellationToken cancellationToken = default)
@@ -182,6 +233,15 @@ public sealed class LicenseService : ILicenseService
         var normalizedKey = request.LicenseKey.Trim().ToUpperInvariant();
         if (!LicenseKeyRegex.IsMatch(normalizedKey))
             return new LicenseActivationResult(false, "Invalid license key format. Expected REGK-XXXXX-XXXXX-XXXXX.");
+
+        if (!string.IsNullOrWhiteSpace(request.MachineFingerprint))
+        {
+            var fp = request.MachineFingerprint.Trim();
+            if (!string.Equals(fp, _storage.MachineHashHex, StringComparison.OrdinalIgnoreCase))
+            {
+                return new LicenseActivationResult(false, "Machine fingerprint does not match this host.");
+            }
+        }
 
         lock (_gate)
         {
@@ -240,7 +300,8 @@ public sealed class LicenseService : ILicenseService
             }
 
             _logger.LogInformation("License: activation succeeded for key prefix {Prefix}.", SafePrefix(normalizedKey));
-            return new LicenseActivationResult(true, "License activated.");
+            var st = GetStatus();
+            return new LicenseActivationResult(true, "License activated.", st.ExpiryDate);
         }
         catch (Exception ex)
         {
@@ -441,26 +502,51 @@ public sealed class LicenseService : ILicenseService
         {
             using var rsa = RSA.Create();
             rsa.ImportFromPem(pem);
+            var rsaKey = new RsaSecurityKey(rsa.ExportParameters(false));
 
-            var signingInput = Encoding.ASCII.GetBytes(parts[0] + "." + parts[1]);
-            var signature = Base64UrlDecode(parts[2]);
-            if (!rsa.VerifyData(signingInput, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1))
+            var opts = _options.Value;
+            var parms = new TokenValidationParameters
             {
-                error = "Signature verification failed.";
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = rsaKey,
+                ValidateIssuer = !string.IsNullOrWhiteSpace(opts.LicenseJwtIssuer),
+                ValidIssuer = opts.LicenseJwtIssuer,
+                ValidateAudience = !string.IsNullOrWhiteSpace(opts.LicenseJwtAudience),
+                ValidAudience = opts.LicenseJwtAudience,
+                RequireExpirationTime = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(2),
+                RequireSignedTokens = true,
+            };
+
+            var handler = new JwtSecurityTokenHandler();
+            handler.InboundClaimTypeMap.Clear();
+
+            try
+            {
+                handler.ValidateToken(jwt, parms, out _);
+            }
+            catch (SecurityTokenException ex)
+            {
+                error = ex.Message;
                 return false;
             }
 
-            var payloadJson = Encoding.UTF8.GetString(Base64UrlDecode(parts[1]));
-            using var doc = JsonDocument.Parse(payloadJson);
-            var root = doc.RootElement;
+            var jwtToken = handler.ReadJwtToken(jwt);
+            var licenseKeyClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "licenseKey")?.Value;
+            if (string.IsNullOrEmpty(licenseKeyClaim))
+            {
+                error = "licenseKey claim missing.";
+                return false;
+            }
 
-            // Optional machine binding:
-            //   1) If license has no machineHash claim, or claim is empty/"FLOATING" → floating license, skip check.
-            //   2) Else if License:RequireMachineBinding=false (operator opted into portability) → skip check, log a warning for audit.
-            //   3) Else (default, RequireMachineBinding=true) → claim must match the local machine fingerprint.
-            // Floating ve binding bypass durumlarında imza+licenseKey+exp doğrulamaları her hâlükârda çalışır;
-            // yalnızca makine bağlama (machineHash claim) kontrolü atlanır.
-            var boundHash = root.TryGetProperty("machineHash", out var mhEl) ? mhEl.GetString() : null;
+            if (!string.Equals(licenseKeyClaim, expectedLicenseKey, StringComparison.OrdinalIgnoreCase))
+            {
+                error = "licenseKey mismatch.";
+                return false;
+            }
+
+            var boundHash = jwtToken.Claims.FirstOrDefault(c => c.Type == "machineHash")?.Value;
             var licenseIsFloating = string.IsNullOrEmpty(boundHash)
                 || string.Equals(boundHash, "FLOATING", StringComparison.OrdinalIgnoreCase);
 
@@ -477,28 +563,6 @@ public sealed class LicenseService : ILicenseService
                 else if (!string.Equals(boundHash, _storage.MachineHashHex, StringComparison.OrdinalIgnoreCase))
                 {
                     error = "Machine hash mismatch.";
-                    return false;
-                }
-            }
-
-            if (!root.TryGetProperty("licenseKey", out var lk))
-            {
-                error = "licenseKey claim missing.";
-                return false;
-            }
-
-            if (!string.Equals(lk.GetString(), expectedLicenseKey, StringComparison.OrdinalIgnoreCase))
-            {
-                error = "licenseKey mismatch.";
-                return false;
-            }
-
-            if (root.TryGetProperty("exp", out var expEl) && expEl.ValueKind == JsonValueKind.Number && expEl.TryGetInt64(out var expUnix))
-            {
-                var expUtc = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
-                if (DateTime.UtcNow > expUtc)
-                {
-                    error = "JWT expired.";
                     return false;
                 }
             }

@@ -100,7 +100,8 @@ export function IssuedLicenseUpgradeModal({ row, onClose }: IssuedLicenseUpgrade
                 reason: p.reason?.trim() || null,
             }),
         onSuccess: async (res) => {
-            if (!res.success || !res.licenseKey || !res.signedJwt) {
+            const jwt = res.licenseJwt ?? res.signedJwt;
+            if (!res.success || !res.licenseKey || !jwt) {
                 message.error(res.message || t('license.issued.upgrade.failed'));
                 return;
             }
@@ -108,6 +109,8 @@ export function IssuedLicenseUpgradeModal({ row, onClose }: IssuedLicenseUpgrade
             setOutcome(res);
             onClose();
             await queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+            await queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
+            await queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
         },
         onError: (err: unknown) => {
             if (axios.isAxiosError(err)) {

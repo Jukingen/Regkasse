@@ -136,9 +136,12 @@ builder.Services.Configure<FinanzOnlineSimulationOptions>(
 builder.Services.Configure<RksvFinanzOnlineSubmissionClientOptions>(
     builder.Configuration.GetSection(RksvFinanzOnlineSubmissionClientOptions.SectionName));
 builder.Services.Configure<NtpSettings>(builder.Configuration.GetSection(NtpSettings.SectionName));
+builder.Services.Configure<DevelopmentOptions>(builder.Configuration.GetSection(DevelopmentOptions.SectionName));
 builder.Services.Configure<OfflineVoucherEncryptionOptions>(
     builder.Configuration.GetSection(OfflineVoucherEncryptionOptions.SectionName));
 builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
+builder.Services.Configure<LicenseSettingsOptions>(builder.Configuration.GetSection(LicenseSettingsOptions.SectionName));
+builder.Services.AddSingleton<IPostConfigureOptions<LicenseOptions>, LicenseOptionsFromFilesPostConfigure>();
 builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
 builder.Services.Configure<EmailSmtpOptions>(builder.Configuration.GetSection(EmailSmtpOptions.SectionName));
 builder.Services.AddHttpClient("LicenseRemote", client =>
@@ -154,10 +157,10 @@ builder.Services.AddSingleton<ILicenseReminderNotificationStore, LicenseReminder
 builder.Services.AddSingleton<ILicenseReminderEmailSender, LicenseReminderEmailSender>();
 builder.Services.AddHostedService<LicenseReminderHostedService>();
 builder.Services.AddSingleton<INtpTimeSyncStatus, NtpTimeSyncStatus>();
-// builder.Services.AddScoped<NtpEffectiveSettingsProvider>();
-// builder.Services.AddScoped<INtpEffectiveSettingsProvider>(sp => sp.GetRequiredService<NtpEffectiveSettingsProvider>());
-// builder.Services.AddScoped<NtpSynchronizationCoordinator>();
-// builder.Services.AddScoped<INtpSynchronizationCoordinator>(sp => sp.GetRequiredService<NtpSynchronizationCoordinator>());
+// INtpEffectiveSettingsProvider: PaymentService fiscal NTP guard, SystemController, NtpTimeSyncService (when hosted).
+builder.Services.AddScoped<INtpEffectiveSettingsProvider, NtpEffectiveSettingsProvider>();
+builder.Services.AddScoped<NtpSynchronizationCoordinator>();
+builder.Services.AddScoped<INtpSynchronizationCoordinator>(sp => sp.GetRequiredService<NtpSynchronizationCoordinator>());
 builder.Services.AddSingleton<FinanzOnlineDeveloperSimulationEngine>();
 if (!OpenApiExportMode.IsEnabled)
 {
@@ -579,7 +582,7 @@ builder.Services.AddSingleton<IFinanzOnlineMetrics, FinanzOnlineMetrics>();
 builder.Services.AddSingleton<IFinanzOnlineAlertSink, NoOpFinanzOnlineAlertSink>();
 builder.Services.AddHostedService<FinanzOnlineRetryHostedService>();
 builder.Services.AddHostedService<FinanzOnlineOutboxHostedService>();
-// builder.Services.AddHostedService<NtpTimeSyncService>();
+builder.Services.AddHostedService<NtpTimeSyncService>();
 
 // 🚀 Akıllı Sepet Yaşam Döngüsü Service'i
 builder.Services.AddHostedService<CartLifecycleService>();

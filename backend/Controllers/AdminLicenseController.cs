@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json.Serialization;
 using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
@@ -161,7 +162,7 @@ public sealed class AdminLicenseController : ControllerBase
         var serviceRequest = new GenerateLicenseRequest(
             CustomerName: body.CustomerName ?? string.Empty,
             ExpiryDateUtc: expiryUtc,
-            RequireFingerprint: body.RequireFingerprint,
+            RequireFingerprint: body.BindToMachineFingerprint ?? body.RequireFingerprint,
             MachineHashHex: body.MachineHashHex);
 
         var issuedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -563,11 +564,19 @@ public sealed class AdminLicenseController : ControllerBase
 }
 
 /// <summary>Request body for <c>POST /api/admin/license/generate</c>.</summary>
-public sealed record GenerateLicenseRequestBody(
-    string? CustomerName,
-    string? ExpiryDate,
-    bool RequireFingerprint = false,
-    string? MachineHashHex = null);
+public sealed class GenerateLicenseRequestBody
+{
+    public string? CustomerName { get; set; }
+
+    public string? ExpiryDate { get; set; }
+
+    public bool RequireFingerprint { get; set; }
+
+    public string? MachineHashHex { get; set; }
+
+    [JsonPropertyName("bindToMachineFingerprint")]
+    public bool? BindToMachineFingerprint { get; set; }
+}
 
 /// <summary>Response payload for <c>POST /api/admin/license/generate</c>.</summary>
 public sealed record GenerateLicenseResponse(
@@ -575,7 +584,11 @@ public sealed record GenerateLicenseResponse(
     string? LicenseKey,
     string? SignedJwt,
     DateTime? ExpiryAtUtc,
-    string? Message);
+    string? Message)
+{
+    /// <summary>Same as <see cref="SignedJwt"/>; stable alias for newer clients.</summary>
+    public string? LicenseJwt => SignedJwt;
+}
 
 /// <summary>Body for <c>POST /api/admin/license/upgrade</c>.</summary>
 public sealed class UpgradeLicenseRequestBody

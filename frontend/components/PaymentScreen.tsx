@@ -354,13 +354,6 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
       }
 
       try {
-        await cartService.completeCart(currentCartId, '');
-      } catch (completeErr) {
-        console.error('[PaymentScreen] completeCart failed:', completeErr);
-        Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.completeCartFailed'));
-      }
-
-      try {
         await cartService.resetCartAfterPayment(currentCartId, 'Payment completed');
       } catch (resetErr) {
         console.warn('[PaymentScreen] resetCartAfterPayment:', resetErr);

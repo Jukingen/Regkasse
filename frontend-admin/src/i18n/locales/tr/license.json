@@ -30,6 +30,7 @@
     "offlineJwtHelp": "Yalnızca sağlayıcı sertifika verdiyse doldurun.",
     "activate": "Etkinleştir",
     "success": "Lisans etkinleştirildi.",
+    "successWithValidUntil": "Lisans etkinleştirildi. Geçerlilik: {{date}}",
     "failed": "Etkinleştirme başarısız.",
     "noPermission": "Etkinleştirme yetkisi yok (ayarları yönetme gerekli)."
   },
@@ -48,6 +49,13 @@
     "failed": "Lisans oluşturulamadı.",
     "unavailable": "Bu sunucuda lisans üretimi etkin değil (imzalama anahtarı yok).",
     "noPermission": "Oluşturma yetkisi yok (ayarları yönetme gerekli).",
+    "expiryInPast": "Son kullanma tarihi geçmişte olamaz.",
+    "invalidMachineHash": "Geçerli 64 karakterlik SHA-256 hex parmak izi girin.",
+    "modal": {
+      "title": "Oluşturulan lisans",
+      "copyJwt": "Aktivasyon JWT'sini kopyala",
+      "jwtCopied": "JWT panoya kopyalandı."
+    },
     "result": {
       "title": "Oluşturulan lisans",
       "licenseKey": "Lisans anahtarı",
@@ -55,7 +63,15 @@
       "expiry": "Geçerli olduğu tarih",
       "warning": "Bu değerler yalnızca bir kez gösterilir. Müşteriye güvenli şekilde iletin.",
       "copy": "Kopyala",
-      "copied": "Panoya kopyalandı."
+      "copied": "Panoya kopyalandı.",
+      "copyFailed": "Kopyalama başarısız.",
+      "posDeepLinkCopy": "POS derin bağlantısını kopyala",
+      "posDeepLinkCopied": "Derin bağlantı panoya kopyalandı.",
+      "posDeepLinkHelp": "Kasa uygulamasını önceden doldurulmuş aktivasyon JWT'si ile açar (cashregister://). Uygulama bu URL şemasını kaydetmişse çalışır.",
+      "copyLicenseKeyOnly": "Yalnızca lisans anahtarını kopyala",
+      "licenseKeyCopied": "Lisans anahtarı kopyalandı.",
+      "adminPageLinkCopy": "Yönetim lisans sayfası URL'sini kopyala",
+      "adminPageLinkCopied": "Yönetim URL'si kopyalandı."
     }
   },
   "issued": {
@@ -116,5 +132,15 @@
       "reActivateNotice": "Müşteri POS'u yeni çevrimdışı JWT ile yeniden aktive etmelidir."
     }
   },
-  "supportNotice": "Lisans anahtarını girin. Sorun olursa support@regkasse.at adresine yazın."
+  "supportNotice": "Lisans anahtarını girin. Sorun olursa support@regkasse.at adresine yazın.",
+  "publicStatus": {
+    "title": "Genel lisans durumu (API, POS ile aynı)",
+    "subtitle": "Kaynak: GET /api/license/status — POS istemcisiyle aynı sözleşme.",
+    "licenseType": "Tür",
+    "validUntil": "Geçerlilik (UTC)",
+    "daysRemaining": "Kalan gün",
+    "features": "Özellikler",
+    "isValid": "İşleme izin",
+    "loadError": "Genel lisans durumu yüklenemedi."
+  }
 }

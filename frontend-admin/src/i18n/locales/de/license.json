@@ -30,6 +30,7 @@
     "offlineJwtHelp": "Nur ausfüllen, wenn Ihr Anbieter ein Zertifikat mitgeliefert hat.",
     "activate": "Aktivieren",
     "success": "Lizenz wurde aktiviert.",
+    "successWithValidUntil": "Lizenz wurde aktiviert. Gültig bis: {{date}}",
     "failed": "Aktivierung fehlgeschlagen.",
     "noPermission": "Keine Berechtigung zur Aktivierung (Einstellungen verwalten erforderlich)."
   },
@@ -48,6 +49,13 @@
     "failed": "Lizenz konnte nicht generiert werden.",
     "unavailable": "Lizenzgenerierung ist auf diesem Server nicht aktiviert (Signaturschlüssel fehlt).",
     "noPermission": "Keine Berechtigung zur Generierung (Einstellungen verwalten erforderlich).",
+    "expiryInPast": "Das Ablaufdatum darf nicht in der Vergangenheit liegen.",
+    "invalidMachineHash": "Bitte einen gültigen 64-stelligen SHA-256-Hex-Fingerprint eingeben.",
+    "modal": {
+      "title": "Generierte Lizenz",
+      "copyJwt": "Aktivierungs-JWT kopieren",
+      "jwtCopied": "JWT wurde kopiert."
+    },
     "result": {
       "title": "Generierte Lizenz",
       "licenseKey": "Lizenzschlüssel",
@@ -55,7 +63,15 @@
       "expiry": "Gültig bis",
       "warning": "Diese Werte werden nur einmal angezeigt. Bitte sicher an den Kunden übergeben.",
       "copy": "Kopieren",
-      "copied": "In Zwischenablage kopiert."
+      "copied": "In Zwischenablage kopiert.",
+      "copyFailed": "Kopieren fehlgeschlagen.",
+      "posDeepLinkCopy": "POS-Tiefenlink kopieren",
+      "posDeepLinkCopied": "Tiefenlink in Zwischenablage kopiert.",
+      "posDeepLinkHelp": "Öffnet die Registrierkasse-App mit vorausgefülltem Aktivierungs-JWT (Schema cashregister://). Funktioniert nur, wenn die App dieses URL-Schema registriert hat.",
+      "copyLicenseKeyOnly": "Nur Lizenzschlüssel kopieren",
+      "licenseKeyCopied": "Lizenzschlüssel kopiert.",
+      "adminPageLinkCopy": "Admin-Lizenzseite (Link) kopieren",
+      "adminPageLinkCopied": "Admin-Link kopiert."
     }
   },
   "issued": {
@@ -116,5 +132,15 @@
       "reActivateNotice": "Der Kunde muss die Registrierkasse mit dem neuen Offline-JWT neu aktivieren."
     }
   },
-  "supportNotice": "Lizenzschlüssel eingeben. Bei Problemen kontaktieren Sie support@regkasse.at"
+  "supportNotice": "Lizenzschlüssel eingeben. Bei Problemen kontaktieren Sie support@regkasse.at",
+  "publicStatus": {
+    "title": "Öffentlicher Lizenzstatus (API, wie POS)",
+    "subtitle": "Quelle: GET /api/license/status — gleiche Datenbasis wie die Kassen-App.",
+    "licenseType": "Typ",
+    "validUntil": "Gültig bis (UTC)",
+    "daysRemaining": "Verbleibend (Tage)",
+    "features": "Funktionen",
+    "isValid": "Betrieb erlaubt",
+    "loadError": "Öffentlicher Status konnte nicht geladen werden."
+  }
 }

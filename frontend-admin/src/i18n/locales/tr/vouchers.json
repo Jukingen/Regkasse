@@ -17,6 +17,7 @@
       "actions": "İşlemler"
     },
     "open": "Detay",
+    "viewLedger": "Geçmiş",
     "create": "Yeni hediye çeki",
     "empty": "Kayıt bulunamadı.",
     "permissionDenied": "Hediye çeklerini görüntüleme yetkiniz yok."

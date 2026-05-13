@@ -128,10 +128,60 @@ public class QrImageService : IQrImageService
             var pngTrunc = TryEncodePayloadToPng(truncated);
             if (pngTrunc != null)
                 return pngTrunc;
+
+            var truncRelaxed = GenerateQrCodeImage(truncated);
+            if (truncRelaxed != null)
+            {
+                _logger.LogWarning(
+                    "QR reprint: using relaxed auto-version PNG on UTF-8 truncated payload (original length {OriginalLen} chars)",
+                    text.Length);
+                return truncRelaxed;
+            }
+        }
+
+        var relaxed = GenerateQrCodeImage(text);
+        if (relaxed != null)
+        {
+            _logger.LogWarning(
+                "QR reprint: version/ECC sweep failed; using relaxed auto-version PNG (payload length {Len})",
+                text.Length);
+            return relaxed;
         }
 
         _logger.LogError("QR reprint PNG encoding failed for payload length {Len}", text.Length);
         return null;
+    }
+
+    /// <inheritdoc />
+    public byte[]? GenerateQrCodeImage(string? payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+            return null;
+
+        var text = payload.Trim();
+        try
+        {
+            using var qrGenerator = new QRCodeGenerator();
+            using var qrCodeData = qrGenerator.CreateQrCode(text, QRCodeGenerator.ECCLevel.M);
+            using var qrCode = new PngByteQRCode(qrCodeData);
+            return qrCode.GetGraphic(20, drawQuietZones: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "QR relaxed generation (ECC M) failed for payload length: {Length}", text.Length);
+            try
+            {
+                using var qrGenerator = new QRCodeGenerator();
+                using var qrCodeData = qrGenerator.CreateQrCode(text, QRCodeGenerator.ECCLevel.L);
+                using var qrCode = new PngByteQRCode(qrCodeData);
+                return qrCode.GetGraphic(12, drawQuietZones: true);
+            }
+            catch (Exception ex2)
+            {
+                _logger.LogError(ex2, "QR generation failed after ECC L fallback for payload length: {Length}", text.Length);
+                return null;
+            }
+        }
     }
 
     /// <summary>Single-string QR PNG (version / ECC sweep). Used for fiscal reprint from stored payload only.</summary>

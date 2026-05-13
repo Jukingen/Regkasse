@@ -28,6 +28,8 @@ namespace KasseAPI_Final.Middleware
                 return;
             }
 
+            await licenseService.ValidateAsync(context.RequestAborted).ConfigureAwait(false);
+
             context.Response.OnStarting(() =>
             {
                 ApplyHeaders(context, licenseService);

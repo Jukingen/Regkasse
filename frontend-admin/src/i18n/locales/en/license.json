@@ -30,6 +30,7 @@
     "offlineJwtHelp": "Only if your vendor supplied a certificate.",
     "activate": "Activate",
     "success": "License activated.",
+    "successWithValidUntil": "License activated. Valid until: {{date}}",
     "failed": "Activation failed.",
     "noPermission": "No permission to activate (settings manage required)."
   },
@@ -48,6 +49,13 @@
     "failed": "Could not generate the license.",
     "unavailable": "License generation is not enabled on this server (signing key missing).",
     "noPermission": "No permission to generate (settings manage required).",
+    "expiryInPast": "The expiry date cannot be in the past.",
+    "invalidMachineHash": "Enter a valid 64-character SHA-256 hex fingerprint.",
+    "modal": {
+      "title": "Generated license",
+      "copyJwt": "Copy activation JWT",
+      "jwtCopied": "JWT copied to clipboard."
+    },
     "result": {
       "title": "Generated license",
       "licenseKey": "License key",
@@ -55,7 +63,15 @@
       "expiry": "Valid until",
       "warning": "These values are shown only once. Hand them to the customer securely.",
       "copy": "Copy",
-      "copied": "Copied to clipboard."
+      "copied": "Copied to clipboard.",
+      "copyFailed": "Copy failed.",
+      "posDeepLinkCopy": "Copy POS deep link",
+      "posDeepLinkCopied": "Deep link copied to clipboard.",
+      "posDeepLinkHelp": "Opens the cash register app with a prefilled activation JWT (cashregister:// scheme). Works only if the app registers this URL scheme.",
+      "copyLicenseKeyOnly": "Copy license key only",
+      "licenseKeyCopied": "License key copied.",
+      "adminPageLinkCopy": "Copy admin license page URL",
+      "adminPageLinkCopied": "Admin URL copied."
     }
   },
   "issued": {
@@ -116,5 +132,15 @@
       "reActivateNotice": "The customer must re-activate the POS with the new offline JWT."
     }
   },
-  "supportNotice": "Enter your license key. If you need help, contact support@regkasse.at"
+  "supportNotice": "Enter your license key. If you need help, contact support@regkasse.at",
+  "publicStatus": {
+    "title": "Public license status (API, POS view)",
+    "subtitle": "Source: GET /api/license/status — same contract as the POS client.",
+    "licenseType": "Type",
+    "validUntil": "Valid until (UTC)",
+    "daysRemaining": "Days remaining",
+    "features": "Features",
+    "isValid": "Operations allowed",
+    "loadError": "Could not load public license status."
+  }
 }

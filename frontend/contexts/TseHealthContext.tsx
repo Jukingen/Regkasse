@@ -14,6 +14,7 @@ import { Alert } from 'react-native';
 
 import { fetchTseHealth, type TseHealthApiResponse, type TseOperationalHealthStatus } from '../services/api/tseHealthApi';
 import { getUserSettings } from '../services/api/userSettingsService';
+import { isDevSimulateTseUnavailable } from '../constants/devSimulatePosOffline';
 
 export type TseBannerVariant = 'online' | 'slow' | 'offline';
 
@@ -106,7 +107,8 @@ export function TseHealthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const value = useMemo<TseHealthContextValue>(() => {
-    const status = (payload?.status ?? 'Degraded') as TseOperationalHealthStatus | string;
+    const rawStatus = (payload?.status ?? 'Degraded') as TseOperationalHealthStatus | string;
+    const status = isDevSimulateTseUnavailable() ? 'Offline' : rawStatus;
     const lat = lastLatencyMs;
     const bannerVariant = normalizeBannerVariant(String(status), lat);
     return {
@@ -118,7 +120,9 @@ export function TseHealthProvider({ children }: { children: React.ReactNode }) {
           ? payload.nonFiscalPendingQueueCount
           : null,
       estimatedRecoveryTimeUtc: payload?.estimatedRecoveryTimeUtc ?? null,
-      lastErrorMessageSafe: payload?.lastErrorMessageSafe ?? null,
+      lastErrorMessageSafe: isDevSimulateTseUnavailable()
+        ? 'Entwicklungssimulation: TSE wird als offline behandelt.'
+        : payload?.lastErrorMessageSafe ?? null,
       loading,
       refresh,
     };

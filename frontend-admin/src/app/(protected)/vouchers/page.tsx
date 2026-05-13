@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, Button, Card, Input, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { HistoryOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -13,6 +13,7 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { useAdminVouchersList } from '@/api/admin/vouchers';
 import type { AdminVoucherListItemDto } from '@/api/admin/vouchers';
+import { VoucherHistory } from '@/features/vouchers/components/VoucherHistory';
 import { formatCurrency, formatDateTime } from '@/i18n/formatting';
 
 function statusColor(status: string): string {
@@ -56,11 +57,13 @@ export default function AdminVouchersListPage() {
   const { hasPermission } = usePermissions();
   const canRead = hasPermission(PERMISSIONS.VOUCHER_READ);
   const canCreate = hasPermission(PERMISSIONS.VOUCHER_CREATE);
+  const canAuditLedger = hasPermission(PERMISSIONS.VOUCHER_AUDIT_VIEW);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [qInput, setQInput] = useState('');
   const [q, setQ] = useState('');
+  const [historyVoucherId, setHistoryVoucherId] = useState<string | null>(null);
 
   const listQuery = useAdminVouchersList(
     { page, pageSize, q },
@@ -118,17 +121,34 @@ export default function AdminVouchersListPage() {
         key: 'createdAtUtc',
         render: (iso: string) => formatDateTime(iso, formatLocale),
       },
+      ...(canAuditLedger
+        ? [
+            {
+              title: t('vouchers.list.viewLedger'),
+              key: 'history',
+              width: 88,
+              align: 'center' as const,
+              render: (_: unknown, r: AdminVoucherListItemDto) => (
+                <Button
+                  type="default"
+                  icon={<HistoryOutlined />}
+                  size="small"
+                  aria-label={t('vouchers.list.viewLedger')}
+                  onClick={() => setHistoryVoucherId(r.id)}
+                />
+              ),
+            },
+          ]
+        : []),
       {
         title: t('vouchers.list.columns.actions'),
         key: 'actions',
-        fixed: 'right',
+        fixed: 'right' as const,
         width: 120,
-        render: (_, r) => (
-          <Link href={`/vouchers/${r.id}`}>{t('vouchers.list.open')}</Link>
-        ),
+        render: (_, r) => <Link href={`/vouchers/${r.id}`}>{t('vouchers.list.open')}</Link>,
       },
     ],
-    [t, formatLocale]
+    [t, formatLocale, canAuditLedger]
   );
 
   if (!canRead) {
@@ -201,6 +221,12 @@ export default function AdminVouchersListPage() {
           }}
         />
       </Card>
+
+      <VoucherHistory
+        voucherId={historyVoucherId ?? ''}
+        visible={!!historyVoucherId}
+        onClose={() => setHistoryVoucherId(null)}
+      />
     </AdminPageShell>
   );
 }

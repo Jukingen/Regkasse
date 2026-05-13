@@ -21,10 +21,12 @@ if (Platform.OS !== 'web') {
   }
 }
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Alert } from 'react-native';
 
 import { defaultSystemConfig, type SystemConfiguration } from './systemConfiguration';
+import {
+  isDevSimulatePosNetworkOffline,
+} from '../constants/devSimulatePosOffline';
 
 export type { SystemConfiguration } from './systemConfiguration';
 
@@ -52,16 +54,17 @@ interface SystemProviderProps {
 }
 
 export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
-
-
-  const { t } = useTranslation();
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(() => !isDevSimulatePosNetworkOffline());
   const [systemConfig, setSystemConfig] = useState<SystemConfiguration>(defaultSystemConfig);
   const [loading, setLoading] = useState(true);
 
   // Ağ durumunu izle
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state: any) => {
+      if (isDevSimulatePosNetworkOffline()) {
+        setIsOnline(false);
+        return;
+      }
       setIsOnline(state.isConnected ?? false);
     });
 
@@ -98,6 +101,9 @@ export const SystemProvider: React.FC<SystemProviderProps> = ({ children }) => {
 
   // Bağlantı durumunu kontrol et
   const checkConnectivity = async (): Promise<boolean> => {
+    if (isDevSimulatePosNetworkOffline()) {
+      return false;
+    }
     try {
       const state = await NetInfo.fetch();
       return state.isConnected ?? false;

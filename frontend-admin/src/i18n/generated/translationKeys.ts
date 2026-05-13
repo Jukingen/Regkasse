@@ -3962,6 +3962,7 @@ export const ADMIN_TRANSLATION_KEYS = [
   'vouchers.list.permissionDenied',
   'vouchers.list.searchButton',
   'vouchers.list.searchPlaceholder',
+  'vouchers.list.viewLedger',
   'vouchers.status.Active',
   'vouchers.status.Cancelled',
   'vouchers.status.Expired',

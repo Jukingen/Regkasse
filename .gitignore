@@ -135,6 +135,7 @@ backend/**/secrets.json
 backend/**/*.pfx
 backend/**/*.p12
 backend/**/*.key
+backend/.dev-license-keys/
 backend/**/ConnectionStrings.json
 backend/**/AzureKeyVault.json
 

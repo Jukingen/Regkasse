@@ -1,20 +1,34 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Alert, Space, Table, Tag, Timeline, Typography } from 'antd';
+import { Alert, Modal, Space, Spin, Table, Tag, Timeline, Typography } from 'antd';
 import { LinkOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
-import { useAdminVoucherLedger, type AdminVoucherLedgerLineDto } from '@/api/admin/vouchers';
+import { useAdminVoucherDetail, useAdminVoucherLedger, type AdminVoucherLedgerLineDto } from '@/api/admin/vouchers';
 import { useI18n } from '@/i18n';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/shared/auth/usePermissions';
 import { formatCurrency, formatDateTime } from '@/i18n/formatting';
 
-export type VoucherHistoryProps = {
+export type VoucherHistoryInlineProps = {
     voucherId: string;
     /** Requires `voucher.audit.view` — when false, query is disabled and an info alert is shown. */
     ledgerEnabled: boolean;
     currency: string;
 };
+
+export type VoucherHistoryModalModeProps = {
+    voucherId: string;
+    visible: boolean;
+    onClose: () => void;
+};
+
+export type VoucherHistoryProps = VoucherHistoryInlineProps | VoucherHistoryModalModeProps;
+
+function isModalMode(props: VoucherHistoryProps): props is VoucherHistoryModalModeProps {
+    return 'visible' in props && 'onClose' in props;
+}
 
 function shortId(value?: string | null): string {
     if (!value) return '—';
@@ -64,7 +78,7 @@ function ledgerTypeTagColor(type: string): string {
 /**
  * Gutschein-Saldo-Verlauf: Buchungsjournal mit Tabelle und chronologischer Timeline.
  */
-export function VoucherHistory({ voucherId, ledgerEnabled, currency }: VoucherHistoryProps) {
+function VoucherHistoryLedgerBody({ voucherId, ledgerEnabled, currency }: VoucherHistoryInlineProps) {
     const { t, formatLocale } = useI18n();
     const ledgerQuery = useAdminVoucherLedger(voucherId, ledgerEnabled && !!voucherId);
 
@@ -213,4 +227,47 @@ export function VoucherHistory({ voucherId, ledgerEnabled, currency }: VoucherHi
             ) : null}
         </>
     );
+}
+
+function VoucherHistoryModalShell({ voucherId, visible, onClose }: VoucherHistoryModalModeProps) {
+    const { t } = useI18n();
+    const { hasPermission } = usePermissions();
+    const ledgerEnabled = hasPermission(PERMISSIONS.VOUCHER_AUDIT_VIEW);
+    const detailQuery = useAdminVoucherDetail(voucherId, { enabled: visible && !!voucherId });
+
+    return (
+        <Modal
+            title={t('vouchers.ledger.title')}
+            open={visible}
+            onCancel={onClose}
+            footer={null}
+            width={800}
+            destroyOnClose
+        >
+            <Spin spinning={detailQuery.isLoading}>
+                <VoucherHistoryLedgerBody
+                    voucherId={voucherId}
+                    ledgerEnabled={ledgerEnabled}
+                    currency={detailQuery.data?.currency ?? 'EUR'}
+                />
+            </Spin>
+        </Modal>
+    );
+}
+
+/**
+ * Inline ledger on the voucher detail page, or controlled modal from the list (`visible` / `onClose`).
+ */
+export function VoucherHistory(props: VoucherHistoryProps) {
+    if (isModalMode(props)) {
+        return <VoucherHistoryModalShell {...props} />;
+    }
+    return <VoucherHistoryLedgerBody {...props} />;
+}
+
+export type VoucherHistoryModalProps = VoucherHistoryModalModeProps;
+
+/** Same as {@link VoucherHistory} in modal mode (`visible` / `onClose`). */
+export function VoucherHistoryModal(props: VoucherHistoryModalProps) {
+    return <VoucherHistory {...props} />;
 }

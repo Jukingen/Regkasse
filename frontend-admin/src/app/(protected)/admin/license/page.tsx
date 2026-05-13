@@ -36,6 +36,7 @@ import {
     deleteRevokeIssuedLicense,
     getIssuedLicensesList,
     getLicenseStatus,
+    getPublicLicenseStatus,
     licenseQueryKeys,
     postActivateLicense,
     type ActivateLicenseRequest,
@@ -341,7 +342,7 @@ function IssuedLicensesTableCard() {
 }
 
 export default function AdminLicensePage() {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const [form] = Form.useForm<LicenseFormValues>();
@@ -360,6 +361,11 @@ export default function AdminLicensePage() {
         queryFn: () => getLicenseStatus(),
     });
 
+    const publicStatusQuery = useQuery({
+        queryKey: licenseQueryKeys.publicStatus,
+        queryFn: () => getPublicLicenseStatus(),
+    });
+
     const activateMutation = useMutation({
         mutationFn: (body: ActivateLicenseRequest) => postActivateLicense(body),
         onSuccess: (res, variables) => {
@@ -367,7 +373,21 @@ export default function AdminLicensePage() {
                 message.error(res.message || t('license.activation.failed'));
                 return;
             }
-            message.success(t('license.activation.success'));
+            if (res.validUntil) {
+                message.success(
+                    t('license.activation.successWithValidUntil', {
+                        date: formatDate(res.validUntil, formatLocale, {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }),
+                    }),
+                );
+            } else {
+                message.success(t('license.activation.success'));
+            }
             const jwt = variables.offlineActivationJwt?.trim() ?? '';
             if (!jwt) {
                 setSessionStorageItem(FloatingHintStorageKey, '1');
@@ -378,6 +398,7 @@ export default function AdminLicensePage() {
             }
             form.resetFields(['licenseKey', 'offlineActivationJwt']);
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
+            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
         },
         onError: (err: unknown) => {
             if (axios.isAxiosError(err)) {
@@ -423,6 +444,7 @@ export default function AdminLicensePage() {
                         icon={<ReloadOutlined />}
                         onClick={() => {
                             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
+                            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
                             if (canActivate) {
                                 void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
                             }
@@ -442,6 +464,55 @@ export default function AdminLicensePage() {
                     onClose={dismissFloatingHint}
                 />
             ) : null}
+
+            <Card title={t('license.publicStatus.title')}>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                    {t('license.publicStatus.subtitle')}
+                </Typography.Paragraph>
+                {publicStatusQuery.isLoading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+                        <Spin />
+                    </div>
+                ) : publicStatusQuery.isError ? (
+                    <Alert type="warning" showIcon message={t('license.publicStatus.loadError')} />
+                ) : publicStatusQuery.data ? (
+                    <Descriptions bordered column={1} size="small">
+                        <Descriptions.Item label={t('license.publicStatus.licenseType')}>
+                            <Tag color={publicStatusQuery.data.licenseType === 'Paid' ? 'green' : 'blue'}>
+                                {publicStatusQuery.data.licenseType}
+                            </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.publicStatus.isValid')}>
+                            {publicStatusQuery.data.isValid ? (
+                                <Tag color="green">{t('common.buttons.yes')}</Tag>
+                            ) : (
+                                <Tag color="red">{t('common.buttons.no')}</Tag>
+                            )}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.publicStatus.daysRemaining')}>
+                            {publicStatusQuery.data.daysRemaining}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.publicStatus.validUntil')}>
+                            {publicStatusQuery.data.validUntil
+                                ? formatDate(publicStatusQuery.data.validUntil, formatLocale, {
+                                      year: 'numeric',
+                                      month: '2-digit',
+                                      day: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                  })
+                                : '—'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.publicStatus.features')}>
+                            <Space size={[4, 4]} wrap>
+                                {(publicStatusQuery.data.features ?? []).map((f) => (
+                                    <Tag key={f}>{f}</Tag>
+                                ))}
+                            </Space>
+                        </Descriptions.Item>
+                    </Descriptions>
+                ) : null}
+            </Card>
 
             <Card>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
@@ -539,7 +610,7 @@ export default function AdminLicensePage() {
                 )}
             </Card>
 
-            <LicenseGenerationCard canGenerate={canActivate} />
+            <LicenseGenerationCard canGenerate={canActivate} machineFingerprint={machineHash} />
 
             {canActivate ? <IssuedLicensesTableCard /> : null}
         </div>

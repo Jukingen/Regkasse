@@ -8,6 +8,10 @@ using KasseAPI_Final.Tse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Logging;
+using KasseAPI_Final.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using KasseAPI_Final;
 
 namespace KasseAPI_Final.Services
 {
@@ -18,19 +22,25 @@ namespace KasseAPI_Final.Services
         private readonly ITseKeyProvider _keyProvider;
         private readonly ITseProvider _tseProvider;
         private readonly ILogger<TseService> _logger;
+        private readonly IHostEnvironment? _hostEnvironment;
+        private readonly IOptionsMonitor<DevelopmentOptions>? _developmentOptions;
 
         public TseService(
             AppDbContext context,
             SignaturePipeline pipeline,
             ITseKeyProvider keyProvider,
             ITseProvider tseProvider,
-            ILogger<TseService> logger)
+            ILogger<TseService> logger,
+            IHostEnvironment? hostEnvironment = null,
+            IOptionsMonitor<DevelopmentOptions>? developmentOptions = null)
         {
             _context = context;
             _pipeline = pipeline;
             _keyProvider = keyProvider;
             _tseProvider = tseProvider;
             _logger = logger;
+            _hostEnvironment = hostEnvironment;
+            _developmentOptions = developmentOptions;
         }
 
         public async Task<TseStatus> GetTseStatusAsync()
@@ -490,6 +500,19 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                if (!OpenApiExportMode.IsEnabled
+                    && _hostEnvironment?.IsDevelopment() == true
+                    && _developmentOptions?.CurrentValue.SimulateTseUnavailable == true)
+                {
+                    return new TseStatus
+                    {
+                        IsConnected = false,
+                        IsReady = false,
+                        Status = "SimulatedOffline",
+                        ErrorMessage = "Development simulation: TSE device unavailable."
+                    };
+                }
+
                 var tseDevice = await _context.TseDevices
                     .OrderBy(t => t.CreatedAt)
                     .FirstOrDefaultAsync();

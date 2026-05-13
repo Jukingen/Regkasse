@@ -14,6 +14,7 @@ import {
   normalizeSystemTimeStatusDto,
   type SystemTimeStatusDto,
 } from '../types/timeSyncStatus';
+import { isDevSimulateNtpCriticalUi } from '../constants/devSimulatePosOffline';
 
 const POLL_MS = 5 * 60 * 1000;
 
@@ -47,7 +48,32 @@ export function TimeSyncStatusProvider({
     setError(null);
     try {
       const raw = await apiClient.get<unknown>('/system/time/status');
-      const next = normalizeSystemTimeStatusDto(raw);
+      if (__DEV__) {
+        try {
+          console.log('[TimeSync] GET /system/time/status response:', JSON.stringify(raw));
+        } catch {
+          console.log('[TimeSync] GET /system/time/status response (non-JSON-serializable):', raw);
+        }
+      }
+      let next = normalizeSystemTimeStatusDto(raw);
+      if (isDevSimulateNtpCriticalUi()) {
+        const now = new Date().toISOString();
+        next = {
+          systemTimeUtc: now,
+          ntpTimeUtc: new Date(Date.now() - 600_000).toISOString(),
+          offsetSeconds: 999,
+          isSynchronized: false,
+          lastSyncAt: now,
+          warningLevel: 'critical',
+        };
+      }
+      if (__DEV__) {
+        try {
+          console.log('[TimeSync] normalized flags:', deriveTimeSyncUiFlags(next));
+        } catch {
+          console.log('[TimeSync] normalized flags (skipped)');
+        }
+      }
       setStatus(next);
     } catch (e) {
       setError(e);

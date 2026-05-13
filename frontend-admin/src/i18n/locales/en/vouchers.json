@@ -17,6 +17,7 @@
       "actions": "Actions"
     },
     "open": "Details",
+    "viewLedger": "History",
     "create": "New voucher",
     "empty": "No vouchers found.",
     "permissionDenied": "You do not have permission to view vouchers."

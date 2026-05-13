@@ -8,6 +8,7 @@ import { paymentService } from '../services/api/paymentService';
 import { notifyOfflineSyncComplete } from '../services/payment/offlineQueueSyncNotifier';
 import { useAuth } from '../contexts/AuthContext';
 import { sessionManager } from '../services/session/sessionManager';
+import { isDevSimulatePosNetworkOffline } from '../constants/devSimulatePosOffline';
 
 // API çağrı durumu
 interface ApiCallStatus {
@@ -103,6 +104,11 @@ export const useApiManager = () => {
   // Online/offline durumu kontrolü
   const checkOnlineStatus = useCallback(async (): Promise<boolean> => {
     try {
+      if (isDevSimulatePosNetworkOffline()) {
+        updateState({ isOnline: false });
+        return false;
+      }
+
       // 1. Önce native network durumunu kontrol et (Hızlı ve maliyetsiz)
       const netInfo = await NetInfo.fetch();
       if (netInfo.isConnected === false) {

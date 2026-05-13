@@ -9,6 +9,12 @@ public sealed class NtpSettings
 
     public bool Enabled { get; set; } = true;
 
+    /// <summary>
+    /// When <see cref="Microsoft.Extensions.Hosting.IHostEnvironment.EnvironmentName"/> is Development,
+    /// skips fiscal NTP blocking and returns a healthy time status DTO (never enable in production configs).
+    /// </summary>
+    public bool DevelopmentBypass { get; set; }
+
     /// <summary>Background sync cadence (default 60 minutes).</summary>
     public int SyncIntervalMinutes { get; set; } = 60;
 

@@ -3,7 +3,10 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using KasseAPI_Final;
 
 namespace KasseAPI_Final.Services;
 
@@ -17,15 +20,21 @@ public sealed class NtpSynchronizationCoordinator : INtpSynchronizationCoordinat
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly INtpTimeSyncStatus _status;
     private readonly ILogger<NtpSynchronizationCoordinator> _logger;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
 
     public NtpSynchronizationCoordinator(
         IServiceScopeFactory scopeFactory,
         INtpTimeSyncStatus status,
-        ILogger<NtpSynchronizationCoordinator> logger)
+        ILogger<NtpSynchronizationCoordinator> logger,
+        IHostEnvironment hostEnvironment,
+        IOptionsMonitor<DevelopmentOptions> developmentOptions)
     {
         _scopeFactory = scopeFactory;
         _status = status;
         _logger = logger;
+        _hostEnvironment = hostEnvironment;
+        _developmentOptions = developmentOptions;
     }
 
     public async Task<NtpSyncCycleResult> RunSynchronizationCycleAsync(
@@ -40,6 +49,31 @@ public sealed class NtpSynchronizationCoordinator : INtpSynchronizationCoordinat
                 Ran = false,
                 LogicalSuccess = true,
                 Message = "NTP auto-sync is disabled."
+            };
+        }
+
+        if (!OpenApiExportMode.IsEnabled
+            && _hostEnvironment.IsDevelopment()
+            && _developmentOptions.CurrentValue.SimulateNtpFailure
+            && (ignoreDisabled || settings.Enabled))
+        {
+            var simSyncUtc = DateTime.UtcNow;
+            const string simMsg = "Development simulation: NTP failure.";
+            _logger.LogWarning("{Message}", simMsg);
+            await PersistAndPublishAsync(
+                    simSyncUtc,
+                    simSyncUtc,
+                    default,
+                    null,
+                    false,
+                    simMsg,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            return new NtpSyncCycleResult
+            {
+                Ran = true,
+                LogicalSuccess = false,
+                Message = simMsg
             };
         }
 

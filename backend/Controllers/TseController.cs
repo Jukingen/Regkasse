@@ -1,16 +1,20 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using KasseAPI_Final;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Services.Tse;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -21,12 +25,21 @@ public sealed class TseController : BaseController
 {
     private readonly ITseHealthMonitor _health;
     private readonly AppDbContext _db;
+    private readonly IWebHostEnvironment _environment;
+    private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
 
-    public TseController(ITseHealthMonitor health, AppDbContext db, ILogger<TseController> logger)
+    public TseController(
+        ITseHealthMonitor health,
+        AppDbContext db,
+        IWebHostEnvironment environment,
+        IOptionsMonitor<DevelopmentOptions> developmentOptions,
+        ILogger<TseController> logger)
         : base(logger)
     {
         _health = health;
         _db = db;
+        _environment = environment;
+        _developmentOptions = developmentOptions;
     }
 
     /// <summary>Returns cached TSE health from background probing.</summary>
@@ -47,6 +60,22 @@ public sealed class TseController : BaseController
                     x => x.CashRegisterId == rid && x.Status == OfflineTransactionStatus.NonFiscalPending,
                     cancellationToken)
                 .ConfigureAwait(false);
+        }
+
+        if (!OpenApiExportMode.IsEnabled
+            && _environment.IsDevelopment()
+            && _developmentOptions.CurrentValue.SimulateTseUnavailable)
+        {
+            return Ok(new TseHealthResponseDto
+            {
+                Status = TseOperationalHealth.Offline.ToString(),
+                LastCheckUtc = DateTime.UtcNow,
+                LastSuccessfulPingUtc = null,
+                ConsecutiveFailures = Math.Max(s.ConsecutiveFailures, 99),
+                EstimatedRecoveryTimeUtc = DateTime.UtcNow.AddMinutes(1),
+                LastErrorMessageSafe = "Entwicklungssimulation: TSE als nicht verfügbar gemeldet.",
+                NonFiscalPendingQueueCount = queueCount
+            });
         }
 
         return Ok(new TseHealthResponseDto

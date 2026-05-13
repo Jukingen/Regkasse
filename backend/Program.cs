@@ -1,4 +1,5 @@
-// Receipt PDF reprint: IReceiptPdfService → ApplicationHost.CreateWebApplication (builder.Services.AddScoped<...>).
+// All DI is configured in ApplicationHost.CreateWebApplication (includes Configure<NtpSettings> and
+// AddScoped<INtpEffectiveSettingsProvider, NtpEffectiveSettingsProvider> for NTP fiscal guard / time sync).
 var app = KasseAPI_Final.ApplicationHost.CreateWebApplication(args);
 app.Lifetime.ApplicationStopping.Register(() =>
 {

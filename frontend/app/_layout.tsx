@@ -1,4 +1,5 @@
 import 'intl-pluralrules';
+import '../src/config/devFlags';
 import { i18nReady } from '../i18n';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';

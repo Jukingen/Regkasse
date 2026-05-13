@@ -1,6 +1,10 @@
+using System.Threading;
+using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.DTOs;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -9,7 +13,14 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
 {
+    private const string DevelopmentBypassLogMessage =
+        "NTP check bypassed for development - do not use in production";
+
+    private static int _developmentBypassLogged;
+
     private readonly ILogger<NtpTimeSyncStatus> _logger;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
     private readonly object _gate = new();
 
     private DateTime _lastSyncAtUtc;
@@ -19,9 +30,14 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
     private bool _lastAttemptSuccess;
     private string? _lastErrorMessage;
 
-    public NtpTimeSyncStatus(ILogger<NtpTimeSyncStatus> logger)
+    public NtpTimeSyncStatus(
+        ILogger<NtpTimeSyncStatus> logger,
+        IHostEnvironment hostEnvironment,
+        IOptionsMonitor<DevelopmentOptions> developmentOptions)
     {
         _logger = logger;
+        _hostEnvironment = hostEnvironment;
+        _developmentOptions = developmentOptions;
     }
 
     public void RecordSynchronizationAttempt(
@@ -47,6 +63,32 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
     {
         lock (_gate)
         {
+            // Align operator UI with ShouldAllowOnlineFiscalPayment when NTP checks are off.
+            if (!settings.Enabled)
+            {
+                return CreateSyntheticOkStatusDto();
+            }
+
+            if (IsActiveDevelopmentBypass(settings))
+            {
+                LogDevelopmentBypassOnce();
+                return CreateSyntheticOkStatusDto();
+            }
+
+            if (SimulatingNtpFailureForFiscalGuard(settings))
+            {
+                var nowSim = DateTime.UtcNow;
+                return new SystemTimeStatusDto
+                {
+                    SystemTimeUtc = nowSim,
+                    NtpTimeUtc = nowSim.AddMinutes(-10),
+                    OffsetSeconds = 999,
+                    IsSynchronized = false,
+                    LastSyncAt = nowSim,
+                    WarningLevel = "critical"
+                };
+            }
+
             var now = DateTime.UtcNow;
             double? offsetLive = _offsetSeconds;
             DateTime? ntpNow = offsetLive.HasValue ? now.AddSeconds(offsetLive.Value) : null;
@@ -85,11 +127,23 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
             return true;
         }
 
+        if (IsActiveDevelopmentBypass(settings))
+        {
+            LogDevelopmentBypassOnce();
+            return true;
+        }
+
+        if (SimulatingNtpFailureForFiscalGuard(settings))
+        {
+            operatorMessageDe = "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren";
+            return false;
+        }
+
         lock (_gate)
         {
             if (!_lastAttemptSuccess)
             {
-                _logger.LogWarning("NTP sync failed — blocking fiscal payments.");
+                _logger.LogError("NTP sync failed — blocking fiscal payments.");
                 operatorMessageDe =
                     "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren";
                 return false;
@@ -97,7 +151,7 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
 
             if (!_offsetSeconds.HasValue)
             {
-                _logger.LogWarning("NTP sync has no measured offset — blocking fiscal payments.");
+                _logger.LogError("NTP sync has no measured offset — blocking fiscal payments.");
                 operatorMessageDe =
                     "Systemzeit nicht synchronisiert – bitte Administrator kontaktieren";
                 return false;
@@ -105,7 +159,7 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
 
             if (Math.Abs(_offsetSeconds.Value) > settings.MaxAllowedOffsetSeconds)
             {
-                _logger.LogWarning(
+                _logger.LogError(
                     "Time offset {OffsetSeconds}s exceeds MaxAllowedOffsetSeconds={MaxAllowedSeconds}s — blocking fiscal payments.",
                     _offsetSeconds.Value,
                     settings.MaxAllowedOffsetSeconds);
@@ -116,5 +170,34 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
 
             return true;
         }
+    }
+
+    private bool IsActiveDevelopmentBypass(NtpSettings settings) =>
+        settings.DevelopmentBypass && _hostEnvironment.IsDevelopment();
+
+    private bool SimulatingNtpFailureForFiscalGuard(NtpSettings settings) =>
+        !OpenApiExportMode.IsEnabled
+        && _hostEnvironment.IsDevelopment()
+        && _developmentOptions.CurrentValue.SimulateNtpFailure
+        && settings.Enabled;
+
+    private void LogDevelopmentBypassOnce()
+    {
+        if (Interlocked.Exchange(ref _developmentBypassLogged, 1) == 0)
+            _logger.LogWarning(DevelopmentBypassLogMessage);
+    }
+
+    private static SystemTimeStatusDto CreateSyntheticOkStatusDto()
+    {
+        var now = DateTime.UtcNow;
+        return new SystemTimeStatusDto
+        {
+            SystemTimeUtc = now,
+            NtpTimeUtc = now,
+            OffsetSeconds = 0,
+            IsSynchronized = true,
+            LastSyncAt = null,
+            WarningLevel = "ok"
+        };
     }
 }

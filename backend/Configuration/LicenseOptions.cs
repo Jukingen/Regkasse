@@ -15,6 +15,7 @@ public sealed class LicenseOptions
     /// Leave <c>null</c> on customer POS deployments — the generation endpoint then returns 503 (Service Unavailable).
     /// Only the central license-issuance server should carry this key. Treat as a high-value secret:
     /// store via <c>dotnet user-secrets</c>, environment variable, or a secret manager — never in source-controlled files.
+    /// For local development only, you may set this in <c>appsettings.Development.json</c> (this repo gitignores that file) together with <see cref="OfflineVerificationPublicKeyPem"/> from the same RSA key pair so issued JWTs verify on the same host.
     /// </summary>
     public string? SigningPrivateKeyPem { get; set; }
 
@@ -48,4 +49,16 @@ public sealed class LicenseOptions
 
     /// <summary>UTC minute (0–59) for the daily reminder tick.</summary>
     public int ReminderCheckMinuteUtc { get; set; } = 0;
+
+    /// <summary>Optional JWT issuer claim validation for offline activation JWTs.</summary>
+    public string? LicenseJwtIssuer { get; set; }
+
+    /// <summary>Optional JWT audience claim validation for offline activation JWTs.</summary>
+    public string? LicenseJwtAudience { get; set; }
+
+    /// <summary>POS feature flag surfaced by <c>GET /api/license/features</c>.</summary>
+    public bool LicenseFeatureAllowOffline { get; set; } = true;
+
+    /// <summary>Maximum cashiers for POS; <c>-1</c> means unlimited.</summary>
+    public int LicenseFeatureMaxCashiers { get; set; } = -1;
 }

@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -14,14 +15,22 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public sealed class ReceiptPdfService : IReceiptPdfService
 {
-    public const string ReprintWatermarkPrimary = "NACHAUSDRUCK - kein Original";
+    /// <summary>Single-line watermark label for logs or future reuse.</summary>
+    public const string ReprintWatermarkPrimary = "NACHAUSDRUCK";
 
-    private static readonly Color WatermarkGrayTranslucent = Color.FromARGB(77, 180, 0, 0);
-    private static readonly Color BannerRed = Color.FromHex("#B71C1C");
+    /// <summary>Thermal roll target width (~80 mm ≈ 288 pt at 72 dpi).</summary>
+    private const float ThermalRollWidthPoints = 288f;
+
+    private const float PageMarginPoints = 6f;
+    private const int MaxItemRows = 8;
+    private const int QrFallbackPayloadMaxChars = 100;
+    private const int SignaturePreviewMaxChars = 40;
+    private const int ProductNameMaxChars = 20;
 
     private readonly AppDbContext _context;
     private readonly IQrImageService _qrService;
     private readonly ISettingsTenantResolver _tenantResolver;
+    private readonly ILogger<ReceiptPdfService> _logger;
 
     static ReceiptPdfService()
     {
@@ -31,11 +40,13 @@ public sealed class ReceiptPdfService : IReceiptPdfService
     public ReceiptPdfService(
         AppDbContext context,
         IQrImageService qrService,
-        ISettingsTenantResolver tenantResolver)
+        ISettingsTenantResolver tenantResolver,
+        ILogger<ReceiptPdfService> logger)
     {
         _context = context;
         _qrService = qrService;
         _tenantResolver = tenantResolver;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -45,7 +56,6 @@ public sealed class ReceiptPdfService : IReceiptPdfService
 
         var receipt = await _context.Receipts.AsNoTracking()
             .Include(r => r.Items)
-            .Include(r => r.TaxLines)
             .Include(r => r.Payment!)
                 .ThenInclude(p => p!.CashRegister)
             .Where(r => r.PaymentId == paymentId)
@@ -58,10 +68,50 @@ public sealed class ReceiptPdfService : IReceiptPdfService
         var payment = receipt.Payment;
         var registerLabel = payment.CashRegister?.RegisterNumber ?? payment.CashRegisterId.ToString();
         var qrPayload = receipt.QrCodePayload?.Trim();
-        byte[]? qrPng = null;
-        if (!string.IsNullOrEmpty(qrPayload))
-            qrPng = _qrService.GetQrPngFromExactPayload(qrPayload);
 
+        byte[]? qrEmbedPng = null;
+        string? qrFallbackChunk = null;
+        if (!string.IsNullOrEmpty(qrPayload))
+        {
+            try
+            {
+                var rawPng = _qrService.GetQrPngFromExactPayload(qrPayload);
+                qrEmbedPng = SelectQrPngForEmbedding(rawPng);
+                if (qrEmbedPng == null && rawPng is { Length: > 0 })
+                {
+                    var relaxed = SelectQrPngForEmbedding(_qrService.GenerateQrCodeImage(qrPayload));
+                    if (relaxed != null)
+                        qrEmbedPng = relaxed;
+                }
+
+                if (qrEmbedPng == null)
+                {
+                    if (rawPng is { Length: > 0 })
+                    {
+                        _logger.LogWarning(
+                            "QR bytes are not a valid PNG for PDF embedding (payment {PaymentId}, {ByteLen} bytes)",
+                            paymentId,
+                            rawPng.Length);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "QR PNG encoding returned empty for reprint (payment {PaymentId}, payload length {Len})",
+                            paymentId,
+                            qrPayload.Length);
+                    }
+
+                    qrFallbackChunk = BuildQrFallbackText(qrPayload);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "QR generation failed for reprint PDF (payment {PaymentId}); using text fallback", paymentId);
+                qrFallbackChunk = BuildQrFallbackText(qrPayload);
+            }
+        }
+
+        var deAt = CultureInfo.GetCultureInfo("de-AT");
         var inv = CultureInfo.InvariantCulture;
         var belegZeit = FormatAustriaLocal(payment.TseTimestamp);
         var paymentMethodLabel = FormatPaymentMethod(payment.PaymentMethodRaw);
@@ -77,132 +127,143 @@ public sealed class ReceiptPdfService : IReceiptPdfService
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A6);
-                page.Margin(1, Unit.Centimetre);
-                page.DefaultTextStyle(x => x.FontSize(9));
-
-                page.Background().Element(c => RenderDiagonalWatermark(c));
-
-                page.Header().Column(h =>
-                {
-                    h.Item().AlignCenter().Text(ReprintWatermarkPrimary)
-                        .FontSize(9)
-                        .Italic()
-                        .Bold()
-                        .FontColor(BannerRed);
-                    h.Item().PaddingTop(2).AlignCenter().Text("NACHAUSDRUCK")
-                        .FontSize(28)
-                        .Bold()
-                        .FontColor(WatermarkGrayTranslucent);
-                });
+                page.ContinuousSize(ThermalRollWidthPoints);
+                page.MarginHorizontal(PageMarginPoints);
+                page.MarginVertical(PageMarginPoints);
+                page.DefaultTextStyle(x => x.FontSize(9).FontFamily("Courier New"));
 
                 page.Content().Column(column =>
                 {
-                    column.Spacing(4);
+                    column.Spacing(2);
 
-                    column.Item().Text($"Kassen-ID: {registerLabel}");
-                    column.Item().Text($"Beleg-Nr: {receipt.ReceiptNumber}");
-                    column.Item().Text($"Datum: {belegZeit}");
+                    column.Item().AlignCenter().Text(ReprintWatermarkPrimary)
+                        .FontSize(8).Italic().FontColor(Colors.Grey.Darken2);
+                    column.Item().AlignCenter().Text("(kein Original)")
+                        .FontSize(7).Italic().FontColor(Colors.Grey.Darken2);
+                    column.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
+
+                    column.Spacing(3);
+
+                    column.Item().Text(registerLabel);
+                    column.Item().Text($"Nr: {receipt.ReceiptNumber}");
+                    column.Item().Text(belegZeit);
                     if (!string.IsNullOrEmpty(specialKind))
-                        column.Item().Text($"Sonderbeleg: {specialKind}").SemiBold();
+                        column.Item().Text(GetSpecialReceiptDisplayName(specialKind));
 
-                    column.Item().LineHorizontal(0.75f).LineColor(Colors.Grey.Medium);
+                    column.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
 
-                    column.Item().Table(table =>
+                    if (orderedItems.Count > 0)
                     {
-                        table.ColumnsDefinition(columns =>
+                        column.Item().Table(table =>
                         {
-                            columns.RelativeColumn(3);
-                            columns.RelativeColumn(1);
-                            columns.RelativeColumn(1);
-                        });
-
-                        table.Header(header =>
-                        {
-                            header.Cell().Element(CellHeader).Text("Artikel");
-                            header.Cell().Element(CellHeader).AlignRight().Text("Menge");
-                            header.Cell().Element(CellHeader).AlignRight().Text("Preis");
-                        });
-
-                        foreach (var item in orderedItems)
-                        {
-                            table.Cell().Text(item.ProductName);
-                            table.Cell().AlignRight().Text(item.Quantity.ToString(inv));
-                            table.Cell().AlignRight().Text($"€{item.TotalPrice.ToString("F2", inv)}");
-                        }
-                    });
-
-                    if (receipt.TaxLines.Count > 0)
-                    {
-                        column.Item().PaddingTop(4).Text("MwSt.").SemiBold().FontSize(8);
-                        column.Item().Table(t =>
-                        {
-                            t.ColumnsDefinition(cols =>
+                            table.ColumnsDefinition(columns =>
                             {
-                                cols.RelativeColumn(1);
-                                cols.RelativeColumn(1);
-                                cols.RelativeColumn(1);
-                                cols.RelativeColumn(1);
+                                columns.RelativeColumn(2);
+                                columns.ConstantColumn(36);
+                                columns.ConstantColumn(44);
                             });
-                            t.Header(h =>
+
+                            table.Header(header =>
                             {
-                                h.Cell().Element(CellHeader).Text("%");
-                                h.Cell().Element(CellHeader).AlignRight().Text("Netto");
-                                h.Cell().Element(CellHeader).AlignRight().Text("Steuer");
-                                h.Cell().Element(CellHeader).AlignRight().Text("Brutto");
+                                header.Cell().Element(CellHeader).Text("Artikel");
+                                header.Cell().Element(CellHeader).AlignRight().Text("Menge");
+                                header.Cell().Element(CellHeader).AlignRight().Text("€");
                             });
-                            foreach (var tl in receipt.TaxLines.OrderBy(x => x.TaxRate))
+
+                            foreach (var item in orderedItems.Take(MaxItemRows))
                             {
-                                t.Cell().Text(tl.TaxRate.ToString("F0", inv));
-                                t.Cell().AlignRight().Text($"€{tl.NetAmount.ToString("F2", inv)}");
-                                t.Cell().AlignRight().Text($"€{tl.TaxAmount.ToString("F2", inv)}");
-                                t.Cell().AlignRight().Text($"€{tl.GrossAmount.ToString("F2", inv)}");
+                                var name = Ellipsize(item.ProductName, ProductNameMaxChars);
+                                table.Cell().Text(name);
+                                table.Cell().AlignRight().Text(item.Quantity.ToString(inv));
+                                table.Cell().AlignRight().Text(item.TotalPrice.ToString("F2", deAt));
+                            }
+
+                            if (orderedItems.Count > MaxItemRows)
+                            {
+                                table.Cell().ColumnSpan(3).Text($"(+ {orderedItems.Count - MaxItemRows} weitere Artikel)")
+                                    .FontSize(7).Italic();
                             }
                         });
+
+                        column.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
                     }
 
-                    column.Item().LineHorizontal(0.75f).LineColor(Colors.Grey.Medium);
-                    column.Item().AlignRight().Text($"Gesamt: €{payment.TotalAmount.ToString("F2", inv)}").SemiBold();
+                    column.Item().AlignRight().Text($"Gesamt: {payment.TotalAmount.ToString("F2", deAt)} €").SemiBold();
                     column.Item().AlignRight().Text($"Zahlung: {paymentMethodLabel}");
 
-                    column.Item().PaddingTop(6).Text("TSE-Signatur (Auszug)").FontSize(7).FontColor(Colors.Grey.Darken2);
-                    column.Item().Text(TruncateSignature(payment.TseSignature, 400)).FontSize(6).LineHeight(1.1f);
+                    column.Item().LineHorizontal(0.5f).LineColor(Colors.Grey.Medium);
 
-                    column.Item().PaddingTop(8);
-                    if (qrPng != null && qrPng.Length > 0)
+                    if (qrEmbedPng != null)
                     {
-                        column.Item().Width(120).Height(120).Image(qrPng);
+                        column.Item().AlignCenter()
+                            .Width(200)
+                            .Image(qrEmbedPng)
+                            .FitArea();
                     }
-                    else if (!string.IsNullOrEmpty(qrPayload))
+                    else if (!string.IsNullOrEmpty(qrFallbackChunk))
                     {
-                        column.Item().Text("QR-Code konnte aus gespeicherten Daten nicht erzeugt werden.")
-                            .FontSize(7)
-                            .Italic()
-                            .FontColor(Colors.Orange.Darken2);
+                        column.Item().AlignCenter().Text("[QR-Daten]").FontSize(7).FontColor(Colors.Grey.Darken2);
+                        foreach (var line in ChunkForThermal(qrFallbackChunk, 26))
+                            column.Item().AlignCenter().Text(line).FontSize(5).FontColor(Colors.Grey.Darken1);
                     }
+
+                    var sigPreview = TruncateSignature(payment.TseSignature, SignaturePreviewMaxChars);
+                    column.Item().Text($"Sig: {sigPreview}").FontSize(6).FontColor(Colors.Grey.Darken2);
                 });
-
-                page.Footer().AlignCenter().Text(
-                        $"Erstellt: {FormatAustriaLocal(DateTime.UtcNow)} — Nachdruck (kein Original)")
-                    .FontSize(7)
-                    .FontColor(Colors.Grey.Darken1);
             });
         }).GeneratePdf();
     }
 
-    private static IContainer CellHeader(IContainer c) =>
-        c.DefaultTextStyle(x => x.SemiBold().FontSize(8)).PaddingVertical(2);
+    private static byte[]? SelectQrPngForEmbedding(byte[]? png) =>
+        png is { Length: >= 8 } && HasPngSignature(png) ? png : null;
 
-    private static void RenderDiagonalWatermark(IContainer container)
+    private static bool HasPngSignature(ReadOnlySpan<byte> data) =>
+        data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47
+        && data[4] == 0x0D && data[5] == 0x0A && data[6] == 0x1A && data[7] == 0x0A;
+
+    private static string BuildQrFallbackText(string payload)
     {
-        container.Extend().AlignCenter().AlignMiddle().Element(layer =>
-            layer.Rotate(-32)
-                .Text(ReprintWatermarkPrimary)
-                .FontSize(22)
-                .SemiBold()
-                .FontColor(WatermarkGrayTranslucent)
-                .AlignCenter());
+        if (payload.Length <= QrFallbackPayloadMaxChars)
+            return payload;
+        return string.Concat(payload.AsSpan(0, QrFallbackPayloadMaxChars), "...");
     }
+
+    private static IEnumerable<string> ChunkForThermal(string text, int chunkLen)
+    {
+        if (string.IsNullOrEmpty(text) || chunkLen <= 0)
+            yield break;
+
+        for (var i = 0; i < text.Length; i += chunkLen)
+        {
+            var len = Math.Min(chunkLen, text.Length - i);
+            yield return text.Substring(i, len);
+        }
+    }
+
+    private static string Ellipsize(string value, int maxChars)
+    {
+        if (string.IsNullOrEmpty(value))
+            return string.Empty;
+        if (value.Length <= maxChars)
+            return value;
+        if (maxChars <= 3)
+            return value[..maxChars];
+        return string.Concat(value.AsSpan(0, maxChars - 3), "...");
+    }
+
+    private static string GetSpecialReceiptDisplayName(string kind) =>
+        kind switch
+        {
+            RksvSpecialReceiptKinds.Nullbeleg => "Nullbeleg",
+            RksvSpecialReceiptKinds.Startbeleg => "Startbeleg",
+            RksvSpecialReceiptKinds.Monatsbeleg => "Monatsbeleg",
+            RksvSpecialReceiptKinds.Jahresbeleg => "Jahresbeleg",
+            RksvSpecialReceiptKinds.Schlussbeleg => "Endbeleg",
+            _ => kind
+        };
+
+    private static IContainer CellHeader(IContainer c) =>
+        c.DefaultTextStyle(x => x.SemiBold().FontSize(8)).PaddingVertical(1);
 
     private static string FormatAustriaLocal(DateTime value)
     {
@@ -232,7 +293,11 @@ public sealed class ReceiptPdfService : IReceiptPdfService
     private static string TruncateSignature(string? signature, int maxChars)
     {
         if (string.IsNullOrEmpty(signature))
-            return "—";
-        return signature.Length <= maxChars ? signature : signature[..maxChars] + "…";
+            return "keine Signatur";
+        if (signature.Length <= maxChars)
+            return signature;
+        if (maxChars <= 3)
+            return signature[..maxChars];
+        return string.Concat(signature.AsSpan(0, maxChars - 3), "...");
     }
 }

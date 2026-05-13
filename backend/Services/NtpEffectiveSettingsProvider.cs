@@ -36,6 +36,7 @@ public sealed class NtpEffectiveSettingsProvider : INtpEffectiveSettingsProvider
         return new NtpSettings
         {
             Enabled = row.AutoSyncEnabled,
+            DevelopmentBypass = d.DevelopmentBypass,
             SyncIntervalMinutes = Math.Clamp(row.SyncIntervalMinutes, 1, 24 * 60),
             MaxAllowedOffsetSeconds = Math.Clamp(row.MaxAllowedOffsetSeconds, 1, 3600),
             CriticalOffsetSeconds = Math.Clamp(row.CriticalOffsetSeconds, 1, 86400),

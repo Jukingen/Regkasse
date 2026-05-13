@@ -237,7 +237,7 @@ interface PaymentModalProps {
   visible: boolean;
   onClose: () => void;
   /** Called after payment and print; pass tableNumber so caller can clear the paid table. */
-  onSuccess: (paymentId: string, tableNumber?: number) => void;
+  onSuccess: (paymentId: string, tableNumber?: number) => void | Promise<void>;
   /** Optional toast sink (tab bar) for server offline-queue messages. */
   onPosToast?: (payload: { type?: 'success' | 'warning' | 'info'; message: string }) => void;
   cartItems: Array<{
@@ -1259,20 +1259,12 @@ export default function PaymentModal({
             'Zahlung offline gespeichert – wird automatisch signiert wenn TSE wieder online',
         });
         try {
-          await cartService.completeCart(currentCartId, notes || '');
-        } catch (completeErr) {
-          console.error('[CART] Complete failed (offline queue):', completeErr);
-          Alert.alert(
-            t('checkout:posFlow.payment.alerts.hintTitle'),
-            t('checkout:posFlow.payment.errors.completeCartFailed')
-          );
-        }
-        try {
           await cartService.resetCartAfterPayment(currentCartId, 'Payment queued offline (TSE)');
         } catch (resetErr) {
           console.warn('[CART] Reset warning (offline queue):', resetErr);
         }
         const pseudoId = response.paymentId || response.offlineTransactionId || 'offline-queued';
+        await Promise.resolve(onSuccess(pseudoId, resolvedTableNumber));
         handleSuccessAndClose(pseudoId);
         return;
       }
@@ -1324,23 +1316,8 @@ export default function PaymentModal({
         );
       }
 
-      // 7. CART COMPLETE
-      try {
-        await cartService.completeCart(currentCartId, notes || '');
-        console.log('[CART] Completed:', currentCartId);
-      } catch (completeErr) {
-        console.error('[CART] Complete failed:', completeErr);
-        // ROLLBACK logic omitted for brevity as per previous logic, but strictly we should probably not rollback if payment succeeded but cart failed? 
-        // For now, keeping existing flow but ensuring UI handles it.
-        // If complete fails, we probably still want to print receipt if payment took money?
-        // Let's assume critical failure here means we should notify user.
-        Alert.alert(
-          t('checkout:posFlow.payment.alerts.hintTitle'),
-          t('checkout:posFlow.payment.errors.completeCartFailed')
-        );
-      }
-
-      // 8. CART RESET
+      // 7–8. Cart lifecycle: reset-after-payment marks the cart completed, clears lines, and opens a fresh cart.
+      // (Skip separate /complete — POST /payment can succeed while the persisted cart has no rows, which would make /complete fail with "empty cart".)
       try {
         await cartService.resetCartAfterPayment(currentCartId, 'Payment completed');
         console.log('[CART] Reset complete');
@@ -1348,6 +1325,9 @@ export default function PaymentModal({
         console.warn('[CART] Reset warning:', resetErr);
         Alert.alert(t('checkout:posFlow.payment.alerts.hintTitle'), t('checkout:posFlow.payment.errors.completeCartFailed'));
       }
+
+      // Clear POS cart as soon as payment + cart lifecycle APIs finished (do not wait for print / Fertig).
+      await Promise.resolve(onSuccess(response.paymentId, resolvedTableNumber));
 
       // 9. START PRINTING (QR from GET /api/pos/payment/{id}/qr.png as base64 embed)
       setPurchaseState('printing');
@@ -1407,9 +1387,8 @@ export default function PaymentModal({
     await executePaymentSubmission();
   };
 
-  // Helper to finish up: pass tableNumber so layout can clear the paid table
-  const handleSuccessAndClose = (paymentId: string) => {
-    onSuccess(paymentId, tableNumber);
+  // Close after success UI; cart is already cleared via onSuccess right after payment settlement.
+  const handleSuccessAndClose = (_paymentId: string) => {
     handleClose();
   };
 

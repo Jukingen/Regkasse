@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * Admin license issuance card. Posts to POST /api/admin/license/generate and renders the result with copy buttons.
- * Visibility is gated by `canGenerate` (settings.manage). Operator copy is provided through the `license.generation.*` i18n namespace.
+ * Admin license issuance card. POST /api/admin/license/generate via TanStack Query mutation;
+ * surfaces key + JWT in a success modal and inline summary with copy actions.
  */
 
 import React, { useMemo, useState } from 'react';
@@ -17,6 +17,7 @@ import {
     Descriptions,
     Form,
     Input,
+    Modal,
     Space,
     Typography,
     message,
@@ -34,6 +35,8 @@ import {
 type Props = {
     /** True when the current user has settings.manage permission. */
     canGenerate: boolean;
+    /** Local deployment SHA-256 hex from admin status (for deep-link helpers). */
+    machineFingerprint: string;
 };
 
 type FormValues = {
@@ -43,41 +46,77 @@ type FormValues = {
     machineHashHex?: string;
 };
 
-const MACHINE_HASH_REGEX = /^[0-9a-fA-F]{64}$/;
+const MACHINE_HASH_REGEX = /^[0-9a-f]{64}$/i;
 
-export function LicenseGenerationCard({ canGenerate }: Props) {
+function readLicenseGenerateErrorMessage(err: unknown, fallback: string): string {
+    if (!axios.isAxiosError(err)) {
+        return fallback;
+    }
+    const raw = err.response?.data;
+    if (!raw || typeof raw !== 'object') {
+        return fallback;
+    }
+    const o = raw as Record<string, unknown>;
+    const fromMessage = typeof o.message === 'string' ? o.message.trim() : '';
+    if (fromMessage) {
+        return fromMessage;
+    }
+    const detail = typeof o.detail === 'string' ? o.detail.trim() : '';
+    if (detail) {
+        return detail;
+    }
+    const title = typeof o.title === 'string' ? o.title.trim() : '';
+    if (title) {
+        return title;
+    }
+    return fallback;
+}
+
+function pickJwt(res: GenerateLicenseResponse): string {
+    return (res.licenseJwt ?? res.signedJwt ?? '').trim();
+}
+
+export function LicenseGenerationCard({ canGenerate, machineFingerprint }: Props) {
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const [form] = Form.useForm<FormValues>();
     const requireFingerprint = Form.useWatch('requireFingerprint', form) ?? false;
     const [issued, setIssued] = useState<GenerateLicenseResponse | null>(null);
+    const [requestError, setRequestError] = useState<string | null>(null);
+    const [resultModalOpen, setResultModalOpen] = useState(false);
 
-    const tomorrow = useMemo(() => dayjs().add(1, 'day'), []);
+    const tomorrow = useMemo(() => dayjs().add(1, 'day').startOf('day'), []);
 
     const mutation = useMutation({
         mutationFn: (body: GenerateLicenseRequest) => postGenerateLicense(body),
+        onMutate: () => {
+            setRequestError(null);
+        },
         onSuccess: (res) => {
-            if (!res.success || !res.licenseKey || !res.signedJwt) {
-                message.error(res.message || t('license.generation.failed'));
+            const jwt = pickJwt(res);
+            if (!res.success || !res.licenseKey || !jwt) {
+                const msg = res.message?.trim() || t('license.generation.failed');
+                setRequestError(msg);
+                message.error(msg);
                 return;
             }
             setIssued(res);
+            setResultModalOpen(true);
             message.success(t('license.generation.success'));
             form.resetFields(['customerName', 'machineHashHex']);
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
+            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
         },
         onError: (err: unknown) => {
-            if (axios.isAxiosError(err)) {
-                const status = err.response?.status;
-                const data = err.response?.data as { message?: string } | undefined;
-                if (status === 503) {
-                    message.error(data?.message || t('license.generation.unavailable'));
-                    return;
-                }
-                message.error(data?.message || t('license.generation.failed'));
+            const fallback = t('license.generation.failed');
+            const serverMsg = readLicenseGenerateErrorMessage(err, fallback);
+            setRequestError(serverMsg);
+            if (axios.isAxiosError(err) && err.response?.status === 503) {
+                message.error(serverMsg || t('license.generation.unavailable'));
                 return;
             }
-            message.error(t('license.generation.failed'));
+            message.error(serverMsg);
         },
     });
 
@@ -91,7 +130,9 @@ export function LicenseGenerationCard({ canGenerate }: Props) {
 
     const onFinish = (values: FormValues) => {
         const customerName = values.customerName?.trim() ?? '';
-        if (!customerName) return;
+        if (!customerName) {
+            return;
+        }
 
         const expiryIso = values.expiryDate.format('YYYY-MM-DD');
         const machineHashHex = values.requireFingerprint
@@ -101,13 +142,27 @@ export function LicenseGenerationCard({ canGenerate }: Props) {
         mutation.mutate({
             customerName,
             expiryDate: expiryIso,
-            requireFingerprint: !!values.requireFingerprint,
+            bindToMachineFingerprint: !!values.requireFingerprint,
             machineHashHex,
         });
     };
 
+    const issuedJwt = issued ? pickJwt(issued) : '';
+
     return (
         <Card type="inner" title={t('license.generation.title')}>
+            {requestError ? (
+                <Alert
+                    type="error"
+                    showIcon
+                    closable
+                    message={t('license.generation.failed')}
+                    description={requestError}
+                    style={{ marginBottom: 16 }}
+                    onClose={() => setRequestError(null)}
+                />
+            ) : null}
+
             <Form<FormValues>
                 form={form}
                 layout="vertical"
@@ -129,12 +184,25 @@ export function LicenseGenerationCard({ canGenerate }: Props) {
                     name="expiryDate"
                     label={t('license.generation.expiryDate')}
                     extra={t('license.generation.expiryDateHelp')}
-                    rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+                    rules={[
+                        { required: true, message: t('common.validation.fieldRequired') },
+                        {
+                            validator: (_rule, value: Dayjs | undefined) => {
+                                if (!value || !value.isValid()) {
+                                    return Promise.reject(new Error(t('common.validation.fieldRequired')));
+                                }
+                                if (value.startOf('day').isBefore(dayjs().startOf('day'))) {
+                                    return Promise.reject(new Error(t('license.generation.expiryInPast')));
+                                }
+                                return Promise.resolve();
+                            },
+                        },
+                    ]}
                 >
                     <DatePicker
                         style={{ width: '100%' }}
                         format="YYYY-MM-DD"
-                        disabledDate={(d) => !d || d.isBefore(dayjs().startOf('day'))}
+                        disabledDate={(d) => !d || d.startOf('day').isBefore(dayjs().startOf('day'))}
                     />
                 </Form.Item>
 
@@ -153,7 +221,7 @@ export function LicenseGenerationCard({ canGenerate }: Props) {
                                 validator: (_rule, value) =>
                                     !value || MACHINE_HASH_REGEX.test(String(value).trim())
                                         ? Promise.resolve()
-                                        : Promise.reject(new Error(t('common.validation.fieldRequired'))),
+                                        : Promise.reject(new Error(t('license.generation.invalidMachineHash'))),
                             },
                         ]}
                     >
@@ -177,21 +245,110 @@ export function LicenseGenerationCard({ canGenerate }: Props) {
                 </Form.Item>
             </Form>
 
-            {issued && issued.success && issued.licenseKey && issued.signedJwt ? (
-                <IssuedLicenseResult issued={issued} formatLocale={formatLocale} />
+            <Modal
+                title={t('license.generation.modal.title')}
+                open={resultModalOpen}
+                onCancel={() => setResultModalOpen(false)}
+                footer={
+                    <Space wrap>
+                        <Button onClick={() => setResultModalOpen(false)}>{t('common.buttons.close')}</Button>
+                        {issued?.licenseKey ? (
+                            <Button
+                                onClick={async () => {
+                                    const ok = await copyTextToClipboard(issued.licenseKey ?? '');
+                                    message[ok ? 'success' : 'error'](
+                                        ok
+                                            ? t('license.generation.result.licenseKeyCopied')
+                                            : t('license.generation.result.copyFailed'),
+                                    );
+                                }}
+                            >
+                                {t('license.generation.result.copyLicenseKeyOnly')}
+                            </Button>
+                        ) : null}
+                        <Button
+                            type="primary"
+                            disabled={!issuedJwt}
+                            onClick={async () => {
+                                const ok = await copyTextToClipboard(issuedJwt);
+                                message[ok ? 'success' : 'error'](
+                                    ok
+                                        ? t('license.generation.modal.jwtCopied')
+                                        : t('license.generation.result.copyFailed'),
+                                );
+                            }}
+                        >
+                            {t('license.generation.modal.copyJwt')}
+                        </Button>
+                    </Space>
+                }
+                width={720}
+                destroyOnClose
+            >
+                {issued && issued.success ? (
+                    <>
+                        <Alert
+                            type="warning"
+                            showIcon
+                            message={t('license.generation.result.title')}
+                            description={t('license.generation.result.warning')}
+                            style={{ marginBottom: 12 }}
+                        />
+                        <Typography.Text strong style={{ display: 'block', marginBottom: 4 }}>
+                            {t('license.generation.result.licenseKey')}
+                        </Typography.Text>
+                        <Input
+                            readOnly
+                            value={issued.licenseKey ?? ''}
+                            style={{ fontFamily: 'ui-monospace, monospace', marginBottom: 12 }}
+                        />
+                        <Typography.Text strong style={{ display: 'block', marginBottom: 4 }}>
+                            {t('license.generation.result.signedJwt')}
+                        </Typography.Text>
+                        <Input.TextArea
+                            readOnly
+                            value={issuedJwt}
+                            autoSize={{ minRows: 4, maxRows: 10 }}
+                            style={{ fontFamily: 'ui-monospace, monospace', wordBreak: 'break-all' }}
+                        />
+                    </>
+                ) : null}
+            </Modal>
+
+            {issued && issued.success && issued.licenseKey && issuedJwt ? (
+                <IssuedLicenseResult
+                    issued={issued}
+                    formatLocale={formatLocale}
+                    machineFingerprint={machineFingerprint}
+                />
             ) : null}
         </Card>
     );
 }
 
+function buildCashRegisterActivateUrl(jwt: string): string {
+    return `cashregister://license/activate?token=${encodeURIComponent(jwt)}`;
+}
+
+function buildAdminLicenseDeepLink(machineFingerprint: string): string {
+    if (typeof window === 'undefined') {
+        return '';
+    }
+    const origin = window.location.origin;
+    return `${origin}/admin/license?machineHash=${encodeURIComponent(machineFingerprint)}`;
+}
+
 function IssuedLicenseResult({
     issued,
     formatLocale,
+    machineFingerprint,
 }: {
     issued: GenerateLicenseResponse;
     formatLocale: string;
+    machineFingerprint: string;
 }) {
     const { t } = useI18n();
+    const jwt = pickJwt(issued);
 
     const formattedExpiry = issued.expiryAtUtc
         ? formatDate(issued.expiryAtUtc, formatLocale, {
@@ -204,7 +361,7 @@ function IssuedLicenseResult({
     return (
         <div style={{ marginTop: 16 }}>
             <Alert
-                type="warning"
+                type="info"
                 showIcon
                 message={t('license.generation.result.title')}
                 description={t('license.generation.result.warning')}
@@ -215,14 +372,109 @@ function IssuedLicenseResult({
                     <CopyableMono value={issued.licenseKey ?? ''} />
                 </Descriptions.Item>
                 <Descriptions.Item label={t('license.generation.result.signedJwt')}>
-                    <CopyableMono value={issued.signedJwt ?? ''} multiline />
+                    <CopyableMono value={jwt} multiline />
                 </Descriptions.Item>
                 <Descriptions.Item label={t('license.generation.result.expiry')}>
                     {formattedExpiry}
                 </Descriptions.Item>
             </Descriptions>
+            <Space wrap style={{ marginTop: 12 }}>
+                {jwt ? (
+                    <Button
+                        type="default"
+                        onClick={async () => {
+                            const url = buildCashRegisterActivateUrl(jwt);
+                            const ok = await copyTextToClipboard(url);
+                            message[ok ? 'success' : 'error'](
+                                ok
+                                    ? t('license.generation.result.posDeepLinkCopied')
+                                    : t('license.generation.result.copyFailed'),
+                            );
+                        }}
+                    >
+                        {t('license.generation.result.posDeepLinkCopy')}
+                    </Button>
+                ) : null}
+                {issued.licenseKey ? (
+                    <Button
+                        type="default"
+                        onClick={async () => {
+                            const ok = await copyTextToClipboard(issued.licenseKey ?? '');
+                            message[ok ? 'success' : 'error'](
+                                ok
+                                    ? t('license.generation.result.licenseKeyCopied')
+                                    : t('license.generation.result.copyFailed'),
+                            );
+                        }}
+                    >
+                        {t('license.generation.result.copyLicenseKeyOnly')}
+                    </Button>
+                ) : null}
+                {jwt ? (
+                    <Button
+                        type="primary"
+                        onClick={async () => {
+                            const ok = await copyTextToClipboard(jwt);
+                            message[ok ? 'success' : 'error'](
+                                ok
+                                    ? t('license.generation.modal.jwtCopied')
+                                    : t('license.generation.result.copyFailed'),
+                            );
+                        }}
+                    >
+                        {t('license.generation.modal.copyJwt')}
+                    </Button>
+                ) : null}
+                {machineFingerprint.trim() ? (
+                    <Button
+                        type="default"
+                        onClick={async () => {
+                            const url = buildAdminLicenseDeepLink(machineFingerprint.trim());
+                            if (!url) {
+                                message.error(t('license.generation.result.copyFailed'));
+                                return;
+                            }
+                            const ok = await copyTextToClipboard(url);
+                            message[ok ? 'success' : 'error'](
+                                ok
+                                    ? t('license.generation.result.adminPageLinkCopied')
+                                    : t('license.generation.result.copyFailed'),
+                            );
+                        }}
+                    >
+                        {t('license.generation.result.adminPageLinkCopy')}
+                    </Button>
+                ) : null}
+            </Space>
+            {jwt ? (
+                <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                    {t('license.generation.result.posDeepLinkHelp')}
+                </Typography.Paragraph>
+            ) : null}
         </div>
     );
+}
+
+async function copyTextToClipboard(value: string): Promise<boolean> {
+    try {
+        await navigator.clipboard.writeText(value);
+        return true;
+    } catch {
+        const ta = document.createElement('textarea');
+        ta.value = value;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+            document.execCommand('copy');
+            return true;
+        } catch {
+            return false;
+        } finally {
+            ta.remove();
+        }
+    }
 }
 
 function CopyableMono({ value, multiline = false }: { value: string; multiline?: boolean }) {
@@ -233,7 +485,6 @@ function CopyableMono({ value, multiline = false }: { value: string; multiline?:
             await navigator.clipboard.writeText(value);
             message.success(t('license.generation.result.copied'));
         } catch {
-            // Clipboard API requires secure context; fall back to legacy execCommand if available.
             const ta = document.createElement('textarea');
             ta.value = value;
             ta.style.position = 'fixed';

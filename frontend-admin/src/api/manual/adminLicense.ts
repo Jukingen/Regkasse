@@ -1,5 +1,15 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
+/** Anonymous POS-aligned snapshot from <c>GET /api/license/status</c>. */
+export type LicensePublicStatusDto = {
+    licenseType: 'Trial' | 'Paid' | string;
+    validUntil: string | null;
+    daysRemaining: number;
+    features: string[];
+    isExpired: boolean;
+    isValid: boolean;
+};
+
 export type LicenseStatusResponse = {
     isValid: boolean;
     isTrial: boolean;
@@ -18,14 +28,17 @@ export type ActivateLicenseRequest = {
 export type LicenseActivationResult = {
     success: boolean;
     message?: string | null;
+    /** ISO 8601 UTC when activation succeeded (backend). */
+    validUntil?: string | null;
 };
 
 export type GenerateLicenseRequest = {
     customerName: string;
     /** Date-only (YYYY-MM-DD) interpreted as end-of-day UTC by the backend. */
     expiryDate: string;
-    requireFingerprint: boolean;
-    /** Required when requireFingerprint=true; lowercase hex SHA-256 (64 chars). */
+    /** Sent as JSON bindToMachineFingerprint (backend merges with legacy requireFingerprint). */
+    bindToMachineFingerprint: boolean;
+    /** Required when bindToMachineFingerprint=true; lowercase hex SHA-256 (64 chars). */
     machineHashHex?: string | null;
 };
 
@@ -33,6 +46,8 @@ export type GenerateLicenseResponse = {
     success: boolean;
     licenseKey: string | null;
     signedJwt: string | null;
+    /** Alias returned by some API versions; same as signedJwt. */
+    licenseJwt?: string | null;
     expiryAtUtc: string | null;
     message?: string | null;
 };
@@ -68,9 +83,16 @@ export type IssuedLicensesListParams = {
 
 export const licenseQueryKeys = {
     status: ['admin', 'license', 'status'] as const,
+    /** GET /api/license/status (anonymous, POS contract). */
+    publicStatus: ['admin', 'license', 'publicStatus'] as const,
     listRoot: ['admin', 'license', 'list'] as const,
     list: (params: IssuedLicensesListParams) => [...licenseQueryKeys.listRoot, params] as const,
 };
+
+export async function getPublicLicenseStatus(): Promise<LicensePublicStatusDto> {
+    const { data } = await AXIOS_INSTANCE.get<LicensePublicStatusDto>('/api/license/status');
+    return data;
+}
 
 export async function getLicenseStatus(): Promise<LicenseStatusResponse> {
     const { data } = await AXIOS_INSTANCE.get<LicenseStatusResponse>('/api/admin/license/status');
@@ -83,7 +105,16 @@ export async function postActivateLicense(body: ActivateLicenseRequest): Promise
 }
 
 export async function postGenerateLicense(body: GenerateLicenseRequest): Promise<GenerateLicenseResponse> {
-    const { data } = await AXIOS_INSTANCE.post<GenerateLicenseResponse>('/api/admin/license/generate', body);
+    const bind = body.bindToMachineFingerprint;
+    const payload = {
+        customerName: body.customerName,
+        expiryDate: body.expiryDate,
+        bindToMachineFingerprint: bind,
+        /** Legacy/alternate binding flag — backend uses `bindToMachineFingerprint ?? requireFingerprint`. */
+        requireFingerprint: bind,
+        machineHashHex: body.machineHashHex?.trim() ? body.machineHashHex.trim().toLowerCase() : undefined,
+    };
+    const { data } = await AXIOS_INSTANCE.post<GenerateLicenseResponse>('/api/admin/license/generate', payload);
     return data;
 }
 

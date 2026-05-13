@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using KasseAPI_Final;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
@@ -29,6 +30,7 @@ using System.Text;
 using System.Globalization;
 using KasseAPI_Final.Services.Tse;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Services
 {
@@ -65,6 +67,8 @@ namespace KasseAPI_Final.Services
         private readonly INtpTimeSyncStatus _ntpTimeSyncStatus;
         private readonly ILicenseService? _licenseService;
         private readonly IOptions<OfflineVoucherEncryptionOptions> _offlineVoucherEncryption;
+        private readonly IHostEnvironment? _hostEnvironment;
+        private readonly IOptionsMonitor<DevelopmentOptions>? _developmentOptions;
 
         public PaymentService(
             AppDbContext context,
@@ -95,7 +99,9 @@ namespace KasseAPI_Final.Services
             ITseHealthMonitor? tseHealthMonitor = null,
             IDataProtectionProvider? dataProtectionProvider = null,
             ILicenseService? licenseService = null,
-            IOptions<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null)
+            IOptions<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null,
+            IHostEnvironment? hostEnvironment = null,
+            IOptionsMonitor<DevelopmentOptions>? developmentOptions = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -126,6 +132,8 @@ namespace KasseAPI_Final.Services
             _dataProtectionProvider = dataProtectionProvider ?? FallbackOfflinePayloadProtection;
             _licenseService = licenseService;
             _offlineVoucherEncryption = offlineVoucherEncryption ?? Options.Create(new OfflineVoucherEncryptionOptions());
+            _hostEnvironment = hostEnvironment;
+            _developmentOptions = developmentOptions;
         }
 
         /// <summary>
@@ -493,7 +501,11 @@ namespace KasseAPI_Final.Services
                 if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
                 {
                     var health = _tseHealthMonitor.Snapshot;
-                    if (health.Status == TseOperationalHealth.Offline)
+                    var tseTreatAsOffline = health.Status == TseOperationalHealth.Offline
+                        || (!OpenApiExportMode.IsEnabled
+                            && _hostEnvironment?.IsDevelopment() == true
+                            && _developmentOptions?.CurrentValue.SimulateTseUnavailable == true);
+                    if (tseTreatAsOffline)
                     {
                         if (_tseOptions.OfflineModeEnabled)
                         {

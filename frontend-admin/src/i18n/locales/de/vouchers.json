@@ -17,6 +17,7 @@
       "actions": "Aktionen"
     },
     "open": "Details",
+    "viewLedger": "Verlauf",
     "create": "Neuer Gutschein",
     "empty": "Keine Gutscheine gefunden.",
     "permissionDenied": "Keine Berechtigung für Gutscheine."
