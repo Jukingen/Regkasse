@@ -11,7 +11,7 @@ public enum LicenseActivationAttemptStatus
     Revoked = 2,
 }
 
-/// <summary>Append-only audit of POST /api/admin/license/activate attempts (full key in DB; logs remain masked).</summary>
+/// <summary>Append-only audit of POST /api/license/activate attempts (full key in DB; logs remain masked).</summary>
 [Table("license_activation_attempts")]
 public sealed class LicenseActivationAttempt
 {

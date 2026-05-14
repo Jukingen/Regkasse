@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Admin audit list for POST /api/admin/license/activate (German copy via `license.activationHistory.*`).
+ * Admin audit list for POST /api/license/activate (German copy via `license.activationHistory.*`).
  */
 
 import React, { useMemo, useState } from 'react';

@@ -11,7 +11,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Controllers;
 
-/// <summary>Admin license status, activation and issuance for on-premise deployments.</summary>
+/// <summary>
+/// Admin license issuance, status, and audit APIs. **Activation** is unified at <c>POST /api/license/activate</c>
+/// (same contract for POS and FA; see <see cref="LicenseController"/>).
+/// </summary>
 [Authorize]
 [ApiController]
 [Route("api/admin/license")]
@@ -192,69 +195,6 @@ public sealed partial class AdminLicenseController : ControllerBase
         });
     }
 
-    /// <summary>Activate using a formatted license key and optional offline JWT.</summary>
-    [HttpPost("activate")]
-    [HasPermission(AppPermissions.SettingsManage)]
-    public async Task<ActionResult<LicenseActivationResult>> Activate(
-        [FromBody] ActivateLicenseRequest body,
-        CancellationToken cancellationToken)
-    {
-        if (body is null)
-        {
-            _logger.LogWarning("License activation: request body bound to null (empty JSON, wrong content-type, or unreadable payload).");
-            return BadRequest(new LicenseActivationResult(false, "Request body is required."));
-        }
-
-        // Diagnostic-only: prove which fields were bound from the incoming JSON so a client/server naming mismatch
-        // surfaces here instead of being misread as a "missing JWT" error. JWT value is never logged — length only.
-        _logger.LogInformation(
-            "License activation request received. LicenseKeyPresent={LicenseKeyPresent}, LicenseKeyPrefix={LicenseKeyPrefix}, OfflineJwtPresent={OfflineJwtPresent}, OfflineJwtLength={OfflineJwtLength}, MachineFingerprintPresent={MachineFingerprintPresent}, MachineFingerprintPrefix={MachineFingerprintPrefix}",
-            !string.IsNullOrWhiteSpace(body.LicenseKey),
-            SafeFieldPrefix(body.LicenseKey),
-            !string.IsNullOrWhiteSpace(body.OfflineActivationJwt),
-            body.OfflineActivationJwt?.Length ?? 0,
-            !string.IsNullOrWhiteSpace(body.MachineFingerprint),
-            SafeFieldPrefix(body.MachineFingerprint));
-
-        var uaRaw = Request.Headers.UserAgent.ToString();
-        var ua = uaRaw.Length <= 500 ? uaRaw : uaRaw[..500];
-        Guid? initiatorUserId = null;
-        if (Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedUserId))
-            initiatorUserId = parsedUserId;
-
-        var client = new LicenseActivationClientInfo(
-            ResolveClientIp(HttpContext),
-            string.IsNullOrEmpty(ua) ? null : ua,
-            initiatorUserId);
-        var result = await _licenseService.ActivateAsync(body, client, cancellationToken).ConfigureAwait(false);
-        if (!result.Success)
-        {
-            _logger.LogWarning("License activation failed: {Message}", result.Message);
-            return BadRequest(result);
-        }
-
-        return Ok(result);
-    }
-
-    private static string? ResolveClientIp(HttpContext httpContext)
-    {
-        if (httpContext.Request.Headers.TryGetValue("X-Forwarded-For", out var forwarded) && forwarded.Count > 0)
-        {
-            var first = forwarded.ToString().Split(',')[0].Trim();
-            if (first.Length == 0)
-                return null;
-            return first.Length <= 45 ? first : first[..45];
-        }
-
-        var remote = httpContext.Connection.RemoteIpAddress;
-        if (remote is null)
-            return null;
-        if (remote.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6
-            && remote.IsIPv4MappedToIPv6)
-            return remote.MapToIPv4().ToString();
-        return remote.ToString();
-    }
-
     private static string SanitizeSqlLikeFragment(string value)
     {
         return new string(value.Trim().Where(c => c is not '%' and not '_' and not '\\').Take(256).ToArray());
@@ -269,15 +209,6 @@ public sealed partial class AdminLicenseController : ControllerBase
         if (t.Length <= 16)
             return t;
         return $"{t[..8]}…{t[^8..]}";
-    }
-
-    /// <summary>Short, safe prefix for license-key / fingerprint log fragments (never the full secret).</summary>
-    private static string SafeFieldPrefix(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-            return "(empty)";
-        var trimmed = value.Trim();
-        return trimmed.Length <= 12 ? trimmed : trimmed[..12] + "…";
     }
 
     /// <summary>

@@ -39,6 +39,7 @@
   "settings": "Settings",
   "paymentMethods": "Payment methods",
   "backupDr": "Backup & DR",
+  "developmentMode": "Development mode",
   "timeSync": "Time sync",
   "licenseManagement": "License",
   "myProfile": "My profile",

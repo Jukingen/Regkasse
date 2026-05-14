@@ -1,0 +1,29 @@
+{
+  "page": {
+    "title": "Geliştirici modu ayarları",
+    "warning": "⚠️ UYARI: Bu ayarlar yalnızca geliştirme ve test içindir. Üretim ortamında etkinleştirmeyin.",
+    "loadError": "Geliştirici modu ayarları yüklenemedi.",
+    "toggleMain": "Geliştirici modunu etkinleştir",
+    "toggleBypassLicense": "Lisans kontrolünü atla",
+    "toggleBypassNtp": "NTP zaman kontrolünü atla",
+    "toggleBypassTse": "TSE kontrolünü atla",
+    "toggleSimulateOffline": "Çevrimdışı simüle et",
+    "toggleForceOnline": "Çevrimiçi zorla",
+    "validDays": "Geçerlilik (gün)",
+    "features": "Etkin özellikler",
+    "save": "Kaydet",
+    "reset": "Sıfırla",
+    "lastUpdated": "Son güncelleme: {{date}} — {{user}}",
+    "lastUpdatedUnknownUser": "Son güncelleme: {{date}}",
+    "saveSuccess": "Ayarlar kaydedildi.",
+    "saveFailed": "Kayıt başarısız.",
+    "resetHint": "Formu son yüklenen değerlere döndür."
+  },
+  "features": {
+    "pos_fiscal": "POS (fiskal)",
+    "pos_offline": "POS çevrimdışı",
+    "admin_basic": "Admin (temel)",
+    "admin_rksv": "Admin RKSV",
+    "admin_license_manage": "Admin lisans yönetimi"
+  }
+}

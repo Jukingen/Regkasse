@@ -61,6 +61,7 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     SettingOutlined: Icons.SettingOutlined,
     ShopOutlined: Icons.ShopOutlined,
     CloudServerOutlined: Icons.CloudServerOutlined,
+    ExperimentOutlined: Icons.ExperimentOutlined,
     WalletOutlined: Icons.WalletOutlined,
     ClockCircleOutlined: Icons.ClockCircleOutlined,
     CloudDownloadOutlined: Icons.CloudDownloadOutlined,

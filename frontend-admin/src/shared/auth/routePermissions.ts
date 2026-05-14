@@ -37,6 +37,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/system/time-sync': PERMISSIONS.SETTINGS_MANAGE,
   '/admin/license': PERMISSIONS.SETTINGS_VIEW,
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,

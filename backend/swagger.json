@@ -561,6 +561,91 @@
         }
       }
     },
+    "/api/admin/development-mode/settings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get development mode settings (singleton)",
+        "description": "Reads the persisted development-mode singleton from PostgreSQL (cached ~30s on the server). Requires permission **system.critical** (default role matrix: SuperAdmin only). Response includes `updatedBy` (email) when `updated_by_user_id` matches an Identity user id.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevelopmentModeSettingsResponseDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update development mode settings (singleton)",
+        "description": "Replaces development-mode toggles and feature list. Requires **system.critical**. Updates are rejected when the API host environment is not **Development** (see `DevelopmentModeService`). On success the server reloads its in-memory settings cache and appends a system audit event.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevelopmentModeSettingsPutRequestDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevelopmentModeSettingsPutRequestDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevelopmentModeSettingsPutRequestDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevelopmentModeSettingsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/admin/audit/fiscal-export-logs": {
       "get": {
         "tags": [
@@ -768,6 +853,105 @@
         }
       }
     },
+    "/api/admin/license/activation-attempts": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "licenseKey",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "machineFingerprint",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseActivationAttemptsPagedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/activation-attempts/{id}/force-deactivate": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/admin/license/status": {
       "get": {
         "tags": [
@@ -801,6 +985,13 @@
             }
           },
           {
+            "name": "machineFingerprint",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "pageNumber",
             "in": "query",
             "schema": {
@@ -826,44 +1017,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/IssuedLicensesListResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/license/activate": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ActivateLicenseRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ActivateLicenseRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/ActivateLicenseRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LicenseActivationResult"
                 }
               }
             }
@@ -1151,6 +1304,453 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/license/dashboard/summary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseDashboardSummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/dashboard/activation-series": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "granularity",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "day"
+            }
+          },
+          {
+            "name": "lookbackDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseDashboardActivationSeriesResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/dashboard/recent-activity": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseDashboardRecentActivityResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/dashboard/report.csv": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/license/{id}/details": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuedLicenseDetailResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/{id}/extend": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtendLicenseRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtendLicenseRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtendLicenseRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateLicenseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/license/{id}/revoke": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeLicenseByIdRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeLicenseByIdRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeLicenseByIdRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/license/{id}/cancel": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelLicenseRequestBody"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelLicenseRequestBody"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelLicenseRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/license/{id}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/license/{id}/unregister-machine": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateLicenseResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/licenses/export/csv": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "includeActivationHistory",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "maskLicenseKeys",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/licenses/export/json": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "includeActivationHistory",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "maskLicenseKeys",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/admin/licenses/report/summary": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "fromUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "toUtc",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "includeActivationHistory",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseReportSummaryDto"
+                }
+              }
+            }
           }
         }
       }
@@ -8941,6 +9541,84 @@
         }
       }
     },
+    "/api/license/status": {
+      "get": {
+        "tags": [
+          "License"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicensePublicStatusDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/license/features": {
+      "get": {
+        "tags": [
+          "License"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseFeaturesDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/license/activate": {
+      "post": {
+        "tags": [
+          "License"
+        ],
+        "summary": "Activate license (unified POS + FA)",
+        "description": "Single activation contract for POS and frontend-admin. **Authentication is optional** (POS may activate before login; FA typically sends Bearer JWT for audit: initiating user id + `app_context` claim). When unauthenticated, send header `X-App-Context: pos` or `X-App-Context: admin` so activation attempts record the source app. Machine binding uses this server's canonical fingerprint (`ILicenseStorageService`); optional `machineFingerprint` in JSON or `X-Machine-Fingerprint` must match the server when provided.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateLicenseRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateLicenseRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateLicenseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LicenseActivationResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/Localization": {
       "get": {
         "tags": [
@@ -16540,6 +17218,10 @@
           "offlineActivationJwt": {
             "type": "string",
             "nullable": true
+          },
+          "machineFingerprint": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -19918,6 +20600,16 @@
         },
         "additionalProperties": false
       },
+      "CancelLicenseRequestBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "CancelPaymentRequest": {
         "required": [
           "reason"
@@ -22430,6 +23122,84 @@
         },
         "additionalProperties": false
       },
+      "DevelopmentModeSettingsPutRequestDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "bypassLicense": {
+            "type": "boolean"
+          },
+          "bypassNtpCheck": {
+            "type": "boolean"
+          },
+          "bypassTseCheck": {
+            "type": "boolean"
+          },
+          "simulateOffline": {
+            "type": "boolean"
+          },
+          "forceOnline": {
+            "type": "boolean"
+          },
+          "validDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DevelopmentModeSettingsResponseDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "bypassLicense": {
+            "type": "boolean"
+          },
+          "bypassNtpCheck": {
+            "type": "boolean"
+          },
+          "bypassTseCheck": {
+            "type": "boolean"
+          },
+          "simulateOffline": {
+            "type": "boolean"
+          },
+          "forceOnline": {
+            "type": "boolean"
+          },
+          "validDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "updatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DocumentType": {
         "enum": [
           0,
@@ -22463,6 +23233,22 @@
           },
           "hasRisk": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ExtendLicenseRequestBody": {
+        "type": "object",
+        "properties": {
+          "addDays": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "addMonths": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -23570,6 +24356,17 @@
           "machineHashHex": {
             "type": "string",
             "nullable": true
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "bindToMachineFingerprint": {
+            "type": "boolean",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -23596,6 +24393,11 @@
           "message": {
             "type": "string",
             "nullable": true
+          },
+          "licenseJwt": {
+            "type": "string",
+            "nullable": true,
+            "readOnly": true
           }
         },
         "additionalProperties": false
@@ -24454,6 +25256,118 @@
         },
         "additionalProperties": false
       },
+      "IssuedLicenseActivationDto": {
+        "type": "object",
+        "properties": {
+          "machineFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "activatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validUntilUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssuedLicenseDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "licenseKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "requireFingerprint": {
+            "type": "boolean"
+          },
+          "machineHashHex": {
+            "type": "string",
+            "nullable": true
+          },
+          "signedJwt": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issuedByUserId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isRevoked": {
+            "type": "boolean"
+          },
+          "revokedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "revocationReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "supersededByLicenseId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "transferredToLicenseId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "isCancelled": {
+            "type": "boolean"
+          },
+          "cancelledAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "deletedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "activations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssuedLicenseActivationDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "IssuedLicenseListItemDto": {
         "type": "object",
         "properties": {
@@ -24508,6 +25422,32 @@
           "transferredToLicenseId": {
             "type": "string",
             "format": "uuid",
+            "nullable": true
+          },
+          "activatedDeviceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastActivationAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recentMachineFingerprintShort": {
+            "type": "string",
+            "nullable": true
+          },
+          "isCancelled": {
+            "type": "boolean"
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
             "nullable": true
           }
         },
@@ -25038,6 +25978,74 @@
         },
         "additionalProperties": false
       },
+      "LicenseActivationAttemptListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "licenseKeyMasked": {
+            "type": "string",
+            "nullable": true
+          },
+          "machineFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "activationStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientIp": {
+            "type": "string",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "string",
+            "nullable": true
+          },
+          "activatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deactivatedAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseActivationAttemptsPagedResponse": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LicenseActivationAttemptListItemDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "LicenseActivationResult": {
         "type": "object",
         "properties": {
@@ -25045,6 +26053,163 @@
             "type": "boolean"
           },
           "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "licenseType": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseActivationSeriesPointDto": {
+        "type": "object",
+        "properties": {
+          "periodStartUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseDashboardActivationSeriesResponse": {
+        "type": "object",
+        "properties": {
+          "granularity": {
+            "type": "string",
+            "nullable": true
+          },
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LicenseActivationSeriesPointDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseDashboardActivityRowDto": {
+        "type": "object",
+        "properties": {
+          "timestampUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "licenseKeyMasked": {
+            "type": "string",
+            "nullable": true
+          },
+          "machineFingerprintShort": {
+            "type": "string",
+            "nullable": true
+          },
+          "action": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourceCode": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseDashboardRecentActivityResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LicenseDashboardActivityRowDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseDashboardSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "activeLicenses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiringWithin30Days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiredLicenses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "uniqueActivatedDevices": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicenseFeaturesDto": {
+        "type": "object",
+        "properties": {
+          "allowOffline": {
+            "type": "boolean"
+          },
+          "maxCashiers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "enabledLicenseFeatures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "LicensePublicStatusDto": {
+        "type": "object",
+        "properties": {
+          "licenseType": {
+            "type": "string",
+            "nullable": true
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "daysRemaining": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "isExpired": {
+            "type": "boolean"
+          },
+          "isValid": {
+            "type": "boolean"
+          },
+          "mode": {
             "type": "string",
             "nullable": true
           }
@@ -25087,6 +26252,56 @@
         },
         "additionalProperties": false
       },
+      "LicenseReportSummaryDto": {
+        "type": "object",
+        "properties": {
+          "generatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "issuedTotalInDateFilter": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issuedActiveEligible": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issuedRevoked": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issuedCancelled": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issuedDeleted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiringWithin30Days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiringWithin15Days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expiringWithin7Days": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "uniqueActivatedDevices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activationAttemptsInDateFilter": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "LicenseStatusResponse": {
         "type": "object",
         "properties": {
@@ -25116,6 +26331,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LicenseReminderNotice"
+            },
+            "nullable": true
+          },
+          "enabledFeatures": {
+            "type": "array",
+            "items": {
+              "type": "string"
             },
             "nullable": true
           }
@@ -29684,6 +30906,16 @@
           },
           "idempotentEnqueue": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RevokeLicenseByIdRequestBody": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

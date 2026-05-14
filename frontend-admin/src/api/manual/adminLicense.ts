@@ -36,6 +36,8 @@ export type LicenseActivationResult = {
     message?: string | null;
     /** ISO 8601 UTC when activation succeeded (backend). */
     validUntil?: string | null;
+    /** Coarse label: Licensed, Trial, or Expired (aligned with GET /api/license/status). */
+    licenseType?: string | null;
 };
 
 export type GenerateLicenseRequest = {
@@ -177,7 +179,9 @@ export async function getLicenseStatus(): Promise<LicenseStatusResponse> {
 }
 
 export async function postActivateLicense(body: ActivateLicenseRequest): Promise<LicenseActivationResult> {
-    const { data } = await AXIOS_INSTANCE.post<LicenseActivationResult>('/api/admin/license/activate', body);
+    const { data } = await AXIOS_INSTANCE.post<LicenseActivationResult>('/api/license/activate', body, {
+        headers: { 'X-App-Context': 'admin' },
+    });
     return data;
 }
 

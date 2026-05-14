@@ -8,8 +8,6 @@
 
 export type GetApiAdminLicenseListParams = {
 search?: string;
-/** Substring match on activated machine fingerprint (SHA-256 hex). */
-machineFingerprint?: string;
 pageNumber?: number;
 pageSize?: number;
 };

@@ -39,6 +39,7 @@
   "settings": "Ayarlar",
   "paymentMethods": "Ödeme yöntemleri",
   "backupDr": "Yedekleme ve DR",
+  "developmentMode": "Geliştirici modu",
   "timeSync": "Zaman senkronizasyonu",
   "licenseManagement": "Lisans",
   "myProfile": "Profilim",

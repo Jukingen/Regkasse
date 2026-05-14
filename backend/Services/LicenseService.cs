@@ -70,10 +70,18 @@ public sealed class ActivateLicenseRequest
     public string? MachineFingerprint { get; set; }
 }
 
-public sealed record LicenseActivationResult(bool Success, string? Message, DateTime? ValidUntil = null);
+public sealed record LicenseActivationResult(
+    bool Success,
+    string? Message,
+    DateTime? ValidUntil = null,
+    string? LicenseType = null);
 
 /// <summary>Optional HTTP client metadata stored on each activation audit row.</summary>
-public sealed record LicenseActivationClientInfo(string? ClientIp, string? UserAgent, Guid? InitiatingUserId = null);
+public sealed record LicenseActivationClientInfo(
+    string? ClientIp,
+    string? UserAgent,
+    Guid? InitiatingUserId = null,
+    string? SourceAppContext = null);
 
 /// <summary>
 /// Lisans iş kurallarını yürütür; saklama (şifreli dosya) tamamen <see cref="ILicenseStorageService"/>'e delege edilir.
@@ -350,7 +358,7 @@ public sealed class LicenseService : ILicenseService
                 message,
                 clientInfo,
                 cancellationToken).ConfigureAwait(false);
-            return new LicenseActivationResult(false, message);
+            return new LicenseActivationResult(false, message, null, null);
         }
 
         if (OpenApiExportMode.IsEnabled)
@@ -496,13 +504,26 @@ public sealed class LicenseService : ILicenseService
                 cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("License: activation succeeded for key prefix {Prefix}.", SafePrefix(normalizedKey));
-            return new LicenseActivationResult(true, "License activated.", st.ExpiryDate);
+            var licenseType = MapPublicLicenseTypeLabel(st);
+            return new LicenseActivationResult(true, "Lizenz erfolgreich aktiviert", st.ExpiryDate, licenseType);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "License: activation failed with unexpected error.");
             return await FailAndLogAsync(normalizedKey, "Activation failed due to an internal error.");
         }
+    }
+
+    /// <summary>Maps internal snapshot to the same coarse labels as <c>GET /api/license/status</c> (<c>LicenseType</c> field).</summary>
+    private static string MapPublicLicenseTypeLabel(LicenseStatusResponse s)
+    {
+        var paid = s.IsValid && !s.IsTrial;
+        var trialActive = s.IsTrial && !s.IsExpired;
+        if (paid)
+            return "Licensed";
+        if (trialActive)
+            return "Trial";
+        return "Expired";
     }
 
     private LicenseStatusResponse BuildSnapshot(LicensePersistedState blob, bool paidValid)
@@ -1045,6 +1066,17 @@ public sealed class LicenseService : ILicenseService
         return s.Length <= max ? s : s[..max];
     }
 
+    private static string? BuildUserAgentForAudit(LicenseActivationClientInfo? clientInfo)
+    {
+        var ua = clientInfo?.UserAgent;
+        var ctx = clientInfo?.SourceAppContext;
+        if (string.IsNullOrWhiteSpace(ctx))
+            return string.IsNullOrWhiteSpace(ua) ? null : ClipDbField(ua, 500);
+        var tag = $"[app:{ctx.Trim().ToLowerInvariant()}] ";
+        var combined = string.IsNullOrWhiteSpace(ua) ? tag.TrimEnd() : tag + ua;
+        return ClipDbField(combined, 500);
+    }
+
     private async Task TryInsertActivationAttemptAsync(
         string licenseKeyForDb,
         string machineFingerprint,
@@ -1057,6 +1089,7 @@ public sealed class LicenseService : ILicenseService
         {
             var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
             await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            var uaForAudit = BuildUserAgentForAudit(clientInfo);
             db.LicenseActivationAttempts.Add(new LicenseActivationAttempt
             {
                 Id = Guid.NewGuid(),
@@ -1065,7 +1098,7 @@ public sealed class LicenseService : ILicenseService
                 ActivationStatus = status,
                 FailureReason = string.IsNullOrWhiteSpace(failureReason) ? null : ClipDbField(failureReason, 4000),
                 ClientIp = string.IsNullOrWhiteSpace(clientInfo?.ClientIp) ? null : ClipDbField(clientInfo.ClientIp, 45),
-                UserAgent = string.IsNullOrWhiteSpace(clientInfo?.UserAgent) ? null : ClipDbField(clientInfo.UserAgent, 500),
+                UserAgent = uaForAudit,
                 ActivatedAtUtc = now,
                 DeactivatedAtUtc = null,
             });

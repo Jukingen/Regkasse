@@ -14,6 +14,9 @@ public static class ClientAppPolicy
     /// <summary>JWT custom claim key persisted in the token after login.</summary>
     public const string AppContextClaimType = "app_context";
 
+    /// <summary>Optional HTTP header for anonymous clients (e.g. POS kiosk) when no JWT app_context claim exists.</summary>
+    public const string AppContextHttpHeader = "X-App-Context";
+
     private static readonly IReadOnlySet<string> PosAllowedRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         Roles.Cashier,

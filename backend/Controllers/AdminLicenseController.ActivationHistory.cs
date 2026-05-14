@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Controllers;
 
 public sealed partial class AdminLicenseController
 {
-    /// <summary>Paged activation audit for <c>POST /api/admin/license/activate</c> (full key in DB; response uses masked key).</summary>
+    /// <summary>Paged activation audit for <c>POST /api/license/activate</c> (full key in DB; response uses masked key).</summary>
     [HttpGet("activation-attempts")]
     [HasPermission(AppPermissions.SettingsManage)]
     [ProducesResponseType(typeof(LicenseActivationAttemptsPagedResponse), StatusCodes.Status200OK)]

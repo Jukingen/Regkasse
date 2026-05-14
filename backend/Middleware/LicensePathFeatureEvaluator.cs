@@ -132,10 +132,6 @@ public static class LicensePathFeatureEvaluator
         if (m is not ("POST" or "PUT" or "DELETE"))
             return false;
 
-        // Operator activation stays under settings.manage RBAC; license *issuance* is gated separately.
-        if (v.Contains("/activate", StringComparison.OrdinalIgnoreCase))
-            return false;
-
         return v.Contains("/generate", StringComparison.OrdinalIgnoreCase)
                || v.Contains("/upgrade", StringComparison.OrdinalIgnoreCase)
                || v.Contains("/renew", StringComparison.OrdinalIgnoreCase)

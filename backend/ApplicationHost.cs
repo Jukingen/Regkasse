@@ -160,6 +160,8 @@ builder.Services.Configure<LicenseReportEmailOptions>(builder.Configuration.GetS
 builder.Services.AddScoped<ILicenseExportReportService, LicenseExportReportService>();
 builder.Services.AddHostedService<LicenseScheduledReportsHostedService>();
 builder.Services.AddSingleton<INtpTimeSyncStatus, NtpTimeSyncStatus>();
+// Singleton + IDisposable: 30s timer refresh + immediate refresh on update (see DevelopmentModeService.CacheTtl).
+builder.Services.AddSingleton<IDevelopmentModeService, DevelopmentModeService>();
 // INtpEffectiveSettingsProvider: PaymentService fiscal NTP guard, SystemController, NtpTimeSyncService (when hosted).
 builder.Services.AddScoped<INtpEffectiveSettingsProvider, NtpEffectiveSettingsProvider>();
 builder.Services.AddScoped<NtpSynchronizationCoordinator>();

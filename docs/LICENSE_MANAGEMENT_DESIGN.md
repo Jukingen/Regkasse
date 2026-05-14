@@ -187,7 +187,7 @@ If backend adds **POST `/api/license/extension-request`** (authenticated or anon
 | Method | Path | Permission | Purpose |
 |--------|------|------------|---------|
 | `GET` | `/api/admin/license/status` | `settings.view` | Operator-visible status + reminders. |
-| `POST` | `/api/admin/license/activate` | `settings.manage` | Persist activation; validates JWT. |
+| `POST` | `/api/license/activate` | **AllowAnonymous** (JWT optional; FA sends bearer for audit `InitiatingUserId` + `app_context` claim; POS may send `X-App-Context: pos`) | Unified activation (same body/response for FA and POS). |
 | `POST` | `/api/admin/license/generate` | `settings.manage` | Issue JWT + DB audit row. |
 | `GET` | `/api/admin/license/list` | `settings.manage` | Audit list (masked keys). |
 | `POST` | `/api/admin/license/renew` | `settings.manage` | Renewal / new JWT. |
@@ -201,12 +201,10 @@ If backend adds **POST `/api/license/extension-request`** (authenticated or anon
 
 **Risk:** spam; prefer **mailto:** fallback in POS v1 and add API only if product requires tracked tickets.
 
-### 5.5 POS device activation (future)
+### 5.5 POS device activation (implemented)
 
-If product requires **on-POS activation** without FA:
-
-- `POST /api/license/activate` with **device auth** is problematic for cashiers (secret JWT exposure).
-- Recommended: activation only in **FA** or **local admin** screen using manager credentials; POS only **refetches status** after support completes activation on server filesystem.
+- `POST /api/license/activate` accepts `{ licenseKey, offlineActivationJwt?, machineFingerprint? }`; **auth optional** (device-bound activation).
+- FA continues to use the same endpoint with a logged-in session so `activated_licenses.created_by_user_id` can be populated when available.
 
 ---
 
@@ -223,7 +221,7 @@ If product requires **on-POS activation** without FA:
 ### 6.2 FA — activation
 
 1. Operator pastes **license key** + **offline JWT** (or flow that loads JWT from issuance response).
-2. FA calls `POST /api/admin/license/activate`.
+2. FA calls `POST /api/license/activate` (same contract as POS; optional header `X-App-Context: admin` when needed).
 3. Backend validates signature, claims, machine binding, revocation tables; writes **`ILicenseStorageService`** state.
 4. FA refreshes `GET /api/admin/license/status`.
 

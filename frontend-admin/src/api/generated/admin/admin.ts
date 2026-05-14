@@ -19,7 +19,6 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
-  ActivateLicenseRequest,
   AdminCategoryProductDto,
   AdminCreateUserRequest,
   AdminDeactivateRequest,
@@ -111,7 +110,6 @@ import type {
   IntegrityReportDto,
   IssuedLicensesListResponse,
   LegalHoldDto,
-  LicenseActivationResult,
   LicenseRenewalInfoResponse,
   LicenseStatusResponse,
   LicenseTransferRequestInfoResponse,
@@ -1314,58 +1312,7 @@ export const useGetApiAdminLicenseList = <TData = Awaited<ReturnType<typeof getA
 
 
 
-export const postApiAdminLicenseActivate = (
-    activateLicenseRequest: ActivateLicenseRequest,
- options?: SecondParameter<typeof customInstance>,) => {
-      
-      
-      return customInstance<LicenseActivationResult>(
-      {url: `/api/admin/license/activate`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: activateLicenseRequest
-    },
-      options);
-    }
-  
-
-
-export const getPostApiAdminLicenseActivateMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext> => {
-const {mutation: mutationOptions, request: requestOptions} = options ?? {};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminLicenseActivate>>, {data: ActivateLicenseRequest}> = (props) => {
-          const {data} = props ?? {};
-
-          return  postApiAdminLicenseActivate(data,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PostApiAdminLicenseActivateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminLicenseActivate>>>
-    export type PostApiAdminLicenseActivateMutationBody = ActivateLicenseRequest
-    export type PostApiAdminLicenseActivateMutationError = unknown
-
-    export const usePostApiAdminLicenseActivate = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationResult<
-        Awaited<ReturnType<typeof postApiAdminLicenseActivate>>,
-        TError,
-        {data: ActivateLicenseRequest},
-        TContext
-      > => {
-
-      const mutationOptions = getPostApiAdminLicenseActivateMutationOptions(options);
-
-      return useMutation(mutationOptions);
-    }
-    export const postApiAdminLicenseGenerate = (
+export const postApiAdminLicenseGenerate = (
     generateLicenseRequestBody: GenerateLicenseRequestBody,
  options?: SecondParameter<typeof customInstance>,) => {
       

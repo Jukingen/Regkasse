@@ -109,6 +109,9 @@ namespace KasseAPI_Final.Data
         /// <summary>Singleton (Id=1): scheduled backup UTC cron + retention (see migration seed).</summary>
         public DbSet<BackupSettings> BackupSettings { get; set; }
 
+        /// <summary>Singleton (Id=1): persisted development-mode toggles (see migration seed).</summary>
+        public DbSet<DevelopmentModeSettings> DevelopmentModeSettings { get; set; }
+
         /// <summary>Restore drill metadata (pg_restore --list + optional fiscal SQL + integrity); not artifact verification.</summary>
         public DbSet<RestoreVerificationRun> RestoreVerificationRuns { get; set; }
 
@@ -1738,6 +1741,35 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ScheduleCron).IsRequired().HasMaxLength(120);
                 entity.Property(e => e.RetentionDays).IsRequired();
                 entity.Property(e => e.UpdatedAtUtc).IsRequired();
+            });
+
+            builder.Entity<DevelopmentModeSettings>(entity =>
+            {
+                entity.ToTable("development_mode_settings");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Enabled).IsRequired();
+                entity.Property(e => e.BypassLicense).IsRequired();
+                entity.Property(e => e.BypassNtpCheck).IsRequired();
+                entity.Property(e => e.BypassTseCheck).IsRequired();
+                entity.Property(e => e.SimulateOffline).IsRequired();
+                entity.Property(e => e.ForceOnline).IsRequired();
+                entity.Property(e => e.ValidDays).IsRequired();
+                entity.Property(e => e.Features).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.HasData(new global::KasseAPI_Final.Models.DevelopmentModeSettings
+                {
+                    Id = global::KasseAPI_Final.Models.DevelopmentModeSettings.SingletonId,
+                    Enabled = false,
+                    BypassLicense = false,
+                    BypassNtpCheck = false,
+                    BypassTseCheck = false,
+                    SimulateOffline = false,
+                    ForceOnline = false,
+                    ValidDays = 365,
+                    Features = [],
+                    UpdatedAtUtc = new DateTime(2026, 5, 14, 12, 0, 0, DateTimeKind.Utc),
+                    UpdatedByUserId = null,
+                });
             });
 
             builder.Entity<BackupRun>(entity =>

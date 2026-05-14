@@ -56,6 +56,7 @@ export type SidebarIconToken =
     | 'SettingOutlined'
     | 'ShopOutlined'
     | 'CloudServerOutlined'
+    | 'ExperimentOutlined'
     | 'WalletOutlined'
     | 'ClockCircleOutlined'
     | 'CloudDownloadOutlined'
@@ -306,6 +307,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.backupDr',
         icon: 'CloudServerOutlined',
     },
+    developmentMode: {
+        id: 'developmentMode',
+        menuKey: '/settings/development-mode',
+        href: '/settings/development-mode',
+        labelKey: 'nav.developmentMode',
+        icon: 'ExperimentOutlined',
+    },
     timeSync: {
         id: 'timeSync',
         menuKey: '/admin/system/time-sync',
@@ -462,7 +470,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
                 labelKey: 'nav.settingsHub',
                 icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'paymentMethods', 'backupDr', 'timeSync', 'licenseManagement'],
+                catalogIds: ['companySettings', 'paymentMethods', 'backupDr', 'developmentMode', 'timeSync', 'licenseManagement'],
             },
         ],
     },

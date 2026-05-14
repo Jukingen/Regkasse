@@ -1,0 +1,29 @@
+{
+  "page": {
+    "title": "Entwicklungsmodus Einstellungen",
+    "warning": "⚠️ ACHTUNG: Diese Einstellungen sind NUR für Entwicklung und Tests. Aktivieren Sie diese NIEMALS in einer Produktionsumgebung.",
+    "loadError": "Die Entwicklungsmodus-Einstellungen konnten nicht geladen werden.",
+    "toggleMain": "Entwicklungsmodus aktivieren",
+    "toggleBypassLicense": "Lizenzprüfung umgehen",
+    "toggleBypassNtp": "NTP-Zeitprüfung umgehen",
+    "toggleBypassTse": "TSE-Prüfung umgehen",
+    "toggleSimulateOffline": "Offline simulieren",
+    "toggleForceOnline": "Online erzwingen",
+    "validDays": "Gültigkeitstage (Tage)",
+    "features": "Aktivierte Features",
+    "save": "Speichern",
+    "reset": "Zurücksetzen",
+    "lastUpdated": "Zuletzt aktualisiert: {{date}} von {{user}}",
+    "lastUpdatedUnknownUser": "Zuletzt aktualisiert: {{date}}",
+    "saveSuccess": "Einstellungen gespeichert.",
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "resetHint": "Formular auf den zuletzt geladenen Stand zurücksetzen."
+  },
+  "features": {
+    "pos_fiscal": "POS (Fiskal)",
+    "pos_offline": "POS Offline",
+    "admin_basic": "Admin (Basis)",
+    "admin_rksv": "Admin RKSV",
+    "admin_license_manage": "Admin Lizenzverwaltung"
+  }
+}

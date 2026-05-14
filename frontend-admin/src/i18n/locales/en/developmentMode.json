@@ -1,0 +1,29 @@
+{
+  "page": {
+    "title": "Development mode settings",
+    "warning": "⚠️ WARNING: These settings are for development and testing only. Never enable them in a production environment.",
+    "loadError": "Could not load development mode settings.",
+    "toggleMain": "Enable development mode",
+    "toggleBypassLicense": "Bypass license checks",
+    "toggleBypassNtp": "Bypass NTP time checks",
+    "toggleBypassTse": "Bypass TSE checks",
+    "toggleSimulateOffline": "Simulate offline",
+    "toggleForceOnline": "Force online",
+    "validDays": "Validity (days)",
+    "features": "Enabled features",
+    "save": "Save",
+    "reset": "Reset",
+    "lastUpdated": "Last updated: {{date}} by {{user}}",
+    "lastUpdatedUnknownUser": "Last updated: {{date}}",
+    "saveSuccess": "Settings saved.",
+    "saveFailed": "Save failed.",
+    "resetHint": "Reset the form to the last loaded values."
+  },
+  "features": {
+    "pos_fiscal": "POS (fiscal)",
+    "pos_offline": "POS offline",
+    "admin_basic": "Admin (basic)",
+    "admin_rksv": "Admin RKSV",
+    "admin_license_manage": "Admin license management"
+  }
+}

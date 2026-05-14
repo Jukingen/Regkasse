@@ -139,6 +139,9 @@ backend/.dev-license-keys/
 backend/**/ConnectionStrings.json
 backend/**/AzureKeyVault.json
 
+# Repo-root build / verify pipeline outputs (not source; keep out of commits)
+/artifacts/
+
 # Backend - Geçici Dosyalar
 # Ephemeral OpenAPI baseline for scripts/validate-api-contract.mjs (CI or local)
 backend/swagger-old.json

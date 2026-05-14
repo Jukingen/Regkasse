@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260514140433_AddDevelopmentModeSettingsSingleton")]
+    partial class AddDevelopmentModeSettingsSingleton
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1872,21 +1875,6 @@ namespace KasseAPI_Final.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("development_mode_settings", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BypassLicense = false,
-                            BypassNtpCheck = false,
-                            BypassTseCheck = false,
-                            Enabled = false,
-                            Features = new string[0],
-                            ForceOnline = false,
-                            SimulateOffline = false,
-                            UpdatedAtUtc = new DateTime(2026, 5, 14, 12, 0, 0, 0, DateTimeKind.Utc),
-                            ValidDays = 365
-                        });
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.FinanzOnlineError", b =>

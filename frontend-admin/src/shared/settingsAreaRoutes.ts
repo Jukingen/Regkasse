@@ -11,6 +11,7 @@ export const SETTINGS_AREA_ROUTE_PATHS = [
     '/settings',
     '/settings/payment-methods',
     '/settings/backup-dr',
+    '/settings/development-mode',
 ] as const;
 
 export type SettingsAreaRoutePath = (typeof SETTINGS_AREA_ROUTE_PATHS)[number];

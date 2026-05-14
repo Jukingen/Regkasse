@@ -39,7 +39,7 @@ export default function SettingsScreen() {
     offlineQueueTitle: t('settings:offlineQueue.title'),
     offlineQueueDescription: t('settings:offlineQueue.description'),
     offlineQueueOpen: t('settings:offlineQueue.open'),
-    licenseHeading: t('license:modalTitle'),
+    licenseHeading: t('license:settingsSectionTitle'),
     licenseTransferHeading: t('license:transferSectionTitle'),
   }), [t]);
 
@@ -59,6 +59,14 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.licenseHeading}</Text>
         <LicenseStatusIndicator badgeAlignSelf="stretch" expandedTouchTarget />
+        <TouchableOpacity
+          style={styles.licenseActivateLink}
+          onPress={() => router.push('/(screens)/license-activate' as any)}
+          accessibilityRole="button"
+          accessibilityLabel={t('license:settingsOpenActivation')}
+        >
+          <Text style={styles.licenseActivateLinkText}>{t('license:settingsOpenActivation')}</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
@@ -181,6 +189,16 @@ const styles = StyleSheet.create({
   },
   queueLinkText: {
     color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  licenseActivateLink: {
+    marginTop: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  licenseActivateLinkText: {
+    color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
   },
