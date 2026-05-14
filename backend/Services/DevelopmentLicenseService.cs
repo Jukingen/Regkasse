@@ -1,4 +1,5 @@
 using System.Threading;
+using System.Threading.Tasks;
 using KasseAPI_Final.Models;
 using Microsoft.Extensions.Logging;
 
@@ -37,6 +38,14 @@ public sealed class DevelopmentLicenseService : ILicenseService
         LicenseActivationClientInfo? clientInfo = null,
         CancellationToken cancellationToken = default) =>
         _inner.ActivateAsync(request, clientInfo, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default)
+    {
+        await _inner.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return GetStatus();
+    }
 
     /// <inheritdoc />
     public LicenseStatusResponse GetStatus()

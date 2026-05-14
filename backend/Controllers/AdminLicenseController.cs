@@ -44,9 +44,9 @@ public sealed partial class AdminLicenseController : ControllerBase
     /// <summary>Current license/trial snapshot for this machine.</summary>
     [HttpGet("status")]
     [HasPermission(AppPermissions.SettingsView)]
-    public ActionResult<LicenseStatusResponse> GetStatus()
+    public async Task<ActionResult<LicenseStatusResponse>> GetStatus(CancellationToken cancellationToken)
     {
-        var status = _licenseService.GetStatus();
+        var status = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var reminders = _licenseReminderNotificationStore.GetReminders();
         return Ok(status with { Reminders = reminders });
     }
@@ -83,7 +83,9 @@ public sealed partial class AdminLicenseController : ControllerBase
             if (fp.Length > 0)
             {
                 query = query.Where(il => _db.ActivatedLicenses.Any(a =>
-                    a.LicenseKey.ToUpper() == il.LicenseKey.ToUpper()
+                    a.IsActive
+                    && a.LicenseKey.ToUpper() == il.LicenseKey.ToUpper()
+                    && a.MachineFingerprint != null
                     && EF.Functions.ILike(a.MachineFingerprint, $"%{fp}%")));
             }
         }
@@ -120,12 +122,12 @@ public sealed partial class AdminLicenseController : ControllerBase
             .Distinct()
             .ToList();
 
-        List<(string LicenseKey, string MachineFingerprint, DateTime ActivatedAtUtc, DateTime LastSeenAtUtc)> actRows = new();
+        List<(string LicenseKey, string? MachineFingerprint, DateTime ActivatedAtUtc, DateTime LastSeenAtUtc)> actRows = new();
         if (keyUppers.Count > 0)
         {
             actRows = await _db.ActivatedLicenses.AsNoTracking()
                 .Where(a => keyUppers.Contains(a.LicenseKey))
-                .Select(a => new ValueTuple<string, string, DateTime, DateTime>(
+                .Select(a => new ValueTuple<string, string?, DateTime, DateTime>(
                     a.LicenseKey,
                     a.MachineFingerprint,
                     a.ActivatedAtUtc,
@@ -142,7 +144,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         {
             var k = r.LicenseKey.Trim().ToUpperInvariant();
             actByKey.TryGetValue(k, out var list);
-            list ??= new List<(string, string, DateTime, DateTime)>();
+            list ??= new List<(string, string?, DateTime, DateTime)>();
 
             DateTime? lastActivationUtc = list.Count == 0
                 ? null
@@ -216,7 +218,14 @@ public sealed partial class AdminLicenseController : ControllerBase
 
         var uaRaw = Request.Headers.UserAgent.ToString();
         var ua = uaRaw.Length <= 500 ? uaRaw : uaRaw[..500];
-        var client = new LicenseActivationClientInfo(ResolveClientIp(HttpContext), string.IsNullOrEmpty(ua) ? null : ua);
+        Guid? initiatorUserId = null;
+        if (Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var parsedUserId))
+            initiatorUserId = parsedUserId;
+
+        var client = new LicenseActivationClientInfo(
+            ResolveClientIp(HttpContext),
+            string.IsNullOrEmpty(ua) ? null : ua,
+            initiatorUserId);
         var result = await _licenseService.ActivateAsync(body, client, cancellationToken).ConfigureAwait(false);
         if (!result.Success)
         {

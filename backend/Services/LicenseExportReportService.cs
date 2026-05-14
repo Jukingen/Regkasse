@@ -90,6 +90,10 @@ public sealed class LicenseExportActivatedRowDto
     public DateTime ActivatedAtUtc { get; set; }
 
     public DateTime LastSeenAtUtc { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public Guid? CreatedByUserId { get; set; }
 }
 
 public sealed class LicenseExportAttemptRowDto
@@ -198,6 +202,7 @@ public sealed class LicenseExportReportService : ILicenseExportReportService
         }
 
         var uniqueDevices = await _db.ActivatedLicenses.AsNoTracking()
+            .Where(a => a.IsActive && a.ValidUntilUtc >= now && a.MachineFingerprint != null)
             .Select(a => a.MachineFingerprint)
             .Distinct()
             .CountAsync(cancellationToken)
@@ -313,7 +318,7 @@ public sealed class LicenseExportReportService : ILicenseExportReportService
 
         sb.AppendLine();
         sb.AppendLine("# activated_licenses");
-        sb.AppendLine("id,license_key,customer_name,valid_until_utc,machine_fingerprint,activated_at_utc,last_seen_at_utc");
+        sb.AppendLine("id,license_key,customer_name,valid_until_utc,machine_fingerprint,activated_at_utc,last_seen_at_utc,is_active,created_by_user_id");
 
         foreach (var a in payload.ActivatedLicenses)
         {
@@ -323,7 +328,9 @@ public sealed class LicenseExportReportService : ILicenseExportReportService
                 .Append(EscapeCsv(a.ValidUntilUtc.ToString("o", inv))).Append(',')
                 .Append(EscapeCsv(a.MachineFingerprint)).Append(',')
                 .Append(EscapeCsv(a.ActivatedAtUtc.ToString("o", inv))).Append(',')
-                .Append(EscapeCsv(a.LastSeenAtUtc.ToString("o", inv)))
+                .Append(EscapeCsv(a.LastSeenAtUtc.ToString("o", inv))).Append(',')
+                .Append(a.IsActive ? '1' : '0').Append(',')
+                .Append(EscapeCsv(a.CreatedByUserId?.ToString()))
                 .AppendLine();
         }
 
@@ -436,11 +443,13 @@ public sealed class LicenseExportReportService : ILicenseExportReportService
         {
             Id = a.Id,
             LicenseKey = a.LicenseKey.Trim().ToUpperInvariant(),
-            CustomerName = a.CustomerName,
+            CustomerName = a.CustomerName ?? "",
             ValidUntilUtc = a.ValidUntilUtc,
-            MachineFingerprint = a.MachineFingerprint,
+            MachineFingerprint = a.MachineFingerprint ?? "",
             ActivatedAtUtc = a.ActivatedAtUtc,
             LastSeenAtUtc = a.LastSeenAtUtc,
+            IsActive = a.IsActive,
+            CreatedByUserId = a.CreatedByUserId,
         };
 
     private static LicenseExportIssuedRowDto ApplyMaskIssued(LicenseExportIssuedRowDto r, bool mask)

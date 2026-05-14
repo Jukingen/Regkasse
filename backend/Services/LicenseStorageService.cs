@@ -40,6 +40,12 @@ public sealed class LicensePersistedState
 
     public string? OfflineJwt { get; set; }
 
+    /// <summary>
+    /// Paid entitlement end (UTC) for key-only activation when no JWT, remote server, or local <c>issued_licenses</c>
+    /// row applies. Cleared when a proper offline JWT is stored.
+    /// </summary>
+    public DateTime? KeyOnlyPaidValidUntilUtc { get; set; }
+
     /// <summary>Optional cache of enabled feature ids (JSON array); may be absent on older license files.</summary>
     public string? FeaturesJson { get; set; }
 }

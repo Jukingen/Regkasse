@@ -51,13 +51,27 @@
   "activation": {
     "title": "Activate license",
     "licenseKey": "License key",
-    "offlineJwt": "Offline activation JWT (optional)",
-    "offlineJwtHelp": "Only if your vendor supplied a certificate.",
     "activate": "Activate",
     "success": "License activated.",
     "successWithValidUntil": "License activated. Valid until: {{date}}",
+    "successSimple": "License activated successfully. Your system is now fully operational.",
+    "failureSimple": "License invalid or expired. Please check your license key.",
     "failed": "Activation failed.",
     "noPermission": "No permission to activate (settings manage required)."
+  },
+  "simpleUi": {
+    "titlePublic": "License status (summary)",
+    "subtitlePublic": "Same essentials as on the POS app.",
+    "titleServer": "License status (server)",
+    "status": "Status",
+    "validUntil": "Valid until",
+    "daysRemaining": "Days remaining",
+    "statusActive": "Active",
+    "statusDemo": "Demo",
+    "statusTrial": "Trial",
+    "statusExpired": "Expired",
+    "technicalPanel": "Technical details",
+    "machineFingerprint": "Device fingerprint (SHA-256)"
   },
   "tabs": {
     "issuance": "Issuance & issued licenses",

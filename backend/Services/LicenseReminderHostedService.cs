@@ -119,7 +119,7 @@ public sealed class LicenseReminderHostedService : IHostedService, IDisposable
         var options = sp.GetRequiredService<IOptions<LicenseOptions>>().Value;
 
         lic.EvaluateOnStartup();
-        var status = lic.GetStatus();
+        var status = await lic.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var now = DateTimeOffset.UtcNow;
 
         if (status.IsExpired)

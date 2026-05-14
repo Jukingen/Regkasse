@@ -1,40 +1,22 @@
 /**
- * Development-only POS offline / TSE / NTP simulation for QA.
- * Never active when __DEV__ is false (production / release builds).
+ * POS offline / TSE / NTP development simulations.
  *
- * Axios "offline" simulation: see `src/config/devFlags.ts` (`isSimulateOfflineModeActive`) and
- * `EXPO_PUBLIC_SIMULATE_OFFLINE_MODE` in `frontend/.env` (Metro restart after changes).
+ * Permanently disabled: env flags (`EXPO_PUBLIC_SIMULATE_*`) are ignored so POS never shows
+ * simulated offline / degraded connectivity. Real device connectivity and backend responses drive UI.
  */
 
-import { isDevelopmentSimulationEnvironment, isSimulateOfflineModeActive } from '../src/config/devFlags';
-
-function envFlagTrue(value: string | undefined): boolean {
-  const v = value?.trim().toLowerCase();
-  return v === 'true' || v === '1' || v === 'yes';
-}
-
-/** Master switch: network offline + TSE unavailable + NTP critical UI (when enabled provider runs). */
 export function isDevSimulatePosOfflineMaster(): boolean {
-  if (!isDevelopmentSimulationEnvironment()) return false;
-  return envFlagTrue(process.env.EXPO_PUBLIC_SIMULATE_POS_OFFLINE);
+  return false;
 }
 
 export function isDevSimulatePosNetworkOffline(): boolean {
-  if (!isDevelopmentSimulationEnvironment()) return false;
-  if (isSimulateOfflineModeActive()) return true;
-  if (isDevSimulatePosOfflineMaster()) return true;
-  return envFlagTrue(process.env.EXPO_PUBLIC_SIMULATE_POS_NETWORK_OFFLINE);
+  return false;
 }
 
 export function isDevSimulateTseUnavailable(): boolean {
-  if (!isDevelopmentSimulationEnvironment()) return false;
-  if (isDevSimulatePosOfflineMaster()) return true;
-  return envFlagTrue(process.env.EXPO_PUBLIC_SIMULATE_TSE_UNAVAILABLE);
+  return false;
 }
 
-/** Forces time-sync UI into critical band (does not change backend NTP unless server DevelopmentOptions is used). */
 export function isDevSimulateNtpCriticalUi(): boolean {
-  if (!isDevelopmentSimulationEnvironment()) return false;
-  if (isDevSimulatePosOfflineMaster()) return true;
-  return envFlagTrue(process.env.EXPO_PUBLIC_SIMULATE_NTP_CRITICAL);
+  return false;
 }

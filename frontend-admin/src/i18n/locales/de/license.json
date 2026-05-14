@@ -51,13 +51,27 @@
   "activation": {
     "title": "Lizenz aktivieren",
     "licenseKey": "Lizenzschlüssel",
-    "offlineJwt": "Offline-Aktivierungs-JWT (optional)",
-    "offlineJwtHelp": "Nur ausfüllen, wenn Ihr Anbieter ein Zertifikat mitgeliefert hat.",
     "activate": "Aktivieren",
     "success": "Lizenz wurde aktiviert.",
     "successWithValidUntil": "Lizenz wurde aktiviert. Gültig bis: {{date}}",
+    "successSimple": "Lizenz erfolgreich aktiviert! Ihr System ist jetzt voll funktionsfähig.",
+    "failureSimple": "Lizenz ungültig oder abgelaufen. Bitte überprüfen Sie Ihren Lizenzschlüssel.",
     "failed": "Aktivierung fehlgeschlagen.",
     "noPermission": "Keine Berechtigung zur Aktivierung (Einstellungen verwalten erforderlich)."
+  },
+  "simpleUi": {
+    "titlePublic": "Lizenzstatus (Übersicht)",
+    "subtitlePublic": "Wie für die Kassen-App — nur die wichtigsten Angaben.",
+    "titleServer": "Lizenzstatus (Server)",
+    "status": "Status",
+    "validUntil": "Gültig bis",
+    "daysRemaining": "Verbleibende Tage",
+    "statusActive": "Aktiv",
+    "statusDemo": "Demo",
+    "statusTrial": "Trial",
+    "statusExpired": "Abgelaufen",
+    "technicalPanel": "Technische Angaben",
+    "machineFingerprint": "Geräte-Fingerprint (SHA-256)"
   },
   "tabs": {
     "issuance": "Ausstellung & ausgestellte Lizenzen",

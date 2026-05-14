@@ -21,17 +21,16 @@ function parseNetworkDelayMs(raw: string | undefined): number {
 }
 
 export const DevFlags = {
-  simulateOfflineMode: process.env.EXPO_PUBLIC_SIMULATE_OFFLINE_MODE === 'true',
+  /** Offline axios simulation — permanently off (see `isSimulateOfflineModeActive`). */
+  simulateOfflineMode: false,
   simulateNetworkDelay: parseNetworkDelayMs(process.env.EXPO_PUBLIC_SIMULATE_NETWORK_DELAY_MS),
 };
 
-let runtimeOfflineSimulation: boolean | null = null;
 let runtimeNetworkDelayMs: number | null = null;
 
+/** Always false: POS offline simulation caused incorrect operator-facing status; env is ignored. */
 export function isSimulateOfflineModeActive(): boolean {
-  if (!isDevelopmentSimulationEnvironment()) return false;
-  if (runtimeOfflineSimulation !== null) return runtimeOfflineSimulation;
-  return DevFlags.simulateOfflineMode;
+  return false;
 }
 
 export function getSimulateNetworkDelayMs(): number {
@@ -40,11 +39,8 @@ export function getSimulateNetworkDelayMs(): number {
   return DevFlags.simulateNetworkDelay;
 }
 
-/** null = follow .env again */
-export function setRuntimeOfflineSimulationOverride(enabled: boolean | null): void {
-  if (!isDevelopmentSimulationEnvironment()) return;
-  runtimeOfflineSimulation = enabled;
-}
+/** No-op: offline simulation is disabled. */
+export function setRuntimeOfflineSimulationOverride(_enabled: boolean | null): void {}
 
 /** null = follow .env again */
 export function setRuntimeNetworkDelayMsOverride(ms: number | null): void {
@@ -52,18 +48,11 @@ export function setRuntimeNetworkDelayMsOverride(ms: number | null): void {
   runtimeNetworkDelayMs = ms;
 }
 
-let loggedOfflineSimulation: boolean = false;
+/** No-op: offline simulation is disabled. */
+export function logDevOfflineSimulationOnce(): void {}
 
-export function logDevOfflineSimulationOnce(): void {
-  if (!isDevelopmentSimulationEnvironment() || !isSimulateOfflineModeActive()) return;
-  if (loggedOfflineSimulation) return;
-  loggedOfflineSimulation = true;
-  console.warn('⚠️ DEV: Offline simulation active');
-}
-
-export function resetDevOfflineSimulationLog(): void {
-  loggedOfflineSimulation = false;
-}
+/** No-op: offline simulation is disabled. */
+export function resetDevOfflineSimulationLog(): void {}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -78,12 +67,8 @@ export async function applyDevNetworkDelayIfConfigured(): Promise<void> {
 if (isDevelopmentSimulationEnvironment() && typeof globalThis !== 'undefined') {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const g = globalThis as any;
-  g.__toggleOfflineSimulation = (enabled: boolean) => {
-    setRuntimeOfflineSimulationOverride(enabled);
-    resetDevOfflineSimulationLog();
-    console.warn(
-      `⚠️ DEV: Offline simulation runtime = ${enabled} (axios requests will ${enabled ? 'fail fast' : 'use network'})`
-    );
+  g.__toggleOfflineSimulation = () => {
+    console.warn('⚠️ DEV: Offline simulation is disabled in this app build (ignored).');
   };
   g.__setDevNetworkDelayMs = (ms: number | null) => {
     setRuntimeNetworkDelayMsOverride(ms);

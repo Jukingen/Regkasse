@@ -836,12 +836,15 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.ValidUntilUtc);
                 entity.HasIndex(e => e.ActivatedAtUtc);
                 entity.HasIndex(e => e.LastSeenAtUtc);
+                entity.HasIndex(e => e.IsActive);
                 entity.Property(e => e.LicenseKey).IsRequired().HasMaxLength(64);
-                entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(256);
-                entity.Property(e => e.MachineFingerprint).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.CustomerName).HasMaxLength(256);
+                entity.Property(e => e.MachineFingerprint).HasMaxLength(128);
                 entity.Property(e => e.ValidUntilUtc).IsRequired();
                 entity.Property(e => e.ActivatedAtUtc).IsRequired();
                 entity.Property(e => e.LastSeenAtUtc).IsRequired();
+                entity.Property(e => e.IsActive).IsRequired();
+                entity.Property(e => e.CreatedByUserId);
                 entity.Property(e => e.FeaturesJson).HasMaxLength(4096);
             });
 

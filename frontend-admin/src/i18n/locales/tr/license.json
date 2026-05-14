@@ -51,13 +51,27 @@
   "activation": {
     "title": "Lisansı etkinleştir",
     "licenseKey": "Lisans anahtarı",
-    "offlineJwt": "Çevrimdışı JWT (isteğe bağlı)",
-    "offlineJwtHelp": "Yalnızca sağlayıcı sertifika verdiyse doldurun.",
     "activate": "Etkinleştir",
     "success": "Lisans etkinleştirildi.",
     "successWithValidUntil": "Lisans etkinleştirildi. Geçerlilik: {{date}}",
+    "successSimple": "Lisans başarıyla etkinleştirildi. Sisteminiz artık tam işlevsel.",
+    "failureSimple": "Lisans geçersiz veya süresi dolmuş. Lütfen lisans anahtarınızı kontrol edin.",
     "failed": "Etkinleştirme başarısız.",
     "noPermission": "Etkinleştirme yetkisi yok (ayarları yönetme gerekli)."
+  },
+  "simpleUi": {
+    "titlePublic": "Lisans durumu (özet)",
+    "subtitlePublic": "POS uygulamasıyla aynı temel bilgiler.",
+    "titleServer": "Lisans durumu (sunucu)",
+    "status": "Durum",
+    "validUntil": "Geçerlilik",
+    "daysRemaining": "Kalan gün",
+    "statusActive": "Aktif",
+    "statusDemo": "Demo",
+    "statusTrial": "Deneme",
+    "statusExpired": "Süresi doldu",
+    "technicalPanel": "Teknik ayrıntılar",
+    "machineFingerprint": "Cihaz parmak izi (SHA-256)"
   },
   "tabs": {
     "issuance": "Üretim ve verilen lisanslar",

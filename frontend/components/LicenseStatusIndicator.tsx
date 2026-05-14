@@ -90,6 +90,7 @@ export function LicenseStatusIndicator({
   const { t } = useTranslation(['license', 'common']);
   const { status, loading, refetch } = useLicenseStatus();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [techDetailsOpen, setTechDetailsOpen] = useState(false);
 
   const tone = useMemo(() => resolveTone(status), [status]);
 
@@ -222,9 +223,11 @@ export function LicenseStatusIndicator({
                   <Text style={styles.valueStrong}>
                     {status.isExpired
                       ? t('license:typeExpired')
-                      : status.isTrial
-                        ? t('license:typeTrial')
-                        : t('license:typePaid')}
+                      : (status.licenseType ?? '').trim().toLowerCase() === 'demo'
+                        ? t('license:typeDemo')
+                        : status.isTrial
+                          ? t('license:typeTrial')
+                          : t('license:typePaid')}
                   </Text>
                 </View>
 
@@ -241,6 +244,30 @@ export function LicenseStatusIndicator({
                     {unlimitedPaid ? '—' : t('license:daysRemainingValue', { count: status.daysRemaining })}
                   </Text>
                 </View>
+
+                {status.machineHash?.trim() ? (
+                  <>
+                    <Pressable
+                      onPress={() => setTechDetailsOpen((v) => !v)}
+                      style={({ pressed }) => [styles.techToggle, pressed && { opacity: 0.75 }]}
+                      accessibilityRole="button"
+                    >
+                      <Text style={styles.techToggleText}>
+                        {techDetailsOpen
+                          ? t('license:technicalToggleHide')
+                          : t('license:technicalToggleShow')}
+                      </Text>
+                    </Pressable>
+                    {techDetailsOpen ? (
+                      <View style={styles.techBox}>
+                        <Text style={styles.label}>{t('license:machineFingerprintLabel')}</Text>
+                        <Text style={styles.techMono} selectable>
+                          {status.machineHash.trim()}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </>
+                ) : null}
 
                 {status.isExpired ? (
                   <View style={styles.warnBox}>
@@ -402,6 +429,30 @@ const styles = StyleSheet.create({
     ...SoftTypography.caption,
     color: SoftColors.textPrimary,
     fontWeight: '600',
+  },
+  techToggle: {
+    marginTop: SoftSpacing.sm,
+    paddingVertical: SoftSpacing.xs,
+  },
+  techToggleText: {
+    ...SoftTypography.caption,
+    color: SoftColors.accentDark,
+    textDecorationLine: 'underline',
+    fontWeight: '600',
+  },
+  techBox: {
+    marginTop: SoftSpacing.xs,
+    padding: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
+    backgroundColor: SoftColors.bgSecondary,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: SoftColors.borderLight,
+  },
+  techMono: {
+    ...SoftTypography.caption,
+    fontFamily: 'monospace',
+    color: SoftColors.textPrimary,
+    marginTop: 4,
   },
   ctaPrimary: {
     flexDirection: 'row',

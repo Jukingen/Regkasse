@@ -32,20 +32,20 @@ public sealed class LicenseController : ControllerBase
     /// <summary>Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).</summary>
     [HttpGet("status")]
     [AllowAnonymous]
-    public ActionResult<LicensePublicStatusDto> GetStatus()
+    public async Task<ActionResult<LicensePublicStatusDto>> GetStatus(CancellationToken cancellationToken)
     {
         // Same mapping in all environments so POS/admin anonymous status matches activated license
         // Development uses <see cref="DevelopmentLicenseService"/> (synthetic licensed snapshot for local testing).
-        var s = _licenseService.GetStatus();
+        var s = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         return Ok(MapPublicStatus(s));
     }
 
     /// <summary>Optional POS-facing feature limits (configuration-driven).</summary>
     [HttpGet("features")]
     [AllowAnonymous]
-    public ActionResult<LicenseFeaturesDto> GetFeatures()
+    public async Task<ActionResult<LicenseFeaturesDto>> GetFeatures(CancellationToken cancellationToken)
     {
-        var lic = _licenseService.GetStatus();
+        var lic = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var licenseFeatures = lic.EnabledFeatures is { Count: > 0 } ? lic.EnabledFeatures : LicenseFeatureIds.All;
 
         if (_environment.IsDevelopment())

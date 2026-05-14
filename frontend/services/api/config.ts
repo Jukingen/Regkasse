@@ -1,12 +1,10 @@
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { sessionManager } from '../session/sessionManager';
 
 import { API_BASE_URL as CONFIGURED_API_BASE_URL } from '../../config';
 import {
   applyDevNetworkDelayIfConfigured,
-  isSimulateOfflineModeActive,
-  logDevOfflineSimulationOnce,
 } from '../../src/config/devFlags';
 const isDev = __DEV__;
 
@@ -114,17 +112,6 @@ function translateKnownTurkishApiErrorMessages(data: unknown): void {
 // Request interceptor - Token kontrolü ve ekleme
 axiosInstance.interceptors.request.use(
     async (config) => {
-        if (isSimulateOfflineModeActive()) {
-            logDevOfflineSimulationOnce();
-            const err = new AxiosError<{ code?: string }>(
-                'DEV_SIMULATED_OFFLINE',
-                'ERR_NETWORK',
-                config
-            );
-            err.isAxiosError = true;
-            return Promise.reject(err);
-        }
-
         await applyDevNetworkDelayIfConfigured();
 
         // 🚀 DEBOUNCING KALDIRILDI - Ürün yükleme için basitleştirildi

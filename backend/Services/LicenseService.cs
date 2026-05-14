@@ -26,6 +26,9 @@ public interface ILicenseService
 
     LicenseStatusResponse GetStatus();
 
+    /// <summary>Rebuilds license snapshot from <c>activated_licenses</c> (authoritative paid row) plus on-disk trial/JWT state, then returns the same overlays as <see cref="GetStatus"/>.</summary>
+    Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default);
+
     /// <summary>True only after <see cref="EvaluateOnStartup"/> has produced a real snapshot (used by header/visibility middleware to distinguish "None" from "Expired").</summary>
     bool IsLicenseSnapshotInitialized { get; }
 
@@ -70,7 +73,7 @@ public sealed class ActivateLicenseRequest
 public sealed record LicenseActivationResult(bool Success, string? Message, DateTime? ValidUntil = null);
 
 /// <summary>Optional HTTP client metadata stored on each activation audit row.</summary>
-public sealed record LicenseActivationClientInfo(string? ClientIp, string? UserAgent);
+public sealed record LicenseActivationClientInfo(string? ClientIp, string? UserAgent, Guid? InitiatingUserId = null);
 
 /// <summary>
 /// Lisans iş kurallarını yürütür; saklama (şifreli dosya) tamamen <see cref="ILicenseStorageService"/>'e delege edilir.
@@ -79,6 +82,12 @@ public sealed record LicenseActivationClientInfo(string? ClientIp, string? UserA
 public sealed class LicenseService : ILicenseService
 {
     public const int TrialDays = 30;
+
+    /// <summary>
+    /// Paid window granted for key-only activation (no JWT / no remote / no local issuance row).
+    /// REGK display keys do not embed a reversible expiry without the signed JWT.
+    /// </summary>
+    private const int KeyOnlyPaidActivationDays = 365;
 
     private static readonly JsonSerializerOptions RemoteSerializerOptions = new()
     {
@@ -148,9 +157,21 @@ public sealed class LicenseService : ILicenseService
             return;
         }
 
+        ActivatedLicense? dbActivation = null;
+        try
+        {
+            using var db = _dbContextFactory.CreateDbContext();
+            dbActivation = QueryPrimaryActiveActivation(db);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License: startup could not read activated_licenses for primary activation.");
+        }
+
         lock (_gate)
         {
             _persisted = LoadOrCreatePersisted();
+            ApplyPrimaryActiveActivationRowToPersisted(dbActivation);
             if (string.IsNullOrWhiteSpace(_persisted.LicenseKey))
             {
                 var restoredKey = TryRestoreLicenseKeyFromActivatedLicenses();
@@ -182,7 +203,7 @@ public sealed class LicenseService : ILicenseService
 
     public LicenseStatusResponse GetStatus()
     {
-        string? persistedKeyForRevocation = null;
+        string? persistedKeyForOverlays = null;
         LicenseStatusResponse snapshot;
 
         lock (_gate)
@@ -196,44 +217,62 @@ public sealed class LicenseService : ILicenseService
                 && _persisted != null
                 && !string.IsNullOrWhiteSpace(_persisted.LicenseKey))
             {
-                persistedKeyForRevocation = _persisted.LicenseKey.Trim().ToUpperInvariant();
+                persistedKeyForOverlays = _persisted.LicenseKey.Trim().ToUpperInvariant();
             }
         }
 
-        if (persistedKeyForRevocation is not null && IsPersistedLicenseKeyBlockedInRegistry(persistedKeyForRevocation))
+        return ApplyLicenseComplianceOverlays(snapshot, persistedKeyForOverlays);
+    }
+
+    public async Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default)
+    {
+        if (OpenApiExportMode.IsEnabled)
         {
-            snapshot = snapshot with
-            {
-                IsValid = false,
-                IsTrial = false,
-                IsExpired = true,
-                DaysRemaining = 0,
-                EnabledFeatures = Array.Empty<string>(),
-            };
+            return new LicenseStatusResponse(
+                true,
+                false,
+                false,
+                0,
+                null,
+                _storage.MachineHashHex,
+                EnabledFeatures: LicenseFeatureIds.All);
         }
 
-        if (!OpenApiExportMode.IsEnabled
-            && _hostEnvironment.IsDevelopment()
-            && _developmentOptions.CurrentValue.SimulateLicenseExpired)
+        ActivatedLicense? dbActivation = null;
+        try
         {
-            return snapshot with
-            {
-                IsValid = false,
-                IsTrial = false,
-                IsExpired = true,
-                DaysRemaining = 0,
-                ExpiryDate = DateTime.UtcNow.Date,
-                EnabledFeatures = Array.Empty<string>(),
-            };
+            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            dbActivation = await QueryPrimaryActiveActivationAsync(db, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License: GetCurrentStatusAsync database read failed; using in-memory snapshot only.");
         }
 
-        return snapshot;
+        LicenseStatusResponse snapshot;
+        string? persistedKeyForOverlays;
+        lock (_gate)
+        {
+            _persisted ??= LoadOrCreatePersisted();
+            if (dbActivation != null)
+                ApplyPrimaryActiveActivationRowToPersisted(dbActivation);
+
+            var paid = TryValidatePaidLicense(_persisted);
+            _snapshot = BuildSnapshot(_persisted, paid);
+            _snapshotInitialized = true;
+            snapshot = _snapshot;
+            persistedKeyForOverlays = !string.IsNullOrWhiteSpace(_persisted.LicenseKey)
+                ? _persisted.LicenseKey.Trim().ToUpperInvariant()
+                : null;
+        }
+
+        return ApplyLicenseComplianceOverlays(snapshot, persistedKeyForOverlays);
     }
 
     public async Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var s = GetStatus();
+        var s = await GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         var paid = s.IsValid && !s.IsTrial;
         var trialActive = s.IsTrial && !s.IsExpired;
         var operational = paid || trialActive;
@@ -280,7 +319,8 @@ public sealed class LicenseService : ILicenseService
             await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
             await db.ActivatedLicenses
                 .Where(a =>
-                    a.MachineFingerprint == machine
+                    a.IsActive
+                    && a.MachineFingerprint == machine
                     && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper)
                     && a.LastSeenAtUtc < throttleCutoff)
                 .ExecuteUpdateAsync(
@@ -339,6 +379,7 @@ public sealed class LicenseService : ILicenseService
 
         var opts = _options.Value;
         var offlineJwt = request.OfflineActivationJwt?.Trim();
+        DateTime? keyOnlyPaidValidUntilUtc = null;
 
         try
         {
@@ -385,16 +426,28 @@ public sealed class LicenseService : ILicenseService
                 // Honour the form "(optional) Offline-Aktivierungs-JWT" contract — if the row exists for this host
                 // (non-revoked, non-transferred, non-superseded, non-expired, fingerprint-bound when required),
                 // accept activation without remote validation. Mirrors the snapshot logic in TryValidatePaidLicense.
-                if (!TryResolveIssuedRegistryPaid(normalizedKey, out _))
+                if (TryResolveIssuedRegistryPaid(normalizedKey, out _))
+                {
+                    _logger.LogInformation(
+                        "License activation: same-host issued_licenses match accepted (no JWT, no remote). LicenseKeyPrefix={LicenseKeyPrefix}",
+                        SafePrefix(normalizedKey));
+                }
+                else if (IsKeyOnlyOfflineActivationContextAllowed())
+                {
+                    keyOnlyPaidValidUntilUtc = DateTime.SpecifyKind(
+                        DateTime.UtcNow.AddDays(KeyOnlyPaidActivationDays),
+                        DateTimeKind.Utc);
+                    _logger.LogInformation(
+                        "License activation: key-only mode (Development or License:AllowKeyOnlyOfflineActivation). LicenseKeyPrefix={LicenseKeyPrefix}, PaidValidUntilUtc={ValidUntil:o}",
+                        SafePrefix(normalizedKey),
+                        keyOnlyPaidValidUntilUtc);
+                }
+                else
                 {
                     return await FailAndLogAsync(
                         normalizedKey,
-                        "Provide OfflineActivationJwt (offline) or configure License:RemoteValidationUrl (online).");
+                        "Provide OfflineActivationJwt (offline) or configure License:RemoteValidationUrl (online), or enable License:AllowKeyOnlyOfflineActivation for key-only SMB setups.");
                 }
-
-                _logger.LogInformation(
-                    "License activation: same-host issued_licenses match accepted (no JWT, no remote). LicenseKeyPrefix={LicenseKeyPrefix}",
-                    SafePrefix(normalizedKey));
             }
 
             lock (_gate)
@@ -402,6 +455,9 @@ public sealed class LicenseService : ILicenseService
                 _persisted ??= new LicensePersistedState { FirstRunUtc = DateTime.UtcNow };
                 _persisted.LicenseKey = normalizedKey;
                 _persisted.OfflineJwt = offlineJwt;
+                _persisted.KeyOnlyPaidValidUntilUtc = string.IsNullOrEmpty(offlineJwt)
+                    ? keyOnlyPaidValidUntilUtc
+                    : null;
                 _storage.SaveLicenseToFile(_persisted);
                 var paid = TryValidatePaidLicense(_persisted);
                 _snapshot = BuildSnapshot(_persisted, paid);
@@ -417,6 +473,7 @@ public sealed class LicenseService : ILicenseService
                         normalizedKey,
                         st.ExpiryDate,
                         activationFeaturesJson,
+                        clientInfo,
                         cancellationToken)
                     .ConfigureAwait(false);
             }
@@ -427,6 +484,8 @@ public sealed class LicenseService : ILicenseService
                     normalizedKey,
                     "License state was saved but activation could not be recorded in the database. Check server logs.");
             }
+
+            await GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
 
             await TryInsertActivationAttemptAsync(
                 normalizedKey,
@@ -475,7 +534,11 @@ public sealed class LicenseService : ILicenseService
                 }
             }
 
-            var expiryUtc = jwtExpUtc ?? activatedExpiryUtc ?? registryExpiryUtc;
+            DateTime? keyOnlyExpiryUtc = null;
+            if (blob.KeyOnlyPaidValidUntilUtc is { } koUntil && koUntil > nowUtc)
+                keyOnlyExpiryUtc = DateTime.SpecifyKind(koUntil, DateTimeKind.Utc);
+
+            var expiryUtc = jwtExpUtc ?? activatedExpiryUtc ?? registryExpiryUtc ?? keyOnlyExpiryUtc;
             var days = expiryUtc.HasValue
                 ? Math.Max(0, (int)Math.Ceiling((expiryUtc.Value - nowUtc).TotalDays))
                 : 365;
@@ -579,7 +642,7 @@ public sealed class LicenseService : ILicenseService
             var machine = _storage.MachineHashHex;
             using var db = _dbContextFactory.CreateDbContext();
             return db.ActivatedLicenses.AsNoTracking()
-                .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+                .Where(a => a.IsActive && a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
                 .OrderByDescending(a => a.ActivatedAtUtc)
                 .Select(a => a.FeaturesJson)
                 .FirstOrDefault();
@@ -679,6 +742,9 @@ public sealed class LicenseService : ILicenseService
         if (TryResolveIssuedRegistryPaid(key, out _))
             return true;
 
+        if (TryValidateKeyOnlyPaidEntitlement(blob))
+            return true;
+
         if (!string.IsNullOrWhiteSpace(opts.RemoteValidationUrl))
         {
             // Senkron sentinel kontrol; başlangıçta blocking kullanmamak için cache benzeri optimist yol.
@@ -696,6 +762,122 @@ public sealed class LicenseService : ILicenseService
         return false;
     }
 
+    private bool IsKeyOnlyOfflineActivationContextAllowed()
+        => _hostEnvironment.IsDevelopment() || _options.Value.AllowKeyOnlyOfflineActivation;
+
+    private bool TryValidateKeyOnlyPaidEntitlement(LicensePersistedState blob)
+    {
+        if (blob.KeyOnlyPaidValidUntilUtc is not { } until || until <= DateTime.UtcNow)
+            return false;
+        return IsKeyOnlyOfflineActivationContextAllowed();
+    }
+
+    private ActivatedLicense? QueryPrimaryActiveActivation(AppDbContext db)
+    {
+        var machine = _storage.MachineHashHex;
+        var now = DateTime.UtcNow;
+        return db.ActivatedLicenses.AsNoTracking()
+            .Where(a => a.IsActive && a.ValidUntilUtc > now)
+            .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
+            .OrderByDescending(a => a.ActivatedAtUtc)
+            .FirstOrDefault();
+    }
+
+    private Task<ActivatedLicense?> QueryPrimaryActiveActivationAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var machine = _storage.MachineHashHex;
+        var now = DateTime.UtcNow;
+        return db.ActivatedLicenses.AsNoTracking()
+            .Where(a => a.IsActive && a.ValidUntilUtc > now)
+            .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
+            .OrderByDescending(a => a.ActivatedAtUtc)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private void ApplyPrimaryActiveActivationRowToPersisted(ActivatedLicense? row)
+    {
+        if (row is null || string.IsNullOrWhiteSpace(row.LicenseKey))
+            return;
+
+        _persisted ??= LoadOrCreatePersisted();
+
+        var dbKey = row.LicenseKey.Trim().ToUpperInvariant();
+        if (!LicenseKeyRegex.IsMatch(dbKey))
+            return;
+
+        var needsSave = false;
+        if (!string.Equals(_persisted.LicenseKey, dbKey, StringComparison.OrdinalIgnoreCase))
+        {
+            _persisted.LicenseKey = dbKey;
+            needsSave = true;
+        }
+
+        if (!string.IsNullOrEmpty(_persisted.OfflineJwt) && !LicenseJwtDisplayKeyMatches(_persisted.OfflineJwt.Trim(), dbKey))
+        {
+            _persisted.OfflineJwt = null;
+            needsSave = true;
+        }
+
+        if (needsSave)
+            _storage.SaveLicenseToFile(_persisted);
+    }
+
+    private static bool LicenseJwtDisplayKeyMatches(string jwt, string normalizedUpperKey)
+    {
+        try
+        {
+            var parts = jwt.Split('.');
+            if (parts.Length != 3)
+                return false;
+
+            var payloadJson = Encoding.UTF8.GetString(Base64UrlDecode(parts[1]));
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("licenseKey", out var lk) || lk.ValueKind != JsonValueKind.String)
+                return false;
+
+            var claim = lk.GetString();
+            return string.Equals(claim?.Trim().ToUpperInvariant(), normalizedUpperKey, StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private LicenseStatusResponse ApplyLicenseComplianceOverlays(LicenseStatusResponse snapshot, string? persistedKeyUpper)
+    {
+        if (!OpenApiExportMode.IsEnabled
+            && persistedKeyUpper is not null
+            && IsPersistedLicenseKeyBlockedInRegistry(persistedKeyUpper))
+        {
+            snapshot = snapshot with
+            {
+                IsValid = false,
+                IsTrial = false,
+                IsExpired = true,
+                DaysRemaining = 0,
+                EnabledFeatures = Array.Empty<string>(),
+            };
+        }
+
+        if (!OpenApiExportMode.IsEnabled
+            && _hostEnvironment.IsDevelopment()
+            && _developmentOptions.CurrentValue.SimulateLicenseExpired)
+        {
+            return snapshot with
+            {
+                IsValid = false,
+                IsTrial = false,
+                IsExpired = true,
+                DaysRemaining = 0,
+                ExpiryDate = DateTime.UtcNow.Date,
+                EnabledFeatures = Array.Empty<string>(),
+            };
+        }
+
+        return snapshot;
+    }
+
     private string? TryRestoreLicenseKeyFromActivatedLicenses()
     {
         try
@@ -703,7 +885,8 @@ public sealed class LicenseService : ILicenseService
             var machine = _storage.MachineHashHex;
             using var db = _dbContextFactory.CreateDbContext();
             return db.ActivatedLicenses.AsNoTracking()
-                .Where(a => a.MachineFingerprint == machine && a.ValidUntilUtc > DateTime.UtcNow)
+                .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
+                .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
                 .OrderByDescending(a => a.ActivatedAtUtc)
                 .Select(a => a.LicenseKey)
                 .FirstOrDefault();
@@ -724,7 +907,8 @@ public sealed class LicenseService : ILicenseService
             var machine = _storage.MachineHashHex;
             using var db = _dbContextFactory.CreateDbContext();
             var row = db.ActivatedLicenses.AsNoTracking()
-                .Where(a => a.MachineFingerprint == machine && a.ValidUntilUtc > DateTime.UtcNow)
+                .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
+                .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
                 .Where(a => EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
                 .OrderByDescending(a => a.ActivatedAtUtc)
                 .FirstOrDefault();
@@ -787,6 +971,7 @@ public sealed class LicenseService : ILicenseService
         string normalizedKeyUpper,
         DateTime? snapshotExpiryUtc,
         string featuresJson,
+        LicenseActivationClientInfo? clientInfo,
         CancellationToken cancellationToken)
     {
         var machine = _storage.MachineHashHex;
@@ -803,7 +988,16 @@ public sealed class LicenseService : ILicenseService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var displayCustomer = string.IsNullOrWhiteSpace(customerName) ? "Unknown" : customerName.Trim();
+        string? displayCustomer = string.IsNullOrWhiteSpace(customerName) ? null : customerName.Trim();
+
+        var stale = await db.ActivatedLicenses
+            .Where(a => a.MachineFingerprint == machine && a.IsActive)
+            .Where(a => !EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var row in stale)
+            row.IsActive = false;
 
         var existing = await db.ActivatedLicenses
             .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
@@ -823,6 +1017,8 @@ public sealed class LicenseService : ILicenseService
                 ActivatedAtUtc = now,
                 LastSeenAtUtc = now,
                 FeaturesJson = featuresJson,
+                IsActive = true,
+                CreatedByUserId = clientInfo?.InitiatingUserId,
             });
         }
         else
@@ -831,8 +1027,11 @@ public sealed class LicenseService : ILicenseService
             existing.ActivatedAtUtc = now;
             existing.LastSeenAtUtc = now;
             existing.FeaturesJson = featuresJson;
+            existing.IsActive = true;
             if (!string.IsNullOrWhiteSpace(customerName))
                 existing.CustomerName = displayCustomer;
+            if (existing.CreatedByUserId is null && clientInfo?.InitiatingUserId is { } uid)
+                existing.CreatedByUserId = uid;
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

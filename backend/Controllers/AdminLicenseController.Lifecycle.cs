@@ -30,11 +30,11 @@ public sealed partial class AdminLicenseController
             .Where(a => EF.Functions.ILike(a.LicenseKey, row.LicenseKey))
             .OrderByDescending(a => a.LastSeenAtUtc)
             .Select(a => new IssuedLicenseActivationDto(
-                a.MachineFingerprint,
+                a.MachineFingerprint ?? "",
                 a.ActivatedAtUtc,
                 a.LastSeenAtUtc,
                 a.ValidUntilUtc,
-                a.CustomerName))
+                a.CustomerName ?? ""))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 

@@ -34,6 +34,10 @@ public sealed class ProductionLicenseService : ILicenseService
     public LicenseStatusResponse GetStatus() => _inner.GetStatus();
 
     /// <inheritdoc />
+    public Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default) =>
+        _inner.GetCurrentStatusAsync(cancellationToken);
+
+    /// <inheritdoc />
     public bool IsLicenseSnapshotInitialized => _inner.IsLicenseSnapshotInitialized;
 
     /// <inheritdoc />

@@ -41,6 +41,7 @@ public sealed partial class AdminLicenseController
             .ConfigureAwait(false);
 
         var uniqueActivatedDevices = await _db.ActivatedLicenses.AsNoTracking()
+            .Where(a => a.IsActive && a.ValidUntilUtc >= now && a.MachineFingerprint != null)
             .Select(a => a.MachineFingerprint)
             .Distinct()
             .CountAsync(cancellationToken)

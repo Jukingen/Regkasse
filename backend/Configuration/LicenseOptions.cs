@@ -19,6 +19,14 @@ public sealed class LicenseOptions
     /// </summary>
     public string? SigningPrivateKeyPem { get; set; }
 
+    /// <summary>
+    /// When <c>true</c>, allows activating with only a formatted <c>REGK-</c> license key when neither
+    /// <see cref="OfflineVerificationPublicKeyPem"/> (JWT) nor <see cref="RemoteValidationUrl"/> is used and the key
+    /// is not present in <c>issued_licenses</c> on this host. Intended for small on-prem deployments; keep
+    /// <c>false</c> in hardened production. Development hosting always permits this path regardless of this flag.
+    /// </summary>
+    public bool AllowKeyOnlyOfflineActivation { get; set; }
+
     /// <summary>Optional HTTPS endpoint for online activation/validation (POST JSON body).</summary>
     public string? RemoteValidationUrl { get; set; }
 

@@ -11,6 +11,7 @@ import {
     Button,
     Card,
     Col,
+    Collapse,
     Descriptions,
     Dropdown,
     Form,
@@ -69,38 +70,8 @@ import { IssuedLicenseUpgradeModal } from './IssuedLicenseUpgradeModal';
 import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
 import { LicenseReportsCard } from './LicenseReportsCard';
 
-const FloatingHintStorageKey = 'regkasse.license.showFloatingHint';
-
-function getSessionStorageItem(key: string): string | null {
-    if (typeof globalThis === 'undefined') {
-        return null;
-    }
-    try {
-        return globalThis.sessionStorage?.getItem(key) ?? null;
-    } catch {
-        return null;
-    }
-}
-
-function setSessionStorageItem(key: string, value: string): void {
-    try {
-        globalThis.sessionStorage?.setItem(key, value);
-    } catch {
-        /* private mode */
-    }
-}
-
-function removeSessionStorageItem(key: string): void {
-    try {
-        globalThis.sessionStorage?.removeItem(key);
-    } catch {
-        /* private mode */
-    }
-}
-
 type LicenseFormValues = {
     licenseKey: string;
-    offlineActivationJwt?: string;
 };
 
 async function copyTextToClipboard(value: string): Promise<boolean> {
@@ -979,15 +950,8 @@ export default function AdminLicensePage() {
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const [form] = Form.useForm<LicenseFormValues>();
-    const [showFloatingHint, setShowFloatingHint] = useState(false);
 
     const canActivate = Boolean(user?.permissions?.includes(PERMISSIONS.SETTINGS_MANAGE));
-
-    useEffect(() => {
-        if (getSessionStorageItem(FloatingHintStorageKey) === '1') {
-            setShowFloatingHint(true);
-        }
-    }, []);
 
     const statusQuery = useQuery({
         queryKey: licenseQueryKeys.status,
@@ -1001,35 +965,13 @@ export default function AdminLicensePage() {
 
     const activateMutation = useMutation({
         mutationFn: (body: ActivateLicenseRequest) => postActivateLicense(body),
-        onSuccess: (res, variables) => {
+        onSuccess: (res) => {
             if (!res.success) {
-                message.error(res.message || t('license.activation.failed'));
+                message.error(res.message || t('license.activation.failureSimple'));
                 return;
             }
-            if (res.validUntil) {
-                message.success(
-                    t('license.activation.successWithValidUntil', {
-                        date: formatDate(res.validUntil, formatLocale, {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                        }),
-                    }),
-                );
-            } else {
-                message.success(t('license.activation.success'));
-            }
-            const jwt = variables.offlineActivationJwt?.trim() ?? '';
-            if (!jwt) {
-                setSessionStorageItem(FloatingHintStorageKey, '1');
-                setShowFloatingHint(true);
-            } else {
-                removeSessionStorageItem(FloatingHintStorageKey);
-                setShowFloatingHint(false);
-            }
-            form.resetFields(['licenseKey', 'offlineActivationJwt']);
+            message.success(t('license.activation.successSimple'));
+            form.resetFields(['licenseKey']);
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.activationAttemptsRoot });
@@ -1038,10 +980,10 @@ export default function AdminLicensePage() {
         onError: (err: unknown) => {
             if (axios.isAxiosError(err)) {
                 const data = err.response?.data as { message?: string } | undefined;
-                message.error(data?.message || t('license.activation.failed'));
+                message.error(data?.message || t('license.activation.failureSimple'));
                 return;
             }
-            message.error(t('license.activation.failed'));
+            message.error(t('license.activation.failureSimple'));
         },
     });
 
@@ -1049,23 +991,17 @@ export default function AdminLicensePage() {
 
     const enabledPublicLicenseFeatures = publicStatusQuery.data?.features ?? null;
 
-    const statusPresentation = useMemo(() => {
-        if (!s) return { tag: null as React.ReactNode };
-        if (s.isValid) {
-            return { tag: <Tag color="green">{t('license.status.valid')}</Tag> };
-        }
-        if (s.isTrial) {
-            return { tag: <Tag color="orange">{t('license.status.trial')}</Tag> };
-        }
-        return { tag: <Tag color="red">{t('license.status.expired')}</Tag> };
-    }, [s, t]);
+    const innerSimpleStatus = useMemo(() => {
+        if (!s) return { text: '—', color: 'default' as const };
+        const lt = (publicStatusQuery.data?.licenseType ?? '').trim().toLowerCase();
+        if (lt === 'demo') return { text: t('license.simpleUi.statusDemo'), color: 'blue' as const };
+        if (s.isExpired) return { text: t('license.simpleUi.statusExpired'), color: 'red' as const };
+        if (s.isTrial) return { text: t('license.simpleUi.statusTrial'), color: 'orange' as const };
+        if (s.isValid) return { text: t('license.simpleUi.statusActive'), color: 'green' as const };
+        return { text: t('license.simpleUi.statusExpired'), color: 'red' as const };
+    }, [s, publicStatusQuery.data?.licenseType, t]);
 
     const machineHash = s?.machineHash?.trim() ?? '';
-
-    const dismissFloatingHint = () => {
-        removeSessionStorageItem(FloatingHintStorageKey);
-        setShowFloatingHint(false);
-    };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1096,19 +1032,9 @@ export default function AdminLicensePage() {
                 }
             />
 
-            {showFloatingHint ? (
-                <Alert
-                    type="warning"
-                    showIcon
-                    message={t('license.floatingWarning')}
-                    closable
-                    onClose={dismissFloatingHint}
-                />
-            ) : null}
-
-            <Card title={t('license.publicStatus.title')}>
+            <Card title={t('license.simpleUi.titlePublic')}>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-                    {t('license.publicStatus.subtitle')}
+                    {t('license.simpleUi.subtitlePublic')}
                 </Typography.Paragraph>
                 {publicStatusQuery.isLoading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
@@ -1118,7 +1044,7 @@ export default function AdminLicensePage() {
                     <Alert type="warning" showIcon message={t('license.publicStatus.loadError')} />
                 ) : publicStatusQuery.data ? (
                     <Descriptions bordered column={1} size="small">
-                        <Descriptions.Item label={t('license.publicStatus.licenseType')}>
+                        <Descriptions.Item label={t('license.simpleUi.status')}>
                             <Tag
                                 color={
                                     publicStatusQuery.data.licenseType === 'Licensed' ||
@@ -1133,20 +1059,7 @@ export default function AdminLicensePage() {
                                 {publicStatusQuery.data.licenseType}
                             </Tag>
                         </Descriptions.Item>
-                        <Descriptions.Item label={t('license.publicStatus.mode')}>
-                            <Tag>{publicStatusQuery.data.mode ?? '—'}</Tag>
-                        </Descriptions.Item>
-                        <Descriptions.Item label={t('license.publicStatus.isValid')}>
-                            {publicStatusQuery.data.isValid ? (
-                                <Tag color="green">{t('common.buttons.yes')}</Tag>
-                            ) : (
-                                <Tag color="red">{t('common.buttons.no')}</Tag>
-                            )}
-                        </Descriptions.Item>
-                        <Descriptions.Item label={t('license.publicStatus.daysRemaining')}>
-                            {publicStatusQuery.data.daysRemaining}
-                        </Descriptions.Item>
-                        <Descriptions.Item label={t('license.publicStatus.validUntil')}>
+                        <Descriptions.Item label={t('license.simpleUi.validUntil')}>
                             {publicStatusQuery.data.validUntil
                                 ? formatDate(publicStatusQuery.data.validUntil, formatLocale, {
                                       year: 'numeric',
@@ -1157,12 +1070,8 @@ export default function AdminLicensePage() {
                                   })
                                 : '—'}
                         </Descriptions.Item>
-                        <Descriptions.Item label={t('license.publicStatus.features')}>
-                            <Space size={[4, 4]} wrap>
-                                {(publicStatusQuery.data.features ?? []).map((f) => (
-                                    <Tag key={f}>{f}</Tag>
-                                ))}
-                            </Space>
+                        <Descriptions.Item label={t('license.simpleUi.daysRemaining')}>
+                            {publicStatusQuery.data.daysRemaining}
                         </Descriptions.Item>
                     </Descriptions>
                 ) : null}
@@ -1182,30 +1091,56 @@ export default function AdminLicensePage() {
                 ) : (
                     <Row gutter={[16, 16]}>
                         <Col xs={24} lg={14}>
+                            <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>
+                                {t('license.simpleUi.titleServer')}
+                            </Typography.Title>
                             <Descriptions bordered column={1} size="small">
-                                <Descriptions.Item label={t('license.status.label')}>
-                                    {statusPresentation.tag}
+                                <Descriptions.Item label={t('license.simpleUi.status')}>
+                                    <Tag color={innerSimpleStatus.color}>{innerSimpleStatus.text}</Tag>
                                 </Descriptions.Item>
-                                <Descriptions.Item label={t('license.trialDays')}>
-                                    {s?.isTrial ? s.daysRemaining : '—'}
+                                <Descriptions.Item label={t('license.simpleUi.validUntil')}>
+                                    {s?.expiryDate
+                                        ? formatDate(s.expiryDate, formatLocale, {
+                                              year: 'numeric',
+                                              month: '2-digit',
+                                              day: '2-digit',
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                          })
+                                        : '—'}
                                 </Descriptions.Item>
-                                <Descriptions.Item label={t('license.machineHash')}>
-                                    {machineHash ? (
-                                        <Typography.Paragraph
-                                            copyable={{ text: machineHash }}
-                                            style={{
-                                                marginBottom: 0,
-                                                wordBreak: 'break-all',
-                                                fontFamily: 'ui-monospace, monospace',
-                                            }}
-                                        >
-                                            {machineHash}
-                                        </Typography.Paragraph>
-                                    ) : (
-                                        '—'
-                                    )}
+                                <Descriptions.Item label={t('license.simpleUi.daysRemaining')}>
+                                    {s ? s.daysRemaining : '—'}
                                 </Descriptions.Item>
                             </Descriptions>
+                            {machineHash ? (
+                                <Collapse
+                                    ghost
+                                    style={{ marginTop: 12 }}
+                                    items={[
+                                        {
+                                            key: 'tech',
+                                            label: t('license.simpleUi.technicalPanel'),
+                                            children: (
+                                                <Typography.Paragraph
+                                                    copyable={{ text: machineHash }}
+                                                    style={{
+                                                        marginBottom: 0,
+                                                        wordBreak: 'break-all',
+                                                        fontFamily: 'ui-monospace, monospace',
+                                                    }}
+                                                >
+                                                    <Typography.Text type="secondary">
+                                                        {t('license.simpleUi.machineFingerprint')}
+                                                    </Typography.Text>
+                                                    <br />
+                                                    {machineHash}
+                                                </Typography.Paragraph>
+                                            ),
+                                        },
+                                    ]}
+                                />
+                            ) : null}
                         </Col>
                         <Col xs={24} lg={10}>
                             <Card type="inner" title={t('license.activation.title')}>
@@ -1221,10 +1156,7 @@ export default function AdminLicensePage() {
                                                 message.warning(t('license.activation.licenseKey'));
                                                 return;
                                             }
-                                            activateMutation.mutate({
-                                                licenseKey,
-                                                offlineActivationJwt: values.offlineActivationJwt?.trim() || null,
-                                            });
+                                            activateMutation.mutate({ licenseKey });
                                         }}
                                     >
                                         <Form.Item
@@ -1235,17 +1167,6 @@ export default function AdminLicensePage() {
                                             ]}
                                         >
                                             <Input placeholder="REGK-XXXXX-XXXXX-XXXXX" autoComplete="off" />
-                                        </Form.Item>
-                                        <Form.Item
-                                            name="offlineActivationJwt"
-                                            label={t('license.activation.offlineJwt')}
-                                            extra={t('license.activation.offlineJwtHelp')}
-                                        >
-                                            <Input.TextArea
-                                                rows={4}
-                                                placeholder="eyJhbGciOiJSUzI1NiIs..."
-                                                autoComplete="off"
-                                            />
                                         </Form.Item>
                                         <Form.Item>
                                             <Button

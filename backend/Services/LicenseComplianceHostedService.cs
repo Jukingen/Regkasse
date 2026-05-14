@@ -61,6 +61,7 @@ public sealed class LicenseComplianceHostedService : BackgroundService
             using var scope = _scopeFactory.CreateScope();
             var lic = scope.ServiceProvider.GetRequiredService<ILicenseService>();
             lic.EvaluateOnStartup();
+            lic.GetCurrentStatusAsync(CancellationToken.None).GetAwaiter().GetResult();
             var s = lic.GetStatus();
             if (!s.IsValid && !s.IsTrial)
                 _logger.LogWarning("Lizenz ungültig oder abgelaufen");
