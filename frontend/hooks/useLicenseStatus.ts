@@ -22,6 +22,8 @@ export type LicenseStatus = {
   licenseType?: string | null;
   /** From GET /api/license/status: Demo / Trial / Production. */
   mode?: string | null;
+  /** Enabled deployment license feature ids from GET /api/license/status (empty/undefined = full bundle). */
+  enabledFeatures?: readonly string[] | null;
 };
 
 const POLL_MS = 10 * 60 * 1000;
@@ -147,6 +149,7 @@ function mergePublic(
       machineHash: '',
       licenseType: pub.licenseType ?? null,
       mode: pub.mode ?? null,
+      enabledFeatures: pub.features?.length ? [...pub.features] : null,
     };
   }
 
@@ -160,5 +163,7 @@ function mergePublic(
     isTrial: mergedTrial,
     expiryDate:
       typeof pub.validUntil === 'string' && pub.validUntil.length > 0 ? pub.validUntil : base.expiryDate,
+    enabledFeatures:
+      pub.features && pub.features.length > 0 ? [...pub.features] : base.enabledFeatures ?? null,
   };
 }

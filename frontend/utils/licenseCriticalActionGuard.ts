@@ -3,6 +3,7 @@ import type { TFunction } from 'i18next';
 
 import type { LicenseStatus } from '../hooks/useLicenseStatus';
 import { isDevelopmentSimulationEnvironment } from '../src/config/devFlags';
+import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from './licenseDeploymentFeatures';
 
 let loggedDevLicenseBypass = false;
 
@@ -74,6 +75,21 @@ export function ensureLicenseAllowsCriticalAction(
       Alert.alert(
         t('criticalGuard.expiredTitle'),
         t('criticalGuard.expiredBody'),
+        [{ text: t('criticalGuard.ok'), onPress: () => resolve(false) }]
+      );
+    });
+  }
+
+  const needsPosFiscal =
+    _kind === 'payment' || _kind === 'specialReceipt' || _kind === 'fiscalExport';
+  if (
+    needsPosFiscal &&
+    !deploymentLicenseAllows(status.enabledFeatures, LICENSE_DEPLOYMENT_FEATURE.PosFiscal)
+  ) {
+    return new Promise((resolve) => {
+      Alert.alert(
+        t('criticalGuard.featureDeniedTitle'),
+        t('criticalGuard.featureDeniedBody', { featureId: LICENSE_DEPLOYMENT_FEATURE.PosFiscal }),
         [{ text: t('criticalGuard.ok'), onPress: () => resolve(false) }]
       );
     });

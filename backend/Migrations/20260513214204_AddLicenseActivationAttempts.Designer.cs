@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260513214204_AddLicenseActivationAttempts")]
+    partial class AddLicenseActivationAttempts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -39,11 +42,6 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("customer_name");
-
-                    b.Property<string>("FeaturesJson")
-                        .HasMaxLength(4096)
-                        .HasColumnType("character varying(4096)")
-                        .HasColumnName("features_json");
 
                     b.Property<DateTime>("LastSeenAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -2490,11 +2488,6 @@ namespace KasseAPI_Final.Migrations
                     b.Property<DateTime>("ExpiryAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expiry_at_utc");
-
-                    b.Property<string>("FeaturesJson")
-                        .HasMaxLength(4096)
-                        .HasColumnType("character varying(4096)")
-                        .HasColumnName("features_json");
 
                     b.Property<bool>("IsCancelled")
                         .HasColumnType("boolean")

@@ -21,13 +21,16 @@ public sealed class LicensePublicStatusDto
     public string Mode { get; init; } = "Production";
 }
 
-/// <summary>Optional POS feature flags from <c>GET /api/license/features</c>.</summary>
+/// <summary>Optional POS feature flags from <c>GET /api/license/features</c> plus enabled license feature ids.</summary>
 public sealed class LicenseFeaturesDto
 {
     public bool AllowOffline { get; init; }
 
     /// <summary>Maximum concurrent cashiers; <c>-1</c> means unlimited.</summary>
     public int MaxCashiers { get; init; }
+
+    /// <summary>Enabled <see cref="LicenseFeatureIds"/> for this deployment (trial = full bundle).</summary>
+    public IReadOnlyList<string> EnabledLicenseFeatures { get; init; } = Array.Empty<string>();
 }
 
 /// <summary>Result of async license validation (middleware + diagnostics).</summary>

@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +24,8 @@ public static class LicenseIssuer
         string customerName,
         string? machineHashHex,
         DateTimeOffset expiresAtUtc,
-        RSA privateKey)
+        RSA privateKey,
+        IReadOnlyList<string>? featureIds = null)
     {
         ArgumentNullException.ThrowIfNull(privateKey);
 
@@ -52,11 +55,39 @@ public static class LicenseIssuer
             licenseKey,
             machine,
             customer,
-            expUnix);
+            expUnix,
+            featureIds);
 
         var publicPem = privateKey.ExportRSAPublicKeyPem();
 
         return new LicenseIssueResult(licenseKey, jwt, canonicalPayload, publicPem, expiresAtUtc);
+    }
+
+    /// <summary>
+    /// Signs a new RS256 JWT for an existing REGK display key (in-place expiry or binding change).
+    /// Use when the database row must keep <paramref name="licenseKey"/> while rotating JWT <c>exp</c> / <c>machineHash</c> claims.
+    /// </summary>
+    /// <param name="machineHashHex">Bound SHA-256 hex, or null/empty for floating (JWT omits binding).</param>
+    public static string SignJwtForExistingLicenseKey(
+        RSA privateKey,
+        string licenseKey,
+        string? machineHashHex,
+        string customerName,
+        DateTimeOffset expiresAtUtc,
+        IReadOnlyList<string>? featureIds = null)
+    {
+        ArgumentNullException.ThrowIfNull(privateKey);
+        var customer = SanitizeCustomer(customerName);
+        var key = (licenseKey ?? "").Trim();
+        if (key.Length == 0)
+            throw new ArgumentException("License key is required.", nameof(licenseKey));
+
+        var machine = string.IsNullOrWhiteSpace(machineHashHex)
+            ? ""
+            : machineHashHex.Trim().ToLowerInvariant();
+
+        var expUnix = expiresAtUtc.ToUnixTimeSeconds();
+        return CreateRs256Jwt(privateKey, key, machine, customer, expUnix, featureIds);
     }
 
     /// <summary>Writes a new RSA key pair to PEM files (internal tooling).</summary>
@@ -103,20 +134,37 @@ public static class LicenseIssuer
         string licenseKey,
         string machineHashHex,
         string customer,
-        long expUnixSeconds)
+        long expUnixSeconds,
+        IReadOnlyList<string>? featureIds)
     {
         var headerObj = new { alg = "RS256", typ = "JWT" };
-        var payloadObj = new
-        {
-            licenseKey,
-            machineHash = machineHashHex,
-            customer,
-            exp = expUnixSeconds,
-        };
-
         var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         var headerJson = JsonSerializer.Serialize(headerObj, jsonOptions);
-        var payloadJson = JsonSerializer.Serialize(payloadObj, jsonOptions);
+
+        string payloadJson;
+        if (featureIds is { Count: > 0 })
+        {
+            var payload = new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                ["licenseKey"] = licenseKey,
+                ["machineHash"] = machineHashHex,
+                ["customer"] = customer,
+                ["exp"] = expUnixSeconds,
+                ["features"] = featureIds.Select(s => s.Trim()).Where(s => s.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            };
+            payloadJson = JsonSerializer.Serialize(payload, jsonOptions);
+        }
+        else
+        {
+            var payloadObj = new
+            {
+                licenseKey,
+                machineHash = machineHashHex,
+                customer,
+                exp = expUnixSeconds,
+            };
+            payloadJson = JsonSerializer.Serialize(payloadObj, jsonOptions);
+        }
 
         var headerB64 = Base64UrlEncode(Encoding.UTF8.GetBytes(headerJson));
         var payloadB64 = Base64UrlEncode(Encoding.UTF8.GetBytes(payloadJson));

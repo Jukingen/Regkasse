@@ -16,12 +16,13 @@ namespace KasseAPI_Final.Controllers;
 [ApiController]
 [Route("api/admin/license")]
 [Produces("application/json")]
-public sealed class AdminLicenseController : ControllerBase
+public sealed partial class AdminLicenseController : ControllerBase
 {
     private readonly ILicenseService _licenseService;
     private readonly ILicenseIssuanceService _licenseIssuanceService;
     private readonly AppDbContext _db;
     private readonly ILicenseReminderNotificationStore _licenseReminderNotificationStore;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<AdminLicenseController> _logger;
 
     public AdminLicenseController(
@@ -29,12 +30,14 @@ public sealed class AdminLicenseController : ControllerBase
         ILicenseIssuanceService licenseIssuanceService,
         AppDbContext db,
         ILicenseReminderNotificationStore licenseReminderNotificationStore,
+        IAuditLogService auditLogService,
         ILogger<AdminLicenseController> logger)
     {
         _licenseService = licenseService;
         _licenseIssuanceService = licenseIssuanceService;
         _db = db;
         _licenseReminderNotificationStore = licenseReminderNotificationStore;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -51,12 +54,14 @@ public sealed class AdminLicenseController : ControllerBase
     /// <summary>
     /// Paged list of issued licenses (<c>issued_licenses</c>). JWT is never returned.
     /// <c>licenseKey</c> is masked as REGK-****-****- plus the real final segment only.
+    /// Optional <paramref name="machineFingerprint"/> filters rows that have a matching <c>activated_licenses</c> machine hash substring.
     /// </summary>
     [HttpGet("list")]
     [HasPermission(AppPermissions.SettingsManage)]
     [ProducesResponseType(typeof(IssuedLicensesListResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<IssuedLicensesListResponse>> ListIssuedLicenses(
         [FromQuery] string? search = null,
+        [FromQuery] string? machineFingerprint = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
@@ -64,12 +69,23 @@ public sealed class AdminLicenseController : ControllerBase
         pageNumber = Math.Max(1, pageNumber);
         pageSize = Math.Clamp(pageSize, 1, 200);
 
-        var query = _db.IssuedLicenses.AsNoTracking().AsQueryable();
+        var query = _db.IssuedLicenses.AsNoTracking().Where(il => !il.IsDeleted);
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var safe = new string(search.Trim().Where(c => c is not '%' and not '_' and not '\\').Take(256).ToArray());
+            var safe = SanitizeSqlLikeFragment(search);
             if (safe.Length > 0)
                 query = query.Where(il => EF.Functions.ILike(il.CustomerName, $"%{safe}%"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(machineFingerprint))
+        {
+            var fp = SanitizeSqlLikeFragment(machineFingerprint);
+            if (fp.Length > 0)
+            {
+                query = query.Where(il => _db.ActivatedLicenses.Any(a =>
+                    a.LicenseKey.ToUpper() == il.LicenseKey.ToUpper()
+                    && EF.Functions.ILike(a.MachineFingerprint, $"%{fp}%")));
+            }
         }
 
         var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
@@ -92,25 +108,77 @@ public sealed class AdminLicenseController : ControllerBase
                 il.RevocationReason,
                 il.SupersededByLicenseId,
                 il.TransferredToLicenseId,
+                il.IsCancelled,
+                il.IsDeleted,
+                il.FeaturesJson,
             })
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var items = rows.Select(static r => new IssuedLicenseListItemDto
+        var keyUppers = rows
+            .Select(r => r.LicenseKey.Trim().ToUpperInvariant())
+            .Distinct()
+            .ToList();
+
+        List<(string LicenseKey, string MachineFingerprint, DateTime ActivatedAtUtc, DateTime LastSeenAtUtc)> actRows = new();
+        if (keyUppers.Count > 0)
         {
-            Id = r.Id,
-            LicenseKey = MaskIssuedLicenseKey(r.LicenseKey),
-            CustomerName = r.CustomerName,
-            ExpiryAtUtc = r.ExpiryAtUtc,
-            RequireFingerprint = r.RequireFingerprint,
-            MachineHashHex = r.MachineHashHex,
-            IssuedAtUtc = r.IssuedAtUtc,
-            IssuedByUserId = r.IssuedByUserId,
-            IsRevoked = r.IsRevoked,
-            RevokedAtUtc = r.RevokedAtUtc,
-            RevocationReason = r.RevocationReason,
-            SupersededByLicenseId = r.SupersededByLicenseId,
-            TransferredToLicenseId = r.TransferredToLicenseId,
+            actRows = await _db.ActivatedLicenses.AsNoTracking()
+                .Where(a => keyUppers.Contains(a.LicenseKey))
+                .Select(a => new ValueTuple<string, string, DateTime, DateTime>(
+                    a.LicenseKey,
+                    a.MachineFingerprint,
+                    a.ActivatedAtUtc,
+                    a.LastSeenAtUtc))
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var actByKey = actRows
+            .GroupBy(t => t.Item1.Trim().ToUpperInvariant())
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var items = rows.Select(r =>
+        {
+            var k = r.LicenseKey.Trim().ToUpperInvariant();
+            actByKey.TryGetValue(k, out var list);
+            list ??= new List<(string, string, DateTime, DateTime)>();
+
+            DateTime? lastActivationUtc = list.Count == 0
+                ? null
+                : list.Max(x => x.Item3);
+            string? shortFp = null;
+            if (list.Count > 0)
+            {
+                var chosen = list
+                    .OrderByDescending(x => x.Item4)
+                    .ThenByDescending(x => x.Item3)
+                    .First();
+                shortFp = FormatShortMachineFingerprint(chosen.Item2);
+            }
+
+            return new IssuedLicenseListItemDto
+            {
+                Id = r.Id,
+                LicenseKey = MaskIssuedLicenseKey(r.LicenseKey),
+                CustomerName = r.CustomerName,
+                ExpiryAtUtc = r.ExpiryAtUtc,
+                RequireFingerprint = r.RequireFingerprint,
+                MachineHashHex = r.MachineHashHex,
+                IssuedAtUtc = r.IssuedAtUtc,
+                IssuedByUserId = r.IssuedByUserId,
+                IsRevoked = r.IsRevoked,
+                RevokedAtUtc = r.RevokedAtUtc,
+                RevocationReason = r.RevocationReason,
+                SupersededByLicenseId = r.SupersededByLicenseId,
+                TransferredToLicenseId = r.TransferredToLicenseId,
+                IsCancelled = r.IsCancelled,
+                IsDeleted = r.IsDeleted,
+                ActivatedDeviceCount = list.Count,
+                LastActivationAtUtc = lastActivationUtc,
+                RecentMachineFingerprintShort = shortFp,
+                Features = LicenseFeatureIds.TryParseStoredFeatures(r.FeaturesJson)?.ToArray(),
+            };
         }).ToList();
 
         return Ok(new IssuedLicensesListResponse
@@ -130,9 +198,26 @@ public sealed class AdminLicenseController : ControllerBase
         CancellationToken cancellationToken)
     {
         if (body is null)
+        {
+            _logger.LogWarning("License activation: request body bound to null (empty JSON, wrong content-type, or unreadable payload).");
             return BadRequest(new LicenseActivationResult(false, "Request body is required."));
+        }
 
-        var result = await _licenseService.ActivateAsync(body, cancellationToken).ConfigureAwait(false);
+        // Diagnostic-only: prove which fields were bound from the incoming JSON so a client/server naming mismatch
+        // surfaces here instead of being misread as a "missing JWT" error. JWT value is never logged — length only.
+        _logger.LogInformation(
+            "License activation request received. LicenseKeyPresent={LicenseKeyPresent}, LicenseKeyPrefix={LicenseKeyPrefix}, OfflineJwtPresent={OfflineJwtPresent}, OfflineJwtLength={OfflineJwtLength}, MachineFingerprintPresent={MachineFingerprintPresent}, MachineFingerprintPrefix={MachineFingerprintPrefix}",
+            !string.IsNullOrWhiteSpace(body.LicenseKey),
+            SafeFieldPrefix(body.LicenseKey),
+            !string.IsNullOrWhiteSpace(body.OfflineActivationJwt),
+            body.OfflineActivationJwt?.Length ?? 0,
+            !string.IsNullOrWhiteSpace(body.MachineFingerprint),
+            SafeFieldPrefix(body.MachineFingerprint));
+
+        var uaRaw = Request.Headers.UserAgent.ToString();
+        var ua = uaRaw.Length <= 500 ? uaRaw : uaRaw[..500];
+        var client = new LicenseActivationClientInfo(ResolveClientIp(HttpContext), string.IsNullOrEmpty(ua) ? null : ua);
+        var result = await _licenseService.ActivateAsync(body, client, cancellationToken).ConfigureAwait(false);
         if (!result.Success)
         {
             _logger.LogWarning("License activation failed: {Message}", result.Message);
@@ -140,6 +225,50 @@ public sealed class AdminLicenseController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    private static string? ResolveClientIp(HttpContext httpContext)
+    {
+        if (httpContext.Request.Headers.TryGetValue("X-Forwarded-For", out var forwarded) && forwarded.Count > 0)
+        {
+            var first = forwarded.ToString().Split(',')[0].Trim();
+            if (first.Length == 0)
+                return null;
+            return first.Length <= 45 ? first : first[..45];
+        }
+
+        var remote = httpContext.Connection.RemoteIpAddress;
+        if (remote is null)
+            return null;
+        if (remote.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6
+            && remote.IsIPv4MappedToIPv6)
+            return remote.MapToIPv4().ToString();
+        return remote.ToString();
+    }
+
+    private static string SanitizeSqlLikeFragment(string value)
+    {
+        return new string(value.Trim().Where(c => c is not '%' and not '_' and not '\\').Take(256).ToArray());
+    }
+
+    /// <summary>First 8 + last 8 hex characters for table display (full SHA-256 is 64 chars).</summary>
+    private static string? FormatShortMachineFingerprint(string? hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex))
+            return null;
+        var t = hex.Trim();
+        if (t.Length <= 16)
+            return t;
+        return $"{t[..8]}…{t[^8..]}";
+    }
+
+    /// <summary>Short, safe prefix for license-key / fingerprint log fragments (never the full secret).</summary>
+    private static string SafeFieldPrefix(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return "(empty)";
+        var trimmed = value.Trim();
+        return trimmed.Length <= 12 ? trimmed : trimmed[..12] + "…";
     }
 
     /// <summary>
@@ -163,7 +292,8 @@ public sealed class AdminLicenseController : ControllerBase
             CustomerName: body.CustomerName ?? string.Empty,
             ExpiryDateUtc: expiryUtc,
             RequireFingerprint: body.BindToMachineFingerprint ?? body.RequireFingerprint,
-            MachineHashHex: body.MachineHashHex);
+            MachineHashHex: body.MachineHashHex,
+            FeatureIds: body.Features);
 
         var issuedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -574,6 +704,9 @@ public sealed class GenerateLicenseRequestBody
 
     public string? MachineHashHex { get; set; }
 
+    /// <summary>Optional explicit feature bundle; omitted = full single-license bundle.</summary>
+    public string[]? Features { get; set; }
+
     [JsonPropertyName("bindToMachineFingerprint")]
     public bool? BindToMachineFingerprint { get; set; }
 }
@@ -693,4 +826,20 @@ public sealed class IssuedLicenseListItemDto
     public Guid? SupersededByLicenseId { get; set; }
 
     public Guid? TransferredToLicenseId { get; set; }
+
+    /// <summary>Rows in <c>activated_licenses</c> for this license key (distinct machines).</summary>
+    public int ActivatedDeviceCount { get; set; }
+
+    /// <summary>Latest <c>activated_at_utc</c> across activations for this key.</summary>
+    public DateTime? LastActivationAtUtc { get; set; }
+
+    /// <summary>Shortened fingerprint (first 8 + last 8 hex) of the device with the latest <c>last_seen_at_utc</c>.</summary>
+    public string? RecentMachineFingerprintShort { get; set; }
+
+    public bool IsCancelled { get; set; }
+
+    public bool IsDeleted { get; set; }
+
+    /// <summary>Enabled license feature ids when stored on the issuance row; null = full bundle / legacy row.</summary>
+    public string[]? Features { get; set; }
 }

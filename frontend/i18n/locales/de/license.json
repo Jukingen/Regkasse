@@ -56,6 +56,8 @@
     "trialSoonBody": "Ihre Testlizenz endet in {{count}} Tag(en). Möchten Sie trotzdem fortfahren?",
     "cancel": "Abbrechen",
     "proceed": "Fortfahren",
-    "ok": "OK"
+    "ok": "OK",
+    "featureDeniedTitle": "Lizenzfunktion nicht freigeschaltet",
+    "featureDeniedBody": "Diese Aktion ist mit Ihrer aktuellen Lizenz nicht freigeschaltet ({{featureId}}). Bitte kontaktieren Sie Ihren Administrator."
   }
 }

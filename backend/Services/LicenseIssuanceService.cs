@@ -13,7 +13,8 @@ public sealed record GenerateLicenseRequest(
     string CustomerName,
     DateTime ExpiryDateUtc,
     bool RequireFingerprint,
-    string? MachineHashHex);
+    string? MachineHashHex,
+    IReadOnlyList<string>? FeatureIds = null);
 
 /// <summary>Result returned to the admin caller.</summary>
 public sealed record GenerateLicenseResult(
@@ -102,6 +103,20 @@ public interface ILicenseIssuanceService
         TransferLicenseCommand command,
         string? transferredByUserId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Extends <c>expiry_at_utc</c> in place and re-signs JWT; REGK display key unchanged.</summary>
+    Task<GenerateLicenseResult> ExtendInPlaceByIdAsync(
+        Guid issuedLicenseId,
+        int? addDays,
+        int? addMonths,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Clears machine binding, re-signs JWT as floating, removes <c>activated_licenses</c> rows for this key.</summary>
+    Task<GenerateLicenseResult> UnregisterMachineBindingByIdAsync(
+        Guid issuedLicenseId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -143,6 +158,9 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
         if (validationError is not null)
             return new GenerateLicenseResult(false, null, null, null, validationError);
 
+        var featureList = ResolveFeatureListForIssuance(request);
+        var featuresJson = LicenseFeatureIds.SerializeJsonArray(featureList);
+
         // 2) Load signing key from configuration. Absent → feature disabled on this host.
         var pem = _options.Value.SigningPrivateKeyPem?.Trim();
         if (string.IsNullOrWhiteSpace(pem))
@@ -167,7 +185,8 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 customerName: customer,
                 machineHashHex: machineHash,
                 expiresAtUtc: expiresAt,
-                privateKey: rsa);
+                privateKey: rsa,
+                featureIds: featureList);
         }
         catch (Exception ex)
         {
@@ -189,6 +208,7 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             IssuedAtUtc = DateTime.UtcNow,
             IssuedByUserId = string.IsNullOrWhiteSpace(issuedByUserId) ? null : issuedByUserId,
             IsRevoked = false,
+            FeaturesJson = featuresJson,
         };
 
         _db.IssuedLicenses.Add(entity);
@@ -263,6 +283,12 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 return new GenerateLicenseResult(false, null, null, null, "No issued license matches this key or id.");
             }
 
+            if (old.IsDeleted || old.IsCancelled)
+            {
+                await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                return new GenerateLicenseResult(false, null, null, null, "Cannot renew a deleted or cancelled license.");
+            }
+
             if (old.IsRevoked)
             {
                 await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
@@ -325,6 +351,9 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 : null;
             var expiresAt = new DateTimeOffset(newExpiryUtc, TimeSpan.Zero);
 
+            var featureList = ResolveFeatureListForIssuance(genReq, old);
+            var featuresJson = LicenseFeatureIds.SerializeJsonArray(featureList);
+
             LicenseIssueResult issued;
             try
             {
@@ -332,7 +361,8 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                     customerName: customer,
                     machineHashHex: machineHash,
                     expiresAtUtc: expiresAt,
-                    privateKey: rsa);
+                    privateKey: rsa,
+                    featureIds: featureList);
             }
             catch (Exception ex)
             {
@@ -354,6 +384,7 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 IssuedAtUtc = DateTime.UtcNow,
                 IssuedByUserId = string.IsNullOrWhiteSpace(renewedByUserId) ? null : renewedByUserId,
                 IsRevoked = false,
+                FeaturesJson = featuresJson,
             };
 
             _db.IssuedLicenses.Add(newEntity);
@@ -446,6 +477,12 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 return new GenerateLicenseResult(false, null, null, null, "No issued license matches this key or id.");
             }
 
+            if (old.IsDeleted || old.IsCancelled)
+            {
+                await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                return new GenerateLicenseResult(false, null, null, null, "Cannot upgrade a deleted or cancelled license.");
+            }
+
             if (old.IsRevoked)
             {
                 await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
@@ -516,6 +553,9 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 : null;
             var expiresAt = new DateTimeOffset(newExpiryUtc, TimeSpan.Zero);
 
+            var featureList = ResolveFeatureListForIssuance(genReq, old);
+            var featuresJson = LicenseFeatureIds.SerializeJsonArray(featureList);
+
             LicenseIssueResult issued;
             try
             {
@@ -523,7 +563,8 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                     customerName: customer,
                     machineHashHex: machineHash,
                     expiresAtUtc: expiresAt,
-                    privateKey: rsa);
+                    privateKey: rsa,
+                    featureIds: featureList);
             }
             catch (Exception ex)
             {
@@ -545,6 +586,7 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 IssuedAtUtc = DateTime.UtcNow,
                 IssuedByUserId = string.IsNullOrWhiteSpace(upgradedByUserId) ? null : upgradedByUserId,
                 IsRevoked = false,
+                FeaturesJson = featuresJson,
             };
 
             _db.IssuedLicenses.Add(newEntity);
@@ -606,6 +648,20 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
 
         if (row is null)
             return null;
+
+        if (row.IsDeleted || row.IsCancelled)
+        {
+            var maskedKeyDel = MaskIssuedLicenseDisplayKey(row.LicenseKey);
+            var maskedCustomerDel = MaskCustomerName(row.CustomerName);
+            var expDel = DateTime.SpecifyKind(row.ExpiryAtUtc, DateTimeKind.Utc);
+            return new LicenseTransferRequestInfoResult(
+                false,
+                "This license is not eligible for transfer.",
+                maskedCustomerDel,
+                expDel,
+                NewServerRequiresMachineFingerprint: true,
+                maskedKeyDel);
+        }
 
         var utcNow = DateTime.UtcNow;
         var expiry = DateTime.SpecifyKind(row.ExpiryAtUtc, DateTimeKind.Utc);
@@ -705,6 +761,12 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 return new GenerateLicenseResult(false, null, null, null, "No issued license matches this license key.");
             }
 
+            if (old.IsDeleted || old.IsCancelled)
+            {
+                await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                return new GenerateLicenseResult(false, null, null, null, "Cannot transfer a deleted or cancelled license.");
+            }
+
             if (old.IsRevoked)
             {
                 await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
@@ -763,6 +825,9 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             var customer = genReq.CustomerName.Trim();
             var expiresAt = new DateTimeOffset(expiryUtc, TimeSpan.Zero);
 
+            var featureList = ResolveFeatureListForIssuance(genReq, old);
+            var featuresJson = LicenseFeatureIds.SerializeJsonArray(featureList);
+
             LicenseIssueResult issued;
             try
             {
@@ -770,7 +835,8 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                     customerName: customer,
                     machineHashHex: newHashNorm,
                     expiresAtUtc: expiresAt,
-                    privateKey: rsa);
+                    privateKey: rsa,
+                    featureIds: featureList);
             }
             catch (Exception ex)
             {
@@ -792,6 +858,7 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
                 IssuedAtUtc = DateTime.UtcNow,
                 IssuedByUserId = string.IsNullOrWhiteSpace(transferredByUserId) ? null : transferredByUserId,
                 IsRevoked = false,
+                FeaturesJson = featuresJson,
             };
 
             _db.IssuedLicenses.Add(newEntity);
@@ -854,6 +921,9 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
         if (row is null)
             return null;
 
+        if (row.IsDeleted || row.IsCancelled)
+            return null;
+
         var original = DateTime.SpecifyKind(row.ExpiryAtUtc, DateTimeKind.Utc);
         var utcNow = DateTime.UtcNow;
         var anchorDate = original >= utcNow
@@ -873,6 +943,198 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
         return new LicenseRenewalInfoResult(original, suggestedIsoDate);
     }
 
+    /// <inheritdoc />
+    public async Task<GenerateLicenseResult> ExtendInPlaceByIdAsync(
+        Guid issuedLicenseId,
+        int? addDays,
+        int? addMonths,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var d = addDays ?? 0;
+        var m = addMonths ?? 0;
+        if (d <= 0 && m <= 0)
+            return new GenerateLicenseResult(false, null, null, null, "Provide positive addDays and/or addMonths.");
+        if (d > 3650 || m > 120)
+            return new GenerateLicenseResult(false, null, null, null, "Extension exceeds allowed maximum.");
+
+        var old = await _db.IssuedLicenses
+            .FirstOrDefaultAsync(il => il.Id == issuedLicenseId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (old is null)
+            return new GenerateLicenseResult(false, null, null, null, "No issued license matches this id.");
+
+        if (old.IsDeleted)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot extend a deleted license.");
+        if (old.IsCancelled)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot extend a cancelled license.");
+        if (old.IsRevoked)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot extend a revoked license.");
+        if (old.SupersededByLicenseId is not null)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot extend a superseded license.");
+        if (old.TransferredToLicenseId is not null)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot extend a transferred license.");
+
+        if (old.RequireFingerprint && string.IsNullOrWhiteSpace(old.MachineHashHex))
+            return new GenerateLicenseResult(false, null, null, null, "Bound license row is missing machineHashHex; cannot extend.");
+
+        var baseUtc = DateTime.SpecifyKind(old.ExpiryAtUtc, DateTimeKind.Utc);
+        var newExpiryUtc = baseUtc.AddMonths(m).AddDays(d);
+        if (newExpiryUtc <= DateTime.UtcNow)
+            return new GenerateLicenseResult(false, null, null, null, "Extended expiry must be in the future (UTC).");
+
+        var pem = _options.Value.SigningPrivateKeyPem?.Trim();
+        if (string.IsNullOrWhiteSpace(pem))
+        {
+            throw new LicenseIssuanceUnavailableException(
+                "License issuance is disabled on this host (License:SigningPrivateKeyPem is not configured).");
+        }
+
+        using var rsa = LoadRsaPrivateKey(pem);
+        var machineForJwt = old.RequireFingerprint ? old.MachineHashHex!.Trim().ToLowerInvariant() : null;
+        var jwtFeatures = LicenseFeatureIds.TryParseStoredFeatures(old.FeaturesJson) ?? LicenseFeatureIds.All;
+        string jwt;
+        try
+        {
+            jwt = LicenseIssuer.SignJwtForExistingLicenseKey(
+                rsa,
+                old.LicenseKey,
+                machineForJwt,
+                old.CustomerName,
+                new DateTimeOffset(newExpiryUtc, TimeSpan.Zero),
+                jwtFeatures);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "License extend-in-place: signing failed for id={Id}", issuedLicenseId);
+            return new GenerateLicenseResult(false, null, null, null, "Failed to sign the license. See server logs.");
+        }
+
+        old.ExpiryAtUtc = newExpiryUtc;
+        old.SignedJwt = jwt;
+
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "License extend-in-place: save failed for id={Id}", issuedLicenseId);
+            return new GenerateLicenseResult(false, null, null, null, "Failed to persist the extended license.");
+        }
+
+        _logger.LogInformation(
+            "License extended in place: id={Id} keyPrefix={Prefix} newExpiry={Expiry:o} actor={Actor}",
+            issuedLicenseId,
+            SafePrefix(old.LicenseKey),
+            newExpiryUtc,
+            actorUserId ?? "(system)");
+
+        return new GenerateLicenseResult(true, old.LicenseKey, jwt, newExpiryUtc, null);
+    }
+
+    /// <inheritdoc />
+    public async Task<GenerateLicenseResult> UnregisterMachineBindingByIdAsync(
+        Guid issuedLicenseId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var old = await _db.IssuedLicenses
+            .FirstOrDefaultAsync(il => il.Id == issuedLicenseId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (old is null)
+            return new GenerateLicenseResult(false, null, null, null, "No issued license matches this id.");
+
+        if (old.IsDeleted)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot modify a deleted license.");
+        if (old.IsCancelled)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot modify a cancelled license.");
+        if (old.IsRevoked)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot modify a revoked license.");
+        if (old.SupersededByLicenseId is not null)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot modify a superseded license.");
+        if (old.TransferredToLicenseId is not null)
+            return new GenerateLicenseResult(false, null, null, null, "Cannot modify a transferred license.");
+
+        if (!old.RequireFingerprint)
+            return new GenerateLicenseResult(false, null, null, null, "This license is not machine-bound.");
+
+        var pem = _options.Value.SigningPrivateKeyPem?.Trim();
+        if (string.IsNullOrWhiteSpace(pem))
+        {
+            throw new LicenseIssuanceUnavailableException(
+                "License issuance is disabled on this host (License:SigningPrivateKeyPem is not configured).");
+        }
+
+        using var rsa = LoadRsaPrivateKey(pem);
+        var expUtc = DateTime.SpecifyKind(old.ExpiryAtUtc, DateTimeKind.Utc);
+        var jwtFeatures = LicenseFeatureIds.TryParseStoredFeatures(old.FeaturesJson) ?? LicenseFeatureIds.All;
+        string jwt;
+        try
+        {
+            jwt = LicenseIssuer.SignJwtForExistingLicenseKey(
+                rsa,
+                old.LicenseKey,
+                null,
+                old.CustomerName,
+                new DateTimeOffset(expUtc, TimeSpan.Zero),
+                jwtFeatures);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "License unregister machine: signing failed for id={Id}", issuedLicenseId);
+            return new GenerateLicenseResult(false, null, null, null, "Failed to sign the license. See server logs.");
+        }
+
+        old.RequireFingerprint = false;
+        old.MachineHashHex = null;
+        old.SignedJwt = jwt;
+
+        try
+        {
+            await _db.ActivatedLicenses
+                .Where(a => EF.Functions.ILike(a.LicenseKey, old.LicenseKey))
+                .ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License unregister machine: activated_licenses cleanup failed for id={Id}", issuedLicenseId);
+        }
+
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "License unregister machine: save failed for id={Id}", issuedLicenseId);
+            return new GenerateLicenseResult(false, null, null, null, "Failed to persist the license.");
+        }
+
+        await MarkSuccessfulActivationAttemptsRevokedAsync(old.LicenseKey, cancellationToken).ConfigureAwait(false);
+
+        _logger.LogInformation(
+            "License machine binding cleared: id={Id} keyPrefix={Prefix} actor={Actor}",
+            issuedLicenseId,
+            SafePrefix(old.LicenseKey),
+            actorUserId ?? "(system)");
+
+        return new GenerateLicenseResult(true, old.LicenseKey, jwt, expUtc, null);
+    }
+
+    private static IReadOnlyList<string> ResolveFeatureListForIssuance(GenerateLicenseRequest req, IssuedLicense? previousRow = null)
+    {
+        if (req.FeatureIds is { Count: > 0 })
+            return LicenseFeatureIds.Normalize(req.FeatureIds);
+        var fromRow = LicenseFeatureIds.TryParseStoredFeatures(previousRow?.FeaturesJson);
+        if (fromRow is { Count: > 0 })
+            return fromRow;
+        return LicenseFeatureIds.All;
+    }
+
     private static string? ValidateRequest(GenerateLicenseRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.CustomerName))
@@ -883,6 +1145,10 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
         // Expiry must be strictly in the future (UTC).
         if (req.ExpiryDateUtc <= DateTime.UtcNow)
             return "expiryDate must be in the future (UTC).";
+
+        var featErr = LicenseFeatureIds.ValidateRequestedFeatures(req.FeatureIds);
+        if (featErr is not null)
+            return featErr;
 
         if (req.RequireFingerprint)
         {
@@ -922,6 +1188,36 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             rsa.Dispose();
             throw new LicenseIssuanceUnavailableException(
                 "License signing key is invalid (License:SigningPrivateKeyPem cannot be imported as RSA PEM).");
+        }
+    }
+
+    private async Task MarkSuccessfulActivationAttemptsRevokedAsync(string licenseKey, CancellationToken cancellationToken)
+    {
+        var k = licenseKey.Trim();
+        if (string.IsNullOrEmpty(k))
+            return;
+
+        try
+        {
+            var utcNow = DateTime.UtcNow;
+            await _db.LicenseActivationAttempts
+                .Where(a =>
+                    EF.Functions.ILike(a.LicenseKey, k)
+                    && a.ActivationStatus == LicenseActivationAttemptStatus.Success
+                    && a.DeactivatedAtUtc == null)
+                .ExecuteUpdateAsync(
+                    s => s
+                        .SetProperty(a => a.DeactivatedAtUtc, utcNow)
+                        .SetProperty(a => a.ActivationStatus, LicenseActivationAttemptStatus.Revoked),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "License unregister machine: activation attempt history update failed for keyPrefix={Prefix}",
+                SafePrefix(k));
         }
     }
 

@@ -7,6 +7,8 @@
  */
 
 export interface IssuedLicenseListItemDto {
+  /** Distinct machines in `activated_licenses` for this license key. */
+  activatedDeviceCount?: number | null;
   /** @nullable */
   customerName?: string | null;
   expiryAtUtc?: string;
@@ -15,11 +17,15 @@ export interface IssuedLicenseListItemDto {
   issuedAtUtc?: string;
   /** @nullable */
   issuedByUserId?: string | null;
+  /** Latest activation timestamp (UTC) across devices. */
+  lastActivationAtUtc?: string | null;
   /** @nullable */
   licenseKey?: string | null;
   /** @nullable */
   machineHashHex?: string | null;
   requireFingerprint?: boolean;
+  /** Shortened SHA-256 hex for the device with the latest last_seen. */
+  recentMachineFingerprintShort?: string | null;
   /** @nullable */
   revocationReason?: string | null;
   /** @nullable */

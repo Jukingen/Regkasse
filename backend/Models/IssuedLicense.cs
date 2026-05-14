@@ -62,6 +62,26 @@ public sealed class IssuedLicense
     [Column("is_revoked")]
     public bool IsRevoked { get; set; }
 
+    [Column("is_cancelled")]
+    public bool IsCancelled { get; set; }
+
+    [Column("cancelled_at_utc")]
+    public DateTime? CancelledAtUtc { get; set; }
+
+    [Column("cancelled_by_user_id")]
+    [MaxLength(450)]
+    public string? CancelledByUserId { get; set; }
+
+    [Column("is_deleted")]
+    public bool IsDeleted { get; set; }
+
+    [Column("deleted_at_utc")]
+    public DateTime? DeletedAtUtc { get; set; }
+
+    [Column("deleted_by_user_id")]
+    [MaxLength(450)]
+    public string? DeletedByUserId { get; set; }
+
     [Column("revoked_at_utc")]
     public DateTime? RevokedAtUtc { get; set; }
 
@@ -89,4 +109,8 @@ public sealed class IssuedLicense
     /// </summary>
     [Column("transferred_to_license_id")]
     public Guid? TransferredToLicenseId { get; set; }
+
+    /// <summary>JSON array of <see cref="LicenseFeatureIds"/> strings; null means full default bundle (backward compatible).</summary>
+    [Column("features_json")]
+    public string? FeaturesJson { get; set; }
 }

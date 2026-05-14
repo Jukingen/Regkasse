@@ -127,6 +127,8 @@ namespace KasseAPI_Final.Data
         /// <summary>Per-machine activation rows (survives API restarts; used with encrypted license file).</summary>
         public DbSet<ActivatedLicense> ActivatedLicenses { get; set; }
 
+        public DbSet<LicenseActivationAttempt> LicenseActivationAttempts { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -804,6 +806,10 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.IssuedAtUtc);
                 entity.HasIndex(e => e.ExpiryAtUtc);
                 entity.HasIndex(e => e.IsRevoked).HasFilter("is_revoked = TRUE");
+                entity.HasIndex(e => e.IsDeleted).HasFilter("is_deleted = TRUE");
+                entity.HasIndex(e => e.IsCancelled).HasFilter("is_cancelled = TRUE");
+                entity.Property(e => e.IsCancelled).IsRequired();
+                entity.Property(e => e.IsDeleted).IsRequired();
                 entity.HasIndex(e => e.SupersededByLicenseId);
                 entity.HasOne(e => e.SupersededByLicense)
                     .WithMany()
@@ -819,6 +825,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.SignedJwt).IsRequired();
                 entity.Property(e => e.IssuedAtUtc).IsRequired();
                 entity.Property(e => e.ExpiryAtUtc).IsRequired();
+                entity.Property(e => e.FeaturesJson).HasMaxLength(4096);
             });
 
             builder.Entity<ActivatedLicense>(entity =>
@@ -828,10 +835,30 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => new { e.MachineFingerprint, e.LicenseKey }).IsUnique();
                 entity.HasIndex(e => e.ValidUntilUtc);
                 entity.HasIndex(e => e.ActivatedAtUtc);
+                entity.HasIndex(e => e.LastSeenAtUtc);
                 entity.Property(e => e.LicenseKey).IsRequired().HasMaxLength(64);
                 entity.Property(e => e.CustomerName).IsRequired().HasMaxLength(256);
                 entity.Property(e => e.MachineFingerprint).IsRequired().HasMaxLength(128);
                 entity.Property(e => e.ValidUntilUtc).IsRequired();
+                entity.Property(e => e.ActivatedAtUtc).IsRequired();
+                entity.Property(e => e.LastSeenAtUtc).IsRequired();
+                entity.Property(e => e.FeaturesJson).HasMaxLength(4096);
+            });
+
+            builder.Entity<LicenseActivationAttempt>(entity =>
+            {
+                entity.ToTable("license_activation_attempts");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.ActivatedAtUtc);
+                entity.HasIndex(e => e.ActivationStatus);
+                entity.HasIndex(e => new { e.LicenseKey, e.ActivatedAtUtc });
+                entity.HasIndex(e => e.MachineFingerprint);
+                entity.Property(e => e.LicenseKey).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.MachineFingerprint).IsRequired().HasMaxLength(128);
+                entity.Property(e => e.ActivationStatus).IsRequired();
+                entity.Property(e => e.FailureReason).HasMaxLength(4000);
+                entity.Property(e => e.ClientIp).HasMaxLength(45);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
                 entity.Property(e => e.ActivatedAtUtc).IsRequired();
             });
 

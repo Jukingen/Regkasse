@@ -25,6 +25,7 @@ import {
 import { CopyOutlined, KeyOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n, formatDate } from '@/i18n';
+import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from '@/shared/licenseDeploymentFeatures';
 import {
     licenseQueryKeys,
     postGenerateLicense,
@@ -37,6 +38,8 @@ type Props = {
     canGenerate: boolean;
     /** Local deployment SHA-256 hex from admin status (for deep-link helpers). */
     machineFingerprint: string;
+    /** From GET /api/license/status: enabled license feature ids for this deployment. */
+    enabledLicenseFeatures?: readonly string[] | null;
 };
 
 type FormValues = {
@@ -76,7 +79,11 @@ function pickJwt(res: GenerateLicenseResponse): string {
     return (res.licenseJwt ?? res.signedJwt ?? '').trim();
 }
 
-export function LicenseGenerationCard({ canGenerate, machineFingerprint }: Props) {
+export function LicenseGenerationCard({
+    canGenerate,
+    machineFingerprint,
+    enabledLicenseFeatures,
+}: Props) {
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const [form] = Form.useForm<FormValues>();
@@ -124,6 +131,14 @@ export function LicenseGenerationCard({ canGenerate, machineFingerprint }: Props
         return (
             <Card type="inner" title={t('license.generation.title')}>
                 <Alert type="info" showIcon message={t('license.generation.noPermission')} />
+            </Card>
+        );
+    }
+
+    if (!deploymentLicenseAllows(enabledLicenseFeatures, LICENSE_DEPLOYMENT_FEATURE.AdminLicenseManage)) {
+        return (
+            <Card type="inner" title={t('license.generation.title')}>
+                <Alert type="warning" showIcon message={t('license.generation.featureNotIncluded')} />
             </Card>
         );
     }

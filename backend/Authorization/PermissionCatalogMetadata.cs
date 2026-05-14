@@ -34,6 +34,7 @@ public static class PermissionCatalogMetadata
         ["invoice"] = "Invoice",
         ["creditnote"] = "Invoice",
         ["settings"] = "Settings",
+        ["license"] = "Settings",
         ["localization"] = "Settings",
         ["receipttemplate"] = "Settings",
         ["audit"] = "Audit & Report",

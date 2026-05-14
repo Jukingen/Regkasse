@@ -45,12 +45,16 @@ public sealed class LicenseController : ControllerBase
     [AllowAnonymous]
     public ActionResult<LicenseFeaturesDto> GetFeatures()
     {
+        var lic = _licenseService.GetStatus();
+        var licenseFeatures = lic.EnabledFeatures is { Count: > 0 } ? lic.EnabledFeatures : LicenseFeatureIds.All;
+
         if (_environment.IsDevelopment())
         {
             return Ok(new LicenseFeaturesDto
             {
                 AllowOffline = true,
                 MaxCashiers = -1,
+                EnabledLicenseFeatures = licenseFeatures,
             });
         }
 
@@ -59,6 +63,7 @@ public sealed class LicenseController : ControllerBase
         {
             AllowOffline = o.LicenseFeatureAllowOffline,
             MaxCashiers = o.LicenseFeatureMaxCashiers,
+            EnabledLicenseFeatures = licenseFeatures,
         });
     }
 
@@ -70,10 +75,10 @@ public sealed class LicenseController : ControllerBase
         var isValidPublic = paid || trialActive;
 
         IReadOnlyList<string> features;
-        if (s.IsExpired && !trialActive && !paid)
+        if (!isValidPublic)
             features = Array.Empty<string>();
         else
-            features = new[] { "pos", "admin", "fiscal" };
+            features = s.EnabledFeatures is { Count: > 0 } ? s.EnabledFeatures : LicenseFeatureIds.All;
 
         DateTime? validUntil = s.ExpiryDate.HasValue
             ? DateTime.SpecifyKind(s.ExpiryDate.Value, DateTimeKind.Utc)

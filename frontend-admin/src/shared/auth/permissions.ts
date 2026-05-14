@@ -35,6 +35,8 @@ export const PERMISSIONS = {
   SALE_CREATE: 'sale.create',
   SETTINGS_VIEW: 'settings.view',
   SETTINGS_MANAGE: 'settings.manage',
+  /** Issued-license lifecycle (extend/revoke/cancel/soft-delete/unregister); align with backend `AppPermissions.LicenseLifecycleSuper`. */
+  LICENSE_LIFECYCLE_SUPER: 'license.super',
   AUDIT_VIEW: 'audit.view',
   AUDIT_EXPORT: 'audit.export',
   AUDIT_CLEANUP: 'audit.cleanup',

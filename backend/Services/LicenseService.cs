@@ -32,7 +32,10 @@ public interface ILicenseService
     /// <summary>Lightweight async validation used by <see cref="Middleware.LicenseMiddleware"/> (snapshot + revocation overlay).</summary>
     Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default);
 
-    Task<LicenseActivationResult> ActivateAsync(ActivateLicenseRequest request, CancellationToken cancellationToken = default);
+    Task<LicenseActivationResult> ActivateAsync(
+        ActivateLicenseRequest request,
+        LicenseActivationClientInfo? clientInfo = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>In-app license reminder surfaced via <c>/api/health/license</c> and admin license status (populated by store, not <see cref="LicenseService"/>).</summary>
@@ -49,7 +52,8 @@ public sealed record LicenseStatusResponse(
     int DaysRemaining,
     DateTime? ExpiryDate,
     string MachineHash,
-    IReadOnlyList<LicenseReminderNotice>? Reminders = null);
+    IReadOnlyList<LicenseReminderNotice>? Reminders = null,
+    IReadOnlyList<string>? EnabledFeatures = null);
 
 public sealed class ActivateLicenseRequest
 {
@@ -64,6 +68,9 @@ public sealed class ActivateLicenseRequest
 }
 
 public sealed record LicenseActivationResult(bool Success, string? Message, DateTime? ValidUntil = null);
+
+/// <summary>Optional HTTP client metadata stored on each activation audit row.</summary>
+public sealed record LicenseActivationClientInfo(string? ClientIp, string? UserAgent);
 
 /// <summary>
 /// Lisans iş kurallarını yürütür; saklama (şifreli dosya) tamamen <see cref="ILicenseStorageService"/>'e delege edilir.
@@ -128,7 +135,14 @@ public sealed class LicenseService : ILicenseService
         {
             lock (_gate)
             {
-                _snapshot = new LicenseStatusResponse(true, false, false, 0, null, "openapi-export");
+                _snapshot = new LicenseStatusResponse(
+                    true,
+                    false,
+                    false,
+                    0,
+                    null,
+                    "openapi-export",
+                    EnabledFeatures: LicenseFeatureIds.All);
                 _snapshotInitialized = true;
             }
             return;
@@ -194,6 +208,7 @@ public sealed class LicenseService : ILicenseService
                 IsTrial = false,
                 IsExpired = true,
                 DaysRemaining = 0,
+                EnabledFeatures = Array.Empty<string>(),
             };
         }
 
@@ -208,20 +223,24 @@ public sealed class LicenseService : ILicenseService
                 IsExpired = true,
                 DaysRemaining = 0,
                 ExpiryDate = DateTime.UtcNow.Date,
+                EnabledFeatures = Array.Empty<string>(),
             };
         }
 
         return snapshot;
     }
 
-    public Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
+    public async Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var s = GetStatus();
         var paid = s.IsValid && !s.IsTrial;
         var trialActive = s.IsTrial && !s.IsExpired;
         var operational = paid || trialActive;
-        return Task.FromResult(new LicenseValidationResult
+        if (paid)
+            await TryRecordLicenseHeartbeatAsync(cancellationToken).ConfigureAwait(false);
+
+        return new LicenseValidationResult
         {
             IsLicenseOperational = operational,
             IsTrial = s.IsTrial,
@@ -229,28 +248,88 @@ public sealed class LicenseService : ILicenseService
             IsPaidValid = paid,
             DaysRemaining = s.DaysRemaining,
             ExpiryUtc = s.ExpiryDate,
-        });
+        };
     }
 
-    public async Task<LicenseActivationResult> ActivateAsync(ActivateLicenseRequest request, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Bumps <c>last_seen_at_utc</c> for this host's paid activation row (throttled) so admin reporting reflects POS/FA traffic.
+    /// </summary>
+    private async Task TryRecordLicenseHeartbeatAsync(CancellationToken cancellationToken)
     {
         if (OpenApiExportMode.IsEnabled)
-            return new LicenseActivationResult(false, "License activation is disabled in OpenAPI export mode.");
+            return;
+
+        string? normalizedKeyUpper;
+        lock (_gate)
+        {
+            var key = _persisted?.LicenseKey;
+            if (string.IsNullOrWhiteSpace(key))
+                return;
+            normalizedKeyUpper = key.Trim().ToUpperInvariant();
+        }
+
+        if (!LicenseKeyRegex.IsMatch(normalizedKeyUpper))
+            return;
+
+        var machine = _storage.MachineHashHex;
+        var utcNow = DateTime.UtcNow;
+        var throttleCutoff = utcNow.AddMinutes(-2);
+
+        try
+        {
+            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            await db.ActivatedLicenses
+                .Where(a =>
+                    a.MachineFingerprint == machine
+                    && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper)
+                    && a.LastSeenAtUtc < throttleCutoff)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(a => a.LastSeenAtUtc, utcNow),
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "License: last_seen heartbeat update skipped or failed.");
+        }
+    }
+
+    public async Task<LicenseActivationResult> ActivateAsync(
+        ActivateLicenseRequest request,
+        LicenseActivationClientInfo? clientInfo = null,
+        CancellationToken cancellationToken = default)
+    {
+        var fpHost = _storage.MachineHashHex;
+
+        async Task<LicenseActivationResult> FailAndLogAsync(string licenseKeyForDb, string message)
+        {
+            await TryInsertActivationAttemptAsync(
+                ClipDbField(licenseKeyForDb, 64),
+                ClipDbField(fpHost, 128),
+                LicenseActivationAttemptStatus.Failed,
+                message,
+                clientInfo,
+                cancellationToken).ConfigureAwait(false);
+            return new LicenseActivationResult(false, message);
+        }
+
+        if (OpenApiExportMode.IsEnabled)
+            return await FailAndLogAsync("", "License activation is disabled in OpenAPI export mode.");
 
         if (request is null || string.IsNullOrWhiteSpace(request.LicenseKey))
-            return new LicenseActivationResult(false, "LicenseKey is required.");
+            return await FailAndLogAsync(
+                ClipDbField(request?.LicenseKey?.Trim().ToUpperInvariant() ?? "", 64),
+                "LicenseKey is required.");
 
         var normalizedKey = request.LicenseKey.Trim().ToUpperInvariant();
         if (!LicenseKeyRegex.IsMatch(normalizedKey))
-            return new LicenseActivationResult(false, "Invalid license key format. Expected REGK-XXXXX-XXXXX-XXXXX.");
+            return await FailAndLogAsync(normalizedKey, "Invalid license key format. Expected REGK-XXXXX-XXXXX-XXXXX.");
 
         if (!string.IsNullOrWhiteSpace(request.MachineFingerprint))
         {
             var fp = request.MachineFingerprint.Trim();
-            if (!string.Equals(fp, _storage.MachineHashHex, StringComparison.OrdinalIgnoreCase))
-            {
-                return new LicenseActivationResult(false, "Machine fingerprint does not match this host.");
-            }
+            if (!string.Equals(fp, fpHost, StringComparison.OrdinalIgnoreCase))
+                return await FailAndLogAsync(normalizedKey, "Machine fingerprint does not match this host.");
         }
 
         lock (_gate)
@@ -266,7 +345,7 @@ public sealed class LicenseService : ILicenseService
             if (!string.IsNullOrEmpty(offlineJwt))
             {
                 if (string.IsNullOrWhiteSpace(opts.OfflineVerificationPublicKeyPem))
-                    return new LicenseActivationResult(false, "OfflineVerificationPublicKeyPem is not configured.");
+                    return await FailAndLogAsync(normalizedKey, "OfflineVerificationPublicKeyPem is not configured.");
 
                 _logger.LogInformation(
                     "License activation: offline JWT verification starting. LicenseKeyPrefix={LicenseKeyPrefix}, JwtLength={JwtLength}, PemConfigured={PemConfigured}, ValidateIssuer={ValidateIssuer}, ValidateAudience={ValidateAudience}, RequireMachineBinding={RequireMachineBinding}",
@@ -278,12 +357,12 @@ public sealed class LicenseService : ILicenseService
                     opts.RequireMachineBinding);
 
                 if (!TryVerifyOfflineJwt(offlineJwt, normalizedKey, out var err))
-                    return new LicenseActivationResult(false, err ?? "Offline JWT verification failed.");
+                    return await FailAndLogAsync(normalizedKey, err ?? "Offline JWT verification failed.");
 
                 if (IsPersistedLicenseKeyBlockedInRegistry(normalizedKey))
                 {
-                    return new LicenseActivationResult(
-                        false,
+                    return await FailAndLogAsync(
+                        normalizedKey,
                         "This license key was transferred or revoked. Activate using the replacement key provided by support.");
                 }
             }
@@ -291,12 +370,12 @@ public sealed class LicenseService : ILicenseService
             {
                 var remoteOk = await ValidateRemoteAsync(normalizedKey, cancellationToken).ConfigureAwait(false);
                 if (!remoteOk)
-                    return new LicenseActivationResult(false, "Remote license server did not accept this key for this machine.");
+                    return await FailAndLogAsync(normalizedKey, "Remote license server did not accept this key for this machine.");
 
                 if (IsPersistedLicenseKeyBlockedInRegistry(normalizedKey))
                 {
-                    return new LicenseActivationResult(
-                        false,
+                    return await FailAndLogAsync(
+                        normalizedKey,
                         "This license key was transferred or revoked. Activate using the replacement key provided by support.");
                 }
             }
@@ -308,8 +387,8 @@ public sealed class LicenseService : ILicenseService
                 // accept activation without remote validation. Mirrors the snapshot logic in TryValidatePaidLicense.
                 if (!TryResolveIssuedRegistryPaid(normalizedKey, out _))
                 {
-                    return new LicenseActivationResult(
-                        false,
+                    return await FailAndLogAsync(
+                        normalizedKey,
                         "Provide OfflineActivationJwt (offline) or configure License:RemoteValidationUrl (online).");
                 }
 
@@ -330,14 +409,32 @@ public sealed class LicenseService : ILicenseService
             }
 
             var st = GetStatus();
+            var activationFeaturesJson = LicenseFeatureIds.SerializeJsonArray(
+                ResolveFeaturesForActivationUpsert(normalizedKey, offlineJwt));
             try
             {
-                await UpsertActivatedLicenseAsync(normalizedKey, st.ExpiryDate, cancellationToken).ConfigureAwait(false);
+                await UpsertActivatedLicenseAsync(
+                        normalizedKey,
+                        st.ExpiryDate,
+                        activationFeaturesJson,
+                        cancellationToken)
+                    .ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "License: activation file succeeded but activated_licenses DB upsert failed.");
+                return await FailAndLogAsync(
+                    normalizedKey,
+                    "License state was saved but activation could not be recorded in the database. Check server logs.");
             }
+
+            await TryInsertActivationAttemptAsync(
+                normalizedKey,
+                ClipDbField(fpHost, 128),
+                LicenseActivationAttemptStatus.Success,
+                failureReason: null,
+                clientInfo,
+                cancellationToken).ConfigureAwait(false);
 
             _logger.LogInformation("License: activation succeeded for key prefix {Prefix}.", SafePrefix(normalizedKey));
             return new LicenseActivationResult(true, "License activated.", st.ExpiryDate);
@@ -345,7 +442,7 @@ public sealed class LicenseService : ILicenseService
         catch (Exception ex)
         {
             _logger.LogError(ex, "License: activation failed with unexpected error.");
-            return new LicenseActivationResult(false, "Activation failed due to an internal error.");
+            return await FailAndLogAsync(normalizedKey, "Activation failed due to an internal error.");
         }
     }
 
@@ -365,9 +462,12 @@ public sealed class LicenseService : ILicenseService
             // Paid: JWT exp, then activated_licenses (this host), then issued_licenses, else UI sentinel.
             DateTime? activatedExpiryUtc = null;
             DateTime? registryExpiryUtc = null;
+            var keyUpper = !string.IsNullOrWhiteSpace(blob.LicenseKey)
+                ? blob.LicenseKey.Trim().ToUpperInvariant()
+                : "";
             if (jwtExpUtc is null && !string.IsNullOrWhiteSpace(blob.LicenseKey))
             {
-                var k = blob.LicenseKey.Trim().ToUpperInvariant();
+                var k = keyUpper;
                 if (LicenseKeyRegex.IsMatch(k))
                 {
                     TryResolveActivatedDbPaid(k, out activatedExpiryUtc);
@@ -379,13 +479,17 @@ public sealed class LicenseService : ILicenseService
             var days = expiryUtc.HasValue
                 ? Math.Max(0, (int)Math.Ceiling((expiryUtc.Value - nowUtc).TotalDays))
                 : 365;
+            var paidFeatures = !string.IsNullOrEmpty(keyUpper) && LicenseKeyRegex.IsMatch(keyUpper)
+                ? ResolveEnabledFeaturesForPaid(keyUpper, blob)
+                : LicenseFeatureIds.All;
             return new LicenseStatusResponse(
                 IsValid: true,
                 IsTrial: false,
                 IsExpired: false,
                 DaysRemaining: days,
                 ExpiryDate: expiryUtc,
-                MachineHash: _storage.MachineHashHex);
+                MachineHash: _storage.MachineHashHex,
+                EnabledFeatures: paidFeatures);
         }
 
         if (nowUtc < trialEndUtc)
@@ -399,7 +503,8 @@ public sealed class LicenseService : ILicenseService
                 IsExpired: false,
                 DaysRemaining: remaining,
                 ExpiryDate: trialEndUtc,
-                MachineHash: _storage.MachineHashHex);
+                MachineHash: _storage.MachineHashHex,
+                EnabledFeatures: LicenseFeatureIds.All);
         }
 
         // Hem trial bitmiş hem geçerli ücretli lisans yok → expired.
@@ -410,7 +515,114 @@ public sealed class LicenseService : ILicenseService
             IsExpired: true,
             DaysRemaining: 0,
             ExpiryDate: jwtExpUtc ?? trialEndUtc,
-            MachineHash: _storage.MachineHashHex);
+            MachineHash: _storage.MachineHashHex,
+            EnabledFeatures: Array.Empty<string>());
+    }
+
+    /// <summary>Resolves paid-mode feature flags: offline JWT payload, then activation row, then issuance row, else full bundle.</summary>
+    private IReadOnlyList<string> ResolveEnabledFeaturesForPaid(string normalizedKeyUpper, LicensePersistedState blob)
+    {
+        var fromJwt = TryReadFeaturesFromLicenseJwtPayload(blob.OfflineJwt);
+        if (fromJwt is { Count: > 0 })
+            return fromJwt;
+
+        var activatedJson = TryGetActivatedFeaturesJson(normalizedKeyUpper);
+        var fromActivated = LicenseFeatureIds.TryParseStoredFeatures(activatedJson);
+        if (fromActivated is { Count: > 0 })
+            return fromActivated;
+
+        var issuedJson = TryGetIssuedFeaturesJson(normalizedKeyUpper);
+        var fromIssued = LicenseFeatureIds.TryParseStoredFeatures(issuedJson);
+        if (fromIssued is { Count: > 0 })
+            return fromIssued;
+
+        return LicenseFeatureIds.All;
+    }
+
+    private IReadOnlyList<string>? TryReadFeaturesFromLicenseJwtPayload(string? jwt)
+    {
+        if (string.IsNullOrWhiteSpace(jwt))
+            return null;
+        try
+        {
+            var parts = jwt.Trim().Split('.');
+            if (parts.Length != 3)
+                return null;
+
+            var payloadJson = Encoding.UTF8.GetString(Base64UrlDecode(parts[1]));
+            using var doc = JsonDocument.Parse(payloadJson);
+            if (!doc.RootElement.TryGetProperty("features", out var featEl) || featEl.ValueKind != JsonValueKind.Array)
+                return null;
+
+            var list = new List<string>();
+            foreach (var el in featEl.EnumerateArray())
+            {
+                if (el.ValueKind != JsonValueKind.String)
+                    continue;
+                var s = el.GetString();
+                if (!string.IsNullOrWhiteSpace(s))
+                    list.Add(s.Trim());
+            }
+
+            return list.Count == 0 ? null : LicenseFeatureIds.Normalize(list);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private string? TryGetActivatedFeaturesJson(string normalizedKeyUpper)
+    {
+        try
+        {
+            var machine = _storage.MachineHashHex;
+            using var db = _dbContextFactory.CreateDbContext();
+            return db.ActivatedLicenses.AsNoTracking()
+                .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
+                .OrderByDescending(a => a.ActivatedAtUtc)
+                .Select(a => a.FeaturesJson)
+                .FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "License: could not read activated_licenses.features_json.");
+            return null;
+        }
+    }
+
+    private string? TryGetIssuedFeaturesJson(string normalizedKeyUpper)
+    {
+        try
+        {
+            using var db = _dbContextFactory.CreateDbContext();
+            return db.IssuedLicenses.AsNoTracking()
+                .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
+                .Where(il => !il.IsDeleted && !il.IsCancelled)
+                .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
+                .OrderByDescending(il => il.IssuedAtUtc)
+                .Select(il => il.FeaturesJson)
+                .FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "License: could not read issued_licenses.features_json.");
+            return null;
+        }
+    }
+
+    private IReadOnlyList<string> ResolveFeaturesForActivationUpsert(string normalizedKeyUpper, string? offlineJwt)
+    {
+        var issuedJson = TryGetIssuedFeaturesJson(normalizedKeyUpper);
+        var fromIssued = LicenseFeatureIds.TryParseStoredFeatures(issuedJson);
+        if (fromIssued is { Count: > 0 })
+            return fromIssued;
+
+        var fromJwt = TryReadFeaturesFromLicenseJwtPayload(offlineJwt);
+        if (fromJwt is { Count: > 0 })
+            return fromJwt;
+
+        return LicenseFeatureIds.All;
     }
 
     /// <summary>
@@ -542,6 +754,7 @@ public sealed class LicenseService : ILicenseService
             using var db = _dbContextFactory.CreateDbContext();
             var row = db.IssuedLicenses.AsNoTracking()
                 .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
+                .Where(il => !il.IsDeleted && !il.IsCancelled)
                 .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
                 .OrderByDescending(il => il.IssuedAtUtc)
                 .FirstOrDefault();
@@ -573,6 +786,7 @@ public sealed class LicenseService : ILicenseService
     private async Task UpsertActivatedLicenseAsync(
         string normalizedKeyUpper,
         DateTime? snapshotExpiryUtc,
+        string featuresJson,
         CancellationToken cancellationToken)
     {
         var machine = _storage.MachineHashHex;
@@ -607,17 +821,65 @@ public sealed class LicenseService : ILicenseService
                 ValidUntilUtc = validUntil,
                 MachineFingerprint = machine,
                 ActivatedAtUtc = now,
+                LastSeenAtUtc = now,
+                FeaturesJson = featuresJson,
             });
         }
         else
         {
             existing.ValidUntilUtc = validUntil;
             existing.ActivatedAtUtc = now;
+            existing.LastSeenAtUtc = now;
+            existing.FeaturesJson = featuresJson;
             if (!string.IsNullOrWhiteSpace(customerName))
                 existing.CustomerName = displayCustomer;
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    private static string ClipDbField(string? s, int max)
+    {
+        if (string.IsNullOrWhiteSpace(s))
+            return "";
+        s = s.Trim();
+        return s.Length <= max ? s : s[..max];
+    }
+
+    private async Task TryInsertActivationAttemptAsync(
+        string licenseKeyForDb,
+        string machineFingerprint,
+        LicenseActivationAttemptStatus status,
+        string? failureReason,
+        LicenseActivationClientInfo? clientInfo,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            db.LicenseActivationAttempts.Add(new LicenseActivationAttempt
+            {
+                Id = Guid.NewGuid(),
+                LicenseKey = licenseKeyForDb,
+                MachineFingerprint = machineFingerprint,
+                ActivationStatus = status,
+                FailureReason = string.IsNullOrWhiteSpace(failureReason) ? null : ClipDbField(failureReason, 4000),
+                ClientIp = string.IsNullOrWhiteSpace(clientInfo?.ClientIp) ? null : ClipDbField(clientInfo.ClientIp, 45),
+                UserAgent = string.IsNullOrWhiteSpace(clientInfo?.UserAgent) ? null : ClipDbField(clientInfo.UserAgent, 500),
+                ActivatedAtUtc = now,
+                DeactivatedAtUtc = null,
+            });
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "License: activation attempt audit insert failed. Status={Status} keyPrefix={Prefix}",
+                status,
+                SafePrefix(licenseKeyForDb));
+        }
     }
 
     private async Task<bool> ValidateRemoteAsync(string licenseKey, CancellationToken cancellationToken)
@@ -665,7 +927,7 @@ public sealed class LicenseService : ILicenseService
             using var db = _dbContextFactory.CreateDbContext();
             return db.IssuedLicenses.AsNoTracking().Any(il =>
                 EF.Functions.ILike(il.LicenseKey, normalizedLicenseKeyUpper)
-                && (il.IsRevoked || il.TransferredToLicenseId != null));
+                && (il.IsRevoked || il.TransferredToLicenseId != null || il.IsDeleted || il.IsCancelled));
         }
         catch (Exception ex)
         {

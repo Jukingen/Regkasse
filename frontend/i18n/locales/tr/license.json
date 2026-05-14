@@ -56,6 +56,8 @@
     "trialSoonBody": "Deneme lisansınız {{count}} gün içinde bitiyor. Yine de devam etmek istiyor musunuz?",
     "cancel": "İptal",
     "proceed": "Devam",
-    "ok": "Tamam"
+    "ok": "Tamam",
+    "featureDeniedTitle": "Lisans özelliği etkin değil",
+    "featureDeniedBody": "Bu işlem mevcut lisansınızda yer almıyor ({{featureId}}). Lütfen yöneticinizle iletişime geçin."
   }
 }

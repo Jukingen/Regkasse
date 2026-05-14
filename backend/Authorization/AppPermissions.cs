@@ -133,6 +133,9 @@ public static class AppPermissions
     // --- System-critical (permanent delete, high-risk) ---
     public const string SystemCritical = "system.critical";
 
+    /// <summary>Destructive / sensitive issued-license lifecycle (extend in-place, cancel, soft-delete, unregister). SuperAdmin-only via catalog.</summary>
+    public const string LicenseLifecycleSuper = "license.super";
+
     // --- Legacy / convenience (price override, receipt reprint) ---
     public const string PriceOverride = "price.override";
     public const string ReceiptReprint = "receipt.reprint";

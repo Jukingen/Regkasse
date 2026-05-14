@@ -34,8 +34,9 @@ public sealed class DevelopmentLicenseService : ILicenseService
     /// <inheritdoc />
     public Task<LicenseActivationResult> ActivateAsync(
         ActivateLicenseRequest request,
+        LicenseActivationClientInfo? clientInfo = null,
         CancellationToken cancellationToken = default) =>
-        _inner.ActivateAsync(request, cancellationToken);
+        _inner.ActivateAsync(request, clientInfo, cancellationToken);
 
     /// <inheritdoc />
     public LicenseStatusResponse GetStatus()
@@ -54,15 +55,17 @@ public sealed class DevelopmentLicenseService : ILicenseService
             DaysRemaining: daysRemaining,
             ExpiryDate: validUntil,
             MachineHash: snapshot.MachineHash,
-            snapshot.Reminders);
+            snapshot.Reminders,
+            LicenseFeatureIds.All);
     }
 
     /// <inheritdoc />
-    public Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
+    public async Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
     {
+        await _inner.ValidateAsync(cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         var s = GetStatus();
-        return Task.FromResult(new LicenseValidationResult
+        return new LicenseValidationResult
         {
             IsLicenseOperational = true,
             IsTrial = false,
@@ -70,6 +73,6 @@ public sealed class DevelopmentLicenseService : ILicenseService
             IsPaidValid = true,
             DaysRemaining = s.DaysRemaining,
             ExpiryUtc = s.ExpiryDate,
-        });
+        };
     }
 }

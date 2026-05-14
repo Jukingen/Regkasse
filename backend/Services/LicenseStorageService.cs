@@ -39,6 +39,9 @@ public sealed class LicensePersistedState
     public string? LicenseKey { get; set; }
 
     public string? OfflineJwt { get; set; }
+
+    /// <summary>Optional cache of enabled feature ids (JSON array); may be absent on older license files.</summary>
+    public string? FeaturesJson { get; set; }
 }
 
 /// <summary>

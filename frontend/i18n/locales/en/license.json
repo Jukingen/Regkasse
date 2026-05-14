@@ -56,6 +56,8 @@
     "trialSoonBody": "Your trial license ends in {{count}} day(s). Continue anyway?",
     "cancel": "Cancel",
     "proceed": "Continue",
-    "ok": "OK"
+    "ok": "OK",
+    "featureDeniedTitle": "License feature not enabled",
+    "featureDeniedBody": "This action is not included in your current license ({{featureId}}). Please contact your administrator."
   }
 }

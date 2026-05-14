@@ -10,6 +10,12 @@ public interface ILicenseReminderEmailSender
     bool IsSmtpConfigured { get; }
 
     Task SendLicenseUrgencyEmailAsync(string subject, string plainBody, CancellationToken cancellationToken = default);
+
+    /// <summary>Sends to <see cref="EmailSmtpOptions.LicenseReportRecipients"/> or reminder recipients when SMTP is ready.</summary>
+    Task SendLicenseReportEmailAsync(string subject, string plainBody, CancellationToken cancellationToken = default);
+
+    /// <summary>Host/from configured and at least one report or reminder recipient is parseable.</summary>
+    bool IsSmtpHostReadyForReports();
 }
 
 /// <summary>SMTP-based escalation for license urgency (skipped when Host is unset).</summary>
@@ -28,19 +34,36 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
     {
         get
         {
-            var h = _options.Value.Host?.Trim();
-            var from = _options.Value.From?.Trim();
+            if (!IsSmtpHostReady())
+                return false;
             var to = ParseRecipients(_options.Value.LicenseReminderRecipients);
-            return !string.IsNullOrEmpty(h)
-                   && !string.IsNullOrEmpty(from)
-                   && to.Count > 0;
+            return to.Count > 0;
         }
+    }
+
+    private bool IsSmtpHostReady()
+    {
+        var h = _options.Value.Host?.Trim();
+        var from = _options.Value.From?.Trim();
+        return !string.IsNullOrEmpty(h) && !string.IsNullOrEmpty(from);
+    }
+
+    /// <inheritdoc />
+    public bool IsSmtpHostReadyForReports() =>
+        IsSmtpHostReady() && ParseRecipients(ResolveReportRecipientsRaw()).Count > 0;
+
+    private string? ResolveReportRecipientsRaw()
+    {
+        var report = _options.Value.LicenseReportRecipients?.Trim();
+        if (!string.IsNullOrEmpty(report))
+            return report;
+        return _options.Value.LicenseReminderRecipients;
     }
 
     public async Task SendLicenseUrgencyEmailAsync(string subject, string plainBody, CancellationToken cancellationToken = default)
     {
         var opt = _options.Value;
-        if (!IsSmtpConfigured)
+        if (!IsSmtpConfigured || !IsSmtpHostReady())
             return;
 
         var recipients = ParseRecipients(opt.LicenseReminderRecipients);
@@ -80,6 +103,53 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "License reminder email could not be sent.");
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task SendLicenseReportEmailAsync(string subject, string plainBody, CancellationToken cancellationToken = default)
+    {
+        var opt = _options.Value;
+        var h = opt.Host?.Trim();
+        var from = opt.From?.Trim();
+        var recipients = ParseRecipients(ResolveReportRecipientsRaw());
+        if (!IsSmtpHostReady() || recipients.Count == 0)
+            return;
+
+        using var msg = new MailMessage
+        {
+            From = new MailAddress(from!),
+            Subject = subject,
+            Body = plainBody,
+            IsBodyHtml = false,
+        };
+
+        foreach (var r in recipients)
+            msg.To.Add(r);
+
+#pragma warning disable CA1416
+#pragma warning disable SYSLIB0014
+        using var client = new SmtpClient(h!, opt.Port)
+        {
+            EnableSsl = opt.EnableSsl,
+            DeliveryMethod = SmtpDeliveryMethod.Network,
+            UseDefaultCredentials = false,
+        };
+
+        if (!string.IsNullOrWhiteSpace(opt.User))
+            client.Credentials = new NetworkCredential(opt.User!.Trim(), opt.Password ?? string.Empty);
+#pragma warning restore SYSLIB0014
+#pragma warning restore CA1416
+
+        try
+        {
+            await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("License report email sent to {Count} recipient(s).", recipients.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "License report email could not be sent.");
             throw;
         }
     }

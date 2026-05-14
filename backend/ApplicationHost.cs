@@ -156,6 +156,9 @@ builder.Services.AddHostedService<LicenseComplianceHostedService>();
 builder.Services.AddSingleton<ILicenseReminderNotificationStore, LicenseReminderNotificationStore>();
 builder.Services.AddSingleton<ILicenseReminderEmailSender, LicenseReminderEmailSender>();
 builder.Services.AddHostedService<LicenseReminderHostedService>();
+builder.Services.Configure<LicenseReportEmailOptions>(builder.Configuration.GetSection(LicenseReportEmailOptions.SectionName));
+builder.Services.AddScoped<ILicenseExportReportService, LicenseExportReportService>();
+builder.Services.AddHostedService<LicenseScheduledReportsHostedService>();
 builder.Services.AddSingleton<INtpTimeSyncStatus, NtpTimeSyncStatus>();
 // INtpEffectiveSettingsProvider: PaymentService fiscal NTP guard, SystemController, NtpTimeSyncService (when hosted).
 builder.Services.AddScoped<INtpEffectiveSettingsProvider, NtpEffectiveSettingsProvider>();
@@ -797,7 +800,6 @@ app.UseCors("AllowAll");
 
 // CorrelationId: propagate from request (X-Correlation-Id) or generate; required for audit traceability
 app.UseMiddleware<KasseAPI_Final.Middleware.CorrelationIdMiddleware>();
-app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
 
 // Public GET for product images saved by admin upload (anonymous; unguessable file names).
 var productMediaOpts = app.Services.GetRequiredService<IOptions<ProductMediaOptions>>().Value;
@@ -820,6 +822,7 @@ app.UseStaticFiles(new StaticFileOptions
 
 // Authentication ve Authorization middleware
 app.UseAuthentication();
+app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
 app.UseAuthorization();
 
 // Payment Security Middleware

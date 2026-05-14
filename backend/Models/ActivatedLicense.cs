@@ -37,4 +37,13 @@ public sealed class ActivatedLicense
     [Required]
     [Column("activated_at_utc")]
     public DateTime ActivatedAtUtc { get; set; }
+
+    /// <summary>Last time this deployment reported license use via POS/FA API (middleware validation).</summary>
+    [Required]
+    [Column("last_seen_at_utc")]
+    public DateTime LastSeenAtUtc { get; set; }
+
+    /// <summary>JSON array of enabled <see cref="LicenseFeatureIds"/> at activation time; null = full bundle.</summary>
+    [Column("features_json")]
+    public string? FeaturesJson { get; set; }
 }

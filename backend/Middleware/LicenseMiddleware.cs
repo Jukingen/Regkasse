@@ -1,11 +1,15 @@
-using System;
+using System.Net.Mime;
+using System.Text.Json;
+using KasseAPI_Final;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Http;
 
 namespace KasseAPI_Final.Middleware
 {
     /// <summary>
-    /// Adds license visibility headers to every response without blocking requests when the license is invalid.
+    /// Adds license visibility headers and enforces per-route license feature flags for authenticated traffic.
+    /// Runs after <c>UseAuthentication</c> so JWT <c>app_context</c> is available.
     /// </summary>
     public sealed class LicenseMiddleware
     {
@@ -21,7 +25,6 @@ namespace KasseAPI_Final.Middleware
 
         public async Task InvokeAsync(HttpContext context, ILicenseService licenseService)
         {
-            // Anonymous auth endpoints must not depend on license evaluation or response header hooks.
             if (context.Request.Path.StartsWithSegments("/api/Auth", StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);
@@ -36,7 +39,61 @@ namespace KasseAPI_Final.Middleware
                 return Task.CompletedTask;
             });
 
+            if (!await TryEnforceLicensedFeaturesAsync(context, licenseService).ConfigureAwait(false))
+                return;
+
             await _next(context);
+        }
+
+        private static async Task<bool> TryEnforceLicensedFeaturesAsync(HttpContext context, ILicenseService licenseService)
+        {
+            if (OpenApiExportMode.IsEnabled)
+                return true;
+
+            var path = context.Request.Path;
+            var method = context.Request.Method;
+            var required = LicensePathFeatureEvaluator.GetRequiredFeatures(path, method);
+            if (required.Count == 0)
+                return true;
+
+            var snapshot = licenseService.GetStatus();
+            var paid = snapshot.IsValid && !snapshot.IsTrial;
+            var trialActive = snapshot.IsTrial && !snapshot.IsExpired;
+            var operational = paid || trialActive;
+            if (!operational)
+                return true;
+
+            var enabled = snapshot.EnabledFeatures ?? LicenseFeatureIds.All;
+            var enabledSet = new HashSet<string>(enabled, StringComparer.OrdinalIgnoreCase);
+            var appContext = LicensePathFeatureEvaluator.ReadAppContext(context);
+
+            foreach (var featureId in required)
+            {
+                if (!LicensePathFeatureEvaluator.ShouldEnforceFeature(featureId, appContext))
+                    continue;
+                if (enabledSet.Contains(featureId))
+                    continue;
+
+                if (context.Response.HasStarted)
+                    return false;
+
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = MediaTypeNames.Application.Json;
+                await context.Response.WriteAsync(
+                        JsonSerializer.Serialize(
+                            new
+                            {
+                                code = "LICENSE_FEATURE_DENIED",
+                                message = "This deployment license does not include the required feature for this operation.",
+                                requiredFeature = featureId,
+                                appContext,
+                            }),
+                        context.RequestAborted)
+                    .ConfigureAwait(false);
+                return false;
+            }
+
+            return true;
         }
 
         private static void ApplyHeaders(HttpContext context, ILicenseService licenseService)
@@ -53,7 +110,6 @@ namespace KasseAPI_Final.Middleware
 
             if (snapshot.IsTrial && !context.Response.Headers.ContainsKey(LicenseWarningHeaderName))
             {
-                // HTTP response header values must be ASCII (Kestrel rejects non-Latin-1 / extended chars).
                 context.Response.Headers.Append(
                     LicenseWarningHeaderName,
                     $"Testmodus - noch {snapshot.DaysRemaining} Tage gueltig");

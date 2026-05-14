@@ -21,6 +21,7 @@ import {
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
+import { LicenseDashboardSection } from '@/features/dashboard/components/LicenseDashboardSection';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -32,6 +33,7 @@ export default function DashboardPage() {
     const monatsbelegOverviewEnabled = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
     const tseHealthCardEnabled = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
     const timeSyncDriftAlertEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
+    const licenseDashboardEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
     const monatsbelegOverview = useAdminMonatsbelegOverview(monatsbelegOverviewEnabled);
 
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
@@ -89,6 +91,8 @@ export default function DashboardPage() {
                     <Link href="/reporting">{t('nav.reporting')}</Link>. RKSV: Seitenleiste unter «RKSV».
                 </Typography.Paragraph>
             </AdminPageHeader>
+
+            {licenseDashboardEnabled ? <LicenseDashboardSection /> : null}
 
             {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
 

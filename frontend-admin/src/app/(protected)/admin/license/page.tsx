@@ -12,38 +12,62 @@ import {
     Card,
     Col,
     Descriptions,
+    Dropdown,
     Form,
     Input,
+    InputNumber,
     Modal,
     Row,
     Space,
     Spin,
     Table,
+    Tabs,
     Tag,
     Typography,
     message,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { CopyOutlined, ReloadOutlined, StopOutlined, SyncOutlined } from '@ant-design/icons';
+import {
+    CalendarOutlined,
+    CloseOutlined,
+    CopyOutlined,
+    DeleteOutlined,
+    DownOutlined,
+    InfoCircleOutlined,
+    ReloadOutlined,
+    StopOutlined,
+    SyncOutlined,
+} from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n, formatDate } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useDebounce } from '@/hooks/useDebounce';
-import { PERMISSIONS } from '@/shared/auth/permissions';
+import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import {
+    deleteIssuedLicenseSoft,
     deleteRevokeIssuedLicense,
+    getIssuedLicenseDetail,
     getIssuedLicensesList,
     getLicenseStatus,
     getPublicLicenseStatus,
     licenseQueryKeys,
     postActivateLicense,
+    postCancelIssuedLicense,
+    postExtendIssuedLicense,
+    postRevokeIssuedLicenseById,
+    postUnregisterIssuedLicenseMachine,
     type ActivateLicenseRequest,
+    type GenerateLicenseResponse,
+    type IssuedLicenseActivationDto,
     type IssuedLicenseListItemDto,
 } from '@/api/manual/adminLicense';
 import { LicenseGenerationCard } from './LicenseGenerationCard';
 import { IssuedLicenseUpgradeModal } from './IssuedLicenseUpgradeModal';
+import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
+import { LicenseReportsCard } from './LicenseReportsCard';
 
 const FloatingHintStorageKey = 'regkasse.license.showFloatingHint';
 
@@ -103,34 +127,181 @@ async function copyTextToClipboard(value: string): Promise<boolean> {
 
 function IssuedLicensesTableCard() {
     const { t, formatLocale } = useI18n();
+    const { user } = useAuth();
     const queryClient = useQueryClient();
+    const [extendForm] = Form.useForm<{ addDays?: number; addMonths?: number }>();
     const [searchInput, setSearchInput] = useState('');
     const debouncedSearch = useDebounce(searchInput, 400);
+    const [fingerprintSearchInput, setFingerprintSearchInput] = useState('');
+    const debouncedFingerprintSearch = useDebounce(fingerprintSearchInput, 400);
     const [pageNumber, setPageNumber] = useState(1);
     const [pageSize, setPageSize] = useState(50);
     const [revokeTarget, setRevokeTarget] = useState<IssuedLicenseListItemDto | null>(null);
     const [upgradeModalRow, setUpgradeModalRow] = useState<IssuedLicenseListItemDto | null>(null);
+    const [extendRow, setExtendRow] = useState<IssuedLicenseListItemDto | null>(null);
+    const [extendResult, setExtendResult] = useState<GenerateLicenseResponse | null>(null);
+    const [superRevokeTarget, setSuperRevokeTarget] = useState<IssuedLicenseListItemDto | null>(null);
+    const [cancelTarget, setCancelTarget] = useState<IssuedLicenseListItemDto | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
+    const [deleteTarget, setDeleteTarget] = useState<IssuedLicenseListItemDto | null>(null);
+    const [unregisterTarget, setUnregisterTarget] = useState<IssuedLicenseListItemDto | null>(null);
+    const [unregisterResult, setUnregisterResult] = useState<GenerateLicenseResponse | null>(null);
+    const [detailsLicenseId, setDetailsLicenseId] = useState<string | null>(null);
+
+    const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
+    const canSuper = hasPermission(user, PERMISSIONS.LICENSE_LIFECYCLE_SUPER);
 
     useEffect(() => {
         setPageNumber(1);
-    }, [debouncedSearch]);
+    }, [debouncedSearch, debouncedFingerprintSearch]);
+
+    useEffect(() => {
+        if (extendRow) {
+            extendForm.setFieldsValue({ addDays: 30, addMonths: 0 });
+        }
+    }, [extendRow, extendForm]);
 
     function isRenewable(row: IssuedLicenseListItemDto): boolean {
-        return !row.isRevoked && Boolean(!row.supersededByLicenseId);
+        return (
+            !row.isRevoked &&
+            !row.supersededByLicenseId &&
+            !row.transferredToLicenseId &&
+            !row.isCancelled &&
+            !row.isDeleted
+        );
+    }
+
+    function canSuperExtendRow(row: IssuedLicenseListItemDto): boolean {
+        return (
+            !row.isCancelled &&
+            !row.isRevoked &&
+            !row.supersededByLicenseId &&
+            !row.transferredToLicenseId
+        );
+    }
+
+    function canSuperUnregisterRow(row: IssuedLicenseListItemDto): boolean {
+        return Boolean(row.requireFingerprint && canSuperExtendRow(row));
     }
 
     const listParams = useMemo(
         () => ({
             search: debouncedSearch.trim() || undefined,
+            machineFingerprint: debouncedFingerprintSearch.trim() || undefined,
             pageNumber,
             pageSize,
         }),
-        [debouncedSearch, pageNumber, pageSize],
+        [debouncedSearch, debouncedFingerprintSearch, pageNumber, pageSize],
     );
 
     const listQuery = useQuery({
         queryKey: licenseQueryKeys.list(listParams),
         queryFn: () => getIssuedLicensesList(listParams),
+    });
+
+    const detailsQuery = useQuery({
+        queryKey: ['admin', 'license', 'detail', detailsLicenseId] as const,
+        queryFn: () => getIssuedLicenseDetail(detailsLicenseId!),
+        enabled: Boolean(detailsLicenseId),
+    });
+
+    const extendMutation = useMutation({
+        mutationFn: (args: { id: string; addDays?: number; addMonths?: number }) =>
+            postExtendIssuedLicense(args.id, { addDays: args.addDays, addMonths: args.addMonths }),
+        onSuccess: async (data) => {
+            if (!data.success) {
+                message.error(data.message || t('license.issued.super.extendFailed'));
+                return;
+            }
+            message.success(t('license.issued.super.extendSuccess'));
+            setExtendRow(null);
+            extendForm.resetFields();
+            setExtendResult(data);
+            await queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+        },
+        onError: (err: unknown) => {
+            if (axios.isAxiosError(err)) {
+                const data = err.response?.data as { message?: string } | undefined;
+                message.error(data?.message || t('license.issued.super.extendFailed'));
+                return;
+            }
+            message.error(t('license.issued.super.extendFailed'));
+        },
+    });
+
+    const superRevokeMutation = useMutation({
+        mutationFn: (id: string) => postRevokeIssuedLicenseById(id),
+        onSuccess: async () => {
+            message.success(t('license.issued.super.superRevokeSuccess'));
+            setSuperRevokeTarget(null);
+            await queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+        },
+        onError: (err: unknown) => {
+            if (axios.isAxiosError(err)) {
+                const data = err.response?.data as { message?: string } | undefined;
+                message.error(data?.message || t('license.issued.super.superRevokeFailed'));
+                return;
+            }
+            message.error(t('license.issued.super.superRevokeFailed'));
+        },
+    });
+
+    const cancelMutation = useMutation({
+        mutationFn: (args: { id: string; reason?: string | null }) =>
+            postCancelIssuedLicense(args.id, args.reason ? { reason: args.reason } : {}),
+        onSuccess: async () => {
+            message.success(t('license.issued.super.cancelSuccess'));
+            setCancelTarget(null);
+            setCancelReason('');
+            await queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+        },
+        onError: (err: unknown) => {
+            if (axios.isAxiosError(err)) {
+                const data = err.response?.data as { message?: string } | undefined;
+                message.error(data?.message || t('license.issued.super.cancelFailed'));
+                return;
+            }
+            message.error(t('license.issued.super.cancelFailed'));
+        },
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => deleteIssuedLicenseSoft(id),
+        onSuccess: async () => {
+            message.success(t('license.issued.super.deleteSuccess'));
+            setDeleteTarget(null);
+            await queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+        },
+        onError: (err: unknown) => {
+            if (axios.isAxiosError(err)) {
+                const data = err.response?.data as { message?: string } | undefined;
+                message.error(data?.message || t('license.issued.super.deleteFailed'));
+                return;
+            }
+            message.error(t('license.issued.super.deleteFailed'));
+        },
+    });
+
+    const unregisterMutation = useMutation({
+        mutationFn: (id: string) => postUnregisterIssuedLicenseMachine(id),
+        onSuccess: async (data) => {
+            if (!data.success) {
+                message.error(data.message || t('license.issued.super.unregisterFailed'));
+                return;
+            }
+            message.success(t('license.issued.super.unregisterSuccess'));
+            setUnregisterTarget(null);
+            setUnregisterResult(data);
+            await queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+        },
+        onError: (err: unknown) => {
+            if (axios.isAxiosError(err)) {
+                const data = err.response?.data as { message?: string } | undefined;
+                message.error(data?.message || t('license.issued.super.unregisterFailed'));
+                return;
+            }
+            message.error(t('license.issued.super.unregisterFailed'));
+        },
     });
 
     const revokeMutation = useMutation({
@@ -149,6 +320,71 @@ function IssuedLicensesTableCard() {
             message.error(t('license.issued.revokeFailed'));
         },
     });
+
+    const activationColumns: ColumnsType<IssuedLicenseActivationDto> = useMemo(
+        () => [
+            {
+                title: t('license.issued.super.colFp'),
+                dataIndex: 'machineFingerprint',
+                key: 'machineFingerprint',
+                ellipsis: true,
+                render: (fp: string) => (
+                    <Typography.Text code style={{ fontSize: 11, wordBreak: 'break-all' }}>
+                        {fp}
+                    </Typography.Text>
+                ),
+            },
+            {
+                title: t('license.issued.super.colActivated'),
+                dataIndex: 'activatedAtUtc',
+                key: 'activatedAtUtc',
+                width: 140,
+                render: (iso: string) =>
+                    formatDate(iso, formatLocale, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }),
+            },
+            {
+                title: t('license.issued.super.colLastSeen'),
+                dataIndex: 'lastSeenAtUtc',
+                key: 'lastSeenAtUtc',
+                width: 140,
+                render: (iso: string) =>
+                    formatDate(iso, formatLocale, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }),
+            },
+            {
+                title: t('license.issued.super.colValidUntil'),
+                dataIndex: 'validUntilUtc',
+                key: 'validUntilUtc',
+                width: 140,
+                render: (iso: string) =>
+                    formatDate(iso, formatLocale, {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    }),
+            },
+            {
+                title: t('license.issued.super.colCust'),
+                dataIndex: 'customerName',
+                key: 'customerName',
+                ellipsis: true,
+            },
+        ],
+        [formatLocale, t],
+    );
 
     const columns: ColumnsType<IssuedLicenseListItemDto> = useMemo(
         () => [
@@ -192,6 +428,21 @@ function IssuedLicensesTableCard() {
                 ),
             },
             {
+                title: t('license.issued.columns.machineFingerprintShort'),
+                dataIndex: 'recentMachineFingerprintShort',
+                key: 'recentMachineFingerprintShort',
+                width: 160,
+                ellipsis: true,
+                render: (v: string | null | undefined) =>
+                    v ? (
+                        <Typography.Text code style={{ fontSize: 12 }}>
+                            {v}
+                        </Typography.Text>
+                    ) : (
+                        '—'
+                    ),
+            },
+            {
                 title: t('license.issued.columns.expiryDate'),
                 dataIndex: 'expiryAtUtc',
                 key: 'expiryAtUtc',
@@ -219,11 +470,37 @@ function IssuedLicensesTableCard() {
                 key: 'status',
                 width: 120,
                 render: (_, row) => {
+                    if (row.isCancelled)
+                        return <Tag color="magenta">{t('license.issued.columns.statusCancelled')}</Tag>;
                     if (row.isRevoked) return <Tag color="red">{t('license.issued.columns.statusRevoked')}</Tag>;
                     if (row.supersededByLicenseId)
                         return <Tag color="orange">{t('license.issued.columns.statusSuperseded')}</Tag>;
                     return <Tag color="green">{t('license.issued.columns.statusActive')}</Tag>;
                 },
+            },
+            {
+                title: t('license.issued.columns.lastActivation'),
+                dataIndex: 'lastActivationAtUtc',
+                key: 'lastActivationAtUtc',
+                width: 150,
+                render: (iso: string | null | undefined) =>
+                    iso
+                        ? formatDate(iso, formatLocale, {
+                              year: 'numeric',
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                          })
+                        : '—',
+            },
+            {
+                title: t('license.issued.columns.activatedDevices'),
+                dataIndex: 'activatedDeviceCount',
+                key: 'activatedDeviceCount',
+                width: 120,
+                align: 'right',
+                render: (n: number | null | undefined) => (typeof n === 'number' ? n : 0),
             },
             {
                 title: t('license.issued.columns.issuedDate'),
@@ -240,34 +517,102 @@ function IssuedLicensesTableCard() {
             {
                 title: t('license.issued.columns.actions'),
                 key: 'actions',
-                width: 200,
+                width: 320,
                 fixed: 'right',
-                render: (_, row) =>
-                    isRenewable(row) ? (
+                render: (_, row) => {
+                    const renewable = isRenewable(row) && canManage;
+                    const legacyRevoke = renewable && !canSuper;
+                    const hasRowActions = renewable || legacyRevoke || canSuper;
+                    if (!hasRowActions) {
+                        return <span style={{ color: 'var(--ant-color-text-secondary)' }}>—</span>;
+                    }
+
+                    const superMenu = (): MenuProps => ({
+                        items: [
+                            {
+                                key: 'extend',
+                                icon: <CalendarOutlined />,
+                                label: t('license.issued.super.extend'),
+                                disabled: !canSuperExtendRow(row),
+                            },
+                            {
+                                key: 'revoke',
+                                icon: <StopOutlined />,
+                                label: t('license.issued.super.revoke'),
+                                disabled: row.isRevoked || Boolean(row.isCancelled),
+                            },
+                            {
+                                key: 'cancel',
+                                icon: <CloseOutlined />,
+                                label: t('license.issued.super.cancel'),
+                                disabled: Boolean(row.isCancelled),
+                            },
+                            { type: 'divider' },
+                            {
+                                key: 'unregister',
+                                label: t('license.issued.super.unregister'),
+                                disabled: !canSuperUnregisterRow(row),
+                            },
+                            {
+                                key: 'delete',
+                                icon: <DeleteOutlined />,
+                                label: t('license.issued.super.delete'),
+                                danger: true,
+                            },
+                            {
+                                key: 'details',
+                                icon: <InfoCircleOutlined />,
+                                label: t('license.issued.super.details'),
+                            },
+                        ],
+                        onClick: ({ key, domEvent }) => {
+                            domEvent?.stopPropagation();
+                            if (key === 'extend') setExtendRow(row);
+                            else if (key === 'revoke') setSuperRevokeTarget(row);
+                            else if (key === 'cancel') {
+                                setCancelTarget(row);
+                                setCancelReason('');
+                            } else if (key === 'unregister') setUnregisterTarget(row);
+                            else if (key === 'delete') setDeleteTarget(row);
+                            else if (key === 'details') setDetailsLicenseId(row.id);
+                        },
+                    });
+
+                    return (
                         <Space size="small" wrap>
-                            <Button
-                                type="primary"
-                                size="small"
-                                icon={<SyncOutlined />}
-                                onClick={() => setUpgradeModalRow(row)}
-                            >
-                                {t('license.issued.renewUpgrade')}
-                            </Button>
-                            <Button
-                                danger
-                                size="small"
-                                icon={<StopOutlined />}
-                                onClick={() => setRevokeTarget(row)}
-                            >
-                                {t('license.issued.revoke')}
-                            </Button>
+                            {renewable ? (
+                                <Button
+                                    type="primary"
+                                    size="small"
+                                    icon={<SyncOutlined />}
+                                    onClick={() => setUpgradeModalRow(row)}
+                                >
+                                    {t('license.issued.renewUpgrade')}
+                                </Button>
+                            ) : null}
+                            {legacyRevoke ? (
+                                <Button
+                                    danger
+                                    size="small"
+                                    icon={<StopOutlined />}
+                                    onClick={() => setRevokeTarget(row)}
+                                >
+                                    {t('license.issued.revoke')}
+                                </Button>
+                            ) : null}
+                            {canSuper ? (
+                                <Dropdown menu={superMenu()} trigger={['click']}>
+                                    <Button size="small" icon={<DownOutlined />}>
+                                        {t('license.issued.super.menu')}
+                                    </Button>
+                                </Dropdown>
+                            ) : null}
                         </Space>
-                    ) : (
-                        <span style={{ color: 'var(--ant-color-text-secondary)' }}>—</span>
-                    ),
+                    );
+                },
             },
         ],
-        [formatLocale, t],
+        [canManage, canSuper, formatLocale, t],
     );
 
     return (
@@ -278,6 +623,13 @@ function IssuedLicensesTableCard() {
                     placeholder={t('license.issued.searchPlaceholder')}
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
+                    style={{ maxWidth: 360 }}
+                />
+                <Input.Search
+                    allowClear
+                    placeholder={t('license.issued.fingerprintSearchPlaceholder')}
+                    value={fingerprintSearchInput}
+                    onChange={(e) => setFingerprintSearchInput(e.target.value)}
                     style={{ maxWidth: 360 }}
                 />
 
@@ -291,7 +643,7 @@ function IssuedLicensesTableCard() {
                         columns={columns}
                         dataSource={listQuery.data?.items ?? []}
                         locale={{ emptyText: t('license.issued.empty') }}
-                        scroll={{ x: 1040 }}
+                        scroll={{ x: 1540 }}
                         pagination={{
                             current: pageNumber,
                             pageSize,
@@ -330,6 +682,287 @@ function IssuedLicensesTableCard() {
                     <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                         {t('license.issued.revokeConfirmCustomerHint', { customer: revokeTarget.customerName })}
                     </Typography.Paragraph>
+                ) : null}
+            </Modal>
+
+            <Modal
+                title={t('license.issued.super.extendModalTitle')}
+                open={extendRow !== null}
+                okText={t('license.issued.super.extendSubmit')}
+                confirmLoading={extendMutation.isPending}
+                onCancel={() => {
+                    if (!extendMutation.isPending) {
+                        setExtendRow(null);
+                        extendForm.resetFields();
+                    }
+                }}
+                onOk={async () => {
+                    const v = extendForm.getFieldsValue();
+                    const d = Number(v.addDays) || 0;
+                    const m = Number(v.addMonths) || 0;
+                    if (d <= 0 && m <= 0) {
+                        message.warning(t('license.issued.super.extendNeedPositive'));
+                        return;
+                    }
+                    if (extendRow) {
+                        extendMutation.mutate({
+                            id: extendRow.id,
+                            addDays: d > 0 ? d : undefined,
+                            addMonths: m > 0 ? m : undefined,
+                        });
+                    }
+                }}
+            >
+                {extendRow ? (
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+                        {extendRow.customerName}
+                    </Typography.Paragraph>
+                ) : null}
+                <Form form={extendForm} layout="vertical">
+                    <Form.Item name="addDays" label={t('license.issued.super.addDays')}>
+                        <InputNumber min={0} max={3650} style={{ width: '100%' }} />
+                    </Form.Item>
+                    <Form.Item name="addMonths" label={t('license.issued.super.addMonths')}>
+                        <InputNumber min={0} max={120} style={{ width: '100%' }} />
+                    </Form.Item>
+                </Form>
+            </Modal>
+
+            <Modal
+                title={t('license.issued.super.extendResultTitle')}
+                open={extendResult !== null && extendResult.success}
+                footer={
+                    <Button type="primary" onClick={() => setExtendResult(null)}>
+                        {t('common.buttons.close')}
+                    </Button>
+                }
+                onCancel={() => setExtendResult(null)}
+                width={640}
+            >
+                <Typography.Paragraph type="secondary">{t('license.issued.super.extendResultHelp')}</Typography.Paragraph>
+                {extendResult?.licenseKey ? (
+                    <Descriptions bordered column={1} size="small" style={{ marginTop: 12 }}>
+                        <Descriptions.Item label={t('license.generation.result.licenseKey')}>
+                            <Typography.Paragraph copyable={{ text: extendResult.licenseKey }} style={{ marginBottom: 0 }}>
+                                {extendResult.licenseKey}
+                            </Typography.Paragraph>
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.generation.result.expiry')}>
+                            {extendResult.expiryAtUtc
+                                ? formatDate(extendResult.expiryAtUtc, formatLocale, {
+                                      year: 'numeric',
+                                      month: '2-digit',
+                                      day: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                  })
+                                : '—'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.generation.result.signedJwt')}>
+                            {(extendResult.signedJwt || extendResult.licenseJwt) ? (
+                                <Typography.Paragraph
+                                    copyable={{ text: extendResult.signedJwt || extendResult.licenseJwt || '' }}
+                                    style={{ marginBottom: 0, wordBreak: 'break-all', fontSize: 12 }}
+                                >
+                                    {extendResult.signedJwt || extendResult.licenseJwt}
+                                </Typography.Paragraph>
+                            ) : (
+                                '—'
+                            )}
+                        </Descriptions.Item>
+                    </Descriptions>
+                ) : null}
+            </Modal>
+
+            <Modal
+                title={t('license.issued.super.superRevokeTitle')}
+                open={superRevokeTarget !== null}
+                okText={t('license.issued.super.superRevokeOk')}
+                okType="danger"
+                confirmLoading={superRevokeMutation.isPending}
+                onCancel={() => {
+                    if (!superRevokeMutation.isPending) {
+                        setSuperRevokeTarget(null);
+                    }
+                }}
+                onOk={() => {
+                    if (superRevokeTarget) {
+                        superRevokeMutation.mutate(superRevokeTarget.id);
+                    }
+                }}
+            >
+                <Typography.Paragraph>{t('license.issued.super.superRevokeBody')}</Typography.Paragraph>
+                {superRevokeTarget ? (
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                        {superRevokeTarget.customerName}
+                    </Typography.Paragraph>
+                ) : null}
+            </Modal>
+
+            <Modal
+                title={t('license.issued.super.cancelTitle')}
+                open={cancelTarget !== null}
+                okText={t('license.issued.super.cancelOk')}
+                okType="danger"
+                confirmLoading={cancelMutation.isPending}
+                onCancel={() => {
+                    if (!cancelMutation.isPending) {
+                        setCancelTarget(null);
+                        setCancelReason('');
+                    }
+                }}
+                onOk={() => {
+                    if (cancelTarget) {
+                        const r = cancelReason.trim();
+                        cancelMutation.mutate({ id: cancelTarget.id, reason: r.length > 0 ? r : undefined });
+                    }
+                }}
+            >
+                <Typography.Paragraph>{t('license.issued.super.cancelBody')}</Typography.Paragraph>
+                <Input.TextArea
+                    rows={3}
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder={t('license.issued.super.cancelReasonPlaceholder')}
+                />
+            </Modal>
+
+            <Modal
+                title={t('license.issued.super.deleteTitle')}
+                open={deleteTarget !== null}
+                okText={t('license.issued.super.deleteOk')}
+                okType="danger"
+                confirmLoading={deleteMutation.isPending}
+                onCancel={() => {
+                    if (!deleteMutation.isPending) {
+                        setDeleteTarget(null);
+                    }
+                }}
+                onOk={() => {
+                    if (deleteTarget) {
+                        deleteMutation.mutate(deleteTarget.id);
+                    }
+                }}
+            >
+                <Typography.Paragraph>{t('license.issued.super.deleteBody')}</Typography.Paragraph>
+                {deleteTarget ? (
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                        {deleteTarget.customerName}
+                    </Typography.Paragraph>
+                ) : null}
+            </Modal>
+
+            <Modal
+                title={t('license.issued.super.unregisterTitle')}
+                open={unregisterTarget !== null}
+                okText={t('license.issued.super.unregister')}
+                confirmLoading={unregisterMutation.isPending}
+                onCancel={() => {
+                    if (!unregisterMutation.isPending) {
+                        setUnregisterTarget(null);
+                    }
+                }}
+                onOk={() => {
+                    if (unregisterTarget) {
+                        unregisterMutation.mutate(unregisterTarget.id);
+                    }
+                }}
+            >
+                <Typography.Paragraph>{t('license.issued.super.unregisterBody')}</Typography.Paragraph>
+                {unregisterTarget ? (
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                        {unregisterTarget.customerName}
+                    </Typography.Paragraph>
+                ) : null}
+            </Modal>
+
+            <Modal
+                title={t('license.issued.super.unregisterResultTitle')}
+                open={unregisterResult !== null && unregisterResult.success}
+                footer={
+                    <Button type="primary" onClick={() => setUnregisterResult(null)}>
+                        {t('common.buttons.close')}
+                    </Button>
+                }
+                onCancel={() => setUnregisterResult(null)}
+                width={640}
+            >
+                {unregisterResult?.signedJwt || unregisterResult?.licenseJwt ? (
+                    <Typography.Paragraph
+                        copyable={{ text: unregisterResult.signedJwt || unregisterResult.licenseJwt || '' }}
+                        style={{ wordBreak: 'break-all', fontSize: 12 }}
+                    >
+                        {unregisterResult.signedJwt || unregisterResult.licenseJwt}
+                    </Typography.Paragraph>
+                ) : null}
+            </Modal>
+
+            <Modal
+                title={t('license.issued.super.detailsTitle')}
+                open={detailsLicenseId !== null}
+                width={920}
+                footer={null}
+                destroyOnClose
+                onCancel={() => setDetailsLicenseId(null)}
+            >
+                {detailsQuery.isFetching ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
+                        <Spin />
+                    </div>
+                ) : detailsQuery.isError ? (
+                    <Alert type="error" showIcon message={t('license.issued.super.detailsLoadError')} />
+                ) : detailsQuery.data ? (
+                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                            {t('license.issued.super.fullKeyHint')}
+                        </Typography.Paragraph>
+                        <Descriptions bordered column={1} size="small">
+                            <Descriptions.Item label={t('license.issued.columns.customerName')}>
+                                {detailsQuery.data.customerName}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('license.issued.columns.licenseKey')}>
+                                <Typography.Paragraph
+                                    copyable={{ text: detailsQuery.data.licenseKey }}
+                                    style={{ marginBottom: 0, wordBreak: 'break-all', fontFamily: 'ui-monospace, monospace' }}
+                                >
+                                    {detailsQuery.data.licenseKey}
+                                </Typography.Paragraph>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('license.issued.columns.expiryDate')}>
+                                {formatDate(detailsQuery.data.expiryAtUtc, formatLocale, {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                })}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('license.issued.columns.type')}>
+                                {detailsQuery.data.requireFingerprint
+                                    ? t('license.issued.columns.typeBound')
+                                    : t('license.issued.columns.typeFloating')}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('license.issued.super.signedJwtLabel')}>
+                                <Typography.Paragraph
+                                    copyable={{ text: detailsQuery.data.signedJwt }}
+                                    style={{ marginBottom: 0, wordBreak: 'break-all', fontSize: 11 }}
+                                >
+                                    {detailsQuery.data.signedJwt}
+                                </Typography.Paragraph>
+                            </Descriptions.Item>
+                        </Descriptions>
+                        <Typography.Title level={5} style={{ marginTop: 8, marginBottom: 0 }}>
+                            {t('license.issued.super.activationHistory')}
+                        </Typography.Title>
+                        <Table<IssuedLicenseActivationDto>
+                            rowKey={(a) => `${a.machineFingerprint}-${a.activatedAtUtc}`}
+                            size="small"
+                            pagination={false}
+                            columns={activationColumns}
+                            dataSource={detailsQuery.data.activations ?? []}
+                            locale={{ emptyText: '—' }}
+                        />
+                    </Space>
                 ) : null}
             </Modal>
 
@@ -399,6 +1032,8 @@ export default function AdminLicensePage() {
             form.resetFields(['licenseKey', 'offlineActivationJwt']);
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
+            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.activationAttemptsRoot });
+            void queryClient.invalidateQueries({ queryKey: ['admin', 'licenses'] });
         },
         onError: (err: unknown) => {
             if (axios.isAxiosError(err)) {
@@ -411,6 +1046,8 @@ export default function AdminLicensePage() {
     });
 
     const s = statusQuery.data;
+
+    const enabledPublicLicenseFeatures = publicStatusQuery.data?.features ?? null;
 
     const statusPresentation = useMemo(() => {
         if (!s) return { tag: null as React.ReactNode };
@@ -447,6 +1084,10 @@ export default function AdminLicensePage() {
                             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
                             if (canActivate) {
                                 void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
+                                void queryClient.invalidateQueries({
+                                    queryKey: licenseQueryKeys.activationAttemptsRoot,
+                                });
+                                void queryClient.invalidateQueries({ queryKey: ['admin', 'licenses'] });
                             }
                         }}
                     >
@@ -623,9 +1264,43 @@ export default function AdminLicensePage() {
                 )}
             </Card>
 
-            <LicenseGenerationCard canGenerate={canActivate} machineFingerprint={machineHash} />
-
-            {canActivate ? <IssuedLicensesTableCard /> : null}
+            {canActivate ? (
+                <Tabs
+                    defaultActiveKey="issuance"
+                    items={[
+                        {
+                            key: 'issuance',
+                            label: t('license.tabs.issuance'),
+                            children: (
+                                <>
+                                    <LicenseGenerationCard
+                                        canGenerate={canActivate}
+                                        machineFingerprint={machineHash}
+                                        enabledLicenseFeatures={enabledPublicLicenseFeatures}
+                                    />
+                                    <IssuedLicensesTableCard />
+                                </>
+                            ),
+                        },
+                        {
+                            key: 'history',
+                            label: t('license.tabs.activationHistory'),
+                            children: <LicenseActivationHistoryCard />,
+                        },
+                        {
+                            key: 'reports',
+                            label: t('license.tabs.reports'),
+                            children: <LicenseReportsCard enabledLicenseFeatures={enabledPublicLicenseFeatures} />,
+                        },
+                    ]}
+                />
+            ) : (
+                <LicenseGenerationCard
+                    canGenerate={canActivate}
+                    machineFingerprint={machineHash}
+                    enabledLicenseFeatures={enabledPublicLicenseFeatures}
+                />
+            )}
         </div>
     );
 }
