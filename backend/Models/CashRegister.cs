@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("cash_registers")]
-    public class CashRegister : BaseEntity
+    public class CashRegister : BaseEntity, ITenantEntity
     {
         /// <summary>FK to <see cref="Tenant"/>; register numbers are unique per tenant.</summary>
         [Column("tenant_id")]

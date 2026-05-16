@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("company_settings")]
-    public class CompanySettings : BaseEntity
+    public class CompanySettings : BaseEntity, ITenantEntity
     {
         [Required]
         [Column("tenant_id")]

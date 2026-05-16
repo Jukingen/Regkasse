@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("categories")]
-    public class Category : BaseEntity
+    public class Category : BaseEntity, ITenantEntity
     {
         /// <summary>FK to <see cref="Models.Tenant"/>; category names are unique per tenant.</summary>
         [Column("tenant_id")]

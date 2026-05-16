@@ -8,6 +8,7 @@ type MeResponseCamelExtensions = {
     isDemo?: boolean;
     appContext?: string | null;
     tenantId?: string | null;
+    tenantSlug?: string | null;
     tenantDisplayName?: string | null;
     branchId?: string | null;
     branchDisplayName?: string | null;
@@ -31,6 +32,7 @@ export type MeResponse = UserInfo & MeResponseCamelExtensions & {
     IsDemo?: boolean;
     AppContext?: string | null;
     TenantId?: string | null;
+    TenantSlug?: string | null;
     TenantDisplayName?: string | null;
     BranchId?: string | null;
     BranchDisplayName?: string | null;
@@ -59,6 +61,7 @@ export function mapMeResponseToAuthUser(res: MeResponse): AuthUser {
         isDemo: res.isDemo ?? res.IsDemo,
         appContext: res.appContext ?? res.AppContext ?? undefined,
         tenantId: res.tenantId ?? res.TenantId ?? null,
+        tenantSlug: res.tenantSlug ?? res.TenantSlug ?? null,
         tenantDisplayName: res.tenantDisplayName ?? res.TenantDisplayName ?? null,
         branchId: res.branchId ?? res.BranchId ?? null,
         branchDisplayName: res.branchDisplayName ?? res.BranchDisplayName ?? null,

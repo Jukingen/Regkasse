@@ -43,6 +43,70 @@ Follow these language rules strictly:
 - `ai/`
   - Internal implementation and guardrail docs that must be read before medium/high-risk work.
 
+## Multi-Tenant Architecture
+
+Regkasse uses a multi-tenant architecture where a single backend instance serves multiple tenants (companies/customers).
+
+### Tenant Identification
+
+- Tenants are identified by subdomain: `{tenant}.regkasse.at`
+- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
+- Super Admin accesses `admin.regkasse.at`
+
+### Data Isolation
+
+- Tenant-scoped tables use non-null `tenant_id` on entities implementing `ITenantEntity`
+- Entity Framework global query filters in `AppDbContext` automatically filter by `ICurrentTenantAccessor.TenantId`
+- Tenants can NEVER see other tenants' data
+- Cross-tenant access attempts return HTTP 404
+
+### Development Mode
+
+- Localhost: use `X-Tenant-Id` header or `?tenant=` query parameter
+- Or add dev tenant selector in FA (visible only in development)
+- Or use localhost subdomains via hosts file (`*.regkasse.local`)
+
+### Super Admin
+
+Access: `admin.regkasse.at` (subdomain; host slug `admin` maps to legacy default tenant for operational APIs until impersonation).
+
+**Permissions (implemented):**
+
+- View all tenants via `GET /api/admin/tenants` (not all tenants’ business data without impersonation)
+- Create, edit, soft-delete tenants (`POST` / `PUT` / `DELETE /api/admin/tenants`)
+- Suspend/reactivate via `status` (`active` / `suspended`) and `isActive` on `PUT`
+- Set tenant-level `licenseKey` / `licenseValidUntilUtc` on tenant row; issued licenses via `/admin/license` (tenant-scoped unless impersonating)
+- Impersonate any active tenant for support (`POST /api/admin/tenants/{tenantId}/impersonate`)
+- Platform-wide license dashboard metrics exist per tenant context; cross-tenant SaaS metrics API is not yet a separate surface
+
+**Impersonation flow:**
+
+1. Super Admin clicks “Login as” on `/admin/tenants` (FA).
+2. Backend issues JWT with target `tenant_id` claim and `tenant_impersonation=true`.
+3. **Current FA behavior:** same origin — token stored, `dev_tenant_id` set, page reload (dev). **Production target:** redirect to `https://{slug}.regkasse.at` with token handoff (not fully implemented).
+4. Subsequent API calls use tenant-scoped JWT; EF filters apply to target tenant.
+5. Structured server logs record actor + tenant; dedicated `impersonated_by` audit column is **not** yet on `AuditLog` (planned).
+
+Requires `SuperAdmin` role (`[Authorize(Roles = SuperAdmin)]` on `AdminTenantsController`).
+
+### Multi-Tenant Security
+
+- **Isolation:** EF global query filters on `ITenantEntity`; clients cannot bypass via query params.
+- **IDOR:** Cross-tenant resource access returns **HTTP 404** (not 403). See `TenantIsolationTests`.
+- **Production resolution:** Subdomain/`Host` only; `X-Tenant-Id` and `?tenant=` disabled when `ASPNETCORE_ENVIRONMENT` is not Development.
+- **JWT vs host:** After auth, `TenantContextMiddleware` may override accessor from JWT `tenant_id`; strict host↔JWT binding in production is **not** yet enforced (see `docs/MULTI_TENANT.md`).
+- **Offline queue:** `offline_transactions.tenant_id` set on insert (from cash register / ambient tenant); preserved through replay.
+
+### Migrating existing databases
+
+Wave migrations (not a single `AddTenantIdToAllTables`): `AddTenantsAndSettingsTenantId`, Wave2/3A/3B, `AddTenantIdToFiscalAndAuditTables`. Legacy rows backfilled with `LegacyDefaultTenantIds.Primary` (Guid), not the string `legacy`. See `ai/02_DATABASE_CONTRACT.md` and `docs/MULTI_TENANT.md`.
+
+When changing persistence, auth, or API handlers, read `REGKASSE_AI_ONBOARDING.md`, **`docs/MULTI_TENANT.md`**, and `ai/02_DATABASE_CONTRACT.md` / `ai/03_API_CONTRACT.md` before editing query filters or tenant middleware order.
+
+Production deploys need wildcard DNS `*.regkasse.at`, wildcard TLS, and `ASPNETCORE_ENVIRONMENT=Production` (no dev tenant header overrides).
+
+Local multi-tenant smoke: `curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health` or `?tenant=test_cafe` (Development only; slug not UUID). POS: `EXPO_PUBLIC_DEV_TENANT_ID=test_cafe`. FA: header tenant dropdown in dev.
+
 ## Source of truth
 When deciding how to work, trust these in order:
 
@@ -94,7 +158,8 @@ Before editing in each area, inspect these first:
   - validators
   - EF entities and mappings
   - migrations
-  - impacted tests
+  - tenancy: `Tenancy/`, `Middleware/Tenant*`, `ICurrentTenantAccessor`
+  - impacted tests (include `TenantIsolationTests` when touching isolation)
 - `frontend/`
   - relevant screens
   - hooks

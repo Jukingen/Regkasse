@@ -19,6 +19,11 @@
 - CI: `.github/workflows/api-client-alignment.yml`
 - CI: `.github/workflows/api-contract-tests.yml`
 
+## Multi-Tenant Architecture
+
+- Swagger’da admin tenant ve auth `tenant_id` alanları contract parçasıdır; breaking change etiketle.
+- Orval sonrası admin Super Admin tipleri (`adminTenants`, tenant DTO’lar) senkron kalmalı.
+
 ## Review rules
 - Contract etkili PR’larda swagger diff incelemesi zorunlu.
 - Breaking change açıkça etiketlenmeli (hangi consumer etkileniyor belirtilmeli).

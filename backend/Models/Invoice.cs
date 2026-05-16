@@ -7,8 +7,11 @@ using System.Text.Json;
 namespace KasseAPI_Final.Models
 {
     [Table("invoices")]
-    public class Invoice : BaseEntity
+    public class Invoice : BaseTenantEntity
     {
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
+
         [Required]
         [StringLength(50)]
         public string InvoiceNumber { get; set; } = string.Empty;

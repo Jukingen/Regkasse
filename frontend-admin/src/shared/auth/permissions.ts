@@ -64,6 +64,7 @@ export const PERMISSIONS = {
   TSE_SIGN: 'tse.sign',
   TSE_DIAGNOSTICS: 'tse.diagnostics',
   SYSTEM_CRITICAL: 'system.critical',
+  TENANT_MANAGE: 'tenant.manage',
   PRICE_OVERRIDE: 'price.override',
   RECEIPT_REPRINT: 'receipt.reprint',
   /** RKSV Jahresbeleg (annual zero receipt); align with backend AppPermissions.RksvJahresbelegCreate. */

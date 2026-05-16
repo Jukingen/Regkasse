@@ -9,8 +9,11 @@ namespace KasseAPI_Final.Models
     /// Invariant: OfflineTransaction itself must never get fiscal fields (receipt number/signature).
     /// A SyncedPaymentId links the offline intent to the canonical fiscal payment after replay.
     /// </summary>
-    public class OfflineTransaction : BaseEntity
+    public class OfflineTransaction : BaseTenantEntity
     {
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
+
         [Required]
         public Guid CashRegisterId { get; set; }
 

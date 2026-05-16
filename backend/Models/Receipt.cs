@@ -6,11 +6,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("receipts")]
-    public class Receipt
+    public class Receipt : ITenantEntity
     {
         [Key]
         [Column("receipt_id")]
         public Guid ReceiptId { get; set; } = Guid.NewGuid();
+
+        [Required]
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
 
         [Required]
         [Column("payment_id")]

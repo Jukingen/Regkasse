@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
+import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
 import { getForbiddenMessage, mapRequiredPolicyToReasonCode } from '@/shared/errors/forbiddenMessages';
 import { getStoredLanguage } from '@/i18n/languageStorage';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
@@ -32,6 +33,23 @@ const createAxiosInstance = () => {
     // Request Interceptor
     instance.interceptors.request.use((config) => {
         if (typeof window !== 'undefined') {
+            const tenantSlug = getEffectiveTenantSlug();
+            if (tenantSlug) {
+                config.headers = config.headers ?? {};
+                config.headers['X-Tenant-Id'] = tenantSlug;
+                if (isDev && config.url) {
+                    const params = config.params ?? {};
+                    if (typeof params === 'object' && params !== null && !Array.isArray(params)) {
+                        const record = params as Record<string, unknown>;
+                        if (record.tenant == null) {
+                            config.params = { ...record, tenant: tenantSlug };
+                        }
+                    } else if (config.params == null) {
+                        config.params = { tenant: tenantSlug };
+                    }
+                }
+            }
+
             const token = authStorage.getToken();
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;

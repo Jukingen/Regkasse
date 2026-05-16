@@ -5,10 +5,17 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("FinanzOnlineSubmissions")]
-    public class FinanzOnlineSubmission
+    public class FinanzOnlineSubmission : ITenantEntity
     {
         [Key]
         public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Required]
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
 
         [Required]
         public Guid InvoiceId { get; set; }

@@ -40,6 +40,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/system/time-sync': PERMISSIONS.SETTINGS_MANAGE,
   '/admin/license': PERMISSIONS.SETTINGS_VIEW,
+  '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/customers': PERMISSIONS.CUSTOMER_VIEW,

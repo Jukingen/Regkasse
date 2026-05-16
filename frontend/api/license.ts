@@ -1,4 +1,5 @@
-import { apiClient } from '../services/api/config';
+import { apiClient, applyStoredApiBaseUrl } from '../services/api/config';
+import { tenantStorage } from '../services/tenant/tenantStorage';
 
 /** Matches backend `LicensePublicStatusDto` (camelCase JSON). */
 export type LicensePublicStatusDto = {
@@ -18,6 +19,9 @@ export type LicenseActivationResultDto = {
   validUntil?: string | null;
   /** Licensed, Trial, or Expired (same coarse labels as GET /api/license/status). */
   licenseType?: string | null;
+  tenantId?: string | null;
+  tenantSlug?: string | null;
+  apiBaseUrl?: string | null;
 };
 
 const APP_CONTEXT_HEADER = 'X-App-Context';
@@ -29,11 +33,24 @@ export const licenseApi = {
   },
 
   /** POST /api/license/activate (anonymous; display key only). */
-  activate(licenseKey: string): Promise<LicenseActivationResultDto> {
-    return apiClient.post<LicenseActivationResultDto>(
+  async activate(licenseKey: string): Promise<LicenseActivationResultDto> {
+    const res = await apiClient.post<LicenseActivationResultDto>(
       '/license/activate',
       { licenseKey },
       { headers: { [APP_CONTEXT_HEADER]: 'pos' } },
     );
+
+    if (res.success) {
+      await tenantStorage.persistBootstrap({
+        tenantId: res.tenantId,
+        tenantSlug: res.tenantSlug,
+        apiBaseUrl: res.apiBaseUrl,
+      });
+      if (res.apiBaseUrl) {
+        applyStoredApiBaseUrl(res.apiBaseUrl);
+      }
+    }
+
+    return res;
   },
 };

@@ -23,8 +23,10 @@ public interface IAuthTenantSnapshotProvider
 }
 
 /// <param name="TenantId">Canonical string form of the tenant Guid (JWT claim value).</param>
+/// <param name="TenantSlug">Stable tenant key for dev host routing (<see cref="SubdomainTenantProvider.DevTenantHeaderName"/>).</param>
 public readonly record struct AuthTenantSnapshot(
     string TenantId,
     string? TenantDisplayName,
+    string? TenantSlug,
     string? BranchId,
     string? BranchDisplayName);

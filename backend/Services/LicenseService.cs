@@ -75,7 +75,10 @@ public sealed record LicenseActivationResult(
     bool Success,
     string? Message,
     DateTime? ValidUntil = null,
-    string? LicenseType = null);
+    string? LicenseType = null,
+    Guid? TenantId = null,
+    string? TenantSlug = null,
+    string? ApiBaseUrl = null);
 
 /// <summary>Optional HTTP client metadata stored on each activation audit row.</summary>
 public sealed record LicenseActivationClientInfo(

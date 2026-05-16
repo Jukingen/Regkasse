@@ -1,5 +1,36 @@
 # Backend Contract (ASP.NET Core)
 
+## Multi-Tenant Architecture
+
+- **Tanımlama:** `SubdomainTenantProvider` + `TenantHostNames` — üretimde `{slug}.regkasse.at`; geliştirmede `X-Tenant-Id` / `?tenant=` (slug).
+- **Middleware:** `TenantResolutionMiddleware` (host → `CurrentTenantService` → accessor), ardından auth sonrası `TenantContextMiddleware` (JWT `tenant_id`).
+- **Veri:** `AppDbContext` içinde `ITenantEntity` için global query filter; çapraz kiracı kaynak erişimi **404**.
+- **Super Admin:** `Roles.SuperAdmin`, `/api/admin/tenants`, impersonation `POST .../impersonate` — `AdminTenantsController`, `AdminTenantService`.
+- **Testler:** `TenantIsolationTests`, `SubdomainTenantProviderTests`, `SettingsTenantResolverTests`.
+
+**Güvenlik:** çapraz kiracı IDOR → 404; üretimde yalnızca subdomain; JWT↔host zorunlu eşleşme henüz yok (`docs/MULTI_TENANT.md`).
+
+**Migration:** dalga migration zinciri; `LegacyDefaultTenantIds.Primary` default Guid — `ai/02_DATABASE_CONTRACT.md`, `docs/MULTI_TENANT.md`.
+
+Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md`, `backend/README.md`.
+
+## API Headers
+
+- Production: subdomain → slug → `CurrentTenantService` → accessor Guid.
+- Development: `X-Tenant-Id` / `?tenant=` (slug only; `IsDevelopment()`).
+- `/api/admin/tenants`: `[Authorize(Roles = SuperAdmin)]`; global `tenants` table; impersonation for scoped business data.
+
+## Deployment Requirements
+
+### DNS Configuration
+
+- Wildcard A: `*.regkasse.at` → server IP; wildcard TLS; preserve `Host` header at proxy.
+
+### Environment Variables
+
+- `ASPNETCORE_ENVIRONMENT=Development` → header/query tenant overrides allowed.
+- `Production` / non-Development → subdomain resolution only (`SubdomainTenantProvider`).
+
 ## Teknik gerçekler
 - Framework: ASP.NET Core Web API, controller-based yapı.
 - Hedef framework: `net10.0`.

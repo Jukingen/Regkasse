@@ -7,6 +7,7 @@ import { customInstance } from '@/lib/axios';
 import { usePostApiAuthLogout } from '@/api/generated/auth/auth';
 import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
+import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import { mapMeResponseToAuthUser, type MeResponse } from '@/features/auth/utils/mapMeResponseToAuthUser';
 import type { AuthUser } from '@/shared/auth/types';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
@@ -74,6 +75,10 @@ export const useAuth = () => {
     useEffect(() => {
         if (user) {
             transientRecoveryAttempted.current = false;
+            tenantStorage.persistBootstrap({
+                tenantId: user.tenantId,
+                tenantSlug: user.tenantSlug,
+            });
         }
     }, [user]);
 

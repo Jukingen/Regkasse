@@ -2,8 +2,26 @@
 
 Bu dosya, şema detayını değil sistemin ana veri bölgelerini hızlı anlamak için özet sunar.
 
+## Database Schema
+
+### Multi-Tenant Columns
+
+- Kiracı kapsamlı tablolar: `tenant_id uuid NOT NULL` (+ index), FK `tenants.id`
+- İstek bağlamı: subdomain / `X-Tenant-Id` slug → Guid accessor; satırlar bu Guid ile yazılır/okunur
+
+### Global Query Filters
+
+- EF: `WHERE tenant_id = @currentTenantId` (`ITenantEntity` tipleri)
+- Ayrıntı: `ai/02_DATABASE_CONTRACT.md`, `REGKASSE_AI_ONBOARDING.md`
+
+## Multi-Tenant Architecture
+
+- **Kiracı:** `tenants` (slug, durum, lisans alanları); tüm operasyonel veri `tenant_id` ile bağlı bölgelere ayrılır.
+- **İzolasyon:** EF global filter — kiracılar birbirinin satış/fiş/TSE/voucher kayıtlarını göremez.
+- **Super Admin:** kiracı listesi/CRUD `tenants` üzerinden; iş verisi impersonation JWT ile hedef kiracı bağlamında.
+
 ## Ana veri bölgeleri
-- Satış çekirdeği: `Product`, `Category`, `Cart`, `CartItem`, `Order`, `OrderItem`, `PaymentDetails` (normal ödemeler ve **RKSV özel fiş** kayıtları aynı ödeme modeli üzerinden; özel fiş türü ve yıl/ay alanları `PaymentDetails` üzerinde tutulur).
+- Satış çekirdeği: `Product`, `Category`, `Cart`, `CartItem`, `Order`, `OrderItem`, `PaymentDetails` (normal ödemeler ve **RKSV özel fiş** kayıtları aynı ödeme modeli üzerinden; özel fiş türü ve yıl/ay alanları `PaymentDetails` üzerinde tutulur; **tenant-scoped**).
 - Fiş/fiscal katman: `Receipt*`, **`ReceiptSequence` / receipt numarası tahsisi**, **`SignatureChainState`** (kasa bazlı imza zinciri), `TseDevice`, `TseSignature`, `DailyClosing`.
 - **Gutschein / voucher:** `Voucher`, `VoucherLedgerEntry` (bakiye hareketleri; kod hash + maskeli gösterim; düz metin kod DB’de tutulmaz).
 - Kimlik ve oturum: `ApplicationUser` + `auth_sessions` + `refresh_tokens`.

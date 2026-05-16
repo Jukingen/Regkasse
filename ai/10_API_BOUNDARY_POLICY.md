@@ -4,6 +4,21 @@
 - Admin client (`frontend-admin`) → `/api/admin/*`
 - POS client (`frontend`) → `/api/pos/*`
 
+## API Headers
+
+### Tenant Identification
+
+- Production: subdomain; Development: `X-Tenant-Id: {slug}` veya `?tenant={slug}`.
+
+### Super Admin Endpoints
+
+- `/api/admin/tenants/*` — `SuperAdmin`; global `tenants` CRUD; iş verisi için impersonation.
+
+## Multi-Tenant Architecture
+
+- Admin ve POS istemcileri kiracı host/slug ile hizalanır.
+- Yeni “global” admin uçları eklemeden önce kiracı filtresi gereksinimini değerlendir.
+
 ## Hard rules
 1. Yeni endpointler canonical boundary altında açılır.
 2. Legacy alias (`/api/Payment`, `/api/Cart`, `/api/Product`) genişletilmez.

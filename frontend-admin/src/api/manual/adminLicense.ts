@@ -42,6 +42,9 @@ export type LicenseActivationResult = {
     validUntil?: string | null;
     /** Coarse label: Licensed, Trial, or Expired (aligned with GET /api/license/status). */
     licenseType?: string | null;
+    tenantId?: string | null;
+    tenantSlug?: string | null;
+    apiBaseUrl?: string | null;
 };
 
 export type GenerateLicenseRequest = {

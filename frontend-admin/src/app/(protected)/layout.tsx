@@ -25,6 +25,7 @@ import {
     type SidebarPermissionContext,
 } from '@/shared/adminSidebarNavigation';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
+import { HeaderDevTenantSwitch } from '@/components/admin-layout/HeaderDevTenantSwitch';
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { LicenseStatusBadge } from '@/components/LicenseStatusBadge';
@@ -334,6 +335,7 @@ export default function DashboardLayout({
                                 aria-label={t('adminShell.header.headerActionsAria')}
                             >
                                 <EnvironmentBadge />
+                                <HeaderDevTenantSwitch />
                                 <LicenseStatusBadge />
                                 <HeaderLanguageQuickSwitch />
                                 <MonatsbelegGlobalBadge />

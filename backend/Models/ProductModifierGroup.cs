@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Models
     /// Extra Zutaten grubu (örn. Saucen, Extras, Beilagen). Ürünlere M:N atanır.
     /// </summary>
     [Table("product_modifier_groups")]
-    public class ProductModifierGroup : BaseEntity
+    public class ProductModifierGroup : BaseEntity, ITenantEntity
     {
         /// <summary>FK to <see cref="Models.Tenant"/>; aligns composite FKs on assignments and add-on links.</summary>
         [Column("tenant_id")]

@@ -32,7 +32,7 @@ public sealed class AuthTenantSnapshotProvider : IAuthTenantSnapshotProvider
                 .ConfigureAwait(false);
             if (rowSession != null)
             {
-                return new AuthTenantSnapshot(fromSession.ToString("D"), rowSession.Name, null, null);
+                return new AuthTenantSnapshot(fromSession.ToString("D"), rowSession.Name, rowSession.Slug, null, null);
             }
         }
 
@@ -44,7 +44,7 @@ public sealed class AuthTenantSnapshotProvider : IAuthTenantSnapshotProvider
                 .ConfigureAwait(false);
             if (rowJwt != null)
             {
-                return new AuthTenantSnapshot(fromJwt.ToString("D"), rowJwt.Name, null, null);
+                return new AuthTenantSnapshot(fromJwt.ToString("D"), rowJwt.Name, rowJwt.Slug, null, null);
             }
         }
 
@@ -53,6 +53,6 @@ public sealed class AuthTenantSnapshotProvider : IAuthTenantSnapshotProvider
             .FirstOrDefaultAsync(t => t.Id == primary, cancellationToken)
             .ConfigureAwait(false);
 
-        return new AuthTenantSnapshot(primary.ToString("D"), rowDefault?.Name, null, null);
+        return new AuthTenantSnapshot(primary.ToString("D"), rowDefault?.Name, rowDefault?.Slug, null, null);
     }
 }

@@ -14,10 +14,12 @@
 - Frontend Admin: E/H
 - DB/Migration: E/H
 - OpenAPI/Generated client: E/H
+- Multi-tenant (host/slug, `tenant_id`, query filter, Super Admin): E/H
 
 ## 3) Risk notu
 - Compliance/fiscal etkisi var mı?
 - Auth/RBAC etkisi var mı?
+- Kiracı izolasyonu / çapraz kiracı erişim etkisi var mı?
 - Geriye dönük uyumluluk riski var mı?
 
 ## 4) Plan (kısa)

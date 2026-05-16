@@ -24,7 +24,7 @@ public class SettingsTenantWave1Tests
         var snapshotMock = new Mock<IAuthTenantSnapshotProvider>();
         snapshotMock
             .Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Default", null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Default", LegacyDefaultTenantIds.PrimarySlug, null, null));
         var http = new Mock<IHttpContextAccessor>();
         http.Setup(h => h.HttpContext).Returns((HttpContext?)null);
         var resolver = new SettingsTenantResolver(http.Object, snapshotMock.Object);

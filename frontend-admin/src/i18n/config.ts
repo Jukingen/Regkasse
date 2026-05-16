@@ -23,6 +23,7 @@ import deTimeSync from './locales/de/timeSync.json';
 import deVouchers from './locales/de/vouchers.json';
 import deFiscalExportAudit from './locales/de/fiscalExportAudit.json';
 import deDevelopmentMode from './locales/de/developmentMode.json';
+import deTenants from './locales/de/tenants.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -48,6 +49,7 @@ import enTimeSync from './locales/en/timeSync.json';
 import enVouchers from './locales/en/vouchers.json';
 import enFiscalExportAudit from './locales/en/fiscalExportAudit.json';
 import enDevelopmentMode from './locales/en/developmentMode.json';
+import enTenants from './locales/en/tenants.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
@@ -73,6 +75,7 @@ import trTimeSync from './locales/tr/timeSync.json';
 import trVouchers from './locales/tr/vouchers.json';
 import trFiscalExportAudit from './locales/tr/fiscalExportAudit.json';
 import trDevelopmentMode from './locales/tr/developmentMode.json';
+import trTenants from './locales/tr/tenants.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -112,6 +115,7 @@ const catalogs = {
     vouchers: deVouchers,
     fiscalExportAudit: deFiscalExportAudit,
     developmentMode: deDevelopmentMode,
+    tenants: deTenants,
   },
   en: {
     adminShell: enAdminShell,
@@ -139,6 +143,7 @@ const catalogs = {
     vouchers: enVouchers,
     fiscalExportAudit: enFiscalExportAudit,
     developmentMode: enDevelopmentMode,
+    tenants: enTenants,
   },
   tr: {
     adminShell: trAdminShell,
@@ -166,6 +171,7 @@ const catalogs = {
     vouchers: trVouchers,
     fiscalExportAudit: trFiscalExportAudit,
     developmentMode: trDevelopmentMode,
+    tenants: trTenants,
   },
 } as const;
 

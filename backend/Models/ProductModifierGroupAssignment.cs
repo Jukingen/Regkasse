@@ -7,7 +7,7 @@ namespace KasseAPI_Final.Models
     /// Ürün ile modifier grubu arasında M:N atama. Hangi ürünün hangi grupları kullanabileceğini tanımlar.
     /// </summary>
     [Table("product_modifier_group_assignments")]
-    public class ProductModifierGroupAssignment
+    public class ProductModifierGroupAssignment : ITenantEntity
     {
         [Column("product_id")]
         public Guid ProductId { get; set; }

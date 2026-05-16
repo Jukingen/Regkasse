@@ -4,6 +4,39 @@
 - Bu repodaki dokümantasyon veya kod yorumları **yasal uyumluluk garantisi vermez**. Özellikle BMF/FinanzOnline kabulü, TSE donanım onayı veya resmi DEP/RKSV beyanı iddia edilmez.
 - **Fiscal export** (`GET /api/admin/fiscal-export`, `FiscalExportService`): paketler açık **“not legal proof”** uyarısı taşır; tanılama, iç analiz ve operasyonel el değişimi içindir; resmi RKSV kanıtı veya FinanzOnline yerine geçen belge değildir (`REGKASSE_AI_ONBOARDING.md`).
 
+## Multi-Tenant Architecture
+
+- Kiracı verisi EF global query filter ile ayrılır; yetkisiz çapraz kiracı erişimde **404** (bilgi sızıntısı yok).
+- Super Admin: `SuperAdmin` rolü + `/api/admin/tenants`; impersonation kısa ömürlü token — audit log’a düşürülür.
+- Geliştirme `X-Tenant-Id` yalnızca Development ortamında; üretimde host tabanlı çözümleme zorunlu.
+- Offline kuyruk / voucher: kiracı ve fiscal sınırları korunur; voucher sırrı kuyrukta tutulmaz (mevcut kural).
+
+Tam mimari: `docs/MULTI_TENANT.md`.
+
+## Multi-Tenant Security
+
+### Tenant isolation guarantees
+
+| Garanti | Uygulama |
+|--------|-----------|
+| Veritabanı seviyesi filtreleme | `AppDbContext` global query filter tüm `ITenantEntity` tiplerinde; API istemcisi filtre bypass edemez |
+| Cross-tenant IDOR | **404** (403 değil) — `TenantIsolationTests.AdminPayments_GetById_CrossTenant_Returns404_Not403` |
+| `tenant_id` replay | `offline_transactions.tenant_id` NOT NULL; insert’te cash register / ambient tenant’tan stamp |
+| Tüm tablolar kiracılı değil | Örn. `Customer` henüz `ITenantEntity` değil; değişiklik öncesi envanter çıkar |
+
+### Tenant spoofing prevention
+
+| Önlem | Uygulama |
+|--------|-----------|
+| Production: yalnızca subdomain | `SubdomainTenantProvider` — header/query yalnızca `IsDevelopment()` |
+| Dev header’lar production’da kapalı | `ASPNETCORE_ENVIRONMENT=Production` |
+| Super Admin ek kontrol | `[Authorize(Roles = SuperAdmin)]` + impersonation’da actor SuperAdmin doğrulaması |
+
+### Bilinen boşluk (dokunmadan önce oku)
+
+- **JWT `tenant_id` ↔ host subdomain:** `TenantContextMiddleware` auth sonrası accessor’ı JWT ile override edebilir; production’da host ile claim zorunlu eşleşmesi henüz middleware ile uygulanmıyor. Yeni güvenlik işi için `docs/MULTI_TENANT.md` “Known gaps” bölümüne bak.
+- **Impersonation audit:** Sunucu logları var; `AuditLog.impersonated_by` alanı henüz yok.
+
 ## Kimlik doğrulama / yetkilendirme
 - Auth: ASP.NET Core Identity + JWT.
 - Yetki: `HasPermission(...)` tabanlı policy yaklaşımı ana standarttır; rol matrisi `backend/Authorization/RolePermissionMatrix.cs`.

@@ -1,5 +1,13 @@
 # Frontend Contract
 
+## Multi-Tenant Architecture
+
+- **Üretim:** API ve admin/POS istemcileri kiracı alt alanına hizalanır (`{slug}.regkasse.at`).
+- **POS:** `tenantStorage` + lisans aktivasyonu; üretimde `apiBaseUrl` bootstrap.
+- **POS dev:** `EXPO_PUBLIC_DEV_TENANT_ID=test_cafe`, `DevTenantSwitcher`, otomatik `X-Tenant-Id` + `?tenant=` (`services/api/config.ts`).
+- **Admin dev:** header’da `HeaderDevTenantSwitch` (dropdown); `dev` / `cafe` / `bar`.
+- Sunucu izolasyonu nihai otoritedir; istemci yanlış slug ile başka kiracının verisini alamaz.
+
 ## POS (`frontend/`)
 - Stack: React Native + Expo Router.
 - Navigation kaynakları: `app/_layout.tsx`, `app/(auth)/*`, `app/(tabs)/*`, `app/(screens)/*`.

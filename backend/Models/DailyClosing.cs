@@ -5,10 +5,17 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("DailyClosings")]
-    public class DailyClosing
+    public class DailyClosing : ITenantEntity
     {
         [Key]
         public Guid Id { get; set; }
+
+        [Required]
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
 
         [Required]
         public Guid CashRegisterId { get; set; }

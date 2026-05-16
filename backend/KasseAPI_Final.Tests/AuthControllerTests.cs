@@ -98,6 +98,7 @@ public class AuthControllerTests
         var snapshot = new AuthTenantSnapshot(
             LegacyDefaultTenantIds.Primary.ToString("D"),
             "Default",
+            LegacyDefaultTenantIds.PrimarySlug,
             null,
             null);
         mock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
@@ -112,6 +113,7 @@ public class AuthControllerTests
         var snap = snapshot ?? new AuthTenantSnapshot(
             LegacyDefaultTenantIds.Primary.ToString("D"),
             "Default",
+            LegacyDefaultTenantIds.PrimarySlug,
             null,
             null);
         var mock = new Mock<ILoginTenantResolver>();
@@ -385,7 +387,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -409,7 +411,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -432,7 +434,7 @@ public class AuthControllerTests
         var user = ActiveUser();
         var tenantMock = new Mock<IAuthTenantSnapshotProvider>();
         tenantMock.Setup(p => p.GetSnapshotAsync(It.IsAny<System.Security.Claims.ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(LegacyDefaultTenantIds.Primary.ToString("D"), "Acme", LegacyDefaultTenantIds.PrimarySlug, null, null));
 
         var controller = CreateController(user, roles: new List<string> { "Cashier" }, allowLegacy: true, authTenantSnapshotMock: tenantMock);
         var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();

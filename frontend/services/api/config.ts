@@ -1,6 +1,13 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { sessionManager } from '../session/sessionManager';
+import {
+  appendTenantQueryParam,
+  applyTenantHeader,
+  resolveDevTenantSlug,
+  resolveEffectiveTenantSlug,
+} from '../tenant/devTenant';
+import { tenantStorage } from '../tenant/tenantStorage';
 
 import { API_BASE_URL as CONFIGURED_API_BASE_URL } from '../../config';
 import {
@@ -10,6 +17,40 @@ const isDev = __DEV__;
 
 // Platform-aware API URL from main config
 export const API_BASE_URL = CONFIGURED_API_BASE_URL;
+
+/** Applies tenant-specific API base URL after license activation (no-op when unchanged). */
+export function applyStoredApiBaseUrl(url: string): void {
+    const normalized = url.trim().replace(/\/+$/, '');
+    if (!normalized || axiosInstance.defaults.baseURL === normalized) {
+        return;
+    }
+    axiosInstance.defaults.baseURL = normalized;
+    if (isDev) {
+        console.log('🔧 API base URL updated from tenant bootstrap:', normalized);
+    }
+}
+
+/** Restores configured default API base URL (e.g. after logout). */
+export function resetApiBaseUrlToConfigured(): void {
+    if (axiosInstance.defaults.baseURL !== CONFIGURED_API_BASE_URL) {
+        axiosInstance.defaults.baseURL = CONFIGURED_API_BASE_URL;
+    }
+}
+
+/** Re-applies dev tenant query on the axios base URL (storage override or env). */
+export async function hydrateDevTenantApiBaseUrl(): Promise<void> {
+    if (!isDev) return;
+    const devSlug = await resolveDevTenantSlug();
+    if (!devSlug) return;
+    const base = CONFIGURED_API_BASE_URL.split('?')[0] ?? CONFIGURED_API_BASE_URL;
+    const next = appendTenantQueryParam(base.replace(/\/+$/, ''), devSlug);
+    if (axiosInstance.defaults.baseURL !== next) {
+        axiosInstance.defaults.baseURL = next;
+        if (isDev) {
+            console.log('🔧 API base URL updated for dev tenant:', next);
+        }
+    }
+}
 
 if (isDev) {
     console.log('🔧 API Services - Using API Base URL:', API_BASE_URL);
@@ -115,6 +156,15 @@ axiosInstance.interceptors.request.use(
         await applyDevNetworkDelayIfConfigured();
 
         // 🚀 DEBOUNCING KALDIRILDI - Ürün yükleme için basitleştirildi
+
+        const persistedSlug = await tenantStorage.getTenantSlug();
+        const tenantSlug = await resolveEffectiveTenantSlug(persistedSlug);
+        if (tenantSlug) {
+            config.headers = applyTenantHeader(
+                config.headers as Record<string, unknown> | undefined,
+                tenantSlug,
+            ) as typeof config.headers;
+        }
 
         // Token kontrolü
         const token = await sessionManager.getAccessToken();

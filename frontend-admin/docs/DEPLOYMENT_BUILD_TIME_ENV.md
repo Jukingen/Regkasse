@@ -2,6 +2,23 @@
 
 This document is grounded in **what exists in this repository** (as of the last update). It explains why `NEXT_PUBLIC_RKSV_ENVIRONMENT` must be present when `next build` (or `next dev` compilation) runs, not only at container or process **runtime**.
 
+## Deployment Requirements (multi-tenant)
+
+### DNS Configuration
+
+- Wildcard **A** record: `*.regkasse.at` → server IP (tenant subdomains + `admin.regkasse.at`).
+- SSL certificate must support the wildcard domain (`*.regkasse.at`).
+- Load balancer / reverse proxy must preserve the `Host` header for API tenant resolution.
+
+### Environment Variables (backend)
+
+| Variable | Effect on tenant resolution |
+|----------|----------------------------|
+| `ASPNETCORE_ENVIRONMENT=Development` | API accepts `X-Tenant-Id` and `?tenant=` (slug) on loopback/dev |
+| `ASPNETCORE_ENVIRONMENT=Production` | API uses **subdomain / Host only** |
+
+Full ops notes: `REGKASSE_AI_ONBOARDING.md` §16 Deployment Requirements.
+
 ## 1. What this repo contains
 
 | Area | In this repo? |

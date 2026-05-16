@@ -8,7 +8,9 @@ import i18n from '../i18n';
 import { changeLanguage as persistAndChangeLanguage } from '../i18n';
 import { DEFAULT_TEXT_LOCALE, normalizeTextLocale } from '../i18n/localeUtils';
 import * as authService from '../services/api/authService';
+import { applyStoredApiBaseUrl, hydrateDevTenantApiBaseUrl } from '../services/api/config';
 import { sessionManager } from '../services/session/sessionManager';
+import { tenantStorage } from '../services/tenant/tenantStorage';
 import { handleAPIError } from '../services/errorService';
 import { isAuthError, AuthAppError } from '../features/auth/authErrors';
 import { getUserSettingsAfterLogin } from '../services/api/userSettingsService';
@@ -434,6 +436,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 🚀 F5 REFRESH FIX: Her zaman önce storage'dan restore etmeye çalış
         const initializeAuth = async () => {
             try {
+                await hydrateDevTenantApiBaseUrl();
+                const storedApiBaseUrl = await tenantStorage.getApiBaseUrl();
+                if (storedApiBaseUrl) {
+                    applyStoredApiBaseUrl(storedApiBaseUrl);
+                }
+
                 authDevLog('🔍 AUTH INIT: Checking storage for existing auth...');
 
                 const snapshot = await sessionManager.getSnapshot();
@@ -613,6 +621,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 refreshToken: refreshToken ?? null,
                 user: loggedInUser,
             });
+
+            const loginUser = loggedInUser as authService.LoginResponse['user'] & {
+                tenantId?: string | null;
+                tenantSlug?: string | null;
+            };
+            await tenantStorage.persistBootstrap({
+                tenantId: loginUser.tenantId,
+                tenantSlug: loginUser.tenantSlug,
+            });
+
             if (isDev) {
                 authDevLog('Session tokens stored');
             }

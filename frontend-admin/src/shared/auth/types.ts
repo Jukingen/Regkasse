@@ -23,6 +23,7 @@ export interface AuthUser {
   /** From JWT app_context when present (admin | pos). */
   appContext?: string | null;
   tenantId?: string | null;
+  tenantSlug?: string | null;
   tenantDisplayName?: string | null;
   branchId?: string | null;
   branchDisplayName?: string | null;

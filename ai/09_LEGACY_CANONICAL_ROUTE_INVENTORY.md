@@ -23,6 +23,7 @@
 
 ## C) Policy-gap route families (single-surface, not alias)
 - Örnekler: `/api/UserManagement/*`, `/api/Tse/*`, `/api/Tagesabschluss/*`, `/api/Settings/*`, `/api/Orders/*`, `/api/Receipts/*`, `/api/Invoice/*`.
+- **Multi-tenant (canonical):** `/api/admin/tenants` — Super Admin only; impersonation `POST /api/admin/tenants/{tenantId}/impersonate`.
 - Bunlar alias kaldırma işi değil; kontrollü boundary migration işidir.
 
 ## D) Known risks

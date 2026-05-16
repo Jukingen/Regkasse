@@ -9,7 +9,7 @@ namespace KasseAPI_Final.Models
     /// Mevcut product_modifier_groups (ModifierGroupId) ile ilişkilidir; ayrı addon_groups tablosu yok.
     /// </summary>
     [Table("addon_group_products")]
-    public class AddOnGroupProduct
+    public class AddOnGroupProduct : ITenantEntity
     {
         [Required]
         [Column("modifier_group_id")]

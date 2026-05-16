@@ -8,11 +8,18 @@ namespace KasseAPI_Final.Models
     /// Per-register TSE signature chain state. One row per CashRegisterId.
     /// </summary>
     [Table("signature_chain_state")]
-    public class SignatureChainState
+    public class SignatureChainState : ITenantEntity
     {
         [Key]
         [Column("id")]
         public Guid Id { get; set; } = Guid.NewGuid();
+
+        [Required]
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
 
         [Required]
         [Column("cash_register_id")]

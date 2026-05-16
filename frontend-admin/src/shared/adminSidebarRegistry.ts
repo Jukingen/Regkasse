@@ -60,7 +60,8 @@ export type SidebarIconToken =
     | 'WalletOutlined'
     | 'ClockCircleOutlined'
     | 'CloudDownloadOutlined'
-    | 'KeyOutlined';
+    | 'KeyOutlined'
+    | 'ApartmentOutlined';
 
 export type SidebarNavCatalogItem = {
     /** Stable id for tests and layout references */
@@ -328,6 +329,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.licenseManagement',
         icon: 'KeyOutlined',
     },
+    superAdminTenants: {
+        id: 'superAdminTenants',
+        menuKey: '/admin/tenants',
+        href: '/admin/tenants',
+        labelKey: 'nav.superAdminTenants',
+        icon: 'ApartmentOutlined',
+    },
 };
 
 export const SIDEBAR_DOMAIN_GROUP_META: Record<
@@ -464,7 +472,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'domain',
         domain: 'administration',
         blocks: [
-            { kind: 'leaves', catalogIds: ['users'] },
+            { kind: 'leaves', catalogIds: ['superAdminTenants', 'users'] },
             {
                 kind: 'nested',
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,

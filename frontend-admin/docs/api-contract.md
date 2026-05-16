@@ -2,6 +2,41 @@
 
 This document maps the Admin Panel pages to the Backend API endpoints used.
 
+## API Headers
+
+### Tenant Identification
+
+- **Production:** Tenant from request host subdomain (automatic).
+- **Development:** `X-Tenant-Id: {slug}` header (tenant slug, not UUID).
+- **Development:** `?tenant={slug}` query parameter.
+
+Axios mutator / dev tenant selector should set the header on loopback; see `src/features/auth/` and `REGKASSE_AI_ONBOARDING.md`.
+
+### Super Admin Endpoints
+
+- `/api/admin/tenants/*` — requires `SuperAdmin` role.
+- Manages global tenant registry (not filtered like `ITenantEntity` business rows).
+- **`POST /api/admin/tenants/{tenantId}/impersonate`** — short-lived JWT for support in a target tenant context.
+
+### Tenant admin API reference
+
+Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
+
+| Method | Path | Response | Notes |
+|--------|------|----------|--------|
+| `GET` | `/api/admin/tenants` | `AdminTenantListItemDto[]` | Query: `includeDeleted` (bool, default false) |
+| `GET` | `/api/admin/tenants/{tenantId}` | `AdminTenantDetailDto` | 404 if missing |
+| `POST` | `/api/admin/tenants` | `201` + `AdminTenantDetailDto` | Body: `CreateAdminTenantRequest` (`name`, `slug` required) |
+| `PUT` | `/api/admin/tenants/{tenantId}` | `AdminTenantDetailDto` | Body: `UpdateAdminTenantRequest` (`status`: `active` \| `suspended` \| `deleted`) |
+| `DELETE` | `/api/admin/tenants/{tenantId}` | `204` | Soft-delete |
+| `POST` | `/api/admin/tenants/{tenantId}/impersonate` | `TenantImpersonationResponseDto` | 400 if suspended/inactive; 404 if tenant missing |
+
+**Impersonation response fields:** `token`, `expiresIn`, `refreshToken`, `refreshTokenExpiresAtUtc`, `tenantId`, `tenantSlug`, `tenantDisplayName`, `impersonation` (bool).
+
+**FA client:** `src/features/super-admin/api/adminTenants.ts` — `impersonateAdminTenant`, `applyTenantImpersonationSession`.
+
+**OpenAPI:** `backend/swagger.json` (tags: admin tenants). Full architecture: `docs/MULTI_TENANT.md`.
+
 ## Auth
 - **Login**: `POST /api/Auth/login`
 - **Logout**: `POST /api/Auth/logout`

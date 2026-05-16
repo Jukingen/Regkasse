@@ -120,6 +120,33 @@ The project aims to provide a production-grade POS system that can:
 - EF Core migrations
 - Important: migrations must be treated carefully because fiscal records and receipt sequences are legally sensitive.
 
+## Database Schema
+
+### Multi-Tenant Columns
+
+All **tenant-scoped** tables (entities implementing `ITenantEntity`) include a non-nullable `tenant_id` column:
+
+- PostgreSQL: `tenant_id uuid NOT NULL` (FK to `tenants.id`)
+- Indexed for query performance (`HasIndex` on `TenantId` in `AppDbContext`)
+- Value is the resolved tenant **Guid**, not the subdomain string
+- Set per request: host subdomain (or dev `X-Tenant-Id` / `?tenant=` **slug**) → `CurrentTenantService` → `ICurrentTenantAccessor.TenantId`; JWT `tenant_id` claim may override after login
+
+**Not tenant-scoped (examples):** `tenants` (root), ASP.NET Identity user tables, `auth_sessions` / `refresh_tokens` (see `AppDbContext` mappings).
+
+**External tenant key (string):** `tenants.slug` (e.g. `cafe`) — used for subdomain/header resolution only; stored on the tenant row, not duplicated as `VARCHAR` on every child table.
+
+### Global Query Filters
+
+EF Core registers a global query filter on every `ITenantEntity` type:
+
+```text
+WHERE tenant_id = @currentTenantId   -- ambient ICurrentTenantAccessor.TenantId (Guid)
+```
+
+Implementation: `AppDbContext.CreateTenantQueryFilter<TEntity>()` → `e => _tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId`.
+
+When the accessor has no tenant, the filter is effectively disabled (used only on intentional code paths). Normal API requests always set the accessor before data access.
+
 ### External services / integrations
 
 - TSE signing service abstraction exists.
@@ -131,12 +158,207 @@ The project aims to provide a production-grade POS system that can:
 
 ---
 
+## Multi-Tenant Architecture
+
+Regkasse uses a multi-tenant architecture where a single backend instance serves multiple tenants (companies/customers).
+
+### Tenant Identification
+
+- Tenants are identified by subdomain: `{tenant}.regkasse.at`
+- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
+- Super Admin accesses `admin.regkasse.at` (host slug `admin`; requires `SuperAdmin` role for cross-tenant APIs)
+
+### Request pipeline (backend)
+
+1. **`TenantResolutionMiddleware`** — resolves tenant from host via `SubdomainTenantProvider` / `TenantHostNames.GetTenantSlugFromHost`, loads `Tenants` row, sets `ICurrentTenantAccessor.TenantId` (`backend/Tenancy/CurrentTenantService.cs`).
+2. **`TenantContextMiddleware`** (after auth) — may override accessor from JWT `tenant_id` claim.
+3. **`AppDbContext`** — global query filters on all `ITenantEntity` types: `e.TenantId == ambient TenantId` when set.
+
+### Data Isolation
+
+- Tenant-scoped domain tables implement `ITenantEntity` with non-null `tenant_id uuid` (see **Database Schema** above).
+- Entity Framework global query filters automatically scope reads/writes to the current tenant.
+- Tenants must not see other tenants' data; cross-tenant resource access returns **HTTP 404** (not 403), so IDs do not leak existence.
+- Global tables (e.g. `tenants`, identity users) are not filtered the same way; Super Admin tenant APIs use `SuperAdmin` role + `/api/admin/tenants/*`.
+
+### Development Mode
+
+- **Localhost:** `X-Tenant-Id` header (tenant **slug**) or `?tenant=` query parameter — see **§10 API Headers** and **Development Setup for Multi-Tenant Testing** below (`SubdomainTenantProvider`, Development only).
+- **Frontend Admin:** dev tenant selector (development only); presets in `frontend-admin/src/features/auth/constants/devTenantPresets.ts`.
+- **Hosts file:** `*.regkasse.local` or other `*.local` dev domains (e.g. `cafe.regkasse.local`) — see `TenantHostNames.IsLocalDevelopmentDomain`.
+
+### Development Setup for Multi-Tenant Testing
+
+**Prerequisites**
+
+- Backend running with `ASPNETCORE_ENVIRONMENT=Development` (default for local `dotnet run` with `appsettings.Development.json`).
+- API base URL typically `http://localhost:5184` (see `backend/appsettings.Development.json` / `.example`).
+- A `tenants` row whose `slug` matches the value you send (e.g. `test_cafe`, `test_bar`, `dev` for POS presets; `cafe`, `bar`, `dev` for admin presets — see preset files below).
+
+#### Option 1: Header-based (simplest)
+
+Backend reads `X-Tenant-Id` in Development only (`SubdomainTenantProvider.DevTenantHeaderName`). Value is the tenant **slug**, not the UUID.
+
+```bash
+# Liveness (no auth); header still parsed in Development
+curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+
+# Tenant-scoped payments (requires JWT); canonical routes:
+curl -H "X-Tenant-Id: test_cafe" -H "Authorization: Bearer <token>" \
+  "http://localhost:5184/api/admin/payments?page=1&pageSize=5"
+# POS: /api/pos/payment*  (legacy alias families may still answer on /api/Payment*)
+```
+
+#### Option 2: Query string
+
+```bash
+curl "http://localhost:5184/api/health?tenant=test_cafe"
+
+curl -H "Authorization: Bearer <token>" \
+  "http://localhost:5184/api/admin/payments?tenant=test_cafe&page=1&pageSize=5"
+```
+
+The POS axios client also appends `?tenant=<slug>` to the dev API base URL (`hydrateDevTenantApiBaseUrl` in `frontend/services/api/config.ts`).
+
+#### Option 3: Localhost subdomains (hosts file)
+
+Add to `C:\Windows\System32\drivers\etc\hosts` (or `/etc/hosts`):
+
+```text
+127.0.0.1 test-cafe.localhost
+127.0.0.1 test-bar.localhost
+```
+
+Then call: `http://test-cafe.localhost:5184/api/health`
+
+**Slug from host:** `TenantHostNames.GetTenantSlugFromHost` uses the **first label** of the hostname (`test-cafe` from `test-cafe.localhost`). That must match `tenants.slug` in the database (use slug `test-cafe` in DB, or prefer header/query with `test_cafe` to match POS presets).
+
+**CORS note:** `*.localhost` is not listed in `IsLocalDevelopmentDomain` (only `*.local` / `*.regkasse.local`). Browser clients on `localhost:3000` calling `test-cafe.localhost:5184` may need extra CORS configuration; header/query on `localhost:5184` is simpler for API smoke tests.
+
+**Production-like alternative:** `127.0.0.1 cafe.regkasse.local` → slug `cafe` (matches admin presets).
+
+#### Option 4: FA tenant switcher
+
+In **development** mode (`NODE_ENV=development`), the admin shell shows a **tenant selector dropdown in the header** (`HeaderDevTenantSwitch` in `frontend-admin/src/app/(protected)/layout.tsx`).
+
+- Presets: `dev`, `cafe`, `bar` (`frontend-admin/src/features/auth/constants/devTenantPresets.ts`)
+- Persists `dev_tenant_id` in `localStorage`, sets `X-Tenant-Id` via axios (`frontend-admin/src/lib/axios.ts`), reloads the page on change
+- Tooltip documents hosts-file alternative (`dev` / `cafe` / `bar.regkasse.local`)
+
+#### Option 5: POS dev tenant switcher
+
+In **`__DEV__`**, POS shows `DevTenantSwitcher` in the tab layout (`frontend/src/components/dev/DevTenantSwitcher.tsx`).
+
+- Presets: `dev`, `test_cafe`, `test_bar` (`frontend/constants/devTenantPresets.ts`)
+- Persists slug and refreshes API base URL + headers
+
+**Verify isolation:** `dotnet test backend/KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj --filter "FullyQualifiedName~TenantIsolation"`
+
+### Super Admin
+
+Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs use legacy default tenant until impersonation).
+
+#### Super Admin capabilities
+
+| Capability | API / UI | Notes |
+|------------|----------|--------|
+| List tenants | `GET /api/admin/tenants` | Optional `includeDeleted`; FA `/admin/tenants` |
+| Create tenant | `POST /api/admin/tenants` | Unique `slug`; seeds `status=active` |
+| Edit tenant | `PUT /api/admin/tenants/{id}` | Name, contact, license fields on tenant row |
+| Suspend / reactivate | `PUT` with `status` | `suspended` sets `isActive=false`; `active` re-enables |
+| Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; legacy default tenant cannot be deleted |
+| Issue licenses | `/admin/license` + tenant `licenseKey` | Issued-license flows are tenant-scoped; use impersonation for another tenant’s context |
+| Impersonate | `POST /api/admin/tenants/{tenantId}/impersonate` | JWT + `tenant_impersonation` claim |
+| System-wide metrics | — | Per-tenant dashboard/reports only; no dedicated cross-tenant SaaS metrics API yet |
+
+**Role:** `SuperAdmin` only on `AdminTenantsController` (`[Authorize(Roles = SuperAdmin)]`).
+
+#### Impersonation flow
+
+1. Super Admin clicks **Login as** on a tenant row (FA).
+2. Backend returns `TenantImpersonationResponseDto` (`token`, `tenantSlug`, `refreshToken`, …).
+3. **Current FA:** `applyTenantImpersonationSession` stores token, sets `dev_tenant_id`, reloads same origin. **Target production UX:** redirect to `https://{slug}.regkasse.at` with token handoff (not fully implemented).
+4. Authenticated calls use target tenant’s `tenant_id` in JWT; EF global filters scope data.
+5. Server logs record actor user id + tenant; **`impersonated_by` on `AuditLog` is not yet implemented** (do not document as present).
+
+Cannot impersonate deleted, suspended, or inactive tenants.
+
+### Multi-Tenant Security
+
+#### Tenant isolation guarantees
+
+- **Database-level filtering:** EF Core global query filters on all `ITenantEntity` types (`AppDbContext.CreateTenantQueryFilter`). API clients cannot pass a filter to bypass this.
+- **Cross-tenant IDOR:** Returns **HTTP 404** (not 403) so resource existence does not leak. Verified in `TenantIsolationTests`.
+- **Production tenant resolution:** Subdomain from `Host` via `SubdomainTenantProvider` / `TenantHostNames.GetTenantSlugFromHost`.
+- **Offline queue:** `offline_transactions.tenant_id` is NOT NULL; stamped on insert from cash register / ambient tenant; preserved on replay.
+
+#### Tenant spoofing prevention
+
+- **Production:** Only subdomain-based resolution; `X-Tenant-Id` and `?tenant=` are ignored unless `IsDevelopment()`.
+- **Super Admin endpoints:** Additional `SuperAdmin` role requirement on `/api/admin/tenants/*`.
+
+#### Known gap (document accurately)
+
+- **JWT vs host:** `TenantContextMiddleware` may set `ICurrentTenantAccessor.TenantId` from JWT `tenant_id` after `TenantResolutionMiddleware` resolved host. Strict validation that JWT tenant matches host subdomain in production is **not** enforced yet. See `docs/MULTI_TENANT.md`.
+
+### Migrating existing databases
+
+For existing single-tenant PostgreSQL databases, apply the **existing migration chain** (wave approach), not a single hypothetical `AddTenantIdToAllTables`:
+
+| Phase | Example migration |
+|-------|-------------------|
+| Tenants table + default row | `20260403190133_AddTenantsAndSettingsTenantId` |
+| Memberships / sessions | `UserTenantMemberships`, `AuthSessionTenantId` |
+| Wave 2–3B domain | `Wave2TenantScoped…`, `Wave3A…`, `Wave3B…` |
+| Fiscal / audit / offline | `20260516101549_AddTenantIdToFiscalAndAuditTables` |
+| Super Admin tenant columns | `20260516104349_ExtendTenantsForSuperAdmin` |
+
+**Backfill pattern in migrations:** add `tenant_id uuid NOT NULL` with `defaultValue: LegacyDefaultTenantIds.Primary` (Guid constant), then indexes. Do not use string `'legacy'` as the column default.
+
+```bash
+dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
+```
+
+Full guide: **`docs/MULTI_TENANT.md`**.
+
+### Client expectations
+
+- **POS (`frontend/`):** persist `tenant_id` / `tenant_slug` from login/license bootstrap; send `X-Tenant-Id` in Development when API base URL is loopback (`frontend/services/tenant/tenantStorage.ts`).
+- **Admin (`frontend-admin/`):** same header pattern for dev; Super Admin UI under `/admin/tenants` when permitted.
+
+### POS Tenant Configuration
+
+#### Production
+
+- POS receives `tenantId`, `tenantSlug`, and `apiBaseUrl` from **license activation** (`POST /api/license/activate` → `tenantStorage.persistBootstrap` in `frontend/api/license.ts`).
+- Values are stored in secure/async storage (`tenant_id`, `tenant_slug`, `api_base_url` keys in `frontend/services/tenant/tenantStorage.ts`).
+- Production API traffic should use the bootstrap URL, typically `https://{tenant}.regkasse.at/api` (or the exact `apiBaseUrl` returned by activation).
+- Axios sends requests to that base URL; tenant slug from bootstrap is used when resolving headers.
+
+#### Development
+
+- Set in `frontend/.env` (see `.env.example`):
+
+```env
+EXPO_PUBLIC_API_BASE_URL=http://localhost:5184/api
+EXPO_PUBLIC_DEV_TENANT_ID=test_cafe
+```
+
+- In `__DEV__`, effective slug order: **DevTenantSwitcher / `dev_tenant_id` storage override** → **`EXPO_PUBLIC_DEV_TENANT_ID`** (defaults to `dev` if unset) → login/license persisted slug.
+- POS axios (`frontend/services/api/config.ts`) automatically:
+  - adds **`X-Tenant-Id: <slug>`** on every request when a slug resolves, and
+  - can append **`?tenant=<slug>`** to the dev base URL via `hydrateDevTenantApiBaseUrl()`.
+
+Restart Metro after changing `.env`.
+
+---
+
 ## 4. Repository Structure
 
 Typical high-level structure:
 
 ```text
-backend/                  ASP.NET Core API, EF Core, fiscal services
+backend/                  ASP.NET Core API, EF Core, fiscal services, Tenancy/
 frontend/                 Expo / React Native POS app
 frontend-admin/           Next.js admin panel
 docs/                     RKSV, operations, receipt, audit, workflow docs
@@ -541,6 +763,24 @@ Rules:
 
 The authoritative API contract is `backend/swagger.json`.
 
+### API Headers
+
+#### Tenant Identification
+
+- **Production:** Tenant derived from request `Host` subdomain automatically (`{slug}.regkasse.at` → `tenants.slug`).
+- **Development:** `X-Tenant-Id: {slug}` header — tenant **slug** (e.g. `cafe`), not the UUID; see `SubdomainTenantProvider.DevTenantHeaderName`.
+- **Development:** `?tenant={slug}` query parameter (same slug semantics as the header).
+
+After resolution, the backend sets `ICurrentTenantAccessor.TenantId` (Guid). Authenticated requests may also carry JWT claim `tenant_id` (Guid), applied by `TenantContextMiddleware`.
+
+Clients (POS/admin): in Development on loopback, send `X-Tenant-Id` from `tenantStorage` / dev tenant selector (`frontend/services/tenant/tenantStorage.ts`, `frontend-admin` dev presets).
+
+#### Super Admin Endpoints
+
+- All endpoints under `/api/admin/tenants` require **`SuperAdmin`** role (`AdminTenantsController`).
+- These endpoints manage the global **`tenants`** table (not `ITenantEntity`-scoped); they are not limited by per-tenant row filters on business tables.
+- To access a specific tenant’s operational data (products, receipts, payments, etc.), use **`POST /api/admin/tenants/{tenantId}/impersonate`** and call APIs with the returned tenant-scoped JWT.
+
 Key endpoint groups:
 
 ### POS payments
@@ -782,7 +1022,38 @@ For large changes:
 
 ---
 
-## 16. Known Risks / Limitations
+## 16. Deployment Requirements
+
+### DNS Configuration
+
+- **Wildcard A record:** `*.regkasse.at` → backend (and admin/POS frontends if served on tenant subdomains) server IP address.
+- Required so each tenant host (`cafe.regkasse.at`, `bar.regkasse.at`, …) and `admin.regkasse.at` resolve to the application stack.
+- Reverse proxy / load balancer must **preserve the original `Host` header** for tenant slug extraction (`TenantHostNames.GetTenantSlugFromHost`).
+- **SSL/TLS:** Certificate must cover the wildcard (`*.regkasse.at`) and typically the apex (`regkasse.at`) if used.
+
+Local development alternative: hosts-file entries such as `cafe.regkasse.local` (see `TenantHostNames.IsLocalDevelopmentDomain`).
+
+### Environment Variables
+
+| Variable | Role |
+|----------|------|
+| `ASPNETCORE_ENVIRONMENT` | ASP.NET host environment; drives `IWebHostEnvironment.IsDevelopment()` |
+
+**Tenant resolution mode (backend):**
+
+- **`Development`:** `X-Tenant-Id` header and `?tenant=` query overrides are allowed (`SubdomainTenantProvider`).
+- **`Production`** (and other non-Development values such as `Staging`): **only** subdomain / `Host`-based resolution; header and query overrides are ignored.
+
+Ensure production deployments set `ASPNETCORE_ENVIRONMENT=Production` (not `Development`) so tenant cannot be spoofed via headers.
+
+**Related client build vars (not ASP.NET):**
+
+- Admin: `NEXT_PUBLIC_API_BASE_URL` should target the correct tenant or shared API host per deployment layout — see `frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md`.
+- POS: configure API base URL per tenant build or runtime bootstrap (`EXPO_PUBLIC_*` / license bootstrap) so requests hit the matching subdomain in production.
+
+---
+
+## 17. Known Risks / Limitations
 
 Known or suspected risks:
 
@@ -797,7 +1068,7 @@ Known or suspected risks:
 
 ---
 
-## 17. Current High-Value Next Tasks
+## 18. Current High-Value Next Tasks
 
 Possible next tasks, in priority order:
 
@@ -812,7 +1083,7 @@ Possible next tasks, in priority order:
 
 ---
 
-## 18. Quick Prompt for New AI Sessions
+## 19. Quick Prompt for New AI Sessions
 
 Use this at the top of a new AI/Cursor chat:
 
@@ -844,7 +1115,7 @@ Development rules:
 
 ---
 
-## 19. Definition of Done for Fiscal/RKSV Changes
+## 20. Definition of Done for Fiscal/RKSV Changes
 
 A fiscal/RKSV change is not done until:
 

@@ -45,6 +45,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n, formatDate } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import { useDebounce } from '@/hooks/useDebounce';
 import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import {
@@ -970,6 +971,11 @@ export default function AdminLicensePage() {
                 message.error(res.message || t('license.activation.failureSimple'));
                 return;
             }
+            tenantStorage.persistBootstrap({
+                tenantId: res.tenantId,
+                tenantSlug: res.tenantSlug,
+                apiBaseUrl: res.apiBaseUrl,
+            });
             message.success(t('license.activation.successSimple'));
             form.resetFields(['licenseKey']);
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });

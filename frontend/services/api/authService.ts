@@ -32,6 +32,9 @@ export interface LoginResponse {
     lastName?: string;
     roles?: string[];
     permissions?: string[];
+    tenantId?: string | null;
+    tenantSlug?: string | null;
+    tenantDisplayName?: string | null;
   };
 }
 

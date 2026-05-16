@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("localization_settings")]
-    public class LocalizationSettings : BaseEntity
+    public class LocalizationSettings : BaseEntity, ITenantEntity
     {
         [Required]
         [Column("tenant_id")]

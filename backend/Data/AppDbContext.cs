@@ -1,3 +1,5 @@
+using System.Linq.Expressions;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -5,14 +7,22 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 
 namespace KasseAPI_Final.Data
 {
     public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        private readonly ICurrentTenantAccessor _tenantAccessor;
+
+        public AppDbContext(DbContextOptions<AppDbContext> options) : this(options, NullCurrentTenantAccessor.Instance)
         {
+        }
+
+        public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentTenantAccessor tenantAccessor) : base(options)
+        {
+            _tenantAccessor = tenantAccessor;
         }
 
         // DbSet properties
@@ -382,6 +392,12 @@ namespace KasseAPI_Final.Data
             builder.Entity<Invoice>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
                 entity.Property(e => e.InvoiceNumber).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.CustomerName).HasMaxLength(100);
                 entity.Property(e => e.CustomerEmail).HasMaxLength(100);
@@ -689,6 +705,12 @@ namespace KasseAPI_Final.Data
             {
                 entity.ToTable("offline_transactions");
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
                 entity.Property(e => e.CashRegisterId).IsRequired();
                 entity.Property(e => e.PayloadJson).IsRequired().HasColumnType("jsonb");
                 entity.Property(e => e.PayloadSecretsProtected).HasColumnName("payload_secrets_protected").HasColumnType("text");
@@ -777,7 +799,16 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Slug).IsRequired().HasMaxLength(64);
+                entity.Property(e => e.Email).HasMaxLength(200);
+                entity.Property(e => e.Phone).HasMaxLength(50);
+                entity.Property(e => e.Address);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue(TenantStatuses.Active);
+                entity.Property(e => e.LicenseKey).HasMaxLength(100);
+                entity.Property(e => e.LicenseValidUntilUtc);
+                entity.Property(e => e.DeletedAtUtc);
+                entity.Property(e => e.DeletedByUserId).HasMaxLength(450);
                 entity.HasIndex(e => e.Slug).IsUnique();
+                entity.HasIndex(e => e.Status);
             });
 
             builder.Entity<SystemTimeSyncLog>(entity =>
@@ -924,6 +955,12 @@ namespace KasseAPI_Final.Data
                 entity.ToTable("audit_logs");
                 entity.Ignore(e => e.User);
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
                 entity.Property(e => e.Id).HasColumnName("id");
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at");
                 entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
@@ -1263,6 +1300,12 @@ namespace KasseAPI_Final.Data
             builder.Entity<DailyClosing>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
                 entity.Property(e => e.CashRegisterId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.UserId).IsRequired();
                 entity.Property(e => e.ClosingType).IsRequired().HasMaxLength(20);
@@ -1394,6 +1437,12 @@ namespace KasseAPI_Final.Data
             builder.Entity<TseSignature>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
                 entity.Property(e => e.Signature).IsRequired().HasColumnType("text");
                 entity.Property(e => e.CashRegisterId).IsRequired();
                 entity.Property(e => e.InvoiceNumber).IsRequired().HasMaxLength(100);
@@ -1683,6 +1732,12 @@ namespace KasseAPI_Final.Data
             // Receipt configuration
             builder.Entity<Receipt>(entity =>
             {
+               entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+               entity.HasOne(e => e.Tenant)
+                   .WithMany()
+                   .HasForeignKey(e => e.TenantId)
+                   .OnDelete(DeleteBehavior.Restrict);
+               entity.HasIndex(e => e.TenantId);
                entity.HasIndex(e => e.ReceiptNumber).IsUnique();
                entity.HasIndex(e => e.PaymentId);
                entity.Property(e => e.ReceiptNumber).IsRequired().HasColumnType("text");
@@ -1708,6 +1763,12 @@ namespace KasseAPI_Final.Data
             builder.Entity<SignatureChainState>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
                 entity.HasIndex(e => e.CashRegisterId).IsUnique();
                 entity.Property(e => e.CashRegisterId).IsRequired().HasColumnName("cash_register_id");
                 entity.Property(e => e.LastSignature).HasColumnType("text");
@@ -1923,8 +1984,55 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.IdempotencyKey).IsUnique().HasFilter("\"idempotency_key\" IS NOT NULL");
             });
 
+            builder.Entity<ReceiptItem>(entity =>
+            {
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
+            });
+
+            builder.Entity<ReceiptTaxLine>(entity =>
+            {
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
+            });
+
+            builder.Entity<FinanzOnlineSubmission>(entity =>
+            {
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.InvoiceId);
+            });
+
+            // Global query filter: e.TenantId == ambient tenant when JWT/middleware set a tenant (Guid, not string).
+            foreach (var entityType in builder.Model.GetEntityTypes()
+                .Where(t => t.ClrType?.GetInterface(nameof(ITenantEntity)) != null))
+            {
+                var clrType = entityType.ClrType!;
+                var filter = (LambdaExpression)typeof(AppDbContext)
+                    .GetMethod(nameof(CreateTenantQueryFilter), BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .MakeGenericMethod(clrType)
+                    .Invoke(this, null)!;
+                builder.Entity(clrType).HasQueryFilter(filter);
+            }
+
             Console.WriteLine("AppDbContext model configuration completed with TableOrder support");
         }
+
+        private Expression<Func<TEntity, bool>> CreateTenantQueryFilter<TEntity>()
+            where TEntity : class, ITenantEntity =>
+            e => _tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId;
 
         /// <summary>
         /// <c>timestamptz</c> columns: Npgsql rejects non-UTC <see cref="DateTime"/> on parameters and on many write paths.
@@ -2035,6 +2143,7 @@ namespace KasseAPI_Final.Data
         public override int SaveChanges()
         {
             NormalizeTimestamptzDateTimesBeforeSave();
+            StampTenantIdsOnInsert();
             EnforceAuditLogAppendOnly();
             return base.SaveChanges();
         }
@@ -2045,9 +2154,131 @@ namespace KasseAPI_Final.Data
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             NormalizeTimestamptzDateTimesBeforeSave();
+            StampTenantIdsOnInsert();
             EnforceAuditLogAppendOnly();
             return await base.SaveChangesAsync(cancellationToken);
         }
+
+        /// <summary>Sets <see cref="ITenantEntity.TenantId"/> on new rows from ambient tenant or owning cash register / receipt / invoice.</summary>
+        private void StampTenantIdsOnInsert()
+        {
+            var pending = ChangeTracker.Entries<ITenantEntity>()
+                .Where(e => e.State == EntityState.Added && e.Entity.TenantId == Guid.Empty)
+                .ToList();
+            if (pending.Count == 0)
+                return;
+
+            if (_tenantAccessor.TenantId is Guid ambient && ambient != Guid.Empty)
+            {
+                foreach (var entry in pending)
+                    entry.Entity.TenantId = ambient;
+            }
+
+            pending = pending.Where(e => e.Entity.TenantId == Guid.Empty).ToList();
+            if (pending.Count == 0)
+                return;
+
+            var cashRegisterIds = pending
+                .Select(e => TryGetCashRegisterId(e.Entity))
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            if (cashRegisterIds.Count > 0)
+            {
+                var tenantByRegister = CashRegisters.AsNoTracking()
+                    .Where(cr => cashRegisterIds.Contains(cr.Id))
+                    .Select(cr => new { cr.Id, cr.TenantId })
+                    .ToDictionary(x => x.Id, x => x.TenantId);
+
+                foreach (var entry in pending)
+                {
+                    if (entry.Entity.TenantId != Guid.Empty)
+                        continue;
+                    var registerId = TryGetCashRegisterId(entry.Entity);
+                    if (registerId.HasValue && tenantByRegister.TryGetValue(registerId.Value, out var tenantId))
+                        entry.Entity.TenantId = tenantId;
+                }
+            }
+
+            pending = pending.Where(e => e.Entity.TenantId == Guid.Empty).ToList();
+            if (pending.Count == 0)
+                return;
+
+            var tenantByReceipt = ChangeTracker.Entries<Receipt>()
+                .Where(e => e.Entity.TenantId != Guid.Empty)
+                .ToDictionary(e => e.Entity.ReceiptId, e => e.Entity.TenantId);
+
+            var receiptIds = pending
+                .Select(e => TryGetReceiptId(e.Entity))
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Where(id => !tenantByReceipt.ContainsKey(id))
+                .Distinct()
+                .ToList();
+
+            if (receiptIds.Count > 0)
+            {
+                foreach (var row in Receipts.AsNoTracking()
+                             .Where(r => receiptIds.Contains(r.ReceiptId))
+                             .Select(r => new { r.ReceiptId, r.TenantId }))
+                {
+                    tenantByReceipt[row.ReceiptId] = row.TenantId;
+                }
+            }
+
+            foreach (var entry in pending)
+            {
+                if (entry.Entity.TenantId != Guid.Empty)
+                    continue;
+                var receiptId = TryGetReceiptId(entry.Entity);
+                if (receiptId.HasValue && tenantByReceipt.TryGetValue(receiptId.Value, out var tenantId))
+                    entry.Entity.TenantId = tenantId;
+            }
+
+            pending = pending.Where(e => e.Entity.TenantId == Guid.Empty).ToList();
+            var invoiceIds = pending
+                .Select(e => e.Entity)
+                .OfType<FinanzOnlineSubmission>()
+                .Select(f => f.InvoiceId)
+                .Distinct()
+                .ToList();
+
+            if (invoiceIds.Count == 0)
+                return;
+
+            var tenantByInvoice = Invoices.AsNoTracking()
+                .Where(i => invoiceIds.Contains(i.Id))
+                .Select(i => new { i.Id, i.TenantId })
+                .ToDictionary(x => x.Id, x => x.TenantId);
+
+            foreach (var entry in pending)
+            {
+                if (entry.Entity is not FinanzOnlineSubmission submission || submission.TenantId != Guid.Empty)
+                    continue;
+                if (tenantByInvoice.TryGetValue(submission.InvoiceId, out var tenantId))
+                    submission.TenantId = tenantId;
+            }
+        }
+
+        private static Guid? TryGetCashRegisterId(ITenantEntity entity) => entity switch
+        {
+            OfflineTransaction ot => ot.CashRegisterId,
+            DailyClosing dc => dc.CashRegisterId,
+            TseSignature ts => ts.CashRegisterId,
+            SignatureChainState sc => sc.CashRegisterId,
+            Receipt r => r.CashRegisterId,
+            Invoice inv => inv.CashRegisterId,
+            _ => null
+        };
+
+        private static Guid? TryGetReceiptId(ITenantEntity entity) => entity switch
+        {
+            ReceiptItem item => item.ReceiptId,
+            ReceiptTaxLine line => line.ReceiptId,
+            _ => null
+        };
 
         /// <summary>Invariant 1–2: Reject any UPDATE to AuditLog; records are immutable after insert.</summary>
         private void EnforceAuditLogAppendOnly()

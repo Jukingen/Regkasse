@@ -1,0 +1,53 @@
+{
+  "page": {
+    "title": "Tenant management",
+    "subtitle": "Super admin: create tenants, edit metadata, and impersonate for support."
+  },
+  "accessDenied": {
+    "title": "Access denied",
+    "body": "Only super administrators may open this page."
+  },
+  "columns": {
+    "name": "Name",
+    "slug": "Slug",
+    "email": "Email",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "fields": {
+    "name": "Company name",
+    "slug": "Subdomain slug",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address",
+    "status": "Status"
+  },
+  "filters": {
+    "includeDeleted": "Include deleted"
+  },
+  "actions": {
+    "create": "Create tenant",
+    "edit": "Edit",
+    "delete": "Delete",
+    "impersonate": "Sign in as tenant"
+  },
+  "create": {
+    "title": "New tenant"
+  },
+  "edit": {
+    "title": "Edit tenant"
+  },
+  "confirmDelete": {
+    "title": "Delete tenant?",
+    "body": "Soft delete sets status to deleted."
+  },
+  "messages": {
+    "created": "Tenant created.",
+    "updated": "Tenant saved.",
+    "deleted": "Tenant deleted.",
+    "saveFailed": "Save failed.",
+    "deleteFailed": "Delete failed.",
+    "impersonationStarted": "Impersonation started: {{name}}",
+    "impersonationFailed": "Impersonation failed."
+  }
+}

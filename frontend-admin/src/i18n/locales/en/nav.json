@@ -42,6 +42,7 @@
   "developmentMode": "Development mode",
   "timeSync": "Time sync",
   "licenseManagement": "License",
+  "superAdminTenants": "Tenants (Super Admin)",
   "myProfile": "My profile",
   "logout": "Log out",
   "rksvOperationsOverview": "RKSV overview",

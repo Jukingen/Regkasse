@@ -206,6 +206,7 @@ namespace KasseAPI_Final.Controllers
                         isDemo = user.IsDemo,
                         tenantId = tenantSnapshot.TenantId,
                         tenantDisplayName = tenantSnapshot.TenantDisplayName,
+                        tenantSlug = tenantSnapshot.TenantSlug,
                         branchId = tenantSnapshot.BranchId,
                         branchDisplayName = tenantSnapshot.BranchDisplayName,
                     },
@@ -335,6 +336,7 @@ namespace KasseAPI_Final.Controllers
                     appContext = appContext,
                     tenantId = tenantSnapshot.TenantId,
                     tenantDisplayName = tenantSnapshot.TenantDisplayName,
+                    tenantSlug = tenantSnapshot.TenantSlug,
                     branchId = tenantSnapshot.BranchId,
                     branchDisplayName = tenantSnapshot.BranchDisplayName,
                 };

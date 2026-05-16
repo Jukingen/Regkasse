@@ -11,8 +11,11 @@ namespace KasseAPI_Final.Models
     /// 4. Sensitive data must never be logged (password, tokens, credentials, taxNumber, security stamps); use UserAuditDiffHelper whitelist.
     /// 5. Consumers (e.g. UI) must gracefully handle incomplete historical records (null/legacy fields).
     /// </summary>
-    public class AuditLog : BaseEntity
+    public class AuditLog : BaseTenantEntity
     {
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
+
         [Required]
         [MaxLength(100)]
         public string SessionId { get; set; } = string.Empty;

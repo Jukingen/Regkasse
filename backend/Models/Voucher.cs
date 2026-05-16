@@ -31,7 +31,7 @@ public enum VoucherTransactionType
 /// Tenant-scoped stored-value voucher. Raw codes are never persisted; lookup uses <see cref="CodeHash"/> only.
 /// </summary>
 [Table("vouchers")]
-public class Voucher
+public class Voucher : ITenantEntity
 {
     [Key]
     [Column("id")]
@@ -116,7 +116,7 @@ public class Voucher
 /// Append-only audit trail for voucher balance movements. <see cref="Amount"/> is the signed delta; <see cref="BalanceAfter"/> is authoritative snapshot.
 /// </summary>
 [Table("voucher_ledger_entries")]
-public class VoucherLedgerEntry
+public class VoucherLedgerEntry : ITenantEntity
 {
     [Key]
     [Column("id")]

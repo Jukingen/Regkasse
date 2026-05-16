@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Models
     /// RKSV uyumlu ürün modeli - Avusturya kasa sistemi standartlarına uygun
     /// </summary>
     [Table("products")]
-    public class Product : BaseEntity
+    public class Product : BaseEntity, ITenantEntity
     {
         /// <summary>FK to <see cref="Models.Tenant"/>; aligns with <see cref="CategoryId"/> composite FK to <see cref="Category"/>.</summary>
         [Column("tenant_id")]

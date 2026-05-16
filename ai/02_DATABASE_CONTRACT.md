@@ -1,5 +1,66 @@
 # Database Contract (PostgreSQL + EF Core)
 
+## Database Schema
+
+### Multi-Tenant Columns
+
+`ITenantEntity` uygulayan tüm kiracı kapsamlı tablolarda:
+
+- `tenant_id uuid NOT NULL` — FK `tenants.id`
+- Performans için index (`AppDbContext` `HasIndex(e => e.TenantId)`)
+- Değer istek başına uygulama katmanından gelir: alt alan adı / dev header’daki **slug** → `CurrentTenantService` → `ICurrentTenantAccessor.TenantId` (Guid); login sonrası JWT `tenant_id` claim geçerli olabilir
+
+Kök / global örnekler: `tenants`, Identity kullanıcı tabloları. Dış anahtar string: `tenants.slug` (alt alan çözümlemesi).
+
+### Global Query Filters
+
+EF Core tüm `ITenantEntity` sorgularına otomatik filtre ekler:
+
+```text
+WHERE tenant_id = @currentTenantId
+```
+
+Kaynak: `AppDbContext.CreateTenantQueryFilter` → `_tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId`.
+
+## Multi-Tenant Architecture
+
+- Kiracı kök tablosu: `tenants` (`Tenant` entity — global, `ITenantEntity` değil).
+- Kiracı kapsamlı tablolar: `tenant_id` (UUID, non-null) + `ITenantEntity` / `BaseTenantEntity`.
+- Kullanıcı–kiracı: `user_tenant_memberships` (login’de tek aktif üyelik beklentisi; çoklu üyelik loglanır).
+- Çapraz kiracı okuma/yazma: uygulama katmanında **404**; `IgnoreQueryFilters()` yalnızca Super Admin / seed / bilinçli bypass.
+- Migration’larda `tenant_id` ekleme: fiscal/audit dalgalarına bak (`AddTenantIdToFiscalAndAuditTables` vb.).
+
+## Migrating existing databases
+
+Mevcut tek-kiracılı PostgreSQL kurulumları için repoda **dalga dalga** migration zinciri kullanılır (tek `AddTenantIdToAllTables` yok).
+
+### Pattern (EF Core)
+
+1. `tenants` tablosu + default kiracı seed (`20260403190133_AddTenantsAndSettingsTenantId`).
+2. İlgili tablolara `tenant_id uuid NOT NULL` ekle — geçici/default: `LegacyDefaultTenantIds.Primary` (sabit Guid; string `'legacy'` değil).
+3. Veri backfill migration’ları (ör. `BackfillUserTenantMembershipsData`).
+4. Wave migrations: payment methods / cash registers (Wave2), categories / products (Wave3A), modifiers (Wave3B), fiscal / audit / offline (`20260516101549_AddTenantIdToFiscalAndAuditTables`).
+5. `HasIndex(e => e.TenantId)` — `AppDbContext` içinde.
+
+### Komutlar
+
+```bash
+dotnet ef migrations list --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
+dotnet ef database update --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
+```
+
+Yeni tabloya `tenant_id` eklerken:
+
+```bash
+dotnet ef migrations add <DescriptiveName> --project backend/KasseAPI_Final.csproj --startup-project backend/KasseAPI_Final.csproj
+```
+
+### Dikkat
+
+- Fiscal / receipt / TSE tablolarında destructive migration yok sayma; additive + default Guid kullan.
+- `IgnoreQueryFilters()` yalnızca Super Admin servisleri, seed veya bilinçli bakım yollarında.
+- Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md` (Database Schema).
+
 ## Kaynak
 - Gerçek model kaynağı: `backend/Data/AppDbContext.cs` ve `backend/Migrations/*`.
 - Migration yönetimi EF Core ile yapılır; migration geçmişi authoritative kabul edilir.

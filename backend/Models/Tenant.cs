@@ -17,4 +17,35 @@ public class Tenant : BaseEntity
     [Required]
     [MaxLength(64)]
     public string Slug { get; set; } = string.Empty;
+
+    [MaxLength(200)]
+    [Column("email")]
+    public string? Email { get; set; }
+
+    [MaxLength(50)]
+    [Column("phone")]
+    public string? Phone { get; set; }
+
+    [Column("address")]
+    public string? Address { get; set; }
+
+    /// <summary><see cref="TenantStatuses"/> value.</summary>
+    [Required]
+    [MaxLength(20)]
+    [Column("status")]
+    public string Status { get; set; } = TenantStatuses.Active;
+
+    [MaxLength(100)]
+    [Column("license_key")]
+    public string? LicenseKey { get; set; }
+
+    [Column("license_valid_until_utc")]
+    public DateTime? LicenseValidUntilUtc { get; set; }
+
+    [Column("deleted_at_utc")]
+    public DateTime? DeletedAtUtc { get; set; }
+
+    [MaxLength(450)]
+    [Column("deleted_by_user_id")]
+    public string? DeletedByUserId { get; set; }
 }

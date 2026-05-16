@@ -16,7 +16,7 @@ public class SettingsTenantResolverTests
         var snapshotMock = new Mock<IAuthTenantSnapshotProvider>();
         snapshotMock
             .Setup(p => p.GetSnapshotAsync(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(expected, "X", null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(expected, "X", LegacyDefaultTenantIds.PrimarySlug, null, null));
 
         var http = new Mock<IHttpContextAccessor>();
         http.Setup(h => h.HttpContext).Returns((HttpContext?)null);
@@ -38,7 +38,7 @@ public class SettingsTenantResolverTests
         var snapshotMock = new Mock<IAuthTenantSnapshotProvider>();
         snapshotMock
             .Setup(p => p.GetSnapshotAsync(principal, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new AuthTenantSnapshot(other.ToString("D"), "T", null, null));
+            .ReturnsAsync(new AuthTenantSnapshot(other.ToString("D"), "T", "other", null, null));
 
         var http = new Mock<IHttpContextAccessor>();
         http.Setup(h => h.HttpContext).Returns(httpContext);

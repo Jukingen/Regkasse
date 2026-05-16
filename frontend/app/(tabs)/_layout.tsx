@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
+import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
 import PaymentModal from '../../components/PaymentModal';
 import { TimeSyncBanner } from '../../components/TimeSyncBanner';
 import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
@@ -118,6 +119,7 @@ function PosTabsInner({
         <LicenseExpiryBanner />
         <View style={styles.licenseStatusBar}>
           <LicenseStatusIndicator />
+          <DevTenantSwitcher />
           <EnvironmentBadge settings={developmentModeSettings} />
         </View>
         <TimeSyncBanner />
@@ -323,6 +325,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'flex-end',
         alignItems: 'center',
+        gap: 8,
+        flexWrap: 'wrap',
         paddingHorizontal: SoftSpacing.sm,
         paddingVertical: 6,
         backgroundColor: SoftColors.bgPrimary,

@@ -36,6 +36,7 @@ using KasseAPI_Final.Services.Backup.PgDump;
 using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.AdminProducts;
+using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
 using Microsoft.Extensions.Configuration;
@@ -55,7 +56,7 @@ internal static class ApplicationHost
         if (string.IsNullOrWhiteSpace(origin)) return false;
         if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
         if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return false;
-        if (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase)) return true;
+        if (TenantHostNames.IsTrustedLocalDevCorsHost(uri.Host)) return true;
         if (!IPAddress.TryParse(uri.Host, out var ip)) return false;
         if (IPAddress.IsLoopback(ip)) return true;
         if (ip.AddressFamily != AddressFamily.InterNetwork) return false;
@@ -358,12 +359,17 @@ builder.Services.AddScoped<IUserSessionInvalidation>(sp => (RefreshTokenService)
 builder.Services.AddScoped<IRolePermissionResolver, RolePermissionResolver>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
+builder.Services.AddScoped<IJwtAccessTokenIssuer, JwtAccessTokenIssuer>();
+builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
 builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
 // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
 builder.Services.AddScoped<IAuthTenantSnapshotProvider, AuthTenantSnapshotProvider>();
 builder.Services.AddScoped<ILoginTenantResolver, LoginTenantResolver>();
 builder.Services.AddScoped<IUserTenantMembershipProvisioner, UserTenantMembershipProvisioner>();
 builder.Services.AddScoped<ISettingsTenantResolver, SettingsTenantResolver>();
+builder.Services.AddScoped<ICurrentTenantAccessor, CurrentTenantAccessor>();
+builder.Services.AddScoped<ITenantProvider, SubdomainTenantProvider>();
+builder.Services.AddScoped<CurrentTenantService>();
 
 // CORS politikası
 builder.Services.AddCors(options =>
@@ -803,6 +809,9 @@ app.UseCors("AllowAll");
 // CorrelationId: propagate from request (X-Correlation-Id) or generate; required for audit traceability
 app.UseMiddleware<KasseAPI_Final.Middleware.CorrelationIdMiddleware>();
 
+// Subdomain → tenant slug → Guid on ICurrentTenantAccessor (before auth; JWT may override later).
+app.UseMiddleware<KasseAPI_Final.Middleware.TenantResolutionMiddleware>();
+
 // Public GET for product images saved by admin upload (anonymous; unguessable file names).
 var productMediaOpts = app.Services.GetRequiredService<IOptions<ProductMediaOptions>>().Value;
 var webHostEnv = app.Services.GetRequiredService<IWebHostEnvironment>();
@@ -824,6 +833,7 @@ app.UseStaticFiles(new StaticFileOptions
 
 // Authentication ve Authorization middleware
 app.UseAuthentication();
+app.UseMiddleware<KasseAPI_Final.Middleware.TenantContextMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
 app.UseAuthorization();
 

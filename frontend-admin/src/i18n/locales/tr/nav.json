@@ -42,6 +42,7 @@
   "developmentMode": "Geliştirici modu",
   "timeSync": "Zaman senkronizasyonu",
   "licenseManagement": "Lisans",
+  "superAdminTenants": "Kiracılar (Süper Admin)",
   "myProfile": "Profilim",
   "logout": "Çıkış yap",
   "rksvOperationsOverview": "RKSV genel bakış",

@@ -5,7 +5,10 @@
 - Kısa bağlam paketi: `ai/00_CONTEXT_README.md` ve bu dosyanın altındaki klasör yolları.
 
 ## Backend (`backend/`)
+- Tenancy: `backend/Tenancy/` (`SubdomainTenantProvider`, `CurrentTenantService`, `TenantHostNames`)
+- Tenant middleware: `backend/Middleware/TenantResolutionMiddleware.cs`, `TenantContextMiddleware.cs`
 - Controllers: `backend/Controllers/`
+- Super Admin tenants: `backend/Controllers/AdminTenantsController.cs`, `backend/Services/AdminTenants/`
 - Services: `backend/Services/`
 - Authorization: `backend/Authorization/`
 - EF context: `backend/Data/AppDbContext.cs`

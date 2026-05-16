@@ -31,4 +31,10 @@
 ## 8) Money precision / rounding
 - Para hesaplarında mevcut precision ve rounding davranışını koru.
 
+## 9) Tenant isolation / query filters
+- `AppDbContext` global query filter ve `ICurrentTenantAccessor` akışını gevşetme veya kaldırma.
+- `IgnoreQueryFilters()` kullanımını yalnızca bilinçli Super Admin / migration yollarında bırak.
+- Çapraz kiracı 404 semantiğini 403 veya boş 200 ile değiştirme.
+- Middleware sırasını (`TenantResolutionMiddleware` → auth → `TenantContextMiddleware`) sebepsiz değiştirme.
+
 > Emin değilsen varsayım yapma: önce kapsamı daralt, risk ve belirsizliği açık yaz. Özet bağlam: `REGKASSE_AI_ONBOARDING.md`.

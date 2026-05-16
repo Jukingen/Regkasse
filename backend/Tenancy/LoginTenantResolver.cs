@@ -47,15 +47,17 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
 
         var chosen = active[0];
         var name = chosen.Tenant?.Name;
-        if (string.IsNullOrEmpty(name))
+        var slug = chosen.Tenant?.Slug;
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(slug))
         {
             var row = await _db.Tenants.AsNoTracking()
                 .FirstOrDefaultAsync(t => t.Id == chosen.TenantId, cancellationToken)
                 .ConfigureAwait(false);
-            name = row?.Name;
+            name ??= row?.Name;
+            slug ??= row?.Slug;
         }
 
-        return new AuthTenantSnapshot(chosen.TenantId.ToString("D"), name, null, null);
+        return new AuthTenantSnapshot(chosen.TenantId.ToString("D"), name, slug, null, null);
     }
 
     /// <inheritdoc />
@@ -70,6 +72,6 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             .FirstOrDefaultAsync(t => t.Id == primary, cancellationToken)
             .ConfigureAwait(false);
 
-        return new AuthTenantSnapshot(primary.ToString("D"), rowDefault?.Name, null, null);
+        return new AuthTenantSnapshot(primary.ToString("D"), rowDefault?.Name, rowDefault?.Slug, null, null);
     }
 }

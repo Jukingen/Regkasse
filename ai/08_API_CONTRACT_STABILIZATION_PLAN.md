@@ -4,6 +4,11 @@
 
 **Context:** Üst seviye davranış ve RKSV/voucher kuralları için `REGKASSE_AI_ONBOARDING.md` ana özettir; bu dosya route/OpenAPI stabilize iş kuyruğuna odaklanır.
 
+## Multi-Tenant Architecture
+
+- Yeni admin uçları kiracı bağlamını bozmamalı; Super Admin yüzeyi `/api/admin/tenants` altında kalır.
+- OpenAPI/swagger değişikliklerinde `tenant_id` claim ve admin tenant DTO’ları diff’te kontrol edilir.
+
 ## Current repository facts
 - Canonical boundaries exist: `/api/admin/*` and `/api/pos/*`.
 - Legacy aliases still exist for `Payment`, `Cart`, `Product` families.

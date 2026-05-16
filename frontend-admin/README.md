@@ -74,3 +74,112 @@ Code: `src/shared/config/rksvEnvironment.ts`.
 - **Data Fetching**: TanStack Query via Orval generated hooks.
 - **UI**: Ant Design v5 with CSS-in-JS registry for SSR.
 - **i18n**: Custom `I18nProvider` + JSON catalogs; runtime namespace’ler ve dosya adı eşlemesi için `src/i18n/README.md` kaynak kabul edilir.
+
+## Multi-Tenant Architecture
+
+Regkasse uses a multi-tenant architecture where a single backend instance serves multiple tenants (companies/customers).
+
+### Tenant Identification
+
+- Tenants are identified by subdomain: `{tenant}.regkasse.at`
+- Examples: `cafe.regkasse.at`, `bar.regkasse.at`, `market.regkasse.at`
+- Super Admin accesses `admin.regkasse.at`
+
+### Data Isolation
+
+- Every tenant-scoped database row has a `TenantId` column (non-nullable on `ITenantEntity` types)
+- Backend EF global query filters scope data per request tenant
+- Tenants can NEVER see other tenants' data
+- Cross-tenant access attempts return HTTP 404
+
+### Development Mode
+
+- Localhost API: set `X-Tenant-Id` to a tenant **slug** (matches backend `SubdomainTenantProvider`)
+- Optional `?tenant={slug}` on API requests in Development
+- Dev-only tenant selector in the admin shell (`src/features/auth/` — presets in `devTenantPresets.ts`)
+
+## Development Setup for Multi-Tenant Testing
+
+**Option 1 — Header:**
+
+```bash
+curl -H "X-Tenant-Id: cafe" http://localhost:5184/api/health
+```
+
+**Option 2 — Query string:**
+
+```bash
+curl "http://localhost:5184/api/admin/payments?tenant=test_cafe"
+```
+
+(Requires auth for payments; use `cafe` / `test_cafe` only if matching `tenants.slug` in DB.)
+
+**Option 3 — Hosts file:**
+
+```text
+127.0.0.1 test-cafe.localhost
+127.0.0.1 test-bar.localhost
+```
+
+Access API: `http://test-cafe.localhost:5184`
+
+**Option 4 — FA tenant switcher**
+
+In **development** mode, FA shows a **tenant selector dropdown in the header** (`HeaderDevTenantSwitch`). Presets: `dev`, `cafe`, `bar` — sets `X-Tenant-Id` and reloads.
+
+Backend must be `ASPNETCORE_ENVIRONMENT=Development`. See `REGKASSE_AI_ONBOARDING.md`.
+- Hosts file: e.g. `cafe.regkasse.local` → same slug resolution as production subdomains
+
+### Super Admin
+
+Access: **`admin.regkasse.at`** in production (wildcard DNS + TLS).
+
+**Who can access:** `SuperAdmin` role or `system.critical` permission → `/admin/tenants` (`src/app/(protected)/admin/tenants/page.tsx`).
+
+**Capabilities (via `src/features/super-admin/api/adminTenants.ts`):**
+
+| Action | API |
+|--------|-----|
+| List / create / edit / delete tenants | `/api/admin/tenants` |
+| Login as (impersonate) | `POST /api/admin/tenants/{tenantId}/impersonate` |
+
+**Impersonation flow (current):**
+
+1. User clicks impersonate on tenant table.
+2. FA calls impersonate API; on success runs `applyTenantImpersonationSession` (stores JWT, sets `dev_tenant_id`, reloads).
+3. Subsequent requests send `Authorization` + dev `X-Tenant-Id` on loopback.
+4. **Planned:** redirect to `https://{tenantSlug}.regkasse.at` with token handoff for production parity.
+
+Issued licenses and operational data for another tenant require impersonation (or dev tenant header). See `docs/MULTI_TENANT.md`.
+
+### Multi-Tenant Security (client)
+
+- Production: tenant from subdomain; do not rely on `X-Tenant-Id` in production builds.
+- Cross-tenant IDs from API return 404; handle as “not found”, not permission denied.
+- Dev only: header/query documented in `REGKASSE_AI_ONBOARDING.md`.
+
+## API Headers
+
+### Tenant Identification
+
+- **Production:** Tenant from subdomain (no header required).
+- **Development:** `X-Tenant-Id: {slug}` or `?tenant={slug}` (slug, not UUID).
+
+### Super Admin Endpoints
+
+- `/api/admin/tenants/*` — `SuperAdmin` only; see `src/features/super-admin/`.
+- Impersonation: `POST /api/admin/tenants/{tenantId}/impersonate` for tenant-scoped support.
+
+## Deployment Requirements
+
+### DNS Configuration
+
+- Wildcard A record: `*.regkasse.at` → server IP (per-tenant and `admin` subdomains).
+- Wildcard SSL certificate required in production.
+
+### Environment Variables
+
+- Backend `ASPNETCORE_ENVIRONMENT`: `Development` allows dev tenant header/query; `Production` uses subdomain only.
+- Admin build: see [`docs/DEPLOYMENT_BUILD_TIME_ENV.md`](docs/DEPLOYMENT_BUILD_TIME_ENV.md) for `NEXT_PUBLIC_*` at build time.
+
+Repo-wide detail: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md` (Multi-Tenant Architecture, API Headers, §16 Deployment).

@@ -109,6 +109,7 @@ public static class PermissionCatalog
         AppPermissions.RksvJahresbelegCreate,
         AppPermissions.RksvSchlussbelegCreate,
         AppPermissions.SystemCritical,
+        AppPermissions.TenantManage,
         AppPermissions.LicenseLifecycleSuper,
         // Legacy / convenience
         AppPermissions.PriceOverride,

@@ -8,6 +8,7 @@ import { usePostApiAuthLogin } from '@/api/generated/auth/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import type { LoginModel } from '@/api/generated/model';
 import { authStorage } from '@/features/auth/services/authStorage';
+import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import { AUTH_KEYS, fetchAuthUser } from '../hooks/useAuth';
 import { useI18n } from '@/i18n';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
@@ -32,6 +33,13 @@ export const LoginForm: FC = () => {
                     if (refreshToken) {
                         authStorage.setRefreshToken(refreshToken);
                     }
+                    const loginUser = loginResponse?.user as
+                        | { tenantId?: string | null; tenantSlug?: string | null }
+                        | undefined;
+                    tenantStorage.persistBootstrap({
+                        tenantId: loginUser?.tenantId,
+                        tenantSlug: loginUser?.tenantSlug,
+                    });
                     if (process.env.NODE_ENV === 'development') {
                         technicalConsole.devLog('[LoginForm] JWT token pair saved to local storage (shared across tabs)');
                     }

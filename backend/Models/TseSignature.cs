@@ -5,10 +5,17 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("TseSignatures")]
-    public class TseSignature
+    public class TseSignature : ITenantEntity
     {
         [Key]
         public Guid Id { get; set; }
+
+        [Required]
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
 
         [Required]
         [Column(TypeName = "text")]

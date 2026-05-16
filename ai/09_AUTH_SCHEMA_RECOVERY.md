@@ -5,6 +5,11 @@
 - POS/Admin login fails with:
   - `PostgresException 42P01: relation "auth_sessions" does not exist`
 
+## Multi-tenant note
+
+- Login JWT includes `tenant_id` when membership/bootstrap resolves a tenant (`LoginTenantResolver`, `UserTenantMembership`).
+- Auth recovery does not replace tenant middleware; after login, requests still need correct host or dev `X-Tenant-Id`.
+
 ## Why it happens
 
 - Runtime backend issues refresh tokens on login and writes to:

@@ -1,0 +1,53 @@
+{
+  "page": {
+    "title": "Kiracı yönetimi",
+    "subtitle": "Süper admin: kiracı oluşturma, düzenleme ve destek için impersonation."
+  },
+  "accessDenied": {
+    "title": "Erişim reddedildi",
+    "body": "Bu sayfayı yalnızca süper yöneticiler açabilir."
+  },
+  "columns": {
+    "name": "Ad",
+    "slug": "Slug",
+    "email": "E-posta",
+    "status": "Durum",
+    "actions": "İşlemler"
+  },
+  "fields": {
+    "name": "Şirket adı",
+    "slug": "Alt alan slug",
+    "email": "E-posta",
+    "phone": "Telefon",
+    "address": "Adres",
+    "status": "Durum"
+  },
+  "filters": {
+    "includeDeleted": "Silinenleri göster"
+  },
+  "actions": {
+    "create": "Kiracı oluştur",
+    "edit": "Düzenle",
+    "delete": "Sil",
+    "impersonate": "Kiracı olarak giriş"
+  },
+  "create": {
+    "title": "Yeni kiracı"
+  },
+  "edit": {
+    "title": "Kiracıyı düzenle"
+  },
+  "confirmDelete": {
+    "title": "Kiracı silinsin mi?",
+    "body": "Soft delete: durum deleted olur."
+  },
+  "messages": {
+    "created": "Kiracı oluşturuldu.",
+    "updated": "Kiracı kaydedildi.",
+    "deleted": "Kiracı silindi.",
+    "saveFailed": "Kaydetme başarısız.",
+    "deleteFailed": "Silme başarısız.",
+    "impersonationStarted": "Impersonation başladı: {{name}}",
+    "impersonationFailed": "Impersonation başarısız."
+  }
+}

@@ -7,7 +7,7 @@ namespace KasseAPI_Final.Models;
 /// Yönetici tarafından yapılandırılabilir ödeme yöntemi: sabit kod, görünen ad, RKSV için Invoice.PaymentMethod ile uyumlu 0–5 legacy eşlemesi.
 /// </summary>
 [Table("payment_method_definitions")]
-public class PaymentMethodDefinition
+public class PaymentMethodDefinition : ITenantEntity
 {
     [Column("id")]
     public Guid Id { get; set; }

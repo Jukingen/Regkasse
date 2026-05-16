@@ -1,0 +1,53 @@
+{
+  "page": {
+    "title": "Mandantenverwaltung",
+    "subtitle": "Super-Admin: Mandanten anlegen, bearbeiten und für Support impersonieren."
+  },
+  "accessDenied": {
+    "title": "Zugriff verweigert",
+    "body": "Nur Super-Administratoren dürfen diese Seite öffnen."
+  },
+  "columns": {
+    "name": "Name",
+    "slug": "Slug",
+    "email": "E-Mail",
+    "status": "Status",
+    "actions": "Aktionen"
+  },
+  "fields": {
+    "name": "Firmenname",
+    "slug": "Subdomain-Slug",
+    "email": "E-Mail",
+    "phone": "Telefon",
+    "address": "Adresse",
+    "status": "Status"
+  },
+  "filters": {
+    "includeDeleted": "Gelöschte anzeigen"
+  },
+  "actions": {
+    "create": "Mandant anlegen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "impersonate": "Als Mandant anmelden"
+  },
+  "create": {
+    "title": "Neuer Mandant"
+  },
+  "edit": {
+    "title": "Mandant bearbeiten"
+  },
+  "confirmDelete": {
+    "title": "Mandant löschen?",
+    "body": "Soft-Delete: Status wird auf deleted gesetzt."
+  },
+  "messages": {
+    "created": "Mandant wurde angelegt.",
+    "updated": "Mandant wurde gespeichert.",
+    "deleted": "Mandant wurde gelöscht.",
+    "saveFailed": "Speichern fehlgeschlagen.",
+    "deleteFailed": "Löschen fehlgeschlagen.",
+    "impersonationStarted": "Impersonation gestartet: {{name}}",
+    "impersonationFailed": "Impersonation fehlgeschlagen."
+  }
+}

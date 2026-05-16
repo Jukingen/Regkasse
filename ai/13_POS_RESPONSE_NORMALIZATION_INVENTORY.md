@@ -2,6 +2,10 @@
 
 **Last reviewed:** 2026-05-04
 
+## Multi-Tenant Architecture
+
+- POS API çağrıları `tenantStorage` ile Development header ve üretim host hizalaması kullanır; normalizer’lar kiracı sınırını bypass etmemeli.
+
 ## Why this exists
 POS servislerinde bazı adapter/normalizer katmanları backend response drift’ini tolere ediyor. Amaç: güvenli şekilde azaltmak.
 

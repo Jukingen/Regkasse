@@ -133,6 +133,9 @@ public static class AppPermissions
     // --- System-critical (permanent delete, high-risk) ---
     public const string SystemCritical = "system.critical";
 
+    /// <summary>Super-admin tenant CRUD and impersonation (<c>/api/admin/tenants</c>).</summary>
+    public const string TenantManage = "tenant.manage";
+
     /// <summary>Destructive / sensitive issued-license lifecycle (extend in-place, cancel, soft-delete, unregister). SuperAdmin-only via catalog.</summary>
     public const string LicenseLifecycleSuper = "license.super";
 

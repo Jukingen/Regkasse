@@ -1,3 +1,5 @@
+import { tenantStorage } from '@/features/auth/services/tenantStorage';
+
 /**
  * Service to manage JWT token storage across the application.
  * Primary persistence is localStorage so new browser tabs share the same admin session
@@ -122,6 +124,7 @@ export const authStorage = {
             window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
             window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
             clearAccessTokenCookie();
+            tenantStorage.clear();
             window.dispatchEvent(new CustomEvent(AUTH_SESSION_CLEARED_EVENT));
         }
     },

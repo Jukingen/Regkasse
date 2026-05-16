@@ -1,11 +1,14 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -29,17 +32,23 @@ public sealed class LicenseController : ControllerBase
     private readonly IOptions<LicenseOptions> _licenseOptions;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<LicenseController> _logger;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly AppDbContext _db;
 
     public LicenseController(
         ILicenseService licenseService,
         IOptions<LicenseOptions> licenseOptions,
         IWebHostEnvironment environment,
-        ILogger<LicenseController> logger)
+        ILogger<LicenseController> logger,
+        ICurrentTenantAccessor tenantAccessor,
+        AppDbContext db)
     {
         _licenseService = licenseService;
         _licenseOptions = licenseOptions;
         _environment = environment;
         _logger = logger;
+        _tenantAccessor = tenantAccessor;
+        _db = db;
     }
 
     /// <summary>Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).</summary>
@@ -128,7 +137,43 @@ public sealed class LicenseController : ControllerBase
             return BadRequest(result);
         }
 
-        return Ok(result);
+        var enriched = await EnrichActivationResultWithTenantAsync(result, cancellationToken).ConfigureAwait(false);
+        return Ok(enriched);
+    }
+
+    private async Task<LicenseActivationResult> EnrichActivationResultWithTenantAsync(
+        LicenseActivationResult result,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = _tenantAccessor.TenantId;
+        if (tenantId == Guid.Empty)
+            tenantId = LegacyDefaultTenantIds.Primary;
+
+        var tenant = await _db.Tenants
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(t => t.Id == tenantId)
+            .Select(t => new { t.Id, t.Slug })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var resolvedId = tenant?.Id ?? tenantId;
+        var slug = tenant?.Slug;
+        if (string.IsNullOrWhiteSpace(slug))
+            slug = LegacyDefaultTenantIds.PrimarySlug;
+
+        return result with
+        {
+            TenantId = resolvedId,
+            TenantSlug = slug,
+            ApiBaseUrl = BuildApiBaseUrl(Request),
+        };
+    }
+
+    private static string BuildApiBaseUrl(HttpRequest request)
+    {
+        var pathBase = request.PathBase.Value?.TrimEnd('/') ?? string.Empty;
+        return $"{request.Scheme}://{request.Host}{pathBase}/api";
     }
 
     /// <summary>Copies <see cref="MachineFingerprintHttpHeader"/> into the request DTO when the JSON body omitted <c>machineFingerprint</c>.</summary>

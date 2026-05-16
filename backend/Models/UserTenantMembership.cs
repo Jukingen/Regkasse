@@ -8,7 +8,7 @@ namespace KasseAPI_Final.Models;
 /// Phase: single effective tenant; no switch UI; no organization hierarchy.
 /// </summary>
 [Table("user_tenant_memberships")]
-public class UserTenantMembership
+public class UserTenantMembership : ITenantEntity
 {
     [Key]
     [Column("id")]

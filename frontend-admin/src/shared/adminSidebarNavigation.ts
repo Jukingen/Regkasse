@@ -85,7 +85,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/admin/tse',
         '/rksv',
     ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', ...SETTINGS_AREA_ROUTE_PATHS, '/admin/system/time-sync', '/admin/license'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', ...SETTINGS_AREA_ROUTE_PATHS, '/admin/system/time-sync', '/admin/license', '/admin/tenants'],
 };
 
 /**
@@ -153,7 +153,8 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
         p === '/settings' ||
         p.startsWith('/settings/') ||
         p === '/admin/system/time-sync' ||
-        p === '/admin/license'
+        p === '/admin/license' ||
+        p === '/admin/tenants'
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
     }
