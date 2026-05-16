@@ -2,6 +2,9 @@ import { customInstance } from '@/lib/axios';
 
 export const developmentModeSettingsQueryKey = ['admin', 'development-mode', 'settings'] as const;
 
+/** Anonymous POS/FA poll of persisted toggles (same fields as admin read model; `updatedBy` omitted on wire). */
+export const publicDevelopmentModeQueryKey = ['system', 'development-mode'] as const;
+
 export type DevelopmentModeSettingsDto = {
   enabled: boolean;
   bypassLicense: boolean;
@@ -29,6 +32,13 @@ export type DevelopmentModeSettingsPutDto = {
 export function fetchDevelopmentModeSettings(): Promise<DevelopmentModeSettingsDto> {
   return customInstance<DevelopmentModeSettingsDto>({
     url: '/api/admin/development-mode/settings',
+    method: 'GET',
+  });
+}
+
+export function fetchPublicDevelopmentModeSettings(): Promise<DevelopmentModeSettingsDto> {
+  return customInstance<DevelopmentModeSettingsDto>({
+    url: '/api/system/development-mode',
     method: 'GET',
   });
 }

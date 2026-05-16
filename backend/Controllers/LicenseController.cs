@@ -47,7 +47,7 @@ public sealed class LicenseController : ControllerBase
     public async Task<ActionResult<LicensePublicStatusDto>> GetStatus(CancellationToken cancellationToken)
     {
         // Same mapping in all environments so POS/admin anonymous status matches activated license
-        // Development uses <see cref="DevelopmentLicenseService"/> (synthetic licensed snapshot for local testing).
+        // Optional synthetic licensing is controlled by <see cref="IDevelopmentModeService.ShouldBypassLicense"/> (Development host only).
         var s = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         return Ok(MapPublicStatus(s));
     }
@@ -227,6 +227,7 @@ public sealed class LicenseController : ControllerBase
             IsExpired = s.IsExpired,
             IsValid = isValidPublic,
             Mode = mode,
+            IsDevelopmentBypass = s.IsDevelopmentBypass,
         };
     }
 }

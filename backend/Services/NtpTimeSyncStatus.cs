@@ -17,10 +17,12 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
         "NTP check bypassed for development - do not use in production";
 
     private static int _developmentBypassLogged;
+    private static int _developmentModeNtpBypassLogged;
 
     private readonly ILogger<NtpTimeSyncStatus> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
+    private readonly IDevelopmentModeService _developmentModeService;
     private readonly object _gate = new();
 
     private DateTime _lastSyncAtUtc;
@@ -33,11 +35,13 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
     public NtpTimeSyncStatus(
         ILogger<NtpTimeSyncStatus> logger,
         IHostEnvironment hostEnvironment,
-        IOptionsMonitor<DevelopmentOptions> developmentOptions)
+        IOptionsMonitor<DevelopmentOptions> developmentOptions,
+        IDevelopmentModeService developmentModeService)
     {
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _developmentOptions = developmentOptions;
+        _developmentModeService = developmentModeService;
     }
 
     public void RecordSynchronizationAttempt(
@@ -66,6 +70,13 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
             // Align operator UI with ShouldAllowOnlineFiscalPayment when NTP checks are off.
             if (!settings.Enabled)
             {
+                return CreateSyntheticOkStatusDto();
+            }
+
+            if (_developmentModeService.ShouldBypassNtpCheck())
+            {
+                if (Interlocked.Exchange(ref _developmentModeNtpBypassLogged, 1) == 0)
+                    _logger.LogWarning("Development mode active: {BypassType} bypassed", "NTP");
                 return CreateSyntheticOkStatusDto();
             }
 
@@ -127,6 +138,13 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
             return true;
         }
 
+        if (_developmentModeService.ShouldBypassNtpCheck())
+        {
+            if (Interlocked.Exchange(ref _developmentModeNtpBypassLogged, 1) == 0)
+                _logger.LogWarning("Development mode active: {BypassType} bypassed", "NTP");
+            return true;
+        }
+
         if (IsActiveDevelopmentBypass(settings))
         {
             LogDevelopmentBypassOnce();
@@ -179,7 +197,8 @@ public sealed class NtpTimeSyncStatus : INtpTimeSyncStatus
         !OpenApiExportMode.IsEnabled
         && _hostEnvironment.IsDevelopment()
         && _developmentOptions.CurrentValue.SimulateNtpFailure
-        && settings.Enabled;
+        && settings.Enabled
+        && !_developmentModeService.ShouldBypassNtpCheck();
 
     private void LogDevelopmentBypassOnce()
     {

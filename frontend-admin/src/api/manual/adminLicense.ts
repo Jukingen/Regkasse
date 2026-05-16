@@ -12,6 +12,8 @@ export type LicensePublicStatusDto = {
     isValid: boolean;
     /** Demo (local dev bypass), Trial, or Production. */
     mode?: 'Demo' | 'Trial' | 'Production' | string;
+    /** True when development-mode license bypass supplied the snapshot (Development host only). */
+    isDevelopmentBypass?: boolean;
 };
 
 export type LicenseStatusResponse = {
@@ -24,6 +26,8 @@ export type LicenseStatusResponse = {
     machineHash: string;
     /** Enabled license feature ids; omitted on older servers (treat as full bundle). */
     enabledFeatures?: string[] | null;
+    /** True when development-mode license bypass supplied the snapshot (Development host only). */
+    isDevelopmentBypass?: boolean;
 };
 
 export type ActivateLicenseRequest = {

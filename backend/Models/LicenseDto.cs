@@ -19,6 +19,9 @@ public sealed class LicensePublicStatusDto
 
     /// <summary>Coarse deployment display: <c>Demo</c> (local dev bypass), <c>Trial</c>, or <c>Production</c>.</summary>
     public string Mode { get; init; } = "Production";
+
+    /// <summary>True when <see cref="IDevelopmentModeService.ShouldBypassLicense"/> supplied the current snapshot (Development host only).</summary>
+    public bool IsDevelopmentBypass { get; init; }
 }
 
 /// <summary>Optional POS feature flags from <c>GET /api/license/features</c> plus enabled license feature ids.</summary>

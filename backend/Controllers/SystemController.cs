@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -17,15 +18,42 @@ public sealed class SystemController : ControllerBase
     private readonly INtpTimeSyncStatus _ntpTimeSyncStatus;
     private readonly INtpEffectiveSettingsProvider _ntpEffectiveSettings;
     private readonly INtpSynchronizationCoordinator _ntpSynchronizationCoordinator;
+    private readonly IDevelopmentModeService _developmentModeService;
 
     public SystemController(
         INtpTimeSyncStatus ntpTimeSyncStatus,
         INtpEffectiveSettingsProvider ntpEffectiveSettings,
-        INtpSynchronizationCoordinator ntpSynchronizationCoordinator)
+        INtpSynchronizationCoordinator ntpSynchronizationCoordinator,
+        IDevelopmentModeService developmentModeService)
     {
         _ntpTimeSyncStatus = ntpTimeSyncStatus;
         _ntpEffectiveSettings = ntpEffectiveSettings;
         _ntpSynchronizationCoordinator = ntpSynchronizationCoordinator;
+        _developmentModeService = developmentModeService;
+    }
+
+    /// <summary>Public read model for persisted development-mode toggles (POS + FA badge). No authentication required.</summary>
+    [HttpGet("development-mode")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(DevelopmentModeSettingsResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DevelopmentModeSettingsResponseDto>> GetDevelopmentModeSettings(
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var row = await _developmentModeService.GetSettingsAsync().ConfigureAwait(false);
+        return Ok(new DevelopmentModeSettingsResponseDto
+        {
+            Enabled = row.Enabled,
+            BypassLicense = row.BypassLicense,
+            BypassNtpCheck = row.BypassNtpCheck,
+            BypassTseCheck = row.BypassTseCheck,
+            SimulateOffline = row.SimulateOffline,
+            ForceOnline = row.ForceOnline,
+            ValidDays = row.ValidDays,
+            Features = row.Features ?? [],
+            UpdatedAtUtc = DateTime.SpecifyKind(row.UpdatedAtUtc, DateTimeKind.Utc),
+            UpdatedBy = null,
+        });
     }
 
     /// <summary>Current system vs NTP drift snapshot for DEP readiness checks.</summary>

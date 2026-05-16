@@ -69,6 +69,7 @@ namespace KasseAPI_Final.Services
         private readonly IOptions<OfflineVoucherEncryptionOptions> _offlineVoucherEncryption;
         private readonly IHostEnvironment? _hostEnvironment;
         private readonly IOptionsMonitor<DevelopmentOptions>? _developmentOptions;
+        private readonly IDevelopmentModeService? _developmentModeService;
 
         public PaymentService(
             AppDbContext context,
@@ -101,7 +102,8 @@ namespace KasseAPI_Final.Services
             ILicenseService? licenseService = null,
             IOptions<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null,
             IHostEnvironment? hostEnvironment = null,
-            IOptionsMonitor<DevelopmentOptions>? developmentOptions = null)
+            IOptionsMonitor<DevelopmentOptions>? developmentOptions = null,
+            IDevelopmentModeService? developmentModeService = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -134,6 +136,7 @@ namespace KasseAPI_Final.Services
             _offlineVoucherEncryption = offlineVoucherEncryption ?? Options.Create(new OfflineVoucherEncryptionOptions());
             _hostEnvironment = hostEnvironment;
             _developmentOptions = developmentOptions;
+            _developmentModeService = developmentModeService;
         }
 
         /// <summary>
@@ -199,6 +202,22 @@ namespace KasseAPI_Final.Services
             // Try bloğundan önce yapılır ki aşağıdaki genel catch (Exception) bloğu exception'ı yutmasın
             // ve LicenseExpiredException controller katmanına kadar yayılabilsin.
             EnsureLicenseNotExpired();
+
+            if (_developmentModeService is { } dm && dm.ShouldSimulateOffline() && !dm.ShouldForceOnline())
+            {
+                if (Random.Shared.Next(100) < 30)
+                {
+                    _logger.LogWarning("Development mode active: {BypassType} bypassed", "SimulateOffline");
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Entwicklungsmodus: Offline-Simulation (zufällig).",
+                        Errors = { "Development mode: simulated offline / transient failure." },
+                        IsDeterministicFailure = false,
+                        DiagnosticCode = "DEV_SIMULATE_OFFLINE",
+                    };
+                }
+            }
 
             try
             {
@@ -501,10 +520,14 @@ namespace KasseAPI_Final.Services
                 if (effectiveTseRequired && !_tseOptions.UseSoftTseWhenNoDevice)
                 {
                     var health = _tseHealthMonitor.Snapshot;
-                    var tseTreatAsOffline = health.Status == TseOperationalHealth.Offline
-                        || (!OpenApiExportMode.IsEnabled
-                            && _hostEnvironment?.IsDevelopment() == true
-                            && _developmentOptions?.CurrentValue.SimulateTseUnavailable == true);
+                    var devBypassTse = _developmentModeService?.ShouldBypassTseCheck() == true;
+                    var devForceOnline = _developmentModeService?.ShouldForceOnline() == true;
+                    var tseTreatAsOffline = !devBypassTse
+                        && !devForceOnline
+                        && (health.Status == TseOperationalHealth.Offline
+                            || (!OpenApiExportMode.IsEnabled
+                                && _hostEnvironment?.IsDevelopment() == true
+                                && _developmentOptions?.CurrentValue.SimulateTseUnavailable == true));
                     if (tseTreatAsOffline)
                     {
                         if (_tseOptions.OfflineModeEnabled)

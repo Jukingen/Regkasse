@@ -13,10 +13,10 @@ namespace KasseAPI_Final.Services;
 /// license snapshot and must align with <see cref="LicenseComplianceHostedService"/> / <see cref="LicenseReminderHostedService"/>.
 /// </para>
 /// <para>
-/// <see cref="ILicenseService"/> is implemented by <see cref="DevelopmentLicenseService"/> in development (singleton;
-/// synthetic licensed snapshot for unblocked local testing) or by <see cref="ProductionLicenseService"/> in non-development
-/// hosting (<strong>scoped</strong> per the product contract; hosted background work resolves it via
-/// <see cref="Microsoft.Extensions.DependencyInjection.IServiceScopeFactory"/>).
+/// <see cref="ILicenseService"/> is implemented by <see cref="ProductionLicenseService"/> in all hosting environments
+/// (singleton in Development, <strong>scoped</strong> in non-development per the product contract; hosted background work resolves it via
+/// <see cref="Microsoft.Extensions.DependencyInjection.IServiceScopeFactory"/>). Optional synthetic licensing is controlled by
+/// <see cref="IDevelopmentModeService.ShouldBypassLicense"/> on the inner <see cref="LicenseService"/> singleton.
 /// </para>
 /// <para>
 /// When <see cref="OpenApiExportMode.IsEnabled"/> is true, <see cref="ILicenseService"/> is registered as a singleton
@@ -42,7 +42,7 @@ public static class LicenseServiceRegistration
 
         if (environment.IsDevelopment())
         {
-            services.AddSingleton<ILicenseService, DevelopmentLicenseService>();
+            services.AddSingleton<ILicenseService, ProductionLicenseService>();
             return;
         }
 

@@ -4,18 +4,27 @@ import { Alert } from 'react-native';
 
 import { isDevSimulatePosNetworkOffline } from '../constants/devSimulatePosOffline';
 
+export type UseConnectivityOptions = {
+  /** When true, treat device as online for POS offline UX (development-mode server flag). */
+  forceOnline?: boolean;
+};
+
 /**
  * Subscribes to connectivity changes and surfaces German operator alerts for offline/online transitions.
  */
-export const useConnectivity = () => {
+export const useConnectivity = (options?: UseConnectivityOptions) => {
+  const forceOnline = options?.forceOnline === true;
   const [isConnected, setIsConnected] = useState(true);
   const [wasOffline, setWasOffline] = useState(false);
   const wasOfflineRef = useRef(false);
+  const forceOnlineRef = useRef(forceOnline);
+  forceOnlineRef.current = forceOnline;
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const connectedRaw = state.isConnected ?? false;
-      const connected = connectedRaw && !isDevSimulatePosNetworkOffline();
+      const connected =
+        forceOnlineRef.current || (connectedRaw && !isDevSimulatePosNetworkOffline());
 
       if (!connected && !wasOfflineRef.current) {
         Alert.alert(
@@ -36,6 +45,14 @@ export const useConnectivity = () => {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (forceOnline) {
+      wasOfflineRef.current = false;
+      setWasOffline(false);
+      setIsConnected(true);
+    }
+  }, [forceOnline]);
 
   return { isConnected, wasOffline };
 };

@@ -28,6 +28,7 @@ import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { LicenseStatusBadge } from '@/components/LicenseStatusBadge';
+import { EnvironmentBadge } from '@/components/EnvironmentBadge';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
@@ -332,6 +333,7 @@ export default function DashboardLayout({
                                 role="toolbar"
                                 aria-label={t('adminShell.header.headerActionsAria')}
                             >
+                                <EnvironmentBadge />
                                 <LicenseStatusBadge />
                                 <HeaderLanguageQuickSwitch />
                                 <MonatsbelegGlobalBadge />

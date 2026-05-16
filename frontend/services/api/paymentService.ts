@@ -27,6 +27,7 @@ import {
 } from '../payment/pendingPaymentQueue';
 import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
 import type { CustomerKind } from '../../types/customerKind';
+import { getDevelopmentModeClientSnapshot } from '../developmentModeClientCache';
 
 export type { PendingPaymentEntry } from '../payment/pendingPaymentQueue';
 
@@ -254,6 +255,30 @@ class PaymentService {
       idempotencyKey,
     });
 
+    const devSnap = getDevelopmentModeClientSnapshot();
+    if (devSnap?.simulateOffline === true && devSnap.forceOnline !== true) {
+      const roll =
+        typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function'
+          ? (() => {
+              const b = new Uint32Array(1);
+              crypto.getRandomValues(b);
+              return b[0] % 100;
+            })()
+          : Math.floor(Math.random() * 100);
+      if (roll < 25) {
+        debugPosPaymentTrace('dev_simulate_offline_client', {});
+        return {
+          success: false,
+          isSynced: false,
+          fiscalStatus: 'FAILED',
+          paymentId: '',
+          error: 'DEV_SIMULATE_OFFLINE',
+          message: 'Entwicklungsmodus: simulierte Ausfall / Offline.',
+          invoicePersisted: false,
+        };
+      }
+    }
+
     try {
       debugPosPaymentTrace('payment_api_request_start', { path: this.baseUrl });
       const response = await apiClient.post<any>(`${this.baseUrl}`, req);
@@ -277,6 +302,18 @@ class PaymentService {
         debugPosPaymentTrace('payment_api_transport_failure_queue', {
           message: error instanceof Error ? error.message : String(error),
         });
+        const snap = getDevelopmentModeClientSnapshot();
+        if (snap?.forceOnline === true) {
+          return {
+            success: false,
+            isSynced: false,
+            fiscalStatus: 'FAILED',
+            paymentId: '',
+            error: 'DEV_FORCE_ONLINE',
+            message: 'Entwicklungsmodus: Online erzwungen — lokale Warteschlange deaktiviert.',
+            invoicePersisted: false,
+          };
+        }
         if (paymentPayloadContainsVoucherSecrets(req.payment)) {
           debugPosPaymentTrace('payment_api_transport_voucher_not_queued', {});
           return {

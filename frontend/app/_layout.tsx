@@ -12,8 +12,8 @@ import { SystemProvider } from '../contexts/SystemContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { AppStateProvider } from '../contexts/AppStateContext';
 import { CartProvider } from '../contexts/CartContext';
+import { DevelopmentModeProvider } from '../contexts/DevelopmentModeContext';
 import { useMemoryMonitor } from '../hooks/useMemoryOptimization';
-import { useConnectivity } from '../hooks/useConnectivity';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 console.log('🚀 ROOT LAYOUT: Module loaded successfully');
@@ -23,7 +23,6 @@ export default function RootLayout() {
 
   // Memory kullanımını izle
   useMemoryMonitor();
-  useConnectivity();
 
   React.useEffect(() => {
     let mounted = true;
@@ -58,6 +57,7 @@ export default function RootLayout() {
             <ThemeProvider>
               <AppStateProvider>
                 <CartProvider>
+                  <DevelopmentModeProvider>
                   {/* ✅ FIX: headerShown: false - "index" header gizlendi */}
                   <Stack
                   screenOptions={{
@@ -65,6 +65,7 @@ export default function RootLayout() {
                   }}
                   />
                   <StatusBar style="auto" />
+                  </DevelopmentModeProvider>
                 </CartProvider>
               </AppStateProvider>
             </ThemeProvider>

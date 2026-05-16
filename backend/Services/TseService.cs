@@ -24,6 +24,7 @@ namespace KasseAPI_Final.Services
         private readonly ILogger<TseService> _logger;
         private readonly IHostEnvironment? _hostEnvironment;
         private readonly IOptionsMonitor<DevelopmentOptions>? _developmentOptions;
+        private readonly IDevelopmentModeService? _developmentModeService;
 
         public TseService(
             AppDbContext context,
@@ -32,7 +33,8 @@ namespace KasseAPI_Final.Services
             ITseProvider tseProvider,
             ILogger<TseService> logger,
             IHostEnvironment? hostEnvironment = null,
-            IOptionsMonitor<DevelopmentOptions>? developmentOptions = null)
+            IOptionsMonitor<DevelopmentOptions>? developmentOptions = null,
+            IDevelopmentModeService? developmentModeService = null)
         {
             _context = context;
             _pipeline = pipeline;
@@ -41,6 +43,7 @@ namespace KasseAPI_Final.Services
             _logger = logger;
             _hostEnvironment = hostEnvironment;
             _developmentOptions = developmentOptions;
+            _developmentModeService = developmentModeService;
         }
 
         public async Task<TseStatus> GetTseStatusAsync()
@@ -500,9 +503,24 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                if (_developmentModeService?.ShouldBypassTseCheck() == true)
+                {
+                    var now = DateTime.UtcNow;
+                    return new TseStatus
+                    {
+                        IsConnected = true,
+                        IsReady = true,
+                        IsOperational = true,
+                        Status = "DevelopmentBypass",
+                        ErrorMessage = "",
+                        LastConnectionTime = now,
+                    };
+                }
+
                 if (!OpenApiExportMode.IsEnabled
                     && _hostEnvironment?.IsDevelopment() == true
-                    && _developmentOptions?.CurrentValue.SimulateTseUnavailable == true)
+                    && _developmentOptions?.CurrentValue.SimulateTseUnavailable == true
+                    && _developmentModeService?.ShouldForceOnline() != true)
                 {
                     return new TseStatus
                     {

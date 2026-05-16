@@ -16,21 +16,26 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public sealed class TseHealthCheckService : BackgroundService
 {
+    private static int _developmentTseBypassLogged;
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly TseHealthStateStore _state;
     private readonly ILogger<TseHealthCheckService> _logger;
     private readonly IOptionsMonitor<TseOptions> _tseOptions;
+    private readonly IDevelopmentModeService _developmentModeService;
 
     public TseHealthCheckService(
         IServiceScopeFactory scopeFactory,
         TseHealthStateStore state,
         ILogger<TseHealthCheckService> logger,
-        IOptionsMonitor<TseOptions> tseOptions)
+        IOptionsMonitor<TseOptions> tseOptions,
+        IDevelopmentModeService developmentModeService)
     {
         _scopeFactory = scopeFactory;
         _state = state;
         _logger = logger;
         _tseOptions = tseOptions;
+        _developmentModeService = developmentModeService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -40,6 +45,24 @@ public sealed class TseHealthCheckService : BackgroundService
         {
             var opts = _tseOptions.CurrentValue;
             var interval = TimeSpan.FromSeconds(Math.Clamp(opts.HealthCheckIntervalSeconds, 5, 600));
+
+            if (_developmentModeService.ShouldBypassTseCheck())
+            {
+                if (Interlocked.Exchange(ref _developmentTseBypassLogged, 1) == 0)
+                    _logger.LogWarning("Development mode active: {BypassType} bypassed", "TSE");
+                var beforeDev = _state.Snapshot;
+                _state.ApplyProbeResult(pingSucceeded: true, errorSafe: null);
+                await TryPersistHealthChangeAuditAsync(beforeDev, _state.Snapshot, stoppingToken).ConfigureAwait(false);
+                try
+                {
+                    await Task.Delay(interval, stoppingToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                continue;
+            }
 
             if (opts.IsOff || opts.UseSoftTseWhenNoDevice)
             {

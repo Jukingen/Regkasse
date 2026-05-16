@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
+import { EnvironmentBadge } from '../../components/EnvironmentBadge';
 import PaymentModal from '../../components/PaymentModal';
 import { TimeSyncBanner } from '../../components/TimeSyncBanner';
 import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
@@ -19,11 +20,12 @@ import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBan
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftShadows, SoftSpacing } from '../../constants/SoftTheme';
-import { useAuth } from '../../contexts/AuthContext';
+import { useDevelopmentModeContext } from '../../contexts/DevelopmentModeContext';
 import { PosRegisterReadinessProvider, usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
 import { TseHealthProvider } from '../../contexts/TseHealthContext';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
 import {
   isReadinessRegisterDecommissioned,
@@ -42,6 +44,7 @@ type PosTabsInnerProps = {
   totals: ReturnType<typeof getCartDisplayTotals>;
   activeTableId: number;
   saleCustomer: ReturnType<typeof useCart>['saleCustomer'];
+  developmentModeSettings: ReturnType<typeof useDevelopmentModeContext>['settings'];
 };
 
 function PosTabsInner({
@@ -55,6 +58,7 @@ function PosTabsInner({
   totals,
   activeTableId,
   saleCustomer,
+  developmentModeSettings,
 }: PosTabsInnerProps) {
   const posReadiness = usePosRegisterReadiness();
 
@@ -114,6 +118,7 @@ function PosTabsInner({
         <LicenseExpiryBanner />
         <View style={styles.licenseStatusBar}>
           <LicenseStatusIndicator />
+          <EnvironmentBadge settings={developmentModeSettings} />
         </View>
         <TimeSyncBanner />
         <TseStatusBanner />
@@ -210,6 +215,7 @@ export default function TabLayout() {
     const { t } = useTranslation(['navigation', 'checkout']);
     const insets = useSafeAreaInsets();
     const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
+    const { settings: developmentModeSettings } = useDevelopmentModeContext();
     const checkAuthStatusRef = useRef(checkAuthStatus);
     checkAuthStatusRef.current = checkAuthStatus;
 
@@ -305,6 +311,7 @@ export default function TabLayout() {
                     totals={totals}
                     activeTableId={activeTableId}
                     saleCustomer={saleCustomer}
+                    developmentModeSettings={developmentModeSettings}
                 />
             </TimeSyncStatusProvider>
         </PosRegisterReadinessProvider>

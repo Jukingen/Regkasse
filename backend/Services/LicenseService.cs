@@ -56,7 +56,8 @@ public sealed record LicenseStatusResponse(
     DateTime? ExpiryDate,
     string MachineHash,
     IReadOnlyList<LicenseReminderNotice>? Reminders = null,
-    IReadOnlyList<string>? EnabledFeatures = null);
+    IReadOnlyList<string>? EnabledFeatures = null,
+    bool IsDevelopmentBypass = false);
 
 public sealed class ActivateLicenseRequest
 {
@@ -113,6 +114,7 @@ public sealed class LicenseService : ILicenseService
     private readonly ILogger<LicenseService> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
+    private readonly IDevelopmentModeService _developmentModeService;
 
     private readonly object _gate = new();
     private LicenseStatusResponse _snapshot = new(false, false, false, 0, null, "");
@@ -126,7 +128,8 @@ public sealed class LicenseService : ILicenseService
         IDbContextFactory<AppDbContext> dbContextFactory,
         ILogger<LicenseService> logger,
         IHostEnvironment hostEnvironment,
-        IOptionsMonitor<DevelopmentOptions> developmentOptions)
+        IOptionsMonitor<DevelopmentOptions> developmentOptions,
+        IDevelopmentModeService developmentModeService)
     {
         _options = options;
         _httpClientFactory = httpClientFactory;
@@ -135,6 +138,7 @@ public sealed class LicenseService : ILicenseService
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _developmentOptions = developmentOptions;
+        _developmentModeService = developmentModeService;
     }
 
     public bool IsLicenseSnapshotInitialized
@@ -159,7 +163,8 @@ public sealed class LicenseService : ILicenseService
                     0,
                     null,
                     "openapi-export",
-                    EnabledFeatures: LicenseFeatureIds.All);
+                    EnabledFeatures: LicenseFeatureIds.All,
+                    IsDevelopmentBypass: false);
                 _snapshotInitialized = true;
             }
             return;
@@ -229,7 +234,8 @@ public sealed class LicenseService : ILicenseService
             }
         }
 
-        return ApplyLicenseComplianceOverlays(snapshot, persistedKeyForOverlays);
+        var afterOverlays = ApplyLicenseComplianceOverlays(snapshot, persistedKeyForOverlays);
+        return ApplyDevelopmentLicenseBypassIfNeeded(afterOverlays);
     }
 
     public async Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default)
@@ -243,7 +249,8 @@ public sealed class LicenseService : ILicenseService
                 0,
                 null,
                 _storage.MachineHashHex,
-                EnabledFeatures: LicenseFeatureIds.All);
+                EnabledFeatures: LicenseFeatureIds.All,
+                IsDevelopmentBypass: false);
         }
 
         ActivatedLicense? dbActivation = null;
@@ -274,7 +281,8 @@ public sealed class LicenseService : ILicenseService
                 : null;
         }
 
-        return ApplyLicenseComplianceOverlays(snapshot, persistedKeyForOverlays);
+        var afterOverlays = ApplyLicenseComplianceOverlays(snapshot, persistedKeyForOverlays);
+        return ApplyDevelopmentLicenseBypassIfNeeded(afterOverlays);
     }
 
     public async Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
@@ -284,7 +292,7 @@ public sealed class LicenseService : ILicenseService
         var paid = s.IsValid && !s.IsTrial;
         var trialActive = s.IsTrial && !s.IsExpired;
         var operational = paid || trialActive;
-        if (paid)
+        if (paid && !s.IsDevelopmentBypass)
             await TryRecordLicenseHeartbeatAsync(cancellationToken).ConfigureAwait(false);
 
         return new LicenseValidationResult
@@ -863,6 +871,34 @@ public sealed class LicenseService : ILicenseService
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// When development-mode DB bypass is active on a Development host, returns a synthetic paid snapshot for POS/admin guards.
+    /// </summary>
+    private LicenseStatusResponse ApplyDevelopmentLicenseBypassIfNeeded(LicenseStatusResponse snapshot)
+    {
+        if (OpenApiExportMode.IsEnabled || !_developmentModeService.ShouldBypassLicense())
+            return snapshot;
+
+        _logger.LogWarning("Development mode active: {BypassType} bypassed", "License");
+
+        var days = _developmentModeService.GetValidDays();
+        var validUntil = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(days), DateTimeKind.Utc);
+        var remaining = Math.Max(0, (int)Math.Ceiling((validUntil - DateTime.UtcNow).TotalDays));
+        var feats = _developmentModeService.GetFeatures();
+        var enabled = feats.Length > 0 ? (IReadOnlyList<string>)feats : LicenseFeatureIds.All;
+
+        return new LicenseStatusResponse(
+            IsValid: true,
+            IsTrial: false,
+            IsExpired: false,
+            DaysRemaining: remaining,
+            ExpiryDate: validUntil,
+            MachineHash: snapshot.MachineHash,
+            snapshot.Reminders,
+            enabled,
+            IsDevelopmentBypass: true);
     }
 
     private LicenseStatusResponse ApplyLicenseComplianceOverlays(LicenseStatusResponse snapshot, string? persistedKeyUpper)
