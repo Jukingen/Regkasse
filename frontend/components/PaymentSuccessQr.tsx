@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 
 import { API_BASE_URL } from '../config';
 import type { PaymentTseInfo } from '../services/api/paymentService';
+import { resolveTenantFetchHeaders } from '../services/api/config';
 import { sessionManager } from '../services/session/sessionManager';
 import { posPaymentQrPngAbsoluteUrl } from '../services/api/posPaymentPaths';
 import { debugPosPaymentTrace } from '../utils/debugPosPaymentTrace';
@@ -32,7 +33,9 @@ async function fetchQrPngAsDataUrl(paymentId: string): Promise<string | null> {
   const token = await sessionManager.getAccessToken();
   const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
   const res = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: await resolveTenantFetchHeaders(
+      token ? { Authorization: `Bearer ${token}` } : {},
+    ),
   });
   if (!res.ok) {
     console.warn('[PaymentSuccessQr] QR PNG HTTP error:', res.status, url);

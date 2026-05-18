@@ -10,7 +10,8 @@ Bu klasör, AI destekli geliştirme için repo-gerçeklerine dayalı kısa opera
 - Tek backend, çok kiracı: alt alan adı `{slug}.regkasse.at`, Super Admin `admin.regkasse.at`.
 - İzolasyon: `ITenantEntity` + EF global query filter (`ICurrentTenantAccessor`); çapraz kiracı erişim **404**.
 - Geliştirme: `X-Tenant-Id` / `?tenant=` (slug), FA’da dev tenant seçici, `*.regkasse.local`.
-- Tam metin: `REGKASSE_AI_ONBOARDING.md` → **Multi-Tenant Architecture**, **Deployment Requirements** (DNS `*.regkasse.at`, `ASPNETCORE_ENVIRONMENT`).
+- **Singleton + EF:** `AppDbContext` scoped; singleton’lar (`LicenseService`) `IServiceScopeFactory` kullanır — root’tan `IDbContextFactory` çağırma.
+- Tam metin: `REGKASSE_AI_ONBOARDING.md` → **Multi-Tenant Architecture**, **Scoped service resolution**, **Troubleshooting**; `docs/MULTI_TENANT.md`.
 
 ## Monorepo özeti
 - `backend/`: ASP.NET Core API (`net10.0`), EF Core + PostgreSQL, Swagger (`backend/swagger.json`).

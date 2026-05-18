@@ -17,9 +17,10 @@
 10. [Migrating existing databases](#migrating-existing-databases)
 11. [Client configuration](#client-configuration)
 12. [Deployment](#deployment)
-13. [Troubleshooting](#troubleshooting)
-14. [Known gaps and roadmap](#known-gaps-and-roadmap)
-15. [Related documentation](#related-documentation)
+13. [Background services and scoped DI](#background-services-and-scoped-di)
+14. [Troubleshooting](#troubleshooting)
+15. [Known gaps and roadmap](#known-gaps-and-roadmap)
+16. [Related documentation](#related-documentation)
 
 ---
 
@@ -423,7 +424,44 @@ See `REGKASSE_AI_ONBOARDING.md` → POS Tenant Configuration.
 
 ---
 
+## Background services and scoped DI
+
+Singleton services (no per-request scope) must not resolve `AppDbContext` or `IDbContextFactory<AppDbContext>` from the **root** provider when the context constructor requires **`ICurrentTenantAccessor`** (scoped).
+
+**Required pattern:**
+
+```csharp
+using var scope = _scopeFactory.CreateScope();
+var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+await using var db = await factory.CreateDbContextAsync(cancellationToken);
+```
+
+**Example:** `LicenseService` (`EvaluateOnStartup`, `GetCurrentStatusAsync`, key restore helpers).
+
+**Tenant at startup:**
+
+- No HTTP request → accessor often **null** → global filters on `ITenantEntity` are off until a scope/request sets `TenantId`.
+- Deployment-local tables (e.g. `activated_licenses`) are **not** `ITenantEntity`; license startup queries use **machine fingerprint**, not tenant slug.
+
+**`AppDbContext`:**
+
+- Design-time constructor: `AppDbContext(DbContextOptions<AppDbContext> options)` — migrations only.
+- Runtime constructor: `AppDbContext(options, ICurrentTenantAccessor)` with `[ActivatorUtilitiesConstructor]`.
+
+See `REGKASSE_AI_ONBOARDING.md` (Scoped service resolution, License service architecture).
+
+---
+
 ## Troubleshooting
+
+### `Cannot resolve scoped service from root provider`
+
+| Item | Detail |
+|------|--------|
+| **Symptom** | `InvalidOperationException` for `ICurrentTenantAccessor` when a singleton calls `IDbContextFactory.CreateDbContext()` |
+| **Cause** | Factory activator runs on root provider; scoped tenant accessor unavailable |
+| **Fix** | `IServiceScopeFactory.CreateScope()` then resolve factory/context from `scope.ServiceProvider` |
+| **Reference** | `backend/Services/LicenseService.cs` |
 
 ### Wrong tenant data visible
 

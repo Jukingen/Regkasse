@@ -131,6 +131,33 @@ Tenant-scoped tables (`ITenantEntity`):
 
 EF Core adds `WHERE tenant_id = @currentTenantId` to all `ITenantEntity` queries via `AppDbContext` global filters (`CreateTenantQueryFilter`).
 
+Filter expression: `_tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId` (null accessor disables filter — use only on intentional paths).
+
+### Scoped service resolution (singletons + EF)
+
+`AppDbContext` and `ICurrentTenantAccessor` are **scoped**. Singletons (e.g. `LicenseService`) must use **`IServiceScopeFactory`**:
+
+```csharp
+using var scope = _scopeFactory.CreateScope();
+var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+using var db = factory.CreateDbContext();
+```
+
+Do **not** inject `IDbContextFactory` into a singleton and call `CreateDbContext()` on the root provider.
+
+**`AppDbContext` constructors:**
+
+- Design-time: `AppDbContext(options)` — migrations (`DesignTimeDbContextFactory`).
+- Runtime: `AppDbContext(options, ICurrentTenantAccessor)` — `[ActivatorUtilitiesConstructor]`.
+
+DbContext registration: `ApplicationHost` → `ConfigureAppDbContextOptions` (Npgsql + interceptors). `services.AddMemoryCache()` is registered for other components; **`LicenseService` uses an in-memory snapshot, not `IMemoryCache`**.
+
+### License service
+
+| Registration | `AddSingleton<LicenseService>()` + `ILicenseService` → `ProductionLicenseService` |
+| DB access | `IServiceScopeFactory` per operation |
+| Startup | `EvaluateOnStartup()` — DB read in scope; failure → trial/file fallback, warning log, host still starts |
+
 ### Key code locations
 
 | Area | Path |
@@ -155,6 +182,16 @@ EF Core adds `WHERE tenant_id = @currentTenantId` to all `ITenantEntity` queries
 - **`ASPNETCORE_ENVIRONMENT`**
   - `Development` — `X-Tenant-Id` / `?tenant=` slug overrides enabled.
   - `Production` (and non-Development) — subdomain/`Host` resolution only.
+
+## Troubleshooting
+
+### `Cannot resolve scoped service 'ICurrentTenantAccessor' from root provider`
+
+Singleton called `IDbContextFactory<AppDbContext>.CreateDbContext()` without a scope. Fix: `IServiceScopeFactory` — see `Services/LicenseService.cs`.
+
+### `Multiple constructors` on `AppDbContext`
+
+Use design-time ctor + single `[ActivatorUtilitiesConstructor]` runtime ctor. See `Data/AppDbContext.cs`.
 
 ## Further reading
 

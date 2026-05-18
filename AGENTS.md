@@ -107,6 +107,60 @@ Production deploys need wildcard DNS `*.regkasse.at`, wildcard TLS, and `ASPNETC
 
 Local multi-tenant smoke: `curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health` or `?tenant=test_cafe` (Development only; slug not UUID). POS: `EXPO_PUBLIC_DEV_TENANT_ID=test_cafe`. FA: header tenant dropdown in dev.
 
+### Tenant resolution in background services
+
+- Startup and singleton hosted services have **no HTTP request**; `ICurrentTenantAccessor.TenantId` may be null (EF filters off for `ITenantEntity` only on intentional paths).
+- Singletons that need EF must use **`IServiceScopeFactory.CreateScope()`** before `IDbContextFactory<AppDbContext>` / `AppDbContext` — see `LicenseService`.
+- `activated_licenses` is deployment-local (machine fingerprint), not tenant-scoped.
+
+### Scoped service resolution in singleton services
+
+`AppDbContext` + `ICurrentTenantAccessor` are **scoped**. Do not create DbContext from the root provider inside a singleton.
+
+```csharp
+using var scope = _scopeFactory.CreateScope();
+var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+await using var db = await factory.CreateDbContextAsync(ct);
+```
+
+Prevents `Cannot resolve scoped service 'ICurrentTenantAccessor' from root provider`. Reference: `backend/Services/LicenseService.cs`.
+
+### License service (singleton)
+
+- `LicenseService` is always **`AddSingleton<LicenseService>()`**; `ILicenseService` → `ProductionLicenseService` (see `LicenseServiceRegistration.cs`).
+- DB via **`IServiceScopeFactory`**; in-memory snapshot after `EvaluateOnStartup()` (not `IMemoryCache` in `LicenseService`).
+- Startup DB failure → warning + trial/file fallback; does not block host start.
+
+### Testing multi-tenant locally
+
+1. **`X-Tenant-Id` header** (Development only, slug not UUID):
+
+   ```bash
+   curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
+   ```
+
+2. **Query parameter:** `?tenant=test_cafe`
+
+3. **Frontend Admin:** dev tenant dropdown in header (`HeaderDevTenantSwitch`); selection in `localStorage` (`dev_tenant_id`).
+
+4. **Hosts file** (subdomain simulation):
+
+   ```text
+   127.0.0.1 cafe.regkasse.local
+   127.0.0.1 bar.regkasse.local
+   ```
+
+   Then: `http://cafe.regkasse.local:5184` (slug = first host label per `TenantHostNames`).
+
+### Troubleshooting
+
+| Error | Cause | Fix |
+|-------|--------|-----|
+| `Cannot resolve scoped service 'ICurrentTenantAccessor' from root provider` | Singleton used root `IDbContextFactory` | `IServiceScopeFactory` + scoped factory |
+| `Multiple constructors` on `AppDbContext` | Ambiguous DI constructors | Design-time ctor + `[ActivatorUtilitiesConstructor]` runtime ctor |
+
+Details: `REGKASSE_AI_ONBOARDING.md` §16.1, `docs/MULTI_TENANT.md`.
+
 ## Source of truth
 When deciding how to work, trust these in order:
 

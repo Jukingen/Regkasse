@@ -2,6 +2,7 @@ using System.Threading;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -15,7 +16,7 @@ public sealed class DevelopmentModeService : IDevelopmentModeService, IDisposabl
 {
     internal static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
-    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ILogger<DevelopmentModeService> _logger;
     private readonly object _gate = new();
@@ -26,11 +27,11 @@ public sealed class DevelopmentModeService : IDevelopmentModeService, IDisposabl
     private int _disposed;
 
     public DevelopmentModeService(
-        IDbContextFactory<AppDbContext> dbContextFactory,
+        IServiceScopeFactory scopeFactory,
         IHostEnvironment hostEnvironment,
         ILogger<DevelopmentModeService> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _scopeFactory = scopeFactory;
         _hostEnvironment = hostEnvironment;
         _logger = logger;
 
@@ -62,26 +63,28 @@ public sealed class DevelopmentModeService : IDevelopmentModeService, IDisposabl
         if (!_hostEnvironment.IsDevelopment())
             throw new InvalidOperationException("Development mode settings can only be updated when the host environment is Development.");
 
-        await using var db = await _dbContextFactory.CreateDbContextAsync().ConfigureAwait(false);
-        await DevelopmentModeSettingsEnsure.EnsureSingletonAsync(db).ConfigureAwait(false);
-        var row = await db.DevelopmentModeSettings
-            .FirstAsync(x => x.Id == DevelopmentModeSettings.SingletonId)
-            .ConfigureAwait(false);
+        await WithDbContextAsync(async (db, cancellationToken) =>
+        {
+            await DevelopmentModeSettingsEnsure.EnsureSingletonAsync(db, cancellationToken).ConfigureAwait(false);
+            var row = await db.DevelopmentModeSettings
+                .FirstAsync(x => x.Id == DevelopmentModeSettings.SingletonId, cancellationToken)
+                .ConfigureAwait(false);
 
-        row.Enabled = settings.Enabled;
-        row.BypassLicense = settings.BypassLicense;
-        row.BypassNtpCheck = settings.BypassNtpCheck;
-        row.BypassTseCheck = settings.BypassTseCheck;
-        row.SimulateOffline = settings.SimulateOffline;
-        row.ForceOnline = settings.ForceOnline;
-        row.ValidDays = settings.ValidDays < 1 ? 1 : settings.ValidDays;
-        row.Features = settings.Features ?? [];
-        row.UpdatedAtUtc = DateTime.UtcNow;
-        row.UpdatedByUserId = updatedByUserId;
+            row.Enabled = settings.Enabled;
+            row.BypassLicense = settings.BypassLicense;
+            row.BypassNtpCheck = settings.BypassNtpCheck;
+            row.BypassTseCheck = settings.BypassTseCheck;
+            row.SimulateOffline = settings.SimulateOffline;
+            row.ForceOnline = settings.ForceOnline;
+            row.ValidDays = settings.ValidDays < 1 ? 1 : settings.ValidDays;
+            row.Features = settings.Features ?? [];
+            row.UpdatedAtUtc = DateTime.UtcNow;
+            row.UpdatedByUserId = updatedByUserId;
 
-        await db.SaveChangesAsync().ConfigureAwait(false);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        ReplaceCache(Clone(row));
+            ReplaceCache(Clone(row));
+        }, CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -157,15 +160,26 @@ public sealed class DevelopmentModeService : IDevelopmentModeService, IDisposabl
         }
     }
 
+    private async Task WithDbContextAsync(
+        Func<AppDbContext, CancellationToken, Task> action,
+        CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await action(db, cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task RefreshFromDatabaseAsync(CancellationToken cancellationToken)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-        await DevelopmentModeSettingsEnsure.EnsureSingletonAsync(db, cancellationToken).ConfigureAwait(false);
-        var row = await db.DevelopmentModeSettings.AsNoTracking()
-            .FirstAsync(x => x.Id == DevelopmentModeSettings.SingletonId, cancellationToken)
-            .ConfigureAwait(false);
+        await WithDbContextAsync(async (db, ct) =>
+        {
+            await DevelopmentModeSettingsEnsure.EnsureSingletonAsync(db, ct).ConfigureAwait(false);
+            var row = await db.DevelopmentModeSettings.AsNoTracking()
+                .FirstAsync(x => x.Id == DevelopmentModeSettings.SingletonId, ct)
+                .ConfigureAwait(false);
 
-        ReplaceCache(Clone(row));
+            ReplaceCache(Clone(row));
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private void ReplaceCache(DevelopmentModeSettings snapshot)

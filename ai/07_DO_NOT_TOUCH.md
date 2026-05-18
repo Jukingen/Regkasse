@@ -33,6 +33,8 @@
 
 ## 9) Tenant isolation / query filters
 - `AppDbContext` global query filter ve `ICurrentTenantAccessor` akışını gevşetme veya kaldırma.
+- Singleton servislerde root `IDbContextFactory` / `AppDbContext` kullanımına geri dönme (`IServiceScopeFactory` pattern’ini bozma — `LicenseService`).
+- `AppDbContext` üzerinde DI’ın çözeceği birden fazla runtime constructor bırakma (`[ActivatorUtilitiesConstructor]` + design-time ctor dışında).
 - `IgnoreQueryFilters()` kullanımını yalnızca bilinçli Super Admin / migration yollarında bırak.
 - Çapraz kiracı 404 semantiğini 403 veya boş 200 ile değiştirme.
 - Middleware sırasını (`TenantResolutionMiddleware` → auth → `TenantContextMiddleware`) sebepsiz değiştirme.

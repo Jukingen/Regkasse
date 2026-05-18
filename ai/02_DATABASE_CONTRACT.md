@@ -22,6 +22,17 @@ WHERE tenant_id = @currentTenantId
 
 Kaynak: `AppDbContext.CreateTenantQueryFilter` → `_tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId`.
 
+### AppDbContext constructors ve DI
+
+| Constructor | Amaç |
+|-------------|------|
+| `AppDbContext(DbContextOptions<AppDbContext> options)` | Design-time / `dotnet ef` — `NullCurrentTenantAccessor`, filtre kapalı |
+| `AppDbContext(options, ICurrentTenantAccessor)` | Runtime — `[ActivatorUtilitiesConstructor]` |
+
+`IDbContextFactory<AppDbContext>` singleton servislerde yalnızca **`IServiceScopeFactory` scope’u içinden** kullanılmalı (`LicenseService`).
+
+**Not tenant-scoped:** `activated_licenses` (deployment-local lisans aktivasyonu).
+
 ## Multi-Tenant Architecture
 
 - Kiracı kök tablosu: `tenants` (`Tenant` entity — global, `ITenantEntity` değil).

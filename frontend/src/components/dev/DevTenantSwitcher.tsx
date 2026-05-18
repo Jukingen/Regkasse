@@ -1,5 +1,5 @@
 /**
- * Development-only tenant slug switcher (local storage + API ?tenant= / X-Tenant-Id).
+ * Development-only tenant slug switcher (local storage + X-Tenant-Id on API requests).
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';

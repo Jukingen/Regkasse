@@ -80,7 +80,10 @@ export async function resolveEffectiveTenantSlug(
   return normalizeSlug(persistedSlug);
 }
 
-/** Appends <c>?tenant=slug</c> (or <c>&amp;tenant=</c>) for backend dev routing. */
+/**
+ * Appends <c>?tenant=slug</c> to a full request URL (not axios <c>baseURL</c>).
+ * Prefer {@link applyTenantHeader} / {@link resolveTenantFetchHeaders} for API calls.
+ */
 export function appendTenantQueryParam(baseUrl: string, tenantSlug: string): string {
   const slug = normalizeSlug(tenantSlug);
   if (!slug) return baseUrl;

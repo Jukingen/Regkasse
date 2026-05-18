@@ -14,6 +14,20 @@
 
 Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md`, `backend/README.md`.
 
+### Scoped service resolution (singleton + DbContext)
+
+- `AppDbContext` ve `ICurrentTenantAccessor` **scoped** kayıtlıdır.
+- Singleton servisler (`LicenseService`) veritabanı için **`IServiceScopeFactory.CreateScope()`** kullanmalı; scope içinden `IDbContextFactory<AppDbContext>` veya `AppDbContext` çözülmeli.
+- Root provider üzerinden `CreateDbContext()` → `Cannot resolve scoped service 'ICurrentTenantAccessor' from root provider`.
+- `AppDbContext`: design-time ctor (`options` only, migrations); runtime ctor `[ActivatorUtilitiesConstructor]` + `ICurrentTenantAccessor`.
+- `OnConfiguring`: yapılandırılmış options varsa provider çağrısı yok (`IsConfigured` guard).
+
+### Tenant / startup (background)
+
+- HTTP yokken accessor `TenantId` null olabilir → `ITenantEntity` filtreleri kapalı (kasıtlı yollar).
+- `activated_licenses` kiracı-scoped değil; makine fingerprint ile okunur.
+- `LicenseService`: singleton snapshot + scope ile DB; startup DB hatası trial’a düşer, host’u durdurmaz.
+
 ## API Headers
 
 - Production: subdomain → slug → `CurrentTenantService` → accessor Guid.

@@ -13,6 +13,8 @@
 3. Admin için Orval üretimini yenile.
 4. Contract scriptlerini çalıştır.
 
+**Tenancy / DI (backend-only):** Singleton servislerde EF erişimi `IServiceScopeFactory` ile — `LicenseService`; contract değişikliği değil, `REGKASSE_AI_ONBOARDING.md` mimari notu.
+
 ## Required checks
 - `node scripts/validate-critical-openapi-paths.mjs`
 - `node scripts/verify-api-client.mjs`

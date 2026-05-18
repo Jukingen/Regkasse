@@ -13,7 +13,7 @@ type DevelopmentModeContextValue = {
 const DevelopmentModeContext = createContext<DevelopmentModeContextValue | null>(null);
 
 /**
- * Single poll of `/api/system/development-mode` for the whole POS tree + connectivity override.
+ * Single poll of `/system/development-mode` (axios base includes `/api`) for the whole POS tree + connectivity override.
  */
 export function DevelopmentModeProvider({ children }: { children: React.ReactNode }) {
   const { settings, isLoading, refetch } = useDevelopmentMode();

@@ -42,12 +42,21 @@ curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health
 curl "http://localhost:5184/api/health?tenant=test_cafe"
 ```
 
-### Option 3: Hosts file
+### Option 3: Hosts file (subdomain simulation)
 
 ```text
+127.0.0.1 cafe.regkasse.local
+127.0.0.1 bar.regkasse.local
 127.0.0.1 test-cafe.localhost
-127.0.0.1 test-bar.localhost
 ```
+
+Then open `http://cafe.regkasse.local:5184` or use header/query on `localhost:5184`.
+
+### Dev tenant override (POS)
+
+- `EXPO_PUBLIC_DEV_TENANT_ID` — default slug when unset in `__DEV__`
+- `services/tenant/tenantStorage.ts` — sends `X-Tenant-Id` on loopback API calls in Development
+- Effective slug order: dev switcher storage → env var → login/license bootstrap
 
 Then: `http://test-cafe.localhost:5184` — host first label must match `tenants.slug` (see onboarding doc).
 

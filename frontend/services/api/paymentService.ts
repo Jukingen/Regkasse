@@ -1,5 +1,5 @@
 import { Buffer } from 'buffer';
-import { apiClient, API_BASE_URL } from './config';
+import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
 import { sessionManager } from '../session/sessionManager';
 import {
   POS_PAYMENT_API_PREFIX,
@@ -531,7 +531,9 @@ class PaymentService {
       const token = await sessionManager.getAccessToken();
       const url = posPaymentQrPngAbsoluteUrl(API_BASE_URL, paymentId);
       const res = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: await resolveTenantFetchHeaders(
+          token ? { Authorization: `Bearer ${token}` } : {},
+        ),
       });
       if (!res.ok) {
         console.warn('[PaymentService] QR fetch failed:', res.status, res.statusText);

@@ -13,6 +13,8 @@ Bu dosya, şema detayını değil sistemin ana veri bölgelerini hızlı anlamak
 
 - EF: `WHERE tenant_id = @currentTenantId` (`ITenantEntity` tipleri)
 - Ayrıntı: `ai/02_DATABASE_CONTRACT.md`, `REGKASSE_AI_ONBOARDING.md`
+- `AppDbContext`: design-time ctor (migrations) + runtime ctor (`ICurrentTenantAccessor`, `[ActivatorUtilitiesConstructor]`).
+- **Deployment-local (not `ITenantEntity`):** `activated_licenses` — machine fingerprint; read via `IServiceScopeFactory` in `LicenseService`.
 
 ## Multi-Tenant Architecture
 

@@ -23,6 +23,7 @@ JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware`.
 ## Multi-Tenant Architecture
 
 - Kiracı dışı kaynak ID’leri: **404** (sızıntı önleme).
+- Startup / singleton backend kodu: `IServiceScopeFactory` + scoped `AppDbContext` (`LicenseService`); root factory kullanma.
 
 ## Boundary kuralı
 - Admin: `/api/admin/*`

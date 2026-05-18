@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.DependencyInjection;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
@@ -16,13 +17,28 @@ namespace KasseAPI_Final.Data
     {
         private readonly ICurrentTenantAccessor _tenantAccessor;
 
-        public AppDbContext(DbContextOptions<AppDbContext> options) : this(options, NullCurrentTenantAccessor.Instance)
+        /// <summary>EF Core design-time only (migrations, <see cref="DesignTimeDbContextFactory"/>). Tenant query filters disabled.</summary>
+        public AppDbContext(DbContextOptions<AppDbContext> options)
+            : base(options)
         {
+            _tenantAccessor = NullCurrentTenantAccessor.Instance;
         }
 
-        public AppDbContext(DbContextOptions<AppDbContext> options, ICurrentTenantAccessor tenantAccessor) : base(options)
+        /// <summary>Runtime DI and tests with an explicit tenant accessor.</summary>
+        [ActivatorUtilitiesConstructor]
+        public AppDbContext(
+            DbContextOptions<AppDbContext> options,
+            ICurrentTenantAccessor tenantAccessor)
+            : base(options)
         {
-            _tenantAccessor = tenantAccessor;
+            _tenantAccessor = tenantAccessor ?? throw new ArgumentNullException(nameof(tenantAccessor));
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            // Provider/connection are set in ApplicationHost, DesignTimeDbContextFactory, or test options — never override here.
+            if (optionsBuilder.IsConfigured)
+                return;
         }
 
         // DbSet properties
@@ -1815,7 +1831,12 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.SimulateOffline).IsRequired();
                 entity.Property(e => e.ForceOnline).IsRequired();
                 entity.Property(e => e.ValidDays).IsRequired();
-                entity.Property(e => e.Features).HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.Features)
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v),
+                        v => string.IsNullOrEmpty(v) ? Array.Empty<string>() : JsonSerializer.Deserialize<string[]>(v) ?? Array.Empty<string>())
+                    .IsRequired();
                 entity.Property(e => e.UpdatedAtUtc).IsRequired();
                 entity.HasData(new global::KasseAPI_Final.Models.DevelopmentModeSettings
                 {

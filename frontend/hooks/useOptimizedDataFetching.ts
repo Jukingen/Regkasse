@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../config';
+import { resolveTenantFetchHeaders } from '../services/api/config';
 import { normalizeToPosPaymentMethods } from '../services/api/normalizePosPaymentMethods';
 import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
 import { useNetInfo } from '@react-native-community/netinfo';
@@ -223,10 +224,10 @@ export function useOptimizedPaymentMethods() {
     
     try {
       const response = await fetch(`${API_BASE_URL}${POS_PAYMENT_METHODS_PATH}`, {
-        headers: {
-          'Authorization': `Bearer ${user.token}`, // user.token JWT token, Bearer prefix ekle
+        headers: await resolveTenantFetchHeaders({
+          Authorization: `Bearer ${user.token}`,
           'Content-Type': 'application/json',
-        },
+        }),
       });
       
       if (!response.ok) {

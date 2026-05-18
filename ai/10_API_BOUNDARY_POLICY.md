@@ -18,6 +18,7 @@
 
 - Admin ve POS istemcileri kiracı host/slug ile hizalanır.
 - Yeni “global” admin uçları eklemeden önce kiracı filtresi gereksinimini değerlendir.
+- Backend singleton’lar EF için `IServiceScopeFactory` kullanır (`LicenseService`); bkz. `REGKASSE_AI_ONBOARDING.md`.
 
 ## Hard rules
 1. Yeni endpointler canonical boundary altında açılır.

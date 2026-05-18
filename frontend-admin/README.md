@@ -128,6 +128,9 @@ Access API: `http://test-cafe.localhost:5184`
 In **development** mode, FA shows a **tenant selector dropdown in the header** (`HeaderDevTenantSwitch`). Presets: `dev`, `cafe`, `bar` — sets `X-Tenant-Id` and reloads.
 
 Backend must be `ASPNETCORE_ENVIRONMENT=Development`. See `REGKASSE_AI_ONBOARDING.md`.
+
+**Backend note:** `LicenseService` is a singleton and uses `IServiceScopeFactory` for database access (scoped `AppDbContext` / `ICurrentTenantAccessor`). Startup license warnings do not block the API.
+
 - Hosts file: e.g. `cafe.regkasse.local` → same slug resolution as production subdomains
 
 ### Super Admin

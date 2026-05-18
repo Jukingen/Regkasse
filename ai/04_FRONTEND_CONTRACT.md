@@ -8,6 +8,15 @@
 - **Admin dev:** header’da `HeaderDevTenantSwitch` (dropdown); `dev` / `cafe` / `bar`.
 - Sunucu izolasyonu nihai otoritedir; istemci yanlış slug ile başka kiracının verisini alamaz.
 
+### Local multi-tenant testing (summary)
+
+| Method | Example |
+|--------|---------|
+| Header | `curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health` |
+| Query | `?tenant=test_cafe` (Development only) |
+| FA dev | Header dropdown → `localStorage` `dev_tenant_id` |
+| Hosts | `127.0.0.1 cafe.regkasse.local` → `http://cafe.regkasse.local:5184` |
+
 ## POS (`frontend/`)
 - Stack: React Native + Expo Router.
 - Navigation kaynakları: `app/_layout.tsx`, `app/(auth)/*`, `app/(tabs)/*`, `app/(screens)/*`.

@@ -15,6 +15,7 @@
 - DB/Migration: E/H
 - OpenAPI/Generated client: E/H
 - Multi-tenant (host/slug, `tenant_id`, query filter, Super Admin): E/H
+- Singleton + EF (`IServiceScopeFactory`, root `IDbContextFactory` yasağı): E/H
 
 ## 3) Risk notu
 - Compliance/fiscal etkisi var mı?

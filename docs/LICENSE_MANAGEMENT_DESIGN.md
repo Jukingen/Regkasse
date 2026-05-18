@@ -34,6 +34,9 @@ Grounded in the repository as of this design:
 ### 2.1 Backend
 
 - **`ILicenseService` / `LicenseService`**: startup evaluation, trial window, JWT-based activation, machine hash surfaced in status. Persistence via **`ILicenseStorageService`** (encrypted file), not solely DB.
+- **`LicenseService` registration**: `AddSingleton<LicenseService>()`; `ILicenseService` → `ProductionLicenseService` adapter (`LicenseServiceRegistration.cs`).
+- **Database access**: singleton uses **`IServiceScopeFactory`** per operation; resolves scoped `IDbContextFactory<AppDbContext>` inside the scope (never from root provider — avoids `ICurrentTenantAccessor` resolution errors). In-memory `_snapshot` after `EvaluateOnStartup()`; **not** `IMemoryCache`.
+- **`activated_licenses`**: deployment-local (machine fingerprint); **not** `ITenantEntity` / tenant-filtered.
 - **`AdminLicenseController`** (`/api/admin/license/*`): `GET status`, `POST activate`, `POST generate`, list, renew, upgrade, transfer, revoke, etc. Protected by **`HasPermission`** (`SettingsView` / `SettingsManage`).
 - **Anonymous diagnostic**: `GET /api/health/license` — exposes `isValid`, trial/expiry, `daysRemaining`, `machineHash`, reminders, header hint fields. Used by POS today.
 - **`IssuedLicense` entity** (`issued_licenses`): audit trail for generated JWTs; masked keys in list APIs; JWT treated as secret in transit.

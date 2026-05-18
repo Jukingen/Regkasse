@@ -16,7 +16,7 @@ export function useDevelopmentMode() {
 
   const refetch = useCallback(async () => {
     try {
-      const data = await apiClient.get<DevelopmentModeSettings>('/api/system/development-mode');
+      const data = await apiClient.get<DevelopmentModeSettings>('/system/development-mode');
       setSettings(data);
       setDevelopmentModeClientSnapshot(data);
     } catch {

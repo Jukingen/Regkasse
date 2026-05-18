@@ -1,18 +1,17 @@
 import { Platform } from 'react-native';
 
-import { appendTenantQueryParam, getEnvDevTenantSlug } from './services/tenant/devTenant';
-
 const isDev = __DEV__;
 const API_BASE_URL_ENV = 'EXPO_PUBLIC_API_BASE_URL';
 const LEGACY_API_URL_ENV = 'EXPO_PUBLIC_API_URL';
 
 const normalizeEnv = (value?: string) => value?.trim();
 
-function withDevTenantQuery(baseUrl: string): string {
-  if (!isDev) return baseUrl;
-  const devSlug = getEnvDevTenantSlug();
-  if (!devSlug) return baseUrl;
-  return appendTenantQueryParam(baseUrl, devSlug);
+/** Strips dev tenant query params accidentally baked into a stored base URL. */
+export function stripDevTenantQueryFromBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.trim().replace(/\/+$/, '');
+  const q = trimmed.indexOf('?');
+  if (q === -1) return trimmed;
+  return trimmed.slice(0, q);
 }
 
 // Platform-aware API URL configuration
@@ -23,7 +22,7 @@ const getApiBaseUrl = () => {
     if (isDev) {
       console.log(`🌐 Using API URL from ${API_BASE_URL_ENV}:`, configuredApiBaseUrl);
     }
-    return withDevTenantQuery(configuredApiBaseUrl);
+    return stripDevTenantQueryFromBaseUrl(configuredApiBaseUrl);
   }
 
   // 2. Check legacy env var for local development only
@@ -34,7 +33,7 @@ const getApiBaseUrl = () => {
     }
 
     console.warn(`[config] ${API_BASE_URL_ENV} is missing. Using legacy ${LEGACY_API_URL_ENV} for local development only: ${legacyApiUrl}`);
-    return withDevTenantQuery(legacyApiUrl);
+    return stripDevTenantQueryFromBaseUrl(legacyApiUrl);
   }
 
   if (!isDev) {
@@ -44,7 +43,7 @@ const getApiBaseUrl = () => {
   if (Platform.OS === 'web') {
     const backendApiUrl = 'http://localhost:5184/api';
     console.warn(`[config] ${API_BASE_URL_ENV} is missing. Using web-only development fallback: ${backendApiUrl}. Set ${API_BASE_URL_ENV} for beta or device testing.`);
-    return withDevTenantQuery(backendApiUrl);
+    return backendApiUrl;
   }
 
   throw new Error(`${API_BASE_URL_ENV} is required for native development builds. Set it in frontend/.env, for example ${API_BASE_URL_ENV}=http://YOUR_DEV_MACHINE_IP:5184/api. No LAN IP fallback is used.`);

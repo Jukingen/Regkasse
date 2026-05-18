@@ -93,6 +93,21 @@ internal static class ApplicationHost
         return defaultPort;
     }
 
+    private static void ConfigureAppDbContextOptions(
+        DbContextOptionsBuilder options,
+        string connectionString,
+        bool isDevelopment)
+    {
+        options.UseNpgsql(connectionString);
+        options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+        options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
+        if (isDevelopment)
+        {
+            options.EnableSensitiveDataLogging();
+            options.EnableDetailedErrors();
+        }
+    }
+
     public static WebApplication CreateWebApplication(string[] args)
     {
         WebApplicationBuilder builder;
@@ -215,30 +230,13 @@ if (string.IsNullOrWhiteSpace(defaultConnection))
         "OpenAPI export: DefaultConnection missing — OpenApiExportConfiguration should supply in-memory defaults.");
 }
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    options.UseNpgsql(defaultConnection);
-    options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
-    options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
-    // Dev: InvalidCastException (Guid vs text) teşhisi için kolon/veri loglama
-    if (builder.Environment.IsDevelopment())
-    {
-        options.EnableSensitiveDataLogging();
-        options.EnableDetailedErrors();
-    }
-}, ServiceLifetime.Scoped, ServiceLifetime.Singleton);
+builder.Services.AddDbContext<AppDbContext>((_, options) =>
+    ConfigureAppDbContextOptions(options, defaultConnection, isDevelopment),
+    ServiceLifetime.Scoped,
+    ServiceLifetime.Singleton);
 
-builder.Services.AddDbContextFactory<AppDbContext>(options =>
-{
-    options.UseNpgsql(defaultConnection);
-    options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
-    options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
-    if (builder.Environment.IsDevelopment())
-    {
-        options.EnableSensitiveDataLogging();
-        options.EnableDetailedErrors();
-    }
-});
+builder.Services.AddDbContextFactory<AppDbContext>((_, options) =>
+    ConfigureAppDbContextOptions(options, defaultConnection, isDevelopment));
 
 builder.Services.AddDataProtection();
 

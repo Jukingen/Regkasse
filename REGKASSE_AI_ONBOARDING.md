@@ -147,6 +147,32 @@ Implementation: `AppDbContext.CreateTenantQueryFilter<TEntity>()` → `e => _ten
 
 When the accessor has no tenant, the filter is effectively disabled (used only on intentional code paths). Normal API requests always set the accessor before data access.
 
+### Scoped service resolution in singleton services
+
+`AppDbContext` and `ICurrentTenantAccessor` are **scoped**. Singleton services (e.g. `LicenseService`) must **not** call `IDbContextFactory<AppDbContext>.CreateDbContext()` on the root provider — that causes:
+
+`System.InvalidOperationException: Cannot resolve scoped service 'ICurrentTenantAccessor' from root provider.`
+
+**Pattern:** create a scope per database operation:
+
+```csharp
+using var scope = _scopeFactory.CreateScope();
+var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+// use db ...
+```
+
+Reference: `backend/Services/LicenseService.cs` (`EvaluateOnStartup`, `GetCurrentStatusAsync`, `TryRestoreLicenseKeyFromActivatedLicenses`).
+
+**`AppDbContext` constructors (EF Core):**
+
+| Constructor | Use |
+|-------------|-----|
+| `AppDbContext(DbContextOptions<AppDbContext> options)` | Design-time / migrations (`DesignTimeDbContextFactory`); `NullCurrentTenantAccessor` — filters off |
+| `AppDbContext(options, ICurrentTenantAccessor)` | Runtime DI — marked `[ActivatorUtilitiesConstructor]` |
+
+`OnConfiguring` does not call `UseNpgsql` when options are already configured (`ApplicationHost.ConfigureAppDbContextOptions`).
+
 ### External services / integrations
 
 - TSE signing service abstraction exists.
@@ -300,6 +326,29 @@ Cannot impersonate deleted, suspended, or inactive tenants.
 #### Known gap (document accurately)
 
 - **JWT vs host:** `TenantContextMiddleware` may set `ICurrentTenantAccessor.TenantId` from JWT `tenant_id` after `TenantResolutionMiddleware` resolved host. Strict validation that JWT tenant matches host subdomain in production is **not** enforced yet. See `docs/MULTI_TENANT.md`.
+
+### Tenant resolution in background / startup (no HTTP request)
+
+During application startup or hosted background work there is often **no HTTP context** and no tenant slug on the accessor.
+
+- Use **`IServiceScopeFactory.CreateScope()`** before resolving `AppDbContext` or `IDbContextFactory<AppDbContext>`.
+- When `ICurrentTenantAccessor.TenantId` is null, EF global filters on `ITenantEntity` are **disabled** — intentional for cross-tenant admin paths only; normal requests must set the accessor first.
+- **Deployment-local license data** (`activated_licenses`) is **not** `ITenantEntity`-scoped; startup license reads filter by **machine fingerprint**, not tenant.
+- On DB failure at startup, `LicenseService` logs a warning and falls back to **trial / on-disk state**; it does **not** block Kestrel from starting.
+
+### License service architecture
+
+`LicenseService` is registered as a **singleton** (`LicenseServiceRegistration.AddLicenseServices`); `ILicenseService` is exposed via **`ProductionLicenseService`** (dev: singleton adapter; production: scoped adapter delegating to the inner singleton).
+
+| Concern | Implementation |
+|---------|----------------|
+| In-process state | Thread-safe `_snapshot` / `_persisted` after `EvaluateOnStartup()` |
+| Database access | **`IServiceScopeFactory`** + scoped `IDbContextFactory<AppDbContext>` (never root factory) |
+| Persistence | Encrypted file (`ILicenseStorageService`) + `activated_licenses` rows |
+| Startup | `EvaluateOnStartup()` reads DB inside a scope; failures → trial snapshot + warning log |
+| HTTP status | `GetCurrentStatusAsync()` refreshes from DB in a scope when possible |
+
+`IMemoryCache` is registered in `ApplicationHost` for other features; **`LicenseService` does not cache license status in `IMemoryCache`** (in-memory singleton snapshot only).
 
 ### Migrating existing databases
 
@@ -1046,10 +1095,49 @@ Local development alternative: hosts-file entries such as `cafe.regkasse.local` 
 
 Ensure production deployments set `ASPNETCORE_ENVIRONMENT=Production` (not `Development`) so tenant cannot be spoofed via headers.
 
-**Related client build vars (not ASP.NET):**
+### License service startup behavior
+
+On process start (`LicenseComplianceHostedService` → `EvaluateOnStartup()`):
+
+1. Opens an **`IServiceScopeFactory`** scope and reads `activated_licenses` for this host’s machine fingerprint.
+2. Merges result with encrypted on-disk license state and builds the in-memory snapshot.
+3. If the database read fails (e.g. scoped DI misuse or DB down), logs a warning and continues with **trial / file state**.
+4. Does **not** block application startup or HTTP listener binding.
+
+### Related client build vars (not ASP.NET)
 
 - Admin: `NEXT_PUBLIC_API_BASE_URL` should target the correct tenant or shared API host per deployment layout — see `frontend-admin/docs/DEPLOYMENT_BUILD_TIME_ENV.md`.
 - POS: configure API base URL per tenant build or runtime bootstrap (`EXPO_PUBLIC_*` / license bootstrap) so requests hit the matching subdomain in production.
+
+---
+
+## 16.1 Troubleshooting (common errors)
+
+### `Cannot resolve scoped service from root provider`
+
+**Error:**
+
+```text
+System.InvalidOperationException: Cannot resolve scoped service 'ICurrentTenantAccessor' from root provider.
+```
+
+**Cause:** A **singleton** resolved `IDbContextFactory<AppDbContext>` (or `AppDbContext`) from the **root** `IServiceProvider` while `AppDbContext` requires scoped `ICurrentTenantAccessor`.
+
+**Fix:** Use `IServiceScopeFactory`:
+
+```csharp
+using var scope = _scopeFactory.CreateScope();
+var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+await using var db = await factory.CreateDbContextAsync(cancellationToken);
+```
+
+**Reference:** `LicenseService.cs`. Same pattern applies to other singletons that touch EF (e.g. audit hosted services already use `IServiceScopeFactory`).
+
+### `Multiple constructors accepting all given argument types` (`AppDbContext`)
+
+**Cause:** Two public runtime constructors both satisfiable by DI.
+
+**Fix:** Keep a single `[ActivatorUtilitiesConstructor]` runtime ctor (`options` + `ICurrentTenantAccessor`) and a separate design-time ctor (`options` only) for `dotnet ef` — see `AppDbContext.cs`, `DesignTimeDbContextFactory.cs`.
 
 ---
 

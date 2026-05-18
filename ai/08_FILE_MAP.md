@@ -9,7 +9,8 @@
 - Tenant middleware: `backend/Middleware/TenantResolutionMiddleware.cs`, `TenantContextMiddleware.cs`
 - Controllers: `backend/Controllers/`
 - Super Admin tenants: `backend/Controllers/AdminTenantsController.cs`, `backend/Services/AdminTenants/`
-- Services: `backend/Services/`
+- Services: `backend/Services/` (singleton `LicenseService` + `IServiceScopeFactory` DB pattern)
+- License registration: `backend/Services/LicenseServiceRegistration.cs`
 - Authorization: `backend/Authorization/`
 - EF context: `backend/Data/AppDbContext.cs`
 - Migrations: `backend/Migrations/`

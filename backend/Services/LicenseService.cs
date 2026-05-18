@@ -11,6 +11,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -113,7 +114,7 @@ public sealed class LicenseService : ILicenseService
     private readonly IOptions<LicenseOptions> _options;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILicenseStorageService _storage;
-    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<LicenseService> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
@@ -128,7 +129,7 @@ public sealed class LicenseService : ILicenseService
         IOptions<LicenseOptions> options,
         IHttpClientFactory httpClientFactory,
         ILicenseStorageService storage,
-        IDbContextFactory<AppDbContext> dbContextFactory,
+        IServiceScopeFactory scopeFactory,
         ILogger<LicenseService> logger,
         IHostEnvironment hostEnvironment,
         IOptionsMonitor<DevelopmentOptions> developmentOptions,
@@ -137,11 +138,36 @@ public sealed class LicenseService : ILicenseService
         _options = options;
         _httpClientFactory = httpClientFactory;
         _storage = storage;
-        _dbContextFactory = dbContextFactory;
+        _scopeFactory = scopeFactory;
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _developmentOptions = developmentOptions;
         _developmentModeService = developmentModeService;
+    }
+
+    private T WithDbContext<T>(Func<AppDbContext, T> action)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return action(db);
+    }
+
+    private async Task WithDbContextAsync(
+        Func<AppDbContext, CancellationToken, Task> action,
+        CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await action(db, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<T> WithDbContextAsync<T>(
+        Func<AppDbContext, CancellationToken, Task<T>> action,
+        CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        await using var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await action(db, cancellationToken).ConfigureAwait(false);
     }
 
     public bool IsLicenseSnapshotInitialized
@@ -176,7 +202,9 @@ public sealed class LicenseService : ILicenseService
         ActivatedLicense? dbActivation = null;
         try
         {
-            using var db = _dbContextFactory.CreateDbContext();
+            using var scope = _scopeFactory.CreateScope();
+            var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            using var db = dbContextFactory.CreateDbContext();
             dbActivation = QueryPrimaryActiveActivation(db);
         }
         catch (Exception ex)
@@ -259,7 +287,9 @@ public sealed class LicenseService : ILicenseService
         ActivatedLicense? dbActivation = null;
         try
         {
-            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+            using var scope = _scopeFactory.CreateScope();
+            var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
             dbActivation = await QueryPrimaryActiveActivationAsync(db, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -335,17 +365,19 @@ public sealed class LicenseService : ILicenseService
 
         try
         {
-            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-            await db.ActivatedLicenses
-                .Where(a =>
-                    a.IsActive
-                    && a.MachineFingerprint == machine
-                    && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper)
-                    && a.LastSeenAtUtc < throttleCutoff)
-                .ExecuteUpdateAsync(
-                    setters => setters.SetProperty(a => a.LastSeenAtUtc, utcNow),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            await WithDbContextAsync(async (db, ct) =>
+            {
+                await db.ActivatedLicenses
+                    .Where(a =>
+                        a.IsActive
+                        && a.MachineFingerprint == machine
+                        && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper)
+                        && a.LastSeenAtUtc < throttleCutoff)
+                    .ExecuteUpdateAsync(
+                        setters => setters.SetProperty(a => a.LastSeenAtUtc, utcNow),
+                        ct)
+                    .ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -672,12 +704,11 @@ public sealed class LicenseService : ILicenseService
         try
         {
             var machine = _storage.MachineHashHex;
-            using var db = _dbContextFactory.CreateDbContext();
-            return db.ActivatedLicenses.AsNoTracking()
+            return WithDbContext(db => db.ActivatedLicenses.AsNoTracking()
                 .Where(a => a.IsActive && a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
                 .OrderByDescending(a => a.ActivatedAtUtc)
                 .Select(a => a.FeaturesJson)
-                .FirstOrDefault();
+                .FirstOrDefault());
         }
         catch (Exception ex)
         {
@@ -690,14 +721,13 @@ public sealed class LicenseService : ILicenseService
     {
         try
         {
-            using var db = _dbContextFactory.CreateDbContext();
-            return db.IssuedLicenses.AsNoTracking()
+            return WithDbContext(db => db.IssuedLicenses.AsNoTracking()
                 .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
                 .Where(il => !il.IsDeleted && !il.IsCancelled)
                 .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
                 .OrderByDescending(il => il.IssuedAtUtc)
                 .Select(il => il.FeaturesJson)
-                .FirstOrDefault();
+                .FirstOrDefault());
         }
         catch (Exception ex)
         {
@@ -943,7 +973,9 @@ public sealed class LicenseService : ILicenseService
         try
         {
             var machine = _storage.MachineHashHex;
-            using var db = _dbContextFactory.CreateDbContext();
+            using var scope = _scopeFactory.CreateScope();
+            var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            using var db = dbContextFactory.CreateDbContext();
             return db.ActivatedLicenses.AsNoTracking()
                 .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
                 .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
@@ -965,13 +997,12 @@ public sealed class LicenseService : ILicenseService
         try
         {
             var machine = _storage.MachineHashHex;
-            using var db = _dbContextFactory.CreateDbContext();
-            var row = db.ActivatedLicenses.AsNoTracking()
+            var row = WithDbContext(db => db.ActivatedLicenses.AsNoTracking()
                 .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
                 .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
                 .Where(a => EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
                 .OrderByDescending(a => a.ActivatedAtUtc)
-                .FirstOrDefault();
+                .FirstOrDefault());
 
             if (row is null)
                 return false;
@@ -995,13 +1026,12 @@ public sealed class LicenseService : ILicenseService
         expiryUtc = null;
         try
         {
-            using var db = _dbContextFactory.CreateDbContext();
-            var row = db.IssuedLicenses.AsNoTracking()
+            var row = WithDbContext(db => db.IssuedLicenses.AsNoTracking()
                 .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
                 .Where(il => !il.IsDeleted && !il.IsCancelled)
                 .Where(il => !il.IsRevoked && il.TransferredToLicenseId == null && il.SupersededByLicenseId == null)
                 .OrderByDescending(il => il.IssuedAtUtc)
-                .FirstOrDefault();
+                .FirstOrDefault());
 
             if (row is null)
                 return false;
@@ -1039,13 +1069,13 @@ public sealed class LicenseService : ILicenseService
             ? DateTime.SpecifyKind(snapshotExpiryUtc.Value, DateTimeKind.Utc)
             : new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc);
 
-        await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-
+        await WithDbContextAsync(async (db, ct) =>
+        {
         var customerName = await db.IssuedLicenses.AsNoTracking()
             .Where(il => EF.Functions.ILike(il.LicenseKey, normalizedKeyUpper))
             .OrderByDescending(il => il.IssuedAtUtc)
             .Select(il => il.CustomerName)
-            .FirstOrDefaultAsync(cancellationToken)
+            .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
         string? displayCustomer = string.IsNullOrWhiteSpace(customerName) ? null : customerName.Trim();
@@ -1053,7 +1083,7 @@ public sealed class LicenseService : ILicenseService
         var stale = await db.ActivatedLicenses
             .Where(a => a.MachineFingerprint == machine && a.IsActive)
             .Where(a => !EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
-            .ToListAsync(cancellationToken)
+            .ToListAsync(ct)
             .ConfigureAwait(false);
 
         foreach (var row in stale)
@@ -1061,7 +1091,7 @@ public sealed class LicenseService : ILicenseService
 
         var existing = await db.ActivatedLicenses
             .Where(a => a.MachineFingerprint == machine && EF.Functions.ILike(a.LicenseKey, normalizedKeyUpper))
-            .FirstOrDefaultAsync(cancellationToken)
+            .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
         var now = DateTime.UtcNow;
@@ -1094,7 +1124,8 @@ public sealed class LicenseService : ILicenseService
                 existing.CreatedByUserId = uid;
         }
 
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     private static string ClipDbField(string? s, int max)
@@ -1126,22 +1157,24 @@ public sealed class LicenseService : ILicenseService
     {
         try
         {
-            var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
-            await using var db = await _dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-            var uaForAudit = BuildUserAgentForAudit(clientInfo);
-            db.LicenseActivationAttempts.Add(new LicenseActivationAttempt
+            await WithDbContextAsync(async (db, ct) =>
             {
-                Id = Guid.NewGuid(),
-                LicenseKey = licenseKeyForDb,
-                MachineFingerprint = machineFingerprint,
-                ActivationStatus = status,
-                FailureReason = string.IsNullOrWhiteSpace(failureReason) ? null : ClipDbField(failureReason, 4000),
-                ClientIp = string.IsNullOrWhiteSpace(clientInfo?.ClientIp) ? null : ClipDbField(clientInfo.ClientIp, 45),
-                UserAgent = uaForAudit,
-                ActivatedAtUtc = now,
-                DeactivatedAtUtc = null,
-            });
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                var now = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Utc);
+                var uaForAudit = BuildUserAgentForAudit(clientInfo);
+                db.LicenseActivationAttempts.Add(new LicenseActivationAttempt
+                {
+                    Id = Guid.NewGuid(),
+                    LicenseKey = licenseKeyForDb,
+                    MachineFingerprint = machineFingerprint,
+                    ActivationStatus = status,
+                    FailureReason = string.IsNullOrWhiteSpace(failureReason) ? null : ClipDbField(failureReason, 4000),
+                    ClientIp = string.IsNullOrWhiteSpace(clientInfo?.ClientIp) ? null : ClipDbField(clientInfo.ClientIp, 45),
+                    UserAgent = uaForAudit,
+                    ActivatedAtUtc = now,
+                    DeactivatedAtUtc = null,
+                });
+                await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -1195,10 +1228,9 @@ public sealed class LicenseService : ILicenseService
     {
         try
         {
-            using var db = _dbContextFactory.CreateDbContext();
-            return db.IssuedLicenses.AsNoTracking().Any(il =>
+            return WithDbContext(db => db.IssuedLicenses.AsNoTracking().Any(il =>
                 EF.Functions.ILike(il.LicenseKey, normalizedLicenseKeyUpper)
-                && (il.IsRevoked || il.TransferredToLicenseId != null || il.IsDeleted || il.IsCancelled));
+                && (il.IsRevoked || il.TransferredToLicenseId != null || il.IsDeleted || il.IsCancelled)));
         }
         catch (Exception ex)
         {

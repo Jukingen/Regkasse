@@ -1,4 +1,4 @@
-import { apiClient, API_BASE_URL } from './config';
+import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
 import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
 import { sessionManager } from '../session/sessionManager';
 
@@ -144,7 +144,9 @@ export async function downloadInvoicePdf(id: string): Promise<Blob> {
     const token = await sessionManager.getAccessToken();
     const response = await fetch(`${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/pdf`, {
         method: 'GET',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: await resolveTenantFetchHeaders(
+            token ? { Authorization: `Bearer ${token}` } : {},
+        ),
     });
     if (!response.ok) {
         throw new InvoicePdfHttpError(response.status, `PDF download failed: ${response.status}`);

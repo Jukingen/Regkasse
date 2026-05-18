@@ -20,6 +20,8 @@ Tam mimari: `docs/MULTI_TENANT.md`.
 | Garanti | Uygulama |
 |--------|-----------|
 | Veritabanı seviyesi filtreleme | `AppDbContext` global query filter tüm `ITenantEntity` tiplerinde; API istemcisi filtre bypass edemez |
+| Singleton + EF | Root’tan scoped `AppDbContext` çözümü yasak; `IServiceScopeFactory` zorunlu (`LicenseService` örnek) |
+| Accessor null | `TenantId == null` iken filtre devre dışı — yalnızca bilinçli kod yolları; normal API isteği önce tenant set eder |
 | Cross-tenant IDOR | **404** (403 değil) — `TenantIsolationTests.AdminPayments_GetById_CrossTenant_Returns404_Not403` |
 | `tenant_id` replay | `offline_transactions.tenant_id` NOT NULL; insert’te cash register / ambient tenant’tan stamp |
 | Tüm tablolar kiracılı değil | Örn. `Customer` henüz `ITenantEntity` değil; değişiklik öncesi envanter çıkar |

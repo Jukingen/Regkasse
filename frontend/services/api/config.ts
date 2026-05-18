@@ -2,14 +2,15 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { sessionManager } from '../session/sessionManager';
 import {
-  appendTenantQueryParam,
   applyTenantHeader,
-  resolveDevTenantSlug,
   resolveEffectiveTenantSlug,
 } from '../tenant/devTenant';
-import { tenantStorage } from '../tenant/tenantStorage';
+import { tenantStorage, TENANT_HTTP_HEADER } from '../tenant/tenantStorage';
 
-import { API_BASE_URL as CONFIGURED_API_BASE_URL } from '../../config';
+import {
+  API_BASE_URL as CONFIGURED_API_BASE_URL,
+  stripDevTenantQueryFromBaseUrl,
+} from '../../config';
 import {
   applyDevNetworkDelayIfConfigured,
 } from '../../src/config/devFlags';
@@ -20,7 +21,7 @@ export const API_BASE_URL = CONFIGURED_API_BASE_URL;
 
 /** Applies tenant-specific API base URL after license activation (no-op when unchanged). */
 export function applyStoredApiBaseUrl(url: string): void {
-    const normalized = url.trim().replace(/\/+$/, '');
+    const normalized = stripDevTenantQueryFromBaseUrl(url);
     if (!normalized || axiosInstance.defaults.baseURL === normalized) {
         return;
     }
@@ -37,19 +38,29 @@ export function resetApiBaseUrlToConfigured(): void {
     }
 }
 
-/** Re-applies dev tenant query on the axios base URL (storage override or env). */
+/**
+ * Ensures axios base URL has no <c>?tenant=</c> suffix (dev tenant uses {@link TENANT_HTTP_HEADER} per request).
+ * Call after dev tenant switch or on auth bootstrap to clear legacy mis-built base URLs.
+ */
 export async function hydrateDevTenantApiBaseUrl(): Promise<void> {
     if (!isDev) return;
-    const devSlug = await resolveDevTenantSlug();
-    if (!devSlug) return;
-    const base = CONFIGURED_API_BASE_URL.split('?')[0] ?? CONFIGURED_API_BASE_URL;
-    const next = appendTenantQueryParam(base.replace(/\/+$/, ''), devSlug);
+    const next = stripDevTenantQueryFromBaseUrl(CONFIGURED_API_BASE_URL);
     if (axiosInstance.defaults.baseURL !== next) {
         axiosInstance.defaults.baseURL = next;
         if (isDev) {
-            console.log('🔧 API base URL updated for dev tenant:', next);
+            console.log('🔧 API base URL normalized (tenant via X-Tenant-Id):', next);
         }
     }
+}
+
+/** Headers for raw <c>fetch()</c> (axios request interceptor adds tenant header automatically). */
+export async function resolveTenantFetchHeaders(
+    headers: Record<string, string> = {},
+): Promise<Record<string, string>> {
+    const persistedSlug = await tenantStorage.getTenantSlug();
+    const tenantSlug = await resolveEffectiveTenantSlug(persistedSlug);
+    if (!tenantSlug) return headers;
+    return applyTenantHeader(headers, tenantSlug) as Record<string, string>;
 }
 
 if (isDev) {
