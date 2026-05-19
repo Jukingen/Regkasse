@@ -183,8 +183,12 @@ sequenceDiagram
     UI->>API: POST /api/admin/tenants/{id}/impersonate
     API->>JWT: token with tenant_id + tenant_impersonation
     API-->>UI: token, tenantSlug, refreshToken
-    Note over UI: Current: same-origin reload + dev_tenant_id
-    Note over UI: Target: redirect to https://{slug}.regkasse.at
+    alt Production host (not localhost / *.local)
+        UI->>UI: redirect https://{slug}.regkasse.at/impersonate-callback#impersonate_token=…
+        UI->>UI: /impersonate-callback stores JWT, → /dashboard
+    else Development
+        UI->>UI: localStorage token + dev_tenant_id, reload same origin
+    end
     UI->>API: Business APIs with impersonation JWT
 ```
 
@@ -193,7 +197,8 @@ sequenceDiagram
 **Audit:** structured logs on server; `AuditLog.impersonated_by` field **not yet** in schema.
 
 **Admin UI:** `frontend-admin/src/app/(protected)/admin/tenants/page.tsx`  
-**API client:** `frontend-admin/src/features/super-admin/api/adminTenants.ts`
+**API client:** `frontend-admin/src/features/super-admin/api/adminTenants.ts`  
+**Handoff:** `docs/IMPERSONATION_FLOW.md`, `frontend-admin/src/lib/auth/tokenHandler.ts`
 
 ---
 
@@ -512,7 +517,7 @@ dotnet test backend/KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj \
 
 | Item | Status |
 |------|--------|
-| Production impersonation redirect to `{slug}.regkasse.at` | Not implemented in FA |
+| Production impersonation redirect to `{slug}.regkasse.at` | Implemented (fragment handoff + `/impersonate-callback`) |
 | `AuditLog.impersonated_by` (or metadata) for impersonation | Not implemented |
 | JWT `tenant_id` ↔ host subdomain enforcement middleware | Not implemented |
 | Cross-tenant SaaS metrics API | Not implemented |
@@ -526,6 +531,7 @@ When implementing security middleware, add tests to `TenantIsolationTests` and u
 
 | Document | Content |
 |----------|---------|
+| `docs/IMPERSONATION_FLOW.md` | Super Admin impersonation redirect and token handshake |
 | `REGKASSE_AI_ONBOARDING.md` | AI brief, dev setup, API headers |
 | `AGENTS.md` | Agent rules, multi-tenant summary |
 | `backend/README.md` | Backend quick start, middleware paths |

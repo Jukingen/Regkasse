@@ -1,0 +1,9 @@
+{
+  "name": "regkasse",
+  "private": true,
+  "type": "module",
+  "description": "Regkasse monorepo tooling (validation scripts, dev seed)",
+  "scripts": {
+    "seed:test-data": "node scripts/seed-test-data.mjs"
+  }
+}

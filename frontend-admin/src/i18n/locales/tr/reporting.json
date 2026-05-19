@@ -238,6 +238,16 @@
     "dateLabel": "Tarih",
     "registerLabel": "Kasa",
     "allRegisters": "Tum kasalar",
+    "exportCsv": "CSV disa aktar",
+    "export": {
+      "colDate": "Tarih",
+      "colRegister": "Kasa",
+      "colOpeningBalance": "Acilis bakiyesi",
+      "colClosingBalance": "Kapanis bakiyesi",
+      "colTotalSales": "Toplam satis",
+      "colCashCount": "Nakit toplami",
+      "colDifference": "Fark"
+    },
     "stats": {
       "totalSales": "Brut satis",
       "totalCash": "Nakit",

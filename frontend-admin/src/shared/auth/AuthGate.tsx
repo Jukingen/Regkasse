@@ -39,6 +39,9 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
         }
         // Public Mode: unauthenticated -> children, authenticated -> /dashboard
         else if (mode === 'public') {
+            if (currentPath === '/impersonate-callback') {
+                return;
+            }
             if (authStatus === AuthStatus.Authenticated) {
                 if (alreadyRedirected.current !== '/dashboard' && currentPath !== '/dashboard') {
                     technicalConsole.devLog(`[AuthGate] public mode redirect: ${currentPath} -> /dashboard`);
@@ -78,7 +81,9 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
 
     // Strictly control rendering based on mode and status to prevent flashes
     if (mode === 'protected' && authStatus === AuthStatus.Unauthenticated) return null;
-    if (mode === 'public' && authStatus === AuthStatus.Authenticated) return null;
+    if (mode === 'public' && authStatus === AuthStatus.Authenticated && pathname !== '/impersonate-callback') {
+        return null;
+    }
 
     return <>{children}</>;
 };

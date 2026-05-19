@@ -124,7 +124,8 @@ namespace KasseAPI_Final.Controllers
 
                 // --- Role-level app policy check ---
                 var roles = await _userManager.GetRolesAsync(user);
-                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
+                var canonicalRoles = TokenClaimsService.CollectCanonicalRoles(roles, user.Role);
+                var primaryRole = TokenClaimsService.ResolvePrimaryRole(canonicalRoles);
                 var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
                 if (resolvedClientApp != null && !ClientAppPolicy.IsRoleAllowedForApp(resolvedClientApp, roles.Append(primaryRole)))
@@ -314,7 +315,8 @@ namespace KasseAPI_Final.Controllers
 
                 // Same effective permission source as JWT (IRolePermissionResolver / TokenClaimsService).
                 var roles = await _userManager.GetRolesAsync(user);
-                var primaryRole = roles.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
+                var canonicalRoles = TokenClaimsService.CollectCanonicalRoles(roles, user.Role);
+                var primaryRole = TokenClaimsService.ResolvePrimaryRole(canonicalRoles);
                 var meCt = HttpContext?.RequestAborted ?? CancellationToken.None;
                 var permissions = await GetEffectivePermissionsListAsync(roles, meCt);
                 var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);

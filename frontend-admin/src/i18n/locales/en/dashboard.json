@@ -1,0 +1,32 @@
+{
+  "rksvReminder": {
+    "card_title": "RKSV special receipts (reminders)",
+    "card_intro": "Startbeleg, Monatsbeleg and Jahresbeleg per register. Missing Startbeleg blocks POS sales.",
+    "no_registers": "No cash registers found.",
+    "register_label": "Register:",
+    "status_load_failed": "Could not load reminder status.",
+    "startbeleg_missing_warning": "Startbeleg missing — register not RKSV-ready",
+    "startbeleg_blocks_pos": "Without Startbeleg, fiscal sales on this register are not allowed. Create it immediately.",
+    "jahresbeleg_missing_warning": "Jahresbeleg missing or due",
+    "jahresbeleg_days_until": "{{days}} day(s) until 31 Dec (Vienna calendar year).",
+    "monatsbeleg_default_warning": "Review or create Monatsbeleg.",
+    "create_now": "Create now",
+    "startbeleg_missing": "missing",
+    "startbeleg_present": "present",
+    "monatsbeleg_ok": "OK",
+    "monatsbeleg_upcoming": "upcoming",
+    "monatsbeleg_overdue": "overdue",
+    "jahresbeleg_ok": "OK",
+    "jahresbeleg_upcoming": "upcoming",
+    "jahresbeleg_overdue": "overdue",
+    "row_startbeleg": "Startbeleg",
+    "row_monatsbeleg": "Monatsbeleg",
+    "row_jahresbeleg": "Jahresbeleg",
+    "days_until_month_end": "{{days}} day(s) until month end",
+    "jahresbeleg_required": "obligation open",
+    "jahresbeleg_not_required": "no open obligation",
+    "open_sonderbelege": "Open RKSV special receipts",
+    "open_compliance": "Compliance diagnostics",
+    "multi_register_summary": "{{startbeleg}} register(s) without Startbeleg · {{jahresbeleg}} Jahresbeleg notice(s) · {{monatsbeleg}} overdue Monatsbelege"
+  }
+}

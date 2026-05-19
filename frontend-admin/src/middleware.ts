@@ -3,7 +3,7 @@ import { NextResponse, NextRequest } from 'next/server';
 /** Same name as client `authStorage` access key so HttpOnly migration stays aligned. */
 const ACCESS_TOKEN_COOKIE = 'rk_admin_access_token';
 
-const PUBLIC_PATHS = new Set(['/login', '/403', '/health']);
+const PUBLIC_PATHS = new Set(['/login', '/403', '/health', '/impersonate-callback']);
 
 const PROTECTED_PREFIXES = ['/admin/', '/dashboard/', '/rksv/', '/settings/'] as const;
 

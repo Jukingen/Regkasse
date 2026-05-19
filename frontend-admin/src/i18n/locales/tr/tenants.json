@@ -49,5 +49,21 @@
     "deleteFailed": "Silme başarısız.",
     "impersonationStarted": "Impersonation başladı: {{name}}",
     "impersonationFailed": "Impersonation başarısız."
+  },
+  "impersonationRedirect": {
+    "title": "Kiracıya yönlendiriliyor …",
+    "hint": "Oturum kiracı alan adında devralınıyor. Lütfen bekleyin."
+  },
+  "impersonationCallback": {
+    "processing": "Kiracı oturumu uygulanıyor …",
+    "titleFailed": "Impersonation tamamlanamadı",
+    "errors": {
+      "missing_token": "Yönlendirmede oturum jetonu bulunamadı.",
+      "missing_tenant": "Yönlendirmede kiracı belirtilmedi.",
+      "tenant_mismatch": "Kiracı bu alt alan adıyla eşleşmiyor.",
+      "invalid_token": "Oturum jetonu geçersiz.",
+      "not_impersonation": "Jeton bir impersonation jetonu değil.",
+      "expired": "Impersonation jetonunun süresi doldu. admin.regkasse.at üzerinden tekrar deneyin."
+    }
   }
 }

@@ -55,6 +55,7 @@
     "unexpectedError": "Beklenmeyen bir hata olustu.",
     "fallbackNoData": "Fis verisi donmedi.",
     "backToList": "Fis listesine don",
+    "verifySignatureChain": "Bu fis etrafindaki imza zincirini dogrula",
     "lineItemsTitle": "Satirlar",
     "taxBreakdownTitle": "Vergi detayi",
     "itemsTable": {

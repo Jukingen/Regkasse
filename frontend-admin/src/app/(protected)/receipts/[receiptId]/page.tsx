@@ -3,7 +3,9 @@
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, Button, Space, Spin, Alert, Typography } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, LinkOutlined } from '@ant-design/icons';
+import Link from 'next/link';
+import dayjs from 'dayjs';
 import { useReceiptDetailQuery } from '@/features/receipts/hooks/useReceiptDetailQuery';
 import ReceiptDetailCard from '@/features/receipts/components/ReceiptDetailCard';
 import ReceiptItemsTable from '@/features/receipts/components/ReceiptItemsTable';
@@ -11,6 +13,8 @@ import ReceiptTaxSummary from '@/features/receipts/components/ReceiptTaxSummary'
 import SignatureStatusPanel from '@/features/receipts/components/SignatureStatusPanel';
 import RksvSpecialReceiptFinanzOnlineSubmissionCard from '@/features/receipts/components/RksvSpecialReceiptFinanzOnlineSubmissionCard';
 import { useI18n } from '@/i18n';
+import { analyzeRegisterFkField } from '@/shared/utils/registerIdentity';
+import { buildSignatureChainVerificationUrl } from '@/features/rksv/signature-chain/buildSignatureChainUrl';
 
 const { Title } = Typography;
 
@@ -75,6 +79,18 @@ export default function ReceiptDetailPage() {
         );
     }
 
+    const registerFk = receipt ? analyzeRegisterFkField(receipt.cashRegisterId) : null;
+    const signatureChainHref =
+        receipt && registerFk?.linkSafeUuid
+            ? buildSignatureChainVerificationUrl({
+                  cashRegisterId: registerFk.linkSafeUuid,
+                  receiptId: receipt.receiptId,
+                  fromUtc: dayjs(receipt.issuedAt).subtract(7, 'day').startOf('day').toISOString(),
+                  toUtc: dayjs(receipt.issuedAt).add(7, 'day').endOf('day').toISOString(),
+                  autoVerify: true,
+              })
+            : null;
+
     if (!receipt) {
         return (
             <Alert
@@ -122,6 +138,14 @@ export default function ReceiptDetailPage() {
                         : undefined
                 }
             />
+
+            {signatureChainHref ? (
+                <Link href={signatureChainHref}>
+                    <Button icon={<LinkOutlined />} type="default">
+                        {t('receipts.detail.verifySignatureChain')}
+                    </Button>
+                </Link>
+            ) : null}
 
             <Card>
                 <Title level={5} style={{ marginBottom: 12 }}>{t('receipts.detail.lineItemsTitle')}</Title>

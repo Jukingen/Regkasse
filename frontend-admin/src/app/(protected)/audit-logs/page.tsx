@@ -1,13 +1,28 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { Table, Card, Typography, Tag, Space, Button, Select, DatePicker, message, Alert, Empty, Flex, Tooltip } from 'antd';
+import React, { Suspense, useCallback, useMemo } from 'react';
+import {
+    Table,
+    Card,
+    Typography,
+    Tag,
+    Space,
+    Button,
+    Select,
+    DatePicker,
+    message,
+    Alert,
+    Empty,
+    Row,
+    Col,
+    Tooltip,
+    Spin,
+} from 'antd';
 import { ClearOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
 import Link from 'next/link';
 import { useGetApiAuditLog } from '@/api/generated/audit-log/audit-log';
 import type { AuditLogEntryDto } from '@/api/generated/model';
-import { AXIOS_INSTANCE } from '@/lib/axios';
 import dayjs from 'dayjs';
 import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -15,48 +30,64 @@ import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
+import { useAuditLogSearchParams } from '@/features/audit-logs/hooks/useAuditLogSearchParams';
+import {
+    AUDIT_ACTION_FILTER_VALUES,
+    toAuditLogStatusApiParam,
+    type AuditLogStatusFilter,
+} from '@/features/audit-logs/constants/auditLogFilters';
+import { buildAuditLogExportQuery } from '@/features/audit-logs/utils/buildAuditLogExportQuery';
+import { downloadAuditLogExport } from '@/features/audit-logs/utils/exportAuditLogs';
+import { UserFilterSelect } from '@/features/audit-logs/components/UserFilterSelect';
+import { EntityTypeFilterSelect } from '@/features/audit-logs/components/EntityTypeFilterSelect';
+import { StatusFilterSelect } from '@/features/audit-logs/components/StatusFilterSelect';
+import { useAuditLogUserFilterOptions } from '@/features/audit-logs/hooks/useAuditLogUserFilterOptions';
 
 const { RangePicker } = DatePicker;
-
-const AUDIT_ACTION_FILTER_VALUES = ['Login', 'CreateInvoice', 'Payment'] as const;
 
 function getAuditListErrorMessage(error: unknown, translate: (key: string) => string): string {
     if (error instanceof Error) return error.message;
     return translate('common.messages.noTechnicalDetail');
 }
 
-export default function AuditLogsPage() {
+function AuditLogsPageContent() {
     const { t, formatLocale } = useI18n();
-    const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
-    const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
-    const [actionFilter, setActionFilter] = useState<string | undefined>(undefined);
+    const { params, setParams, resetFilters } = useAuditLogSearchParams();
 
-    const queryParams = {
-        page,
-        pageSize,
-        startDate: dateRange?.[0] ? dateRange[0].toISOString() : undefined,
-        endDate: dateRange?.[1] ? dateRange[1].toISOString() : undefined,
-        action: actionFilter,
-    };
+    const dateRange = useMemo((): [Dayjs | null, Dayjs | null] | null => {
+        if (!params.startDate && !params.endDate) return null;
+        return [params.startDate ? dayjs(params.startDate) : null, params.endDate ? dayjs(params.endDate) : null];
+    }, [params.startDate, params.endDate]);
+
+    const queryParams = useMemo(
+        () => ({
+            page: params.page,
+            pageSize: params.pageSize,
+            startDate: params.startDate ? dayjs(params.startDate).startOf('day').toISOString() : undefined,
+            endDate: params.endDate ? dayjs(params.endDate).endOf('day').toISOString() : undefined,
+            action: params.action,
+            userId: params.userId,
+            entityType: params.entityType,
+            status: toAuditLogStatusApiParam(params.status) as never,
+        }),
+        [params],
+    );
 
     const { data, isLoading, isFetching, isError, error, refetch } = useGetApiAuditLog(queryParams);
 
-    useEffect(() => {
-        setPage(1);
-    }, [dateRange, actionFilter]);
-
-    const resetFilters = useCallback(() => {
-        setDateRange(null);
-        setActionFilter(undefined);
-        setPage(1);
-    }, []);
+    const { resolveLabel: resolveUserLabel } = useAuditLogUserFilterOptions();
 
     const dateRangeIncomplete = Boolean(
         dateRange && ((dateRange[0] && !dateRange[1]) || (!dateRange[0] && dateRange[1])),
     );
 
-    const hasActiveFilters = Boolean(actionFilter || (dateRange?.[0] && dateRange[1]));
+    const hasActiveFilters = Boolean(
+        params.action ||
+            params.userId ||
+            params.entityType ||
+            params.status ||
+            (params.startDate && params.endDate),
+    );
 
     const actionFilterOptions = useMemo(
         () =>
@@ -73,27 +104,38 @@ export default function AuditLogsPage() {
         [t],
     );
 
+    const statusLabel = useCallback(
+        (status: AuditLogStatusFilter) =>
+            t(`common.auditLogs.statusLabels.${status}` as 'common.auditLogs.statusLabels.Success'),
+        [t],
+    );
+
     const scopeSummary = useMemo(() => {
         const parts: string[] = [
-            t('common.auditLogs.scopePage', { page: String(page) }),
-            t('common.auditLogs.scopeRowsPerRequest', { pageSize: String(pageSize) }),
+            t('common.auditLogs.scopePage', { page: String(params.page) }),
+            t('common.auditLogs.scopeRowsPerRequest', { pageSize: String(params.pageSize) }),
             data?.totalCount != null
                 ? t('common.auditLogs.scopeTotalEntries', {
                       total: formatNumber(data.totalCount, formatLocale, { maximumFractionDigits: 0 }),
                   })
                 : t('common.auditLogs.scopeTotalLoading'),
         ];
-        if (actionFilter) parts.push(t('common.auditLogs.scopeActionIs', { action: actionFilter }));
-        if (dateRange?.[0] && dateRange[1]) {
+        if (params.action) parts.push(t('common.auditLogs.scopeActionIs', { action: params.action }));
+        if (params.userId) parts.push(t('common.auditLogs.scopeUserIs'));
+        if (params.entityType) {
+            parts.push(t('common.auditLogs.scopeEntityTypeIs', { entityType: params.entityType }));
+        }
+        if (params.status) parts.push(t('common.auditLogs.scopeStatusIs', { status: statusLabel(params.status) }));
+        if (params.startDate && params.endDate) {
             parts.push(
-                `${dateRange[0].format('DD.MM.YYYY')}–${dateRange[1].format('DD.MM.YYYY')}`,
+                `${dayjs(params.startDate).format('DD.MM.YYYY')}–${dayjs(params.endDate).format('DD.MM.YYYY')}`,
             );
         } else {
             parts.push(t('common.auditLogs.scopeNoDateFilter'));
         }
         parts.push(t('common.auditLogs.scopeApiPageNote'));
         return parts.join(' · ');
-    }, [page, pageSize, data?.totalCount, actionFilter, dateRange, formatLocale, t]);
+    }, [params, data?.totalCount, formatLocale, t, statusLabel]);
 
     const actionOptionLabel = useCallback(
         (value: string) => {
@@ -103,186 +145,123 @@ export default function AuditLogsPage() {
         [actionFilterOptions],
     );
 
-    const handleExport = useCallback(async (format: 'json' | 'csv') => {
-        try {
-            const params: Record<string, string> = { format };
-            if (dateRange?.[0]) params.startDate = dateRange[0].toISOString();
-            if (dateRange?.[1]) params.endDate = dateRange[1].toISOString();
-            if (actionFilter) params.action = actionFilter;
-
-            const res = await AXIOS_INSTANCE.get<Blob>('/api/AuditLog/export', {
-                params,
-                responseType: 'blob',
-            });
-
-            const blob = res.data;
-            const contentType = String(res.headers?.['content-type'] ?? '').toLowerCase();
-
-            // When backend returns an error JSON, axios still gives us a Blob (responseType='blob').
-            // We must detect that case and avoid downloading "error payloads" as valid exports.
-            const maybeJsonText = await blob.text();
-
-            if (format === 'json' && contentType.includes('application/json')) {
-                try {
-                    const parsed = JSON.parse(maybeJsonText);
-                    if (Array.isArray(parsed)) {
-                        const url = URL.createObjectURL(blob as Blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `audit_logs_${dayjs().format('YYYYMMDD_HHmmss')}.${format}`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                        message.success(t('common.auditLogs.exportStarted'));
-                        return;
-                    }
-
-                    // Object-shaped JSON: treat as an error envelope.
-                    const msg =
-                        typeof parsed?.message === 'string'
-                            ? parsed.message
-                            : t('common.auditLogs.exportFailed');
-                    message.error(msg);
-                    return;
-                } catch {
-                    // Not valid JSON: fall through and attempt download.
-                }
+    const handleExport = useCallback(
+        async (format: 'json' | 'csv') => {
+            try {
+                await downloadAuditLogExport(format, buildAuditLogExportQuery(params), {
+                    exportFailedMessage: t('common.auditLogs.exportFailed'),
+                });
+                message.success(t('common.auditLogs.exportStarted'));
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : t('common.auditLogs.exportFailed');
+                message.error(msg);
             }
-
-            if (format === 'csv' && !contentType.includes('text/csv')) {
-                try {
-                    const parsed = JSON.parse(maybeJsonText);
-                    const msg =
-                        typeof parsed?.message === 'string'
-                            ? parsed.message
-                            : t('common.auditLogs.exportFailed');
-                    message.error(msg);
-                    return;
-                } catch {
-                    message.error(t('common.auditLogs.exportFailed'));
-                    return;
-                }
-            }
-
-            // Expected success formats.
-            if (format === 'csv' && !contentType.includes('text/csv')) {
-                message.error(t('common.auditLogs.exportFailed'));
-                return;
-            }
-
-            const url = URL.createObjectURL(blob as Blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `audit_logs_${dayjs().format('YYYYMMDD_HHmmss')}.${format}`;
-            a.click();
-            URL.revokeObjectURL(url);
-            message.success(t('common.auditLogs.exportStarted'));
-        } catch (e) {
-            message.error(t('common.auditLogs.exportFailed'));
-        }
-    }, [dateRange, actionFilter, t]);
+        },
+        [params, t],
+    );
 
     const columns = useMemo(
         () => [
-        {
-            title: t('common.auditLogs.table.time'),
-            dataIndex: 'timestamp',
-            key: 'timestamp',
-            width: 168,
-            render: (ts: string | undefined) => (
-                <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-                    {ts ? dayjs(ts).format('DD.MM.YYYY HH:mm:ss') : '—'}
-                </Typography.Text>
-            ),
-        },
-        {
-            title: t('common.auditLogs.table.correlation'),
-            key: 'correlationId',
-            width: 112,
-            ellipsis: true,
-            render: (_: unknown, record: AuditLogEntryDto) => {
-                const c = record.correlationId?.trim();
-                if (!c) return <Typography.Text type="secondary">—</Typography.Text>;
-                return (
-                    <Typography.Text code copyable={{ text: c }} ellipsis style={{ fontSize: 11, maxWidth: 104 }}>
-                        {c.length > 14 ? `${c.slice(0, 12)}…` : c}
+            {
+                title: t('common.auditLogs.table.time'),
+                dataIndex: 'timestamp',
+                key: 'timestamp',
+                width: 168,
+                render: (ts: string | undefined) => (
+                    <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {ts ? dayjs(ts).format('DD.MM.YYYY HH:mm:ss') : '—'}
                     </Typography.Text>
-                );
+                ),
             },
-        },
-        {
-            title: t('common.auditLogs.table.user'),
-            key: 'userName',
-            width: 140,
-            ellipsis: true,
-            render: (_: unknown, record: AuditLogEntryDto) => (
-                <Typography.Text type="secondary" ellipsis={{ tooltip: true }}>
-                    {record.actorDisplayName ?? record.createdBy ?? record.userId ?? '—'}
-                </Typography.Text>
-            ),
-        },
-        {
-            title: t('common.auditLogs.table.action'),
-            dataIndex: 'action',
-            key: 'action',
-            width: 200,
-            ellipsis: true,
-            render: (action: string | null | undefined) => <Tag color="blue">{action ?? '—'}</Tag>,
-        },
-        {
-            title: t('common.auditLogs.table.entity'),
-            key: 'entity',
-            width: 200,
-            render: (_: unknown, record: AuditLogEntryDto) => {
-                const type = record.entityType?.trim() || '—';
-                const id = record.entityId?.trim();
-                if (!id) {
-                    return <Typography.Text strong>{type}</Typography.Text>;
-                }
-                return (
-                    <Space direction="vertical" size={0} style={{ maxWidth: 220 }}>
-                        <Typography.Text strong ellipsis style={{ display: 'block' }}>
-                            {type}
+            {
+                title: t('common.auditLogs.table.correlation'),
+                key: 'correlationId',
+                width: 112,
+                ellipsis: true,
+                render: (_: unknown, record: AuditLogEntryDto) => {
+                    const c = record.correlationId?.trim();
+                    if (!c) return <Typography.Text type="secondary">—</Typography.Text>;
+                    return (
+                        <Typography.Text code copyable={{ text: c }} ellipsis style={{ fontSize: 11, maxWidth: 104 }}>
+                            {c.length > 14 ? `${c.slice(0, 12)}…` : c}
                         </Typography.Text>
-                        <Typography.Text
-                            type="secondary"
-                            ellipsis={{ tooltip: true }}
-                            copyable={{ text: id }}
-                            style={{ display: 'block', fontSize: 12, fontFamily: 'monospace' }}
-                        >
-                            {id}
-                        </Typography.Text>
-                    </Space>
-                );
+                    );
+                },
             },
-        },
-        {
-            title: t('common.auditLogs.table.details'),
-            dataIndex: 'description',
-            key: 'description',
-            ellipsis: true,
-            render: (text: string | null | undefined) => {
-                const detailText = text?.trim();
-                if (!detailText) return <Typography.Text type="secondary">—</Typography.Text>;
-                return (
-                    <Tooltip title={detailText}>
-                        <Typography.Text ellipsis style={{ maxWidth: 320, display: 'block' }}>
-                            {detailText}
-                        </Typography.Text>
-                    </Tooltip>
-                );
+            {
+                title: t('common.auditLogs.table.user'),
+                key: 'userName',
+                width: 140,
+                ellipsis: true,
+                render: (_: unknown, record: AuditLogEntryDto) => (
+                    <Typography.Text type="secondary" ellipsis={{ tooltip: true }}>
+                        {record.actorDisplayName ?? record.createdBy ?? record.userId ?? '—'}
+                    </Typography.Text>
+                ),
             },
-        },
-        {
-            title: t('common.auditLogs.table.status'),
-            dataIndex: 'status',
-            key: 'status',
-            width: 120,
-            align: 'center' as const,
-            render: (_: unknown, record: AuditLogEntryDto) => {
-                const p = viewAuditLogStatusPresentation(record.status);
-                return <Tag color={p.antColor}>{p.label}</Tag>;
+            {
+                title: t('common.auditLogs.table.action'),
+                dataIndex: 'action',
+                key: 'action',
+                width: 200,
+                ellipsis: true,
+                render: (action: string | null | undefined) => <Tag color="blue">{action ?? '—'}</Tag>,
             },
-        },
+            {
+                title: t('common.auditLogs.table.entity'),
+                key: 'entity',
+                width: 200,
+                render: (_: unknown, record: AuditLogEntryDto) => {
+                    const type = record.entityType?.trim() || '—';
+                    const id = record.entityId?.trim();
+                    if (!id) {
+                        return <Typography.Text strong>{type}</Typography.Text>;
+                    }
+                    return (
+                        <Space direction="vertical" size={0} style={{ maxWidth: 220 }}>
+                            <Typography.Text strong ellipsis style={{ display: 'block' }}>
+                                {type}
+                            </Typography.Text>
+                            <Typography.Text
+                                type="secondary"
+                                ellipsis={{ tooltip: true }}
+                                copyable={{ text: id }}
+                                style={{ display: 'block', fontSize: 12, fontFamily: 'monospace' }}
+                            >
+                                {id}
+                            </Typography.Text>
+                        </Space>
+                    );
+                },
+            },
+            {
+                title: t('common.auditLogs.table.details'),
+                dataIndex: 'description',
+                key: 'description',
+                ellipsis: true,
+                render: (text: string | null | undefined) => {
+                    const detailText = text?.trim();
+                    if (!detailText) return <Typography.Text type="secondary">—</Typography.Text>;
+                    return (
+                        <Tooltip title={detailText}>
+                            <Typography.Text ellipsis style={{ maxWidth: 320, display: 'block' }}>
+                                {detailText}
+                            </Typography.Text>
+                        </Tooltip>
+                    );
+                },
+            },
+            {
+                title: t('common.auditLogs.table.status'),
+                dataIndex: 'status',
+                key: 'status',
+                width: 120,
+                align: 'center' as const,
+                render: (_: unknown, record: AuditLogEntryDto) => {
+                    const p = viewAuditLogStatusPresentation(record.status);
+                    return <Tag color={p.antColor}>{p.label}</Tag>;
+                },
+            },
         ],
         [t],
     );
@@ -322,25 +301,54 @@ export default function AuditLogsPage() {
             </AdminPageHeader>
 
             <Card size="small" title={t('common.auditLogs.filterCardTitle')}>
-                <Flex wrap="wrap" gap="small" align="center">
-                    <Typography.Text type="secondary">{t('common.auditLogs.criteriaLabel')}</Typography.Text>
-                    <Select
-                        placeholder={t('common.auditLogs.actionPlaceholder')}
-                        style={{ width: 168 }}
-                        allowClear
-                        value={actionFilter}
-                        onChange={setActionFilter}
-                        options={actionFilterOptions}
-                    />
-                    <RangePicker
-                        value={dateRange ?? undefined}
-                        onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null] | null)}
-                        format="DD.MM.YYYY"
-                    />
-                    <Button icon={<ClearOutlined />} onClick={resetFilters}>
-                        {t('common.auditLogs.clearAllFilters')}
-                    </Button>
-                </Flex>
+                <Row gutter={[12, 12]} align="middle">
+                    <Col xs={24} sm={12} md={6} lg={5}>
+                        <UserFilterSelect
+                            value={params.userId}
+                            onChange={(userId) => setParams({ userId })}
+                        />
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={5}>
+                        <EntityTypeFilterSelect
+                            value={params.entityType}
+                            onChange={(entityType) => setParams({ entityType })}
+                        />
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={4}>
+                        <StatusFilterSelect
+                            value={params.status}
+                            onChange={(status) => setParams({ status })}
+                        />
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={5}>
+                        <Select
+                            placeholder={t('common.auditLogs.actionPlaceholder')}
+                            style={{ width: '100%' }}
+                            allowClear
+                            value={params.action}
+                            onChange={(value) => setParams({ action: value ?? undefined })}
+                            options={actionFilterOptions}
+                        />
+                    </Col>
+                    <Col xs={24} sm={12} md={8} lg={5}>
+                        <RangePicker
+                            style={{ width: '100%' }}
+                            value={dateRange ?? undefined}
+                            onChange={(dates) =>
+                                setParams({
+                                    startDate: dates?.[0]?.format('YYYY-MM-DD'),
+                                    endDate: dates?.[1]?.format('YYYY-MM-DD'),
+                                })
+                            }
+                            format="DD.MM.YYYY"
+                        />
+                    </Col>
+                    <Col xs={24} sm={12} md={4} lg={24} style={{ textAlign: 'right' }}>
+                        <Button icon={<ClearOutlined />} onClick={resetFilters}>
+                            {t('common.auditLogs.clearFilters')}
+                        </Button>
+                    </Col>
+                </Row>
             </Card>
 
             {dateRangeIncomplete ? (
@@ -354,29 +362,45 @@ export default function AuditLogsPage() {
             ) : null}
 
             {hasActiveFilters ? (
-                <div style={{ marginTop: 8 }}>
-                    <Space wrap size={[8, 8]} align="center">
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            {t('common.auditLogs.activeFiltersLabel')}
-                        </Typography.Text>
-                        {actionFilter ? (
-                            <Tag closable onClose={() => setActionFilter(undefined)}>
-                                {t('common.auditLogs.tagActionPrefix')} {actionOptionLabel(actionFilter)}
-                            </Tag>
-                        ) : null}
-                        {dateRange?.[0] && dateRange[1] ? (
-                            <Tag
-                                closable
-                                onClose={() => setDateRange(null)}
-                            >
-                                {t('common.auditLogs.tagDateRangePrefix')}{' '}
-                                {dateRange[0].format('DD.MM.YYYY')} – {dateRange[1].format('DD.MM.YYYY')}
-                            </Tag>
-                        ) : null}
-                        <Button type="link" size="small" onClick={resetFilters}>
-                            {t('common.auditLogs.clearAllFilters')}
-                        </Button>
-                    </Space>
+                    <div style={{ marginTop: 8 }}>
+                        <Space wrap size={[8, 8]} align="center">
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                {t('common.auditLogs.activeFiltersLabel')}
+                            </Typography.Text>
+                            {params.userId ? (
+                                <Tag closable onClose={() => setParams({ userId: undefined })}>
+                                    {t('common.auditLogs.tagUserPrefix')} {resolveUserLabel(params.userId)}
+                                </Tag>
+                            ) : null}
+                            {params.entityType ? (
+                                <Tag closable onClose={() => setParams({ entityType: undefined })}>
+                                    {t('common.auditLogs.tagEntityTypePrefix')} {params.entityType}
+                                </Tag>
+                            ) : null}
+                            {params.status ? (
+                                <Tag closable onClose={() => setParams({ status: undefined })}>
+                                    {t('common.auditLogs.tagStatusPrefix')} {statusLabel(params.status)}
+                                </Tag>
+                            ) : null}
+                            {params.action ? (
+                                <Tag closable onClose={() => setParams({ action: undefined })}>
+                                    {t('common.auditLogs.tagActionPrefix')} {actionOptionLabel(params.action)}
+                                </Tag>
+                            ) : null}
+                            {params.startDate && params.endDate ? (
+                                <Tag
+                                    closable
+                                    onClose={() => setParams({ startDate: undefined, endDate: undefined })}
+                                >
+                                    {t('common.auditLogs.tagDateRangePrefix')}{' '}
+                                    {dayjs(params.startDate).format('DD.MM.YYYY')} –{' '}
+                                    {dayjs(params.endDate).format('DD.MM.YYYY')}
+                                </Tag>
+                            ) : null}
+                            <Button type="link" size="small" onClick={resetFilters}>
+                                {t('common.auditLogs.clearAllFilters')}
+                            </Button>
+                        </Space>
                 </div>
             ) : null}
 
@@ -418,8 +442,8 @@ export default function AuditLogsPage() {
                     size="middle"
                     scroll={{ x: 1240 }}
                     pagination={{
-                        current: page,
-                        pageSize,
+                        current: params.page,
+                        pageSize: params.pageSize,
                         total: data?.totalCount ?? 0,
                         showSizeChanger: true,
                         pageSizeOptions: ['10', '25', '50', '100'],
@@ -433,8 +457,7 @@ export default function AuditLogsPage() {
                         },
                         hideOnSinglePage: false,
                         onChange: (p, s) => {
-                            setPage(p);
-                            setPageSize(s ?? pageSize);
+                            setParams({ page: p, pageSize: s ?? params.pageSize });
                         },
                     }}
                     locale={{
@@ -448,11 +471,31 @@ export default function AuditLogsPage() {
                                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                             />
                         ) : (
-                            <Empty description={t('common.auditLogs.emptyNoRows')} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                            <Empty
+                                description={t('common.auditLogs.emptyNoRows')}
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            />
                         ),
                     }}
                 />
             ) : null}
         </AdminPageShell>
+    );
+}
+
+function AuditLogsLoadingFallback() {
+    const { t } = useI18n();
+    return (
+        <div style={{ padding: 80, textAlign: 'center' }}>
+            <Spin size="large" tip={t('common.loading.data')} />
+        </div>
+    );
+}
+
+export default function AuditLogsPage() {
+    return (
+        <Suspense fallback={<AuditLogsLoadingFallback />}>
+            <AuditLogsPageContent />
+        </Suspense>
     );
 }

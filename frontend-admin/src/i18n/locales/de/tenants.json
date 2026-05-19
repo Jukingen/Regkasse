@@ -49,5 +49,21 @@
     "deleteFailed": "Löschen fehlgeschlagen.",
     "impersonationStarted": "Impersonation gestartet: {{name}}",
     "impersonationFailed": "Impersonation fehlgeschlagen."
+  },
+  "impersonationRedirect": {
+    "title": "Weiterleitung zum Mandanten …",
+    "hint": "Die Anmeldung wird auf der Mandanten-Domain übernommen. Bitte warten."
+  },
+  "impersonationCallback": {
+    "processing": "Mandanten-Sitzung wird übernommen …",
+    "titleFailed": "Impersonation konnte nicht abgeschlossen werden",
+    "errors": {
+      "missing_token": "Kein Anmeldetoken in der Weiterleitung gefunden.",
+      "missing_tenant": "Kein Mandant in der Weiterleitung angegeben.",
+      "tenant_mismatch": "Mandant stimmt nicht mit der Subdomain überein.",
+      "invalid_token": "Anmeldetoken ist ungültig.",
+      "not_impersonation": "Token ist kein Impersonation-Token.",
+      "expired": "Impersonation-Token ist abgelaufen. Bitte erneut von admin.regkasse.at starten."
+    }
   }
 }

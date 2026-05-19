@@ -55,6 +55,7 @@
     "unexpectedError": "An unexpected error occurred.",
     "fallbackNoData": "No receipt data returned.",
     "backToList": "Back to receipts",
+    "verifySignatureChain": "Verify signature chain around this receipt",
     "lineItemsTitle": "Line items",
     "taxBreakdownTitle": "Tax breakdown",
     "itemsTable": {

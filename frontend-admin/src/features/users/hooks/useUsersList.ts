@@ -8,11 +8,12 @@ export const usersListQueryKey = listQueryKey;
 
 export function useUsersList(
   params?: UsersListParams,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean; staleTime?: number },
 ) {
   return useQuery({
     queryKey: [...listQueryKey, params],
     queryFn: () => getUsersList(params),
     enabled: options?.enabled !== false,
+    staleTime: options?.staleTime,
   });
 }

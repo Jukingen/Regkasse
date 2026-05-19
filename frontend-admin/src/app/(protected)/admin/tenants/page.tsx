@@ -30,6 +30,7 @@ import { useI18n } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
 import {
     applyTenantImpersonationSession,
     createAdminTenant,
@@ -68,6 +69,7 @@ export default function SuperAdminTenantsPage() {
     const [editRow, setEditRow] = useState<AdminTenantListItem | null>(null);
     const [createForm] = Form.useForm<TenantFormValues>();
     const [editForm] = Form.useForm<TenantFormValues>();
+    const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
 
     const canAccess =
         isSuperAdmin(user?.role) || hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
@@ -118,7 +120,7 @@ export default function SuperAdminTenantsPage() {
     const impersonateMutation = useMutation({
         mutationFn: (id: string) => impersonateAdminTenant(id),
         onSuccess: (res) => {
-            message.success(t('tenants.messages.impersonationStarted', { name: res.tenantDisplayName ?? res.tenantSlug }));
+            setImpersonationRedirecting(true);
             applyTenantImpersonationSession(res);
         },
         onError: () => message.error(t('tenants.messages.impersonationFailed')),
@@ -195,6 +197,7 @@ export default function SuperAdminTenantsPage() {
 
     return (
         <AdminPageShell>
+            {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
             <AdminPageHeader
                 title={t('tenants.page.title')}
                 breadcrumbs={[

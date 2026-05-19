@@ -33,7 +33,7 @@ Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
 
 **Impersonation response fields:** `token`, `expiresIn`, `refreshToken`, `refreshTokenExpiresAtUtc`, `tenantId`, `tenantSlug`, `tenantDisplayName`, `impersonation` (bool).
 
-**FA client:** `src/features/super-admin/api/adminTenants.ts` — `impersonateAdminTenant`, `applyTenantImpersonationSession`.
+**FA client:** `src/features/super-admin/api/adminTenants.ts` — `impersonateAdminTenant`, `applyTenantImpersonationSession` (production: fragment redirect to `https://{tenantSlug}.regkasse.at/impersonate-callback`). See `docs/IMPERSONATION_FLOW.md`.
 
 **OpenAPI:** `backend/swagger.json` (tags: admin tenants). Full architecture: `docs/MULTI_TENANT.md`.
 

@@ -22,6 +22,7 @@ export const rksvAdminQueryKeys = {
   incident: (correlationId: string) => ['admin', 'rksv', 'incident', correlationId] as const,
   replayBatch: (correlationId: string) => ['admin', 'rksv', 'replay-batch', correlationId] as const,
   integrity: (params: unknown) => ['admin', 'rksv', 'integrity', params] as const,
+  complianceReport: (params: unknown) => ['admin', 'rksv', 'compliance-report', params] as const,
   offlineIntentCoverage: {
     summary: (params: unknown) => ['admin', 'rksv', 'offline-intent-coverage', 'summary', params] as const,
     topRisk: (params: unknown) => ['admin', 'rksv', 'offline-intent-coverage', 'top-risk', params] as const,

@@ -4,9 +4,11 @@
  * Admin snapshot: payment-row totals for one Vienna calendar day (GET /api/admin/reports/daily-closing).
  */
 
-import React, { useMemo, useState } from 'react';
-import { Alert, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Typography } from 'antd';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Card, Col, DatePicker, Row, Select, Space, Statistic, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { DownloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -14,8 +16,13 @@ import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { formatCurrency, formatDateTime } from '@/i18n/formatting';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import { useGetApiAdminReportsDailyClosing } from '@/api/generated/admin/admin';
+import {
+    getGetApiAdminReportsDailyClosingQueryKey,
+    useGetApiAdminReportsDailyClosing,
+} from '@/api/generated/admin/admin';
+import type { GetApiAdminReportsDailyClosingParams } from '@/api/generated/model';
 import type { CashRegister, DailyClosingSummaryLineDto } from '@/api/generated/model';
+import { exportDailyClosingSummaryCsv } from '@/features/reporting/daily-closing/exportDailyClosingSummaryCsv';
 
 function normalizeRegisters(data: unknown): CashRegister[] {
     if (Array.isArray(data)) return data as CashRegister[];
@@ -25,6 +32,7 @@ function normalizeRegisters(data: unknown): CashRegister[] {
 
 export default function DailyClosingSummaryPage() {
     const { t, formatLocale } = useI18n();
+    const queryClient = useQueryClient();
     const [day, setDay] = useState(() => dayjs());
     const [registerId, setRegisterId] = useState<string | undefined>(undefined);
 
@@ -35,14 +43,47 @@ export default function DailyClosingSummaryPage() {
     );
 
     const dateParam = day.format('YYYY-MM-DD');
-    const summaryQ = useGetApiAdminReportsDailyClosing(
-        {
+    const closingFilters = useMemo<GetApiAdminReportsDailyClosingParams>(
+        () => ({
             date: dateParam,
             cashRegisterId: registerId,
-        },
-        { query: { enabled: true } },
+        }),
+        [dateParam, registerId],
     );
+    const closingQueryKey = useMemo(
+        () => getGetApiAdminReportsDailyClosingQueryKey(closingFilters),
+        [closingFilters],
+    );
+
+    const summaryQ = useGetApiAdminReportsDailyClosing(closingFilters, { query: { enabled: true } });
     const data = summaryQ.data;
+
+    const registerSlug = useMemo(() => {
+        if (!registerId) return t('reporting.dailyClosing.allRegisters');
+        const row = registerRows.find((r) => r.id === registerId);
+        return row?.registerNumber ?? String(registerId);
+    }, [registerId, registerRows, t]);
+
+    const csvLabels = useMemo(
+        () => ({
+            date: t('reporting.dailyClosing.export.colDate'),
+            register: t('reporting.dailyClosing.export.colRegister'),
+            openingBalance: t('reporting.dailyClosing.export.colOpeningBalance'),
+            closingBalance: t('reporting.dailyClosing.export.colClosingBalance'),
+            totalSales: t('reporting.dailyClosing.export.colTotalSales'),
+            cashCount: t('reporting.dailyClosing.export.colCashCount'),
+            difference: t('reporting.dailyClosing.export.colDifference'),
+        }),
+        [t],
+    );
+
+    const handleExportCsv = useCallback(() => {
+        const cached = queryClient.getQueryData(closingQueryKey);
+        if (!cached) return;
+        exportDailyClosingSummaryCsv(cached, { dateParam, registerSlug }, csvLabels);
+    }, [closingQueryKey, csvLabels, dateParam, queryClient, registerSlug]);
+
+    const canExportCsv = Boolean(data) && !summaryQ.isLoading;
 
     const specialColumns: ColumnsType<DailyClosingSummaryLineDto> = useMemo(
         () => [
@@ -163,6 +204,13 @@ export default function DailyClosingSummaryPage() {
                         }))}
                         loading={registersQ.isLoading}
                     />
+                    <Button
+                        icon={<DownloadOutlined />}
+                        onClick={handleExportCsv}
+                        disabled={!canExportCsv}
+                    >
+                        {t('reporting.dailyClosing.exportCsv')}
+                    </Button>
                     <Link href="/reporting">{t('nav.reporting')}</Link>
                 </Space>
                 <Row gutter={[16, 16]}>

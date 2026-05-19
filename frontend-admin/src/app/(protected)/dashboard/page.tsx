@@ -21,6 +21,7 @@ import {
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
+import { RksvReminderStatusCard } from '@/features/dashboard/components/RksvReminderStatusCard';
 import { LicenseDashboardSection } from '@/features/dashboard/components/LicenseDashboardSection';
 import dayjs from 'dayjs';
 
@@ -99,6 +100,8 @@ export default function DashboardPage() {
             {timeSyncDriftAlertEnabled ? <TimeSyncDriftAlertCard /> : null}
 
             {tseHealthCardEnabled ? <TseHealthCard /> : null}
+
+            {monatsbelegOverviewEnabled ? <RksvReminderStatusCard enabled={monatsbelegOverviewEnabled} /> : null}
 
             {monatsbelegOverviewEnabled ? (
                 <MonatsbelegComplianceTable

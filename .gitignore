@@ -142,6 +142,43 @@ backend/**/AzureKeyVault.json
 # Repo-root build / verify pipeline outputs (not source; keep out of commits)
 /artifacts/
 
+# Backend - MSBuild / test / OpenAPI verify outputs (never commit)
+backend/_build_out/
+backend/_test_build_out/
+backend/artifacts/
+backend/KasseAPI_Final.Tests/artifacts/
+backend/.tools/
+
+# Nested local pipeline output directories (dotnet build / verify scripts)
+backend/**/verify-build/
+backend/**/verify-obj/
+backend/**/test-out/
+backend/**/test-out2/
+backend/**/pricing-build/
+backend/**/ntp-bypass-build/
+
+# Backend test and coverage
+backend/**/TestResults/
+backend/**/coverage/
+backend/**/coverage.*.json
+
+# Publish / MSBuild artifacts outside bin/ and obj/
+backend/**/*.deps.json
+backend/**/*.runtimeconfig.json
+backend/**/*.staticwebassets.endpoints.json
+backend/**/staticwebassets.build.json
+backend/**/staticwebassets.build.endpoints.json
+backend/**/*.dswa.cache.json
+backend/**/*.sourcelink.json
+backend/**/MvcTestingAppManifest.json
+backend/**/.msCoverageSourceRootsMapping_*
+backend/**/LatoFont/
+backend/**/runtimes/
+
+# OpenAPI contract: only backend/swagger.json is source-controlled
+backend/**/swagger.json
+!backend/swagger.json
+
 # Backend - Geçici Dosyalar
 # Ephemeral OpenAPI baseline for scripts/validate-api-contract.mjs (CI or local)
 backend/swagger-old.json

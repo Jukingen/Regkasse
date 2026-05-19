@@ -4,7 +4,7 @@ using KasseAPI_Final.Models;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Builds claims for JWT (and cookie) at login/refresh: sub, name, role, permission, optional tenant_id/branch_id.
+/// Builds claims for JWT (and cookie) at login/refresh: sub, name, one <c>role</c> claim per assigned role, permission, optional tenant_id/branch_id.
 /// Role and permissions from Identity and RolePermissionMatrix (Roles.* only; no legacy alias).
 /// </summary>
 public interface ITokenClaimsService

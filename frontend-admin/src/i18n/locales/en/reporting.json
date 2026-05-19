@@ -238,6 +238,16 @@
     "dateLabel": "Date",
     "registerLabel": "Cash register",
     "allRegisters": "All registers",
+    "exportCsv": "Export CSV",
+    "export": {
+      "colDate": "Date",
+      "colRegister": "Register",
+      "colOpeningBalance": "Opening balance",
+      "colClosingBalance": "Closing balance",
+      "colTotalSales": "Total sales",
+      "colCashCount": "Cash total",
+      "colDifference": "Difference"
+    },
     "stats": {
       "totalSales": "Gross sales",
       "totalCash": "Cash",

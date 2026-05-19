@@ -49,5 +49,21 @@
     "deleteFailed": "Delete failed.",
     "impersonationStarted": "Impersonation started: {{name}}",
     "impersonationFailed": "Impersonation failed."
+  },
+  "impersonationRedirect": {
+    "title": "Redirecting to tenant …",
+    "hint": "Signing in on the tenant domain. Please wait."
+  },
+  "impersonationCallback": {
+    "processing": "Applying tenant session …",
+    "titleFailed": "Could not complete impersonation",
+    "errors": {
+      "missing_token": "No sign-in token was found in the redirect.",
+      "missing_tenant": "No tenant was specified in the redirect.",
+      "tenant_mismatch": "Tenant does not match this subdomain.",
+      "invalid_token": "Sign-in token is invalid.",
+      "not_impersonation": "Token is not an impersonation token.",
+      "expired": "Impersonation token has expired. Start again from admin.regkasse.at."
+    }
   }
 }

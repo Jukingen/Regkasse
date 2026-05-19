@@ -41,6 +41,8 @@ export const RKSV_HUB_GROUPS: RksvHubGroupDef[] = [
     links: [
       { href: '/rksv/fiscal-export-diagnostics', labelKey: 'rksvHub.link.fiscalExport' },
       { href: '/rksv/integrity', labelKey: 'rksvHub.link.integrity' },
+      { href: '/rksv/compliance', labelKey: 'rksvHub.link.compliance' },
+      { href: '/rksv/signature-chain', labelKey: 'rksvHub.link.signatureChain' },
       { href: '/rksv/offline-intent-coverage', labelKey: 'rksvHub.link.offlineCoverage' },
     ],
   },

@@ -63,6 +63,8 @@
   "rksvLeafHashConflicts": "Hash çakışmaları",
   "rksvLeafFiscalExport": "Mali dışa aktarım",
   "rksvLeafDataIntegrity": "Veri bütünlüğü",
+  "rksvLeafComplianceReport": "RKSV uyumluluk",
+  "rksvLeafSignatureChain": "İmza zinciri doğrulama",
   "rksvLeafOfflineCoverage": "Çevrimdışı kapsam",
   "rksvLeafSystemStatus": "Sistem durumu",
   "rksvLeafCmcCertificate": "CMC / sertifika",

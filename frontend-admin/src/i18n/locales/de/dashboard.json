@@ -1,0 +1,32 @@
+{
+  "rksvReminder": {
+    "card_title": "RKSV Sonderbelege (Erinnerungen)",
+    "card_intro": "Startbeleg, Monatsbeleg und Jahresbeleg je Kasse. Fehlender Startbeleg blockiert den POS-Verkauf.",
+    "no_registers": "Keine Kassen gefunden.",
+    "register_label": "Kasse:",
+    "status_load_failed": "Reminder-Status konnte nicht geladen werden.",
+    "startbeleg_missing_warning": "Startbeleg fehlt — Kasse nicht RKSV-betriebsbereit",
+    "startbeleg_blocks_pos": "Ohne Startbeleg sind fiskale Verkäufe an dieser Kasse nicht zulässig. Bitte umgehend erstellen.",
+    "jahresbeleg_missing_warning": "Jahresbeleg fehlt oder steht aus",
+    "jahresbeleg_days_until": "Noch {{days}} Tag(e) bis 31.12. (Vienna-Kalenderjahr).",
+    "monatsbeleg_default_warning": "Monatsbeleg prüfen oder erstellen.",
+    "create_now": "Jetzt erstellen",
+    "startbeleg_missing": "fehlt",
+    "startbeleg_present": "vorhanden",
+    "monatsbeleg_ok": "OK",
+    "monatsbeleg_upcoming": "anstehend",
+    "monatsbeleg_overdue": "überfällig",
+    "jahresbeleg_ok": "OK",
+    "jahresbeleg_upcoming": "anstehend",
+    "jahresbeleg_overdue": "überfällig",
+    "row_startbeleg": "Startbeleg",
+    "row_monatsbeleg": "Monatsbeleg",
+    "row_jahresbeleg": "Jahresbeleg",
+    "days_until_month_end": "{{days}} Tag(e) bis Monatsende",
+    "jahresbeleg_required": "Pflicht offen",
+    "jahresbeleg_not_required": "keine offene Pflicht",
+    "open_sonderbelege": "RKSV Sonderbelege öffnen",
+    "open_compliance": "Compliance-Diagnose",
+    "multi_register_summary": "{{startbeleg}} Kasse(n) ohne Startbeleg · {{jahresbeleg}} Jahresbeleg-Hinweis(e) · {{monatsbeleg}} überfällige Monatsbelege"
+  }
+}

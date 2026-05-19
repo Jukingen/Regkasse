@@ -1,0 +1,58 @@
+/**
+ * Impersonation JWT handoff between admin host and tenant subdomain FA.
+ * Tokens travel in the URL fragment (never sent to the server on navigation).
+ */
+
+import type { TenantImpersonationResponse } from '@/features/super-admin/api/adminTenants';
+import { authStorage } from '@/features/auth/services/authStorage';
+import { tenantStorage } from '@/features/auth/services/tenantStorage';
+import {
+    buildTenantImpersonationRedirectUrl,
+    clearImpersonationHashFromUrl,
+    parseImpersonationHandoffFromHash,
+    shouldUseProductionImpersonationRedirect,
+    type ImpersonationHandoffParseResult,
+} from '@/lib/auth/impersonationHandoff';
+
+export {
+    IMPERSONATE_CALLBACK_PATH,
+    IMPERSONATE_REFRESH_HASH_KEY,
+    IMPERSONATE_TENANT_HASH_KEY,
+    IMPERSONATE_TOKEN_HASH_KEY,
+    clearImpersonationHashFromUrl,
+    getTenantAppBaseDomain,
+    parseImpersonationHandoffFromHash,
+    shouldUseProductionImpersonationRedirect,
+    type ImpersonationHandoffParseResult,
+    type ImpersonationHandoffPayload,
+} from '@/lib/auth/impersonationHandoff';
+
+/** Alias for task/docs naming; builds `https://{slug}.{base}/impersonate-callback#…`. */
+export const buildImpersonationRedirectUrl = buildTenantImpersonationRedirectUrl;
+
+/**
+ * Parses fragment, persists tokens + tenant bootstrap, strips hash from the address bar.
+ * Returns parse result when validation fails (caller shows error UI).
+ */
+export function applyImpersonationHandoffFromFragment(
+    hash: string,
+    expectedTenantSlug: string,
+): ImpersonationHandoffParseResult {
+    const result = parseImpersonationHandoffFromHash(hash, expectedTenantSlug);
+    clearImpersonationHashFromUrl();
+
+    if (!result.ok) {
+        return result;
+    }
+
+    authStorage.setToken(result.payload.accessToken);
+    if (result.payload.refreshToken) {
+        authStorage.setRefreshToken(result.payload.refreshToken);
+    }
+    tenantStorage.persistBootstrap({
+        tenantId: result.payload.tenantId,
+        tenantSlug: result.payload.tenantSlug,
+    });
+
+    return result;
+}

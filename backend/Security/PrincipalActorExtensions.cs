@@ -32,8 +32,14 @@ public static class PrincipalActorExtensions
                ?? FirstNonEmpty(principal, ClaimTypes.NameIdentifier);
     }
 
-    public static string? GetActorRole(this ClaimsPrincipal? principal) =>
-        principal?.FindFirst(ClaimTypes.Role)?.Value;
+    public static string? GetActorRole(this ClaimsPrincipal? principal)
+    {
+        if (principal == null)
+            return null;
+
+        return principal.FindFirst("role")?.Value
+               ?? principal.FindFirst(ClaimTypes.Role)?.Value;
+    }
 
     /// <summary>
     /// Permission claim eşleşmesi (RolePermissionMatrix ile üretilen JWT permission claim’leri).

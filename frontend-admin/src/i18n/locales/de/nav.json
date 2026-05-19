@@ -63,6 +63,8 @@
   "rksvLeafHashConflicts": "Hash-Konflikte",
   "rksvLeafFiscalExport": "Fiscal-Export",
   "rksvLeafDataIntegrity": "Datenintegrität",
+  "rksvLeafComplianceReport": "RKSV-Compliance",
+  "rksvLeafSignatureChain": "Signaturketten-Prüfung",
   "rksvLeafOfflineCoverage": "Offline-Abdeckung",
   "rksvLeafSystemStatus": "Systemstatus",
   "rksvLeafCmcCertificate": "CMC / Zertifikat",

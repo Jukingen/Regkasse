@@ -1,0 +1,32 @@
+{
+  "rksvReminder": {
+    "card_title": "RKSV özel fişler (hatırlatmalar)",
+    "card_intro": "Kasa başına Startbeleg, Monatsbeleg ve Jahresbeleg. Eksik Startbeleg POS satışını engeller.",
+    "no_registers": "Kasa bulunamadı.",
+    "register_label": "Kasa:",
+    "status_load_failed": "Hatırlatma durumu yüklenemedi.",
+    "startbeleg_missing_warning": "Startbeleg eksik — kasa RKSV’ye hazır değil",
+    "startbeleg_blocks_pos": "Startbeleg olmadan bu kasada mali satış yapılamaz. Hemen oluşturun.",
+    "jahresbeleg_missing_warning": "Jahresbeleg eksik veya bekliyor",
+    "jahresbeleg_days_until": "31 Aralık’a (Viyana takvim yılı) {{days}} gün kaldı.",
+    "monatsbeleg_default_warning": "Monatsbeleg’i kontrol edin veya oluşturun.",
+    "create_now": "Şimdi oluştur",
+    "startbeleg_missing": "eksik",
+    "startbeleg_present": "mevcut",
+    "monatsbeleg_ok": "Tamam",
+    "monatsbeleg_upcoming": "yaklaşan",
+    "monatsbeleg_overdue": "gecikmiş",
+    "jahresbeleg_ok": "Tamam",
+    "jahresbeleg_upcoming": "yaklaşan",
+    "jahresbeleg_overdue": "gecikmiş",
+    "row_startbeleg": "Startbeleg",
+    "row_monatsbeleg": "Monatsbeleg",
+    "row_jahresbeleg": "Jahresbeleg",
+    "days_until_month_end": "Ay sonuna {{days}} gün",
+    "jahresbeleg_required": "yükümlülük açık",
+    "jahresbeleg_not_required": "açık yükümlülük yok",
+    "open_sonderbelege": "RKSV özel fişleri aç",
+    "open_compliance": "Uyumluluk tanısı",
+    "multi_register_summary": "{{startbeleg}} kasada Startbeleg yok · {{jahresbeleg}} Jahresbeleg uyarısı · {{monatsbeleg}} gecikmiş Monatsbeleg"
+  }
+}

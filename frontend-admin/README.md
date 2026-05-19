@@ -146,12 +146,15 @@ Access: **`admin.regkasse.at`** in production (wildcard DNS + TLS).
 | List / create / edit / delete tenants | `/api/admin/tenants` |
 | Login as (impersonate) | `POST /api/admin/tenants/{tenantId}/impersonate` |
 
-**Impersonation flow (current):**
+**Impersonation flow:**
 
 1. User clicks impersonate on tenant table.
-2. FA calls impersonate API; on success runs `applyTenantImpersonationSession` (stores JWT, sets `dev_tenant_id`, reloads).
-3. Subsequent requests send `Authorization` + dev `X-Tenant-Id` on loopback.
-4. **Planned:** redirect to `https://{tenantSlug}.regkasse.at` with token handoff for production parity.
+2. FA calls `POST /api/admin/tenants/{tenantId}/impersonate`.
+3. **Production** (`admin.regkasse.at`): browser redirects to `https://{tenantSlug}.regkasse.at/impersonate-callback#impersonate_token=…` (fragment handoff; token is not stored on the admin host).
+4. Tenant FA callback validates `tenant_impersonation`, persists tokens, strips the hash, opens `/dashboard`.
+5. **Development** (localhost / `*.local`): same-origin reload with `dev_tenant_id` and `X-Tenant-Id` on API calls.
+
+Details: [`../docs/IMPERSONATION_FLOW.md`](../docs/IMPERSONATION_FLOW.md).
 
 Issued licenses and operational data for another tenant require impersonation (or dev tenant header). See `docs/MULTI_TENANT.md`.
 

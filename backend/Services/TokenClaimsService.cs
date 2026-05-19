@@ -8,6 +8,7 @@ namespace KasseAPI_Final.Services;
 /// <summary>
 /// Builds JWT/cookie claims: user id (<c>userId</c>, NameIdentifier, <c>user_id</c>, maps to <c>sub</c> in JWT), name, role (canonical), permission claims, optional tenant_id/branch_id.
 /// Deterministic model: system roles => RolePermissionMatrix; custom roles => AspNetRoleClaims (via IRolePermissionResolver).
+/// Each assigned role is emitted as a <c>role</c> claim so <see cref="Microsoft.AspNetCore.Authorization.AuthorizeAttribute"/> role checks see every role (not only the primary).
 /// </summary>
 public sealed class TokenClaimsService : ITokenClaimsService
 {
@@ -16,6 +17,51 @@ public sealed class TokenClaimsService : ITokenClaimsService
     public TokenClaimsService(IRolePermissionResolver rolePermissionResolver)
     {
         _rolePermissionResolver = rolePermissionResolver;
+    }
+
+    /// <summary>Collects distinct canonical role names from Identity roles, or the user row when Identity has none.</summary>
+    public static IReadOnlyList<string> CollectCanonicalRoles(IList<string>? identityRoles, string? userRoleColumn)
+    {
+        var canonical = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var hasIdentityRoles = false;
+        if (identityRoles != null)
+        {
+            foreach (var r in identityRoles)
+            {
+                var c = RoleCanonicalization.GetCanonicalRole(r);
+                if (string.IsNullOrEmpty(c))
+                    continue;
+                hasIdentityRoles = true;
+                canonical.Add(c);
+            }
+        }
+
+        if (!hasIdentityRoles)
+        {
+            var fromUser = RoleCanonicalization.GetCanonicalRole(userRoleColumn);
+            if (!string.IsNullOrEmpty(fromUser))
+                canonical.Add(fromUser);
+        }
+
+        if (canonical.Count == 0)
+            canonical.Add(Roles.FallbackUnknown);
+
+        return canonical.OrderBy(r => r, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>Picks the display/primary role when multiple are assigned (highest precedence in <see cref="Roles.Canonical"/>).</summary>
+    public static string ResolvePrimaryRole(IReadOnlyCollection<string> canonicalRoles)
+    {
+        if (canonicalRoles.Count == 0)
+            return Roles.FallbackUnknown;
+
+        foreach (var preferred in Roles.Canonical)
+        {
+            if (canonicalRoles.Contains(preferred, StringComparer.OrdinalIgnoreCase))
+                return preferred;
+        }
+
+        return canonicalRoles.First();
     }
 
     public async Task<IReadOnlyList<Claim>> BuildClaimsAsync(
@@ -34,22 +80,32 @@ public sealed class TokenClaimsService : ITokenClaimsService
         list.Add(new Claim(ClaimTypes.Name, user.Name));
         list.Add(new Claim("user_id", user.Id));
 
-        var primaryRole = roles?.FirstOrDefault() ?? user.Role ?? Roles.FallbackUnknown;
-        var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
-        list.Add(new Claim("role", canonicalRole));
-        list.Add(new Claim(ClaimTypes.Role, canonicalRole));
+        var canonicalRoles = CollectCanonicalRoles(roles, user.Role);
 
-        if (roles != null && roles.Count > 0)
+        // JwtBearer RoleClaimType is "role"; [Authorize(Roles=...)] requires one claim per role.
+        foreach (var role in canonicalRoles)
+            list.Add(new Claim("role", role));
+
+        foreach (var role in canonicalRoles)
+            list.Add(new Claim("roles", role));
+
+        var roleNamesForResolver = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var hasIdentityRoles = false;
+        if (roles != null)
         {
-            foreach (var r in roles.Distinct(StringComparer.OrdinalIgnoreCase))
+            foreach (var r in roles)
             {
-                var canonical = RoleCanonicalization.GetCanonicalRole(r);
-                if (!string.IsNullOrEmpty(canonical))
-                    list.Add(new Claim("roles", canonical));
+                if (string.IsNullOrWhiteSpace(r))
+                    continue;
+                hasIdentityRoles = true;
+                roleNamesForResolver.Add(r.Trim());
             }
         }
 
-        var permissions = await _rolePermissionResolver.GetPermissionsForRolesAsync(roles ?? Array.Empty<string>(), cancellationToken);
+        if (!hasIdentityRoles && !string.IsNullOrWhiteSpace(user.Role))
+            roleNamesForResolver.Add(user.Role.Trim());
+
+        var permissions = await _rolePermissionResolver.GetPermissionsForRolesAsync(roleNamesForResolver, cancellationToken);
         foreach (var p in permissions)
             list.Add(new Claim(PermissionCatalog.PermissionClaimType, p));
 

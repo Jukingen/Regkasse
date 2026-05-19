@@ -2,6 +2,10 @@ import { getApiCashRegister } from '@/api/generated/cash-register/cash-register'
 import type {
   GetApiAdminFiscalExportParams,
 } from '@/api/generated/model';
+import type {
+  RksvComplianceReport,
+  RksvComplianceReportQueryParams,
+} from '@/features/rksv/compliance/types';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import {
   normalizeCashRegisterListBody,
@@ -68,6 +72,28 @@ export async function downloadFiscalExportJson(params: GetApiAdminFiscalExportPa
     params: { ...params, format: 'jsonDownload' },
     responseType: 'blob',
     headers: fiscalExportDisclaimerAckHeaders(),
+  });
+  return response.data;
+}
+
+/**
+ * WHY manual: Orval maps this endpoint to `Blob` because OpenAPI declares binary schema.
+ * Removal: regenerate client after swagger exposes `RksvComplianceReportDto` as JSON 200.
+ */
+export function getRksvComplianceReportJson(
+  params?: RksvComplianceReportQueryParams,
+): Promise<RksvComplianceReport> {
+  return AXIOS_INSTANCE.get<RksvComplianceReport>('/api/admin/rksv/compliance-report', {
+    params: { ...params, format: 'json' },
+  }).then((response) => response.data);
+}
+
+export async function downloadRksvComplianceReportPdf(
+  params?: RksvComplianceReportQueryParams,
+): Promise<Blob> {
+  const response = await AXIOS_INSTANCE.get<Blob>('/api/admin/rksv/compliance-report', {
+    params: { ...params, format: 'pdf' },
+    responseType: 'blob',
   });
   return response.data;
 }

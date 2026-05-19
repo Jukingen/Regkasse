@@ -12,6 +12,8 @@ const EXPECTED_KEYS_AND_HREFS: { key: string; href: string }[] = [
     { key: '/rksv/verifications', href: '/rksv/verifications' },
     { key: '/rksv/fiscal-export-diagnostics', href: '/rksv/fiscal-export-diagnostics' },
     { key: '/rksv/integrity', href: '/rksv/integrity' },
+    { key: '/rksv/compliance', href: '/rksv/compliance' },
+    { key: '/rksv/signature-chain', href: '/rksv/signature-chain' },
     { key: '/rksv/offline-intent-coverage', href: '/rksv/offline-intent-coverage' },
     { key: '/rksv/belegcheck', href: '/rksv/belegcheck' },
     { key: '/rksv/status', href: '/rksv/status' },

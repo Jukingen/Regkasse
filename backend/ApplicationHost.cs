@@ -270,6 +270,8 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
+    // Keep JWT short claim names (e.g. "role") on the principal; must match TokenClaimsService + RoleClaimType below.
+    options.MapInboundClaims = false;
     options.RequireHttpsMetadata = !isDevelopment;
     options.SaveToken = false;
     options.TokenValidationParameters = new TokenValidationParameters

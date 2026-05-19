@@ -100,6 +100,16 @@ export function buildRksvMenuGroups(t: (key: string) => string, verificationNavL
                 },
                 { key: '/rksv/integrity', href: '/rksv/integrity', label: t('nav.rksvLeafDataIntegrity') },
                 {
+                    key: '/rksv/compliance',
+                    href: '/rksv/compliance',
+                    label: t('nav.rksvLeafComplianceReport'),
+                },
+                {
+                    key: '/rksv/signature-chain',
+                    href: '/rksv/signature-chain',
+                    label: t('nav.rksvLeafSignatureChain'),
+                },
+                {
                     key: '/rksv/offline-intent-coverage',
                     href: '/rksv/offline-intent-coverage',
                     label: t('nav.rksvLeafOfflineCoverage'),

@@ -24,6 +24,7 @@ import deVouchers from './locales/de/vouchers.json';
 import deFiscalExportAudit from './locales/de/fiscalExportAudit.json';
 import deDevelopmentMode from './locales/de/developmentMode.json';
 import deTenants from './locales/de/tenants.json';
+import deDashboard from './locales/de/dashboard.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -50,6 +51,7 @@ import enVouchers from './locales/en/vouchers.json';
 import enFiscalExportAudit from './locales/en/fiscalExportAudit.json';
 import enDevelopmentMode from './locales/en/developmentMode.json';
 import enTenants from './locales/en/tenants.json';
+import enDashboard from './locales/en/dashboard.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
@@ -76,6 +78,7 @@ import trVouchers from './locales/tr/vouchers.json';
 import trFiscalExportAudit from './locales/tr/fiscalExportAudit.json';
 import trDevelopmentMode from './locales/tr/developmentMode.json';
 import trTenants from './locales/tr/tenants.json';
+import trDashboard from './locales/tr/dashboard.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -116,6 +119,7 @@ const catalogs = {
     fiscalExportAudit: deFiscalExportAudit,
     developmentMode: deDevelopmentMode,
     tenants: deTenants,
+    dashboard: deDashboard,
   },
   en: {
     adminShell: enAdminShell,
@@ -144,6 +148,7 @@ const catalogs = {
     fiscalExportAudit: enFiscalExportAudit,
     developmentMode: enDevelopmentMode,
     tenants: enTenants,
+    dashboard: enDashboard,
   },
   tr: {
     adminShell: trAdminShell,
@@ -172,6 +177,7 @@ const catalogs = {
     fiscalExportAudit: trFiscalExportAudit,
     developmentMode: trDevelopmentMode,
     tenants: trTenants,
+    dashboard: trDashboard,
   },
 } as const;
 

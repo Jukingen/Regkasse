@@ -55,6 +55,7 @@
     "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten.",
     "fallbackNoData": "Keine Belegdaten zurückgegeben.",
     "backToList": "Zurück zur Belegliste",
+    "verifySignatureChain": "Signaturkette um diesen Beleg prüfen",
     "lineItemsTitle": "Positionen",
     "taxBreakdownTitle": "Steueraufschlüsselung",
     "itemsTable": {

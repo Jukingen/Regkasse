@@ -1,5 +1,10 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { authStorage } from '@/features/auth/services/authStorage';
+import { DEV_TENANT_LOCAL_STORAGE_KEY } from '@/features/auth/services/devTenant';
+import {
+    buildImpersonationRedirectUrl,
+    shouldUseProductionImpersonationRedirect,
+} from '@/lib/auth/tokenHandler';
 
 export type AdminTenantListItem = {
     id: string;
@@ -83,14 +88,25 @@ export async function impersonateAdminTenant(tenantId: string): Promise<TenantIm
     return data;
 }
 
-/** Applies impersonation token and reloads admin session. */
+/**
+ * Applies impersonation session.
+ * Production: redirect to tenant subdomain with JWT in URL fragment (not stored on admin host).
+ * Development: store token + dev tenant override on same origin and reload.
+ */
 export function applyTenantImpersonationSession(res: TenantImpersonationResponse): void {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    if (shouldUseProductionImpersonationRedirect()) {
+        window.location.assign(buildImpersonationRedirectUrl(res));
+        return;
+    }
+
     authStorage.setToken(res.token);
     if (res.refreshToken) {
         authStorage.setRefreshToken(res.refreshToken);
     }
-    if (typeof window !== 'undefined') {
-        window.localStorage.setItem('dev_tenant_id', res.tenantSlug);
-        window.location.reload();
-    }
+    window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, res.tenantSlug);
+    window.location.reload();
 }

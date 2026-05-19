@@ -238,6 +238,16 @@
     "dateLabel": "Datum",
     "registerLabel": "Kasse",
     "allRegisters": "Alle Kassen",
+    "exportCsv": "CSV exportieren",
+    "export": {
+      "colDate": "Datum",
+      "colRegister": "Kasse",
+      "colOpeningBalance": "Anfangsbestand",
+      "colClosingBalance": "Endbestand",
+      "colTotalSales": "Gesamtumsatz",
+      "colCashCount": "Barsumme",
+      "colDifference": "Differenz"
+    },
     "stats": {
       "totalSales": "Gesamtumsatz (Verkauf)",
       "totalCash": "Bar",
