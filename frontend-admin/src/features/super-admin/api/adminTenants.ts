@@ -1,6 +1,7 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { authStorage } from '@/features/auth/services/authStorage';
-import { DEV_TENANT_LOCAL_STORAGE_KEY } from '@/features/auth/services/devTenant';
+import { beginTenantSwitch } from '@/features/auth/services/tenantSwitchController';
+import { writeDevTenantSlug } from '@/features/auth/services/devTenant';
 import {
     buildImpersonationRedirectUrl,
     shouldUseProductionImpersonationRedirect,
@@ -64,6 +65,11 @@ export async function listAdminTenants(includeDeleted = false): Promise<AdminTen
     return data;
 }
 
+export async function getAdminTenantById(tenantId: string): Promise<AdminTenantDetail> {
+    const { data } = await AXIOS_INSTANCE.get<AdminTenantDetail>(`/api/admin/tenants/${tenantId}`);
+    return data;
+}
+
 export async function createAdminTenant(body: CreateAdminTenantRequest): Promise<AdminTenantDetail> {
     const { data } = await AXIOS_INSTANCE.post<AdminTenantDetail>('/api/admin/tenants', body);
     return data;
@@ -98,6 +104,8 @@ export function applyTenantImpersonationSession(res: TenantImpersonationResponse
         return;
     }
 
+    beginTenantSwitch();
+
     if (shouldUseProductionImpersonationRedirect()) {
         window.location.assign(buildImpersonationRedirectUrl(res));
         return;
@@ -107,6 +115,7 @@ export function applyTenantImpersonationSession(res: TenantImpersonationResponse
     if (res.refreshToken) {
         authStorage.setRefreshToken(res.refreshToken);
     }
-    window.localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, res.tenantSlug);
-    window.location.reload();
+    if (!writeDevTenantSlug(res.tenantSlug)) {
+        window.location.reload();
+    }
 }

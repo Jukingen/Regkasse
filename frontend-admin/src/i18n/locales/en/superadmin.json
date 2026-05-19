@@ -1,0 +1,12 @@
+{
+  "noTenant": {
+    "title": "Super Admin mode",
+    "message": "You are in Super Admin mode. No tenant is selected. Choose a tenant to view tenant-scoped data.",
+    "banner": "You are in Super Admin mode. No tenant is selected."
+  },
+  "selectTenant": "Select tenant",
+  "impersonate": "Log in as tenant",
+  "openTenantManagement": "Open tenant management",
+  "selectorPlaceholder": "Choose a tenant…",
+  "loadFailed": "Could not load tenant list."
+}

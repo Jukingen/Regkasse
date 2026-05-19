@@ -4,6 +4,7 @@ import {
     RKSV_HUB_MENU_LEAF_KEY,
     resolveAdminMenuSelectedKeys,
     getNonRksvSidebarOpenGroupKeys,
+    isVerwaltungAdminPath,
     ADMIN_SIDEBAR_GROUP_KEYS,
     normalizeAdminPathname,
     computeSidebarOpenKeysMerge,
@@ -97,6 +98,14 @@ describe('adminSidebarNavigation', () => {
         expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
             ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
         );
+    });
+
+    it('detects Verwaltung routes for tenant context card', () => {
+        expect(isVerwaltungAdminPath('/users')).toBe(true);
+        expect(isVerwaltungAdminPath('/settings/backup-dr')).toBe(true);
+        expect(isVerwaltungAdminPath('/admin/tenants')).toBe(true);
+        expect(isVerwaltungAdminPath('/products')).toBe(false);
+        expect(isVerwaltungAdminPath('/receipts/abc')).toBe(false);
     });
 });
 

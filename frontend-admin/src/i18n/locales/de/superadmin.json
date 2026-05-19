@@ -1,0 +1,12 @@
+{
+  "noTenant": {
+    "title": "Super Admin Modus",
+    "message": "Sie sind im Super Admin Modus. Kein Mandant ausgewählt. Bitte wählen Sie einen Mandanten aus, um Daten zu sehen.",
+    "banner": "Sie sind im Super Admin Modus. Kein Mandant ausgewählt."
+  },
+  "selectTenant": "Mandant auswählen",
+  "impersonate": "Als Mandant anmelden",
+  "openTenantManagement": "Mandantenverwaltung öffnen",
+  "selectorPlaceholder": "Mandant wählen…",
+  "loadFailed": "Mandantenliste konnte nicht geladen werden."
+}

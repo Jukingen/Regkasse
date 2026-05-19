@@ -6,6 +6,8 @@ import React, { useState, ReactNode } from 'react';
 import { I18nProvider } from '@/i18n';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { AuthSessionInvalidationListener } from '@/features/auth/components/AuthSessionInvalidationListener';
+import { TenantChangeListener } from '@/features/auth/components/TenantChangeListener';
+import { TenantSwitchProvider } from '@/features/auth/contexts/TenantSwitchContext';
 
 export default function QueryProvider({ children }: { children: ReactNode }) {
     // Standard Next.js 14 pattern for QueryClient stability
@@ -27,11 +29,14 @@ export default function QueryProvider({ children }: { children: ReactNode }) {
 
     return (
         <I18nProvider>
-            <QueryClientProvider client={queryClient}>
-                <AuthSessionInvalidationListener />
-                {children}
-                <ReactQueryDevtools initialIsOpen={false} />
-            </QueryClientProvider>
+            <TenantSwitchProvider>
+                <QueryClientProvider client={queryClient}>
+                    <AuthSessionInvalidationListener />
+                    <TenantChangeListener />
+                    {children}
+                    <ReactQueryDevtools initialIsOpen={false} />
+                </QueryClientProvider>
+            </TenantSwitchProvider>
         </I18nProvider>
     );
 }

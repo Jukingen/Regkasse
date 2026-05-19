@@ -21,6 +21,56 @@
     "languageNameEn": "English",
     "languageNameTr": "Turkish"
   },
+  "tenant": {
+    "badge": {
+      "label": "Tenant",
+      "tooltip": "Active tenant. ID: {id}"
+    },
+    "info": {
+      "title": "Current tenant",
+      "name": "Name",
+      "slug": "Slug",
+      "id": "ID",
+      "license": "License status",
+      "active": "Active",
+      "expired": "Expired",
+      "daysRemaining": "Valid for {days} more days",
+      "registeredAt": "Registered on"
+    },
+    "badgeLabel": "Tenant: {name}",
+    "badgePlatformAdmin": "Platform admin",
+    "badgePlatformAdminTooltip": "No tenant context — data refers to the platform or legacy default tenant.",
+    "badgeImpersonatingTooltip": "Support impersonation active",
+    "badgeDevOverrideTooltip": "Development: tenant overridden via header dropdown",
+    "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
+    "infoCardTitle": "Current tenant",
+    "infoCardEyebrow": "Administration",
+    "infoCardSlug": "Slug",
+    "infoCardName": "Display name",
+    "infoCardJwtSlug": "Tenant in JWT",
+    "infoCardId": "Tenant ID",
+    "infoCardApiSlug": "API context",
+    "infoCardApiSlugHint": "All lists and settings use the tenant above (header / subdomain / JWT).",
+    "infoCardImpersonationTag": "Impersonation",
+    "infoCardDevOverrideTag": "Dev override",
+    "infoCardPlatformAdminTag": "Platform host",
+    "infoCardSuperAdminHint": "To work on a tenant:",
+    "superAdminPromptTitle": "No tenant selected",
+    "superAdminPromptBody": "On the admin host you will not see tenant-specific registers or master data. Open tenant management and choose “Login as tenant”.",
+    "superAdminPromptAction": "Open tenants",
+    "superAdminModeBanner": "You are in Super Admin mode. Select a tenant or use impersonation.",
+    "badgeSuperAdminMode": "Super Admin mode",
+    "selectTenantFirstTitle": "Select a tenant first",
+    "selectTenantFirstBody": "Tenant-specific data is shown only after tenant selection or impersonation.",
+    "adminLandingTitle": "Platform administration",
+    "switch": {
+      "toast": "Tenant switched to {slug}"
+    },
+    "switching": {
+      "message": "Switching tenant…"
+    },
+    "tenantChangedToast": "Tenant switched to: {slug}"
+  },
   "group": {
     "operations": "Operations",
     "salesTransactions": "Sales & transactions",

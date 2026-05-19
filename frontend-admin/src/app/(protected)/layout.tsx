@@ -6,8 +6,8 @@
  */
 
 import React, { Suspense, useState, useEffect, useMemo, useLayoutEffect, ReactNode } from 'react';
-import { Layout, Menu, Button, theme, Dropdown, Avatar, Drawer, Grid, MenuProps } from 'antd';
-import { MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
+import { Layout, Menu, theme, Drawer, Grid, MenuProps } from 'antd';
+import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { AuthGate } from '@/shared/auth/AuthGate';
 import { PermissionRouteGuard } from '@/shared/auth/PermissionRouteGuard';
@@ -25,12 +25,11 @@ import {
     type SidebarPermissionContext,
 } from '@/shared/adminSidebarNavigation';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
-import { HeaderDevTenantSwitch } from '@/components/admin-layout/HeaderDevTenantSwitch';
-import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
+import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
+import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenantGate';
+import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
+import { AdminShellHeader } from '@/components/layout/Header';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
-import { LicenseStatusBadge } from '@/components/LicenseStatusBadge';
-import { EnvironmentBadge } from '@/components/EnvironmentBadge';
-import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
     ADMIN_SIDER_WIDTH_MAX,
@@ -40,7 +39,7 @@ import {
 } from '@/components/admin-layout/usePersistedAdminSiderWidth';
 import sidebarStyles from './protected-layout-sidebar.module.css';
 
-const { Header, Sider, Content } = Layout;
+const { Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
 
 const EMPTY_PERMISSIONS: string[] = [];
@@ -286,73 +285,21 @@ export default function DashboardLayout({
                     </Drawer>
 
                     <Layout>
-                        <Header
-                            style={{
-                                padding: 0,
-                                background: colorBgContainer,
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                paddingRight: 24,
-                                zIndex: 1,
-                            }}
-                        >
-                            <Button
-                                type="text"
-                                aria-label={
-                                    isMobile
-                                        ? drawerVisible
-                                            ? t('adminShell.aria.closeNav')
-                                            : t('adminShell.aria.openNav')
-                                        : collapsed
-                                          ? t('adminShell.aria.expandSidebar')
-                                          : t('adminShell.aria.collapseSidebar')
-                                }
-                                aria-expanded={isMobile ? drawerVisible : undefined}
-                                icon={
-                                    isMobile ? (
-                                        drawerVisible ? (
-                                            <MenuFoldOutlined />
-                                        ) : (
-                                            <MenuUnfoldOutlined />
-                                        )
-                                    ) : collapsed ? (
-                                        <MenuUnfoldOutlined />
-                                    ) : (
-                                        <MenuFoldOutlined />
-                                    )
-                                }
-                                onClick={() => (isMobile ? setDrawerVisible((open) => !open) : setCollapsed(!collapsed))}
-                                style={{
-                                    fontSize: '16px',
-                                    width: 64,
-                                    height: 64,
-                                }}
-                            />
-                            <div
-                                style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 'auto' }}
-                                role="toolbar"
-                                aria-label={t('adminShell.header.headerActionsAria')}
-                            >
-                                <EnvironmentBadge />
-                                <HeaderDevTenantSwitch />
-                                <LicenseStatusBadge />
-                                <HeaderLanguageQuickSwitch />
-                                <MonatsbelegGlobalBadge />
-                                <Dropdown menu={userMenu} placement="bottomRight">
-                                    <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <Avatar icon={<UserOutlined />} />
-                                        {!isMobile && (
-                                            <span>
-                                                {user?.firstName
-                                                    ? `${user.firstName} ${user.lastName}`
-                                                    : t('adminShell.branding.fallbackUserName')}
-                                            </span>
-                                        )}
-                                    </div>
-                                </Dropdown>
-                            </div>
-                        </Header>
+                        <AdminShellHeader
+                            background={colorBgContainer}
+                            isMobile={isMobile}
+                            drawerVisible={drawerVisible}
+                            collapsed={collapsed}
+                            onToggleSidebar={() =>
+                                isMobile ? setDrawerVisible((open) => !open) : setCollapsed(!collapsed)
+                            }
+                            userMenu={userMenu}
+                            userLabel={
+                                user?.firstName
+                                    ? `${user.firstName} ${user.lastName}`
+                                    : t('adminShell.branding.fallbackUserName')
+                            }
+                        />
                         <Content
                             style={{
                                 margin: '24px 16px',
@@ -364,8 +311,10 @@ export default function DashboardLayout({
                             }}
                         >
                             <LicenseExpiryBanner />
+                            <SuperAdminModeBanner />
+                            <VerwaltungTenantContextGate />
                             <main id="main-content" tabIndex={-1}>
-                                {children}
+                                <SuperAdminTenantGate>{children}</SuperAdminTenantGate>
                             </main>
                         </Content>
                     </Layout>

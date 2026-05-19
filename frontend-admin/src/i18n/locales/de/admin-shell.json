@@ -21,6 +21,56 @@
     "languageNameEn": "English",
     "languageNameTr": "Türkçe"
   },
+  "tenant": {
+    "badge": {
+      "label": "Mandant",
+      "tooltip": "Aktiver Mandant. ID: {id}"
+    },
+    "info": {
+      "title": "Aktiver Mandant",
+      "name": "Name",
+      "slug": "Slug",
+      "id": "ID",
+      "license": "Lizenzstatus",
+      "active": "Aktiv",
+      "expired": "Abgelaufen",
+      "daysRemaining": "Noch {days} Tage gültig",
+      "registeredAt": "Registriert am"
+    },
+    "badgeLabel": "Mandant: {name}",
+    "badgePlatformAdmin": "Plattform-Admin",
+    "badgePlatformAdminTooltip": "Kein Mandantenkontext — Daten beziehen sich auf die Plattform oder den Legacy-Standardmandanten.",
+    "badgeImpersonatingTooltip": "Support-Impersonation aktiv",
+    "badgeDevOverrideTooltip": "Entwicklung: Mandant per Header-Dropdown überschrieben",
+    "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
+    "infoCardTitle": "Aktiver Mandant",
+    "infoCardEyebrow": "Verwaltung",
+    "infoCardSlug": "Slug",
+    "infoCardName": "Anzeigename",
+    "infoCardJwtSlug": "Mandant im JWT",
+    "infoCardId": "Mandanten-ID",
+    "infoCardApiSlug": "API-Kontext",
+    "infoCardApiSlugHint": "Alle Listen und Einstellungen beziehen sich auf den oben gewählten Mandanten (Header / Subdomain / JWT).",
+    "infoCardImpersonationTag": "Impersonation",
+    "infoCardDevOverrideTag": "Dev-Override",
+    "infoCardPlatformAdminTag": "Plattform-Host",
+    "infoCardSuperAdminHint": "Zum Bearbeiten eines Mandanten:",
+    "superAdminPromptTitle": "Kein Mandant ausgewählt",
+    "superAdminPromptBody": "Auf dem Admin-Host sehen Sie keine mandantenspezifischen Kassen- oder Stammdaten. Öffnen Sie die Mandantenverwaltung und wählen Sie «Als Mandant anmelden».",
+    "superAdminPromptAction": "Mandanten öffnen",
+    "superAdminModeBanner": "Sie sind im Super Admin Modus. Wählen Sie einen Mandanten aus oder nutzen Sie Impersonation.",
+    "badgeSuperAdminMode": "Super Admin Modus",
+    "selectTenantFirstTitle": "Zuerst Mandant wählen",
+    "selectTenantFirstBody": "Mandantenbezogene Daten werden erst nach Mandantenauswahl oder Impersonation angezeigt.",
+    "adminLandingTitle": "Plattform-Administration",
+    "switch": {
+      "toast": "Mandant gewechselt zu {slug}"
+    },
+    "switching": {
+      "message": "Mandant wird gewechselt..."
+    },
+    "tenantChangedToast": "Mandant gewechselt zu: {slug}"
+  },
   "group": {
     "operations": "Betrieb",
     "salesTransactions": "Verkauf & Vorgänge",

@@ -24,6 +24,7 @@ import deVouchers from './locales/de/vouchers.json';
 import deFiscalExportAudit from './locales/de/fiscalExportAudit.json';
 import deDevelopmentMode from './locales/de/developmentMode.json';
 import deTenants from './locales/de/tenants.json';
+import deSuperadmin from './locales/de/superadmin.json';
 import deDashboard from './locales/de/dashboard.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
@@ -51,6 +52,7 @@ import enVouchers from './locales/en/vouchers.json';
 import enFiscalExportAudit from './locales/en/fiscalExportAudit.json';
 import enDevelopmentMode from './locales/en/developmentMode.json';
 import enTenants from './locales/en/tenants.json';
+import enSuperadmin from './locales/en/superadmin.json';
 import enDashboard from './locales/en/dashboard.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
@@ -78,6 +80,7 @@ import trVouchers from './locales/tr/vouchers.json';
 import trFiscalExportAudit from './locales/tr/fiscalExportAudit.json';
 import trDevelopmentMode from './locales/tr/developmentMode.json';
 import trTenants from './locales/tr/tenants.json';
+import trSuperadmin from './locales/tr/superadmin.json';
 import trDashboard from './locales/tr/dashboard.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
@@ -119,6 +122,7 @@ const catalogs = {
     fiscalExportAudit: deFiscalExportAudit,
     developmentMode: deDevelopmentMode,
     tenants: deTenants,
+    superadmin: deSuperadmin,
     dashboard: deDashboard,
   },
   en: {
@@ -148,6 +152,7 @@ const catalogs = {
     fiscalExportAudit: enFiscalExportAudit,
     developmentMode: enDevelopmentMode,
     tenants: enTenants,
+    superadmin: enSuperadmin,
     dashboard: enDashboard,
   },
   tr: {
@@ -177,6 +182,7 @@ const catalogs = {
     fiscalExportAudit: trFiscalExportAudit,
     developmentMode: trDevelopmentMode,
     tenants: trTenants,
+    superadmin: trSuperadmin,
     dashboard: trDashboard,
   },
 } as const;

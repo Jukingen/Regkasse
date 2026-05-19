@@ -55,8 +55,11 @@ function resolveFromPath(source: unknown, key: string): string | undefined {
 
 function interpolate(template: string, options?: TranslateOptions): string {
   if (!options) return template;
-  return template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, token: string) =>
+  const withDoubleBraces = template.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, token: string) =>
     options[token] !== undefined ? String(options[token]) : `{{${token}}}`,
+  );
+  return withDoubleBraces.replace(/\{([a-zA-Z0-9_]+)\}/g, (_, token: string) =>
+    options[token] !== undefined ? String(options[token]) : `{${token}}`,
   );
 }
 

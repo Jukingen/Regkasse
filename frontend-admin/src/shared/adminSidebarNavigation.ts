@@ -142,6 +142,13 @@ export function resolveAdminMenuSelectedKeys(
     return [p];
 }
 
+/** True when pathname is under the Verwaltung sidebar group (users, settings, license, tenants, …). */
+export function isVerwaltungAdminPath(pathname: string | null | undefined): boolean {
+    const p = normalizeAdminPathname(pathname);
+    const routes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.verwaltung];
+    return routes.some((r) => p === r || p.startsWith(`${r}/`));
+}
+
 /** Subgroup keys to open when pathname falls under a non-RKSV route group. */
 export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefined): string[] {
     const p = normalizeAdminPathname(pathname);

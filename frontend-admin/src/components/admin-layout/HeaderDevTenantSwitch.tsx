@@ -8,14 +8,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Select, Tooltip } from 'antd';
 
 import { DEV_TENANT_PRESETS } from '@/features/auth/constants/devTenantPresets';
-import {
-  DEV_TENANT_LOCAL_STORAGE_KEY,
-  getDevTenant,
-  isLocalDevHostname,
-} from '@/features/auth/services/devTenant';
-import { tenantStorage } from '@/features/auth/services/tenantStorage';
+import { getDevTenant, isLocalDevHostname } from '@/features/auth/services/devTenant';
+import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
+import { useTenantContext } from '@/features/tenancy/hooks/useTenantContext';
 
 export function HeaderDevTenantSwitch() {
+  const { isPlatformAdminHost } = useTenantContext();
   const [currentTenant, setCurrentTenant] = useState<string>(() =>
     typeof window !== 'undefined' ? getDevTenant() : 'dev',
   );
@@ -32,10 +30,7 @@ export function HeaderDevTenantSwitch() {
   }, []);
 
   const onChange = useCallback((value: string) => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(DEV_TENANT_LOCAL_STORAGE_KEY, value);
-    tenantStorage.persistBootstrap({ tenantSlug: value });
-    window.location.reload();
+    persistTenantSlugAndRefresh(value);
   }, []);
 
   if (process.env.NODE_ENV !== 'development') {
@@ -45,7 +40,7 @@ export function HeaderDevTenantSwitch() {
   const select = (
     <Select
       size="small"
-      style={{ minWidth: 220 }}
+      style={{ minWidth: isPlatformAdminHost ? 260 : 220 }}
       value={currentTenant}
       onChange={onChange}
       options={DEV_TENANT_PRESETS.map((preset) => ({

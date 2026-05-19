@@ -1,0 +1,12 @@
+{
+  "noTenant": {
+    "title": "Super Admin modu",
+    "message": "Super Admin modundasınız. Kiracı seçilmedi. Veri görmek için bir kiracı seçin.",
+    "banner": "Super Admin modundasınız. Kiracı seçilmedi."
+  },
+  "selectTenant": "Kiracı seç",
+  "impersonate": "Kiracı olarak giriş",
+  "openTenantManagement": "Kiracı yönetimini aç",
+  "selectorPlaceholder": "Kiracı seçin…",
+  "loadFailed": "Kiracı listesi yüklenemedi."
+}

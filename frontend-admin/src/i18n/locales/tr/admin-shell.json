@@ -21,6 +21,56 @@
     "languageNameEn": "İngilizce",
     "languageNameTr": "Türkçe"
   },
+  "tenant": {
+    "badge": {
+      "label": "Kiracı",
+      "tooltip": "Aktif kiracı. Kimlik: {id}"
+    },
+    "info": {
+      "title": "Geçerli kiracı",
+      "name": "Ad",
+      "slug": "Slug",
+      "id": "Kimlik",
+      "license": "Lisans durumu",
+      "active": "Aktif",
+      "expired": "Süresi doldu",
+      "daysRemaining": "{days} gün daha geçerli",
+      "registeredAt": "Kayıt tarihi"
+    },
+    "badgeLabel": "Kiracı: {name}",
+    "badgePlatformAdmin": "Platform yöneticisi",
+    "badgePlatformAdminTooltip": "Kiracı bağlamı yok — veriler platform veya varsayılan kiracıya aittir.",
+    "badgeImpersonatingTooltip": "Destek kimliği (impersonation) etkin",
+    "badgeDevOverrideTooltip": "Geliştirme: kiracı üst bilgi açılır menüsüyle geçersiz kılındı",
+    "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
+    "infoCardTitle": "Geçerli kiracı",
+    "infoCardEyebrow": "Yönetim",
+    "infoCardSlug": "Slug",
+    "infoCardName": "Görünen ad",
+    "infoCardJwtSlug": "JWT kiracısı",
+    "infoCardId": "Kiracı kimliği",
+    "infoCardApiSlug": "API bağlamı",
+    "infoCardApiSlugHint": "Tüm listeler ve ayarlar yukarıdaki kiracıyı kullanır (üst bilgi / alt alan adı / JWT).",
+    "infoCardImpersonationTag": "Kimlik taklidi",
+    "infoCardDevOverrideTag": "Dev geçersiz kılma",
+    "infoCardPlatformAdminTag": "Platform ana bilgisayarı",
+    "infoCardSuperAdminHint": "Bir kiracıda çalışmak için:",
+    "superAdminPromptTitle": "Kiracı seçilmedi",
+    "superAdminPromptBody": "Admin ana bilgisayarında kiracıya özel kasa veya ana veri görünmez. Kiracı yönetimini açın ve «Kiracı olarak giriş» seçin.",
+    "superAdminPromptAction": "Kiracıları aç",
+    "superAdminModeBanner": "Super Admin modundasınız. Bir kiracı seçin veya kimlik taklidi kullanın.",
+    "badgeSuperAdminMode": "Super Admin modu",
+    "selectTenantFirstTitle": "Önce kiracı seçin",
+    "selectTenantFirstBody": "Kiracıya özel veriler yalnızca kiracı seçimi veya kimlik taklidinden sonra gösterilir.",
+    "adminLandingTitle": "Platform yönetimi",
+    "switch": {
+      "toast": "Kiracı değiştirildi: {slug}"
+    },
+    "switching": {
+      "message": "Kiracı değiştiriliyor..."
+    },
+    "tenantChangedToast": "Kiracı değiştirildi: {slug}"
+  },
   "group": {
     "operations": "Operasyon",
     "salesTransactions": "Satış ve işlemler",
