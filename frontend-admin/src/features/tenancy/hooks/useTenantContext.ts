@@ -16,6 +16,12 @@ import { authStorage } from '@/features/auth/services/authStorage';
 
 const emptySubscribe = () => () => {};
 
+/** Stable primitive for `useSyncExternalStore` — object snapshots would re-render forever. */
+function readTokenTenantClaimsSnapshotKey(): string {
+    const { tenantId, tenantSlug, isImpersonating } = readTokenTenantClaims();
+    return `${tenantId ?? ''}|${tenantSlug ?? ''}|${isImpersonating ? '1' : '0'}`;
+}
+
 function readDevTenantOverrideActive(): boolean {
     if (!isDevelopment() || typeof window === 'undefined') return false;
     const stored = window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY)?.trim();
@@ -31,10 +37,10 @@ function readDevTenantOverrideActive(): boolean {
 export function useTenantContext() {
     const { user } = useAuth();
 
-    const tokenSnapshot = useSyncExternalStore(
+    const tokenClaimsKey = useSyncExternalStore(
         emptySubscribe,
-        () => readTokenTenantClaims(),
-        () => ({ tenantId: null, tenantSlug: null, isImpersonating: false }),
+        readTokenTenantClaimsSnapshotKey,
+        () => '|0',
     );
 
     const hostSlug = useSyncExternalStore(
@@ -50,6 +56,7 @@ export function useTenantContext() {
     );
 
     return useMemo(() => {
+        const tokenSnapshot = readTokenTenantClaims();
         const jwtTenantSlug = user?.tenantSlug ?? tokenSnapshot.tenantSlug;
         const tenantId = user?.tenantId ?? tokenSnapshot.tenantId ?? tenantStorage.getTenantId();
         const tenantName = user?.tenantDisplayName?.trim() || null;
@@ -75,5 +82,5 @@ export function useTenantContext() {
             devSelectedSlug,
             hasAuthToken: authStorage.hasToken(),
         };
-    }, [user, tokenSnapshot, hostSlug, effectiveSlug]);
+    }, [user, tokenClaimsKey, hostSlug, effectiveSlug]);
 }

@@ -1,6 +1,8 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Tenancy;
@@ -10,11 +12,19 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
 {
     private readonly AppDbContext _db;
     private readonly ILogger<LoginTenantResolver> _logger;
+    private readonly ITenantProvider _tenantProvider;
+    private readonly IWebHostEnvironment _environment;
 
-    public LoginTenantResolver(AppDbContext db, ILogger<LoginTenantResolver> logger)
+    public LoginTenantResolver(
+        AppDbContext db,
+        ILogger<LoginTenantResolver> logger,
+        ITenantProvider tenantProvider,
+        IWebHostEnvironment environment)
     {
         _db = db;
         _logger = logger;
+        _tenantProvider = tenantProvider;
+        _environment = environment;
     }
 
     /// <inheritdoc />
@@ -28,6 +38,20 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             .ThenBy(m => m.Id)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        if (_environment.IsDevelopment() && active.Count > 0)
+        {
+            var requestSlug = NormalizeRequestSlug(_tenantProvider.GetCurrentTenantId());
+            if (requestSlug != null)
+            {
+                var matched = active.FirstOrDefault(m =>
+                    string.Equals(m.Tenant?.Slug, requestSlug, StringComparison.OrdinalIgnoreCase));
+                if (matched != null)
+                {
+                    return await BuildSnapshotFromMembershipAsync(matched, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
 
         if (active.Count == 0)
         {
@@ -45,7 +69,25 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
                 active.Count);
         }
 
-        var chosen = active[0];
+        return await BuildSnapshotFromMembershipAsync(active[0], cancellationToken).ConfigureAwait(false);
+    }
+
+    private static string? NormalizeRequestSlug(string slug)
+    {
+        var trimmed = slug?.Trim();
+        if (string.IsNullOrEmpty(trimmed)
+            || string.Equals(trimmed, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return trimmed;
+    }
+
+    private async Task<AuthTenantSnapshot> BuildSnapshotFromMembershipAsync(
+        UserTenantMembership chosen,
+        CancellationToken cancellationToken)
+    {
         var name = chosen.Tenant?.Name;
         var slug = chosen.Tenant?.Slug;
         if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(slug))

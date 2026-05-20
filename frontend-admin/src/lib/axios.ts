@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { message } from 'antd';
 import { authStorage } from '@/features/auth/services/authStorage';
-import { getEffectiveTenantSlug } from '@/features/auth/services/devTenant';
+import { resolveTenantSlugForApiRequest } from '@/features/auth/services/devTenant';
+import { TENANT_HTTP_HEADER } from '@/features/auth/services/tenantStorage';
 import { getForbiddenMessage, mapRequiredPolicyToReasonCode } from '@/shared/errors/forbiddenMessages';
 import { getStoredLanguage } from '@/i18n/languageStorage';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
@@ -30,13 +31,13 @@ const createAxiosInstance = () => {
         },
     });
 
-    // Request Interceptor
+    // Request Interceptor — tenant slug is read fresh from localStorage / host on every request (no instance cache).
     instance.interceptors.request.use((config) => {
         if (typeof window !== 'undefined') {
-            const tenantSlug = getEffectiveTenantSlug();
+            const tenantSlug = resolveTenantSlugForApiRequest();
             if (tenantSlug) {
                 config.headers = config.headers ?? {};
-                config.headers['X-Tenant-Id'] = tenantSlug;
+                config.headers[TENANT_HTTP_HEADER] = tenantSlug;
                 if (isDev && config.url) {
                     const params = config.params ?? {};
                     if (typeof params === 'object' && params !== null && !Array.isArray(params)) {

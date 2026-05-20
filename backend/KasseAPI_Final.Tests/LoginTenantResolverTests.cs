@@ -1,8 +1,11 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -27,6 +30,24 @@ public class LoginTenantResolverTests
         });
     }
 
+    private static LoginTenantResolver CreateResolver(
+        AppDbContext db,
+        string? requestTenantSlug = null,
+        bool isDevelopment = false)
+    {
+        var provider = new Mock<ITenantProvider>();
+        provider.Setup(p => p.GetCurrentTenantId()).Returns(requestTenantSlug ?? "admin");
+
+        var environment = new Mock<IWebHostEnvironment>();
+        environment.Setup(e => e.EnvironmentName).Returns(isDevelopment ? Environments.Development : Environments.Production);
+
+        return new LoginTenantResolver(
+            db,
+            NullLogger<LoginTenantResolver>.Instance,
+            provider.Object,
+            environment.Object);
+    }
+
     [Fact]
     public async Task HasActiveMembershipAsync_False_Without_Active_Row()
     {
@@ -34,7 +55,7 @@ public class LoginTenantResolverTests
         SeedDefaultTenant(db);
         await db.SaveChangesAsync();
 
-        var resolver = new LoginTenantResolver(db, NullLogger<LoginTenantResolver>.Instance);
+        var resolver = CreateResolver(db);
         Assert.False(await resolver.HasActiveMembershipAsync("any-user"));
     }
 
@@ -53,7 +74,7 @@ public class LoginTenantResolverTests
         });
         await db.SaveChangesAsync();
 
-        var resolver = new LoginTenantResolver(db, NullLogger<LoginTenantResolver>.Instance);
+        var resolver = CreateResolver(db);
         Assert.True(await resolver.HasActiveMembershipAsync("u1"));
     }
 
@@ -64,7 +85,7 @@ public class LoginTenantResolverTests
         SeedDefaultTenant(db);
         await db.SaveChangesAsync();
 
-        var resolver = new LoginTenantResolver(db, NullLogger<LoginTenantResolver>.Instance);
+        var resolver = CreateResolver(db);
         var snap = await resolver.ResolveSnapshotForLoginAsync("user-1");
 
         Assert.Equal(LegacyDefaultTenantIds.Primary.ToString("D"), snap.TenantId);
@@ -87,7 +108,7 @@ public class LoginTenantResolverTests
         });
         await db.SaveChangesAsync();
 
-        var resolver = new LoginTenantResolver(db, NullLogger<LoginTenantResolver>.Instance);
+        var resolver = CreateResolver(db);
         var snap = await resolver.ResolveSnapshotForLoginAsync("u1");
 
         Assert.Equal(otherId.ToString("D"), snap.TenantId);
@@ -110,10 +131,48 @@ public class LoginTenantResolverTests
         });
         await db.SaveChangesAsync();
 
-        var resolver = new LoginTenantResolver(db, NullLogger<LoginTenantResolver>.Instance);
+        var resolver = CreateResolver(db);
         var snap = await resolver.ResolveSnapshotForLoginAsync("u1");
 
         Assert.Equal(LegacyDefaultTenantIds.Primary.ToString("D"), snap.TenantId);
+    }
+
+    [Fact]
+    public async Task Development_Request_Slug_Prefers_Matching_Membership_Over_Oldest()
+    {
+        await using var db = CreateDb();
+        var cafeId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var barId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        db.Tenants.Add(new Tenant { Id = cafeId, Name = "Cafe", Slug = "cafe" });
+        db.Tenants.Add(new Tenant { Id = barId, Name = "Bar", Slug = "bar" });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "u1",
+            TenantId = cafeId,
+            IsActive = true,
+            CreatedAtUtc = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "u1",
+            TenantId = barId,
+            IsActive = true,
+            CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return;
+        }
+
+        var resolver = CreateResolver(db, requestTenantSlug: "bar", isDevelopment: true);
+        var snap = await resolver.ResolveSnapshotForLoginAsync("u1");
+
+        Assert.Equal(barId.ToString("D"), snap.TenantId);
+        Assert.Equal("bar", snap.TenantSlug);
     }
 
     [Fact]
@@ -176,7 +235,7 @@ public class LoginTenantResolverTests
             return;
         }
 
-        var resolver = new LoginTenantResolver(db, NullLogger<LoginTenantResolver>.Instance);
+        var resolver = CreateResolver(db);
         var snap = await resolver.ResolveSnapshotForLoginAsync("u1");
         Assert.Equal(t1.ToString("D"), snap.TenantId);
         Assert.Equal("First", snap.TenantDisplayName);

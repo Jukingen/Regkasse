@@ -21,6 +21,7 @@ import { postApiAdminFinanzonlineReconciliationRetryPaymentId } from '@/api/gene
 import type { Invoice, InvoiceListItemDto, InvoiceListItemDtoPagedResult, PaymentMethod } from '@/api/generated/model';
 import { DocumentType, InvoiceStatus } from '@/api/generated/model';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
+import { withTenantScope } from '@/lib/queryKeys';
 
 import { getInvoicesList, getInvoicePdf, createCreditNote, exportInvoices as orvalExportInvoices } from '../api/invoiceService';
 import { coerceInvoiceListSortField, type InvoiceListParams, type InvoiceListSortBy } from '../types';
@@ -189,7 +190,7 @@ export const InvoiceList: React.FC = () => {
         InvoiceListItemDtoPagedResult,
         Error
     >({
-        queryKey: ['invoices', queryParams],
+        queryKey: withTenantScope(['invoices', queryParams] as const),
         queryFn: () => getInvoicesList(queryParams),
         placeholderData: (previousData) => previousData,
         enabled: !dateRangeError,

@@ -10,6 +10,7 @@ import {
   getDevTenantSlugOverride,
   setDevTenantAndPersist,
 } from '../../../services/tenant/devTenant';
+import { sessionManager } from '../../../services/session/sessionManager';
 import { reloadApp } from './reloadApp';
 
 const isDev = __DEV__;
@@ -29,6 +30,7 @@ export function DevTenantSwitcher() {
   const onSelect = useCallback(async (value: string) => {
     setOpen(false);
     await setDevTenantAndPersist(value);
+    await sessionManager.clearSession();
     setCurrentTenant(value);
     reloadApp();
   }, []);

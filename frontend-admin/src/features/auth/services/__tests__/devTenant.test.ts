@@ -3,6 +3,7 @@ import {
   DEV_TENANT_CHANGED_EVENT,
   getDevTenant,
   getEffectiveTenantSlug,
+  resolveTenantSlugForApiRequest,
   getTenantSlugFromSubdomain,
   isLocalDevHostname,
   writeDevTenantSlug,
@@ -29,6 +30,7 @@ describe('devTenant', () => {
     window.localStorage.setItem('dev_tenant_id', 'cafe');
     expect(getDevTenant()).toBe('cafe');
     expect(getEffectiveTenantSlug()).toBe('cafe');
+    expect(resolveTenantSlugForApiRequest()).toBe('cafe');
     process.env.NODE_ENV = 'production';
     expect(getTenantSlugFromSubdomain('acme.regkasse.at')).toBe('acme');
   });

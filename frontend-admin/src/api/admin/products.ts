@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Admin products API – all calls use /api/admin/products (legacy api/Product is not used).
  * PUT update: safe parsing workaround when backend returns huge graphs (avoid JSON cycle / network error).
@@ -5,6 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import { customInstance, AXIOS_INSTANCE } from '@/lib/axios';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import type { Product } from '@/api/generated/model';
 
 const ADMIN_PRODUCTS = '/api/admin/products';
@@ -204,20 +207,23 @@ export async function uploadAdminProductImage(
 export { MAX_PRODUCT_IMAGE_BYTES };
 
 export const adminProductsQueryKeys = {
-  all: ['admin', 'products'] as const,
-  lists: () => [...adminProductsQueryKeys.all, 'list'] as const,
-  list: (params?: AdminProductsListParams) => [...adminProductsQueryKeys.lists(), params] as const,
-  details: () => [...adminProductsQueryKeys.all, 'detail'] as const,
-  detail: (id: string) => [...adminProductsQueryKeys.details(), id] as const,
-  search: (params: { name?: string }) => [...adminProductsQueryKeys.all, 'search', params] as const,
+  all: (tenantSlug: string) => ['admin', 'products', tenantSlug] as const,
+  lists: (tenantSlug: string) => [...adminProductsQueryKeys.all(tenantSlug), 'list'] as const,
+  list: (tenantSlug: string, params?: AdminProductsListParams) =>
+    [...adminProductsQueryKeys.lists(tenantSlug), params] as const,
+  details: (tenantSlug: string) => [...adminProductsQueryKeys.all(tenantSlug), 'detail'] as const,
+  detail: (tenantSlug: string, id: string) => [...adminProductsQueryKeys.details(tenantSlug), id] as const,
+  search: (tenantSlug: string, params: { name?: string }) =>
+    [...adminProductsQueryKeys.all(tenantSlug), 'search', params] as const,
 };
 
 export function useAdminProductsList(
   params?: AdminProductsListParams,
   options?: Partial<UseQueryOptions<AdminProductsListResponse, Error, AdminProductsListResponse>>
 ): UseQueryResult<AdminProductsListResponse, Error> {
+  const { tenantSlug } = useCurrentTenant();
   return useQuery({
-    queryKey: adminProductsQueryKeys.list(params),
+    queryKey: adminProductsQueryKeys.list(tenantSlug, params),
     queryFn: ({ signal }) => getAdminProductsList(params, undefined, signal),
     ...options,
   });
@@ -227,8 +233,9 @@ export function useAdminProductById(
   id: string,
   options?: Partial<UseQueryOptions<Product, Error, Product>>
 ): UseQueryResult<Product, Error> {
+  const { tenantSlug } = useCurrentTenant();
   return useQuery({
-    queryKey: adminProductsQueryKeys.detail(id),
+    queryKey: adminProductsQueryKeys.detail(tenantSlug, id),
     queryFn: ({ signal }) => getAdminProductById(id, undefined, signal),
     enabled: !!id,
     ...options,
@@ -239,8 +246,9 @@ export function useAdminProductsSearch(
   params: { name?: string; category?: string },
   options?: Partial<UseQueryOptions<Product[], Error, Product[]>>
 ): UseQueryResult<Product[], Error> {
+  const { tenantSlug } = useCurrentTenant();
   return useQuery({
-    queryKey: adminProductsQueryKeys.search(params),
+    queryKey: adminProductsQueryKeys.search(tenantSlug, params),
     queryFn: ({ signal }) => searchAdminProducts(params, undefined, signal),
     enabled: !!(params?.name?.trim() || params?.category?.trim()),
     ...options,
@@ -251,9 +259,10 @@ export function useCreateAdminProduct(
   opts?: UseMutationOptions<{ id?: string } & Product, Error, { data: Product }>
 ): UseMutationResult<{ id?: string } & Product, Error, { data: Product }> {
   const qc = useQueryClient();
+  const { tenantSlug } = useCurrentTenant();
   return useMutation({
     mutationFn: ({ data }) => createAdminProduct(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists() }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists(tenantSlug) }),
     ...opts,
   });
 }
@@ -273,14 +282,15 @@ export function useUpdateAdminProduct(
   opts?: UseMutationOptions<UpdateProductResult, Error, { id: string; data: Product }>
 ): UseMutationResult<UpdateProductResult, Error, { id: string; data: Product }> {
   const qc = useQueryClient();
+  const { tenantSlug } = useCurrentTenant();
   return useMutation({
     mutationFn: ({ id, data }) => updateAdminProductSafe(id, data, payloadToShallow(data)),
     onSuccess: (result, { id, data }) => {
       const shallow = result.product ?? payloadToShallow(data);
       const safeProduct = { ...shallow, id } as Product;
-      qc.setQueryData(adminProductsQueryKeys.detail(id), safeProduct);
+      qc.setQueryData(adminProductsQueryKeys.detail(tenantSlug, id), safeProduct);
       qc.setQueriesData(
-        { queryKey: adminProductsQueryKeys.lists() },
+        { queryKey: adminProductsQueryKeys.lists(tenantSlug) },
         (old: AdminProductsListResponse | undefined) => {
           if (!old?.items) return old;
           return {
@@ -289,8 +299,8 @@ export function useUpdateAdminProduct(
           };
         }
       );
-      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.detail(id) });
-      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists() });
+      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.detail(tenantSlug, id) });
+      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists(tenantSlug) });
     },
     ...opts,
   });
@@ -298,9 +308,10 @@ export function useUpdateAdminProduct(
 
 export function useDeleteAdminProduct(opts?: UseMutationOptions<void, Error, { id: string }>): UseMutationResult<void, Error, { id: string }> {
   const qc = useQueryClient();
+  const { tenantSlug } = useCurrentTenant();
   return useMutation({
     mutationFn: ({ id }) => deleteAdminProduct(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists() }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists(tenantSlug) }),
     ...opts,
   });
 }
@@ -309,9 +320,11 @@ export function useSetAdminProductModifierGroups(
   opts?: UseMutationOptions<void, Error, { productId: string; modifierGroupIds: string[] }>
 ): UseMutationResult<void, Error, { productId: string; modifierGroupIds: string[] }> {
   const qc = useQueryClient();
+  const { tenantSlug } = useCurrentTenant();
   return useMutation({
     mutationFn: ({ productId, modifierGroupIds }) => setAdminProductModifierGroups(productId, modifierGroupIds),
-    onSuccess: (_, { productId }) => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.detail(productId) }),
+    onSuccess: (_, { productId }) =>
+      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.detail(tenantSlug, productId) }),
     ...opts,
   });
 }
@@ -320,11 +333,12 @@ export function useUpdateAdminProductStock(
   opts?: UseMutationOptions<void, Error, { id: string; data: { quantity: number } }>
 ): UseMutationResult<void, Error, { id: string; data: { quantity: number } }> {
   const qc = useQueryClient();
+  const { tenantSlug } = useCurrentTenant();
   return useMutation({
     mutationFn: ({ id, data }) => updateAdminProductStock(id, data),
     onSuccess: (_, { id }) => {
-      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.detail(id) });
-      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists() });
+      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.detail(tenantSlug, id) });
+      qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists(tenantSlug) });
     },
     ...opts,
   });

@@ -53,5 +53,17 @@ export function useCurrentTenant() {
             requiresTenantSelection: mode.requiresTenantSelection,
             isSuperAdminPlatformMode: mode.isSuperAdminPlatformMode,
         };
-    }, [ctx, mode.requiresTenantSelection, mode.isSuperAdminPlatformMode, tenantsQuery.data]);
+    }, [
+        ctx.tenantSlug,
+        ctx.tenantId,
+        ctx.tenantName,
+        ctx.hasAuthToken,
+        ctx.isImpersonating,
+        ctx.isDevTenantOverride,
+        ctx.isPlatformAdminHost,
+        ctx.hostSlug,
+        mode.requiresTenantSelection,
+        mode.isSuperAdminPlatformMode,
+        tenantsQuery.data,
+    ]);
 }

@@ -125,6 +125,21 @@ export function clearDevTenantOverride(): void {
 }
 
 /**
+ * Resolves tenant slug for each outgoing API request (never cached on the axios instance).
+ * Development: {@link DEV_TENANT_LOCAL_STORAGE_KEY} wins when set (header switcher).
+ * Otherwise falls back to {@link getEffectiveTenantSlug} (hosts file, env, production subdomain).
+ */
+export function resolveTenantSlugForApiRequest(): string {
+  if (isDevelopment() && typeof window !== 'undefined') {
+    const stored = normalizeSlug(window.localStorage.getItem(DEV_TENANT_LOCAL_STORAGE_KEY));
+    if (stored) {
+      return stored;
+    }
+  }
+  return getEffectiveTenantSlug();
+}
+
+/**
  * Slug sent as <c>X-Tenant-Id</c> (and dev query) on API requests.
  * Dev: manual override/env. Production: subdomain, then login/bootstrap persistence.
  */

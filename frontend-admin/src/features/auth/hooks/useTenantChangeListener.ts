@@ -11,9 +11,16 @@ import {
     getTenantSlugFromSubdomain,
     isDevelopment,
 } from '@/features/auth/services/devTenant';
-import { beginTenantSwitch } from '@/features/auth/services/tenantSwitchController';
+import {
+    beginTenantSwitch,
+    endTenantSwitch,
+} from '@/features/auth/services/tenantSwitchController';
+import { authStorage } from '@/features/auth/services/authStorage';
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import { useI18n } from '@/i18n';
+
+/** Unblocks tenant switch if `location.reload()` does not navigate away. */
+export const TENANT_SWITCH_RELOAD_SAFETY_MS = 5_000;
 
 function normalizeTenantSlug(value: string | null | undefined): string | null {
     const trimmed = value?.trim().toLowerCase();
@@ -30,6 +37,22 @@ export function useTenantChangeListener() {
     const lastDevSlugRef = useRef<string | null>(null);
     const lastHostSlugRef = useRef<string | null>(null);
     const handlingRef = useRef(false);
+    const reloadSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const clearReloadSafetyTimer = useCallback(() => {
+        if (reloadSafetyTimerRef.current != null) {
+            clearTimeout(reloadSafetyTimerRef.current);
+            reloadSafetyTimerRef.current = null;
+        }
+    }, []);
+
+    const resetSwitchGuard = useCallback(() => {
+        clearReloadSafetyTimer();
+        if (handlingRef.current) {
+            handlingRef.current = false;
+            endTenantSwitch();
+        }
+    }, [clearReloadSafetyTimer]);
 
     const applyTenantSwitch = useCallback(
         (newTenantSlug: string) => {
@@ -55,17 +78,38 @@ export function useTenantChangeListener() {
             }
             lastHostSlugRef.current = hostSlug;
 
+            clearReloadSafetyTimer();
             handlingRef.current = true;
             beginTenantSwitch();
             tenantStorage.persistBootstrap({ tenantSlug: normalized });
+            // Drop JWT so login re-issues tenant_id for the selected mandant (dev header is not enough alone).
+            authStorage.removeToken();
             queryClient.clear();
             message.info(t('adminShell.tenant.switch.toast', { slug: normalized }));
 
-            if (typeof window !== 'undefined') {
+            if (typeof window === 'undefined') {
+                resetSwitchGuard();
+                return;
+            }
+
+            // Safety: reset handlingRef if reload fails to complete (e.g. beforeunload blocked).
+            // On success, reload clears timers; unmount cleanup covers tests / HMR.
+            reloadSafetyTimerRef.current = window.setTimeout(() => {
+                reloadSafetyTimerRef.current = null;
+                if (handlingRef.current) {
+                    handlingRef.current = false;
+                    endTenantSwitch();
+                    console.warn('Tenant switch timeout - resetting state');
+                }
+            }, TENANT_SWITCH_RELOAD_SAFETY_MS);
+
+            try {
                 window.location.reload();
+            } catch {
+                resetSwitchGuard();
             }
         },
-        [queryClient, t],
+        [clearReloadSafetyTimer, queryClient, resetSwitchGuard, t],
     );
 
     useEffect(() => {
@@ -146,10 +190,11 @@ export function useTenantChangeListener() {
         });
 
         return () => {
+            clearReloadSafetyTimer();
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener(DEV_TENANT_CHANGED_EVENT, handleDevTenantChanged);
             window.removeEventListener('pageshow', onVisibilityOrFocus);
             window.removeEventListener('focus', onVisibilityOrFocus);
         };
-    }, [applyTenantSwitch]);
+    }, [applyTenantSwitch, clearReloadSafetyTimer]);
 }

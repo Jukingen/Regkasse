@@ -20,16 +20,17 @@ import {
   type ModifierGroupDto,
   type AddOnGroupProductItemDto,
 } from '@/lib/api/modifierGroups';
-import { getAdminProductsList } from '@/api/admin/products';
+import { adminProductsQueryKeys, getAdminProductsList } from '@/api/admin/products';
 import { useCategories } from '@/features/categories/hooks/useCategories';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useI18n } from '@/i18n';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 
 const modifierGroupsKey = ['modifier-groups'] as const;
-const adminProductsListKey = ['admin', 'products', 'list'] as const;
 
 export default function ModifierGroupsPage() {
   const { t } = useI18n();
+  const { tenantSlug } = useCurrentTenant();
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<ModifierGroupDto | null>(null);
@@ -50,7 +51,7 @@ export default function ModifierGroupsPage() {
   });
 
   const { data: productsRes } = useQuery({
-    queryKey: [...adminProductsListKey, { pageSize: 500 }],
+    queryKey: adminProductsQueryKeys.list(tenantSlug, { pageSize: 500 }),
     queryFn: () => getAdminProductsList({ pageSize: 500 }),
     enabled: productModalOpen && productModalTab === 'existing',
   });

@@ -53,5 +53,18 @@ export function useSuperAdminTenantMode() {
             requiresTenantSelection,
             isSuperAdminPlatformMode,
         };
-    }, [user?.role, ctx]);
+    }, [
+        user?.role,
+        ctx.hostSlug,
+        ctx.tenantSlug,
+        ctx.isImpersonating,
+        ctx.isDevTenantOverride,
+        ctx.hasAuthToken,
+        ctx.tenantId,
+        ctx.tenantName,
+        ctx.jwtTenantSlug,
+        ctx.displayLabel,
+        ctx.isPlatformAdminHost,
+        ctx.devSelectedSlug,
+    ]);
 }
