@@ -5,6 +5,7 @@ using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -18,6 +19,7 @@ public sealed class AdminTenantsControllerTests
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"AdminTenants_{Guid.NewGuid():N}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
     }
@@ -37,15 +39,46 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<ILogger<UserManager<ApplicationUser>>>());
     }
 
-    private static AdminTenantService CreateService(AppDbContext db) =>
-        new(
+    private static AdminTenantService CreateService(AppDbContext db, ITenantProvisioningService? provisioning = null)
+    {
+        var provisioningMock = provisioning ?? CreateSuccessfulProvisioningMock();
+        return new AdminTenantService(
             db,
             CreateUserManagerStub(),
             Mock.Of<ITokenClaimsService>(),
             Mock.Of<IRefreshTokenService>(),
             Mock.Of<IJwtAccessTokenIssuer>(),
             Options.Create(new AuthOptions()),
+            provisioningMock,
             Mock.Of<ILogger<AdminTenantService>>());
+    }
+
+    private static ITenantProvisioningService CreateSuccessfulProvisioningMock()
+    {
+        var mock = new Mock<ITenantProvisioningService>();
+        mock.Setup(p => p.ProvisionAsync(
+                It.IsAny<Tenant>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<bool>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Tenant t, string? _, string? __, bool grantTrial, CancellationToken _) =>
+            {
+                if (grantTrial)
+                    t.LicenseValidUntilUtc = DateTime.UtcNow.AddDays(30);
+                return (new TenantProvisioningResult
+                {
+                    CashRegisterId = Guid.NewGuid(),
+                    CashRegisterNumber = "KASSE-001",
+                    AdminUserId = "admin-id",
+                    AdminEmail = $"admin@{t.Slug}.regkasse.at",
+                    GeneratedPassword = "TestPass1!",
+                    CategoryId = Guid.NewGuid(),
+                    ProductIds = new List<Guid> { Guid.NewGuid() },
+                }, null);
+            });
+        return mock.Object;
+    }
 
     [Fact]
     public async Task CreateAsync_PersistsTenant_WithSlug()
@@ -61,6 +94,8 @@ public sealed class AdminTenantsControllerTests
         Assert.NotNull(result);
         Assert.Equal("test_cafe", result!.Slug);
         Assert.Equal(TenantStatuses.Active, result.Status);
+        Assert.NotNull(result.Provisioning);
+        Assert.Equal("KASSE-001", result.Provisioning!.CashRegisterNumber);
     }
 
     [Fact]

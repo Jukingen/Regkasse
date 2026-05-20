@@ -107,12 +107,18 @@ export function TenantInfoCard({ className, style }: TenantInfoCardProps) {
             className={className}
             style={{ marginBottom: 12, ...style }}
             title={
-                <Flex vertical gap={2}>
-                    <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>
-                        {t('adminShell.tenant.infoCardEyebrow')}
-                    </Typography.Text>
-                    <span>{t('adminShell.tenant.infoCardTitle')}</span>
-                </Flex>
+                <Tooltip title={t('adminShell.tenant.infoCardEyebrowHint')}>
+                    <Flex vertical gap={2}>
+                        <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>
+                            {t('adminShell.tenant.infoCardEyebrow')}
+                        </Typography.Text>
+                        <span>
+                            {tenantName?.trim()
+                                ? t('common.tenant.badgeDualLabel', { name: tenantName.trim() })
+                                : t('adminShell.tenant.infoCardTitle')}
+                        </span>
+                    </Flex>
+                </Tooltip>
             }
             size="small"
             loading={isLoading}
@@ -138,7 +144,13 @@ export function TenantInfoCard({ className, style }: TenantInfoCardProps) {
                         </Typography.Text>
                     </Descriptions.Item>
                 ) : null}
-                <Descriptions.Item label={t('adminShell.tenant.infoCardId')}>
+                <Descriptions.Item
+                    label={
+                        <Tooltip title={t('common.tenant.tenantDescription')}>
+                            {t('adminShell.tenant.infoCardId')}
+                        </Tooltip>
+                    }
+                >
                     {tenantId ? (
                         <Tooltip title={tenantId}>
                             <Typography.Text code copyable={{ text: tenantId }}>

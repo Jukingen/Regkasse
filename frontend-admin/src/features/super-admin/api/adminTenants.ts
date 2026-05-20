@@ -2,6 +2,7 @@ import { AXIOS_INSTANCE } from '@/lib/axios';
 import { authStorage } from '@/features/auth/services/authStorage';
 import { beginTenantSwitch } from '@/features/auth/services/tenantSwitchController';
 import { writeDevTenantSlug } from '@/features/auth/services/devTenant';
+import { buildTenantSubdomainOrigin } from '@/lib/auth/impersonationHandoff';
 import {
     buildImpersonationRedirectUrl,
     shouldUseProductionImpersonationRedirect,
@@ -21,9 +22,57 @@ export type AdminTenantListItem = {
     updatedAt?: string | null;
 };
 
+export type TenantProvisioning = {
+    cashRegisterId: string;
+    cashRegisterNumber: string;
+    adminUserId: string;
+    adminEmail: string;
+    generatedPassword: string;
+    categoryId: string;
+    productIds: string[];
+    trialLicenseValidUntilUtc?: string | null;
+};
+
+/** Public tenant FA URL for onboarding hints (https://{slug}.regkasse.at). */
+export function buildTenantPortalUrl(slug: string): string {
+    return buildTenantSubdomainOrigin(slug);
+}
+
+/** Copy-paste block for handing off provisioned admin credentials (German operator text). */
+export function formatTenantProvisioningHandoff(
+    tenantName: string,
+    slug: string,
+    provisioning: TenantProvisioning,
+): string {
+    const portalUrl = buildTenantPortalUrl(slug);
+    const trialLine = provisioning.trialLicenseValidUntilUtc
+        ? `Demo-Lizenz: 30 Tage gültig (bis ${new Date(provisioning.trialLicenseValidUntilUtc).toLocaleDateString('de-AT')})`
+        : '';
+    return [
+        `Mandant "${tenantName}" wurde erfolgreich erstellt!`,
+        '',
+        'Zugangsdaten für den Administrator:',
+        `E-Mail: ${provisioning.adminEmail}`,
+        `Passwort: ${provisioning.generatedPassword}`,
+        '',
+        trialLine,
+        trialLine ? '' : null,
+        `Standardkasse: Hauptkasse (${provisioning.cashRegisterNumber})`,
+        `Demo-Produkte: ${provisioning.productIds.length} Stück wurden angelegt`,
+        '',
+        'Nächste Schritte:',
+        '1. Melden Sie sich mit den obigen Zugangsdaten an',
+        `2. Wechseln Sie zu ${portalUrl}`,
+        '3. Passen Sie Produkte, Steuern und Einstellungen an',
+    ]
+        .filter((line): line is string => line != null && line !== '')
+        .join('\n');
+}
+
 export type AdminTenantDetail = AdminTenantListItem & {
     address?: string | null;
     deletedAtUtc?: string | null;
+    provisioning?: TenantProvisioning | null;
 };
 
 export type CreateAdminTenantRequest = {
@@ -34,6 +83,9 @@ export type CreateAdminTenantRequest = {
     address?: string | null;
     licenseKey?: string | null;
     licenseValidUntilUtc?: string | null;
+    adminEmail?: string | null;
+    adminPassword?: string | null;
+    grantTrialLicense?: boolean;
 };
 
 export type UpdateAdminTenantRequest = {

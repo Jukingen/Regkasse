@@ -30,16 +30,15 @@ import { useI18n } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { CreateTenantModal } from '@/features/super-admin/components/CreateTenantModal';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
 import {
     applyTenantImpersonationSession,
-    createAdminTenant,
     deleteAdminTenant,
     impersonateAdminTenant,
     listAdminTenants,
     updateAdminTenant,
     type AdminTenantListItem,
-    type CreateAdminTenantRequest,
 } from '@/features/super-admin/api/adminTenants';
 
 const TENANT_QUERY_KEY = ['admin', 'tenants'] as const;
@@ -67,7 +66,6 @@ export default function SuperAdminTenantsPage() {
     const [includeDeleted, setIncludeDeleted] = useState(false);
     const [createOpen, setCreateOpen] = useState(false);
     const [editRow, setEditRow] = useState<AdminTenantListItem | null>(null);
-    const [createForm] = Form.useForm<TenantFormValues>();
     const [editForm] = Form.useForm<TenantFormValues>();
     const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
 
@@ -78,17 +76,6 @@ export default function SuperAdminTenantsPage() {
         queryKey: [...TENANT_QUERY_KEY, includeDeleted],
         queryFn: () => listAdminTenants(includeDeleted),
         enabled: canAccess,
-    });
-
-    const createMutation = useMutation({
-        mutationFn: (body: CreateAdminTenantRequest) => createAdminTenant(body),
-        onSuccess: () => {
-            message.success(t('tenants.messages.created'));
-            setCreateOpen(false);
-            createForm.resetFields();
-            void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY });
-        },
-        onError: () => message.error(t('tenants.messages.saveFailed')),
     });
 
     const updateMutation = useMutation({
@@ -221,6 +208,9 @@ export default function SuperAdminTenantsPage() {
             />
 
             <Typography.Paragraph type="secondary">{t('tenants.page.subtitle')}</Typography.Paragraph>
+            <Typography.Paragraph type="secondary" style={{ marginTop: -8 }}>
+                {t('tenants.page.listHelp')}
+            </Typography.Paragraph>
 
             <Card>
                 <Space style={{ marginBottom: 16 }}>
@@ -244,44 +234,11 @@ export default function SuperAdminTenantsPage() {
                 />
             </Card>
 
-            <Modal
-                title={t('tenants.create.title')}
+            <CreateTenantModal
                 open={createOpen}
-                onCancel={() => setCreateOpen(false)}
-                onOk={() => createForm.submit()}
-                confirmLoading={createMutation.isPending}
-                destroyOnClose
-            >
-                <Form
-                    form={createForm}
-                    layout="vertical"
-                    onFinish={(values) =>
-                        createMutation.mutate({
-                            name: values.name,
-                            slug: values.slug,
-                            email: values.email,
-                            phone: values.phone,
-                            address: values.address,
-                        })
-                    }
-                >
-                    <Form.Item name="name" label={t('tenants.fields.name')} rules={[{ required: true }]}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="slug" label={t('tenants.fields.slug')} rules={[{ required: true }]}>
-                        <Input placeholder="test_cafe" />
-                    </Form.Item>
-                    <Form.Item name="email" label={t('tenants.fields.email')}>
-                        <Input type="email" />
-                    </Form.Item>
-                    <Form.Item name="phone" label={t('tenants.fields.phone')}>
-                        <Input />
-                    </Form.Item>
-                    <Form.Item name="address" label={t('tenants.fields.address')}>
-                        <Input.TextArea rows={2} />
-                    </Form.Item>
-                </Form>
-            </Modal>
+                onClose={() => setCreateOpen(false)}
+                onCreated={() => void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY })}
+            />
 
             <Modal
                 title={t('tenants.edit.title')}

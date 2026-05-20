@@ -1,14 +1,15 @@
 {
   "page": {
-    "title": "Tenant management",
-    "subtitle": "Super admin: create tenants, edit metadata, and impersonate for support."
+    "title": "Companies / tenants",
+    "subtitle": "Super admin: create companies (tenants), edit metadata, and impersonate for support.",
+    "listHelp": "Each company (tenant) has its own products, registers, and receipts."
   },
   "accessDenied": {
     "title": "Access denied",
     "body": "Only super administrators may open this page."
   },
   "columns": {
-    "name": "Name",
+    "name": "Company / tenant",
     "slug": "Slug",
     "email": "Email",
     "status": "Status",
@@ -20,7 +21,31 @@
     "email": "Email",
     "phone": "Phone",
     "address": "Address",
-    "status": "Status"
+    "status": "Status",
+    "adminEmail": "Admin login email",
+    "adminEmailHint": "Leave empty for admin@{slug}.regkasse.at"
+  },
+  "provisioning": {
+    "title": "Tenant “{{name}}” provisioned",
+    "successTitle": "Tenant created",
+    "successHeadline": "Tenant “{{name}}” was created successfully!",
+    "passwordWarning": "The admin password is shown only once. Store it securely or hand it off to the tenant.",
+    "credentialsTitle": "Administrator sign-in",
+    "adminEmail": "Email",
+    "password": "Password",
+    "passwordOnce": "(shown once)",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "trialLicense": "Demo license: valid for 30 days",
+    "register": "Default register: {{location}} ({{number}})",
+    "products": "Demo products: {{count}} created",
+    "nextStepsTitle": "Next steps",
+    "nextStepLogin": "Sign in with the credentials above",
+    "nextStepPortal": "Open",
+    "nextStepCustomize": "Adjust products, taxes, and settings",
+    "copyAll": "Copy credentials",
+    "copySuccess": "Copied to clipboard",
+    "copyFailed": "Copy failed"
   },
   "filters": {
     "includeDeleted": "Include deleted"

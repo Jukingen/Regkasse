@@ -165,6 +165,20 @@
       "passwordRequired": "Please input your password!"
     }
   },
+  "tenant": {
+    "tenant": "Tenant",
+    "tenantAlt": "Company",
+    "tenantDescription": "A tenant is an independent business (company) with its own register, products, and receipts.",
+    "badgeDualLabel": "Tenant (company): {name}",
+    "badgeShortLabel": "Company: {name}",
+    "switchTenant": "Switch company",
+    "switchTenantTechnical": "Tenant (technical · dev)",
+    "currentTenant": "Current company",
+    "activeCompanyTooltip": "Active business / location — technical: tenant",
+    "company": "Company",
+    "companyId": "Company ID",
+    "companyInfo": "Company info"
+  },
   "categories": {
     "productsLoadError": "Could not load products",
     "emptyCategoryProducts": "No products in this category",

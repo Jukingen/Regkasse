@@ -165,6 +165,20 @@
       "passwordRequired": "Lutfen sifreyi girin!"
     }
   },
+  "tenant": {
+    "tenant": "Kiracı",
+    "tenantAlt": "Firma",
+    "tenantDescription": "Bir kiracı (firma), kendi kasası, ürünleri ve fişleri olan bağımsız bir işletmedir.",
+    "badgeDualLabel": "Kiracı (firma): {name}",
+    "badgeShortLabel": "Firma: {name}",
+    "switchTenant": "Firma değiştir",
+    "switchTenantTechnical": "Kiracı (teknik · dev)",
+    "currentTenant": "Geçerli firma",
+    "activeCompanyTooltip": "Aktif işletme / lokasyon — teknik: kiracı",
+    "company": "İşletme",
+    "companyId": "Firma kimliği",
+    "companyInfo": "Firma bilgisi"
+  },
   "categories": {
     "productsLoadError": "Urunler yuklenemedi",
     "emptyCategoryProducts": "Bu kategoride urun yok",

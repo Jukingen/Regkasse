@@ -23,8 +23,8 @@
   },
   "tenant": {
     "badge": {
-      "label": "Kiracı",
-      "tooltip": "Aktif kiracı. Kimlik: {id}"
+      "label": "Firma",
+      "tooltip": "Aktif işletme / lokasyon. Firma kimliği: {id}"
     },
     "info": {
       "title": "Geçerli kiracı",
@@ -37,18 +37,26 @@
       "daysRemaining": "{days} gün daha geçerli",
       "registeredAt": "Kayıt tarihi"
     },
-    "badgeLabel": "Kiracı: {name}",
+    "badgeLabel": "Kiracı (firma): {name}",
     "badgePlatformAdmin": "Platform yöneticisi",
     "badgePlatformAdminTooltip": "Kiracı bağlamı yok — veriler platform veya varsayılan kiracıya aittir.",
     "badgeImpersonatingTooltip": "Destek kimliği (impersonation) etkin",
     "badgeDevOverrideTooltip": "Geliştirme: kiracı üst bilgi açılır menüsüyle geçersiz kılındı",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
-    "infoCardTitle": "Geçerli kiracı",
-    "infoCardEyebrow": "Yönetim",
+    "infoCardTitle": "Geçerli firma",
+    "infoCardEyebrow": "Firma bilgisi",
+    "infoCardEyebrowHint": "Kiracı (firma) — aktif işletme için ana veri ve lisans",
     "infoCardSlug": "Slug",
     "infoCardName": "Görünen ad",
     "infoCardJwtSlug": "JWT kiracısı",
-    "infoCardId": "Kiracı kimliği",
+    "infoCardId": "Firma kimliği",
+    "devSwitcher": {
+      "title": "Firma değiştir",
+      "subtitle": "Kiracı (teknik · dev)",
+      "ariaLabel": "Geliştirme: firma değiştir (kiracı slug)",
+      "tooltip": "X-Tenant-Id için kiracı slug (yalnızca geliştirme). Alternatif: hosts ile dev/cafe/bar.regkasse.local.",
+      "tooltipHost": "Host kiracısı: {host}. Açılır menü localStorage'ı geçersiz kılar (tarayıcı profili başına)."
+    },
     "infoCardApiSlug": "API bağlamı",
     "infoCardApiSlugHint": "Tüm listeler ve ayarlar yukarıdaki kiracıyı kullanır (üst bilgi / alt alan adı / JWT).",
     "infoCardImpersonationTag": "Kimlik taklidi",

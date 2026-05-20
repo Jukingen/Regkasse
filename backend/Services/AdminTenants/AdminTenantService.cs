@@ -21,6 +21,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly IJwtAccessTokenIssuer _jwtIssuer;
     private readonly AuthOptions _authOptions;
+    private readonly ITenantProvisioningService _provisioningService;
     private readonly ILogger<AdminTenantService> _logger;
 
     public AdminTenantService(
@@ -30,6 +31,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         IRefreshTokenService refreshTokenService,
         IJwtAccessTokenIssuer jwtIssuer,
         IOptions<AuthOptions> authOptions,
+        ITenantProvisioningService provisioningService,
         ILogger<AdminTenantService> logger)
     {
         _db = db;
@@ -38,6 +40,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         _refreshTokenService = refreshTokenService;
         _jwtIssuer = jwtIssuer;
         _authOptions = authOptions.Value;
+        _provisioningService = provisioningService;
         _logger = logger;
     }
 
@@ -97,10 +100,37 @@ public sealed partial class AdminTenantService : IAdminTenantService
             UpdatedBy = actorUserId,
         };
 
-        _db.Tenants.Add(tenant);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        _logger.LogInformation("Super-admin created tenant {TenantId} slug {Slug}", tenant.Id, tenant.Slug);
-        return (ToDetail(tenant), null);
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            _db.Tenants.Add(tenant);
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            var (provisioning, provisionError) = await _provisioningService
+                .ProvisionAsync(
+                    tenant,
+                    request.AdminEmail,
+                    request.AdminPassword,
+                    request.GrantTrialLicense,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (provisionError != null)
+            {
+                await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                return (null, provisionError);
+            }
+
+            await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Super-admin created tenant {TenantId} slug {Slug}", tenant.Id, tenant.Slug);
+            return (ToDetail(tenant, provisioning?.ToDto()), null);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            _logger.LogError(ex, "Tenant create failed for slug {Slug}", slug);
+            return (null, "Tenant creation failed.");
+        }
     }
 
     public async Task<(AdminTenantDetailDto? Result, string? Error)> UpdateAsync(
@@ -282,7 +312,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.CreatedAt,
             t.UpdatedAt);
 
-    private static AdminTenantDetailDto ToDetail(Tenant t) =>
+    private static AdminTenantDetailDto ToDetail(Tenant t, TenantProvisioningDto? provisioning = null) =>
         new(
             t.Id,
             t.Name,
@@ -296,5 +326,6 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.LicenseValidUntilUtc,
             t.CreatedAt,
             t.UpdatedAt,
-            t.DeletedAtUtc);
+            t.DeletedAtUtc,
+            provisioning);
 }

@@ -36,10 +36,14 @@ export function TenantBadge() {
         label = t('adminShell.tenant.badgePlatformAdmin');
         tooltipParts.push(t('adminShell.tenant.badgePlatformAdminTooltip'));
     } else {
-        const slugForLabel = tenantSlug;
-        label = `${t('adminShell.tenant.badge.label')}: ${slugForLabel}`;
-        if (tenantName && tenantName !== slugForLabel) {
-            tooltipParts.push(tenantName);
+        const slugForLabel = tenantSlug ?? '—';
+        const displayName = tenantName?.trim();
+        const nameForLabel = displayName || slugForLabel;
+        label = t('common.tenant.badgeDualLabel', { name: nameForLabel });
+        tooltipParts.push(t('common.tenant.tenantDescription'));
+        tooltipParts.push(t('common.tenant.activeCompanyTooltip'));
+        if (displayName && displayName !== slugForLabel) {
+            tooltipParts.push(`${t('adminShell.tenant.info.slug')}: ${slugForLabel}`);
         }
         tooltipParts.push(
             t('adminShell.tenant.badge.tooltip', { id: tenantId?.trim() || '—' }),

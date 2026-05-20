@@ -165,6 +165,20 @@
       "passwordRequired": "Bitte Passwort eingeben!"
     }
   },
+  "tenant": {
+    "tenant": "Mandant",
+    "tenantAlt": "Firma",
+    "tenantDescription": "Ein Mandant ist ein eigenständiges Unternehmen (Firma) mit eigener Kasse, eigenen Produkten und Belegen.",
+    "badgeDualLabel": "Mandant (Firma): {name}",
+    "badgeShortLabel": "Firma: {name}",
+    "switchTenant": "Firma wechseln",
+    "switchTenantTechnical": "Mandant (technisch · Dev)",
+    "currentTenant": "Aktuelle Firma",
+    "activeCompanyTooltip": "Aktives Unternehmen / Standort — fachlich: Mandant",
+    "company": "Unternehmen",
+    "companyId": "Firmen-ID",
+    "companyInfo": "Firmen-Info"
+  },
   "categories": {
     "productsLoadError": "Produkte konnten nicht geladen werden",
     "emptyCategoryProducts": "Keine Produkte in dieser Kategorie",

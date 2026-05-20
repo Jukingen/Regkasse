@@ -28,7 +28,8 @@ public sealed record AdminTenantDetailDto(
     DateTime? LicenseValidUntilUtc,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
-    DateTime? DeletedAtUtc);
+    DateTime? DeletedAtUtc,
+    TenantProvisioningDto? Provisioning = null);
 
 public sealed class CreateAdminTenantRequest
 {
@@ -53,6 +54,18 @@ public sealed class CreateAdminTenantRequest
     public string? LicenseKey { get; set; }
 
     public DateTime? LicenseValidUntilUtc { get; set; }
+
+    /// <summary>Optional login email for the provisioned tenant admin (default: admin@{slug}.regkasse.at).</summary>
+    [MaxLength(200)]
+    [EmailAddress]
+    public string? AdminEmail { get; set; }
+
+    /// <summary>Optional initial password; auto-generated when omitted (returned once in response).</summary>
+    [MaxLength(100)]
+    public string? AdminPassword { get; set; }
+
+    /// <summary>When true and no license end date is set, grants a 30-day trial on the tenant row.</summary>
+    public bool GrantTrialLicense { get; set; } = true;
 }
 
 public sealed class UpdateAdminTenantRequest

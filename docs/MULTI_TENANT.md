@@ -306,8 +306,10 @@ Body (`CreateAdminTenantRequest`):
 | `slug` | yes | Unique subdomain key |
 | `email`, `phone`, `address` | no | |
 | `licenseKey`, `licenseValidUntilUtc` | no | Tenant-level license hints |
+| `adminEmail`, `adminPassword` | no | Provisioned tenant admin (default email `admin@{slug}.regkasse.at`; password auto-generated when omitted) |
+| `grantTrialLicense` | no | Default `true`: sets `licenseValidUntilUtc` to +30 days when not provided |
 
-Response: `201 Created` + body; `400` if slug invalid or taken
+Response: `201 Created` + `AdminTenantDetailDto` including one-time `provisioning` (admin password, register id, demo product ids); `400` if slug invalid, taken, or provisioning fails
 
 ### `PUT /api/admin/tenants/{tenantId}`
 

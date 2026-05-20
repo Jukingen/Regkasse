@@ -362,6 +362,7 @@ public sealed class TenantIsolationTests
             Mock.Of<IRefreshTokenService>(),
             Mock.Of<IJwtAccessTokenIssuer>(),
             Options.Create(new AuthOptions()),
+            Mock.Of<ITenantProvisioningService>(),
             Mock.Of<ILogger<AdminTenantService>>());
 
         var list = await service.ListAsync(includeDeleted: false);

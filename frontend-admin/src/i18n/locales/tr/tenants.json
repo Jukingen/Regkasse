@@ -1,14 +1,15 @@
 {
   "page": {
-    "title": "Kiracı yönetimi",
-    "subtitle": "Süper admin: kiracı oluşturma, düzenleme ve destek için impersonation."
+    "title": "İşletmeler / kiracılar",
+    "subtitle": "Süper admin: işletme (kiracı) oluşturma, düzenleme ve destek için impersonation.",
+    "listHelp": "Her firma (kiracı) kendi ürünleri, kasaları ve fişlerine sahiptir."
   },
   "accessDenied": {
     "title": "Erişim reddedildi",
     "body": "Bu sayfayı yalnızca süper yöneticiler açabilir."
   },
   "columns": {
-    "name": "Ad",
+    "name": "İşletme / kiracı",
     "slug": "Slug",
     "email": "E-posta",
     "status": "Durum",
@@ -20,7 +21,31 @@
     "email": "E-posta",
     "phone": "Telefon",
     "address": "Adres",
-    "status": "Durum"
+    "status": "Durum",
+    "adminEmail": "Admin giriş e-postası",
+    "adminEmailHint": "Boş bırakılırsa admin@{slug}.regkasse.at kullanılır"
+  },
+  "provisioning": {
+    "title": "“{{name}}” kiracısı hazırlandı",
+    "successTitle": "Kiracı oluşturuldu",
+    "successHeadline": "“{{name}}” kiracısı başarıyla oluşturuldu!",
+    "passwordWarning": "Admin şifresi yalnızca bir kez gösterilir. Güvenli şekilde kaydedin veya kiracıya iletin.",
+    "credentialsTitle": "Yönetici giriş bilgileri",
+    "adminEmail": "E-posta",
+    "password": "Şifre",
+    "passwordOnce": "(yalnızca bir kez gösterilir)",
+    "showPassword": "Şifreyi göster",
+    "hidePassword": "Şifreyi gizle",
+    "trialLicense": "Demo lisans: 30 gün geçerli",
+    "register": "Varsayılan kasa: {{location}} ({{number}})",
+    "products": "Demo ürünler: {{count}} adet oluşturuldu",
+    "nextStepsTitle": "Sonraki adımlar",
+    "nextStepLogin": "Yukarıdaki bilgilerle giriş yapın",
+    "nextStepPortal": "Şuraya gidin",
+    "nextStepCustomize": "Ürünleri, vergileri ve ayarları uyarlayın",
+    "copyAll": "Giriş bilgilerini kopyala",
+    "copySuccess": "Panoya kopyalandı",
+    "copyFailed": "Kopyalama başarısız"
   },
   "filters": {
     "includeDeleted": "Silinenleri göster"

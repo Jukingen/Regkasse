@@ -23,8 +23,8 @@
   },
   "tenant": {
     "badge": {
-      "label": "Tenant",
-      "tooltip": "Active tenant. ID: {id}"
+      "label": "Company",
+      "tooltip": "Active business / location. Company ID: {id}"
     },
     "info": {
       "title": "Current tenant",
@@ -37,18 +37,26 @@
       "daysRemaining": "Valid for {days} more days",
       "registeredAt": "Registered on"
     },
-    "badgeLabel": "Tenant: {name}",
+    "badgeLabel": "Tenant (company): {name}",
     "badgePlatformAdmin": "Platform admin",
     "badgePlatformAdminTooltip": "No tenant context — data refers to the platform or legacy default tenant.",
     "badgeImpersonatingTooltip": "Support impersonation active",
     "badgeDevOverrideTooltip": "Development: tenant overridden via header dropdown",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
-    "infoCardTitle": "Current tenant",
-    "infoCardEyebrow": "Administration",
+    "infoCardTitle": "Current company",
+    "infoCardEyebrow": "Company info",
+    "infoCardEyebrowHint": "Tenant (company) — master data and license for the active business",
     "infoCardSlug": "Slug",
     "infoCardName": "Display name",
     "infoCardJwtSlug": "Tenant in JWT",
-    "infoCardId": "Tenant ID",
+    "infoCardId": "Company ID",
+    "devSwitcher": {
+      "title": "Switch company",
+      "subtitle": "Tenant (technical · dev)",
+      "ariaLabel": "Development: switch company (tenant slug)",
+      "tooltip": "Tenant slug for X-Tenant-Id (development only). Or use dev/cafe/bar.regkasse.local via hosts file.",
+      "tooltipHost": "Tenant from host: {host}. Dropdown overrides localStorage (per browser profile)."
+    },
     "infoCardApiSlug": "API context",
     "infoCardApiSlugHint": "All lists and settings use the tenant above (header / subdomain / JWT).",
     "infoCardImpersonationTag": "Impersonation",

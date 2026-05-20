@@ -23,8 +23,8 @@
   },
   "tenant": {
     "badge": {
-      "label": "Mandant",
-      "tooltip": "Aktiver Mandant. ID: {id}"
+      "label": "Firma",
+      "tooltip": "Aktives Unternehmen / Standort. Firmen-ID: {id}"
     },
     "info": {
       "title": "Aktiver Mandant",
@@ -37,18 +37,26 @@
       "daysRemaining": "Noch {days} Tage gültig",
       "registeredAt": "Registriert am"
     },
-    "badgeLabel": "Mandant: {name}",
+    "badgeLabel": "Mandant (Firma): {name}",
     "badgePlatformAdmin": "Plattform-Admin",
     "badgePlatformAdminTooltip": "Kein Mandantenkontext — Daten beziehen sich auf die Plattform oder den Legacy-Standardmandanten.",
     "badgeImpersonatingTooltip": "Support-Impersonation aktiv",
     "badgeDevOverrideTooltip": "Entwicklung: Mandant per Header-Dropdown überschrieben",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
-    "infoCardTitle": "Aktiver Mandant",
-    "infoCardEyebrow": "Verwaltung",
+    "infoCardTitle": "Aktuelle Firma",
+    "infoCardEyebrow": "Firmen-Info",
+    "infoCardEyebrowHint": "Mandant (Firma) — Stammdaten und Lizenz für das aktive Unternehmen",
     "infoCardSlug": "Slug",
     "infoCardName": "Anzeigename",
     "infoCardJwtSlug": "Mandant im JWT",
-    "infoCardId": "Mandanten-ID",
+    "infoCardId": "Firmen-ID",
+    "devSwitcher": {
+      "title": "Firma wechseln",
+      "subtitle": "Mandant (technisch · Dev)",
+      "ariaLabel": "Entwicklung: Firma wechseln (Mandant-Slug)",
+      "tooltip": "Mandant-Slug für X-Tenant-Id (nur Entwicklung). Alternativ: dev/cafe/bar.regkasse.local per hosts-Datei.",
+      "tooltipHost": "Mandant aus Host: {host}. Dropdown überschreibt localStorage (pro Browser-Profil)."
+    },
     "infoCardApiSlug": "API-Kontext",
     "infoCardApiSlugHint": "Alle Listen und Einstellungen beziehen sich auf den oben gewählten Mandanten (Header / Subdomain / JWT).",
     "infoCardImpersonationTag": "Impersonation",
