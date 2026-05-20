@@ -14,6 +14,10 @@ import {
     listAdminTenants,
     type AdminTenantListItem,
 } from '@/features/super-admin/api/adminTenants';
+import {
+    buildTenantSelectorLabel,
+    getTenantSelectorStatus,
+} from '@/features/super-admin/utils/tenantSelectorLabel';
 import { useI18n } from '@/i18n';
 
 const TENANT_LIST_QUERY_KEY = ['admin', 'tenants', false] as const;
@@ -61,15 +65,25 @@ export function SuperAdminTenantSelector() {
         () =>
             activeTenants.map((row) => ({
                 value: row.id,
-                label: `${row.name} (${row.slug})`,
+                label: buildTenantSelectorLabel(row, t),
             })),
-        [activeTenants],
+        [activeTenants, t],
     );
 
     const columns: ColumnsType<AdminTenantListItem> = useMemo(
         () => [
             { title: t('tenants.columns.name'), dataIndex: 'name', key: 'name' },
             { title: t('tenants.columns.slug'), dataIndex: 'slug', key: 'slug' },
+            {
+                title: t('superadmin.selector.adminColumn'),
+                key: 'admin',
+                render: (_, row) => {
+                    const status = getTenantSelectorStatus(row, t);
+                    const color =
+                        status.kind === 'admin' ? 'success' : status.kind === 'demo' ? 'warning' : 'error';
+                    return <Tag color={color}>{status.suffix}</Tag>;
+                },
+            },
             {
                 title: t('tenants.columns.status'),
                 dataIndex: 'status',
@@ -117,7 +131,8 @@ export function SuperAdminTenantSelector() {
                             showSearch
                             allowClear
                             placeholder={t('superadmin.selectorPlaceholder')}
-                            style={{ minWidth: 280 }}
+                            style={{ minWidth: 420 }}
+                            popupMatchSelectWidth={520}
                             loading={tenantsQuery.isLoading}
                             options={selectOptions}
                             value={selectedTenantId}

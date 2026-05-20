@@ -179,7 +179,8 @@ public class AdminUsersController : ControllerBase
                 }
             }
 
-            await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(user.Id, LegacyDefaultTenantIds.Primary, createCt);
+            await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
+                user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt);
             await tx.CommitAsync(createCt);
         }
         catch (Exception ex)

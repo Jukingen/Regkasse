@@ -101,6 +101,7 @@ public sealed class TenantProvisioningServiceTests
 
         var products = await db.Products.Where(p => p.TenantId == tenant.Id).ToListAsync();
         Assert.Equal(3, products.Count);
+        Assert.All(products, p => Assert.False(string.IsNullOrWhiteSpace(p.Description)));
 
         var membership = await db.UserTenantMemberships.SingleAsync(m => m.TenantId == tenant.Id);
         Assert.True(membership.IsActive);

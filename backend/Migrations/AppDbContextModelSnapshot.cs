@@ -1856,7 +1856,7 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("enabled");
 
-                    b.Property<string[]>("Features")
+                    b.Property<string>("Features")
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("features");
@@ -1893,7 +1893,7 @@ namespace KasseAPI_Final.Migrations
                             BypassNtpCheck = false,
                             BypassTseCheck = false,
                             Enabled = false,
-                            Features = new string[0],
+                            Features = "[]",
                             ForceOnline = false,
                             SimulateOffline = false,
                             UpdatedAtUtc = new DateTime(2026, 5, 14, 12, 0, 0, 0, DateTimeKind.Utc),
@@ -6404,6 +6404,10 @@ namespace KasseAPI_Final.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
+
+                    b.Property<bool>("IsOwner")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_owner");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")

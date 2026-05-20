@@ -449,7 +449,7 @@ namespace KasseAPI_Final.Controllers
                     await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
                         user.Id,
                         LegacyDefaultTenantIds.Primary,
-                        regCt);
+                        cancellationToken: regCt);
                     await tx.CommitAsync(regCt);
                 }
                 catch (Exception ex)

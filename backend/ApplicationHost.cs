@@ -361,6 +361,8 @@ builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
 builder.Services.AddScoped<IJwtAccessTokenIssuer, JwtAccessTokenIssuer>();
 builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
+builder.Services.AddScoped<ITenantUserService, TenantUserService>();
+builder.Services.AddScoped<ITenantInvitationEmailSender, TenantInvitationEmailSender>();
 builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
 builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
 // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).

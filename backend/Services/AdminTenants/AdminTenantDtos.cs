@@ -13,7 +13,9 @@ public sealed record AdminTenantListItemDto(
     string? LicenseKey,
     DateTime? LicenseValidUntilUtc,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    string? OwnerAdminEmail = null,
+    bool IsDemoPreset = false);
 
 public sealed record AdminTenantDetailDto(
     Guid Id,

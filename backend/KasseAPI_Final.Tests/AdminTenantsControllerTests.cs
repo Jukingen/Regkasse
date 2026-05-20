@@ -1,3 +1,4 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
@@ -157,6 +158,75 @@ public sealed class AdminTenantsControllerTests
         var row = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
         Assert.Equal(TenantStatuses.Deleted, row.Status);
         Assert.False(row.IsActive);
+    }
+
+    [Fact]
+    public async Task ListAsync_Includes_Owner_Admin_And_Demo_Preset_Flags()
+    {
+        await using var db = CreateDb();
+        var barId = DemoTenantIds.Bar;
+        var cafeId = DemoTenantIds.Cafe;
+        db.Tenants.Add(new Tenant
+        {
+            Id = barId,
+            Name = "Test Bar",
+            Slug = "bar",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = cafeId,
+            Name = "Café Beispiel",
+            Slug = "cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "owner-bar",
+            TenantId = barId,
+            IsActive = true,
+            IsOwner = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "owner-bar",
+            UserName = "admin@bar.regkasse.at",
+            Email = "admin@bar.regkasse.at",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Manager,
+            IsActive = true,
+            EmailConfirmed = true,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListAsync(false);
+
+        var bar = list.Single(x => x.Slug == "bar");
+        Assert.Equal("admin@bar.regkasse.at", bar.OwnerAdminEmail);
+        Assert.False(bar.IsDemoPreset);
+
+        var cafe = list.Single(x => x.Slug == "cafe");
+        Assert.Null(cafe.OwnerAdminEmail);
+        Assert.False(cafe.IsDemoPreset);
+
+        var dev = list.Single(x => x.Slug == "dev");
+        Assert.True(dev.IsDemoPreset);
     }
 
     [Fact]

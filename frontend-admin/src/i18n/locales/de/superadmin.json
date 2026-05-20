@@ -8,6 +8,12 @@
   "impersonate": "Als Mandant anmelden",
   "openTenantManagement": "Mandantenverwaltung öffnen",
   "selectorPlaceholder": "Mandant wählen…",
+  "selector": {
+    "noAdmin": "Kein Admin zugewiesen",
+    "adminAssigned": "Admin: {{email}}",
+    "demoTenant": "Demo-Mandant",
+    "adminColumn": "Administrator"
+  },
   "loadFailed": "Mandantenliste konnte nicht geladen werden.",
   "tenantCreate": {
     "slugExample": "cafe-example",

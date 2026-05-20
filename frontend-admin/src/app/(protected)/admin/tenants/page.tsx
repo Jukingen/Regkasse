@@ -20,7 +20,8 @@ import {
     message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, ReloadOutlined, LoginOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined, LoginOutlined, TeamOutlined } from '@ant-design/icons';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -143,6 +144,11 @@ export default function SuperAdminTenantsPage() {
                 key: 'actions',
                 render: (_, row) => (
                     <Space size="small">
+                        <Link href={`/admin/tenants/${row.id}/users`}>
+                            <Button size="small" icon={<TeamOutlined />}>
+                                {t('tenants.actions.manageUsers')}
+                            </Button>
+                        </Link>
                         <Button size="small" onClick={() => openEdit(row)}>
                             {t('tenants.actions.edit')}
                         </Button>

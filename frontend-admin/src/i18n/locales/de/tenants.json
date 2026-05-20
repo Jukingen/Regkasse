@@ -173,7 +173,8 @@
     "create": "Mandant anlegen",
     "edit": "Bearbeiten",
     "delete": "Löschen",
-    "impersonate": "Als Mandant anmelden"
+    "impersonate": "Als Mandant anmelden",
+    "manageUsers": "Benutzer"
   },
   "edit": {
     "title": "Mandant bearbeiten"
@@ -194,6 +195,72 @@
   "impersonationRedirect": {
     "title": "Weiterleitung zum Mandanten …",
     "hint": "Die Anmeldung wird auf der Mandanten-Domain übernommen. Bitte warten."
+  },
+  "users": {
+    "page": {
+      "title": "Mandanten-Benutzer",
+      "subtitle": "Bestehende Benutzer diesem Mandanten zuweisen, Mandanten-Administrator (Owner) festlegen und Rollen verwalten."
+    },
+    "ownerBadge": "Mandanten-Admin",
+    "empty": "Noch keine Benutzer zugewiesen. Fügen Sie einen bestehenden Benutzer hinzu oder legen Sie beim Anlegen eines Mandanten einen Administrator an.",
+    "columns": {
+      "name": "Name",
+      "email": "E-Mail",
+      "role": "Rolle",
+      "joined": "Zugewiesen am",
+      "actions": "Aktionen"
+    },
+    "actions": {
+      "back": "Zurück zur Liste",
+      "add": "Bestehenden Benutzer",
+      "remove": "Entfernen",
+      "setOwner": "Als Mandanten-Admin"
+    },
+    "invite": {
+      "action": "Benutzer einladen",
+      "title": "Benutzer einladen",
+      "subtitle": "E-Mail-Adresse eingeben. Fehlt das Konto, wird es angelegt und eine Einladung per E-Mail versendet (sofern SMTP konfiguriert ist).",
+      "email": "E-Mail",
+      "emailRequired": "Bitte eine E-Mail-Adresse eingeben.",
+      "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
+      "role": "Rolle",
+      "isOwner": "Mandanten-Administrator (Owner)",
+      "smtpHint": "Ohne SMTP in der API-Konfiguration wird das Einmalpasswort hier angezeigt.",
+      "resultTitle": "Einladung abgeschlossen",
+      "resultCreated": "Neues Benutzerkonto wurde angelegt und dem Mandanten zugewiesen.",
+      "resultExisting": "Bestehender Benutzer wurde dem Mandant zugewiesen.",
+      "passwordOnce": "Einmalpasswort (manuell übermitteln)",
+      "messages": {
+        "sent": "Einladung wurde per E-Mail versendet.",
+        "assignedNoEmail": "Benutzer zugewiesen; E-Mail konnte nicht versendet werden.",
+        "failed": "Einladung fehlgeschlagen."
+      }
+    },
+    "add": {
+      "title": "Benutzer zum Mandanten hinzufügen",
+      "user": "Benutzer",
+      "userRequired": "Bitte einen Benutzer auswählen.",
+      "userPlaceholder": "Benutzer suchen …",
+      "role": "Rolle im Mandanten",
+      "isOwner": "Mandanten-Administrator (Owner)",
+      "ownerHint": "Pro Mandant kann höchstens ein Owner aktiv sein. Der Owner ist der primäre Administrator für Login und Support."
+    },
+    "confirmRemove": {
+      "title": "Zuweisung entfernen?",
+      "body": "Der Benutzer verliert die aktive Mandanten-Mitgliedschaft (Login-Zuordnung)."
+    },
+    "messages": {
+      "added": "Benutzer wurde dem Mandanten zugewiesen.",
+      "addFailed": "Zuweisung fehlgeschlagen.",
+      "removed": "Benutzer wurde vom Mandanten entfernt.",
+      "removeFailed": "Entfernen fehlgeschlagen.",
+      "ownerSet": "Mandanten-Administrator wurde gesetzt.",
+      "ownerSetFailed": "Owner konnte nicht gesetzt werden."
+    },
+    "errors": {
+      "invalidTenant": "Ungültige Mandanten-ID.",
+      "tenantNotFound": "Mandant wurde nicht gefunden."
+    }
   },
   "impersonationCallback": {
     "processing": "Mandanten-Sitzung wird übernommen …",

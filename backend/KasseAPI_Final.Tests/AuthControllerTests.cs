@@ -127,7 +127,8 @@ public class AuthControllerTests
     private static Mock<IUserTenantMembershipProvisioner> CreateMembershipProvisionerMock()
     {
         var m = new Mock<IUserTenantMembershipProvisioner>();
-        m.Setup(x => x.ProvisionActiveMembershipAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        m.Setup(x => x.ProvisionActiveMembershipAsync(
+                It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         return m;
     }

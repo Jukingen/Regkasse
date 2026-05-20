@@ -173,7 +173,8 @@
     "create": "Create tenant",
     "edit": "Edit",
     "delete": "Delete",
-    "impersonate": "Sign in as tenant"
+    "impersonate": "Sign in as tenant",
+    "manageUsers": "Users"
   },
   "edit": {
     "title": "Edit tenant"
@@ -194,6 +195,72 @@
   "impersonationRedirect": {
     "title": "Redirecting to tenant …",
     "hint": "Signing in on the tenant domain. Please wait."
+  },
+  "users": {
+    "page": {
+      "title": "Tenant users",
+      "subtitle": "Assign existing users to this tenant, set the tenant owner (primary admin), and manage roles."
+    },
+    "ownerBadge": "Tenant admin",
+    "empty": "No users assigned yet. Add an existing user or provision an admin when creating a tenant.",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "joined": "Assigned",
+      "actions": "Actions"
+    },
+    "actions": {
+      "back": "Back to list",
+      "add": "Existing user",
+      "remove": "Remove",
+      "setOwner": "Set as tenant admin"
+    },
+    "invite": {
+      "action": "Invite user",
+      "title": "Invite user",
+      "subtitle": "Enter an email address. If no account exists, one is created and an invitation email is sent when SMTP is configured.",
+      "email": "Email",
+      "emailRequired": "Please enter an email address.",
+      "emailInvalid": "Please enter a valid email address.",
+      "role": "Role",
+      "isOwner": "Tenant administrator (owner)",
+      "smtpHint": "Without API SMTP configuration, the one-time password is shown here.",
+      "resultTitle": "Invitation complete",
+      "resultCreated": "A new user account was created and assigned to this tenant.",
+      "resultExisting": "An existing user was assigned to this tenant.",
+      "passwordOnce": "One-time password (share manually)",
+      "messages": {
+        "sent": "Invitation email was sent.",
+        "assignedNoEmail": "User assigned; email could not be sent.",
+        "failed": "Invitation failed."
+      }
+    },
+    "add": {
+      "title": "Add user to tenant",
+      "user": "User",
+      "userRequired": "Please select a user.",
+      "userPlaceholder": "Search users …",
+      "role": "Role in tenant",
+      "isOwner": "Tenant administrator (owner)",
+      "ownerHint": "At most one active owner per tenant. The owner is the primary admin for login and support."
+    },
+    "confirmRemove": {
+      "title": "Remove assignment?",
+      "body": "The user loses active tenant membership (login mapping)."
+    },
+    "messages": {
+      "added": "User assigned to tenant.",
+      "addFailed": "Assignment failed.",
+      "removed": "User removed from tenant.",
+      "removeFailed": "Remove failed.",
+      "ownerSet": "Tenant administrator set.",
+      "ownerSetFailed": "Could not set owner."
+    },
+    "errors": {
+      "invalidTenant": "Invalid tenant id.",
+      "tenantNotFound": "Tenant not found."
+    }
   },
   "impersonationCallback": {
     "processing": "Applying tenant session …",

@@ -8,5 +8,11 @@
   "impersonate": "Log in as tenant",
   "openTenantManagement": "Open tenant management",
   "selectorPlaceholder": "Choose a tenant…",
+  "selector": {
+    "noAdmin": "No admin assigned",
+    "adminAssigned": "Admin: {{email}}",
+    "demoTenant": "Demo tenant",
+    "adminColumn": "Administrator"
+  },
   "loadFailed": "Could not load tenant list."
 }

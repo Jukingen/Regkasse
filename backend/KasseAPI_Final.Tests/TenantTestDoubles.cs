@@ -36,7 +36,8 @@ internal static class TenantTestDoubles
     public static IUserTenantMembershipProvisioner NoOpProvisioner(Mock<IUserTenantMembershipProvisioner>? capture = null)
     {
         var m = capture ?? new Mock<IUserTenantMembershipProvisioner>();
-        m.Setup(x => x.ProvisionActiveMembershipAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        m.Setup(x => x.ProvisionActiveMembershipAsync(
+                It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         return m.Object;
     }

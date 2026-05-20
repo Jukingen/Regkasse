@@ -11,5 +11,9 @@ public interface IUserTenantMembershipProvisioner
     /// Idempotent when already active for that tenant. Deactivates other active rows when switching.
     /// </summary>
     /// <exception cref="InvalidOperationException">No row in <c>tenants</c> for <paramref name="tenantId"/>.</exception>
-    Task ProvisionActiveMembershipAsync(string userId, Guid tenantId, CancellationToken cancellationToken = default);
+    Task ProvisionActiveMembershipAsync(
+        string userId,
+        Guid tenantId,
+        bool isOwner = false,
+        CancellationToken cancellationToken = default);
 }

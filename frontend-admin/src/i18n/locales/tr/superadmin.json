@@ -8,5 +8,11 @@
   "impersonate": "Kiracı olarak giriş",
   "openTenantManagement": "Kiracı yönetimini aç",
   "selectorPlaceholder": "Kiracı seçin…",
+  "selector": {
+    "noAdmin": "Atanmış yönetici yok",
+    "adminAssigned": "Yönetici: {{email}}",
+    "demoTenant": "Demo kiracı",
+    "adminColumn": "Yönetici"
+  },
   "loadFailed": "Kiracı listesi yüklenemedi."
 }

@@ -26,6 +26,10 @@ public class UserTenantMembership : ITenantEntity
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Primary tenant administrator (at most one active owner per tenant).</summary>
+    [Column("is_owner")]
+    public bool IsOwner { get; set; }
+
     [Column("created_at_utc")]
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 

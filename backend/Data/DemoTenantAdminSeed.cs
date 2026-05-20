@@ -1,0 +1,168 @@
+using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace KasseAPI_Final.Data;
+
+/// <summary>
+/// Idempotent seed for dev/cafe/bar demo tenants and Manager admin users (admin@{slug}.regkasse.at).
+/// Complements migration <c>SeedDemoTenantAdmins</c> and scripts/seed-demo-tenant-admins.sql.
+/// </summary>
+public static class DemoTenantAdminSeed
+{
+    /// <summary>Documented default password for all demo tenant admins (local dev only).</summary>
+    public const string DefaultPassword = "DemoTenant1!";
+
+    private sealed record DemoTenantAdminSpec(
+        Guid TenantId,
+        string Slug,
+        string DisplayName,
+        string UserId,
+        string Email,
+        string EmployeeNumber,
+        string TaxNumber);
+
+    private static readonly DemoTenantAdminSpec[] Specs =
+    {
+        new(
+            DemoTenantIds.Dev,
+            "dev",
+            "Development",
+            DemoTenantAdminUserIds.Dev,
+            "admin@dev.regkasse.at",
+            "DEMO-DEV-001",
+            "ATU10000001"),
+        new(
+            DemoTenantIds.Cafe,
+            "cafe",
+            "Test Cafe",
+            DemoTenantAdminUserIds.Cafe,
+            "admin@cafe.regkasse.at",
+            "DEMO-CAFE-001",
+            "ATU10000002"),
+        new(
+            DemoTenantIds.Bar,
+            "bar",
+            "Test Bar",
+            DemoTenantAdminUserIds.Bar,
+            "admin@bar.regkasse.at",
+            "DEMO-BAR-001",
+            "ATU10000003"),
+    };
+
+    public static async Task SeedAsync(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IUserTenantMembershipProvisioner membershipProvisioner,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+
+        foreach (var spec in Specs)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var tenant = await db.Tenants
+                .FirstOrDefaultAsync(t => t.Slug == spec.Slug, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (tenant == null)
+            {
+                tenant = new Tenant
+                {
+                    Id = spec.TenantId,
+                    Name = spec.DisplayName,
+                    Slug = spec.Slug,
+                    Email = spec.Email,
+                    Status = TenantStatuses.Active,
+                    IsActive = true,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+                db.Tenants.Add(tenant);
+                await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                Console.WriteLine("Demo tenant created: {0} ({1})", spec.DisplayName, spec.Slug);
+            }
+
+            var user = await userManager.FindByEmailAsync(spec.Email).ConfigureAwait(false);
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    Id = spec.UserId,
+                    UserName = spec.Email,
+                    Email = spec.Email,
+                    FirstName = "Admin",
+                    LastName = spec.DisplayName,
+                    EmployeeNumber = spec.EmployeeNumber,
+                    Role = Roles.Manager,
+                    TaxNumber = spec.TaxNumber,
+                    Notes = $"Demo tenant admin for {spec.Slug} (seeded)",
+                    IsActive = true,
+                    EmailConfirmed = true,
+                    AccountType = "Admin",
+                    IsDemo = false,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+
+                var create = await userManager.CreateAsync(user, DefaultPassword).ConfigureAwait(false);
+                if (!create.Succeeded)
+                {
+                    Console.WriteLine(
+                        "Demo tenant admin create failed for {0}: {1}",
+                        spec.Email,
+                        string.Join("; ", create.Errors.Select(e => e.Description)));
+                    continue;
+                }
+
+                var roleAdd = await userManager.AddToRoleAsync(user, Roles.Manager).ConfigureAwait(false);
+                if (!roleAdd.Succeeded)
+                {
+                    Console.WriteLine(
+                        "Demo tenant admin role failed for {0}: {1}",
+                        spec.Email,
+                        string.Join("; ", roleAdd.Errors.Select(e => e.Description)));
+                    continue;
+                }
+
+                Console.WriteLine("Demo tenant admin created: {0} (password: documented in DemoTenantAdminSeed)", spec.Email);
+            }
+            else
+            {
+                var changed = false;
+                if (!string.Equals(user.Role, Roles.Manager, StringComparison.OrdinalIgnoreCase))
+                {
+                    user.Role = Roles.Manager;
+                    changed = true;
+                }
+
+                if (!user.IsActive)
+                {
+                    user.IsActive = true;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    user.UpdatedAt = now;
+                    await userManager.UpdateAsync(user).ConfigureAwait(false);
+                }
+
+                var roles = await userManager.GetRolesAsync(user).ConfigureAwait(false);
+                if (!roles.Contains(Roles.Manager, StringComparer.OrdinalIgnoreCase))
+                {
+                    if (roles.Count > 0)
+                        await userManager.RemoveFromRolesAsync(user, roles).ConfigureAwait(false);
+                    await userManager.AddToRoleAsync(user, Roles.Manager).ConfigureAwait(false);
+                }
+            }
+
+            await membershipProvisioner
+                .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: true, cancellationToken)
+                .ConfigureAwait(false);
+        }
+    }
+}

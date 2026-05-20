@@ -230,6 +230,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
                 entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
                 entity.Property(e => e.IsActive).HasColumnName("is_active").IsRequired();
+                entity.Property(e => e.IsOwner).HasColumnName("is_owner").IsRequired();
                 entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
                 entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc");
 

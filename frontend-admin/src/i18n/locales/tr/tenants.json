@@ -173,7 +173,8 @@
     "create": "Kiracı oluştur",
     "edit": "Düzenle",
     "delete": "Sil",
-    "impersonate": "Kiracı olarak giriş"
+    "impersonate": "Kiracı olarak giriş",
+    "manageUsers": "Kullanıcılar"
   },
   "edit": {
     "title": "Kiracıyı düzenle"
@@ -194,6 +195,72 @@
   "impersonationRedirect": {
     "title": "Kiracıya yönlendiriliyor …",
     "hint": "Oturum kiracı alan adında devralınıyor. Lütfen bekleyin."
+  },
+  "users": {
+    "page": {
+      "title": "Kiracı kullanıcıları",
+      "subtitle": "Mevcut kullanıcıları bu kiracıya atayın, kiracı sahibini (owner) belirleyin ve rolleri yönetin."
+    },
+    "ownerBadge": "Kiracı yöneticisi",
+    "empty": "Henüz kullanıcı atanmadı. Mevcut bir kullanıcı ekleyin veya kiracı oluştururken yönetici tanımlayın.",
+    "columns": {
+      "name": "Ad",
+      "email": "E-posta",
+      "role": "Rol",
+      "joined": "Atanma",
+      "actions": "İşlemler"
+    },
+    "actions": {
+      "back": "Listeye dön",
+      "add": "Mevcut kullanıcı",
+      "remove": "Kaldır",
+      "setOwner": "Kiracı yöneticisi yap"
+    },
+    "invite": {
+      "action": "Kullanıcı davet et",
+      "title": "Kullanıcı davet et",
+      "subtitle": "E-posta girin. Hesap yoksa oluşturulur; SMTP yapılandırılmışsa davet e-postası gönderilir.",
+      "email": "E-posta",
+      "emailRequired": "Lütfen bir e-posta adresi girin.",
+      "emailInvalid": "Lütfen geçerli bir e-posta girin.",
+      "role": "Rol",
+      "isOwner": "Kiracı yöneticisi (owner)",
+      "smtpHint": "API SMTP yoksa tek kullanımlık şifre burada gösterilir.",
+      "resultTitle": "Davet tamamlandı",
+      "resultCreated": "Yeni kullanıcı oluşturuldu ve kiracıya atandı.",
+      "resultExisting": "Mevcut kullanıcı kiracıya atandı.",
+      "passwordOnce": "Tek kullanımlık şifre (elle iletin)",
+      "messages": {
+        "sent": "Davet e-postası gönderildi.",
+        "assignedNoEmail": "Kullanıcı atandı; e-posta gönderilemedi.",
+        "failed": "Davet başarısız."
+      }
+    },
+    "add": {
+      "title": "Kiracıya kullanıcı ekle",
+      "user": "Kullanıcı",
+      "userRequired": "Lütfen bir kullanıcı seçin.",
+      "userPlaceholder": "Kullanıcı ara …",
+      "role": "Kiracıdaki rol",
+      "isOwner": "Kiracı yöneticisi (owner)",
+      "ownerHint": "Kiracı başına en fazla bir aktif owner olabilir. Owner, giriş ve destek için birincil yöneticidir."
+    },
+    "confirmRemove": {
+      "title": "Atama kaldırılsın mı?",
+      "body": "Kullanıcı aktif kiracı üyeliğini kaybeder (giriş eşlemesi)."
+    },
+    "messages": {
+      "added": "Kullanıcı kiracıya atandı.",
+      "addFailed": "Atama başarısız.",
+      "removed": "Kullanıcı kiracıdan kaldırıldı.",
+      "removeFailed": "Kaldırma başarısız.",
+      "ownerSet": "Kiracı yöneticisi ayarlandı.",
+      "ownerSetFailed": "Owner ayarlanamadı."
+    },
+    "errors": {
+      "invalidTenant": "Geçersiz kiracı kimliği.",
+      "tenantNotFound": "Kiracı bulunamadı."
+    }
   },
   "impersonationCallback": {
     "processing": "Kiracı oturumu uygulanıyor …",

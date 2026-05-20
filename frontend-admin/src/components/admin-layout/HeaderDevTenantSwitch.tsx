@@ -6,9 +6,12 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Flex, Select, Tooltip, Typography } from 'antd';
+import { useQuery } from '@tanstack/react-query';
 
 import { DEV_TENANT_PRESETS } from '@/features/auth/constants/devTenantPresets';
 import { getDevTenant, isLocalDevHostname } from '@/features/auth/services/devTenant';
+import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
+import { buildTenantSelectorLabel } from '@/features/super-admin/utils/tenantSelectorLabel';
 import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
 import { useTenantContext } from '@/features/tenancy/hooks/useTenantContext';
 import { useI18n } from '@/i18n';
@@ -35,6 +38,24 @@ export function HeaderDevTenantSwitch() {
         persistTenantSlugAndRefresh(value);
     }, []);
 
+    const tenantsQuery = useQuery({
+        queryKey: ['admin', 'tenants', false],
+        queryFn: () => listAdminTenants(false),
+        enabled: process.env.NODE_ENV === 'development',
+        staleTime: 60_000,
+    });
+
+    const selectOptions = useMemo(() => {
+        const bySlug = new Map((tenantsQuery.data ?? []).map((row) => [row.slug, row]));
+        return DEV_TENANT_PRESETS.map((preset) => {
+            const row = bySlug.get(preset.value);
+            return {
+                value: preset.value,
+                label: row ? buildTenantSelectorLabel(row, t) : preset.label,
+            };
+        });
+    }, [tenantsQuery.data, t]);
+
     if (process.env.NODE_ENV !== 'development') {
         return null;
     }
@@ -46,13 +67,13 @@ export function HeaderDevTenantSwitch() {
     const select = (
         <Select
             size="small"
-            style={{ minWidth: isPlatformAdminHost ? 260 : 220 }}
+            style={{ minWidth: isPlatformAdminHost ? 420 : 360 }}
+            popupMatchSelectWidth={520}
             value={currentTenant}
             onChange={onChange}
-            options={DEV_TENANT_PRESETS.map((preset) => ({
-                value: preset.value,
-                label: preset.label,
-            }))}
+            loading={tenantsQuery.isLoading}
+            options={selectOptions}
+            optionFilterProp="label"
             aria-label={t('adminShell.tenant.devSwitcher.ariaLabel')}
         />
     );

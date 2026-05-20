@@ -54,6 +54,7 @@ namespace KasseAPI_Final
             await RoleSeedData.SeedRolesAsync(roleManager);
             var tenantMembershipProvisioner = serviceProvider.GetRequiredService<IUserTenantMembershipProvisioner>();
             await UserSeedData.SeedUsersAsync(userManager, tenantMembershipProvisioner);
+            await DemoTenantAdminSeed.SeedAsync(context, userManager, tenantMembershipProvisioner);
             await AddDemoData.AddDemoDataAsync(context);
 
             context = serviceProvider.GetRequiredService<AppDbContext>();

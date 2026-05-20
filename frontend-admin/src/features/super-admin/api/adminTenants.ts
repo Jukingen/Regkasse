@@ -20,6 +20,8 @@ export type AdminTenantListItem = {
     licenseValidUntilUtc?: string | null;
     createdAt: string;
     updatedAt?: string | null;
+    ownerAdminEmail?: string | null;
+    isDemoPreset?: boolean;
 };
 
 export type TenantProvisioning = {

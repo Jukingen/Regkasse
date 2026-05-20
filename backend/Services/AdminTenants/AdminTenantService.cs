@@ -52,11 +52,35 @@ public sealed partial class AdminTenantService : IAdminTenantService
         if (!includeDeleted)
             query = query.Where(t => t.Status != TenantStatuses.Deleted);
 
-        return await query
+        var tenants = await query
             .OrderBy(t => t.Name)
-            .Select(t => ToListItem(t))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        if (tenants.Count == 0)
+            return Array.Empty<AdminTenantListItemDto>();
+
+        var tenantIds = tenants.Select(t => t.Id).ToList();
+        var ownerRows = await _db.UserTenantMemberships
+            .AsNoTracking()
+            .Where(m => tenantIds.Contains(m.TenantId) && m.IsActive && m.IsOwner)
+            .Join(
+                _db.Users.AsNoTracking(),
+                m => m.UserId,
+                u => u.Id,
+                (m, u) => new { m.TenantId, Email = u.Email ?? u.UserName })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var ownerByTenant = ownerRows
+            .GroupBy(x => x.TenantId)
+            .ToDictionary(g => g.Key, g => g.First().Email);
+
+        return tenants
+            .Select(t => ToListItem(
+                t,
+                ownerByTenant.TryGetValue(t.Id, out var ownerEmail) ? ownerEmail : null))
+            .ToList();
     }
 
     public async Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
@@ -314,7 +338,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         return string.IsNullOrEmpty(t) ? null : t;
     }
 
-    private static AdminTenantListItemDto ToListItem(Tenant t) =>
+    private static AdminTenantListItemDto ToListItem(Tenant t, string? ownerAdminEmail = null) =>
         new(
             t.Id,
             t.Name,
@@ -326,7 +350,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.LicenseKey,
             t.LicenseValidUntilUtc,
             t.CreatedAt,
-            t.UpdatedAt);
+            t.UpdatedAt,
+            ownerAdminEmail,
+            DemoTenantIds.IsDemoPresetSlug(t.Slug));
 
     private static AdminTenantDetailDto ToDetail(Tenant t, TenantProvisioningDto? provisioning = null) =>
         new(

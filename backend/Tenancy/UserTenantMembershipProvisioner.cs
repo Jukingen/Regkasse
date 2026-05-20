@@ -15,7 +15,11 @@ public sealed class UserTenantMembershipProvisioner : IUserTenantMembershipProvi
     }
 
     /// <inheritdoc />
-    public async Task ProvisionActiveMembershipAsync(string userId, Guid tenantId, CancellationToken cancellationToken = default)
+    public async Task ProvisionActiveMembershipAsync(
+        string userId,
+        Guid tenantId,
+        bool isOwner = false,
+        CancellationToken cancellationToken = default)
     {
         var tenantOk = await _db.Tenants.AsNoTracking()
             .AnyAsync(t => t.Id == tenantId, cancellationToken)
@@ -32,8 +36,14 @@ public sealed class UserTenantMembershipProvisioner : IUserTenantMembershipProvi
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        if (existingForPair != null && existingForPair.IsActive && activeForUser.Count == 1 && activeForUser[0].Id == existingForPair.Id)
+        if (existingForPair != null
+            && existingForPair.IsActive
+            && activeForUser.Count == 1
+            && activeForUser[0].Id == existingForPair.Id
+            && !isOwner)
+        {
             return;
+        }
 
         foreach (var m in activeForUser)
         {
@@ -41,20 +51,38 @@ public sealed class UserTenantMembershipProvisioner : IUserTenantMembershipProvi
             m.UpdatedAtUtc = DateTime.UtcNow;
         }
 
+        UserTenantMembership target;
         if (existingForPair != null)
         {
             existingForPair.IsActive = true;
             existingForPair.UpdatedAtUtc = DateTime.UtcNow;
+            target = existingForPair;
         }
         else
         {
-            _db.UserTenantMemberships.Add(new UserTenantMembership
+            target = new UserTenantMembership
             {
                 UserId = userId,
                 TenantId = tenantId,
                 IsActive = true,
                 CreatedAtUtc = DateTime.UtcNow,
-            });
+            };
+            _db.UserTenantMemberships.Add(target);
+        }
+
+        if (isOwner)
+        {
+            var otherOwners = await _db.UserTenantMemberships
+                .Where(m => m.TenantId == tenantId && m.IsOwner && m.Id != target.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+            foreach (var m in otherOwners)
+            {
+                m.IsOwner = false;
+                m.UpdatedAtUtc = DateTime.UtcNow;
+            }
+
+            target.IsOwner = true;
         }
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

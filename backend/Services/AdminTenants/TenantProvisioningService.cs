@@ -130,7 +130,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         }
 
         await _membershipProvisioner
-            .ProvisionActiveMembershipAsync(adminUser.Id, tenant.Id, cancellationToken)
+            .ProvisionActiveMembershipAsync(adminUser.Id, tenant.Id, isOwner: true, cancellationToken)
             .ConfigureAwait(false);
 
         _db.UserSettings.Add(new UserSettings
@@ -187,9 +187,9 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         var categoryLabel = category.Name;
         return new List<Product>
         {
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 1", 9.99m, TaxTypes.Standard, RksvProductTypes.Standard, 1),
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 2", 19.99m, TaxTypes.Special, RksvProductTypes.Special, 2),
-            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 3", 4.99m, TaxTypes.Reduced, RksvProductTypes.Reduced, 3),
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 1", "Demo Produkt 1 - Standard 20% MwSt", 9.99m, TaxTypes.Standard, RksvProductTypes.Standard, 1),
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 2", "Demo Produkt 2 - Besonders 13% MwSt", 19.99m, TaxTypes.Special, RksvProductTypes.Special, 2),
+            BuildDemoProduct(tenantId, category, categoryLabel, "Demo Produkt 3", "Demo Produkt 3 - Ermäßigt 10% MwSt", 4.99m, TaxTypes.Reduced, RksvProductTypes.Reduced, 3),
         };
     }
 
@@ -198,6 +198,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         Category category,
         string categoryLabel,
         string name,
+        string description,
         decimal price,
         int taxType,
         string rksvType,
@@ -209,6 +210,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             Id = id,
             TenantId = tenantId,
             Name = name,
+            Description = description,
             Price = price,
             TaxType = taxType,
             TaxRate = TaxTypes.GetTaxRate(taxType),
