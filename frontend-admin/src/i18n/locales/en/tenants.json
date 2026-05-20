@@ -1,49 +1,168 @@
 {
   "page": {
-    "title": "Companies / tenants",
-    "subtitle": "Super admin: create companies (tenants), edit metadata, and impersonate for support.",
-    "listHelp": "Each company (tenant) has its own products, registers, and receipts."
+    "title": "Tenants",
+    "subtitle": "Super admin: create tenants, edit metadata, and impersonate for support.",
+    "listHelp": "Each tenant has its own products, registers, and receipts."
   },
   "accessDenied": {
     "title": "Access denied",
     "body": "Only super administrators may open this page."
   },
   "columns": {
-    "name": "Company / tenant",
-    "slug": "Slug",
-    "email": "Email",
+    "name": "Tenant",
+    "slug": "Subdomain",
+    "email": "Contact email",
     "status": "Status",
     "actions": "Actions"
   },
   "fields": {
-    "name": "Company name",
+    "name": "Tenant name",
+    "namePlaceholder": "e.g. Café Müller",
     "slug": "Subdomain slug",
-    "email": "Email",
+    "slugHint": "Lowercase letters, digits, and hyphen only — e.g. cafe-example (not cafe-example.regkasse.at).",
+    "slugPreview": "Tenant URL",
+    "slugPreviewEmpty": "Enter a valid slug to preview the URL.",
+    "contactEmail": "Contact email",
+    "email": "Contact email",
     "phone": "Phone",
     "address": "Address",
-    "status": "Status",
-    "adminEmail": "Admin login email",
-    "adminEmailHint": "Leave empty for admin@{slug}.regkasse.at"
+    "status": "Status"
+  },
+  "validation": {
+    "nameRequired": "Please enter a tenant name.",
+    "contactEmailInvalid": "Please enter a valid email address.",
+    "slug": {
+      "required": "Please enter a subdomain slug (e.g. cafe-example).",
+      "invalid": "Use a–z, 0–9 and hyphen only; do not paste the full host (e.g. test.regkasse.at).",
+      "reserved": "This slug is reserved (e.g. admin, www).",
+      "taken": "This slug is already taken.",
+      "checking": "Checking availability …",
+      "availabilityFailed": "Could not check availability. Please try again."
+    }
+  },
+  "create": {
+    "title": "New tenant",
+    "subtitle": "Create a tenant with its own subdomain. Administrator access is created automatically.",
+    "submit": "Create tenant",
+    "autoProvisionTitle": "Automatic setup",
+    "autoProvisionDescription": "Main register, administrator (password shown once), and demo category with 3 products.",
+    "adminEmailAutoTitle": "Administrator sign-in (automatic)",
+    "adminEmailAutoDescription": "After creation, sign in with {{email}}. The password is shown on the next screen.",
+    "sections": {
+      "basic": "Tenant & subdomain",
+      "contact": "Contact",
+      "contactOptional": "Phone and address are optional. Contact email is required for system notifications.",
+      "advanced": "Advanced settings"
+    },
+    "fields": {
+      "name": {
+        "label": "Company name",
+        "tooltip": "Official business name (shown on receipts)",
+        "placeholder": "e.g. Café Example Ltd",
+        "hint": "This name appears on your receipts and invoices.",
+        "errors": {
+          "required": "Please enter a company name.",
+          "tooShort": "Company name must be at least 2 characters.",
+          "tooLong": "Company name must be at most 200 characters."
+        }
+      },
+      "slug": {
+        "label": "Subdomain",
+        "tooltip": "The address for your register and admin panel",
+        "placeholder": "cafe-example",
+        "hint": "Lowercase letters, digits, and hyphens only. Example: cafe-example",
+        "previewLabel": "Your access address:",
+        "availableShort": "✓ Available",
+        "takenShort": "❌ Already taken",
+        "checkingShort": "Checking availability …",
+        "allowedTitle": "Allowed:",
+        "allowedExamples": "cafe, cafe-shop, my-cafe-123",
+        "disallowedTitle": "Not allowed:",
+        "disallowedExamples": "Café (uppercase), cafe.shop (dot), cafe shop (spaces)",
+        "success": "This subdomain is available.",
+        "errors": {
+          "required": "Please enter a subdomain (e.g. cafe-example).",
+          "pattern": "Only lowercase letters, digits, and hyphens are allowed",
+          "invalid": "Only lowercase letters, digits, and hyphens; do not paste the full domain.",
+          "reserved": "This subdomain is reserved (e.g. admin, www).",
+          "taken": "This subdomain is already taken.",
+          "checking": "Checking availability …",
+          "availabilityFailed": "Could not check availability. Please try again."
+        }
+      },
+      "contactEmail": {
+        "label": "Email (contact)",
+        "tooltip": "For notifications and support requests",
+        "placeholder": "contact@cafe-example.at",
+        "hint": "We send important system notifications to this address.",
+        "errors": {
+          "required": "Please enter a valid email address.",
+          "invalid": "Please enter a valid email address."
+        }
+      },
+      "phone": {
+        "label": "Phone",
+        "tooltip": "For support cases only (optional)",
+        "placeholder": "+43 123 456789",
+        "hint": "📞 For support only — never used for marketing.",
+        "errors": {
+          "invalid": "Please enter a valid phone number (e.g. +43 123 456789)."
+        }
+      },
+      "address": {
+        "label": "Address",
+        "tooltip": "Shown on invoices and receipts (optional)",
+        "placeholder": "Main Street 1, 1010 Vienna",
+        "hint": "🏢 Appears on your customer invoices.",
+        "errors": {
+          "tooLong": "Address must be at most 500 characters."
+        }
+      },
+      "adminEmail": {
+        "label": "Admin access (created automatically)",
+        "tooltip": "Use these credentials to sign in",
+        "hint": "🔐 The password is shown ONCE after creation.",
+        "passwordAlert": "Please note the password immediately!",
+        "slugFallback": "your-company",
+        "copy": "Copy email"
+      },
+      "grantTrialLicense": {
+        "label": "✅ Enable 30-day demo license",
+        "tooltip": "30 days free trial, renewal available afterwards",
+        "subtext": "After 30 days you can purchase a paid license"
+      }
+    }
   },
   "provisioning": {
     "title": "Tenant “{{name}}” provisioned",
     "successTitle": "Tenant created",
     "successHeadline": "Tenant “{{name}}” was created successfully!",
-    "passwordWarning": "The admin password is shown only once. Store it securely or hand it off to the tenant.",
-    "credentialsTitle": "Administrator sign-in",
-    "adminEmail": "Email",
+    "missingWarning": "Automatic setup could not be confirmed. Please verify the tenant or contact support.",
+    "passwordWarning": "The administrator password is shown only once. Store it securely or hand it off to the tenant.",
+    "credentialsTitle": "Administrator access",
+    "loginEmail": "Sign-in email",
     "password": "Password",
     "passwordOnce": "(shown once)",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
+    "passwordStrength": {
+      "label": "Password strength",
+      "empty": "—",
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Very strong"
+    },
     "trialLicense": "Demo license: valid for 30 days",
     "register": "Default register: {{location}} ({{number}})",
-    "products": "Demo products: {{count}} created",
+    "products": "Demo products: {{count}} in category “Allgemein”",
     "nextStepsTitle": "Next steps",
     "nextStepLogin": "Sign in with the credentials above",
-    "nextStepPortal": "Open",
+    "nextStepPortalOnly": "Open tenant admin at",
+    "nextStepPortal": "Tenant URL:",
     "nextStepCustomize": "Adjust products, taxes, and settings",
     "copyAll": "Copy credentials",
+    "copyPassword": "Copy password",
     "copySuccess": "Copied to clipboard",
     "copyFailed": "Copy failed"
   },
@@ -55,9 +174,6 @@
     "edit": "Edit",
     "delete": "Delete",
     "impersonate": "Sign in as tenant"
-  },
-  "create": {
-    "title": "New tenant"
   },
   "edit": {
     "title": "Edit tenant"

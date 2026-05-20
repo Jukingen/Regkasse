@@ -8,5 +8,9 @@
   "impersonate": "Als Mandant anmelden",
   "openTenantManagement": "Mandantenverwaltung öffnen",
   "selectorPlaceholder": "Mandant wählen…",
-  "loadFailed": "Mandantenliste konnte nicht geladen werden."
+  "loadFailed": "Mandantenliste konnte nicht geladen werden.",
+  "tenantCreate": {
+    "slugExample": "cafe-example",
+    "urlPreviewHint": "Die vollständige Adresse wird aus Kürzel und Domain gebildet."
+  }
 }

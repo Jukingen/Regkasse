@@ -1,49 +1,168 @@
 {
   "page": {
-    "title": "Unternehmen / Mandanten",
-    "subtitle": "Super-Admin: Unternehmen (Mandanten) anlegen, bearbeiten und für Support impersonieren.",
-    "listHelp": "Jede Firma (Mandant) hat eigene Produkte, Kassen und Belege."
+    "title": "Mandanten",
+    "subtitle": "Super-Admin: Mandanten anlegen, bearbeiten und für Support impersonieren.",
+    "listHelp": "Jeder Mandant hat eigene Produkte, Kassen und Belege."
   },
   "accessDenied": {
     "title": "Zugriff verweigert",
     "body": "Nur Super-Administratoren dürfen diese Seite öffnen."
   },
   "columns": {
-    "name": "Unternehmen / Mandant",
-    "slug": "Slug",
-    "email": "E-Mail",
+    "name": "Mandant",
+    "slug": "Subdomain",
+    "email": "Kontakt-E-Mail",
     "status": "Status",
     "actions": "Aktionen"
   },
   "fields": {
     "name": "Firmenname",
-    "slug": "Subdomain-Slug",
-    "email": "E-Mail",
+    "namePlaceholder": "z. B. Café Beispiel GmbH",
+    "slug": "Subdomain-Kürzel",
+    "slugHint": "Nur Kleinbuchstaben, Ziffern und Bindestrich — z. B. cafe-example (nicht cafe-example.regkasse.at).",
+    "slugPreview": "Mandanten-URL",
+    "slugPreviewEmpty": "Geben Sie ein gültiges Kürzel ein, um die URL zu sehen.",
+    "contactEmail": "Kontakt-E-Mail",
+    "email": "Kontakt-E-Mail",
     "phone": "Telefon",
     "address": "Adresse",
-    "status": "Status",
-    "adminEmail": "Admin-Anmeldung (E-Mail)",
-    "adminEmailHint": "Leer lassen für admin@{slug}.regkasse.at"
+    "status": "Status"
+  },
+  "validation": {
+    "nameRequired": "Bitte geben Sie einen Firmennamen ein.",
+    "contactEmailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
+    "slug": {
+      "required": "Bitte ein Subdomain-Kürzel eingeben (z. B. cafe-example).",
+      "invalid": "Nur a–z, 0–9 und Bindestrich; nicht die volle Domain (z. B. test.regkasse.at).",
+      "reserved": "Dieses Kürzel ist reserviert (z. B. admin, www).",
+      "taken": "Dieses Kürzel ist bereits vergeben.",
+      "checking": "Verfügbarkeit wird geprüft …",
+      "availabilityFailed": "Verfügbarkeit konnte nicht geprüft werden. Bitte erneut versuchen."
+    }
+  },
+  "create": {
+    "title": "Neuer Mandant",
+    "subtitle": "Legen Sie einen neuen Mandanten mit eigener Subdomain an. Administrator-Zugang wird automatisch erstellt.",
+    "submit": "Mandant anlegen",
+    "autoProvisionTitle": "Automatische Einrichtung",
+    "autoProvisionDescription": "Hauptkasse, Administrator (Passwort wird einmalig angezeigt) und Demo-Kategorie mit 3 Produkten.",
+    "adminEmailAutoTitle": "Administrator-Anmeldung (automatisch)",
+    "adminEmailAutoDescription": "Nach dem Anlegen können Sie sich mit {{email}} anmelden. Das Passwort wird im nächsten Schritt angezeigt.",
+    "sections": {
+      "basic": "Mandant & Subdomain",
+      "contact": "Kontakt",
+      "contactOptional": "Telefon und Adresse sind optional. Die Kontakt-E-Mail ist für Systembenachrichtigungen erforderlich.",
+      "advanced": "Erweiterte Einstellungen"
+    },
+    "fields": {
+      "name": {
+        "label": "Firmenname",
+        "tooltip": "Der offizielle Name Ihres Unternehmens (wird auf Belegen angezeigt)",
+        "placeholder": "z. B. Café Beispiel GmbH",
+        "hint": "Der offizielle Name Ihres Unternehmens. Erscheint auf Belegen.",
+        "errors": {
+          "required": "Bitte geben Sie einen Firmennamen ein.",
+          "tooShort": "Der Firmenname muss mindestens 2 Zeichen haben.",
+          "tooLong": "Der Firmenname darf höchstens 200 Zeichen haben."
+        }
+      },
+      "slug": {
+        "label": "Subdomain",
+        "tooltip": "Die Adresse für Ihre Kasse und Ihr Admin-Panel",
+        "placeholder": "cafe-example",
+        "hint": "Nur Kleinbuchstaben, Zahlen und Bindestriche. Beispiel: cafe-example",
+        "previewLabel": "Ihre Zugangsadresse:",
+        "availableShort": "✓ Verfügbar",
+        "takenShort": "❌ Bereits vergeben",
+        "checkingShort": "Verfügbarkeit wird geprüft …",
+        "allowedTitle": "Erlaubt:",
+        "allowedExamples": "cafe, cafe-shop, mein-cafe-123",
+        "disallowedTitle": "Nicht erlaubt:",
+        "disallowedExamples": "Café (Großbuchstaben), cafe.shop (Punkt), cafe shop (Leerzeichen)",
+        "success": "Diese Subdomain ist verfügbar.",
+        "errors": {
+          "required": "Bitte eine Subdomain eingeben (z. B. cafe-example).",
+          "pattern": "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt",
+          "invalid": "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt; nicht die volle Domain einfügen.",
+          "reserved": "Diese Subdomain ist reserviert (z. B. admin, www).",
+          "taken": "Diese Subdomain ist bereits vergeben.",
+          "checking": "Verfügbarkeit wird geprüft …",
+          "availabilityFailed": "Verfügbarkeit konnte nicht geprüft werden. Bitte erneut versuchen."
+        }
+      },
+      "contactEmail": {
+        "label": "E-Mail (Kontakt)",
+        "tooltip": "Für Benachrichtigungen und Support-Anfragen",
+        "placeholder": "kontakt@cafe-example.at",
+        "hint": "Für Benachrichtigungen und Support. Eine gültige E-Mail-Adresse.",
+        "errors": {
+          "required": "Bitte eine gültige E-Mail-Adresse eingeben.",
+          "invalid": "Bitte eine gültige E-Mail-Adresse eingeben."
+        }
+      },
+      "phone": {
+        "label": "Telefon",
+        "tooltip": "Für Support-Fälle (optional)",
+        "placeholder": "+43 123 456789",
+        "hint": "Nur für Support-Fälle (optional)",
+        "errors": {
+          "invalid": "Bitte eine gültige Telefonnummer eingeben (z. B. +43 123 456789)."
+        }
+      },
+      "address": {
+        "label": "Adresse",
+        "tooltip": "Wird auf Rechnungen und Belegen angezeigt (optional)",
+        "placeholder": "Hauptstraße 1, 1010 Wien",
+        "hint": "Erscheint auf Rechnungen (optional)",
+        "errors": {
+          "tooLong": "Die Adresse darf höchstens 500 Zeichen haben."
+        }
+      },
+      "adminEmail": {
+        "label": "Admin-Zugang (wird automatisch erstellt)",
+        "tooltip": "Mit diesen Zugangsdaten melden Sie sich an",
+        "hint": "🔐 Das Passwort wird nach der Erstellung EINMALIG angezeigt.",
+        "passwordAlert": "Bitte Passwort sofort notieren!",
+        "slugFallback": "ihre-firma",
+        "copy": "E-Mail kopieren"
+      },
+      "grantTrialLicense": {
+        "label": "✅ 30-Tage Demo-Lizenz aktivieren",
+        "tooltip": "30 Tage kostenlos testen, danach Verlängerung möglich",
+        "subtext": "30 Tage kostenlos. Danach Verlängerung möglich."
+      }
+    }
   },
   "provisioning": {
     "title": "Mandant „{{name}}“ eingerichtet",
     "successTitle": "Mandant angelegt",
     "successHeadline": "Mandant „{{name}}“ wurde erfolgreich erstellt!",
-    "passwordWarning": "Das Admin-Passwort wird nur einmal angezeigt. Bitte sicher notieren oder an den Mandanten übermitteln.",
-    "credentialsTitle": "Zugangsdaten für den Administrator",
-    "adminEmail": "E-Mail",
+    "missingWarning": "Die automatische Einrichtung konnte nicht bestätigt werden. Bitte Mandant prüfen oder Support kontaktieren.",
+    "passwordWarning": "Das Administrator-Passwort wird nur einmal angezeigt. Bitte sicher notieren oder an den Mandanten übermitteln.",
+    "credentialsTitle": "Administrator-Zugang",
+    "loginEmail": "Anmelde-E-Mail",
     "password": "Passwort",
-    "passwordOnce": "(einmalig anzeigen)",
+    "passwordOnce": "(einmalig)",
     "showPassword": "Passwort anzeigen",
     "hidePassword": "Passwort verbergen",
+    "passwordStrength": {
+      "label": "Passwortstärke",
+      "empty": "—",
+      "weak": "Schwach",
+      "fair": "Ausreichend",
+      "good": "Gut",
+      "strong": "Sehr stark"
+    },
     "trialLicense": "Demo-Lizenz: 30 Tage gültig",
     "register": "Standardkasse: {{location}} ({{number}})",
-    "products": "Demo-Produkte: {{count}} Stück wurden angelegt",
+    "products": "Demo-Produkte: {{count}} Stück in Kategorie „Allgemein“",
     "nextStepsTitle": "Nächste Schritte",
-    "nextStepLogin": "Melden Sie sich mit den obigen Zugangsdaten an",
-    "nextStepPortal": "Wechseln Sie zu",
-    "nextStepCustomize": "Passen Sie Produkte, Steuern und Einstellungen an",
+    "nextStepLogin": "Mit den Zugangsdaten oben anmelden",
+    "nextStepPortalOnly": "Mandanten-Verwaltung öffnen unter",
+    "nextStepPortal": "Mandanten-URL:",
+    "nextStepCustomize": "Produkte, Steuern und Einstellungen anpassen",
     "copyAll": "Zugangsdaten kopieren",
+    "copyPassword": "Passwort kopieren",
     "copySuccess": "In die Zwischenablage kopiert",
     "copyFailed": "Kopieren fehlgeschlagen"
   },
@@ -55,9 +174,6 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "impersonate": "Als Mandant anmelden"
-  },
-  "create": {
-    "title": "Neuer Mandant"
   },
   "edit": {
     "title": "Mandant bearbeiten"

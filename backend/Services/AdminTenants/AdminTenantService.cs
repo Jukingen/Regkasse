@@ -67,6 +67,22 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
+    public async Task<TenantSlugAvailabilityDto> CheckSlugAvailabilityAsync(
+        string slug,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = NormalizeSlug(slug);
+        if (!TryValidateSlug(normalized, out _))
+            return new TenantSlugAvailabilityDto(normalized, IsValid: false, Available: false);
+
+        var taken = await _db.Tenants
+            .AsNoTracking()
+            .AnyAsync(t => t.Slug == normalized, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new TenantSlugAvailabilityDto(normalized, IsValid: true, Available: !taken);
+    }
+
     public async Task<(AdminTenantDetailDto? Result, string? Error)> CreateAsync(
         CreateAdminTenantRequest request,
         string? actorUserId,

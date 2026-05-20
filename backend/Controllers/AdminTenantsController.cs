@@ -35,6 +35,20 @@ public sealed class AdminTenantsController : ControllerBase
         return Ok(items);
     }
 
+    /// <summary>Check whether a tenant slug is valid and not already taken.</summary>
+    [HttpGet("slug-availability")]
+    [ProducesResponseType(typeof(TenantSlugAvailabilityDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TenantSlugAvailabilityDto>> CheckSlugAvailability(
+        [FromQuery] string slug,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            return Ok(new TenantSlugAvailabilityDto(string.Empty, IsValid: false, Available: false));
+
+        var result = await _tenantService.CheckSlugAvailabilityAsync(slug, cancellationToken).ConfigureAwait(false);
+        return Ok(result);
+    }
+
     /// <summary>Get tenant by id.</summary>
     [HttpGet("{tenantId:guid}")]
     [ProducesResponseType(typeof(AdminTenantDetailDto), StatusCodes.Status200OK)]

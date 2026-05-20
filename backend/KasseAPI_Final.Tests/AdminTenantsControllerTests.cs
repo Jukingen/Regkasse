@@ -81,6 +81,41 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
+    public async Task CheckSlugAvailabilityAsync_ReturnsTakenWhenExists()
+    {
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Existing",
+            Slug = "cafe-example",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var result = await service.CheckSlugAvailabilityAsync("cafe-example");
+
+        Assert.True(result.IsValid);
+        Assert.False(result.Available);
+        Assert.Equal("cafe-example", result.NormalizedSlug);
+    }
+
+    [Fact]
+    public async Task CheckSlugAvailabilityAsync_ReturnsAvailableForNewSlug()
+    {
+        await using var db = CreateDb();
+        var service = CreateService(db);
+        var result = await service.CheckSlugAvailabilityAsync("new-cafe");
+
+        Assert.True(result.IsValid);
+        Assert.True(result.Available);
+        Assert.Equal("new-cafe", result.NormalizedSlug);
+    }
+
+    [Fact]
     public async Task CreateAsync_PersistsTenant_WithSlug()
     {
         await using var db = CreateDb();

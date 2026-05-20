@@ -6,6 +6,10 @@ public interface IAdminTenantService
 
     Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default);
 
+    Task<TenantSlugAvailabilityDto> CheckSlugAvailabilityAsync(
+        string slug,
+        CancellationToken cancellationToken = default);
+
     Task<(AdminTenantDetailDto? Result, string? Error)> CreateAsync(
         CreateAdminTenantRequest request,
         string? actorUserId,

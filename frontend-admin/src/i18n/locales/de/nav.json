@@ -42,7 +42,7 @@
   "developmentMode": "Entwicklungsmodus",
   "timeSync": "Zeitsynchronisation",
   "licenseManagement": "Lizenz",
-  "superAdminTenants": "Unternehmen / Mandanten",
+  "superAdminTenants": "Mandanten",
   "myProfile": "Mein Profil",
   "logout": "Abmelden",
   "rksvOperationsOverview": "RKSV Übersicht",

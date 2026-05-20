@@ -1,49 +1,168 @@
 {
   "page": {
-    "title": "İşletmeler / kiracılar",
-    "subtitle": "Süper admin: işletme (kiracı) oluşturma, düzenleme ve destek için impersonation.",
-    "listHelp": "Her firma (kiracı) kendi ürünleri, kasaları ve fişlerine sahiptir."
+    "title": "Kiracılar",
+    "subtitle": "Süper admin: kiracı oluşturma, düzenleme ve destek için impersonation.",
+    "listHelp": "Her kiracının kendi ürünleri, kasaları ve fişleri vardır."
   },
   "accessDenied": {
     "title": "Erişim reddedildi",
     "body": "Bu sayfayı yalnızca süper yöneticiler açabilir."
   },
   "columns": {
-    "name": "İşletme / kiracı",
-    "slug": "Slug",
-    "email": "E-posta",
+    "name": "Kiracı",
+    "slug": "Alt alan",
+    "email": "İletişim e-postası",
     "status": "Durum",
     "actions": "İşlemler"
   },
   "fields": {
-    "name": "Şirket adı",
-    "slug": "Alt alan slug",
-    "email": "E-posta",
+    "name": "Kiracı adı",
+    "namePlaceholder": "ör. Café Müller",
+    "slug": "Alt alan kısaltması",
+    "slugHint": "Yalnızca küçük harf, rakam ve tire — örn. cafe-example (cafe-example.regkasse.at değil).",
+    "slugPreview": "Kiracı URL",
+    "slugPreviewEmpty": "URL önizlemesi için geçerli bir kısaltma girin.",
+    "contactEmail": "İletişim e-postası",
+    "email": "İletişim e-postası",
     "phone": "Telefon",
     "address": "Adres",
-    "status": "Durum",
-    "adminEmail": "Admin giriş e-postası",
-    "adminEmailHint": "Boş bırakılırsa admin@{slug}.regkasse.at kullanılır"
+    "status": "Durum"
+  },
+  "validation": {
+    "nameRequired": "Lütfen bir kiracı adı girin.",
+    "contactEmailInvalid": "Lütfen geçerli bir e-posta adresi girin.",
+    "slug": {
+      "required": "Lütfen bir alt alan kısaltması girin (ör. cafe-example).",
+      "invalid": "Yalnızca a–z, 0–9 ve tire; tam host yapıştırmayın (ör. test.regkasse.at).",
+      "reserved": "Bu kısaltma rezerve (ör. admin, www).",
+      "taken": "Bu kısaltma zaten kullanılıyor.",
+      "checking": "Uygunluk kontrol ediliyor …",
+      "availabilityFailed": "Uygunluk kontrol edilemedi. Lütfen tekrar deneyin."
+    }
+  },
+  "create": {
+    "title": "Yeni kiracı",
+    "subtitle": "Kendi alt alanı olan bir kiracı oluşturun. Yönetici erişimi otomatik oluşturulur.",
+    "submit": "Kiracı oluştur",
+    "autoProvisionTitle": "Otomatik kurulum",
+    "autoProvisionDescription": "Ana kasa, yönetici (şifre bir kez gösterilir) ve 3 ürünlü demo kategori.",
+    "adminEmailAutoTitle": "Yönetici girişi (otomatik)",
+    "adminEmailAutoDescription": "Oluşturma sonrası {{email}} ile giriş yapın. Şifre bir sonraki ekranda gösterilir.",
+    "sections": {
+      "basic": "Kiracı ve alt alan",
+      "contact": "İletişim",
+      "contactOptional": "Telefon ve adres isteğe bağlıdır. İletişim e-postası sistem bildirimleri için zorunludur.",
+      "advanced": "Gelişmiş ayarlar"
+    },
+    "fields": {
+      "name": {
+        "label": "Şirket adı",
+        "tooltip": "Resmi işletme adı (fişlerde görünür)",
+        "placeholder": "ör. Café Örnek GmbH",
+        "hint": "Bu ad fiş ve faturalarınızda görünür.",
+        "errors": {
+          "required": "Lütfen bir şirket adı girin.",
+          "tooShort": "Şirket adı en az 2 karakter olmalıdır.",
+          "tooLong": "Şirket adı en fazla 200 karakter olabilir."
+        }
+      },
+      "slug": {
+        "label": "Subdomain",
+        "tooltip": "Kasa ve yönetim paneli adresiniz",
+        "placeholder": "cafe-example",
+        "hint": "Yalnızca küçük harf, rakam ve tire. Örnek: cafe-example",
+        "previewLabel": "Erişim adresiniz:",
+        "availableShort": "✓ Uygun",
+        "takenShort": "❌ Zaten alınmış",
+        "checkingShort": "Uygunluk kontrol ediliyor …",
+        "allowedTitle": "İzin verilen:",
+        "allowedExamples": "cafe, cafe-shop, benim-cafe-123",
+        "disallowedTitle": "İzin verilmeyen:",
+        "disallowedExamples": "Café (büyük harf), cafe.shop (nokta), cafe shop (boşluk)",
+        "success": "Bu subdomain kullanılabilir.",
+        "errors": {
+          "required": "Lütfen bir subdomain girin (ör. cafe-example).",
+          "pattern": "Yalnızca küçük harf, rakam ve tire kullanılabilir",
+          "invalid": "Yalnızca küçük harf, rakam ve tire; tam domain yapıştırmayın.",
+          "reserved": "Bu subdomain rezerve (ör. admin, www).",
+          "taken": "Bu subdomain zaten kullanılıyor.",
+          "checking": "Uygunluk kontrol ediliyor …",
+          "availabilityFailed": "Uygunluk kontrol edilemedi. Lütfen tekrar deneyin."
+        }
+      },
+      "contactEmail": {
+        "label": "E-posta (iletişim)",
+        "tooltip": "Bildirimler ve destek talepleri için",
+        "placeholder": "iletisim@cafe-example.at",
+        "hint": "Önemli sistem bildirimlerini bu adrese göndeririz.",
+        "errors": {
+          "required": "Lütfen geçerli bir e-posta adresi girin.",
+          "invalid": "Lütfen geçerli bir e-posta adresi girin."
+        }
+      },
+      "phone": {
+        "label": "Telefon",
+        "tooltip": "Yalnızca destek için (isteğe bağlı)",
+        "placeholder": "+43 123 456789",
+        "hint": "📞 Yalnızca destek amaçlı — reklam için kullanılmaz.",
+        "errors": {
+          "invalid": "Lütfen geçerli bir telefon numarası girin (ör. +43 123 456789)."
+        }
+      },
+      "address": {
+        "label": "Adres",
+        "tooltip": "Fatura ve fişlerde gösterilir (isteğe bağlı)",
+        "placeholder": "Ana Cadde 1, 1010 Viyana",
+        "hint": "🏢 Müşteri faturalarınızda görünür.",
+        "errors": {
+          "tooLong": "Adres en fazla 500 karakter olabilir."
+        }
+      },
+      "adminEmail": {
+        "label": "Admin erişimi (otomatik oluşturulur)",
+        "tooltip": "Bu bilgilerle giriş yapın",
+        "hint": "🔐 Şifre oluşturma sonrası YALNIZCA BİR KEZ gösterilir.",
+        "passwordAlert": "Lütfen şifreyi hemen not edin!",
+        "slugFallback": "sirketiniz",
+        "copy": "E-postayı kopyala"
+      },
+      "grantTrialLicense": {
+        "label": "✅ 30 günlük demo lisansını etkinleştir",
+        "tooltip": "30 gün ücretsiz deneme, ardından uzatma mümkün",
+        "subtext": "30 gün sonra ücretli lisans satın alınabilir"
+      }
+    }
   },
   "provisioning": {
     "title": "“{{name}}” kiracısı hazırlandı",
     "successTitle": "Kiracı oluşturuldu",
     "successHeadline": "“{{name}}” kiracısı başarıyla oluşturuldu!",
-    "passwordWarning": "Admin şifresi yalnızca bir kez gösterilir. Güvenli şekilde kaydedin veya kiracıya iletin.",
-    "credentialsTitle": "Yönetici giriş bilgileri",
-    "adminEmail": "E-posta",
+    "missingWarning": "Otomatik kurulum doğrulanamadı. Kiracıyı elle kontrol edin veya destekle iletişime geçin.",
+    "passwordWarning": "Yönetici şifresi yalnızca bir kez gösterilir. Güvenli şekilde kaydedin veya kiracıya iletin.",
+    "credentialsTitle": "Yönetici erişimi",
+    "loginEmail": "Giriş e-postası",
     "password": "Şifre",
-    "passwordOnce": "(yalnızca bir kez gösterilir)",
+    "passwordOnce": "(bir kez)",
     "showPassword": "Şifreyi göster",
     "hidePassword": "Şifreyi gizle",
+    "passwordStrength": {
+      "label": "Şifre gücü",
+      "empty": "—",
+      "weak": "Zayıf",
+      "fair": "Orta",
+      "good": "İyi",
+      "strong": "Çok güçlü"
+    },
     "trialLicense": "Demo lisans: 30 gün geçerli",
     "register": "Varsayılan kasa: {{location}} ({{number}})",
-    "products": "Demo ürünler: {{count}} adet oluşturuldu",
+    "products": "Demo ürünler: {{count}} adet („Allgemein“ kategorisi)",
     "nextStepsTitle": "Sonraki adımlar",
     "nextStepLogin": "Yukarıdaki bilgilerle giriş yapın",
-    "nextStepPortal": "Şuraya gidin",
+    "nextStepPortalOnly": "Kiracı yönetimini şurada açın",
+    "nextStepPortal": "Kiracı URL:",
     "nextStepCustomize": "Ürünleri, vergileri ve ayarları uyarlayın",
     "copyAll": "Giriş bilgilerini kopyala",
+    "copyPassword": "Şifreyi kopyala",
     "copySuccess": "Panoya kopyalandı",
     "copyFailed": "Kopyalama başarısız"
   },
@@ -55,9 +174,6 @@
     "edit": "Düzenle",
     "delete": "Sil",
     "impersonate": "Kiracı olarak giriş"
-  },
-  "create": {
-    "title": "Yeni kiracı"
   },
   "edit": {
     "title": "Kiracıyı düzenle"

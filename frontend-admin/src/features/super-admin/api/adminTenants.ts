@@ -75,6 +75,12 @@ export type AdminTenantDetail = AdminTenantListItem & {
     provisioning?: TenantProvisioning | null;
 };
 
+export type TenantSlugAvailability = {
+    normalizedSlug: string;
+    isValid: boolean;
+    available: boolean;
+};
+
 export type CreateAdminTenantRequest = {
     name: string;
     slug: string;
@@ -109,6 +115,13 @@ export type TenantImpersonationResponse = {
     tenantDisplayName?: string | null;
     impersonation: boolean;
 };
+
+export async function checkAdminTenantSlugAvailability(slug: string): Promise<TenantSlugAvailability> {
+    const { data } = await AXIOS_INSTANCE.get<TenantSlugAvailability>('/api/admin/tenants/slug-availability', {
+        params: { slug },
+    });
+    return data;
+}
 
 export async function listAdminTenants(includeDeleted = false): Promise<AdminTenantListItem[]> {
     const { data } = await AXIOS_INSTANCE.get<AdminTenantListItem[]>('/api/admin/tenants', {

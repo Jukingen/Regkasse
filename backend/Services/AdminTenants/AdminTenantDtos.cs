@@ -93,6 +93,11 @@ public sealed class UpdateAdminTenantRequest
     public bool? IsActive { get; set; }
 }
 
+public sealed record TenantSlugAvailabilityDto(
+    string NormalizedSlug,
+    bool IsValid,
+    bool Available);
+
 public sealed record TenantImpersonationResponseDto(
     string Token,
     int ExpiresIn,
