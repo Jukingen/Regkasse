@@ -74,6 +74,9 @@ export function formatTenantProvisioningHandoff(
 export type AdminTenantDetail = AdminTenantListItem & {
     address?: string | null;
     deletedAtUtc?: string | null;
+    activeUserCount?: number;
+    cashRegisterCount?: number;
+    lastActivityAtUtc?: string | null;
     provisioning?: TenantProvisioning | null;
 };
 
@@ -152,6 +155,12 @@ export async function updateAdminTenant(
 
 export async function deleteAdminTenant(tenantId: string): Promise<void> {
     await AXIOS_INSTANCE.delete(`/api/admin/tenants/${tenantId}`);
+}
+
+export async function hardDeleteAdminTenant(tenantId: string, confirmSlug: string): Promise<void> {
+    await AXIOS_INSTANCE.delete(`/api/admin/tenants/${tenantId}/permanent`, {
+        data: { confirmSlug },
+    });
 }
 
 export async function impersonateAdminTenant(tenantId: string): Promise<TenantImpersonationResponse> {

@@ -76,6 +76,10 @@ namespace KasseAPI_Final.Models
         [Column("deactivation_reason")]
         [MaxLength(500)]
         public string? DeactivationReason { get; set; }
+
+        /// <summary>When true, login is allowed but API access is limited until the user changes their password.</summary>
+        [Column("must_change_password_on_next_login")]
+        public bool MustChangePasswordOnNextLogin { get; set; }
         
         // Navigation properties
         public virtual ICollection<CashRegister> CashRegisters { get; set; } = new List<CashRegister>();

@@ -69,6 +69,44 @@ export async function updateTenantUser(
     return data;
 }
 
+export async function updateTenantUserRole(
+    tenantId: string,
+    userId: string,
+    role: string,
+): Promise<TenantUser> {
+    const { data } = await AXIOS_INSTANCE.put<TenantUser>(
+        `/api/admin/tenants/${tenantId}/users/${userId}/role`,
+        { role },
+    );
+    return data;
+}
+
+export type ResetTenantUserPasswordRequest = {
+    sendEmail?: boolean;
+};
+
+export type TenantUserPasswordResetResult = {
+    userId: string;
+    email: string;
+    generatedPassword: string;
+    deliveryNote: string;
+    emailSent: boolean;
+    smtpConfigured: boolean;
+    forcePasswordChangeOnNextLogin: boolean;
+};
+
+export async function resetTenantUserPassword(
+    tenantId: string,
+    userId: string,
+    body?: ResetTenantUserPasswordRequest,
+): Promise<TenantUserPasswordResetResult> {
+    const { data } = await AXIOS_INSTANCE.post<TenantUserPasswordResetResult>(
+        `/api/admin/tenants/${tenantId}/users/${userId}/reset-password`,
+        body ?? {},
+    );
+    return data;
+}
+
 export async function removeTenantUser(tenantId: string, userId: string): Promise<void> {
     await AXIOS_INSTANCE.delete(`/api/admin/tenants/${tenantId}/users/${userId}`);
 }

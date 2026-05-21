@@ -29,6 +29,7 @@ import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBa
 import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenantGate';
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
 import { AdminShellHeader } from '@/components/layout/Header';
+import { PasswordChangeRequiredRedirect } from '@/features/auth/components/PasswordChangeRequiredRedirect';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
@@ -310,6 +311,7 @@ export default function DashboardLayout({
                                 overflow: 'initial',
                             }}
                         >
+                            <PasswordChangeRequiredRedirect />
                             <LicenseExpiryBanner />
                             <SuperAdminModeBanner />
                             <VerwaltungTenantContextGate />

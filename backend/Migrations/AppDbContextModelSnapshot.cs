@@ -209,6 +209,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("login_count");
 
+                    b.Property<bool>("MustChangePasswordOnNextLogin")
+                        .HasColumnType("boolean")
+                        .HasColumnName("must_change_password_on_next_login");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");

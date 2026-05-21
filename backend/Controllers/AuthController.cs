@@ -210,6 +210,7 @@ namespace KasseAPI_Final.Controllers
                         tenantSlug = tenantSnapshot.TenantSlug,
                         branchId = tenantSnapshot.BranchId,
                         branchDisplayName = tenantSnapshot.BranchDisplayName,
+                        mustChangePasswordOnNextLogin = user.MustChangePasswordOnNextLogin,
                     },
                     appContext = resolvedClientApp
                 };
@@ -341,6 +342,7 @@ namespace KasseAPI_Final.Controllers
                     tenantSlug = tenantSnapshot.TenantSlug,
                     branchId = tenantSnapshot.BranchId,
                     branchDisplayName = tenantSnapshot.BranchDisplayName,
+                    mustChangePasswordOnNextLogin = user.MustChangePasswordOnNextLogin,
                 };
 
                 _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}, appContext {AppContext}", user.Email, user.Role, appContext ?? "none");

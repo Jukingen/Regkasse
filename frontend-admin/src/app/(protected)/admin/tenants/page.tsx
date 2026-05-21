@@ -8,6 +8,7 @@ import {
     Alert,
     Button,
     Card,
+    Dropdown,
     Form,
     Input,
     Modal,
@@ -20,14 +21,25 @@ import {
     message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, ReloadOutlined, LoginOutlined, TeamOutlined } from '@ant-design/icons';
+import type { MenuProps } from 'antd';
+import {
+    PlusOutlined,
+    ReloadOutlined,
+    LoginOutlined,
+    TeamOutlined,
+    MoreOutlined,
+    PauseCircleOutlined,
+    PlayCircleOutlined,
+    KeyOutlined,
+    EyeOutlined,
+} from '@ant-design/icons';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
+import { useI18n, formatDate } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
@@ -41,6 +53,8 @@ import {
     updateAdminTenant,
     type AdminTenantListItem,
 } from '@/features/super-admin/api/adminTenants';
+import { resolveTenantLicenseLabel } from '@/features/super-admin/utils/tenantLicenseLabel';
+import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 
 const TENANT_QUERY_KEY = ['admin', 'tenants'] as const;
 
@@ -52,13 +66,6 @@ type TenantFormValues = {
     address?: string;
     status?: string;
 };
-
-function statusColor(status: string): string {
-    if (status === 'active') return 'green';
-    if (status === 'suspended') return 'orange';
-    if (status === 'deleted') return 'red';
-    return 'default';
-}
 
 export default function SuperAdminTenantsPage() {
     const { t } = useI18n();
@@ -91,6 +98,16 @@ export default function SuperAdminTenantsPage() {
         onSuccess: () => {
             message.success(t('tenants.messages.updated'));
             setEditRow(null);
+            void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY });
+        },
+        onError: () => message.error(t('tenants.messages.saveFailed')),
+    });
+
+    const suspendMutation = useMutation({
+        mutationFn: ({ id, status }: { id: string; status: string }) =>
+            updateAdminTenant(id, { status }),
+        onSuccess: () => {
+            message.success(t('tenants.messages.updated'));
             void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY });
         },
         onError: () => message.error(t('tenants.messages.saveFailed')),
@@ -130,54 +147,144 @@ export default function SuperAdminTenantsPage() {
 
     const columns: ColumnsType<AdminTenantListItem> = useMemo(
         () => [
-            { title: t('tenants.columns.name'), dataIndex: 'name', key: 'name' },
+            {
+                title: t('tenants.columns.name'),
+                dataIndex: 'name',
+                key: 'name',
+                render: (name: string, row) => (
+                    <Link href={`/admin/tenants/${row.id}`}>{name}</Link>
+                ),
+            },
             { title: t('tenants.columns.slug'), dataIndex: 'slug', key: 'slug' },
-            { title: t('tenants.columns.email'), dataIndex: 'email', key: 'email', render: (v) => v ?? '—' },
             {
                 title: t('tenants.columns.status'),
                 dataIndex: 'status',
                 key: 'status',
-                render: (status: string) => <Tag color={statusColor(status)}>{status}</Tag>,
+                render: (status: string) => (
+                    <Tag color={tenantStatusColor(status)}>{t(`tenants.status.${status}`, { defaultValue: status })}</Tag>
+                ),
+            },
+            {
+                title: t('tenants.columns.adminUser'),
+                dataIndex: 'ownerAdminEmail',
+                key: 'ownerAdminEmail',
+                render: (v: string | null | undefined) => v ?? '—',
+            },
+            {
+                title: t('tenants.columns.license'),
+                key: 'license',
+                render: (_, row) => {
+                    const lic = resolveTenantLicenseLabel(row.licenseValidUntilUtc, row.licenseKey);
+                    const color =
+                        lic.kind === 'expired'
+                            ? 'red'
+                            : lic.kind === 'trial'
+                              ? 'blue'
+                              : lic.kind === 'valid'
+                                ? 'green'
+                                : 'default';
+                    return <Tag color={color}>{lic.label}</Tag>;
+                },
+            },
+            {
+                title: t('tenants.columns.created'),
+                dataIndex: 'createdAt',
+                key: 'createdAt',
+                render: (v: string) => formatDate(v),
             },
             {
                 title: t('tenants.columns.actions'),
                 key: 'actions',
-                render: (_, row) => (
-                    <Space size="small">
-                        <Link href={`/admin/tenants/${row.id}/users`}>
-                            <Button size="small" icon={<TeamOutlined />}>
-                                {t('tenants.actions.manageUsers')}
-                            </Button>
-                        </Link>
-                        <Button size="small" onClick={() => openEdit(row)}>
-                            {t('tenants.actions.edit')}
-                        </Button>
-                        {row.status !== 'deleted' && (
-                            <>
-                                <Button
-                                    size="small"
-                                    icon={<LoginOutlined />}
-                                    loading={impersonateMutation.isPending}
-                                    onClick={() => impersonateMutation.mutate(row.id)}
-                                >
-                                    {t('tenants.actions.impersonate')}
-                                </Button>
+                render: (_, row) => {
+                    const moreItems: MenuProps['items'] = [
+                        {
+                            key: 'view',
+                            icon: <EyeOutlined />,
+                            label: (
+                                <Link href={`/admin/tenants/${row.id}`}>{t('tenants.actions.view')}</Link>
+                            ),
+                        },
+                        {
+                            key: 'users',
+                            icon: <TeamOutlined />,
+                            label: (
+                                <Link href={`/admin/tenants/${row.id}?tab=users`}>
+                                    {t('tenants.actions.manageUsers')}
+                                </Link>
+                            ),
+                        },
+                        {
+                            key: 'license',
+                            icon: <KeyOutlined />,
+                            label: (
+                                <Link href={`/admin/tenants/${row.id}?tab=license`}>
+                                    {t('tenants.actions.manageLicense')}
+                                </Link>
+                            ),
+                        },
+                        { type: 'divider' },
+                        {
+                            key: 'edit',
+                            label: t('tenants.actions.edit'),
+                            onClick: () => openEdit(row),
+                        },
+                        {
+                            key: 'impersonate',
+                            icon: <LoginOutlined />,
+                            label: t('tenants.actions.impersonate'),
+                            disabled: row.status === 'deleted' || row.status === 'suspended',
+                            onClick: () => impersonateMutation.mutate(row.id),
+                        },
+                    ];
+
+                    if (row.status === 'active') {
+                        moreItems.push({
+                            key: 'suspend',
+                            icon: <PauseCircleOutlined />,
+                            label: t('tenants.actions.suspend'),
+                            onClick: () => suspendMutation.mutate({ id: row.id, status: 'suspended' }),
+                        });
+                    } else if (row.status === 'suspended') {
+                        moreItems.push({
+                            key: 'reactivate',
+                            icon: <PlayCircleOutlined />,
+                            label: t('tenants.actions.reactivate'),
+                            onClick: () => suspendMutation.mutate({ id: row.id, status: 'active' }),
+                        });
+                    }
+
+                    if (row.status !== 'deleted') {
+                        moreItems.push({
+                            key: 'delete',
+                            danger: true,
+                            label: (
                                 <Popconfirm
                                     title={t('tenants.confirmDelete.title')}
                                     description={t('tenants.confirmDelete.body')}
                                     onConfirm={() => deleteMutation.mutate(row.id)}
                                 >
-                                    <Button size="small" danger loading={deleteMutation.isPending}>
-                                        {t('tenants.actions.delete')}
-                                    </Button>
+                                    <span onClick={(e) => e.stopPropagation()}>{t('tenants.actions.delete')}</span>
                                 </Popconfirm>
-                            </>
-                        )}
-                    </Space>
-                ),
+                            ),
+                        });
+                    }
+
+                    return (
+                        <Space size="small">
+                            <Link href={`/admin/tenants/${row.id}`}>
+                                <Button size="small" icon={<EyeOutlined />}>
+                                    {t('tenants.actions.view')}
+                                </Button>
+                            </Link>
+                            <Dropdown menu={{ items: moreItems }} trigger={['click']}>
+                                <Button size="small" icon={<MoreOutlined />} />
+                            </Dropdown>
+                        </Space>
+                    );
+                },
             },
         ],
-        [t, openEdit, deleteMutation.isPending, impersonateMutation.isPending, impersonateMutation],
+        [t, openEdit, deleteMutation, impersonateMutation, suspendMutation],
     );
 
     if (!canAccess) {
@@ -277,8 +384,8 @@ export default function SuperAdminTenantsPage() {
                     <Form.Item name="status" label={t('tenants.fields.status')}>
                         <Select
                             options={[
-                                { value: 'active', label: 'active' },
-                                { value: 'suspended', label: 'suspended' },
+                                { value: 'active', label: t('tenants.status.active') },
+                                { value: 'suspended', label: t('tenants.status.suspended') },
                             ]}
                         />
                     </Form.Item>

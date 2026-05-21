@@ -361,6 +361,7 @@ builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
 builder.Services.AddScoped<IJwtAccessTokenIssuer, JwtAccessTokenIssuer>();
 builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
+builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
 builder.Services.AddScoped<ITenantUserService, TenantUserService>();
 builder.Services.AddScoped<ITenantInvitationEmailSender, TenantInvitationEmailSender>();
 builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
@@ -839,6 +840,7 @@ app.UseAuthentication();
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantContextMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
 app.UseAuthorization();
+app.UseMiddleware<KasseAPI_Final.Middleware.MustChangePasswordMiddleware>();
 
 // Payment Security Middleware
 app.UseMiddleware<KasseAPI_Final.Middleware.PaymentSecurityMiddleware>();

@@ -5,7 +5,7 @@ import type { MenuProps } from 'antd';
 import { MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined } from '@ant-design/icons';
 import type { ReactNode } from 'react';
 
-import { HeaderDevTenantSwitch } from '@/components/admin-layout/HeaderDevTenantSwitch';
+import { HeaderDevTenantSwitch } from '@/features/auth/components/HeaderDevTenantSwitch';
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
 import { TenantBadge } from '@/components/admin-layout/TenantBadge';
 import { EnvironmentBadge } from '@/components/EnvironmentBadge';

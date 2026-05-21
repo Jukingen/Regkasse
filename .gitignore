@@ -184,6 +184,8 @@ backend/**/swagger.json
 backend/swagger-old.json
 backend/**/bin/
 backend/**/obj/
+# Accidental nested dotnet/ef output (causes MSB3030 staticwebassets copy errors)
+backend/_ef_build/
 backend/**/.vs/
 backend/**/*.user
 backend/**/*.userosscache

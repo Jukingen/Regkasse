@@ -61,6 +61,20 @@ public sealed class AdminTenantsController : ControllerBase
         return Ok(item);
     }
 
+    /// <summary>List cash registers for a tenant (super-admin cross-tenant view).</summary>
+    [HttpGet("{tenantId:guid}/cash-registers")]
+    [ProducesResponseType(typeof(IReadOnlyList<AdminTenantCashRegisterDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<AdminTenantCashRegisterDto>>> ListCashRegisters(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var items = await _tenantService.ListCashRegistersAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (items == null)
+            return NotFound(new { message = "Tenant not found." });
+        return Ok(items);
+    }
+
     /// <summary>Create a new tenant (generates id, unique slug).</summary>
     [HttpPost]
     [ProducesResponseType(typeof(AdminTenantDetailDto), StatusCodes.Status201Created)]
@@ -95,6 +109,29 @@ public sealed class AdminTenantsController : ControllerBase
         if (error != null)
             return BadRequest(new { message = error });
         return Ok(result);
+    }
+
+    /// <summary>Permanently delete a soft-deleted tenant without fiscal data (requires slug confirmation).</summary>
+    [HttpDelete("{tenantId:guid}/permanent")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> HardDelete(
+        Guid tenantId,
+        [FromBody] HardDeleteAdminTenantRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var (success, error) = await _tenantService
+            .HardDeleteAsync(tenantId, request, ActorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (!success)
+            return BadRequest(new { message = error });
+        return NoContent();
     }
 
     /// <summary>Soft-delete tenant (status=deleted, is_active=false).</summary>

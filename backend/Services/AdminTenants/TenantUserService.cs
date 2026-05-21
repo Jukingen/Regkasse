@@ -32,6 +32,7 @@ public sealed class TenantUserService : ITenantUserService
     private readonly IUserTenantMembershipProvisioner _membershipProvisioner;
     private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly ITenantInvitationEmailSender _invitationEmail;
+    private readonly IUserSessionInvalidation _sessionInvalidation;
     private readonly ILogger<TenantUserService> _logger;
 
     public TenantUserService(
@@ -40,6 +41,7 @@ public sealed class TenantUserService : ITenantUserService
         IUserTenantMembershipProvisioner membershipProvisioner,
         IUserUniquenessValidationService uniquenessValidation,
         ITenantInvitationEmailSender invitationEmail,
+        IUserSessionInvalidation sessionInvalidation,
         ILogger<TenantUserService> logger)
     {
         _db = db;
@@ -47,6 +49,7 @@ public sealed class TenantUserService : ITenantUserService
         _membershipProvisioner = membershipProvisioner;
         _uniquenessValidation = uniquenessValidation;
         _invitationEmail = invitationEmail;
+        _sessionInvalidation = sessionInvalidation;
         _logger = logger;
     }
 
@@ -276,6 +279,122 @@ public sealed class TenantUserService : ITenantUserService
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return (ToDto(user, membership), null);
     }
+
+    public async Task<(TenantUserPasswordResetResultDto? Result, string? Error)> ResetPasswordAsync(
+        Guid tenantId,
+        string userId,
+        ResetTenantUserPasswordRequest? request = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
+            return (null, "Tenant not found.");
+
+        var membership = await _db.UserTenantMemberships
+            .AsNoTracking()
+            .AnyAsync(m => m.UserId == userId && m.TenantId == tenantId && m.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        if (!membership)
+            return (null, "User is not assigned to this tenant.");
+
+        var user = await _userManager.FindByIdAsync(userId).ConfigureAwait(false);
+        if (user == null || !user.IsActive)
+            return (null, "User not found.");
+
+        if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            return (null, "Cannot reset password for SuperAdmin via tenant user management.");
+
+        var tenant = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant == null)
+            return (null, "Tenant not found.");
+
+        var generatedPassword = TenantProvisioningService.GenerateCompliantPassword();
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user).ConfigureAwait(false);
+        var reset = await _userManager.ResetPasswordAsync(user, token, generatedPassword).ConfigureAwait(false);
+        if (!reset.Succeeded)
+            return (null, string.Join("; ", reset.Errors.Select(e => e.Description)));
+
+        user.MustChangePasswordOnNextLogin = true;
+        user.UpdatedAt = DateTime.UtcNow;
+        var profileUpdate = await _userManager.UpdateAsync(user).ConfigureAwait(false);
+        if (!profileUpdate.Succeeded)
+            return (null, string.Join("; ", profileUpdate.Errors.Select(e => e.Description)));
+
+        await _sessionInvalidation.InvalidateSessionsForUserAsync(userId, cancellationToken).ConfigureAwait(false);
+
+        var sendEmail = request?.SendEmail ?? true;
+        var smtpConfigured = _invitationEmail.IsConfigured;
+        var emailSent = false;
+        string deliveryNote;
+
+        if (sendEmail && smtpConfigured)
+        {
+            var email = user.Email ?? user.UserName ?? string.Empty;
+            var portalUrl = BuildTenantPortalUrl(tenant.Slug);
+            var subject = $"Neues Passwort – {tenant.Name}";
+            var body = BuildPasswordResetEmailBody(tenant.Name, portalUrl, generatedPassword);
+            emailSent = await _invitationEmail
+                .TrySendInvitationAsync(email, subject, body, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        if (emailSent)
+        {
+            deliveryNote = "Password reset email sent. User must change password on next login.";
+        }
+        else if (!smtpConfigured)
+        {
+            deliveryNote = "SMTP is not configured; share the password manually. User must change password on next login.";
+        }
+        else if (!sendEmail)
+        {
+            deliveryNote = "Email not sent (operator choice). Share the password manually. User must change password on next login.";
+        }
+        else
+        {
+            deliveryNote = "Password reset applied; email could not be delivered. Share the password manually.";
+        }
+
+        _logger.LogInformation(
+            "Super-admin reset password for user {UserId} on tenant {TenantId} (emailSent={EmailSent})",
+            userId,
+            tenantId,
+            emailSent);
+
+        return (new TenantUserPasswordResetResultDto(
+            user.Id,
+            user.Email ?? user.UserName ?? string.Empty,
+            generatedPassword,
+            deliveryNote,
+            emailSent,
+            smtpConfigured,
+            ForcePasswordChangeOnNextLogin: true), null);
+    }
+
+    private static string BuildPasswordResetEmailBody(string tenantName, string portalUrl, string temporaryPassword) =>
+        string.Join(
+            Environment.NewLine,
+            $"Ihr Passwort für den Mandanten \"{tenantName}\" wurde zurückgesetzt.",
+            string.Empty,
+            $"Anmeldung: {portalUrl}",
+            string.Empty,
+            "Bitte melden Sie sich mit folgendem Einmalpasswort an und ändern Sie es anschließend:",
+            temporaryPassword,
+            string.Empty,
+            "Mit freundlichen Grüßen",
+            "Regkasse");
+
+    public Task<(TenantUserDto? Result, string? Error)> UpdateRoleAsync(
+        Guid tenantId,
+        string userId,
+        UpdateTenantUserRoleRequest request,
+        CancellationToken cancellationToken = default) =>
+        UpdateAsync(
+            tenantId,
+            userId,
+            new UpdateAdminTenantUserRequest { Role = request.Role },
+            cancellationToken);
 
     public async Task<(bool Success, string? Error)> RemoveAsync(
         Guid tenantId,

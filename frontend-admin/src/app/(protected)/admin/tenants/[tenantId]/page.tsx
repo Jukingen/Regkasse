@@ -1,0 +1,262 @@
+'use client';
+
+/**
+ * Super-admin tenant detail dashboard — overview, users, registers, license, settings.
+ */
+import React, { useCallback, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import {
+    Alert,
+    Button,
+    Card,
+    Space,
+    Tabs,
+    Tag,
+    Typography,
+    message,
+} from 'antd';
+import {
+    ArrowLeftOutlined,
+    EditOutlined,
+    LoginOutlined,
+    ReloadOutlined,
+} from '@ant-design/icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
+import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
+import { useI18n } from '@/i18n';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import {
+    applyTenantImpersonationSession,
+    deleteAdminTenant,
+    getAdminTenantById,
+    hardDeleteAdminTenant,
+    impersonateAdminTenant,
+    updateAdminTenant,
+} from '@/features/super-admin/api/adminTenants';
+import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
+import { TenantDetailCashRegistersTab } from '@/features/super-admin/components/TenantDetailCashRegistersTab';
+import { TenantDetailLicenseTab } from '@/features/super-admin/components/TenantDetailLicenseTab';
+import { TenantDetailOverviewTab } from '@/features/super-admin/components/TenantDetailOverviewTab';
+import { TenantDetailSettingsTab } from '@/features/super-admin/components/TenantDetailSettingsTab';
+import { TenantDetailUsersTab } from '@/features/super-admin/components/TenantDetailUsersTab';
+import { parseTenantDetailTab } from '@/features/super-admin/components/TenantDetailTabs';
+import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+
+const TENANT_DETAIL_QUERY_KEY = ['admin', 'tenant-detail'] as const;
+
+export default function SuperAdminTenantDetailPage() {
+    const { t } = useI18n();
+    const params = useParams();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const queryClient = useQueryClient();
+    const { user } = useAuth();
+    const tenantId = typeof params.tenantId === 'string' ? params.tenantId : '';
+    const activeTab = parseTenantDetailTab(searchParams.get('tab'));
+    const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
+
+    const canAccess =
+        isSuperAdmin(user?.role) || hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
+
+    const tenantQuery = useQuery({
+        queryKey: [...TENANT_DETAIL_QUERY_KEY, tenantId],
+        queryFn: () => getAdminTenantById(tenantId),
+        enabled: canAccess && !!tenantId,
+    });
+
+    const invalidateTenant = useCallback(() => {
+        void queryClient.invalidateQueries({ queryKey: [...TENANT_DETAIL_QUERY_KEY, tenantId] });
+        void queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+    }, [queryClient, tenantId]);
+
+    const statusMutation = useMutation({
+        mutationFn: (status: string) => updateAdminTenant(tenantId, { status }),
+        onSuccess: () => {
+            message.success(t('tenants.messages.updated'));
+            invalidateTenant();
+        },
+        onError: () => message.error(t('tenants.messages.saveFailed')),
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: () => deleteAdminTenant(tenantId),
+        onSuccess: () => {
+            message.success(t('tenants.messages.deleted'));
+            invalidateTenant();
+        },
+        onError: () => message.error(t('tenants.messages.deleteFailed')),
+    });
+
+    const hardDeleteMutation = useMutation({
+        mutationFn: (confirmSlug: string) => hardDeleteAdminTenant(tenantId, confirmSlug),
+        onSuccess: () => {
+            message.success(t('tenants.detail.danger.hardDeleteSuccess'));
+            router.push('/admin/tenants');
+        },
+        onError: (err: unknown) => {
+            const msg =
+                err && typeof err === 'object' && 'response' in err
+                    ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+                    : null;
+            message.error(msg ?? t('tenants.detail.danger.hardDeleteFailed'));
+        },
+    });
+
+    const impersonateMutation = useMutation({
+        mutationFn: () => impersonateAdminTenant(tenantId),
+        onSuccess: (res) => {
+            setImpersonationRedirecting(true);
+            applyTenantImpersonationSession(res);
+        },
+        onError: () => message.error(t('tenants.messages.impersonationFailed')),
+    });
+
+    const setTab = useCallback(
+        (tab: string) => {
+            router.replace(`/admin/tenants/${tenantId}?tab=${tab}`);
+        },
+        [router, tenantId],
+    );
+
+    const tabItems = useMemo(() => {
+        const tenant = tenantQuery.data;
+        if (!tenant) return [];
+
+        return [
+            {
+                key: 'overview',
+                label: t('tenants.detail.tabs.overview'),
+                children: (
+                    <TenantDetailOverviewTab
+                        tenant={tenant}
+                        suspendPending={statusMutation.isPending}
+                        deletePending={deleteMutation.isPending}
+                        hardDeletePending={hardDeleteMutation.isPending}
+                        onSuspend={() => statusMutation.mutate('suspended')}
+                        onReactivate={() => statusMutation.mutate('active')}
+                        onDelete={() => deleteMutation.mutate()}
+                        onHardDelete={(confirmSlug) => hardDeleteMutation.mutate(confirmSlug)}
+                    />
+                ),
+            },
+            {
+                key: 'users',
+                label: t('tenants.detail.tabs.users'),
+                children: <TenantDetailUsersTab tenantId={tenantId} />,
+            },
+            {
+                key: 'registers',
+                label: t('tenants.detail.tabs.registers'),
+                children: (
+                    <TenantDetailCashRegistersTab
+                        tenantId={tenantId}
+                        onImpersonate={() => impersonateMutation.mutate()}
+                        impersonatePending={impersonateMutation.isPending}
+                    />
+                ),
+            },
+            {
+                key: 'license',
+                label: t('tenants.detail.tabs.license'),
+                children: <TenantDetailLicenseTab tenant={tenant} onUpdated={invalidateTenant} />,
+            },
+            {
+                key: 'settings',
+                label: t('tenants.detail.tabs.settings'),
+                children: <TenantDetailSettingsTab tenant={tenant} onUpdated={invalidateTenant} />,
+            },
+        ];
+    }, [
+        t,
+        tenantQuery.data,
+        tenantId,
+        statusMutation.isPending,
+        deleteMutation.isPending,
+        hardDeleteMutation.isPending,
+        impersonateMutation.isPending,
+        invalidateTenant,
+    ]);
+
+    if (!canAccess) {
+        return (
+            <AdminPageShell>
+                <Alert type="error" message={t('tenants.accessDenied.title')} description={t('tenants.accessDenied.body')} />
+            </AdminPageShell>
+        );
+    }
+
+    if (!tenantId) {
+        return (
+            <AdminPageShell>
+                <Alert type="error" message={t('tenants.users.errors.invalidTenant')} />
+            </AdminPageShell>
+        );
+    }
+
+    const tenant = tenantQuery.data;
+    const title = tenant ? `${tenant.name} (${tenant.slug})` : tenantId;
+
+    return (
+        <AdminPageShell>
+            {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
+            <AdminPageHeader
+                title={title}
+                breadcrumbs={[
+                    adminOverviewCrumb(t),
+                    { title: t(ADMIN_NAV_LABEL_KEYS.settingsHub), href: '/settings' },
+                    { title: t('tenants.page.title'), href: '/admin/tenants' },
+                    { title, href: `/admin/tenants/${tenantId}` },
+                ]}
+                actions={
+                    <Space wrap>
+                        <Link href="/admin/tenants">
+                            <Button icon={<ArrowLeftOutlined />}>{t('tenants.users.actions.back')}</Button>
+                        </Link>
+                        <Button icon={<ReloadOutlined />} onClick={() => invalidateTenant()}>
+                            {t('common.refresh')}
+                        </Button>
+                        {tenant && tenant.status !== 'deleted' ? (
+                            <>
+                                <Link href={`/admin/tenants/${tenantId}?tab=settings`}>
+                                    <Button icon={<EditOutlined />}>{t('tenants.actions.edit')}</Button>
+                                </Link>
+                                <Button
+                                    icon={<LoginOutlined />}
+                                    loading={impersonateMutation.isPending}
+                                    onClick={() => impersonateMutation.mutate()}
+                                >
+                                    {t('tenants.actions.impersonate')}
+                                </Button>
+                            </>
+                        ) : null}
+                    </Space>
+                }
+            />
+
+            {tenant ? (
+                <Space style={{ marginBottom: 16 }}>
+                    <Tag color={tenantStatusColor(tenant.status)}>{tenant.status}</Tag>
+                    {tenant.isDemoPreset ? <Tag color="purple">{t('tenants.detail.demoPreset')}</Tag> : null}
+                </Space>
+            ) : null}
+
+            {tenantQuery.isError ? (
+                <Alert type="error" message={t('tenants.users.errors.tenantNotFound')} style={{ marginBottom: 16 }} />
+            ) : null}
+
+            <Card loading={tenantQuery.isLoading && !tenant}>
+                <Tabs activeKey={activeTab} onChange={setTab} items={tabItems} />
+            </Card>
+
+            {!tenantQuery.isLoading && !tenant && !tenantQuery.isError ? (
+                <Typography.Paragraph type="secondary">{t('tenants.users.errors.tenantNotFound')}</Typography.Paragraph>
+            ) : null}
+        </AdminPageShell>
+    );
+}

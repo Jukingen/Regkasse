@@ -4,7 +4,20 @@ public interface IAdminTenantService
 {
     Task<IReadOnlyList<AdminTenantListItemDto>> ListAsync(bool includeDeleted, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Dev/header tenant switcher: all tenants for SuperAdmin; membership-scoped for other users.
+    /// </summary>
+    Task<IReadOnlyList<AdminTenantListItemDto>> ListForSwitcherAsync(
+        string? actorUserId,
+        bool actorIsSuperAdmin,
+        bool includeDeleted,
+        CancellationToken cancellationToken = default);
+
     Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AdminTenantCashRegisterDto>?> ListCashRegistersAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
 
     Task<TenantSlugAvailabilityDto> CheckSlugAvailabilityAsync(
         string slug,
@@ -23,6 +36,12 @@ public interface IAdminTenantService
 
     Task<(bool Success, string? Error)> SoftDeleteAsync(
         Guid tenantId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<(bool Success, string? Error)> HardDeleteAsync(
+        Guid tenantId,
+        HardDeleteAdminTenantRequest request,
         string? actorUserId,
         CancellationToken cancellationToken = default);
 

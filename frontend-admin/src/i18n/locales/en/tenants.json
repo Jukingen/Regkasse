@@ -13,7 +13,15 @@
     "slug": "Subdomain",
     "email": "Contact email",
     "status": "Status",
+    "adminUser": "Admin user",
+    "license": "License",
+    "created": "Created",
     "actions": "Actions"
+  },
+  "status": {
+    "active": "Active",
+    "suspended": "Suspended",
+    "deleted": "Deleted"
   },
   "fields": {
     "name": "Tenant name",
@@ -174,7 +182,89 @@
     "edit": "Edit",
     "delete": "Delete",
     "impersonate": "Sign in as tenant",
-    "manageUsers": "Users"
+    "manageUsers": "Users",
+    "manageLicense": "License",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "view": "Details"
+  },
+  "detail": {
+    "demoPreset": "Demo tenant",
+    "tabs": {
+      "overview": "Overview",
+      "users": "Users",
+      "registers": "Registers",
+      "license": "License",
+      "settings": "Settings"
+    },
+    "overview": {
+      "statusCard": "Status & metadata",
+      "created": "Created",
+      "lastActivity": "Last activity",
+      "manageUsers": "Manage users",
+      "statsTitle": "Metrics",
+      "confirmSuspend": {
+        "title": "Suspend tenant?",
+        "body": "Users cannot sign in until the tenant is reactivated."
+      }
+    },
+    "registers": {
+      "hint": "Create registers after impersonating the tenant (Settings → Registers).",
+      "addViaImpersonation": "Sign in as tenant (add register)",
+      "empty": "No registers yet.",
+      "columns": {
+        "name": "Name",
+        "number": "No.",
+        "lastUsed": "Last used"
+      }
+    },
+    "license": {
+      "currentTitle": "Current license",
+      "editTitle": "Extend / adjust license",
+      "extendTitle": "Extend license",
+      "historyTitle": "License history",
+      "historyEmpty": "No history entries.",
+      "activateTrial": "Activate 30-day trial",
+      "changeTier": "Select tier …",
+      "tierUpdated": "License tier updated.",
+      "trialActivated": "30-day trial activated.",
+      "type": "Type",
+      "typeTrial": "Trial",
+      "typeLicensed": "Licensed",
+      "typeExpired": "Expired",
+      "typeNone": "None",
+      "validUntil": "Valid until",
+      "remaining": "Remaining",
+      "remainingDays": "{{count}} days",
+      "key": "License key (tenant row)",
+      "extend": "Save",
+      "extendHint": "Use a REGK key from Licenses or set an end date manually.",
+      "issuedHint": "Manage issued license keys under Licenses (may require impersonation for tenant-scoped activation).",
+      "openIssuedLicenses": "Open licenses",
+      "tiers": {
+        "basic": "Basic",
+        "standard": "Standard",
+        "premium": "Premium"
+      },
+      "history": {
+        "date": "Date",
+        "event": "Event",
+        "summary": "Summary"
+      }
+    },
+    "danger": {
+      "title": "Danger zone",
+      "hint": "Permanent delete only for soft-deleted tenants without fiscal receipts. Cannot be undone.",
+      "confirmLabel": "Type “{{slug}}” to confirm:",
+      "confirmTitle": "Permanently delete tenant?",
+      "confirmBody": "All non-fiscal data for this tenant will be removed.",
+      "hardDelete": "Delete permanently",
+      "hardDeleteSuccess": "Tenant permanently deleted.",
+      "hardDeleteFailed": "Permanent delete failed."
+    },
+    "settings": {
+      "save": "Save settings"
+    }
   },
   "edit": {
     "title": "Edit tenant"
@@ -207,14 +297,31 @@
       "name": "Name",
       "email": "Email",
       "role": "Role",
+      "status": "Status",
       "joined": "Assigned",
       "actions": "Actions"
+    },
+    "status": {
+      "active": "Active"
     },
     "actions": {
       "back": "Back to list",
       "add": "Existing user",
       "remove": "Remove",
-      "setOwner": "Set as tenant admin"
+      "setOwner": "Set as tenant admin",
+      "resetPassword": "Password"
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "body": "Generate a new one-time password for {{name}} ({{email}})?",
+      "confirm": "Generate password",
+      "sendEmail": "Send new password by email (SMTP)",
+      "smtpOff": "SMTP is not configured — password is shown here only.",
+      "preview": "New password",
+      "previewHint": "Generated on confirm (e.g. Cafe2026!xK9)",
+      "resultTitle": "New password",
+      "emailSent": "Password email was sent.",
+      "forceChangeHint": "The user must sign in with this password and change it on first login."
     },
     "invite": {
       "action": "Invite user",
@@ -255,7 +362,11 @@
       "removed": "User removed from tenant.",
       "removeFailed": "Remove failed.",
       "ownerSet": "Tenant administrator set.",
-      "ownerSetFailed": "Could not set owner."
+      "ownerSetFailed": "Could not set owner.",
+      "roleUpdated": "Role updated.",
+      "roleUpdateFailed": "Could not update role.",
+      "passwordReset": "Password reset.",
+      "passwordResetFailed": "Password reset failed."
     },
     "errors": {
       "invalidTenant": "Invalid tenant id.",

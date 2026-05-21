@@ -48,7 +48,8 @@
     "confirmMismatch": "Sifreler eslesmiyor.",
     "submit": "Sifreyi degistir",
     "success": "Sifre degistirildi.",
-    "errorFallback": "Sifre degistirilemedi."
+    "errorFallback": "Sifre degistirilemedi.",
+    "requiredBanner": "Uygulamayi kullanmaya devam etmeden once sifrenizi degistirmelisiniz."
   },
   "form": {
     "general": {

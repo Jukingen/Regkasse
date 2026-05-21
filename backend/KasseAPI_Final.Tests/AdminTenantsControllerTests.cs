@@ -230,6 +230,134 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
+    public async Task ListForSwitcherAsync_Filters_To_Active_Memberships_For_Non_SuperAdmin()
+    {
+        await using var db = CreateDb();
+        var memberTenantId = Guid.NewGuid();
+        var otherTenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = memberTenantId,
+            Name = "Member Cafe",
+            Slug = "member-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = otherTenantId,
+            Name = "Other Bar",
+            Slug = "other-bar",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "manager-1",
+            TenantId = memberTenantId,
+            IsActive = true,
+            IsOwner = false,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var all = await service.ListForSwitcherAsync("manager-1", actorIsSuperAdmin: false, includeDeleted: false);
+        Assert.Single(all);
+        Assert.Equal("member-cafe", all[0].Slug);
+
+        var superList = await service.ListForSwitcherAsync("manager-1", actorIsSuperAdmin: true, includeDeleted: false);
+        Assert.Equal(2, superList.Count);
+    }
+
+    [Fact]
+    public async Task ListCashRegistersAsync_ReturnsRegisters_ForTenant()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe-x",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Hauptkasse",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var registers = await service.ListCashRegistersAsync(tenantId);
+
+        Assert.NotNull(registers);
+        Assert.Single(registers!);
+        Assert.Equal("KASSE-001", registers![0].RegisterNumber);
+        Assert.Equal("Open", registers[0].Status);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_IncludesSummaryCounts()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Stats",
+            Slug = "stats",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "u1",
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = false,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var detail = await service.GetByIdAsync(tenantId);
+
+        Assert.NotNull(detail);
+        Assert.Equal(1, detail!.ActiveUserCount);
+        Assert.Equal(1, detail.CashRegisterCount);
+        Assert.NotNull(detail.LastActivityAtUtc);
+    }
+
+    [Fact]
     public async Task SoftDeleteAsync_RejectsLegacyDefaultTenant()
     {
         await using var db = CreateDb();

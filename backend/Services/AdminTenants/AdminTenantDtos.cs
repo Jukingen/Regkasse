@@ -31,7 +31,19 @@ public sealed record AdminTenantDetailDto(
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     DateTime? DeletedAtUtc,
+    string? OwnerAdminEmail = null,
+    int ActiveUserCount = 0,
+    int CashRegisterCount = 0,
+    DateTime? LastActivityAtUtc = null,
     TenantProvisioningDto? Provisioning = null);
+
+public sealed record AdminTenantCashRegisterDto(
+    Guid Id,
+    string RegisterNumber,
+    string Location,
+    string Status,
+    bool IsActive,
+    DateTime? LastUsedAtUtc);
 
 public sealed class CreateAdminTenantRequest
 {
@@ -68,6 +80,14 @@ public sealed class CreateAdminTenantRequest
 
     /// <summary>When true and no license end date is set, grants a 30-day trial on the tenant row.</summary>
     public bool GrantTrialLicense { get; set; } = true;
+}
+
+public sealed class HardDeleteAdminTenantRequest
+{
+    /// <summary>Must match tenant slug exactly (safety confirmation).</summary>
+    [Required]
+    [MaxLength(64)]
+    public string ConfirmSlug { get; set; } = string.Empty;
 }
 
 public sealed class UpdateAdminTenantRequest

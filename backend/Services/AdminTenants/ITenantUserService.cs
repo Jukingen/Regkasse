@@ -24,4 +24,16 @@ public interface ITenantUserService
         Guid tenantId,
         string userId,
         CancellationToken cancellationToken = default);
+
+    Task<(TenantUserPasswordResetResultDto? Result, string? Error)> ResetPasswordAsync(
+        Guid tenantId,
+        string userId,
+        ResetTenantUserPasswordRequest? request = null,
+        CancellationToken cancellationToken = default);
+
+    Task<(TenantUserDto? Result, string? Error)> UpdateRoleAsync(
+        Guid tenantId,
+        string userId,
+        UpdateTenantUserRoleRequest request,
+        CancellationToken cancellationToken = default);
 }

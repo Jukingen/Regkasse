@@ -86,6 +86,52 @@ public sealed class AdminTenantUsersController : ControllerBase
         return CreatedAtAction(nameof(List), new { tenantId }, result);
     }
 
+    /// <summary>Update role for a tenant user.</summary>
+    [HttpPut("{userId}/role")]
+    [ProducesResponseType(typeof(TenantUserDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TenantUserDto>> UpdateRole(
+        Guid tenantId,
+        string userId,
+        [FromBody] UpdateTenantUserRoleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var (result, error) = await _tenantUserService.UpdateRoleAsync(tenantId, userId, request, cancellationToken)
+            .ConfigureAwait(false);
+        if (error is "Tenant not found." or "User not found." or "User is not assigned to this tenant.")
+            return NotFound(new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error });
+        return Ok(result);
+    }
+
+    /// <summary>Generate a new password for a tenant user (shown once in the response).</summary>
+    [HttpPost("{userId}/reset-password")]
+    [ProducesResponseType(typeof(TenantUserPasswordResetResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TenantUserPasswordResetResultDto>> ResetPassword(
+        Guid tenantId,
+        string userId,
+        [FromBody] ResetTenantUserPasswordRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        var (result, error) = await _tenantUserService
+            .ResetPasswordAsync(tenantId, userId, request, cancellationToken)
+            .ConfigureAwait(false);
+        if (error is "Tenant not found." or "User not found." or "User is not assigned to this tenant.")
+            return NotFound(new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error });
+
+        _logger.LogInformation("Password reset for user {UserId} on tenant {TenantId}", userId, tenantId);
+        return Ok(result);
+    }
+
     /// <summary>Update tenant membership (role and/or owner flag).</summary>
     [HttpPut("{userId}")]
     [ProducesResponseType(typeof(TenantUserDto), StatusCodes.Status200OK)]

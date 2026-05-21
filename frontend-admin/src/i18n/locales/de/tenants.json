@@ -13,7 +13,15 @@
     "slug": "Subdomain",
     "email": "Kontakt-E-Mail",
     "status": "Status",
+    "adminUser": "Administrator",
+    "license": "Lizenz",
+    "created": "Erstellt",
     "actions": "Aktionen"
+  },
+  "status": {
+    "active": "Aktiv",
+    "suspended": "Gesperrt",
+    "deleted": "Gelöscht"
   },
   "fields": {
     "name": "Firmenname",
@@ -174,7 +182,89 @@
     "edit": "Bearbeiten",
     "delete": "Löschen",
     "impersonate": "Als Mandant anmelden",
-    "manageUsers": "Benutzer"
+    "manageUsers": "Benutzer",
+    "manageLicense": "Lizenz",
+    "suspend": "Sperren",
+    "reactivate": "Reaktivieren",
+    "view": "Details"
+  },
+  "detail": {
+    "demoPreset": "Demo-Mandant",
+    "tabs": {
+      "overview": "Übersicht",
+      "users": "Benutzer",
+      "registers": "Kassen",
+      "license": "Lizenz",
+      "settings": "Einstellungen"
+    },
+    "overview": {
+      "statusCard": "Status & Metadaten",
+      "created": "Erstellt",
+      "lastActivity": "Letzte Aktivität",
+      "manageUsers": "Benutzer verwalten",
+      "statsTitle": "Kennzahlen",
+      "confirmSuspend": {
+        "title": "Mandant sperren?",
+        "body": "Benutzer können sich nicht mehr anmelden, bis der Mandant reaktiviert wird."
+      }
+    },
+    "registers": {
+      "hint": "Neue Kassen legen Sie nach Impersonation im Mandanten-Kontext an (Einstellungen → Kassen).",
+      "addViaImpersonation": "Als Mandant anmelden (Kasse anlegen)",
+      "empty": "Keine Kassen vorhanden.",
+      "columns": {
+        "name": "Name",
+        "number": "Nr.",
+        "lastUsed": "Letzte Nutzung"
+      }
+    },
+    "license": {
+      "currentTitle": "Aktuelle Lizenz",
+      "editTitle": "Lizenz verlängern / anpassen",
+      "extendTitle": "Lizenz verlängern",
+      "historyTitle": "Lizenzverlauf",
+      "historyEmpty": "Kein Verlauf vorhanden.",
+      "activateTrial": "30-Tage Demo aktivieren",
+      "changeTier": "Stufe wählen …",
+      "tierUpdated": "Lizenzstufe wurde gesetzt.",
+      "trialActivated": "Demo-Lizenz (30 Tage) wurde aktiviert.",
+      "type": "Typ",
+      "typeTrial": "Demo / Test",
+      "typeLicensed": "Lizenziert",
+      "typeExpired": "Abgelaufen",
+      "typeNone": "Keine",
+      "validUntil": "Gültig bis",
+      "remaining": "Verbleibend",
+      "remainingDays": "{{count}} Tage",
+      "key": "Lizenzschlüssel (Mandant)",
+      "extend": "Speichern",
+      "extendHint": "REGK-Schlüssel aus „Lizenzen“ oder ein Enddatum manuell setzen.",
+      "issuedHint": "Ausgestellte Lizenzschlüssel und Aktivierungen verwalten Sie unter „Lizenzen“ (ggf. nach Impersonation im Mandanten-Kontext).",
+      "openIssuedLicenses": "Lizenzen öffnen",
+      "tiers": {
+        "basic": "Basic",
+        "standard": "Standard",
+        "premium": "Premium"
+      },
+      "history": {
+        "date": "Datum",
+        "event": "Ereignis",
+        "summary": "Beschreibung"
+      }
+    },
+    "danger": {
+      "title": "Gefahrenzone",
+      "hint": "Endgültiges Löschen nur für soft-gelöschte Mandanten ohne Belege. Nicht rückgängig zu machen.",
+      "confirmLabel": "Geben Sie „{{slug}}“ ein, um zu bestätigen:",
+      "confirmTitle": "Mandant endgültig löschen?",
+      "confirmBody": "Alle nicht-fiskalischen Daten dieses Mandanten werden entfernt.",
+      "hardDelete": "Endgültig löschen",
+      "hardDeleteSuccess": "Mandant wurde endgültig gelöscht.",
+      "hardDeleteFailed": "Endgültiges Löschen fehlgeschlagen."
+    },
+    "settings": {
+      "save": "Einstellungen speichern"
+    }
   },
   "edit": {
     "title": "Mandant bearbeiten"
@@ -207,14 +297,31 @@
       "name": "Name",
       "email": "E-Mail",
       "role": "Rolle",
+      "status": "Status",
       "joined": "Zugewiesen am",
       "actions": "Aktionen"
+    },
+    "status": {
+      "active": "Aktiv"
     },
     "actions": {
       "back": "Zurück zur Liste",
       "add": "Bestehenden Benutzer",
       "remove": "Entfernen",
-      "setOwner": "Als Mandanten-Admin"
+      "setOwner": "Als Mandanten-Admin",
+      "resetPassword": "Passwort"
+    },
+    "resetPassword": {
+      "title": "Passwort zurücksetzen",
+      "body": "Neues Einmalpasswort für {{name}} ({{email}}) erzeugen?",
+      "confirm": "Passwort erzeugen",
+      "sendEmail": "Neues Passwort per E-Mail senden (SMTP)",
+      "smtpOff": "SMTP ist nicht konfiguriert — Passwort wird nur hier angezeigt.",
+      "preview": "Neues Passwort",
+      "previewHint": "Wird nach Bestätigung automatisch erzeugt (z. B. Cafe2026!xK9)",
+      "resultTitle": "Neues Passwort",
+      "emailSent": "E-Mail mit Passwort wurde versendet.",
+      "forceChangeHint": "Der Benutzer muss sich beim nächsten Login anmelden und das Passwort ändern."
     },
     "invite": {
       "action": "Benutzer einladen",
@@ -255,7 +362,11 @@
       "removed": "Benutzer wurde vom Mandanten entfernt.",
       "removeFailed": "Entfernen fehlgeschlagen.",
       "ownerSet": "Mandanten-Administrator wurde gesetzt.",
-      "ownerSetFailed": "Owner konnte nicht gesetzt werden."
+      "ownerSetFailed": "Owner konnte nicht gesetzt werden.",
+      "roleUpdated": "Rolle wurde aktualisiert.",
+      "roleUpdateFailed": "Rolle konnte nicht aktualisiert werden.",
+      "passwordReset": "Passwort wurde zurückgesetzt.",
+      "passwordResetFailed": "Passwort-Reset fehlgeschlagen."
     },
     "errors": {
       "invalidTenant": "Ungültige Mandanten-ID.",

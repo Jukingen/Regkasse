@@ -17,17 +17,31 @@ export type InviteUserModalProps = {
     confirmLoading?: boolean;
     onClose: () => void;
     onSubmit: (values: InviteUserFormValues) => void;
+    /** Applied when the modal opens (e.g. header switcher quick admin create). */
+    initialValues?: Partial<InviteUserFormValues>;
 };
 
-export function InviteUserModal({ open, confirmLoading, onClose, onSubmit }: InviteUserModalProps) {
+export function InviteUserModal({
+    open,
+    confirmLoading,
+    onClose,
+    onSubmit,
+    initialValues,
+}: InviteUserModalProps) {
     const { t } = useI18n();
     const [form] = Form.useForm<InviteUserFormValues>();
 
     useEffect(() => {
         if (!open) {
             form.resetFields();
+            return;
         }
-    }, [open, form]);
+        form.setFieldsValue({
+            role: 'Manager',
+            isOwner: false,
+            ...initialValues,
+        });
+    }, [open, form, initialValues]);
 
     return (
         <Modal

@@ -5,6 +5,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>a8f3e1b2-9c4d-4e7f-a1b2-3c4d5e6f7080</UserSecretsId>
+    <!-- Local verify/test pipelines must not live under the project tree (breaks VS/dotnet incremental copy). -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);_test_build_out/**;_ef_build/**;_build_out/**;artifacts/**;**/verify-build/**;**/verify-obj/**;**/ntp-bypass-build/**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,8 +16,18 @@
   <ItemGroup>
     <Compile Remove="KasseAPI_Final.Tests\**" />
     <Compile Remove="artifacts\**" />
+    <Compile Remove="_test_build_out\**" />
+    <Compile Remove="_ef_build\**" />
+    <Compile Remove="_build_out\**" />
     <Content Remove="KasseAPI_Final.Tests\**" />
+    <Content Remove="artifacts\**" />
+    <Content Remove="_test_build_out\**" />
+    <Content Remove="_ef_build\**" />
+    <Content Remove="_build_out\**" />
     <None Remove="KasseAPI_Final.Tests\**" />
+    <None Remove="_test_build_out\**" />
+    <None Remove="_ef_build\**" />
+    <None Remove="_build_out\**" />
   </ItemGroup>
 
   <ItemGroup>

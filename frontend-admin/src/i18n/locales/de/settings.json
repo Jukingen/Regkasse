@@ -48,7 +48,8 @@
     "confirmMismatch": "Passwörter stimmen nicht überein.",
     "submit": "Passwort ändern",
     "success": "Passwort wurde geändert.",
-    "errorFallback": "Passwort konnte nicht geändert werden."
+    "errorFallback": "Passwort konnte nicht geändert werden.",
+    "requiredBanner": "Sie müssen Ihr Passwort ändern, bevor Sie die Anwendung weiter nutzen können."
   },
   "form": {
     "general": {

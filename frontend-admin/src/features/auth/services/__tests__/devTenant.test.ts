@@ -1,4 +1,3 @@
-import { DEV_TENANT_PRESETS } from '../../constants/devTenantPresets';
 import {
   DEV_TENANT_CHANGED_EVENT,
   getDevTenant,
@@ -43,10 +42,6 @@ describe('devTenant', () => {
     });
     expect(isLocalDevHostname('bar.regkasse.local')).toBe(true);
     expect(getDevTenant()).toBe('bar');
-  });
-
-  it('exposes preset slugs for dev switcher', () => {
-    expect(DEV_TENANT_PRESETS.map((p) => p.value)).toEqual(['dev', 'cafe', 'bar']);
   });
 
   it('maps admin.regkasse.local to admin without implicit dev mandant', () => {

@@ -1,8 +1,8 @@
 'use client';
 
-import { Button, Popconfirm, Space, Table, Tag } from 'antd';
+import { Button, Popconfirm, Select, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { CrownOutlined, UserDeleteOutlined } from '@ant-design/icons';
+import { CrownOutlined, KeyOutlined, UserDeleteOutlined } from '@ant-design/icons';
 
 import type { TenantUser } from '@/features/super-admin/api/tenantUsers';
 import { useI18n } from '@/i18n';
@@ -15,8 +15,12 @@ export type TenantUserTableProps = {
     loading?: boolean;
     setOwnerPending?: boolean;
     removePending?: boolean;
+    roleChangeUserId?: string | null;
+    resetPendingUserId?: string | null;
     onSetOwner: (userId: string) => void;
     onRemove: (userId: string) => void;
+    onRoleChange: (userId: string, role: string) => void;
+    onResetPassword: (userId: string) => void;
 };
 
 export function TenantUserTable({
@@ -24,8 +28,12 @@ export function TenantUserTable({
     loading,
     setOwnerPending,
     removePending,
+    roleChangeUserId,
+    resetPendingUserId,
     onSetOwner,
     onRemove,
+    onRoleChange,
+    onResetPassword,
 }: TenantUserTableProps) {
     const { t } = useI18n();
 
@@ -50,7 +58,21 @@ export function TenantUserTable({
             title: t('tenants.users.columns.role'),
             dataIndex: 'role',
             key: 'role',
-            render: (role: string) => role,
+            render: (role: string, row) => (
+                <Select
+                    size="small"
+                    style={{ minWidth: 140 }}
+                    value={role}
+                    loading={roleChangeUserId === row.userId}
+                    onChange={(value) => onRoleChange(row.userId, value)}
+                    options={ASSIGNABLE_ROLES.map((r) => ({ value: r, label: r }))}
+                />
+            ),
+        },
+        {
+            title: t('tenants.users.columns.status'),
+            key: 'status',
+            render: () => <Tag color="green">{t('tenants.users.status.active')}</Tag>,
         },
         {
             title: t('tenants.users.columns.joined'),
@@ -62,7 +84,15 @@ export function TenantUserTable({
             title: t('tenants.users.columns.actions'),
             key: 'actions',
             render: (_, row) => (
-                <Space size="small">
+                <Space size="small" wrap>
+                    <Button
+                        size="small"
+                        icon={<KeyOutlined />}
+                        loading={resetPendingUserId === row.userId}
+                        onClick={() => onResetPassword(row.userId)}
+                    >
+                        {t('tenants.users.actions.resetPassword')}
+                    </Button>
                     {!row.isOwner && (
                         <Button
                             size="small"

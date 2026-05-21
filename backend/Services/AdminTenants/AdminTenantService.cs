@@ -83,13 +83,111 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .ToList();
     }
 
-    public async Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default) =>
-        await _db.Tenants
+    public async Task<IReadOnlyList<AdminTenantListItemDto>> ListForSwitcherAsync(
+        string? actorUserId,
+        bool actorIsSuperAdmin,
+        bool includeDeleted,
+        CancellationToken cancellationToken = default)
+    {
+        var items = await ListAsync(includeDeleted, cancellationToken).ConfigureAwait(false);
+        if (actorIsSuperAdmin || string.IsNullOrWhiteSpace(actorUserId))
+        {
+            return items;
+        }
+
+        var memberTenantIds = await _db.UserTenantMemberships
             .AsNoTracking()
-            .Where(t => t.Id == tenantId)
-            .Select(t => ToDetail(t))
+            .Where(m => m.UserId == actorUserId && m.IsActive)
+            .Select(m => m.TenantId)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (memberTenantIds.Count == 0)
+        {
+            return Array.Empty<AdminTenantListItemDto>();
+        }
+
+        var allowed = memberTenantIds.ToHashSet();
+        return items.Where(t => allowed.Contains(t.Id)).ToList();
+    }
+
+    public async Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var tenant = await _db.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant == null)
+            return null;
+
+        var activeUserCount = await _db.UserTenantMemberships
+            .AsNoTracking()
+            .CountAsync(m => m.TenantId == tenantId && m.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+
+        var registerStats = await _db.CashRegisters
+            .AsNoTracking()
+            .Where(cr => cr.TenantId == tenantId)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Count = g.Count(),
+                LastUsed = g.Max(cr => (DateTime?)cr.LastBalanceUpdate),
+            })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        var lastReceiptAt = await _db.Receipts.AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
+            .MaxAsync(r => (DateTime?)r.IssuedAt, cancellationToken)
+            .ConfigureAwait(false);
+
+        var ownerEmail = await _db.UserTenantMemberships
+            .AsNoTracking()
+            .Where(m => m.TenantId == tenantId && m.IsActive && m.IsOwner)
+            .Join(
+                _db.Users.AsNoTracking(),
+                m => m.UserId,
+                u => u.Id,
+                (_, u) => u.Email ?? u.UserName)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var lastActivity = MaxUtc(
+            tenant.UpdatedAt,
+            registerStats?.LastUsed,
+            lastReceiptAt);
+
+        return ToDetail(
+            tenant,
+            provisioning: null,
+            ownerAdminEmail: ownerEmail,
+            activeUserCount: activeUserCount,
+            cashRegisterCount: registerStats?.Count ?? 0,
+            lastActivityAtUtc: lastActivity);
+    }
+
+    public async Task<IReadOnlyList<AdminTenantCashRegisterDto>?> ListCashRegistersAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await _db.Tenants.AsNoTracking().AnyAsync(t => t.Id == tenantId, cancellationToken).ConfigureAwait(false))
+            return null;
+
+        return await _db.CashRegisters
+            .AsNoTracking()
+            .Where(cr => cr.TenantId == tenantId)
+            .OrderBy(cr => cr.RegisterNumber)
+            .Select(cr => new AdminTenantCashRegisterDto(
+                cr.Id,
+                cr.RegisterNumber,
+                cr.Location,
+                cr.Status.ToString(),
+                cr.IsActive,
+                cr.LastBalanceUpdate))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
 
     public async Task<TenantSlugAvailabilityDto> CheckSlugAvailabilityAsync(
         string slug,
@@ -220,6 +318,90 @@ public sealed partial class AdminTenantService : IAdminTenantService
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("Super-admin updated tenant {TenantId}", tenantId);
         return (ToDetail(tenant), null);
+    }
+
+    public async Task<(bool Success, string? Error)> HardDeleteAsync(
+        Guid tenantId,
+        HardDeleteAdminTenantRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (tenantId == LegacyDefaultTenantIds.Primary)
+            return (false, "The legacy default tenant cannot be permanently deleted.");
+
+        var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant == null)
+            return (false, "Tenant not found.");
+
+        if (tenant.Status != TenantStatuses.Deleted)
+            return (false, "Tenant must be soft-deleted before permanent deletion.");
+
+        var confirmSlug = NormalizeSlug(request.ConfirmSlug);
+        if (!string.Equals(confirmSlug, tenant.Slug, StringComparison.Ordinal))
+            return (false, "Confirmation slug does not match tenant slug.");
+
+        var hasReceipts = await _db.Receipts.AsNoTracking()
+            .AnyAsync(r => r.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (hasReceipts)
+        {
+            return (false,
+                "Cannot permanently delete tenant with fiscal receipts. Keep the soft-deleted record for compliance.");
+        }
+
+        var hasOffline = await _db.OfflineTransactions.AsNoTracking()
+            .AnyAsync(o => o.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (hasOffline)
+            return (false, "Cannot permanently delete tenant with offline transaction queue rows.");
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var registerIds = await _db.CashRegisters
+                .Where(cr => cr.TenantId == tenantId)
+                .Select(cr => cr.Id)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (registerIds.Count > 0)
+            {
+                await _db.CashRegisterTransactions
+                    .Where(t => registerIds.Contains(t.CashRegisterId))
+                    .ExecuteDeleteAsync(cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            await _db.Products.Where(p => p.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+            await _db.Categories.Where(c => c.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+            await _db.CashRegisters.Where(cr => cr.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+            await _db.CompanySettings.Where(s => s.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+            await _db.UserTenantMemberships.Where(m => m.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            _db.Tenants.Remove(tenant);
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            _logger.LogWarning(
+                "Super-admin permanently deleted tenant {TenantId} slug {Slug} by {ActorUserId}",
+                tenant.Id,
+                tenant.Slug,
+                actorUserId);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            _logger.LogError(ex, "Permanent tenant delete failed for {TenantId}", tenantId);
+            return (false, "Permanent delete failed due to remaining dependencies.");
+        }
     }
 
     public async Task<(bool Success, string? Error)> SoftDeleteAsync(
@@ -354,7 +536,13 @@ public sealed partial class AdminTenantService : IAdminTenantService
             ownerAdminEmail,
             DemoTenantIds.IsDemoPresetSlug(t.Slug));
 
-    private static AdminTenantDetailDto ToDetail(Tenant t, TenantProvisioningDto? provisioning = null) =>
+    private static AdminTenantDetailDto ToDetail(
+        Tenant t,
+        TenantProvisioningDto? provisioning = null,
+        string? ownerAdminEmail = null,
+        int activeUserCount = 0,
+        int cashRegisterCount = 0,
+        DateTime? lastActivityAtUtc = null) =>
         new(
             t.Id,
             t.Name,
@@ -369,5 +557,23 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.CreatedAt,
             t.UpdatedAt,
             t.DeletedAtUtc,
+            ownerAdminEmail,
+            activeUserCount,
+            cashRegisterCount,
+            lastActivityAtUtc,
             provisioning);
+
+    private static DateTime? MaxUtc(params DateTime?[] values)
+    {
+        DateTime? max = null;
+        foreach (var v in values)
+        {
+            if (!v.HasValue)
+                continue;
+            if (!max.HasValue || v.Value > max.Value)
+                max = v;
+        }
+
+        return max;
+    }
 }

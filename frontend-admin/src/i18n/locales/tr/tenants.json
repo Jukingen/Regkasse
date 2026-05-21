@@ -13,7 +13,15 @@
     "slug": "Alt alan",
     "email": "İletişim e-postası",
     "status": "Durum",
+    "adminUser": "Yönetici",
+    "license": "Lisans",
+    "created": "Oluşturulma",
     "actions": "İşlemler"
+  },
+  "status": {
+    "active": "Aktif",
+    "suspended": "Askıda",
+    "deleted": "Silindi"
   },
   "fields": {
     "name": "Kiracı adı",
@@ -174,7 +182,89 @@
     "edit": "Düzenle",
     "delete": "Sil",
     "impersonate": "Kiracı olarak giriş",
-    "manageUsers": "Kullanıcılar"
+    "manageUsers": "Kullanıcılar",
+    "manageLicense": "Lisans",
+    "suspend": "Askıya al",
+    "reactivate": "Yeniden etkinleştir",
+    "view": "Detay"
+  },
+  "detail": {
+    "demoPreset": "Demo kiracı",
+    "tabs": {
+      "overview": "Genel bakış",
+      "users": "Kullanıcılar",
+      "registers": "Kasalar",
+      "license": "Lisans",
+      "settings": "Ayarlar"
+    },
+    "overview": {
+      "statusCard": "Durum ve meta veriler",
+      "created": "Oluşturulma",
+      "lastActivity": "Son aktivite",
+      "manageUsers": "Kullanıcıları yönet",
+      "statsTitle": "Özet",
+      "confirmSuspend": {
+        "title": "Kiracı askıya alınsın mı?",
+        "body": "Kiracı yeniden etkinleştirilene kadar kullanıcılar giriş yapamaz."
+      }
+    },
+    "registers": {
+      "hint": "Yeni kasalar impersonation sonrası kiracı bağlamında oluşturulur (Ayarlar → Kasalar).",
+      "addViaImpersonation": "Kiracı olarak giriş (kasa ekle)",
+      "empty": "Henüz kasa yok.",
+      "columns": {
+        "name": "Ad",
+        "number": "No.",
+        "lastUsed": "Son kullanım"
+      }
+    },
+    "license": {
+      "currentTitle": "Geçerli lisans",
+      "editTitle": "Lisansı uzat / düzenle",
+      "extendTitle": "Lisansı uzat",
+      "historyTitle": "Lisans geçmişi",
+      "historyEmpty": "Geçmiş kaydı yok.",
+      "activateTrial": "30 günlük demo etkinleştir",
+      "changeTier": "Seviye seç …",
+      "tierUpdated": "Lisans seviyesi güncellendi.",
+      "trialActivated": "30 günlük demo etkinleştirildi.",
+      "type": "Tür",
+      "typeTrial": "Demo / deneme",
+      "typeLicensed": "Lisanslı",
+      "typeExpired": "Süresi dolmuş",
+      "typeNone": "Yok",
+      "validUntil": "Geçerlilik",
+      "remaining": "Kalan",
+      "remainingDays": "{{count}} gün",
+      "key": "Lisans anahtarı (kiracı)",
+      "extend": "Kaydet",
+      "extendHint": "Lisanslar sayfasındaki REGK anahtarı veya manuel bitiş tarihi.",
+      "issuedHint": "Verilen lisans anahtarları Lisanslar sayfasından yönetilir (kiracı kapsamı için impersonation gerekebilir).",
+      "openIssuedLicenses": "Lisansları aç",
+      "tiers": {
+        "basic": "Basic",
+        "standard": "Standard",
+        "premium": "Premium"
+      },
+      "history": {
+        "date": "Tarih",
+        "event": "Olay",
+        "summary": "Özet"
+      }
+    },
+    "danger": {
+      "title": "Tehlikeli bölge",
+      "hint": "Kalıcı silme yalnızca soft-delete edilmiş ve mali fişi olmayan kiracılar için. Geri alınamaz.",
+      "confirmLabel": "Onay için “{{slug}}” yazın:",
+      "confirmTitle": "Kiracı kalıcı olarak silinsin mi?",
+      "confirmBody": "Bu kiracıya ait mali olmayan tüm veriler kaldırılır.",
+      "hardDelete": "Kalıcı sil",
+      "hardDeleteSuccess": "Kiracı kalıcı olarak silindi.",
+      "hardDeleteFailed": "Kalıcı silme başarısız."
+    },
+    "settings": {
+      "save": "Ayarları kaydet"
+    }
   },
   "edit": {
     "title": "Kiracıyı düzenle"
@@ -207,14 +297,31 @@
       "name": "Ad",
       "email": "E-posta",
       "role": "Rol",
+      "status": "Durum",
       "joined": "Atanma",
       "actions": "İşlemler"
+    },
+    "status": {
+      "active": "Aktif"
     },
     "actions": {
       "back": "Listeye dön",
       "add": "Mevcut kullanıcı",
       "remove": "Kaldır",
-      "setOwner": "Kiracı yöneticisi yap"
+      "setOwner": "Kiracı yöneticisi yap",
+      "resetPassword": "Şifre"
+    },
+    "resetPassword": {
+      "title": "Şifre sıfırla",
+      "body": "{{name}} ({{email}}) için yeni tek kullanımlık şifre oluşturulsun mu?",
+      "confirm": "Şifre oluştur",
+      "sendEmail": "Yeni şifreyi e-posta ile gönder (SMTP)",
+      "smtpOff": "SMTP yapılandırılmadı — şifre yalnızca burada gösterilir.",
+      "preview": "Yeni şifre",
+      "previewHint": "Onaydan sonra otomatik üretilir (ör. Cafe2026!xK9)",
+      "resultTitle": "Yeni şifre",
+      "emailSent": "Şifre e-postası gönderildi.",
+      "forceChangeHint": "Kullanıcı bir sonraki girişte bu şifreyle oturum açıp değiştirmek zorundadır."
     },
     "invite": {
       "action": "Kullanıcı davet et",
@@ -255,7 +362,11 @@
       "removed": "Kullanıcı kiracıdan kaldırıldı.",
       "removeFailed": "Kaldırma başarısız.",
       "ownerSet": "Kiracı yöneticisi ayarlandı.",
-      "ownerSetFailed": "Owner ayarlanamadı."
+      "ownerSetFailed": "Owner ayarlanamadı.",
+      "roleUpdated": "Rol güncellendi.",
+      "roleUpdateFailed": "Rol güncellenemedi.",
+      "passwordReset": "Şifre sıfırlandı.",
+      "passwordResetFailed": "Şifre sıfırlama başarısız."
     },
     "errors": {
       "invalidTenant": "Geçersiz kiracı kimliği.",

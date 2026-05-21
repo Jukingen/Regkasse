@@ -45,13 +45,15 @@ public sealed class TenantUserServiceTests
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
         ITenantInvitationEmailSender? invitationEmail = null,
-        IUserUniquenessValidationService? uniqueness = null) =>
+        IUserUniquenessValidationService? uniqueness = null,
+        IUserSessionInvalidation? sessionInvalidation = null) =>
         new(
             db,
             userManager,
             new UserTenantMembershipProvisioner(db),
             uniqueness ?? CreateUniquenessMock().Object,
             invitationEmail ?? CreateInvitationEmailMock(sent: false).Object,
+            sessionInvalidation ?? Mock.Of<IUserSessionInvalidation>(),
             Mock.Of<ILogger<TenantUserService>>());
 
     private static Mock<IUserUniquenessValidationService> CreateUniquenessMock(bool emailTaken = false)
@@ -159,5 +161,54 @@ public sealed class TenantUserServiceTests
         Assert.True(result!.UserCreated);
         Assert.False(result.InvitationEmailSent);
         Assert.False(string.IsNullOrEmpty(result.GeneratedPassword));
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_Returns_Generated_Password_For_Tenant_User()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Pwd Cafe",
+            Slug = "pwd-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        var userManager = CreateUserManager(db);
+        var user = new ApplicationUser
+        {
+            UserName = "cashier@pwd.test",
+            Email = "cashier@pwd.test",
+            FirstName = "C",
+            LastName = "U",
+            EmployeeNumber = "E1",
+            Role = Roles.Cashier,
+            TaxNumber = string.Empty,
+            IsActive = true,
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        await userManager.CreateAsync(user, "OldPass123!");
+        await userManager.AddToRoleAsync(user, Roles.Cashier);
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = user.Id,
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = false,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, userManager);
+        var (result, error) = await service.ResetPasswordAsync(tenantId, user.Id);
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.False(string.IsNullOrEmpty(result!.GeneratedPassword));
     }
 }

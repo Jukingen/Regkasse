@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography, Alert, Empty, Badge, Modal } from 'antd';
 import { SaveOutlined, LockOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
@@ -34,9 +35,18 @@ function getSettingsLoadErrorDescription(err: unknown, translate: (key: string) 
 
 export default function SettingsPage() {
     const { t } = useI18n();
+    const searchParams = useSearchParams();
+    const mustChangePassword = searchParams.get('mustChangePassword') === '1';
+    const [settingsTab, setSettingsTab] = useState('1');
     const { data: settings, isLoading, isError, error, refetch, isFetching, isSuccess } = useGetApiCompanySettings();
     const updateMutation = usePutApiCompanySettings();
     const [form] = Form.useForm<SettingsFormValues>();
+
+    useEffect(() => {
+        if (mustChangePassword) {
+            setSettingsTab('5');
+        }
+    }, [mustChangePassword]);
 
     useEffect(() => {
         if (settings) {
@@ -131,8 +141,17 @@ export default function SettingsPage() {
                 layout="vertical"
                 onFinish={handleSave}
             >
+                {mustChangePassword ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message={t('settings.changePassword.requiredBanner')}
+                        style={{ marginBottom: 16 }}
+                    />
+                ) : null}
                 <Tabs
-                    defaultActiveKey="1"
+                    activeKey={settingsTab}
+                    onChange={setSettingsTab}
                     items={[
                         {
                             key: '1',

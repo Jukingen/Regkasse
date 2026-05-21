@@ -50,3 +50,25 @@ public sealed record TenantUserInviteResultDto(
     bool InvitationEmailSent,
     string? EmailDeliveryNote,
     string? GeneratedPassword);
+
+public sealed class UpdateTenantUserRoleRequest
+{
+    [Required]
+    [MaxLength(64)]
+    public string Role { get; set; } = string.Empty;
+}
+
+public sealed class ResetTenantUserPasswordRequest
+{
+    /// <summary>When true and SMTP is configured, email the new password to the user.</summary>
+    public bool SendEmail { get; set; } = true;
+}
+
+public sealed record TenantUserPasswordResetResultDto(
+    string UserId,
+    string Email,
+    string GeneratedPassword,
+    string DeliveryNote,
+    bool EmailSent,
+    bool SmtpConfigured,
+    bool ForcePasswordChangeOnNextLogin);

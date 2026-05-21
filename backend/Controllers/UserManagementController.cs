@@ -138,6 +138,13 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "Failed to change password", errors = result.Errors });
                 }
 
+                if (user.MustChangePasswordOnNextLogin)
+                {
+                    user.MustChangePasswordOnNextLogin = false;
+                    user.UpdatedAt = DateTime.UtcNow;
+                    await _userManager.UpdateAsync(user);
+                }
+
                 var actorRole = GetCurrentUserRole();
                 await TryLogUserLifecycleAsync(
                     AuditEventType.ChangeOwnPassword, currentUserId, actorRole, currentUserId,

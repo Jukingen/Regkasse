@@ -29,4 +29,6 @@ export interface AuthUser {
   branchDisplayName?: string | null;
   createdAt?: string | null;
   lastLoginAt?: string | null;
+  /** When true, user must change password before using the app (admin reset). */
+  mustChangePasswordOnNextLogin?: boolean;
 }

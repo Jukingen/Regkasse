@@ -38,6 +38,8 @@ export type MeResponse = UserInfo & MeResponseCamelExtensions & {
     BranchDisplayName?: string | null;
     CreatedAt?: string;
     LastLoginAt?: string;
+    mustChangePasswordOnNextLogin?: boolean;
+    MustChangePasswordOnNextLogin?: boolean;
 };
 
 /** Maps /me (or equivalent) JSON to AuthUser; tenant/branch fields stay null-safe. */
@@ -67,5 +69,7 @@ export function mapMeResponseToAuthUser(res: MeResponse): AuthUser {
         branchDisplayName: res.branchDisplayName ?? res.BranchDisplayName ?? null,
         createdAt: res.createdAt ?? res.CreatedAt,
         lastLoginAt: res.lastLoginAt ?? res.LastLoginAt,
+        mustChangePasswordOnNextLogin:
+            res.mustChangePasswordOnNextLogin ?? res.MustChangePasswordOnNextLogin ?? false,
     };
 }

@@ -60,12 +60,22 @@ export const LoginForm: FC = () => {
                     return;
                 }
 
+                const cachedUser = queryClient.getQueryData<{ mustChangePasswordOnNextLogin?: boolean }>(
+                    AUTH_KEYS.user,
+                );
+                const mustChange =
+                    cachedUser?.mustChangePasswordOnNextLogin === true ||
+                    (loginResponse?.user as { mustChangePasswordOnNextLogin?: boolean } | undefined)
+                        ?.mustChangePasswordOnNextLogin === true;
+
                 if (process.env.NODE_ENV === 'development') {
-                    technicalConsole.devLog('[LoginForm] user cache set; redirecting to /dashboard');
+                    technicalConsole.devLog(
+                        '[LoginForm] user cache set; redirecting to',
+                        mustChange ? '/settings (password)' : '/dashboard',
+                    );
                 }
-                // Defer so subscribers (useAuth) see updated cache before route change / AuthGate effects.
                 queueMicrotask(() => {
-                    router.push('/dashboard');
+                    router.push(mustChange ? '/settings?mustChangePassword=1' : '/dashboard');
                 });
             },
             onError: (error: unknown) => {
