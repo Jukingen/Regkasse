@@ -55,6 +55,15 @@ namespace KasseAPI_Final.Models
         [Column("last_server_time_drift_at_utc", TypeName = "timestamptz")]
         public DateTime? LastServerTimeDriftAtUtc { get; set; }
 
+        /// <summary>UTC when the register was permanently decommissioned (RKSV Schlussbeleg path).</summary>
+        [Column("decommissioned_at_utc", TypeName = "timestamptz")]
+        public DateTime? DecommissionedAtUtc { get; set; }
+
+        /// <summary>Operator reason captured at decommissioning (max 450 chars).</summary>
+        [Column("decommission_reason")]
+        [MaxLength(450)]
+        public string? DecommissionReason { get; set; }
+
         // Navigation properties
         [ForeignKey(nameof(TenantId))]
         public virtual Tenant? Tenant { get; set; }

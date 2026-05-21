@@ -18,6 +18,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Data.Repositories;
@@ -134,6 +135,8 @@ builder.Services.Configure<ProductMediaOptions>(builder.Configuration.GetSection
 builder.Services.AddScoped<ProductImageThumbnailService>();
 builder.Services.Configure<PosCashRegisterFeatureOptions>(
     builder.Configuration.GetSection(PosCashRegisterFeatureOptions.SectionName));
+builder.Services.Configure<CashRegisterComplianceOptions>(
+    builder.Configuration.GetSection(CashRegisterComplianceOptions.SectionName));
 builder.Services.Configure<InventoryOptions>(builder.Configuration.GetSection(InventoryOptions.SectionName));
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
@@ -559,6 +562,7 @@ builder.Services.AddScoped<IProductModifierValidationService, NoOpProductModifie
 builder.Services.AddScoped<IReceiptSequenceService, ReceiptSequenceService>();
 builder.Services.AddScoped<ICashRegisterResolutionService, CashRegisterResolutionService>();
 builder.Services.AddScoped<ICashRegisterShiftService, CashRegisterShiftService>();
+builder.Services.AddScoped<ICashRegisterDecommissionService, CashRegisterDecommissionService>();
 builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
 builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
 builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();

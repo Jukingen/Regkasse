@@ -101,6 +101,50 @@ vi.mock('@/features/users/components/RoleManagementDrawer', () => ({
   RoleManagementDrawer: () => null,
 }));
 
+const mockPlatformUserItems = vi.fn<UserInfo[], []>(() => []);
+const platformHookState = { isError: false };
+vi.mock('@/features/users/hooks/usePlatformUsersList', () => ({
+  usePlatformUsersList: () => ({
+    items: platformHookState.isError ? [] : mockPlatformUserItems(),
+    isLoading: false,
+    isFetching: false,
+    isError: platformHookState.isError,
+    refetch: vi.fn(),
+  }),
+  platformUsersQueryKey: ['admin', 'users', 'platform'],
+}));
+
+const mockCreatePlatformUser = vi.fn();
+vi.mock('@/features/users/api/users', () => ({
+  adminUsersQueryKeys: {
+    platform: (isActive?: boolean) => ['admin', 'users', 'platform', isActive ?? 'all'] as const,
+    tenant: (tenantId?: string, role?: string) =>
+      ['admin', 'users', 'tenant', tenantId ?? 'all', role ?? 'all'] as const,
+  },
+  createPlatformUser: (data: unknown) => mockCreatePlatformUser(data),
+  listPlatformUsers: vi.fn().mockResolvedValue([]),
+  listTenantUsers: vi.fn().mockResolvedValue([]),
+  inviteAdminUser: vi.fn(),
+  removeUserFromTenant: vi.fn(),
+  adminUserToUserInfo: (dto: { id: string; isActive: boolean; firstName?: string; lastName?: string; email?: string; userName?: string; role?: string }) => ({
+    id: dto.id,
+    isActive: dto.isActive,
+    firstName: dto.firstName ?? '',
+    lastName: dto.lastName ?? '',
+    email: dto.email,
+    userName: dto.userName,
+    role: dto.role,
+  }),
+}));
+
+vi.mock('@/features/users/components/TenantUsersTab', () => ({
+  TenantUsersTab: () => null,
+}));
+
+vi.mock('@/features/users/components/UserInvitationsPanel', () => ({
+  UserInvitationsPanel: () => null,
+}));
+
 vi.mock('@/features/users/components/UserFormDrawer', () => ({
   UserFormDrawer: ({ open, onClose, mode, onSubmit }: {
     open: boolean;
@@ -133,7 +177,7 @@ const sampleUser: UserInfo = {
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
-  role: 'Manager',
+  role: 'SuperAdmin',
   isActive: true,
   employeeNumber: 'E001',
   lastLoginAt: '2025-01-15T10:00:00Z',
@@ -155,6 +199,9 @@ function renderPage() {
 describe('Users page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    platformHookState.isError = false;
+    mockPlatformUserItems.mockReturnValue([]);
+    mockCreatePlatformUser.mockResolvedValue({ id: 'new-platform' });
     mockGetUsersList.mockResolvedValue(listResponse([]));
     mockGetRolesWithPermissions.mockResolvedValue([]);
     mockGetPermissionsCatalog.mockResolvedValue([]);
@@ -196,35 +243,34 @@ describe('Users page', () => {
     it('renders title and filter controls when user can view', async () => {
       renderPage();
       await waitFor(() => {
-        expect(mockGetUsersList).toHaveBeenCalled();
+        expect(screen.getAllByText('Benutzerverwaltung').length).toBeGreaterThanOrEqual(1);
       });
       expect(screen.getAllByText('Benutzerverwaltung').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByPlaceholderText(/Name, E-Mail, Mitarbeiternummer/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Benutzer anlegen/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Plattform-Admin anlegen/ })).toBeInTheDocument();
     });
 
     it('displays user list when getUsersList succeeds', async () => {
-      mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
+      mockPlatformUserItems.mockReturnValue([sampleUser]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('Jane Doe')).toBeInTheDocument();
       });
       expect(screen.getByRole('table')).toBeInTheDocument();
       expect(screen.getAllByText(/jane@example\.com/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('Manager')).toBeInTheDocument();
+      expect(screen.getAllByText(/Super-Administrator|SuperAdmin/).length).toBeGreaterThanOrEqual(1);
     });
 
     it('shows empty state when list returns no items', async () => {
-      mockGetUsersList.mockResolvedValue(listResponse([], 0));
+      mockPlatformUserItems.mockReturnValue([]);
       renderPage();
       await waitFor(() => {
-        expect(mockGetUsersList).toHaveBeenCalled();
+        expect(screen.getByText(/Keine Plattform-Benutzer/)).toBeInTheDocument();
       });
-      expect(screen.getByText('Keine Benutzer in dieser Ansicht.')).toBeInTheDocument();
     });
 
     it('shows error alert and retry when list load fails', async () => {
-      mockGetUsersList.mockRejectedValue(new Error('Network error'));
+      platformHookState.isError = true;
       renderPage();
       await waitFor(() => {
         expect(screen.getByText(/Benutzerliste konnte nicht geladen werden/)).toBeInTheDocument();
@@ -234,56 +280,36 @@ describe('Users page', () => {
   });
 
   describe('filter combination', () => {
-    it('calls getUsersList with default page and isActive on initial load', async () => {
+    it('shows platform tab filters without calling tenant user list API', async () => {
       renderPage();
       await waitFor(() => {
-        expect(mockGetUsersList).toHaveBeenCalled();
+        expect(screen.getByPlaceholderText(/Name, E-Mail, Mitarbeiternummer/)).toBeInTheDocument();
       });
-      expect(mockGetUsersList).toHaveBeenCalledWith(
-        expect.objectContaining({ page: 1, pageSize: 20, isActive: true })
-      );
-    });
-
-    it('calls getUsersList with query when search is submitted', async () => {
-      renderPage();
-      await waitFor(() => {
-        expect(mockGetUsersList).toHaveBeenCalled();
-      });
-      mockGetUsersList.mockClear();
-      const search = screen.getByPlaceholderText(/Name, E-Mail, Mitarbeiternummer/);
-      fireEvent.change(search, { target: { value: 'jane' } });
-      const searchButton = search.closest('div')?.querySelector('button.ant-input-search-button');
-      if (searchButton) fireEvent.click(searchButton);
-      await waitFor(() => {
-        const calls = mockGetUsersList.mock.calls;
-        const withQuery = calls.some((c) => c[0]?.query === 'jane');
-        expect(withQuery).toBe(true);
-      });
+      expect(mockGetUsersList).not.toHaveBeenCalled();
     });
   });
 
   describe('create user', () => {
     it('calls createUser and shows success when drawer submit succeeds', async () => {
       mockCreateUser.mockResolvedValue({ id: 'new-1', userName: 'newuser' });
-      mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
+      mockPlatformUserItems.mockReturnValue([sampleUser]);
       renderPage();
       await waitFor(() => {
-        expect(mockGetUsersList).toHaveBeenCalled();
+        expect(screen.getByText('Jane Doe')).toBeInTheDocument();
       });
-      fireEvent.click(screen.getByRole('button', { name: /Benutzer anlegen/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Plattform-Admin anlegen/ }));
       await waitFor(() => {
         expect(screen.getByTestId('user-form-drawer')).toBeInTheDocument();
       });
       fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
       await waitFor(() => {
-        expect(mockCreateUser).toHaveBeenCalledWith(
+        expect(mockCreatePlatformUser).toHaveBeenCalledWith(
           expect.objectContaining({
             userName: 'newuser',
             firstName: 'New',
             lastName: 'User',
             email: 'new@test.com',
             employeeNumber: 'EMP001',
-            role: 'Manager',
           })
         );
       });
@@ -293,12 +319,9 @@ describe('Users page', () => {
     });
 
     it('shows error message when createUser fails', async () => {
-      mockCreateUser.mockRejectedValue({ response: { data: { message: 'Email already exists' } } });
+      mockCreatePlatformUser.mockRejectedValue({ response: { data: { message: 'Email already exists' } } });
       renderPage();
-      await waitFor(() => {
-        expect(mockGetUsersList).toHaveBeenCalled();
-      });
-      fireEvent.click(screen.getByRole('button', { name: /Benutzer anlegen/ }));
+      fireEvent.click(screen.getByRole('button', { name: /Plattform-Admin anlegen/ }));
       await waitFor(() => {
         expect(screen.getByTestId('user-form-drawer')).toBeInTheDocument();
       });
@@ -313,7 +336,7 @@ describe('Users page', () => {
     it('calls updateUser when edit drawer is submitted', async () => {
       mockUpdateUser.mockResolvedValue(undefined);
       mockGetUserById.mockResolvedValue(sampleUser);
-      mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
+      mockPlatformUserItems.mockReturnValue([sampleUser]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('Jane Doe')).toBeInTheDocument();
@@ -333,7 +356,7 @@ describe('Users page', () => {
     it('invalidates user detail query on update success so UI rehydrates from backend', async () => {
       mockUpdateUser.mockResolvedValue(undefined);
       mockGetUserById.mockResolvedValue(sampleUser);
-      mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
+      mockPlatformUserItems.mockReturnValue([sampleUser]);
       const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
       const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
       render(
@@ -355,12 +378,12 @@ describe('Users page', () => {
   describe('deactivate flow', () => {
     it('opens deactivate modal and calls deactivateUser with reason on confirm', async () => {
       mockDeactivateUser.mockResolvedValue(undefined);
-      mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
+      mockPlatformUserItems.mockReturnValue([sampleUser]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('Jane Doe')).toBeInTheDocument();
       });
-      const deactivateBtns = screen.getAllByRole('button', { name: /Deaktivieren/ });
+      const deactivateBtns = screen.getAllByRole('button', { name: /Konto deaktivieren|Deaktivieren/ });
       fireEvent.click(deactivateBtns[0]);
       await waitFor(() => {
         expect(screen.getByText(/wird deaktiviert/)).toBeInTheDocument();
@@ -381,7 +404,7 @@ describe('Users page', () => {
     it('calls reactivateUser when reactivate modal is confirmed', async () => {
       mockReactivateUser.mockResolvedValue(undefined);
       const inactiveUser = { ...sampleUser, id: 'user-2', isActive: false, userName: 'inactive', firstName: 'In', lastName: 'Active' };
-      mockGetUsersList.mockResolvedValue(listResponse([inactiveUser]));
+      mockPlatformUserItems.mockReturnValue([inactiveUser]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('In Active')).toBeInTheDocument();
@@ -403,7 +426,7 @@ describe('Users page', () => {
 
   describe('reset password', () => {
     it('shows validation when new password is too short', async () => {
-      mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
+      mockPlatformUserItems.mockReturnValue([sampleUser]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('Jane Doe')).toBeInTheDocument();
@@ -425,7 +448,7 @@ describe('Users page', () => {
 
     it.skip('calls resetPassword with new password when valid', async () => {
       mockResetPassword.mockResolvedValue(undefined);
-      mockGetUsersList.mockResolvedValue(listResponse([sampleUser]));
+      mockPlatformUserItems.mockReturnValue([sampleUser]);
       renderPage();
       await waitFor(() => {
         expect(screen.getByText('Jane Doe')).toBeInTheDocument();
@@ -463,9 +486,9 @@ describe('Users page', () => {
       } as any);
       renderPage();
       await waitFor(() => {
-        expect(mockGetUsersList).toHaveBeenCalled();
+        expect(screen.getAllByText('Benutzerverwaltung').length).toBeGreaterThanOrEqual(1);
       });
-      expect(screen.queryByRole('button', { name: /Benutzer anlegen/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Plattform-Admin anlegen|Benutzer anlegen/ })).not.toBeInTheDocument();
     });
   });
 });

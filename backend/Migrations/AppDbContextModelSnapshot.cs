@@ -1188,6 +1188,15 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)");
 
+                    b.Property<string>("DecommissionReason")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("decommission_reason");
+
+                    b.Property<DateTime?>("DecommissionedAtUtc")
+                        .HasColumnType("timestamptz")
+                        .HasColumnName("decommissioned_at_utc");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");

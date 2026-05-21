@@ -4,6 +4,7 @@
     "accessDeniedTitle": "Zugriff verweigert",
     "accessDeniedDescription": "Nur mit Berechtigung \"Benutzer anzeigen\" (z. B. SuperAdmin, Manager) können Sie diese Seite öffnen.",
     "createUser": "Benutzer anlegen",
+    "createPlatformAdmin": "Plattform-Admin anlegen",
     "createRole": "Rolle anlegen",
     "manageRoles": "Rollen verwalten"
   },
@@ -221,5 +222,63 @@
     "emptyList": "Keine Benutzer in dieser Ansicht.",
     "emptyListWithFilters": "Keine Benutzer für die aktuellen Filter. Filter zurücksetzen oder Suche/Rolle/Status anpassen.",
     "emptyListDefaultHint": "Hinweis: Standardmäßig werden nur aktive Konten gelistet (Status = aktiv)."
+  },
+  "tabs": {
+    "labelPlatform": "Plattform-Benutzer",
+    "labelTenant": "Mandanten-Benutzer",
+    "labelInvitations": "Einladungen",
+    "platform": {
+      "description": "Super-Administratoren und andere Plattform-Betreiber. Deaktivierung betrifft das gesamte Konto systemweit.",
+      "empty": "Keine Plattform-Benutzer in dieser Ansicht.",
+      "deactivateAccount": "Konto deaktivieren"
+    },
+    "tenant": {
+      "description": "Benutzer mit aktiver Zuordnung zu einem Geschäftsmandanten (cafe, bar, …). Entfernen löst nur die Mandanten-Mitgliedschaft — das Konto bleibt bestehen.",
+      "empty": "Keine Mandanten-Benutzer gefunden.",
+      "columnTenant": "Mandant",
+      "filterAll": "Alle",
+      "filterTenant": "Mandant filtern",
+      "filterRole": "Rolle",
+      "searchPlaceholder": "Name, E-Mail, Mandant …",
+      "removeFromTenant": "Aus Mandant entfernen",
+      "removedSuccess": "Benutzer wurde aus dem Mandanten entfernt.",
+      "openTenantUsers": "Mandant öffnen",
+      "ownerBadge": "Mandanten-Admin",
+      "confirmRemove": {
+        "title": "Benutzer aus Mandant entfernen?",
+        "body": "Der Benutzer verliert den Zugang zu «{{tenant}}». Das Konto bleibt für andere Mandanten oder eine spätere Zuweisung erhalten."
+      }
+    },
+    "invitations": {
+      "description": "Neue Mandanten-Benutzer per E-Mail einladen. Wählen Sie den Zielmandanten und versenden Sie die Einladung (SMTP erforderlich für E-Mail-Versand).",
+      "smtpHint": "Ohne SMTP-Konfiguration wird das Konto angelegt, die Einladungs-E-Mail kann jedoch nicht versendet werden.",
+      "columnTenant": "Mandant",
+      "columnOwner": "Mandanten-Admin (E-Mail)",
+      "sendInvite": "Einladung senden",
+      "emptyTenants": "Keine aktiven Geschäftsmandanten vorhanden."
+    }
+  },
+  "invite": {
+    "title": "Benutzer einladen",
+    "action": "Benutzer einladen",
+    "send": "Einladung senden",
+    "email": "E-Mail-Adresse",
+    "tenant": "Mandant (Firma)",
+    "tenantRequired": "Bitte einen Mandanten wählen.",
+    "tenantPlaceholder": "Mandant wählen …",
+    "tenantOption": "{{name}} ({{slug}})",
+    "role": "Rolle",
+    "emailHint": "Der Benutzer erhält eine E-Mail mit Zugangsdaten (sofern SMTP konfiguriert ist).",
+    "roleOptions": {
+      "Manager": {
+        "label": "Manager (volle Rechte für diese Firma)"
+      },
+      "Cashier": {
+        "label": "Kassierer (nur Kasse)"
+      },
+      "Accountant": {
+        "label": "Buchhaltung (nur Berichte)"
+      }
+    }
   }
 }

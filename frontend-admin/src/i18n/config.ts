@@ -26,6 +26,7 @@ import deDevelopmentMode from './locales/de/developmentMode.json';
 import deTenants from './locales/de/tenants.json';
 import deSuperadmin from './locales/de/superadmin.json';
 import deDashboard from './locales/de/dashboard.json';
+import deCashRegisters from './locales/de/cashRegisters.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -54,6 +55,7 @@ import enDevelopmentMode from './locales/en/developmentMode.json';
 import enTenants from './locales/en/tenants.json';
 import enSuperadmin from './locales/en/superadmin.json';
 import enDashboard from './locales/en/dashboard.json';
+import enCashRegisters from './locales/en/cashRegisters.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
@@ -82,6 +84,7 @@ import trDevelopmentMode from './locales/tr/developmentMode.json';
 import trTenants from './locales/tr/tenants.json';
 import trSuperadmin from './locales/tr/superadmin.json';
 import trDashboard from './locales/tr/dashboard.json';
+import trCashRegisters from './locales/tr/cashRegisters.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -124,6 +127,7 @@ const catalogs = {
     tenants: deTenants,
     superadmin: deSuperadmin,
     dashboard: deDashboard,
+    cashRegisters: deCashRegisters,
   },
   en: {
     adminShell: enAdminShell,
@@ -154,6 +158,7 @@ const catalogs = {
     tenants: enTenants,
     superadmin: enSuperadmin,
     dashboard: enDashboard,
+    cashRegisters: enCashRegisters,
   },
   tr: {
     adminShell: trAdminShell,
@@ -184,6 +189,7 @@ const catalogs = {
     tenants: trTenants,
     superadmin: trSuperadmin,
     dashboard: trDashboard,
+    cashRegisters: trCashRegisters,
   },
 } as const;
 

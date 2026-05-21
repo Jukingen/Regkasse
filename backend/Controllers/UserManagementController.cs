@@ -359,8 +359,12 @@ namespace KasseAPI_Final.Controllers
                         return BadRequest(new { message = "Failed to assign role to user.", code = "ROLE_ASSIGN_FAILED", errors = roleResult.Errors });
                     }
 
-                    await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
-                        user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt);
+                    if (!string.Equals(request.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
+                            user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt);
+                    }
+
                     await tx.CommitAsync(createCt);
                 }
                 catch (Exception ex)

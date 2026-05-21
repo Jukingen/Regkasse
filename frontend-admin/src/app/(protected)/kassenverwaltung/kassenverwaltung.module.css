@@ -1,0 +1,8 @@
+.decommissionedRow :global(td) {
+    background: rgba(0, 0, 0, 0.02);
+    color: rgba(0, 0, 0, 0.45);
+}
+
+.decommissionedRow :global(.ant-typography) {
+    color: rgba(0, 0, 0, 0.45);
+}

@@ -54,7 +54,7 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
 
 /** Route prefixes per group — used to auto-open the matching submenu for nested routes (e.g. /receipts/[id]). */
 export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
-    [ADMIN_SIDEBAR_GROUP_KEYS.operations]: ['/operations-center', '/tables'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.operations]: ['/operations-center', '/tables', '/kassenverwaltung'],
     [ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions]: [
         '/receipts',
         '/payments',

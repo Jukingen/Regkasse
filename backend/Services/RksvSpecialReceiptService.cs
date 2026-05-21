@@ -1133,10 +1133,13 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 IsActive = true,
             };
 
+            var decommissionedAtUtc = DateTime.UtcNow;
             register.Status = RegisterStatus.Decommissioned;
+            register.DecommissionedAtUtc = decommissionedAtUtc;
+            register.DecommissionReason = TruncateNotes(request.Reason);
             register.CurrentUserId = null;
             register.CurrentUser = null;
-            register.UpdatedAt = DateTime.UtcNow;
+            register.UpdatedAt = decommissionedAtUtc;
 
             _db.PaymentDetails.Add(payment);
             _db.Invoices.Add(invoice);

@@ -1,0 +1,71 @@
+{
+  "pageTitle": "Kasa yönetimi",
+  "pageIntro": "Mandant kasaları: vardiya durumu, RKSV devre dışı bırakma ve ana veriler.",
+  "columns": {
+    "name": "Kasa",
+    "status": "Durum",
+    "actions": "İşlemler"
+  },
+  "filter": {
+    "showDecommissioned": "Kapatılmış kasaları göster",
+    "hiddenCount": "{{count}} kapatılmış kasa gizli"
+  },
+  "actions": {
+    "edit": "Düzenle",
+    "decommission": "Devre dışı bırak",
+    "restore": "Geri yükle",
+    "refresh": "Yenile"
+  },
+  "status": {
+    "closed": "Kapalı",
+    "open": "Açık",
+    "maintenance": "Bakım",
+    "disabled": "Devre dışı",
+    "decommissioned": "Kapatıldı",
+    "unknown": "Durum {{status}}"
+  },
+  "decommission": {
+    "modalTitle": "Kasayı kalıcı olarak kapat",
+    "registerLine": "Kasa: {{name}} ({{number}})",
+    "warningTitle": "DİKKAT:",
+    "warningNoPayments": "Kasa bundan sonra yeni ödeme kabul edemez",
+    "warningRetention": "Tüm fişler 7 yıl saklanır",
+    "warningNoRestore": "Kasa GERİ yüklenemez",
+    "schlussbelegFlow": "Onayda önce RKSV Schlussbeleg (Endbeleg) oluşturulur; ardından durum otomatik olarak Decommissioned olur.",
+    "hintSchlussbeleg": "Manuel alternatif:",
+    "hintSchlussbelegLink": "Sonderbelege / Schlussbeleg",
+    "reasonLabel": "Kapatma nedeni (isteğe bağlı)",
+    "reasonPlaceholder": "Cihaz arızalı / yedek / şube kapandı",
+    "cancel": "İptal",
+    "confirm": "Yine de kapat",
+    "mustCloseFirst": "Endbeleg için kasa kapalı olmalıdır (açık vardiya yok).",
+    "success": "Schlussbeleg oluşturuldu — kasa kapatıldı. Yeni ödeme yok.",
+    "restoreTooltip": "RKSV: Schlussbeleg ile kapatma geri alınamaz."
+  },
+  "detail": {
+    "title": "Kasa",
+    "registerNumber": "Kasa numarası",
+    "location": "Ad / konum",
+    "currentBalance": "Güncel bakiye",
+    "startingBalance": "Başlangıç bakiyesi",
+    "currentUser": "Açan kullanıcı",
+    "lastBalanceUpdate": "Son bakiye güncellemesi",
+    "id": "Register-ID (API)",
+    "decommissionedAt": "Kapatılma (UTC)",
+    "decommissionReason": "Kapatma nedeni"
+  },
+  "hardDelete": {
+    "action": "Hard delete (test)",
+    "modalTitle": "Kasayı kalıcı sil",
+    "testOnlyBanner": "YALNIZCA TEST ORTAMLARI",
+    "registerLine": "Kasa: {{name}} ({{number}})",
+    "body": "Yalnızca ödeme/fiş verisi yoksa satırı siler. RKSV stilllegung yerine geçmez.",
+    "confirmLabel": "Onay için HARD_DELETE yazın",
+    "confirm": "Kalıcı sil",
+    "success": "Kasa hard-delete (test) tamamlandı."
+  },
+  "errors": {
+    "loadFailed": "Kasa listesi yüklenemedi."
+  },
+  "empty": "Kasa bulunamadı."
+}

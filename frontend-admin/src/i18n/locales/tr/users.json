@@ -4,6 +4,7 @@
     "accessDeniedTitle": "Erişim reddedildi",
     "accessDeniedDescription": "Bu sayfayı yalnızca \"Kullanıcıları görüntüle\" izni olan kullanıcılar (ör. SuperAdmin, Manager) açabilir.",
     "createUser": "Kullanıcı oluştur",
+    "createPlatformAdmin": "Platform yöneticisi oluştur",
     "createRole": "Rol oluştur",
     "manageRoles": "Rolleri yönet"
   },
@@ -221,5 +222,57 @@
     "emptyList": "Bu görünümde kullanıcı yok.",
     "emptyListWithFilters": "Filtrelere uyan kullanıcı yok. Filtreleri temizleyin veya arama/rol/durumu değiştirin.",
     "emptyListDefaultHint": "Not: Varsayılan olarak yalnızca aktif hesaplar listelenir (durum = aktif)."
+  },
+  "tabs": {
+    "labelPlatform": "Platform kullanıcıları",
+    "labelTenant": "Mandant kullanıcıları",
+    "labelInvitations": "Davetler",
+    "platform": {
+      "description": "Süper yöneticiler ve diğer platform operatörleri. Devre dışı bırakma hesabı sistem genelinde etkiler.",
+      "empty": "Bu görünümde platform kullanıcısı yok.",
+      "deactivateAccount": "Hesabı devre dışı bırak"
+    },
+    "tenant": {
+      "description": "Bir iş mandantına (cafe, bar, …) aktif ataması olan kullanıcılar. Kaldırma yalnızca mandant üyeliğini sonlandırır — hesap kalır.",
+      "empty": "Mandant kullanıcısı bulunamadı.",
+      "columnTenant": "Mandant",
+      "filterAll": "Tümü",
+      "filterTenant": "Mandant filtrele",
+      "filterRole": "Rol",
+      "searchPlaceholder": "Ad, e-posta, mandant …",
+      "removeFromTenant": "Mandanttan kaldır",
+      "removedSuccess": "Kullanıcı mandanttan kaldırıldı.",
+      "openTenantUsers": "Mandantı aç",
+      "ownerBadge": "Mandant yöneticisi",
+      "confirmRemove": {
+        "title": "Kullanıcı mandanttan kaldırılsın mı?",
+        "body": "Kullanıcı «{{tenant}}» erişimini kaybeder. Hesap diğer mandantlar veya sonraki atama için korunur."
+      }
+    },
+    "invitations": {
+      "description": "E-posta ile yeni mandant kullanıcıları davet edin. Hedef mandantı seçin ve davet gönderin (e-posta için SMTP gerekir).",
+      "smtpHint": "SMTP yapılandırması olmadan hesap oluşturulur ancak davet e-postası gönderilemeyebilir.",
+      "columnTenant": "Mandant",
+      "columnOwner": "Mandant yöneticisi (e-posta)",
+      "sendInvite": "Davet gönder",
+      "emptyTenants": "Aktif iş mandantı yok."
+    }
+  },
+  "invite": {
+    "title": "Kullanıcı davet et",
+    "action": "Kullanıcı davet et",
+    "send": "Davet gönder",
+    "email": "E-posta adresi",
+    "tenant": "Mandant (firma)",
+    "tenantRequired": "Lütfen bir mandant seçin.",
+    "tenantPlaceholder": "Mandant seçin …",
+    "tenantOption": "{{name}} ({{slug}})",
+    "role": "Rol",
+    "emailHint": "SMTP yapılandırıldığında kullanıcı erişim bilgileri içeren bir e-posta alır.",
+    "roleOptions": {
+      "Manager": { "label": "Manager (bu firma için tam yetki)" },
+      "Cashier": { "label": "Kasiyer (yalnızca POS)" },
+      "Accountant": { "label": "Muhasebe (yalnızca raporlar)" }
+    }
   }
 }

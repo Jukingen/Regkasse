@@ -1,0 +1,71 @@
+{
+  "pageTitle": "Kassenverwaltung",
+  "pageIntro": "Registrierkassen des Mandanten: Schichtstatus, Stilllegung (RKSV) und Stammdaten.",
+  "columns": {
+    "name": "Kasse",
+    "status": "Status",
+    "actions": "Aktionen"
+  },
+  "filter": {
+    "showDecommissioned": "Stillgelegte Kassen anzeigen",
+    "hiddenCount": "{{count}} stillgelegte Kasse(n) ausgeblendet"
+  },
+  "actions": {
+    "edit": "Bearbeiten",
+    "decommission": "Stilllegen",
+    "restore": "Wiederherstellen",
+    "refresh": "Aktualisieren"
+  },
+  "status": {
+    "closed": "Geschlossen",
+    "open": "Geöffnet",
+    "maintenance": "Wartung",
+    "disabled": "Deaktiviert",
+    "decommissioned": "Stillgelegt",
+    "unknown": "Status {{status}}"
+  },
+  "decommission": {
+    "modalTitle": "Kasse dauerhaft stilllegen",
+    "registerLine": "Kasse: {{name}} ({{number}})",
+    "warningTitle": "ACHTUNG:",
+    "warningNoPayments": "Die Kasse kann danach KEINE neuen Zahlungen mehr annehmen",
+    "warningRetention": "Alle Belege bleiben für 7 Jahre gespeichert",
+    "warningNoRestore": "Die Kasse kann NICHT wiederhergestellt werden",
+    "schlussbelegFlow": "Bei Bestätigung wird zuerst ein RKSV-Schlussbeleg (Endbeleg) erstellt; danach wird der Status automatisch auf «Stillgelegt» (Decommissioned) gesetzt.",
+    "hintSchlussbeleg": "Alternativ manuell: Schlussbeleg (Endbeleg) unter",
+    "hintSchlussbelegLink": "Sonderbelege / Schlussbeleg",
+    "reasonLabel": "Grund der Stilllegung (optional)",
+    "reasonPlaceholder": "Gerät defekt / Ersatz / Filiale geschlossen",
+    "cancel": "Abbrechen",
+    "confirm": "Trotzdem stilllegen",
+    "mustCloseFirst": "Die Kasse muss geschlossen sein (keine offene Schicht), bevor ein Endbeleg erstellt werden kann.",
+    "success": "Schlussbeleg (Endbeleg) erstellt — Status «Stillgelegt». Keine neuen Zahlungen mehr möglich.",
+    "restoreTooltip": "RKSV: Stilllegung über Schlussbeleg ist unwiderruflich. Wiederherstellen ist nicht möglich."
+  },
+  "detail": {
+    "title": "Kasse",
+    "registerNumber": "Kassennummer",
+    "location": "Bezeichnung / Standort",
+    "currentBalance": "Aktueller Kassenstand",
+    "startingBalance": "Startsaldo",
+    "currentUser": "Geöffnet von",
+    "lastBalanceUpdate": "Letzte Standaktualisierung",
+    "id": "Register-ID (API)",
+    "decommissionedAt": "Stillgelegt am (UTC)",
+    "decommissionReason": "Stilllegungsgrund"
+  },
+  "hardDelete": {
+    "action": "Hard Delete (Test)",
+    "modalTitle": "Kasse endgültig löschen",
+    "testOnlyBanner": "NUR FÜR TESTUMGEBUNGEN",
+    "registerLine": "Kasse: {{name}} ({{number}})",
+    "body": "Löscht die Kassenzeile nur wenn keine Zahlungs-/Belegdaten existieren. Kein Ersatz für RKSV-Stilllegung.",
+    "confirmLabel": "Zur Bestätigung «HARD_DELETE» eingeben",
+    "confirm": "Endgültig löschen",
+    "success": "Kasse (Test) wurde hard-deleted."
+  },
+  "errors": {
+    "loadFailed": "Kassenliste konnte nicht geladen werden."
+  },
+  "empty": "Keine Kassen gefunden."
+}

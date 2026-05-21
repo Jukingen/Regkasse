@@ -13,6 +13,7 @@
   "receiptTemplates": "Receipt templates",
   "receiptGenerate": "Receipt preview",
   "tables": "Tables",
+  "kassenverwaltung": "Cash registers",
   "auditLogs": "Audit log",
   "fiscalExportAuditLogs": "Fiscal export audit",
   "offlineTransactionsAdmin": "Offline transactions (TSE)",

@@ -180,6 +180,8 @@ export function TenantDetailUsersTab({ tenantId }: TenantDetailUsersTabProps) {
 
             <InviteUserModal
                 open={inviteOpen}
+                fixedTenantId={tenantId}
+                showOwnerToggle
                 confirmLoading={inviteMutation.isPending}
                 onClose={() => setInviteOpen(false)}
                 onSubmit={(values) => inviteMutation.mutate(values)}

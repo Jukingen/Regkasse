@@ -232,6 +232,12 @@ namespace KasseAPI_Final.Models
 
         /// <summary>RKSV Sonderbeleg create attempt outcome from POS/admin API.</summary>
         public const string POS_SPL_RCPT = "POS_SPL_RCPT";
+
+        /// <summary>Permanent cash register decommission (RKSV Schlussbeleg / admin API).</summary>
+        public const string CASH_REGISTER_DECOMMISSION = "CASH_REGISTER_DECOMMISSION";
+
+        /// <summary>Dev/test-only hard delete of an empty cash register row.</summary>
+        public const string CASH_REGISTER_HARD_DELETE = "CASH_REGISTER_HARD_DELETE";
     }
 
             // Entity types for audit logging
@@ -256,5 +262,7 @@ namespace KasseAPI_Final.Models
 
             /// <summary>RKSV DEP / fiscal diagnostic export access (see <c>FiscalExportController</c> audit rows).</summary>
             public const string FISCAL_EXPORT = "FiscalExport";
+
+            public const string CASH_REGISTER = "CashRegister";
         }
 }

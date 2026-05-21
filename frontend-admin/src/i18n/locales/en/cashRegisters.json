@@ -1,0 +1,71 @@
+{
+  "pageTitle": "Cash register management",
+  "pageIntro": "Tenant cash registers: shift status, RKSV decommissioning, and master data.",
+  "columns": {
+    "name": "Register",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "filter": {
+    "showDecommissioned": "Show decommissioned registers",
+    "hiddenCount": "{{count}} decommissioned register(s) hidden"
+  },
+  "actions": {
+    "edit": "Edit",
+    "decommission": "Decommission",
+    "restore": "Restore",
+    "refresh": "Refresh"
+  },
+  "status": {
+    "closed": "Closed",
+    "open": "Open",
+    "maintenance": "Maintenance",
+    "disabled": "Disabled",
+    "decommissioned": "Decommissioned",
+    "unknown": "Status {{status}}"
+  },
+  "decommission": {
+    "modalTitle": "Permanently decommission register",
+    "registerLine": "Register: {{name}} ({{number}})",
+    "warningTitle": "WARNING:",
+    "warningNoPayments": "The register cannot accept new payments afterwards",
+    "warningRetention": "All receipts remain stored for 7 years",
+    "warningNoRestore": "The register CANNOT be restored",
+    "schlussbelegFlow": "On confirm, an RKSV Schlussbeleg (Endbeleg) is created first; status is then set to Decommissioned automatically.",
+    "hintSchlussbeleg": "Or manually under",
+    "hintSchlussbelegLink": "Special receipts / Schlussbeleg",
+    "reasonLabel": "Reason for decommissioning (optional)",
+    "reasonPlaceholder": "Device defective / replacement / branch closed",
+    "cancel": "Cancel",
+    "confirm": "Decommission anyway",
+    "mustCloseFirst": "The register must be closed (no open shift) before an Endbeleg can be created.",
+    "success": "Schlussbeleg created — register decommissioned. No new payments allowed.",
+    "restoreTooltip": "RKSV: decommissioning via Schlussbeleg is irreversible. Restore is not possible."
+  },
+  "detail": {
+    "title": "Register",
+    "registerNumber": "Register number",
+    "location": "Name / location",
+    "currentBalance": "Current balance",
+    "startingBalance": "Starting balance",
+    "currentUser": "Opened by",
+    "lastBalanceUpdate": "Last balance update",
+    "id": "Register ID (API)",
+    "decommissionedAt": "Decommissioned at (UTC)",
+    "decommissionReason": "Decommission reason"
+  },
+  "hardDelete": {
+    "action": "Hard delete (test)",
+    "modalTitle": "Permanently delete register",
+    "testOnlyBanner": "TEST ENVIRONMENTS ONLY",
+    "registerLine": "Register: {{name}} ({{number}})",
+    "body": "Deletes the row only when no payment/receipt data exists. Not a substitute for RKSV decommissioning.",
+    "confirmLabel": "Type HARD_DELETE to confirm",
+    "confirm": "Delete permanently",
+    "success": "Register hard-deleted (test)."
+  },
+  "errors": {
+    "loadFailed": "Could not load cash registers."
+  },
+  "empty": "No cash registers found."
+}

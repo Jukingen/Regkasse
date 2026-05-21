@@ -4,6 +4,7 @@
     "accessDeniedTitle": "Access denied",
     "accessDeniedDescription": "Only users with the \"View users\" permission (for example SuperAdmin or Manager) can open this page.",
     "createUser": "Create user",
+    "createPlatformAdmin": "Create platform admin",
     "createRole": "Create role",
     "manageRoles": "Manage roles"
   },
@@ -221,5 +222,57 @@
     "emptyList": "No users in this view.",
     "emptyListWithFilters": "No users match the current filters. Clear filters or adjust search/role/status.",
     "emptyListDefaultHint": "Note: By default only active accounts are listed (status = active)."
+  },
+  "tabs": {
+    "labelPlatform": "Platform users",
+    "labelTenant": "Tenant users",
+    "labelInvitations": "Invitations",
+    "platform": {
+      "description": "Super administrators and other platform operators. Deactivation affects the account system-wide.",
+      "empty": "No platform users in this view.",
+      "deactivateAccount": "Deactivate account"
+    },
+    "tenant": {
+      "description": "Users with an active assignment to a business tenant (cafe, bar, …). Remove only revokes tenant membership — the account remains.",
+      "empty": "No tenant users found.",
+      "columnTenant": "Tenant",
+      "filterAll": "All",
+      "filterTenant": "Filter tenant",
+      "filterRole": "Role",
+      "searchPlaceholder": "Name, email, tenant …",
+      "removeFromTenant": "Remove from tenant",
+      "removedSuccess": "User was removed from the tenant.",
+      "openTenantUsers": "Open tenant",
+      "ownerBadge": "Tenant admin",
+      "confirmRemove": {
+        "title": "Remove user from tenant?",
+        "body": "The user loses access to «{{tenant}}». The account is kept for other tenants or later assignment."
+      }
+    },
+    "invitations": {
+      "description": "Invite new tenant users by email. Pick the target tenant and send the invitation (SMTP required for email delivery).",
+      "smtpHint": "Without SMTP configuration the account is created but the invitation email may not be sent.",
+      "columnTenant": "Tenant",
+      "columnOwner": "Tenant admin (email)",
+      "sendInvite": "Send invitation",
+      "emptyTenants": "No active business tenants available."
+    }
+  },
+  "invite": {
+    "title": "Invite user",
+    "action": "Invite user",
+    "send": "Send invitation",
+    "email": "Email address",
+    "tenant": "Tenant (company)",
+    "tenantRequired": "Please select a tenant.",
+    "tenantPlaceholder": "Select tenant …",
+    "tenantOption": "{{name}} ({{slug}})",
+    "role": "Role",
+    "emailHint": "The user receives an email with access credentials when SMTP is configured.",
+    "roleOptions": {
+      "Manager": { "label": "Manager (full rights for this company)" },
+      "Cashier": { "label": "Cashier (POS only)" },
+      "Accountant": { "label": "Accountant (reports only)" }
+    }
   }
 }

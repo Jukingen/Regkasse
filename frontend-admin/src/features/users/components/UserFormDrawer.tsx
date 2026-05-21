@@ -20,10 +20,14 @@ import { createUsersFormRules, NAME_MAX_LENGTH, EMAIL_MAX_LENGTH, SHORT_FIELD_MA
 
 type Mode = 'create' | 'edit';
 
+/** Platform admins are SuperAdmin only and are not assigned to tenants. */
+export type UserFormCreateVariant = 'default' | 'platform';
+
 type Props = {
   open: boolean;
   onClose: () => void;
   mode: Mode;
+  createVariant?: UserFormCreateVariant;
   /** For edit: full user from GET /api/UserManagement/{id} (includes Notes). Undefined while loading. */
   user?: UserInfo | null;
   /** True while fetching user in edit mode; form shows loading until user is set. */
@@ -78,6 +82,7 @@ export function UserFormDrawer({
   open,
   onClose,
   mode,
+  createVariant = 'default',
   user,
   initialLoading = false,
   fetchError = null,
@@ -90,10 +95,18 @@ export function UserFormDrawer({
   const [form] = Form.useForm();
   const rules = useMemo(() => createUsersFormRules(formRulesContext), []);
 
+  const isPlatformCreate = mode === 'create' && createVariant === 'platform';
+  const effectiveRoleOptions = isPlatformCreate
+    ? [{ value: 'SuperAdmin', label: usersCopy.roleDisplayName('SuperAdmin') }]
+    : roleOptions;
+
   useEffect(() => {
     if (!open) return;
     if (mode === 'create') {
       form.resetFields();
+      if (isPlatformCreate) {
+        form.setFieldsValue({ role: 'SuperAdmin' });
+      }
       return;
     }
     // Edit + user still loading: Form is not mounted yet; resetFields would disconnect useForm.
@@ -122,7 +135,12 @@ export function UserFormDrawer({
     });
   };
 
-  const title = mode === 'create' ? usersCopy.createUser : usersCopy.editUser;
+  const title =
+    mode === 'create'
+      ? isPlatformCreate
+        ? usersCopy.createPlatformUser
+        : usersCopy.createUser
+      : usersCopy.editUser;
   const saveDisabled = mode === 'edit' && (initialLoading || !!fetchError);
   // Edit: never render form until user detail is loaded (avoids empty form + initialValues-only hydration).
   const showForm = mode === 'create' || (mode === 'edit' && user != null);
@@ -189,12 +207,21 @@ export function UserFormDrawer({
           <Form.Item name="employeeNumber" label={usersCopy.employeeNumber} rules={rules.employeeNumber}>
             <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
           </Form.Item>
+          {isPlatformCreate ? (
+            <Alert
+              type="info"
+              showIcon
+              message={usersCopy.platformCreateHint}
+              style={{ marginBottom: 16 }}
+            />
+          ) : null}
           <Form.Item name="role" label={usersCopy.role} rules={rules.role}>
-            {rolesLoading && roleOptions.length === 0 ? (
+            {rolesLoading && effectiveRoleOptions.length === 0 ? (
               <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>{usersCopy.rolesLoading}</span>
             ) : (
               <Radio.Group
-                options={roleOptions.map((opt) => ({
+                disabled={isPlatformCreate}
+                options={effectiveRoleOptions.map((opt) => ({
                   value: opt.value,
                   label: opt.label ?? usersCopy.roleDisplayName(opt.value),
                 }))}

@@ -91,6 +91,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.tables',
         icon: 'TableOutlined',
     },
+    kassenverwaltung: {
+        id: 'kassenverwaltung',
+        menuKey: '/kassenverwaltung',
+        href: '/kassenverwaltung',
+        labelKey: 'nav.kassenverwaltung',
+        icon: 'ShopOutlined',
+    },
     tagesabschluss: {
         id: 'tagesabschluss',
         menuKey: '/tagesabschluss',
@@ -404,7 +411,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     {
         kind: 'domain',
         domain: 'operations',
-        blocks: [{ kind: 'leaves', catalogIds: ['operationsCenter', 'tables'] }],
+        blocks: [{ kind: 'leaves', catalogIds: ['operationsCenter', 'tables', 'kassenverwaltung'] }],
     },
     {
         kind: 'domain',

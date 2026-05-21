@@ -3,6 +3,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -75,6 +76,7 @@ public class AdminUsersControllerTests
         string actorRole = "SuperAdmin")
     {
         var logger = new Mock<ILogger<AdminUsersController>>().Object;
+        var tenantUserService = new Mock<ITenantUserService>().Object;
         var controller = new AdminUsersController(
             CreateEphemeralContext(),
             userManager,
@@ -83,7 +85,8 @@ public class AdminUsersControllerTests
             sessionInvalidation,
             uniquenessValidation ?? CreateUniquenessValidationMock(),
             logger,
-            TenantTestDoubles.NoOpProvisioner());
+            TenantTestDoubles.NoOpProvisioner(),
+            tenantUserService);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),

@@ -61,6 +61,9 @@ export const usersCopy = {
   statusInactive: 'Inaktiv',
   statusAll: 'Alle',
   createUser: 'Benutzer anlegen',
+  createPlatformUser: 'Plattform-Admin anlegen',
+  platformCreateHint:
+    'Plattform-Betreiber erhalten die Rolle Super-Administrator und werden keinem Geschäftsmandanten zugewiesen.',
   createRole: 'Rolle anlegen',
   editUser: 'Benutzer bearbeiten',
   deactivateUser: 'Benutzer deaktivieren',

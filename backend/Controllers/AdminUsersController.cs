@@ -7,6 +7,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
@@ -32,6 +33,7 @@ public class AdminUsersController : ControllerBase
     private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly ILogger<AdminUsersController> _logger;
     private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
+    private readonly ITenantUserService _tenantUserService;
 
     public AdminUsersController(
         AppDbContext context,
@@ -41,7 +43,8 @@ public class AdminUsersController : ControllerBase
         IUserSessionInvalidation sessionInvalidation,
         IUserUniquenessValidationService uniquenessValidation,
         ILogger<AdminUsersController> logger,
-        IUserTenantMembershipProvisioner tenantMembershipProvisioner)
+        IUserTenantMembershipProvisioner tenantMembershipProvisioner,
+        ITenantUserService tenantUserService)
     {
         _context = context;
         _userManager = userManager;
@@ -51,10 +54,104 @@ public class AdminUsersController : ControllerBase
         _uniquenessValidation = uniquenessValidation;
         _logger = logger;
         _tenantMembershipProvisioner = tenantMembershipProvisioner;
+        _tenantUserService = tenantUserService;
     }
 
     private string? ActorId => User.GetActorUserId();
     private string ActorRole => User.GetActorRole() ?? "Unknown";
+
+    private async Task<List<Guid>> GetBusinessTenantIdsAsync(CancellationToken cancellationToken) =>
+        await _context.Tenants
+            .AsNoTracking()
+            .Where(t => t.IsActive
+                && t.Slug != "admin"
+                && t.Slug != LegacyDefaultTenantIds.PrimarySlug)
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+    private async Task<List<AdminUserDto>> ListPlatformUsersAsync(bool? isActive, CancellationToken cancellationToken)
+    {
+        var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
+
+        var userIdsWithBusinessMembership = await _context.UserTenantMemberships
+            .AsNoTracking()
+            .Where(m => m.IsActive && businessTenantIds.Contains(m.TenantId))
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var query = _userManager.Users.AsQueryable();
+        if (isActive.HasValue)
+            query = query.Where(u => u.IsActive == isActive.Value);
+
+        query = query.Where(u =>
+            u.Role == Roles.SuperAdmin || !userIdsWithBusinessMembership.Contains(u.Id));
+
+        var users = await query
+            .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return users.Select(ToDto).ToList();
+    }
+
+    private async Task<List<AdminTenantUserRowDto>> ListTenantUsersAsync(
+        string? role,
+        bool? isActive,
+        Guid? tenantId,
+        CancellationToken cancellationToken)
+    {
+        var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
+
+        var membershipQuery = _context.UserTenantMemberships
+            .AsNoTracking()
+            .Where(m => m.IsActive && businessTenantIds.Contains(m.TenantId));
+
+        if (tenantId.HasValue && tenantId.Value != Guid.Empty)
+            membershipQuery = membershipQuery.Where(m => m.TenantId == tenantId.Value);
+
+        var rows = await (
+            from m in membershipQuery
+            join u in _context.Users.AsNoTracking() on m.UserId equals u.Id
+            join t in _context.Tenants.AsNoTracking() on m.TenantId equals t.Id
+            where u.Role != Roles.SuperAdmin
+            select new { Membership = m, User = u, Tenant = t }
+        ).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        var filtered = rows.AsEnumerable();
+        if (isActive.HasValue)
+            filtered = filtered.Where(x => x.User.IsActive == isActive.Value);
+        if (!string.IsNullOrWhiteSpace(role))
+            filtered = filtered.Where(x => x.User.Role == role);
+
+        return filtered
+            .OrderBy(x => x.Tenant.Slug)
+            .ThenByDescending(x => x.Membership.IsOwner)
+            .ThenBy(x => x.User.LastName)
+            .ThenBy(x => x.User.FirstName)
+            .Select(x => new AdminTenantUserRowDto
+            {
+                UserId = x.User.Id,
+                Email = x.User.Email ?? x.User.UserName ?? string.Empty,
+                Name = FormatTenantUserName(x.User),
+                Role = x.User.Role ?? Roles.FallbackUnknown,
+                IsOwner = x.Membership.IsOwner,
+                IsActive = x.User.IsActive,
+                TenantId = x.Tenant.Id,
+                TenantSlug = x.Tenant.Slug,
+                TenantName = x.Tenant.Name,
+                JoinedAtUtc = x.Membership.CreatedAtUtc,
+            })
+            .ToList();
+    }
+
+    private static string FormatTenantUserName(ApplicationUser u)
+    {
+        var name = $"{u.FirstName} {u.LastName}".Trim();
+        return string.IsNullOrEmpty(name) ? u.UserName ?? u.Id : name;
+    }
 
     private static AdminUserDto ToDto(ApplicationUser u) => new()
     {
@@ -75,14 +172,28 @@ public class AdminUsersController : ControllerBase
         Etag = u.ConcurrencyStamp,
     };
 
-    /// <summary>List users with optional filters.</summary>
+    /// <summary>
+    /// List users. <paramref name="type"/> = <c>platform</c> | <c>tenant</c> (alias: <c>scope</c>).
+    /// Tenant rows include membership metadata; optional <paramref name="tenantId"/> filters one mandant.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<AdminUserDto>), 200)]
+    [ProducesResponseType(typeof(IEnumerable<AdminTenantUserRowDto>), 200)]
     [ProducesResponseType(typeof(ApiError), 403)]
-    public async Task<ActionResult<IEnumerable<AdminUserDto>>> List(
+    public async Task<IActionResult> List(
         [FromQuery] string? role = null,
-        [FromQuery] bool? isActive = null)
+        [FromQuery] bool? isActive = null,
+        [FromQuery] string? type = null,
+        [FromQuery] string? scope = null,
+        [FromQuery] Guid? tenantId = null)
     {
+        var listType = (type ?? scope)?.Trim();
+        if (string.Equals(listType, "tenant", StringComparison.OrdinalIgnoreCase))
+            return Ok(await ListTenantUsersAsync(role, isActive, tenantId, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
+
+        if (string.Equals(listType, "platform", StringComparison.OrdinalIgnoreCase))
+            return Ok(await ListPlatformUsersAsync(isActive, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
+
         var query = _userManager.Users.AsQueryable();
         if (isActive.HasValue)
             query = query.Where(u => u.IsActive == isActive.Value);
@@ -91,8 +202,41 @@ public class AdminUsersController : ControllerBase
 
         var users = await query
             .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
-            .ToListAsync();
+            .ToListAsync(HttpContext?.RequestAborted ?? default)
+            .ConfigureAwait(false);
         return Ok(users.Select(ToDto));
+    }
+
+    /// <summary>Invite a user to a tenant by email (creates account if needed).</summary>
+    [HttpPost("invite")]
+    [ProducesResponseType(typeof(TenantUserInviteResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TenantUserInviteResultDto>> Invite(
+        [FromBody] AdminInviteUserRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request == null)
+            return BadRequest(ApiError.Validation("Invalid body", new Dictionary<string, string[]> { ["body"] = new[] { "Request body is required." } }));
+
+        if (request.TenantId == Guid.Empty)
+            return BadRequest(ApiError.Validation("Validation failed", new Dictionary<string, string[]> { ["tenantId"] = new[] { "Tenant id is required." } }));
+
+        var (result, error) = await _tenantUserService
+            .InviteAsync(request.TenantId, new InviteTenantUserRequest
+            {
+                Email = request.Email,
+                Role = request.Role,
+                IsOwner = request.IsOwner,
+            }, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (error == "Tenant not found.")
+            return NotFound(ApiError.NotFound("Tenant not found", error));
+        if (error != null)
+            return BadRequest(ApiError.Validation("Invite failed", new Dictionary<string, string[]> { ["invite"] = new[] { error } }));
+
+        return CreatedAtAction(nameof(List), new { type = "tenant", tenantId = request.TenantId }, result);
     }
 
     /// <summary>Get user by id. Returns 404 if not found.</summary>
@@ -179,8 +323,12 @@ public class AdminUsersController : ControllerBase
                 }
             }
 
-            await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
-                user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt);
+            if (!string.Equals(request.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            {
+                await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
+                    user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt);
+            }
+
             await tx.CommitAsync(createCt);
         }
         catch (Exception ex)
@@ -414,6 +562,37 @@ public class AdminUsersController : ControllerBase
     }
 
     // --- DTOs (safe; no secrets) ---
+
+    public class AdminTenantUserRowDto
+    {
+        public string UserId { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public bool IsOwner { get; set; }
+        public bool IsActive { get; set; }
+        public Guid TenantId { get; set; }
+        public string TenantSlug { get; set; } = string.Empty;
+        public string TenantName { get; set; } = string.Empty;
+        public DateTime JoinedAtUtc { get; set; }
+    }
+
+    public class AdminInviteUserRequest
+    {
+        [Required]
+        public Guid TenantId { get; set; }
+
+        [Required]
+        [EmailAddress]
+        [MaxLength(256)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [MaxLength(64)]
+        public string Role { get; set; } = string.Empty;
+
+        public bool IsOwner { get; set; }
+    }
 
     public class AdminUserDto
     {
