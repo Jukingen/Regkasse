@@ -49,7 +49,7 @@ public class RksvSchlussbelegServiceTests
             context,
             loggerReceipt,
             tseMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
             TenantTestDoubles.PrimaryTenantResolver);
 
@@ -59,7 +59,7 @@ public class RksvSchlussbelegServiceTests
             receiptSeqMock.Object,
             receiptService,
             TenantTestDoubles.PrimaryTenantResolver,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(tseOptions),
             new Mock<ILogger<RksvSpecialReceiptService>>().Object,
             new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),

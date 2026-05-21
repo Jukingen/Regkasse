@@ -7,7 +7,6 @@ using KasseAPI_Final.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -47,12 +46,11 @@ public class PosCashRegisterReadinessServiceTests
             TenantTestDoubles.PrimaryTenantResolver,
             startPol,
             monthPol);
-        var opt = Options.Create(featureOptions);
         return new PosCashRegisterReadinessService(
             ctx,
             resolution,
             shift,
-            opt,
+            TenantTestDoubles.CashRegisterSettingsServiceReturning(featureOptions),
             Mock.Of<ILogger<PosCashRegisterReadinessService>>(),
             TenantTestDoubles.PrimaryTenantResolver,
             startPol,

@@ -1,5 +1,7 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -16,6 +18,21 @@ internal static class TenantTestDoubles
     {
         var m = new Mock<ISettingsTenantResolver>();
         m.Setup(x => x.ResolveEffectiveTenantIdAsync(It.IsAny<CancellationToken>())).ReturnsAsync(tenantId);
+        return m.Object;
+    }
+
+    public static ICompanyProfileProvider CompanyProfileProviderReturning(CompanyProfileOptions profile)
+    {
+        var m = new Mock<ICompanyProfileProvider>();
+        m.Setup(x => x.GetCompanyProfileAsync(It.IsAny<CancellationToken>())).ReturnsAsync(profile);
+        return m.Object;
+    }
+
+    public static ICashRegisterSettingsService CashRegisterSettingsServiceReturning(
+        PosCashRegisterFeatureOptions features)
+    {
+        var m = new Mock<ICashRegisterSettingsService>();
+        m.Setup(x => x.GetFeatureOptionsAsync(It.IsAny<CancellationToken>())).ReturnsAsync(features);
         return m.Object;
     }
 

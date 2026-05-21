@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260521065138_AddPosCashRegisterFeaturesToSystemSettings")]
+    partial class AddPosCashRegisterFeaturesToSystemSettings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1263,45 +1266,6 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique();
 
                     b.ToTable("cash_registers");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterSettings", b =>
-                {
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
-                    b.Property<bool>("AutoOpenAssignedClosedRegister")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("auto_open_assigned_closed_register");
-
-                    b.Property<bool>("AutoOpenSoleClosedRegister")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("auto_open_sole_closed_register");
-
-                    b.Property<decimal>("DefaultAutoOpenOpeningBalance")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m)
-                        .HasColumnName("default_auto_open_opening_balance");
-
-                    b.Property<bool>("EffectiveDefaultOnPosEntry")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("effective_default_on_pos_entry");
-
-                    b.Property<DateTime>("UpdatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at_utc");
-
-                    b.HasKey("TenantId");
-
-                    b.ToTable("cash_register_settings");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterTransaction", b =>
@@ -5552,6 +5516,30 @@ namespace KasseAPI_Final.Migrations
                     b.Property<int>("MaxBackupFiles")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("PosAutoOpenAssignedClosedRegister")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("pos_auto_open_assigned_closed_register");
+
+                    b.Property<bool>("PosAutoOpenSoleClosedRegister")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("pos_auto_open_sole_closed_register");
+
+                    b.Property<decimal>("PosDefaultAutoOpenOpeningBalance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m)
+                        .HasColumnName("pos_default_auto_open_opening_balance");
+
+                    b.Property<bool>("PosEffectiveDefaultOnPosEntry")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("pos_effective_default_on_pos_entry");
+
                     b.Property<string>("ReceiptPrefix")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
@@ -6966,17 +6954,6 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("CurrentUser");
-
-                    b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterSettings", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Tenant");
                 });

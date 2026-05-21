@@ -29,7 +29,7 @@ namespace KasseAPI_Final.Services
         private readonly AppDbContext _context;
         private readonly ILogger<ReceiptService> _logger;
         private readonly ITseService _tseService;
-        private readonly CompanyProfileOptions _companyProfile;
+        private readonly ICompanyProfileProvider _companyProfileProvider;
         private readonly IUserService _userService;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
 
@@ -37,14 +37,14 @@ namespace KasseAPI_Final.Services
             AppDbContext context,
             ILogger<ReceiptService> logger,
             ITseService tseService,
-            Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
+            ICompanyProfileProvider companyProfileProvider,
             IUserService userService,
             ISettingsTenantResolver settingsTenantResolver)
         {
             _context = context;
             _logger = logger;
             _tseService = tseService;
-            _companyProfile = companyProfile.Value;
+            _companyProfileProvider = companyProfileProvider;
             _userService = userService;
             _settingsTenantResolver = settingsTenantResolver;
         }
@@ -474,6 +474,7 @@ namespace KasseAPI_Final.Services
 
         private async Task<ReceiptDTO> MapToDtoAsync(Receipt receipt, ReceiptSignatureDTO? explicitSig = null)
         {
+            var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
             var cashierIdStr = receipt.CashierId ?? string.Empty;
             string? cashierDisplay = null;
             if (!string.IsNullOrEmpty(cashierIdStr))
@@ -486,15 +487,15 @@ namespace KasseAPI_Final.Services
 
             var header = new ReceiptHeaderDTO
             {
-                ShopName = _companyProfile.CompanyName,
-                Address = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}"
+                ShopName = companyProfile.CompanyName,
+                Address = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}"
             };
 
             var company = new ReceiptCompanyDTO
             {
-                Name = _companyProfile.CompanyName,
-                Address = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}",
-                TaxNumber = receipt.Payment?.Steuernummer ?? _companyProfile.TaxNumber
+                Name = companyProfile.CompanyName,
+                Address = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}",
+                TaxNumber = receipt.Payment?.Steuernummer ?? companyProfile.TaxNumber
             };
 
             var signature = explicitSig ?? new ReceiptSignatureDTO
@@ -620,7 +621,7 @@ namespace KasseAPI_Final.Services
                 },
                 
                 Signature = signature,
-                FooterText = _companyProfile.FooterText
+                FooterText = companyProfile.FooterText
             };
         }
 

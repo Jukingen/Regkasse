@@ -448,7 +448,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             ctx,
             Mock.Of<ILogger<ReceiptService>>(),
             tseMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
             TenantTestDoubles.PrimaryTenantResolver);
         var auditMock = auditMockOpt ?? new Mock<IAuditLogService>();
@@ -479,7 +479,7 @@ public sealed class PostgreSqlCashRegisterPaymentLifecycleTests
             receiptSeqMock.Object,
             receiptService,
             auditMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(tseOptions),
             Options.Create(new InventoryOptions()),
             Mock.Of<ILogger<PaymentService>>(),

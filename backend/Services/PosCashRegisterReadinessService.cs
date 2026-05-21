@@ -6,7 +6,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services;
 
@@ -18,7 +17,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     private readonly AppDbContext _context;
     private readonly ICashRegisterResolutionService _resolution;
     private readonly ICashRegisterShiftService _shift;
-    private readonly IOptions<PosCashRegisterFeatureOptions> _options;
+    private readonly ICashRegisterSettingsService _cashRegisterSettings;
     private readonly ILogger<PosCashRegisterReadinessService> _logger;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
     private readonly IRksvStartbelegPolicy _rksvStartbelegPolicy;
@@ -28,7 +27,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         AppDbContext context,
         ICashRegisterResolutionService resolution,
         ICashRegisterShiftService shift,
-        IOptions<PosCashRegisterFeatureOptions> options,
+        ICashRegisterSettingsService cashRegisterSettings,
         ILogger<PosCashRegisterReadinessService> logger,
         ISettingsTenantResolver settingsTenantResolver,
         IRksvStartbelegPolicy rksvStartbelegPolicy,
@@ -37,7 +36,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         _context = context;
         _resolution = resolution;
         _shift = shift;
-        _options = options;
+        _cashRegisterSettings = cashRegisterSettings;
         _logger = logger;
         _settingsTenantResolver = settingsTenantResolver;
         _rksvStartbelegPolicy = rksvStartbelegPolicy;
@@ -50,7 +49,7 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
         ClaimsPrincipal principal,
         CancellationToken cancellationToken = default)
     {
-        var opts = _options.Value;
+        var opts = await _cashRegisterSettings.GetFeatureOptionsAsync(cancellationToken).ConfigureAwait(false);
 
         if (!opts.EffectiveDefaultOnPosEntry)
             return await BuildReadOnlyContextAsync(userId, cancellationToken);

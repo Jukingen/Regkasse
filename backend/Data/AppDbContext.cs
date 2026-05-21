@@ -64,6 +64,7 @@ namespace KasseAPI_Final.Data
         public DbSet<InventoryItem> Inventory { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
         public DbSet<SystemSettings> SystemSettings { get; set; }
+        public DbSet<CashRegisterSettings> CashRegisterSettings { get; set; }
 
         /// <summary>RKSV: NTP vs system clock audit samples.</summary>
         public DbSet<SystemTimeSyncLog> SystemTimeSyncLogs { get; set; }
@@ -963,6 +964,20 @@ namespace KasseAPI_Final.Data
                         v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v));
                 
                 entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
+            });
+
+            builder.Entity<CashRegisterSettings>(entity =>
+            {
+                entity.HasKey(e => e.TenantId);
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.Property(e => e.EffectiveDefaultOnPosEntry).IsRequired().HasDefaultValue(true);
+                entity.Property(e => e.AutoOpenSoleClosedRegister).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.AutoOpenAssignedClosedRegister).IsRequired().HasDefaultValue(false);
+                entity.Property(e => e.DefaultAutoOpenOpeningBalance).IsRequired().HasColumnType("decimal(18,2)").HasDefaultValue(0m);
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
             });
 
             // AuditLog: table audit_logs with snake_case columns everywhere (PostgreSQL default; no quoted identifiers).

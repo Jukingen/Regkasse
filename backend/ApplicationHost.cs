@@ -131,11 +131,10 @@ internal static class ApplicationHost
         var isDevelopment = builder.Environment.IsDevelopment();
 
 // Configuration Binding
-builder.Services.Configure<CompanyProfileOptions>(builder.Configuration.GetSection(CompanyProfileOptions.SectionName));
+builder.Services.AddScoped<ICompanyProfileProvider, CompanyProfileProvider>();
 builder.Services.Configure<ProductMediaOptions>(builder.Configuration.GetSection(ProductMediaOptions.SectionName));
 builder.Services.AddScoped<ProductImageThumbnailService>();
-builder.Services.Configure<PosCashRegisterFeatureOptions>(
-    builder.Configuration.GetSection(PosCashRegisterFeatureOptions.SectionName));
+builder.Services.AddScoped<ICashRegisterSettingsService, CashRegisterSettingsService>();
 builder.Services.Configure<CashRegisterComplianceOptions>(
     builder.Configuration.GetSection(CashRegisterComplianceOptions.SectionName));
 builder.Services.Configure<InventoryOptions>(builder.Configuration.GetSection(InventoryOptions.SectionName));

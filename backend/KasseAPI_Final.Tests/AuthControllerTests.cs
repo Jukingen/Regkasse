@@ -471,6 +471,7 @@ public class AuthControllerTests
         var bad = Assert.IsType<BadRequestObjectResult>(result);
         var json = JsonSerializer.Serialize(bad.Value);
         Assert.Contains("TENANT_MEMBERSHIP_REQUIRED", json, StringComparison.Ordinal);
+        Assert.Contains("Kein Zugriff auf diesen Mandanten", json, StringComparison.Ordinal);
         loginMock.Verify(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

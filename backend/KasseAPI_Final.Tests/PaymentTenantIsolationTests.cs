@@ -59,12 +59,12 @@ public sealed class PaymentTenantIsolationTests
         userMock.Setup(x => x.GetUserByIdAsync(It.IsAny<string>())).ReturnsAsync(new ApplicationUser { Id = "u1", UserName = "u", Role = "Admin" });
         var companyProfile = new CompanyProfileOptions { CompanyName = "T", TaxNumber = "ATU12345678", Street = "S", ZipCode = "1", City = "W", FooterText = "" };
         var tseOptions = new TseOptions { TseMode = "Demo" };
-        var receiptService = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), tseMock.Object, Options.Create(companyProfile), userMock.Object, tenantResolver);
+        var receiptService = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), tseMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), userMock.Object, tenantResolver);
         var auditMock = new Mock<IAuditLogService>();
         auditMock.Setup(x => x.LogPaymentOperationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<decimal?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<object?>(), It.IsAny<object?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<AuditLogStatus>(), It.IsAny<string?>(), It.IsAny<double?>())).ReturnsAsync(new AuditLog());
         var cashRegResolver = new CashRegisterResolutionService(ctx, Mock.Of<ILogger<CashRegisterResolutionService>>(), tenantResolver, RksvStartbelegTestDoubles.GateOff(), RksvMonatsbelegTestDoubles.GateOff());
         var httpAccessor = Mock.Of<IHttpContextAccessor>();
-        return new PaymentService(ctx, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, new NoOpProductModifierValidationService(), Mock.Of<IReceiptSequenceService>(), receiptService, auditMock.Object, Options.Create(companyProfile), Options.Create(tseOptions), Options.Create(new InventoryOptions()), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(ctx, tenantResolver), new PricingRuleResolver(ctx, tenantResolver), tenantResolver);
+        return new PaymentService(ctx, paymentRepo, productRepo, customerRepo, tseMock.Object, finanzMock.Object, userMock.Object, new NoOpProductModifierValidationService(), Mock.Of<IReceiptSequenceService>(), receiptService, auditMock.Object, TenantTestDoubles.CompanyProfileProviderReturning(companyProfile), Options.Create(tseOptions), Options.Create(new InventoryOptions()), loggerPayment, cashRegResolver, httpAccessor, new PaymentMethodCatalogService(ctx, tenantResolver), new PricingRuleResolver(ctx, tenantResolver), tenantResolver);
     }
 
     private static PaymentDetails MinimalPayment(Guid id, Guid customerId, Guid cashRegisterId, DateTime createdAt)
@@ -212,7 +212,7 @@ public sealed class PaymentTenantIsolationTests
             CreatedAt = DateTime.UtcNow
         });
         await ctx.SaveChangesAsync();
-        var receiptSvc = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), Mock.Of<ITseService>(), Options.Create(new CompanyProfileOptions { CompanyName = "T", TaxNumber = "ATU12345678", Street = "S", ZipCode = "1", City = "W", FooterText = "" }), Mock.Of<IUserService>(), TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+        var receiptSvc = new ReceiptService(ctx, Mock.Of<ILogger<ReceiptService>>(), Mock.Of<ITseService>(), TenantTestDoubles.CompanyProfileProviderReturning(new CompanyProfileOptions { CompanyName = "T", TaxNumber = "ATU12345678", Street = "S", ZipCode = "1", City = "W", FooterText = "" }), Mock.Of<IUserService>(), TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
         var dto = await receiptSvc.GetReceiptByPaymentIdAsync(payB);
         Assert.Null(dto);
     }

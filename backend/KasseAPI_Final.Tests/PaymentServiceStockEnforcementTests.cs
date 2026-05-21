@@ -76,7 +76,7 @@ public sealed class PaymentServiceStockEnforcementTests
             context,
             Mock.Of<ILogger<ReceiptService>>(),
             tseMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
             TenantTestDoubles.PrimaryTenantResolver);
 
@@ -105,7 +105,7 @@ public sealed class PaymentServiceStockEnforcementTests
             receiptSeqMock.Object,
             receiptService,
             auditMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(tseOptions),
             Options.Create(inventoryOptions),
             loggerPayment,

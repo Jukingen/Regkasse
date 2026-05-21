@@ -87,7 +87,7 @@ public class PaymentReceiptSignatureIntegrationTests
             context,
             Mock.Of<ILogger<ReceiptService>>(),
             tseService,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
             TenantTestDoubles.PrimaryTenantResolver);
 

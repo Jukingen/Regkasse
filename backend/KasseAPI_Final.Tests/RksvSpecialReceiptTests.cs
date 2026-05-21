@@ -56,7 +56,7 @@ public class RksvSpecialReceiptTests
             context,
             new Mock<ILogger<ReceiptService>>().Object,
             tseMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Mock.Of<IUserService>(),
             TenantTestDoubles.PrimaryTenantResolver);
 
@@ -66,7 +66,7 @@ public class RksvSpecialReceiptTests
             receiptSeqMock.Object,
             receiptService,
             TenantTestDoubles.PrimaryTenantResolver,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(tseOptions),
             new Mock<ILogger<RksvSpecialReceiptService>>().Object,
             new RksvSpecialReceiptFinanzOnlineSubmissionTracker(context),
@@ -173,7 +173,7 @@ public class RksvSpecialReceiptTests
             context,
             Mock.Of<ILogger<ReceiptService>>(),
             tseMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             userMock.Object,
             TenantTestDoubles.PrimaryTenantResolver);
         var auditMock = new Mock<IAuditLogService>();
@@ -207,7 +207,7 @@ public class RksvSpecialReceiptTests
             receiptSeqMock.Object,
             receiptService,
             auditMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(tseOptions),
             Options.Create(new InventoryOptions()),
             Mock.Of<ILogger<PaymentService>>(),

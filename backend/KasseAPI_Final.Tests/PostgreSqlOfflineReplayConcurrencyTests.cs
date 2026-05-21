@@ -144,7 +144,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             ctx,
             Mock.Of<ILogger<ReceiptService>>(),
             tse,
-            Options.Create(TestCompany),
+            TenantTestDoubles.CompanyProfileProviderReturning(TestCompany),
             userMock.Object,
             TenantTestDoubles.PrimaryTenantResolver);
 
@@ -162,7 +162,7 @@ public sealed class PostgreSqlOfflineReplayConcurrencyTests
             receiptSeq,
             receiptService,
             audit.Object,
-            Options.Create(TestCompany),
+            TenantTestDoubles.CompanyProfileProviderReturning(TestCompany),
             Options.Create(new TseOptions { TseMode = "Demo" }),
             Options.Create(new InventoryOptions()),
             Mock.Of<ILogger<PaymentService>>(),

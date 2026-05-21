@@ -34,7 +34,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     private readonly IReceiptSequenceService _receiptSequence;
     private readonly IReceiptService _receiptService;
     private readonly ISettingsTenantResolver _tenantResolver;
-    private readonly CompanyProfileOptions _companyProfile;
+    private readonly ICompanyProfileProvider _companyProfileProvider;
     private readonly TseOptions _tseOptions;
     private readonly ILogger<RksvSpecialReceiptService> _logger;
     private readonly IRksvSpecialReceiptFinanzOnlineSubmissionTracker _fonSubmissionTracker;
@@ -46,7 +46,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         IReceiptSequenceService receiptSequence,
         IReceiptService receiptService,
         ISettingsTenantResolver tenantResolver,
-        IOptions<CompanyProfileOptions> companyProfile,
+        ICompanyProfileProvider companyProfileProvider,
         IOptions<TseOptions> tseOptions,
         ILogger<RksvSpecialReceiptService> logger,
         IRksvSpecialReceiptFinanzOnlineSubmissionTracker fonSubmissionTracker,
@@ -57,7 +57,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         _receiptSequence = receiptSequence;
         _receiptService = receiptService;
         _tenantResolver = tenantResolver;
-        _companyProfile = companyProfile.Value;
+        _companyProfileProvider = companyProfileProvider;
         _tseOptions = tseOptions.Value;
         _logger = logger;
         _fonSubmissionTracker = fonSubmissionTracker;
@@ -85,6 +85,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(cancellationToken).ConfigureAwait(false);
         var register = await _db.CashRegisters.AsNoTracking()
             .FirstOrDefaultAsync(
                 r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
@@ -154,7 +155,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 TotalAmount = 0m,
                 TaxAmount = 0m,
                 PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
-                Steuernummer = _companyProfile.TaxNumber,
+                Steuernummer = companyProfile.TaxNumber,
                 CashRegisterId = request.CashRegisterId,
                 Notes = TruncateNotes(request.Reason),
                 TseSignature = sig.CompactJws,
@@ -173,7 +174,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 IsActive = true,
             };
 
-            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -189,8 +190,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = _companyProfile.CompanyName,
-                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyName = companyProfile.CompanyName,
+                CompanyTaxNumber = companyProfile.TaxNumber,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,
@@ -369,6 +370,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(cancellationToken).ConfigureAwait(false);
         var register = await _db.CashRegisters.AsNoTracking()
             .FirstOrDefaultAsync(
                 r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
@@ -438,7 +440,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 TotalAmount = 0m,
                 TaxAmount = 0m,
                 PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
-                Steuernummer = _companyProfile.TaxNumber,
+                Steuernummer = companyProfile.TaxNumber,
                 CashRegisterId = request.CashRegisterId,
                 Notes = TruncateNotes(request.Reason),
                 CorrelationId = correlation,
@@ -458,7 +460,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 IsActive = true,
             };
 
-            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -474,8 +476,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = _companyProfile.CompanyName,
-                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyName = companyProfile.CompanyName,
+                CompanyTaxNumber = companyProfile.TaxNumber,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,
@@ -594,6 +596,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(cancellationToken).ConfigureAwait(false);
         var register = await _db.CashRegisters.AsNoTracking()
             .FirstOrDefaultAsync(
                 r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
@@ -664,7 +667,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 TotalAmount = 0m,
                 TaxAmount = 0m,
                 PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
-                Steuernummer = _companyProfile.TaxNumber,
+                Steuernummer = companyProfile.TaxNumber,
                 CashRegisterId = request.CashRegisterId,
                 Notes = TruncateNotes(request.Reason),
                 TseSignature = sig.CompactJws,
@@ -683,7 +686,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 IsActive = true,
             };
 
-            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -699,8 +702,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = _companyProfile.CompanyName,
-                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyName = companyProfile.CompanyName,
+                CompanyTaxNumber = companyProfile.TaxNumber,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,
@@ -774,6 +777,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(cancellationToken).ConfigureAwait(false);
         var register = await _db.CashRegisters.AsNoTracking()
             .FirstOrDefaultAsync(
                 r => r.Id == request.CashRegisterId && r.TenantId == tenantId,
@@ -865,7 +869,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 TotalAmount = 0m,
                 TaxAmount = 0m,
                 PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
-                Steuernummer = _companyProfile.TaxNumber,
+                Steuernummer = companyProfile.TaxNumber,
                 CashRegisterId = request.CashRegisterId,
                 Notes = BuildJahresbelegNotes(request.Reason, request.EarlyReason),
                 TseSignature = sig.CompactJws,
@@ -884,7 +888,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 IsActive = true,
             };
 
-            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -900,8 +904,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = _companyProfile.CompanyName,
-                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyName = companyProfile.CompanyName,
+                CompanyTaxNumber = companyProfile.TaxNumber,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,
@@ -993,6 +997,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         await EnsureTseReadyForSignedSpecialReceiptAsync(cancellationToken).ConfigureAwait(false);
 
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(cancellationToken).ConfigureAwait(false);
 
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -1082,7 +1087,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 TotalAmount = 0m,
                 TaxAmount = 0m,
                 PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(CultureInfo.InvariantCulture),
-                Steuernummer = _companyProfile.TaxNumber,
+                Steuernummer = companyProfile.TaxNumber,
                 CashRegisterId = request.CashRegisterId,
                 Notes = TruncateNotes(request.Reason),
                 TseSignature = sig.CompactJws,
@@ -1101,7 +1106,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 IsActive = true,
             };
 
-            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -1117,8 +1122,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = _companyProfile.CompanyName,
-                CompanyTaxNumber = _companyProfile.TaxNumber,
+                CompanyName = companyProfile.CompanyName,
+                CompanyTaxNumber = companyProfile.TaxNumber,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,

@@ -10,7 +10,6 @@ using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Linq;
 using System.Security.Claims;
@@ -27,20 +26,20 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<InvoiceController> _logger;
-        private readonly CompanyProfileOptions _companyProfile;
+        private readonly ICompanyProfileProvider _companyProfileProvider;
         private readonly IReceiptSequenceService _receiptSequenceService;
         private readonly ITseService _tseService;
 
         public InvoiceController(
             AppDbContext context,
             ILogger<InvoiceController> logger,
-            IOptions<CompanyProfileOptions> companyProfile,
+            ICompanyProfileProvider companyProfileProvider,
             IReceiptSequenceService receiptSequenceService,
             ITseService tseService)
         {
             _context = context;
             _logger = logger;
-            _companyProfile = companyProfile.Value;
+            _companyProfileProvider = companyProfileProvider;
             _receiptSequenceService = receiptSequenceService;
             _tseService = tseService;
             // License configuration for QuestPDF (Community)
@@ -398,6 +397,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(HttpContext.RequestAborted);
                 var invoice = await _context.Invoices.FindAsync(id);
 
                 if (invoice == null || !invoice.IsActive)
@@ -427,9 +427,9 @@ namespace KasseAPI_Final.Controllers
                         RemainingAmount = 0,
                         CustomerName = posInvoice.CustomerName,
                         CustomerTaxNumber = posInvoice.Steuernummer,
-                        CompanyName = _companyProfile.CompanyName ?? string.Empty, // Filled from CompanyProfile
-                        CompanyTaxNumber = _companyProfile.TaxNumber ?? string.Empty,
-                        CompanyAddress = $"{_companyProfile.Street} {_companyProfile.ZipCode} {_companyProfile.City}".Trim(),
+                        CompanyName = companyProfile.CompanyName ?? string.Empty, // Filled from CompanyProfile
+                        CompanyTaxNumber = companyProfile.TaxNumber ?? string.Empty,
+                        CompanyAddress = $"{companyProfile.Street} {companyProfile.ZipCode} {companyProfile.City}".Trim(),
                         TseSignature = posInvoice.TseSignature,
                         KassenId = kassenFromReg,
                         CashRegisterId = posInvoice.CashRegisterId,
@@ -798,6 +798,7 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(HttpContext.RequestAborted);
                 var invoice = await _context.Invoices.FindAsync(id);
                 if (invoice == null || !invoice.IsActive)
                 {
@@ -826,9 +827,9 @@ namespace KasseAPI_Final.Controllers
                         RemainingAmount = 0,
                         CustomerName = posInvoice.CustomerName,
                         CustomerTaxNumber = posInvoice.Steuernummer,
-                        CompanyName = _companyProfile.CompanyName ?? string.Empty, // Filled from CompanyProfile
-                        CompanyTaxNumber = _companyProfile.TaxNumber ?? string.Empty,
-                        CompanyAddress = $"{_companyProfile.Street} {_companyProfile.ZipCode} {_companyProfile.City}".Trim(),
+                        CompanyName = companyProfile.CompanyName ?? string.Empty, // Filled from CompanyProfile
+                        CompanyTaxNumber = companyProfile.TaxNumber ?? string.Empty,
+                        CompanyAddress = $"{companyProfile.Street} {companyProfile.ZipCode} {companyProfile.City}".Trim(),
                         TseSignature = posInvoice.TseSignature,
                         KassenId = kassenPdf,
                         CashRegisterId = posInvoice.CashRegisterId,
@@ -1022,7 +1023,8 @@ namespace KasseAPI_Final.Controllers
 
             try
             {
-                var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(HttpContext.RequestAborted);
+                var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
 
                 // Load only active payments with a ReceiptNumber (real POS transactions)
                 var payments = await _context.PaymentDetails
@@ -1083,8 +1085,8 @@ namespace KasseAPI_Final.Controllers
                             RemainingAmount = 0,
                             CustomerName = payment.CustomerName,
                             CustomerTaxNumber = payment.Steuernummer,
-                            CompanyName = _companyProfile.CompanyName,
-                            CompanyTaxNumber = _companyProfile.TaxNumber,
+                            CompanyName = companyProfile.CompanyName,
+                            CompanyTaxNumber = companyProfile.TaxNumber,
                             CompanyAddress = companyAddress,
                             TseSignature = payment.TseSignature ?? string.Empty,
                             KassenId = regNum,

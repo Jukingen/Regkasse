@@ -80,7 +80,7 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
             context,
             Mock.Of<ILogger<ReceiptService>>(),
             tseMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             userMock.Object,
             TenantTestDoubles.PrimaryTenantResolver);
         var auditMock = new Mock<IAuditLogService>();
@@ -107,7 +107,7 @@ public class PosCashRegisterPaymentPolicyIntegrationTests
             receiptSeqMock.Object,
             receiptService,
             auditMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(tseOptions),
             Options.Create(new InventoryOptions()),
             Mock.Of<ILogger<PaymentService>>(),

@@ -47,7 +47,7 @@ namespace KasseAPI_Final.Services
         private readonly IFinanzOnlineService _finanzOnlineService;
         private readonly ILogger<PaymentService> _logger;
         private readonly IUserService _userService;
-        private readonly CompanyProfileOptions _companyProfile;
+        private readonly ICompanyProfileProvider _companyProfileProvider;
         private readonly TseOptions _tseOptions;
         private readonly IProductModifierValidationService _modifierValidation;
         private readonly IReceiptSequenceService _receiptSequenceService;
@@ -83,7 +83,7 @@ namespace KasseAPI_Final.Services
             IReceiptSequenceService receiptSequenceService,
             IReceiptService receiptService,
             IAuditLogService auditLogService,
-            Microsoft.Extensions.Options.IOptions<CompanyProfileOptions> companyProfile,
+            ICompanyProfileProvider companyProfileProvider,
             Microsoft.Extensions.Options.IOptions<TseOptions> tseOptions,
             Microsoft.Extensions.Options.IOptions<InventoryOptions> inventoryOptions,
             ILogger<PaymentService> logger,
@@ -116,7 +116,7 @@ namespace KasseAPI_Final.Services
             _receiptSequenceService = receiptSequenceService;
             _receiptService = receiptService;
             _auditLogService = auditLogService;
-            _companyProfile = companyProfile.Value;
+            _companyProfileProvider = companyProfileProvider;
             _tseOptions = tseOptions.Value;
             _inventoryOptions = inventoryOptions.Value;
             _logger = logger;
@@ -439,18 +439,20 @@ namespace KasseAPI_Final.Services
                     }
                 }
 
+                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+
                 var effectiveSteuernummer = !string.IsNullOrWhiteSpace(request.Steuernummer) && IsValidAustrianTaxNumber(request.Steuernummer!)
                     ? request.Steuernummer!.Trim()
-                    : _companyProfile.TaxNumber;
+                    : companyProfile.TaxNumber;
 
                 if (!IsValidAustrianTaxNumber(effectiveSteuernummer))
                 {
-                    _logger.LogWarning("Resolved Steuernummer invalid (check CompanyProfile:TaxNumber): {TaxNumber}", effectiveSteuernummer);
+                    _logger.LogWarning("Resolved Steuernummer invalid (check company settings CompanyTaxNumber): {TaxNumber}", effectiveSteuernummer);
                     return new PaymentResult
                     {
                         Success = false,
                         Message = "Invalid Austrian tax number format",
-                        Errors = { "Steuernummer must be in ATU format (e.g., ATU12345678). Configure CompanyProfile:TaxNumber." }
+                        Errors = { "Steuernummer must be in ATU format (e.g., ATU12345678). Configure company settings (CompanyTaxNumber)." }
                     };
                 }
 
@@ -1026,7 +1028,7 @@ namespace KasseAPI_Final.Services
                         }
                     }
 
-                    var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                    var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
 
                     posInvoice = new Invoice
                     {
@@ -1043,8 +1045,8 @@ namespace KasseAPI_Final.Services
                         RemainingAmount = 0,
                         CustomerName = payment.CustomerName,
                         CustomerTaxNumber = payment.Steuernummer,
-                        CompanyName = _companyProfile.CompanyName,
-                        CompanyTaxNumber = _companyProfile.TaxNumber,
+                        CompanyName = companyProfile.CompanyName,
+                        CompanyTaxNumber = companyProfile.TaxNumber,
                         CompanyAddress = companyAddress,
                         TseSignature = payment.TseSignature ?? string.Empty,
                         KassenId = registerNumber,
@@ -1821,8 +1823,9 @@ namespace KasseAPI_Final.Services
             catch { /* keep empty */ }
             var stornoTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value);
 
+            var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
             var stornoId = Guid.NewGuid();
-            var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             string stornoBelegNr = string.Empty;
             Guid stornoInvoiceId = Guid.Empty;
 
@@ -1907,8 +1910,8 @@ namespace KasseAPI_Final.Services
                     RemainingAmount = 0,
                     CustomerName = storno.CustomerName,
                     CustomerTaxNumber = payment.Steuernummer,
-                    CompanyName = _companyProfile.CompanyName,
-                    CompanyTaxNumber = _companyProfile.TaxNumber,
+                    CompanyName = companyProfile.CompanyName,
+                    CompanyTaxNumber = companyProfile.TaxNumber,
                     CompanyAddress = companyAddress,
                     TseSignature = storno.TseSignature ?? string.Empty,
                     KassenId = registerNumber,
@@ -2239,8 +2242,9 @@ namespace KasseAPI_Final.Services
                 catch { /* keep empty */ }
                 var refundTaxDetails = originalTaxDetails.ToDictionary(kv => kv.Key, kv => -kv.Value * refundRatio);
 
+                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
                 var refundId = Guid.NewGuid();
-                var companyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}";
+                var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
                 string refundBelegNr = string.Empty;
                 Guid refundInvoiceId = Guid.Empty;
 
@@ -2324,8 +2328,8 @@ namespace KasseAPI_Final.Services
                         RemainingAmount = 0,
                         CustomerName = refund.CustomerName,
                         CustomerTaxNumber = payment.Steuernummer,
-                        CompanyName = _companyProfile.CompanyName,
-                        CompanyTaxNumber = _companyProfile.TaxNumber,
+                        CompanyName = companyProfile.CompanyName,
+                        CompanyTaxNumber = companyProfile.TaxNumber,
                         CompanyAddress = companyAddress,
                         TseSignature = refund.TseSignature ?? string.Empty,
                         KassenId = refundRegisterNumber,
@@ -2658,6 +2662,8 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+
                 // TSE imzası kontrolü - FinanzOnline için zorunlu
                 if (string.IsNullOrEmpty(payment.TseSignature))
                 {
@@ -2678,9 +2684,9 @@ namespace KasseAPI_Final.Services
                     PaidAmount = payment.TotalAmount,
                     RemainingAmount = 0,
                     CustomerName = payment.CustomerName,
-                    CompanyName = _companyProfile.CompanyName,
-                    CompanyTaxNumber = _companyProfile.TaxNumber,
-                    CompanyAddress = $"{_companyProfile.Street}, {_companyProfile.ZipCode} {_companyProfile.City}",
+                    CompanyName = companyProfile.CompanyName,
+                    CompanyTaxNumber = companyProfile.TaxNumber,
+                    CompanyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}",
                     TseSignature = payment.TseSignature,
                     KassenId = (await _context.CashRegisters.AsNoTracking().FirstOrDefaultAsync(r => r.Id == payment.CashRegisterId))?.RegisterNumber
                         ?? throw new InvalidOperationException("Cash register not found for FinanzOnline submit."),

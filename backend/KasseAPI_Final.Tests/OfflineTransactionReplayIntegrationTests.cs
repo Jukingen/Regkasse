@@ -65,7 +65,7 @@ public class OfflineTransactionReplayIntegrationTests
             context,
             new Mock<ILogger<ReceiptService>>().Object,
             tseMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             userMock.Object,
             TenantTestDoubles.PrimaryTenantResolver);
 
@@ -83,7 +83,7 @@ public class OfflineTransactionReplayIntegrationTests
             receiptSeqMock.Object,
             receiptService,
             auditMock.Object,
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(tseOptions),
             Options.Create(new InventoryOptions()),
             loggerPayment,

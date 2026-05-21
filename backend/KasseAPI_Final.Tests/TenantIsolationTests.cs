@@ -214,7 +214,7 @@ public sealed class TenantIsolationTests
             Mock.Of<IReceiptSequenceService>(),
             Mock.Of<IReceiptService>(),
             Mock.Of<IAuditLogService>(),
-            Options.Create(companyProfile),
+            TenantTestDoubles.CompanyProfileProviderReturning(companyProfile),
             Options.Create(new TseOptions { TseMode = "Demo" }),
             Options.Create(new InventoryOptions()),
             Mock.Of<ILogger<PaymentService>>(),

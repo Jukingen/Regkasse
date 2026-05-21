@@ -148,7 +148,7 @@ namespace KasseAPI_Final.Controllers
                             user.Id);
                         return BadRequest(new
                         {
-                            message = "Kein Mandantenzugriff konfiguriert. Bitte Administrator kontaktieren.",
+                            message = "Kein Zugriff auf diesen Mandanten",
                             code = "TENANT_MEMBERSHIP_REQUIRED",
                         });
                     }

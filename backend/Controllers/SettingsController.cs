@@ -7,6 +7,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Tenancy;
 using System.ComponentModel.DataAnnotations;
@@ -22,17 +23,20 @@ namespace KasseAPI_Final.Controllers
         private readonly ILogger<SettingsController> _logger;
         private readonly IBackupManualTriggerService _backupManualTrigger;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly ICashRegisterSettingsService _cashRegisterSettings;
 
         public SettingsController(
             AppDbContext context,
             ILogger<SettingsController> logger,
             IBackupManualTriggerService backupManualTrigger,
-            ISettingsTenantResolver settingsTenantResolver)
+            ISettingsTenantResolver settingsTenantResolver,
+            ICashRegisterSettingsService cashRegisterSettings)
         {
             _context = context;
             _logger = logger;
             _backupManualTrigger = backupManualTrigger;
             _settingsTenantResolver = settingsTenantResolver;
+            _cashRegisterSettings = cashRegisterSettings;
         }
 
         [HasPermission(AppPermissions.SettingsView)]
@@ -371,6 +375,48 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error exporting settings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HasPermission(AppPermissions.SettingsView)]
+        [HttpGet("cash-register")]
+        public async Task<ActionResult<CashRegisterSettings>> GetCashRegisterSettings(
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var settings = await _cashRegisterSettings
+                    .GetOrCreateForEffectiveTenantAsync(cancellationToken)
+                    .ConfigureAwait(false);
+                return Ok(settings);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting cash register settings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpPut("cash-register")]
+        [HasPermission(AppPermissions.SettingsManage)]
+        public async Task<IActionResult> UpdateCashRegisterSettings(
+            [FromBody] UpdateCashRegisterSettingsRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                await _cashRegisterSettings
+                    .UpdateForEffectiveTenantAsync(request, cancellationToken)
+                    .ConfigureAwait(false);
+                return Ok(new { message = "Cash register settings updated successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating cash register settings");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
