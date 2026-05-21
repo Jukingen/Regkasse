@@ -5,23 +5,25 @@
  * Search, status/admin/license rows, no-admin confirmation with impersonate or quick invite.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Dropdown, Flex, Input, Spin, Tooltip, Typography } from 'antd';
+import { Alert, Button, Dropdown, Flex, Input, Spin, Tag, Tooltip, Typography } from 'antd';
 import type { InputRef } from 'antd';
-import { DownOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { DownOutlined, QuestionCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { TenantSwitcherNoAdminFlow } from '@/features/auth/components/TenantSwitcherNoAdminFlow';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { getDevTenant, isLocalDevHostname } from '@/features/auth/services/devTenant';
+import { TenantNoAdminWarningPill } from '@/features/super-admin/components/TenantNoAdminWarningPill';
 import {
-    filterTenantsForHeaderSearch,
     findTenantBySlug,
     getTenantHeaderDetailLines,
     getTenantHeaderTitle,
-    sortTenantsForHeaderSwitcher,
+    getTenantSwitcherLicenseBadge,
+    tenantHeaderShowsNoAdminWarning,
 } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
 import {
+    filterTenantSwitcherItems,
     tenantNeedsNoAdminWarning,
     useTenantListForSwitcher,
     type TenantListItemForSwitcher,
@@ -29,7 +31,7 @@ import {
 import { useTenantContext } from '@/features/tenancy/hooks/useTenantContext';
 import { useI18n } from '@/i18n';
 
-const SEARCH_FOCUS_TENANT_THRESHOLD = 20;
+const { Search } = Input;
 
 type TenantSwitcherRowProps = {
     tenant: TenantListItemForSwitcher;
@@ -39,7 +41,9 @@ type TenantSwitcherRowProps = {
 function TenantSwitcherRow({ tenant, onSwitch }: TenantSwitcherRowProps) {
     const { t } = useI18n();
     const title = getTenantHeaderTitle(tenant.source, t);
-    const { adminLine, licenseLine } = getTenantHeaderDetailLines(tenant.source, t);
+    const { adminLine } = getTenantHeaderDetailLines(tenant.source, t);
+    const licenseBadge = getTenantSwitcherLicenseBadge(tenant.source, t);
+    const showNoAdminPill = tenantHeaderShowsNoAdminWarning(tenant.source);
 
     return (
         <Flex
@@ -52,18 +56,26 @@ function TenantSwitcherRow({ tenant, onSwitch }: TenantSwitcherRowProps) {
             }}
         >
             <Flex vertical gap={2} style={{ minWidth: 0, flex: 1 }}>
-                <Typography.Text strong style={{ fontSize: 13 }}>
-                    {title}
-                </Typography.Text>
+                <Flex align="center" gap={6} wrap="wrap">
+                    <Typography.Text strong style={{ fontSize: 13 }}>
+                        {title}
+                    </Typography.Text>
+                    {showNoAdminPill ? <TenantNoAdminWarningPill tenantId={tenant.id} /> : null}
+                </Flex>
                 {adminLine ? (
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {adminLine}
                     </Typography.Text>
                 ) : null}
-                {licenseLine ? (
-                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        {licenseLine}
-                    </Typography.Text>
+                {licenseBadge ? (
+                    <Tooltip title={licenseBadge.tooltip}>
+                        <Tag
+                            color={licenseBadge.color}
+                            style={{ marginInlineEnd: 0, width: 'fit-content', cursor: 'help' }}
+                        >
+                            {licenseBadge.label}
+                        </Tag>
+                    </Tooltip>
                 ) : null}
             </Flex>
             <Button size="small" type="link" onClick={() => onSwitch(tenant)}>
@@ -99,18 +111,13 @@ function TenantSwitcherDropdown({
     const [search, setSearch] = useState('');
     const searchInputRef = useRef<InputRef>(null);
 
-    const apiRows = useMemo(() => tenants.map((row) => row.source), [tenants]);
-    const sortedTenants = useMemo(() => sortTenantsForHeaderSwitcher(apiRows), [apiRows]);
-    const filteredApiRows = useMemo(
-        () => filterTenantsForHeaderSearch(sortedTenants, search),
-        [sortedTenants, search],
+    const filteredTenants = useMemo(
+        () => filterTenantSwitcherItems(tenants, search),
+        [tenants, search],
     );
-    const filteredTenants = useMemo(() => {
-        const byId = new Map(tenants.map((row) => [row.id, row]));
-        return filteredApiRows
-            .map((row) => byId.get(row.id))
-            .filter((row): row is TenantListItemForSwitcher => row != null);
-    }, [filteredApiRows, tenants]);
+    const apiRows = useMemo(() => tenants.map((row) => row.source), [tenants]);
+    const searchQuery = search.trim();
+    const isFiltering = searchQuery.length > 0;
 
     const currentRow = findTenantBySlug(apiRows, currentSlug);
     const triggerLabel = currentRow
@@ -124,11 +131,9 @@ function TenantSwitcherDropdown({
                 setSearch('');
                 return;
             }
-            if (tenantCount >= SEARCH_FOCUS_TENANT_THRESHOLD) {
-                window.setTimeout(() => searchInputRef.current?.focus(), 0);
-            }
+            window.setTimeout(() => searchInputRef.current?.focus(), 0);
         },
-        [tenantCount],
+        [],
     );
 
     const handleRequestSwitch = useCallback(
@@ -154,20 +159,34 @@ function TenantSwitcherDropdown({
             }}
             onClick={(e) => e.stopPropagation()}
         >
-            <Input
+            <Search
                 ref={searchInputRef}
                 allowClear
-                prefix={<SearchOutlined aria-hidden />}
                 placeholder={t('adminShell.tenant.devSwitcher.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onSearch={(value) => setSearch(value)}
                 aria-label={t('adminShell.tenant.devSwitcher.searchPlaceholder')}
             />
-            {tenantCount >= SEARCH_FOCUS_TENANT_THRESHOLD ? (
-                <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 6 }}>
-                    {t('adminShell.tenant.devSwitcher.tenantCount', { count: tenantCount })}
+            <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 6 }}>
+                {isFiltering
+                    ? t('adminShell.tenant.devSwitcher.searchResultsCount', {
+                          shown: filteredTenants.length,
+                          total: tenantCount,
+                      })
+                    : t('adminShell.tenant.devSwitcher.tenantCount', { count: tenantCount })}
+            </Typography.Text>
+            <Flex align="center" gap={6} style={{ marginTop: 8 }}>
+                <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                    {t('adminShell.tenant.devSwitcher.licenseColumnHint')}
                 </Typography.Text>
-            ) : null}
+                <Tooltip title={t('adminShell.tenant.devSwitcher.licenseHintTooltip')}>
+                    <QuestionCircleOutlined
+                        aria-label={t('adminShell.tenant.devSwitcher.licenseHintTooltip')}
+                        style={{ fontSize: 12, color: 'rgba(0, 0, 0, 0.45)', cursor: 'help' }}
+                    />
+                </Tooltip>
+            </Flex>
             <div style={{ maxHeight: 360, overflowY: 'auto', marginTop: 8 }}>
                 {loading ? (
                     <Flex justify="center" style={{ padding: 16 }}>

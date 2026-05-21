@@ -39,6 +39,16 @@ export function useCurrentTenant() {
         const tenantId = ctx.tenantId;
         const tenantNameFromApi = tenantsQuery.data?.find((row) => row.slug === tenantSlug)?.name ?? null;
         const tenantName = ctx.tenantName ?? tenantNameFromApi;
+        const isSuperAdminUser = isSuperAdmin(user?.role);
+        const isRealTenantSlug = Boolean(tenantSlug && tenantSlug !== 'admin');
+        const isManager = user?.role === 'Manager';
+
+        /** Manager on a tenant host/slug — mandant SaaS license in header (LicenseStatusIndicator). */
+        const showTenantLicenseInHeader =
+            ctx.hasAuthToken && !isSuperAdminUser && isManager && isRealTenantSlug;
+
+        /** Super Admin never sees deployment or mandant expiry warnings in the shell. */
+        const suppressLicenseWarnings = isSuperAdminUser;
 
         return {
             tenantSlug,
@@ -52,8 +62,13 @@ export function useCurrentTenant() {
             hostSlug: ctx.hostSlug,
             requiresTenantSelection: mode.requiresTenantSelection,
             isSuperAdminPlatformMode: mode.isSuperAdminPlatformMode,
+            isSuperAdminUser,
+            isRealTenantSlug,
+            showTenantLicenseInHeader,
+            suppressLicenseWarnings,
         };
     }, [
+        user?.role,
         ctx.tenantSlug,
         ctx.tenantId,
         ctx.tenantName,

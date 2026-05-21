@@ -1,0 +1,50 @@
+import { describe, expect, it } from 'vitest';
+
+import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
+import {
+    filterTenantSwitcherItems,
+    type TenantListItemForSwitcher,
+} from '@/features/tenancy/hooks/useTenantListForSwitcher';
+
+const source = (overrides: Partial<AdminTenantListItem>): AdminTenantListItem => ({
+    id: overrides.id ?? '1',
+    name: overrides.name ?? 'Test',
+    slug: overrides.slug ?? 'test',
+    status: 'active',
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00Z',
+    ...overrides,
+});
+
+const item = (overrides: Partial<AdminTenantListItem>): TenantListItemForSwitcher => ({
+    id: overrides.id ?? '1',
+    name: overrides.name ?? 'Test',
+    slug: overrides.slug ?? 'test',
+    status: 'active',
+    isActive: true,
+    adminEmail: null,
+    licenseDaysLeft: null,
+    statusIcon: '🟡',
+    source: source(overrides),
+});
+
+describe('filterTenantSwitcherItems', () => {
+    const tenants = [
+        item({ id: 'a', name: 'Café Adler', slug: 'cafe' }),
+        item({ id: 'b', name: 'Bar Central', slug: 'bar' }),
+        item({ id: 'c', name: 'Market', slug: 'market', status: 'suspended', isActive: false }),
+    ];
+
+    it('returns all tenants when query is empty', () => {
+        expect(filterTenantSwitcherItems(tenants, '')).toHaveLength(3);
+    });
+
+    it('filters by slug', () => {
+        expect(filterTenantSwitcherItems(tenants, 'cafe')).toHaveLength(1);
+        expect(filterTenantSwitcherItems(tenants, 'cafe')[0]?.slug).toBe('cafe');
+    });
+
+    it('filters by name substring', () => {
+        expect(filterTenantSwitcherItems(tenants, 'adler')).toHaveLength(1);
+    });
+});

@@ -31,6 +31,29 @@
     "devExport": {
       "label": "DEV / EXPORT",
       "tooltip": "OpenAPI-Export-Modus — kein echtes Lizenz-Setup."
+    },
+    "superAdminMode": {
+      "label": "Super Admin Modus — Volle Kontrolle",
+      "tooltip": "Plattform-Administration. Mandantenlizenzen finden Sie in der Mandantenverwaltung; hier wird keine Server-Lizenz angezeigt."
+    },
+    "tenant": {
+      "baseTooltip": "Lizenz des aktiven Mandanten (Unternehmens). Die Verwaltungsoberfläche selbst hat keine Lizenzbeschränkung.",
+      "trial": {
+        "label": "Mandanten-Lizenz: TESTVERSION ({{days}} Tage)",
+        "tooltip": "Testversion des Mandanten. Noch {{days}} Tag(e) gültig."
+      },
+      "days": {
+        "label": "Mandanten-Lizenz: {{days}} Tage",
+        "tooltip": "Mandantenlizenz läuft in {{days}} Tag(en) ab."
+      },
+      "expired": {
+        "label": "Mandanten-Lizenz: ABGELAUFEN",
+        "tooltip": "Die Mandantenlizenz ist abgelaufen — bitte verlängern."
+      },
+      "licensed": {
+        "label": "Mandanten-Lizenz: LIZENZIERT",
+        "tooltip": "Gültige Mandanten-Produktivlizenz."
+      }
     }
   },
   "banner": {

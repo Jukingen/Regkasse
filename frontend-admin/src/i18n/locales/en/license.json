@@ -31,6 +31,29 @@
     "devExport": {
       "label": "DEV / EXPORT",
       "tooltip": "OpenAPI export mode — no real license setup."
+    },
+    "superAdminMode": {
+      "label": "Super Admin mode — full control",
+      "tooltip": "Platform administration. Tenant licenses are managed under Tenants; the server deployment license is not shown here."
+    },
+    "tenant": {
+      "baseTooltip": "License of the active tenant (company). The admin UI itself has no license restriction.",
+      "trial": {
+        "label": "Tenant license: TRIAL ({{days}} days)",
+        "tooltip": "Tenant trial. {{days}} day(s) remaining."
+      },
+      "days": {
+        "label": "Tenant license: {{days}} days",
+        "tooltip": "Tenant license expires in {{days}} day(s)."
+      },
+      "expired": {
+        "label": "Tenant license: EXPIRED",
+        "tooltip": "The tenant license has expired — please renew."
+      },
+      "licensed": {
+        "label": "Tenant license: LICENSED",
+        "tooltip": "Valid tenant production license."
+      }
     }
   },
   "banner": {

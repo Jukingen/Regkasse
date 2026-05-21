@@ -1,5 +1,5 @@
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
-import { resolveTenantLicenseLabel } from '@/features/super-admin/utils/tenantLicenseLabel';
+import { getMandantLicenseBadgeDisplay } from '@/features/tenant/utils/mandantLicenseBadge';
 
 export type TenantHeaderIndicatorKind = 'activeWithAdmin' | 'activeNoAdmin' | 'suspended' | 'deleted';
 
@@ -20,6 +20,13 @@ export function getTenantStatusIcon(
     tenant: Pick<AdminTenantListItem, 'status' | 'isActive' | 'ownerAdminEmail'>,
 ): string {
     return getTenantHeaderIndicator(tenant).emoji;
+}
+
+/** Active tenant without owner admin — show warning pill in switcher. */
+export function tenantHeaderShowsNoAdminWarning(
+    tenant: Pick<AdminTenantListItem, 'status' | 'isActive' | 'ownerAdminEmail'>,
+): boolean {
+    return getTenantHeaderIndicator(tenant).kind === 'activeNoAdmin';
 }
 
 export function getTenantHeaderIndicator(
@@ -61,8 +68,6 @@ export function getTenantHeaderDetailLines(
         const email = tenant.ownerAdminEmail?.trim();
         if (email) {
             adminLine = t('adminShell.tenant.devSwitcher.adminLine', { email });
-        } else {
-            adminLine = t('adminShell.tenant.devSwitcher.noAdmin');
         }
     }
 
@@ -71,22 +76,29 @@ export function getTenantHeaderDetailLines(
 }
 
 function formatLicenseLine(tenant: AdminTenantListItem, t: TranslateFn): string | null {
-    const lic = resolveTenantLicenseLabel(tenant.licenseValidUntilUtc, tenant.licenseKey);
-    if (lic.kind === 'none') {
+    const badge = getTenantSwitcherLicenseBadge(tenant, t);
+    return badge?.label ?? null;
+}
+
+/** Mandant SaaS license line for header switcher rows (not deployment/on-premise license). */
+export function getTenantSwitcherLicenseBadge(
+    tenant: Pick<AdminTenantListItem, 'licenseValidUntilUtc' | 'licenseKey'>,
+    t: TranslateFn,
+): { label: string; color: string; tooltip: string; daysRemaining: number | null } | null {
+    const display = getMandantLicenseBadgeDisplay(
+        tenant.licenseValidUntilUtc,
+        tenant.licenseKey,
+        t,
+    );
+    if (!display) {
         return null;
     }
-
-    const days = lic.daysRemaining;
-    if (lic.kind === 'trial' && days != null && days >= 0) {
-        return t('adminShell.tenant.devSwitcher.licenseDemo', { days });
-    }
-    if (lic.kind === 'expired') {
-        return t('adminShell.tenant.devSwitcher.licenseExpired');
-    }
-    if (days != null && days >= 0) {
-        return t('adminShell.tenant.devSwitcher.licenseDays', { days });
-    }
-    return null;
+    return {
+        label: display.label,
+        color: display.color,
+        tooltip: display.tooltip,
+        daysRemaining: display.daysRemaining,
+    };
 }
 
 export function sortTenantsForHeaderSwitcher(tenants: AdminTenantListItem[]): AdminTenantListItem[] {

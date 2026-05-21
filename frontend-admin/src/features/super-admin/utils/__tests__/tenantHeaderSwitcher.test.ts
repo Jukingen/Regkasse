@@ -8,7 +8,9 @@ import {
     getTenantHeaderIndicator,
     getTenantHeaderTitle,
     getTenantStatusIcon,
+    getTenantSwitcherLicenseBadge,
     sortTenantsForHeaderSwitcher,
+    tenantHeaderShowsNoAdminWarning,
 } from '../tenantHeaderSwitcher';
 
 const t = (key: string, params?: Record<string, string | number>) => {
@@ -17,11 +19,20 @@ const t = (key: string, params?: Record<string, string | number>) => {
     }
     if (key === 'adminShell.tenant.devSwitcher.noAdmin') return 'Kein Admin zugewiesen';
     if (key === 'adminShell.tenant.devSwitcher.suspendedSuffix') return 'Gesperrt';
-    if (key === 'adminShell.tenant.devSwitcher.licenseDays' && params?.days != null) {
-        return `Lizenz: ${params.days} Tage`;
+    if (key === 'license.badge.tenant.baseTooltip') {
+        return 'Mandanten-Lizenz Hinweis.';
     }
-    if (key === 'adminShell.tenant.devSwitcher.licenseDemo' && params?.days != null) {
-        return `Lizenz: Demo (${params.days} Tage)`;
+    if (key === 'license.badge.tenant.trial.label' && params?.days != null) {
+        return `Mandanten-Lizenz: TESTVERSION (${params.days} Tage)`;
+    }
+    if (key === 'license.badge.tenant.trial.tooltip' && params?.days != null) {
+        return `Noch ${params.days} Tage.`;
+    }
+    if (key === 'license.badge.tenant.expired.label') {
+        return 'Mandanten-Lizenz: ABGELAUFEN';
+    }
+    if (key === 'license.badge.tenant.expired.tooltip') {
+        return 'Abgelaufen.';
     }
     return key;
 };
@@ -94,6 +105,15 @@ describe('tenantHeaderSwitcher', () => {
         expect(filterTenantsForHeaderSearch(rows, 'admin@bar')).toHaveLength(0);
     });
 
+    it('filters by display name case-insensitively', () => {
+        const rows = [
+            baseRow({ name: 'Café Adler', slug: 'cafe' }),
+            baseRow({ name: 'Bar Central', slug: 'bar' }),
+        ];
+        expect(filterTenantsForHeaderSearch(rows, 'adler')).toHaveLength(1);
+        expect(filterTenantsForHeaderSearch(rows, 'BAR')).toHaveLength(1);
+    });
+
     it('builds admin and license detail lines', () => {
         const until = new Date();
         until.setDate(until.getDate() + 21);
@@ -107,6 +127,30 @@ describe('tenantHeaderSwitcher', () => {
             t,
         );
         expect(lines.adminLine).toBe('Admin: admin@cafe.regkasse.at');
-        expect(lines.licenseLine).toContain('21');
+        expect(lines.licenseLine).toBe('Mandanten-Lizenz: TESTVERSION (21 Tage)');
+    });
+
+    it('uses Mandanten-Lizenz TESTVERSION label for trial tenants', () => {
+        const until = new Date();
+        until.setDate(until.getDate() + 8);
+        const badge = getTenantSwitcherLicenseBadge(
+            baseRow({
+                licenseValidUntilUtc: until.toISOString(),
+                licenseKey: null,
+            }),
+            t,
+        );
+        expect(badge?.label).toMatch(/^Mandanten-Lizenz: TESTVERSION \(\d+ Tage\)$/);
+        expect(badge?.color).toBe('blue');
+        expect(badge?.tooltip).toContain('Mandanten-Lizenz Hinweis');
+    });
+
+    it('omits admin line when no owner admin (pill shown in UI instead)', () => {
+        const lines = getTenantHeaderDetailLines(
+            baseRow({ slug: 'bar', ownerAdminEmail: null }),
+            t,
+        );
+        expect(lines.adminLine).toBeNull();
+        expect(tenantHeaderShowsNoAdminWarning(baseRow({ ownerAdminEmail: null }))).toBe(true);
     });
 });

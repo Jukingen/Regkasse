@@ -5,7 +5,11 @@ import { useMemo } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 import { resolveTenantLicenseLabel } from '@/features/super-admin/utils/tenantLicenseLabel';
-import { getTenantStatusIcon } from '@/features/super-admin/utils/tenantHeaderSwitcher';
+import {
+    filterTenantsForHeaderSearch,
+    getTenantStatusIcon,
+    sortTenantsForHeaderSwitcher,
+} from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
 
 export type TenantListItemForSwitcher = {
@@ -67,6 +71,19 @@ export function useTenantListForSwitcher() {
         refetch: query.refetch,
         tenantCount: tenants.length,
     };
+}
+
+/** Client-side filter by name, slug, or admin email; preserves switcher sort order. */
+export function filterTenantSwitcherItems(
+    items: TenantListItemForSwitcher[],
+    query: string,
+): TenantListItemForSwitcher[] {
+    const sortedSources = sortTenantsForHeaderSwitcher(items.map((row) => row.source));
+    const filteredSources = filterTenantsForHeaderSearch(sortedSources, query);
+    const byId = new Map(items.map((row) => [row.id, row]));
+    return filteredSources
+        .map((row) => byId.get(row.id))
+        .filter((row): row is TenantListItemForSwitcher => row != null);
 }
 
 /** Active tenant without an owner admin — Super Admin should confirm before switching. */

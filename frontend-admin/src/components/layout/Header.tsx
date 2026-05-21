@@ -9,7 +9,7 @@ import { HeaderDevTenantSwitch } from '@/features/auth/components/HeaderDevTenan
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
 import { TenantBadge } from '@/components/admin-layout/TenantBadge';
 import { EnvironmentBadge } from '@/components/EnvironmentBadge';
-import { LicenseStatusBadge } from '@/components/LicenseStatusBadge';
+import { LicenseStatusIndicator } from '@/components/admin-layout/LicenseStatusIndicator';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 import { useI18n } from '@/i18n';
 
@@ -89,7 +89,7 @@ export function AdminShellHeader({
                 <EnvironmentBadge />
                 <TenantBadge />
                 <HeaderDevTenantSwitch />
-                <LicenseStatusBadge />
+                <LicenseStatusIndicator />
                 <HeaderLanguageQuickSwitch />
                 <MonatsbelegGlobalBadge />
                 <Dropdown menu={userMenu} placement="bottomRight">

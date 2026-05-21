@@ -28,9 +28,10 @@ export function TenantBadge() {
     const tooltipParts: string[] = [];
 
     if (isSuperAdminPlatformMode) {
-        color = 'orange';
+        color = 'processing';
         label = t('adminShell.tenant.badgeSuperAdminMode');
         tooltipParts.push(t('adminShell.tenant.superAdminModeBanner'));
+        tooltipParts.push(t('license.badge.superAdminMode.tooltip'));
     } else if (isPlatformAdminHost && tenantSlug === 'admin') {
         color = 'orange';
         label = t('adminShell.tenant.badgePlatformAdmin');

@@ -31,6 +31,29 @@
     "devExport": {
       "label": "DEV / EXPORT",
       "tooltip": "OpenAPI dışa aktarma modu — gerçek lisans kurulumu yok."
+    },
+    "superAdminMode": {
+      "label": "Super Admin modu — tam kontrol",
+      "tooltip": "Platform yönetimi. Kiracı lisansları Kiracılar bölümündedir; sunucu dağıtım lisansı burada gösterilmez."
+    },
+    "tenant": {
+      "baseTooltip": "Aktif kiracının (işletmenin) lisansı. Yönetim arayüzünün kendisinin lisans kısıtı yoktur.",
+      "trial": {
+        "label": "Kiracı lisansı: DENEME ({{days}} gün)",
+        "tooltip": "Kiracı deneme sürümü. Kalan: {{days}} gün."
+      },
+      "days": {
+        "label": "Kiracı lisansı: {{days}} gün",
+        "tooltip": "Kiracı lisansı {{days}} gün içinde sona eriyor."
+      },
+      "expired": {
+        "label": "Kiracı lisansı: SÜRESİ DOLDU",
+        "tooltip": "Kiracı lisansının süresi doldu — lütfen yenileyin."
+      },
+      "licensed": {
+        "label": "Kiracı lisansı: LİSANSLI",
+        "tooltip": "Geçerli kiracı üretim lisansı."
+      }
     }
   },
   "banner": {
