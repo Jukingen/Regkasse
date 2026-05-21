@@ -52,5 +52,11 @@ namespace KasseAPI_Final.Models.DTOs
         public string? Changes { get; set; }
         /// <summary>Additional metadata JSON (e.g. reason, targetUserId).</summary>
         public string? Metadata { get; set; }
+
+        /// <summary>Super Admin user id when the row was written under impersonation.</summary>
+        public string? ImpersonatedBy { get; set; }
+
+        /// <summary>Target tenant id when the row was written under impersonation.</summary>
+        public Guid? ImpersonatedTenantId { get; set; }
     }
 }

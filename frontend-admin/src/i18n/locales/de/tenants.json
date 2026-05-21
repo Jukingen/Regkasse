@@ -352,10 +352,15 @@
       "emailSent": "E-Mail mit Passwort wurde versendet.",
       "forceChangeHint": "Der Benutzer muss sich beim nächsten Login anmelden und das Passwort ändern."
     },
+    "superAdminOnly": {
+      "credentialsTitle": "Nur für Super Admin",
+      "credentialsHint": "Das Erzeugen von Mandanten-Benutzern mit Einmalpasswort sowie die Anzeige von Zugangsdaten sind ausschließlich der Rolle Super Admin vorbehalten."
+    },
     "invite": {
-      "action": "Benutzer einladen",
-      "title": "Benutzer einladen",
-      "subtitle": "E-Mail-Adresse eingeben. Fehlt das Konto, wird es angelegt und eine Einladung per E-Mail versendet (sofern SMTP konfiguriert ist).",
+      "action": "Benutzer hinzufügen",
+      "title": "Benutzer hinzufügen",
+      "subtitle": "E-Mail-Adresse und Rolle eingeben. Für neue Konten wird ein Einmalpasswort erzeugt und hier angezeigt.",
+      "createHint": "Nach der Erstellung wird ein Passwort generiert und einmalig angezeigt. Teilen Sie es dem Benutzer mit.",
       "email": "E-Mail",
       "emailRequired": "Bitte eine E-Mail-Adresse eingeben.",
       "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
@@ -363,13 +368,57 @@
       "isOwner": "Mandanten-Administrator (Owner)",
       "smtpHint": "Ohne SMTP in der API-Konfiguration wird das Einmalpasswort hier angezeigt.",
       "resultTitle": "Einladung abgeschlossen",
+      "resultSuccessTitle": "Benutzer wurde erstellt",
+      "resultAssignedTitle": "Benutzer wurde zugewiesen",
       "resultCreated": "Neues Benutzerkonto wurde angelegt und dem Mandanten zugewiesen.",
       "resultExisting": "Bestehender Benutzer wurde dem Mandant zugewiesen.",
+      "credentialsFor": "Zugangsdaten für: {{email}}",
+      "passwordLabel": "Passwort:",
       "passwordOnce": "Einmalpasswort (manuell übermitteln)",
+      "passwordOnceWarning": "Dieses Passwort wird nur JETZT einmal angezeigt!",
+      "nextStepsTitle": "Nächste Schritte:",
+      "nextStep1": "Teilen Sie das Passwort sicher mit dem Benutzer",
+      "nextStep2": "Der Benutzer meldet sich beim ersten Login unter {{portalUrl}} an",
+      "nextStep2NoUrl": "Der Benutzer meldet sich beim ersten Login am Mandanten-Portal an",
+      "nextStep3": "Das Passwort wird dann geändert",
+      "resultDone": "Fertig",
       "messages": {
+        "created": "Benutzer wurde erstellt.",
+        "assignedExisting": "Benutzer wurde dem Mandanten zugewiesen.",
         "sent": "Einladung wurde per E-Mail versendet.",
         "assignedNoEmail": "Benutzer zugewiesen; E-Mail konnte nicht versendet werden.",
-        "failed": "Einladung fehlgeschlagen."
+        "failed": "Benutzer konnte nicht erstellt werden."
+      }
+    },
+    "quick": {
+      "action": "Schnell-Benutzer generieren",
+      "title": "Schnell-Benutzer generieren",
+      "role": "Rolle",
+      "generate": "Generieren",
+      "autoTitle": "Es wird automatisch:",
+      "emailPreview": "E-Mail: {{role}}_{{random}}@{{slug}}.regkasse.at (6 Zeichen Zufall)",
+      "autoPassword": "Passwort: Generiert (12 Zeichen)",
+      "autoForceChange": "Benutzer muss Passwort bei erster Anmeldung ändern",
+      "resultSuccessTitle": "Schnell-Benutzer erstellt",
+      "result": {
+        "title": "Benutzer wurde generiert",
+        "userLabel": "Benutzer:",
+        "passwordLabel": "Passwort:",
+        "passwordOnceWarning": "Dieses Passwort wird nur JETZT einmal angezeigt!",
+        "roleLabel": "Rolle:",
+        "tenantLabel": "Mandant:",
+        "tenantValue": "{{name}} ({{slug}})",
+        "loginUrlLabel": "Login-URL:",
+        "nextStepsTitle": "Nächste Schritte:",
+        "nextStep1": "Passwort sicher an Benutzer weitergeben",
+        "nextStep2": "Benutzer muss Passwort bei erster Anmeldung ändern",
+        "generateAnother": "Weiteren generieren",
+        "done": "Fertig"
+      },
+      "messages": {
+        "created": "Schnell-Benutzer wurde erstellt.",
+        "failed": "Schnell-Benutzer konnte nicht erstellt werden.",
+        "rateLimited": "Limit erreicht: höchstens 10 Schnell-Benutzer pro Stunde und Mandant."
       }
     },
     "add": {

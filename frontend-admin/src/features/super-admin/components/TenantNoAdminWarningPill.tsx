@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Tag, Tooltip } from 'antd';
 
 import { useI18n } from '@/i18n';
+import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 
 export type TenantNoAdminWarningPillProps = {
     tenantId: string;
@@ -12,11 +13,12 @@ export type TenantNoAdminWarningPillProps = {
     onClickCapture?: (event: MouseEvent) => void;
 };
 
+/** @deprecated Use `buildAdminUsersPageHref`. */
 export function buildTenantUsersTabHref(tenantId: string): string {
-    return `/admin/tenants/${tenantId}?tab=users`;
+    return buildAdminUsersPageHref(tenantId);
 }
 
-/** Yellow warning pill — links to tenant user management (users tab). */
+/** Yellow warning pill — links to unified user management filtered by tenant. */
 export function TenantNoAdminWarningPill({ tenantId, onClickCapture }: TenantNoAdminWarningPillProps) {
     const { t } = useI18n();
     const href = buildTenantUsersTabHref(tenantId);

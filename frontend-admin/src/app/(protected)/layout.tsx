@@ -13,7 +13,11 @@ import { AuthGate } from '@/shared/auth/AuthGate';
 import { PermissionRouteGuard } from '@/shared/auth/PermissionRouteGuard';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
-import { canViewUsers, canShowRksvMenu } from '@/features/auth/constants/roles';
+import {
+    canViewUsers,
+    canShowRksvMenu,
+    isSuperAdmin,
+} from '@/features/auth/constants/roles';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
@@ -26,6 +30,7 @@ import {
 } from '@/shared/adminSidebarNavigation';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { PageLoader } from '@/components/ui/PageLoader';
+import { ImpersonationBanner } from '@/components/admin-layout/ImpersonationBanner';
 import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
 import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenantGate';
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
@@ -153,6 +158,8 @@ export default function DashboardLayout({
             isMenuItemAllowed,
             canViewUsers,
             canShowRksvMenu,
+            canShowPlatformAdminMenu: (role) => isSuperAdmin(role),
+            isSuperAdminRole: (role) => isSuperAdmin(role),
         }),
         [usePermissionFirst, permissions, user?.role],
     );
@@ -317,6 +324,7 @@ export default function DashboardLayout({
                         >
                             <PasswordChangeRequiredRedirect />
                             <LicenseExpiryBanner />
+                            <ImpersonationBanner />
                             <SuperAdminModeBanner />
                             <VerwaltungTenantContextGate />
                             <main id="main-content" tabIndex={-1}>

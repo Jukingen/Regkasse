@@ -1,9 +1,11 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -46,7 +48,9 @@ public sealed class TenantUserServiceTests
         UserManager<ApplicationUser> userManager,
         ITenantInvitationEmailSender? invitationEmail = null,
         IUserUniquenessValidationService? uniqueness = null,
-        IUserSessionInvalidation? sessionInvalidation = null) =>
+        IUserSessionInvalidation? sessionInvalidation = null,
+        IQuickUserGeneratorService? quickUserGenerator = null,
+        IAuditLogService? auditLog = null) =>
         new(
             db,
             userManager,
@@ -54,7 +58,34 @@ public sealed class TenantUserServiceTests
             uniqueness ?? CreateUniquenessMock().Object,
             invitationEmail ?? CreateInvitationEmailMock(sent: false).Object,
             sessionInvalidation ?? Mock.Of<IUserSessionInvalidation>(),
+            quickUserGenerator ?? new QuickUserGeneratorService(
+                db,
+                userManager,
+                uniqueness ?? CreateUniquenessMock().Object),
+            auditLog ?? Mock.Of<IAuditLogService>(),
+            Mock.Of<IHttpContextAccessor>(),
+            NullCurrentTenantAccessor.Instance,
             Mock.Of<ILogger<TenantUserService>>());
+
+    private static Mock<IAuditLogService> CreateAuditMock()
+    {
+        var m = new Mock<IAuditLogService>();
+        m.Setup(x => x.LogSystemOperationAsync(
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid() });
+        return m;
+    }
 
     private static Mock<IUserUniquenessValidationService> CreateUniquenessMock(bool emailTaken = false)
     {
@@ -97,7 +128,67 @@ public sealed class TenantUserServiceTests
     }
 
     [Fact]
-    public async Task InviteAsync_Creates_User_And_Assigns_Membership()
+    public void GenerateRandomPassword_MeetsRules()
+    {
+        var password = PasswordGenerator.GenerateRandomPassword();
+        Assert.True(password.Length >= 12);
+        Assert.Matches(@"[A-Z]", password);
+        Assert.Matches(@"[a-z]", password);
+        Assert.Matches(@"\d", password);
+        Assert.Matches(@"[!@#$%&*]", password);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Creates_User_Returns_Password_And_Logs_Audit()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Create Cafe",
+            Slug = "create-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = CreateAuditMock();
+        var service = CreateService(db, CreateUserManager(db), auditLog: audit.Object);
+        var actorId = Guid.NewGuid().ToString("D");
+        var (result, error) = await service.CreateAsync(tenantId, new CreateTenantUserRequest
+        {
+            Email = "create@cafe.test",
+            Role = Roles.Manager,
+        }, actorId);
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.True(result!.Success);
+        Assert.False(string.IsNullOrEmpty(result.GeneratedPassword));
+        Assert.True(result.ForcePasswordChangeOnNextLogin);
+        Assert.Equal("create@cafe.test", result.Email);
+
+        audit.Verify(
+            x => x.LogSystemOperationAsync(
+                "TENANT_USER_CREATED",
+                "TenantUser",
+                actorId,
+                Roles.SuperAdmin,
+                It.IsAny<string?>(),
+                It.Is<string?>(n => n != null && n.Contains("role=Manager")),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateQuickAsync_Generates_Email_Password_And_Logs_Quick_Audit()
     {
         await using var db = CreateDb();
         await SeedRolesAsync(db);
@@ -113,26 +204,76 @@ public sealed class TenantUserServiceTests
         });
         await db.SaveChangesAsync();
 
-        var invitation = CreateInvitationEmailMock(sent: true);
-        var service = CreateService(db, CreateUserManager(db), invitation.Object);
+        var service = CreateService(db, CreateUserManager(db));
+        var actorId = Guid.NewGuid().ToString("D");
+        var (result, error) = await service.CreateQuickAsync(tenantId, new CreateQuickTenantUserRequest
+        {
+            Role = Roles.Cashier,
+        }, actorId);
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.True(result!.Success);
+        Assert.Matches(@"^cashier_[a-z0-9]{6}@cafe\.regkasse\.at$", result.Email);
+        Assert.Equal(12, result.GeneratedPassword.Length);
+        Assert.True(result.ForcePasswordChangeOnNextLogin);
+        Assert.Equal(Roles.Cashier, result.Role);
+
+        var auditRow = await db.AuditLogs.SingleAsync(a => a.Action == AuditLogActions.TENANT_QUICK_USER_CREATED);
+        Assert.Equal(AuditLogEntityTypes.USER, auditRow.EntityType);
+        Assert.Equal(tenantId, auditRow.TenantId);
+        Assert.Equal(actorId, auditRow.UserId);
+        Assert.Contains("Schnell-Benutzer", auditRow.Description);
+        Assert.Contains("***HIDDEN***", auditRow.RequestData);
+        Assert.Contains("quick_generate", auditRow.RequestData);
+    }
+
+    [Fact]
+    public void QuickUserEmailGenerator_BuildEmail_Uses_Role_Prefix_And_Six_Char_Suffix()
+    {
+        var email = QuickUserEmailGenerator.BuildEmail("Manager", "cafe");
+        Assert.Matches(@"^manager_[a-z0-9]{6}@cafe\.regkasse\.at$", email);
+    }
+
+    [Fact]
+    public async Task InviteAsync_Creates_User_Assigns_Membership_And_Returns_Password()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Test Cafe",
+            Slug = "cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db));
         var (result, error) = await service.InviteAsync(tenantId, new InviteTenantUserRequest
         {
             Email = "new.manager@cafe.test",
             Role = Roles.Manager,
-        });
+        }, "actor-1");
 
         Assert.Null(error);
         Assert.NotNull(result);
         Assert.True(result!.UserCreated);
-        Assert.True(result.InvitationEmailSent);
-        Assert.Null(result.GeneratedPassword);
+        Assert.False(result.InvitationEmailSent);
+        Assert.False(string.IsNullOrEmpty(result.GeneratedPassword));
+        Assert.True(result.ForcePasswordChangeOnNextLogin);
+        Assert.Equal("https://cafe.regkasse.at", result.TenantPortalUrl);
 
         var user = await db.Users.SingleAsync(u => u.Email == "new.manager@cafe.test");
         Assert.Equal(Roles.Manager, user.Role);
+        Assert.True(user.MustChangePasswordOnNextLogin);
     }
 
     [Fact]
-    public async Task InviteAsync_Returns_Password_When_Smtp_Not_Configured()
+    public async Task InviteAsync_Assigns_Existing_User_Without_Password()
     {
         await using var db = CreateDb();
         await SeedRolesAsync(db);
@@ -148,19 +289,35 @@ public sealed class TenantUserServiceTests
         });
         await db.SaveChangesAsync();
 
-        var invitation = CreateInvitationEmailMock(sent: false, configured: false);
-        var service = CreateService(db, CreateUserManager(db), invitation.Object);
+        var userManager = CreateUserManager(db);
+        var existing = new ApplicationUser
+        {
+            UserName = "existing@bar.test",
+            Email = "existing@bar.test",
+            FirstName = "E",
+            LastName = "U",
+            EmployeeNumber = "E2",
+            Role = Roles.Cashier,
+            TaxNumber = string.Empty,
+            IsActive = true,
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        await userManager.CreateAsync(existing, "OldPass123!");
+        await userManager.AddToRoleAsync(existing, Roles.Cashier);
+
+        var service = CreateService(db, userManager);
         var (result, error) = await service.InviteAsync(tenantId, new InviteTenantUserRequest
         {
-            Email = "invite@bar.test",
-            Role = Roles.Cashier,
-        });
+            Email = "existing@bar.test",
+            Role = Roles.Manager,
+        }, "actor-1");
 
         Assert.Null(error);
         Assert.NotNull(result);
-        Assert.True(result!.UserCreated);
-        Assert.False(result.InvitationEmailSent);
-        Assert.False(string.IsNullOrEmpty(result.GeneratedPassword));
+        Assert.False(result!.UserCreated);
+        Assert.Null(result.GeneratedPassword);
+        Assert.False(result.ForcePasswordChangeOnNextLogin);
     }
 
     [Fact]

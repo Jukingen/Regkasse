@@ -102,6 +102,16 @@
     },
     "tenantChangedToast": "Kiracı değiştirildi: {slug}"
   },
+  "impersonation": {
+    "banner": {
+      "title": "Destek kimliği taklidi etkin",
+      "description": "{name} ({slug}) kiracı bağlamında çalışıyorsunuz. Tüm işlemler bu kiracı için geçerlidir.",
+      "exit": "Kimlik taklidini bitir",
+      "expiryTitle": "Kimlik taklidi süresi dolmak üzere",
+      "expiryWarning": "Bu oturum yaklaşık {minutes} dakika içinde sona erecek. Taklidi bitirin veya admin ana bilgisayarından yeniden başlatın.",
+      "expiryToast": "Kimlik taklidi {minutes} dakika içinde sona erecek."
+    }
+  },
   "group": {
     "operations": "Operasyon",
     "salesTransactions": "Satış ve işlemler",

@@ -223,6 +223,16 @@
     "emptyListWithFilters": "No users match the current filters. Clear filters or adjust search/role/status.",
     "emptyListDefaultHint": "Note: By default only active accounts are listed (status = active)."
   },
+  "unified": {
+    "pageIntro": "All platform and tenant users in one place. Use the tenant filter to narrow the list — no separate menu entries.",
+    "filterTenantLabel": "Filter tenant:",
+    "filterAllTenants": "All tenants",
+    "filterPlatformOnly": "Platform",
+    "platformBadge": "Platform (Super Admin)",
+    "platformTenantLabel": "(Platform)",
+    "empty": "No users match the current filters.",
+    "invitationsSection": "Invitations (email)"
+  },
   "tabs": {
     "labelPlatform": "Platform users",
     "labelTenant": "Tenant users",
@@ -260,9 +270,11 @@
     }
   },
   "invite": {
-    "title": "Invite user",
+    "title": "Add user",
     "titleForTenant": "Invite user to «{{name}}» ({{slug}})",
-    "action": "Invite user",
+    "titleAddForTenant": "Add user to «{{name}}» ({{slug}})",
+    "action": "Add user",
+    "createUser": "Create user",
     "send": "Send invitation",
     "email": "Email address",
     "tenant": "Tenant (company)",
@@ -271,7 +283,7 @@
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "No license",
     "role": "Role",
-    "emailHint": "The user receives an email with access credentials when SMTP is configured.",
+    "emailHint": "After creation a password is generated and shown once. Share it with the user.",
     "targetTenant": {
       "title": "Invite user to «{{name}}» ({{slug}})",
       "modalLabel": "Invitation for",

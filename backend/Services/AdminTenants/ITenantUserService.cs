@@ -4,14 +4,27 @@ public interface ITenantUserService
 {
     Task<IReadOnlyList<TenantUserDto>?> ListAsync(Guid tenantId, CancellationToken cancellationToken = default);
 
-    Task<(TenantUserDto? Result, string? Error)> AddAsync(
+    Task<(TenantUserDto? Result, string? Error)> AssignExistingAsync(
         Guid tenantId,
         AddAdminTenantUserRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<(CreateTenantUserResultDto? Result, string? Error)> CreateAsync(
+        Guid tenantId,
+        CreateTenantUserRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<(CreateTenantUserResultDto? Result, string? Error)> CreateQuickAsync(
+        Guid tenantId,
+        CreateQuickTenantUserRequest request,
+        string actorUserId,
         CancellationToken cancellationToken = default);
 
     Task<(TenantUserInviteResultDto? Result, string? Error)> InviteAsync(
         Guid tenantId,
         InviteTenantUserRequest request,
+        string actorUserId,
         CancellationToken cancellationToken = default);
 
     Task<(TenantUserDto? Result, string? Error)> UpdateAsync(

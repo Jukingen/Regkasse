@@ -46,7 +46,9 @@ namespace KasseAPI_Final.Models.DTOs
                 ActorDisplayName = actorDisplayName ?? log.ActorDisplayName,
                 ActionType = log.ActionType,
                 Changes = log.Changes,
-                Metadata = log.Metadata
+                Metadata = log.Metadata,
+                ImpersonatedBy = log.ImpersonatedBy,
+                ImpersonatedTenantId = log.ImpersonatedTenantId
             };
         }
 

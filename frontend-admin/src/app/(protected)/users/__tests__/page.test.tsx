@@ -81,6 +81,7 @@ const mockUseUsersPolicy = vi.fn(() => ({
   canDeleteRole: false,
   canEditRolePermissions: false,
   canResetPassword: () => true,
+  canProvisionTenantCredentials: true,
 }));
 vi.mock('@/shared/auth/usersPolicy', () => ({
   useUsersPolicy: () => mockUseUsersPolicy(),

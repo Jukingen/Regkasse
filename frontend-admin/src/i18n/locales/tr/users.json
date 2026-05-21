@@ -223,6 +223,16 @@
     "emptyListWithFilters": "Filtrelere uyan kullanıcı yok. Filtreleri temizleyin veya arama/rol/durumu değiştirin.",
     "emptyListDefaultHint": "Not: Varsayılan olarak yalnızca aktif hesaplar listelenir (durum = aktif)."
   },
+  "unified": {
+    "pageIntro": "Tüm platform ve mandant kullanıcıları tek yerde. Mandant filtresi ile listeyi daraltın — ayrı menü girişleri yok.",
+    "filterTenantLabel": "Mandant filtrele:",
+    "filterAllTenants": "Tüm mandantlar",
+    "filterPlatformOnly": "Platform",
+    "platformBadge": "Platform (Süper Admin)",
+    "platformTenantLabel": "(Platform)",
+    "empty": "Mevcut filtrelere uyan kullanıcı yok.",
+    "invitationsSection": "Davetler (e-posta)"
+  },
   "tabs": {
     "labelPlatform": "Platform kullanıcıları",
     "labelTenant": "Mandant kullanıcıları",
@@ -260,9 +270,11 @@
     }
   },
   "invite": {
-    "title": "Kullanıcı davet et",
+    "title": "Kullanıcı ekle",
     "titleForTenant": "«{{name}}» ({{slug}}) mandantına kullanıcı davet et",
-    "action": "Kullanıcı davet et",
+    "titleAddForTenant": "«{{name}}» ({{slug}}) mandantına kullanıcı ekle",
+    "action": "Kullanıcı ekle",
+    "createUser": "Kullanıcı oluştur",
     "send": "Davet gönder",
     "email": "E-posta adresi",
     "tenant": "Mandant (firma)",
@@ -271,7 +283,7 @@
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "Lisans yok",
     "role": "Rol",
-    "emailHint": "SMTP yapılandırıldığında kullanıcı erişim bilgileri içeren bir e-posta alır.",
+    "emailHint": "Oluşturma sonrası şifre üretilir ve yalnızca bir kez gösterilir. Kullanıcıyla paylaşın.",
     "targetTenant": {
       "title": "«{{name}}» ({{slug}}) mandantına kullanıcı davet et",
       "modalLabel": "Davet hedefi",

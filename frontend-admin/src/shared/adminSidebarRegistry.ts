@@ -289,8 +289,8 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     },
     users: {
         id: 'users',
-        menuKey: '/users',
-        href: '/users',
+        menuKey: '/admin/users',
+        href: '/admin/users',
         labelKey: 'nav.users',
         icon: 'TeamOutlined',
     },
@@ -402,12 +402,18 @@ export type SidebarLayoutBlock =
 
 export type SidebarLayoutRow =
     | { kind: 'divider'; key: string }
+    | { kind: 'leaves'; catalogIds: SidebarCatalogId[] }
     | { kind: 'domain'; domain: SidebarDomainId; blocks: SidebarLayoutBlock[] };
 
 /**
  * Top-to-bottom shell layout (order = render order).
  */
 export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
+    {
+        kind: 'leaves',
+        catalogIds: ['reportingDashboard', 'users', 'superAdminTenants'],
+    },
+    { kind: 'divider', key: 'nav-divider-platform-hub' },
     {
         kind: 'domain',
         domain: 'operations',
@@ -450,7 +456,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['reportingDashboard', 'reportingOverview', 'reportCenter', 'staffPerformance', 'dailyClosingSummary'],
+                catalogIds: ['reportingOverview', 'reportCenter', 'staffPerformance', 'dailyClosingSummary'],
             },
         ],
     },
@@ -479,7 +485,6 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'domain',
         domain: 'administration',
         blocks: [
-            { kind: 'leaves', catalogIds: ['superAdminTenants', 'users'] },
             {
                 kind: 'nested',
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,

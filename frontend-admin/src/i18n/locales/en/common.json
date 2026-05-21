@@ -121,6 +121,7 @@
     "scopeEntityTypeIs": "Entity = {{entityType}}",
     "scopeStatusIs": "Status = {{status}}",
     "scopeNoDateFilter": "no date filter",
+    "quickUserCreatedDescription": "Super Admin created quick user '{{email}}' ({{role}}) for tenant '{{slug}}'",
     "actionLabels": {
       "login": "Login",
       "createInvoice": "Create invoice",

@@ -207,6 +207,14 @@ export function buildAdminSidebarMenuItems(params: {
             continue;
         }
 
+        if (row.kind === 'leaves') {
+            const leafIds = filterCatalogIdsForInventoryNav(row.catalogIds as readonly SidebarCatalogId[]);
+            for (const id of leafIds) {
+                menuItems.push(catalogLeaf(t, id));
+            }
+            continue;
+        }
+
         const meta = SIDEBAR_DOMAIN_GROUP_META[row.domain];
         const groupLabel = t(meta.labelKey);
         menuItems.push({

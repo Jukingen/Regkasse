@@ -352,10 +352,15 @@
       "emailSent": "Password email was sent.",
       "forceChangeHint": "The user must sign in with this password and change it on first login."
     },
+    "superAdminOnly": {
+      "credentialsTitle": "Super Admin only",
+      "credentialsHint": "Creating tenant users with a one-time password and viewing credentials is restricted to the Super Admin role."
+    },
     "invite": {
-      "action": "Invite user",
-      "title": "Invite user",
-      "subtitle": "Enter an email address. If no account exists, one is created and an invitation email is sent when SMTP is configured.",
+      "action": "Add user",
+      "title": "Add user",
+      "subtitle": "Enter email and role. New accounts receive a one-time password shown here.",
+      "createHint": "After creation a password is generated and shown once. Share it with the user.",
       "email": "Email",
       "emailRequired": "Please enter an email address.",
       "emailInvalid": "Please enter a valid email address.",
@@ -363,13 +368,57 @@
       "isOwner": "Tenant administrator (owner)",
       "smtpHint": "Without API SMTP configuration, the one-time password is shown here.",
       "resultTitle": "Invitation complete",
+      "resultSuccessTitle": "User created",
+      "resultAssignedTitle": "User assigned",
       "resultCreated": "A new user account was created and assigned to this tenant.",
       "resultExisting": "An existing user was assigned to this tenant.",
+      "credentialsFor": "Credentials for: {{email}}",
+      "passwordLabel": "Password:",
       "passwordOnce": "One-time password (share manually)",
+      "passwordOnceWarning": "This password is shown only once!",
+      "nextStepsTitle": "Next steps:",
+      "nextStep1": "Share the password securely with the user",
+      "nextStep2": "The user signs in for the first time at {{portalUrl}}",
+      "nextStep2NoUrl": "The user signs in for the first time at the tenant portal",
+      "nextStep3": "They must change the password on first login",
+      "resultDone": "Done",
       "messages": {
+        "created": "User was created.",
+        "assignedExisting": "User was assigned to the tenant.",
         "sent": "Invitation email was sent.",
         "assignedNoEmail": "User assigned; email could not be sent.",
-        "failed": "Invitation failed."
+        "failed": "Could not create user."
+      }
+    },
+    "quick": {
+      "action": "Quick user",
+      "title": "Generate quick user",
+      "role": "Role",
+      "generate": "Generate",
+      "autoTitle": "Generated automatically:",
+      "emailPreview": "Email: {{role}}_{{random}}@{{slug}}.regkasse.at",
+      "autoPassword": "Password: random (12 characters)",
+      "autoForceChange": "User must change password on first login",
+      "resultSuccessTitle": "Quick user created",
+      "result": {
+        "title": "User generated",
+        "userLabel": "User:",
+        "passwordLabel": "Password:",
+        "passwordOnceWarning": "This password is shown only once!",
+        "roleLabel": "Role:",
+        "tenantLabel": "Tenant:",
+        "tenantValue": "{{name}} ({{slug}})",
+        "loginUrlLabel": "Login URL:",
+        "nextStepsTitle": "Next steps:",
+        "nextStep1": "Share the password securely with the user",
+        "nextStep2": "User must change password on first login",
+        "generateAnother": "Generate another",
+        "done": "Done"
+      },
+      "messages": {
+        "created": "Quick user was created.",
+        "failed": "Could not create quick user.",
+        "rateLimited": "Rate limit reached: at most 10 quick users per hour per tenant."
       }
     },
     "add": {

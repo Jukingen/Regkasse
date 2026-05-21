@@ -63,6 +63,8 @@ export type TenantUserInviteResult = {
     invitationEmailSent: boolean;
     emailDeliveryNote?: string | null;
     generatedPassword?: string | null;
+    forcePasswordChangeOnNextLogin?: boolean;
+    tenantPortalUrl?: string | null;
 };
 
 export type CreatePlatformUserRequest = {

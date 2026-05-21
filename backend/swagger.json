@@ -4196,17 +4196,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddAdminTenantUserRequest"
+                "$ref": "#/components/schemas/CreateTenantUserRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddAdminTenantUserRequest"
+                "$ref": "#/components/schemas/CreateTenantUserRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/AddAdminTenantUserRequest"
+                "$ref": "#/components/schemas/CreateTenantUserRequest"
               }
             }
           }
@@ -4217,7 +4217,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TenantUserDto"
+                  "$ref": "#/components/schemas/CreateTenantUserResultDto"
                 }
               }
             }
@@ -4238,6 +4238,45 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/tenants/{tenantId}/users/assign": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddAdminTenantUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantUserDto"
                 }
               }
             }
@@ -26813,6 +26852,58 @@
         },
         "additionalProperties": false
       },
+      "CreateTenantUserRequest": {
+        "required": [
+          "email",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "isOwner": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateTenantUserResultDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "generatedPassword": {
+            "type": "string",
+            "nullable": true
+          },
+          "forcePasswordChangeOnNextLogin": {
+            "type": "boolean"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "tenantPortalUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "InviteTenantUserRequest": {
         "required": [
           "email",
@@ -34991,6 +35082,13 @@
             "nullable": true
           },
           "generatedPassword": {
+            "type": "string",
+            "nullable": true
+          },
+          "forcePasswordChangeOnNextLogin": {
+            "type": "boolean"
+          },
+          "tenantPortalUrl": {
             "type": "string",
             "nullable": true
           }

@@ -1030,6 +1030,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Changes).HasColumnType("jsonb").HasColumnName("changes");
                 entity.Property(e => e.Metadata).HasColumnType("jsonb").HasColumnName("metadata");
                 entity.Property(e => e.ActionType).HasColumnName("action_type");
+                entity.Property(e => e.ImpersonatedBy).HasMaxLength(450).HasColumnName("impersonated_by");
+                entity.Property(e => e.ImpersonatedTenantId).HasColumnName("impersonated_tenant");
+
+                entity.HasIndex(e => e.ImpersonatedTenantId);
+                entity.HasIndex(e => e.ImpersonatedBy);
 
                 entity.HasIndex(e => e.Timestamp);
                 entity.HasIndex(e => e.Action);

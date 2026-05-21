@@ -106,7 +106,9 @@ export function InviteUserModal({
 
     const modalTitle =
         fixedContext
-            ? t('users.invite.titleForTenant', { name: fixedContext.name, slug: fixedContext.slug })
+            ? variant === 'tenantDetail'
+                ? t('users.invite.titleAddForTenant', { name: fixedContext.name, slug: fixedContext.slug })
+                : t('users.invite.titleForTenant', { name: fixedContext.name, slug: fixedContext.slug })
             : t('users.invite.title');
 
     return (
@@ -115,7 +117,7 @@ export function InviteUserModal({
             open={open}
             onCancel={onClose}
             onOk={() => form.submit()}
-            okText={t('users.invite.send')}
+            okText={t('users.invite.createUser')}
             cancelText={t('common.buttons.cancel')}
             confirmLoading={confirmLoading}
             destroyOnClose
@@ -149,16 +151,11 @@ export function InviteUserModal({
                 <Form.Item name="role" label={t('users.invite.role')} rules={[{ required: true }]}>
                     <Select options={roleOptions} />
                 </Form.Item>
-                <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 16 }}>
-                    {t('users.invite.emailHint')}
-                </Typography.Paragraph>
+                <Alert type="info" showIcon style={{ marginBottom: 16 }} message={t('tenants.users.invite.createHint')} />
                 {showOwnerToggle ? (
                     <Form.Item name="isOwner" label={t('tenants.users.invite.isOwner')} valuePropName="checked">
                         <Switch />
                     </Form.Item>
-                ) : null}
-                {!isUsersPage ? (
-                    <Alert type="info" showIcon message={t('tenants.users.invite.smtpHint')} />
                 ) : null}
             </Form>
         </Modal>

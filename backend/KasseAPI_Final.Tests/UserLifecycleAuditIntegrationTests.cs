@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -34,7 +35,7 @@ public class UserLifecycleAuditIntegrationTests
         actorResolver.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>())).ReturnsAsync(new Dictionary<string, string>());
         var retentionOptions = new Mock<IOptions<AuditRetentionOptions>>();
         retentionOptions.Setup(x => x.Value).Returns(new AuditRetentionOptions());
-        var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object, actorResolver.Object, retentionOptions.Object);
+        var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object, new NullCurrentTenantAccessor(), actorResolver.Object, retentionOptions.Object);
 
         await auditService.LogUserLifecycleAsync(
             AuditLogActions.USER_DEACTIVATE,
@@ -61,7 +62,7 @@ public class UserLifecycleAuditIntegrationTests
         actorResolver.Setup(x => x.ResolveAsync(It.IsAny<IList<string>>())).ReturnsAsync(new Dictionary<string, string>());
         var retentionOptions = new Mock<IOptions<AuditRetentionOptions>>();
         retentionOptions.Setup(x => x.Value).Returns(new AuditRetentionOptions());
-        var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object, actorResolver.Object, retentionOptions.Object);
+        var auditService = new AuditLogService(context, new Mock<ILogger<AuditLogService>>().Object, httpContextAccessor.Object, new NullCurrentTenantAccessor(), actorResolver.Object, retentionOptions.Object);
 
         await auditService.LogUserLifecycleAsync(AuditLogActions.USER_DEACTIVATE, "admin-1", "SuperAdmin", "u1", "Urlaub", null, AuditLogStatus.Success, "Deactivated");
         await auditService.LogUserLifecycleAsync(AuditLogActions.USER_REACTIVATE, "admin-1", "SuperAdmin", "u1", null, null, AuditLogStatus.Success, "Reactivated");

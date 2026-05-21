@@ -1,8 +1,11 @@
+using System.Text.Json;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +13,10 @@ namespace KasseAPI_Final.Services.AdminTenants;
 
 public sealed class TenantUserService : ITenantUserService
 {
+    private const string AuditEntityType = "TenantUser";
+    private const string ActionTenantUserCreated = "TENANT_USER_CREATED";
+    private const string ActionTenantQuickUserCreated = AuditLogActions.TENANT_QUICK_USER_CREATED;
+
     private static readonly HashSet<string> AssignableRoles = new(StringComparer.OrdinalIgnoreCase)
     {
         Roles.Manager,
@@ -33,6 +40,10 @@ public sealed class TenantUserService : ITenantUserService
     private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly ITenantInvitationEmailSender _invitationEmail;
     private readonly IUserSessionInvalidation _sessionInvalidation;
+    private readonly IQuickUserGeneratorService _quickUserGenerator;
+    private readonly IAuditLogService _auditLog;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<TenantUserService> _logger;
 
     public TenantUserService(
@@ -42,6 +53,10 @@ public sealed class TenantUserService : ITenantUserService
         IUserUniquenessValidationService uniquenessValidation,
         ITenantInvitationEmailSender invitationEmail,
         IUserSessionInvalidation sessionInvalidation,
+        IQuickUserGeneratorService quickUserGenerator,
+        IAuditLogService auditLog,
+        IHttpContextAccessor httpContextAccessor,
+        ICurrentTenantAccessor tenantAccessor,
         ILogger<TenantUserService> logger)
     {
         _db = db;
@@ -50,6 +65,10 @@ public sealed class TenantUserService : ITenantUserService
         _uniquenessValidation = uniquenessValidation;
         _invitationEmail = invitationEmail;
         _sessionInvalidation = sessionInvalidation;
+        _quickUserGenerator = quickUserGenerator;
+        _auditLog = auditLog;
+        _httpContextAccessor = httpContextAccessor;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
     }
 
@@ -78,7 +97,13 @@ public sealed class TenantUserService : ITenantUserService
             .ConfigureAwait(false);
     }
 
-    public async Task<(TenantUserDto? Result, string? Error)> AddAsync(
+    public Task<(TenantUserDto? Result, string? Error)> AssignExistingAsync(
+        Guid tenantId,
+        AddAdminTenantUserRequest request,
+        CancellationToken cancellationToken = default) =>
+        AssignExistingInternalAsync(tenantId, request, cancellationToken);
+
+    private async Task<(TenantUserDto? Result, string? Error)> AssignExistingInternalAsync(
         Guid tenantId,
         AddAdminTenantUserRequest request,
         CancellationToken cancellationToken = default)
@@ -112,10 +137,211 @@ public sealed class TenantUserService : ITenantUserService
         return (ToDto(user, membership), null);
     }
 
+    public Task<(CreateTenantUserResultDto? Result, string? Error)> CreateAsync(
+        Guid tenantId,
+        CreateTenantUserRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default) =>
+        CreateUserCoreAsync(
+            tenantId,
+            request.Email.Trim(),
+            request.Role,
+            request.IsOwner,
+            actorUserId,
+            ActionTenantUserCreated,
+            firstName: "Invited",
+            notesSuffix: "manual create",
+            preGeneratedPassword: null,
+            passwordLength: 14,
+            cancellationToken: cancellationToken);
+
+    public async Task<(CreateTenantUserResultDto? Result, string? Error)> CreateQuickAsync(
+        Guid tenantId,
+        CreateQuickTenantUserRequest request,
+        string actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var (plan, error) = await _quickUserGenerator
+            .PrepareAsync(tenantId, request.Role, cancellationToken)
+            .ConfigureAwait(false);
+        if (error != null)
+            return (null, error);
+
+        return await CreateUserCoreAsync(
+            tenantId,
+            plan!.Email,
+            plan.Role,
+            isOwner: false,
+            actorUserId,
+            ActionTenantQuickUserCreated,
+            firstName: plan.Role,
+            notesSuffix: "quick user",
+            preGeneratedPassword: plan.Password,
+            passwordLength: 12,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<(CreateTenantUserResultDto? Result, string? Error)> CreateUserCoreAsync(
+        Guid tenantId,
+        string email,
+        string role,
+        bool isOwner,
+        string actorUserId,
+        string auditAction,
+        string firstName,
+        string notesSuffix,
+        string? preGeneratedPassword,
+        int passwordLength,
+        CancellationToken cancellationToken)
+    {
+        var tenant = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant == null)
+            return (null, "Tenant not found.");
+
+        if (string.IsNullOrEmpty(email))
+            return (null, "Email is required.");
+
+        if (!TryValidateInviteRole(role, out var roleError))
+            return (null, roleError);
+
+        var existing = await _userManager.FindByEmailAsync(email).ConfigureAwait(false);
+        if (existing != null)
+            return (null, "An account with this email already exists. Assign the existing user instead.");
+
+        if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(email, excludeUserId: null)
+                .ConfigureAwait(false))
+            return (null, $"Email '{email}' is already in use.");
+
+        var generatedPassword = !string.IsNullOrEmpty(preGeneratedPassword)
+            ? preGeneratedPassword
+            : PasswordGenerator.GenerateRandomPassword(passwordLength);
+        var now = DateTime.UtcNow;
+        var normalizedRole = role.Trim();
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            FirstName = firstName.Length > 50 ? firstName[..50] : firstName,
+            LastName = tenant.Name.Length > 50 ? tenant.Name[..50] : tenant.Name,
+            EmployeeNumber = $"INV{Guid.NewGuid():N}"[..20],
+            Role = normalizedRole,
+            TaxNumber = string.Empty,
+            Notes = $"{notesSuffix} for tenant {tenant.Slug}",
+            IsActive = true,
+            EmailConfirmed = true,
+            AccountType = "Admin",
+            IsDemo = false,
+            MustChangePasswordOnNextLogin = true,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        var create = await _userManager.CreateAsync(user, generatedPassword).ConfigureAwait(false);
+        if (!create.Succeeded)
+            return (null, string.Join("; ", create.Errors.Select(e => e.Description)));
+
+        var roleAdd = await _userManager.AddToRoleAsync(user, normalizedRole).ConfigureAwait(false);
+        if (!roleAdd.Succeeded)
+            return (null, string.Join("; ", roleAdd.Errors.Select(e => e.Description)));
+
+        var assignError = await AssignUserToTenantAsync(user, tenantId, normalizedRole, isOwner, cancellationToken)
+            .ConfigureAwait(false);
+        if (assignError != null)
+            return (null, assignError);
+
+        var portalUrl = BuildTenantPortalUrl(tenant.Slug);
+        var actorId = string.IsNullOrWhiteSpace(actorUserId) ? "unknown" : actorUserId.Trim();
+        var isQuick = string.Equals(auditAction, ActionTenantQuickUserCreated, StringComparison.Ordinal);
+        if (isQuick)
+        {
+            await LogQuickUserCreatedAuditAsync(
+                    actorId,
+                    tenantId,
+                    user.Id,
+                    email,
+                    normalizedRole,
+                    tenant.Slug,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+        else
+        {
+            await LogTenantUserCreatedAsync(
+                    actorId,
+                    tenantId,
+                    user.Id,
+                    email,
+                    tenant.Slug,
+                    normalizedRole,
+                    cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        _logger.LogInformation(
+            "Created tenant user {Email} for tenant {TenantId} by {Actor} (auditAction={AuditAction})",
+            email,
+            tenantId,
+            actorId,
+            auditAction);
+
+        return (new CreateTenantUserResultDto(
+            user.Id,
+            email,
+            generatedPassword,
+            ForcePasswordChangeOnNextLogin: true,
+            Success: true,
+            portalUrl,
+            isQuick ? normalizedRole : null), null);
+    }
+
     public async Task<(TenantUserInviteResultDto? Result, string? Error)> InviteAsync(
         Guid tenantId,
         InviteTenantUserRequest request,
+        string actorUserId,
         CancellationToken cancellationToken = default)
+    {
+        var createResult = await CreateAsync(
+            tenantId,
+            new CreateTenantUserRequest
+            {
+                Email = request.Email,
+                Role = request.Role,
+                IsOwner = request.IsOwner,
+            },
+            actorUserId,
+            cancellationToken).ConfigureAwait(false);
+        if (createResult.Error != null)
+        {
+            if (createResult.Error.StartsWith("An account with this email already exists", StringComparison.Ordinal))
+                return await InviteAssignExistingAsync(tenantId, request, cancellationToken).ConfigureAwait(false);
+            return (null, createResult.Error);
+        }
+
+        var created = createResult.Result!;
+        var membership = await _db.UserTenantMemberships
+            .AsNoTracking()
+            .FirstAsync(m => m.UserId == created.UserId && m.TenantId == tenantId && m.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        var user = await _userManager.FindByIdAsync(created.UserId).ConfigureAwait(false);
+        if (user == null)
+            return (null, "User not found.");
+
+        return (new TenantUserInviteResultDto(
+            ToDto(user, membership),
+            UserCreated: true,
+            InvitationEmailSent: false,
+            "User created. Share the password manually; user must change it on first login.",
+            created.GeneratedPassword,
+            created.ForcePasswordChangeOnNextLogin,
+            created.TenantPortalUrl), null);
+    }
+
+    private async Task<(TenantUserInviteResultDto? Result, string? Error)> InviteAssignExistingAsync(
+        Guid tenantId,
+        InviteTenantUserRequest request,
+        CancellationToken cancellationToken)
     {
         var tenant = await _db.Tenants.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
@@ -124,64 +350,18 @@ public sealed class TenantUserService : ITenantUserService
             return (null, "Tenant not found.");
 
         var email = request.Email.Trim();
-        if (string.IsNullOrEmpty(email))
-            return (null, "Email is required.");
-
-        if (!TryValidateInviteRole(request.Role, out var roleError))
-            return (null, roleError);
-
         var user = await _userManager.FindByEmailAsync(email).ConfigureAwait(false);
-        string? generatedPassword = null;
-        var userCreated = false;
-
         if (user == null)
-        {
-            if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(email, excludeUserId: null)
-                    .ConfigureAwait(false))
-                return (null, $"Email '{email}' is already in use.");
+            return (null, "User not found.");
 
-            generatedPassword = TenantProvisioningService.GenerateCompliantPassword();
-            var now = DateTime.UtcNow;
-            user = new ApplicationUser
-            {
-                UserName = email,
-                Email = email,
-                FirstName = "Invited",
-                LastName = tenant.Name.Length > 50 ? tenant.Name[..50] : tenant.Name,
-                EmployeeNumber = $"INV{Guid.NewGuid():N}"[..20],
-                Role = request.Role.Trim(),
-                TaxNumber = string.Empty,
-                Notes = $"Invited to tenant {tenant.Slug}",
-                IsActive = true,
-                EmailConfirmed = true,
-                AccountType = "Admin",
-                IsDemo = false,
-                CreatedAt = now,
-                UpdatedAt = now,
-            };
+        if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            return (null, "SuperAdmin users cannot be assigned to a tenant via invite.");
 
-            var create = await _userManager.CreateAsync(user, generatedPassword).ConfigureAwait(false);
-            if (!create.Succeeded)
-                return (null, string.Join("; ", create.Errors.Select(e => e.Description)));
-
-            var roleAdd = await _userManager.AddToRoleAsync(user, request.Role.Trim()).ConfigureAwait(false);
-            if (!roleAdd.Succeeded)
-                return (null, string.Join("; ", roleAdd.Errors.Select(e => e.Description)));
-
-            userCreated = true;
-            _logger.LogInformation("Created user {Email} for tenant invite {TenantId}", email, tenantId);
-        }
-        else
-        {
-            if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
-                return (null, "SuperAdmin users cannot be assigned to a tenant via invite.");
-
-            var alreadyMember = await _db.UserTenantMemberships.AsNoTracking()
-                .AnyAsync(m => m.UserId == user.Id && m.TenantId == tenantId && m.IsActive, cancellationToken)
-                .ConfigureAwait(false);
-            if (alreadyMember)
-                return (null, "User is already assigned to this tenant.");
-        }
+        var alreadyMember = await _db.UserTenantMemberships.AsNoTracking()
+            .AnyAsync(m => m.UserId == user.Id && m.TenantId == tenantId && m.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        if (alreadyMember)
+            return (null, "User is already assigned to this tenant.");
 
         var assignError = await AssignUserToTenantAsync(user, tenantId, request.Role, request.IsOwner, cancellationToken)
             .ConfigureAwait(false);
@@ -193,46 +373,114 @@ public sealed class TenantUserService : ITenantUserService
             .FirstAsync(m => m.UserId == user.Id && m.TenantId == tenantId && m.IsActive, cancellationToken)
             .ConfigureAwait(false);
 
-        var portalUrl = BuildTenantPortalUrl(tenant.Slug);
-        var subject = $"Einladung: {tenant.Name} – Regkasse Admin";
-        var body = BuildInvitationEmailBody(
-            tenant.Name,
-            tenant.Slug,
-            request.Role.Trim(),
-            portalUrl,
-            userCreated,
-            generatedPassword);
-
-        var emailSent = await _invitationEmail
-            .TrySendInvitationAsync(email, subject, body, cancellationToken)
-            .ConfigureAwait(false);
-
-        string? deliveryNote = null;
-        string? passwordForOperator = null;
-        if (emailSent)
-        {
-            deliveryNote = "Invitation email sent.";
-            generatedPassword = null;
-        }
-        else if (!_invitationEmail.IsConfigured)
-        {
-            deliveryNote = "SMTP is not configured; share login details manually.";
-            if (userCreated)
-                passwordForOperator = generatedPassword;
-        }
-        else
-        {
-            deliveryNote = "User assigned; invitation email could not be delivered.";
-            if (userCreated)
-                passwordForOperator = generatedPassword;
-        }
-
         return (new TenantUserInviteResultDto(
             ToDto(user, membership),
-            userCreated,
-            emailSent,
-            deliveryNote,
-            passwordForOperator), null);
+            UserCreated: false,
+            InvitationEmailSent: false,
+            "Existing user assigned to tenant.",
+            GeneratedPassword: null,
+            ForcePasswordChangeOnNextLogin: false,
+            BuildTenantPortalUrl(tenant.Slug)), null);
+    }
+
+    private async Task LogTenantUserCreatedAsync(
+        string actorUserId,
+        Guid tenantId,
+        string targetUserId,
+        string email,
+        string tenantSlug,
+        string role,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _auditLog.LogSystemOperationAsync(
+                ActionTenantUserCreated,
+                AuditEntityType,
+                actorUserId,
+                Roles.SuperAdmin,
+                description: $"Tenant user created for {email} on tenant {tenantSlug}",
+                notes: $"tenantId={tenantId};targetUserId={targetUserId};role={role}",
+                status: AuditLogStatus.Success,
+                requestData: new { tenantId, email, tenantSlug, role },
+                responseData: new
+                {
+                    targetUserId,
+                    success = true,
+                    passwordReturned = false,
+                    actorUserId,
+                    createdAtUtc = DateTime.UtcNow,
+                }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Audit log failed for {Action} tenant {TenantId}", ActionTenantUserCreated, tenantId);
+        }
+    }
+
+    private async Task LogQuickUserCreatedAuditAsync(
+        string actorUserId,
+        Guid tenantId,
+        string targetUserId,
+        string email,
+        string role,
+        string tenantSlug,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var details = new
+            {
+                email,
+                role,
+                generatedPassword = "***HIDDEN***",
+                method = "quick_generate",
+                forcePasswordChangeOnNextLogin = true,
+                tenantId,
+            };
+
+            var description =
+                $"Super Admin erstellte Schnell-Benutzer '{email}' ({role}) für Mandant '{tenantSlug}'";
+
+            Guid? entityId = Guid.TryParse(targetUserId, out var parsedUserId) ? parsedUserId : null;
+            var now = DateTime.UtcNow;
+            var entry = new AuditLog
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                SessionId = Guid.NewGuid().ToString(),
+                UserId = actorUserId.Length > 450 ? actorUserId[..450] : actorUserId,
+                UserRole = Roles.SuperAdmin,
+                Action = AuditLogActions.TENANT_QUICK_USER_CREATED,
+                EntityType = AuditLogEntityTypes.USER,
+                EntityId = entityId,
+                EntityName = targetUserId.Length > 100 ? targetUserId[..100] : targetUserId,
+                RequestData = JsonSerializer.Serialize(details),
+                Status = AuditLogStatus.Success,
+                Timestamp = now,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Description = description.Length > 500 ? description[..500] : description,
+                Notes = $"tenantId={tenantId}",
+                IsActive = true,
+            };
+
+            ImpersonationAuditContext.ApplyTo(
+                entry,
+                ImpersonationAuditContext.FromHttpContext(_httpContextAccessor.HttpContext, _tenantAccessor));
+
+            _db.AuditLogs.Add(entry);
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Audit log failed for {Action} tenant {TenantId} user {UserId}",
+                AuditLogActions.TENANT_QUICK_USER_CREATED,
+                tenantId,
+                targetUserId);
+        }
     }
 
     public async Task<(TenantUserDto? Result, string? Error)> UpdateAsync(
@@ -309,7 +557,7 @@ public sealed class TenantUserService : ITenantUserService
         if (tenant == null)
             return (null, "Tenant not found.");
 
-        var generatedPassword = TenantProvisioningService.GenerateCompliantPassword();
+        var generatedPassword = PasswordGenerator.GenerateRandomPassword();
         var token = await _userManager.GeneratePasswordResetTokenAsync(user).ConfigureAwait(false);
         var reset = await _userManager.ResetPasswordAsync(user, token, generatedPassword).ConfigureAwait(false);
         if (!reset.Succeeded)

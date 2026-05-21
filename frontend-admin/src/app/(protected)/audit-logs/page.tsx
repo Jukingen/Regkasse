@@ -43,6 +43,7 @@ import { UserFilterSelect } from '@/features/audit-logs/components/UserFilterSel
 import { EntityTypeFilterSelect } from '@/features/audit-logs/components/EntityTypeFilterSelect';
 import { StatusFilterSelect } from '@/features/audit-logs/components/StatusFilterSelect';
 import { useAuditLogUserFilterOptions } from '@/features/audit-logs/hooks/useAuditLogUserFilterOptions';
+import { formatAuditLogDescription } from '@/features/audit-logs/utils/formatAuditLogDescription';
 
 const { RangePicker } = DatePicker;
 
@@ -240,8 +241,8 @@ function AuditLogsPageContent() {
                 dataIndex: 'description',
                 key: 'description',
                 ellipsis: true,
-                render: (text: string | null | undefined) => {
-                    const detailText = text?.trim();
+                render: (text: string | null | undefined, record: AuditLogEntryDto) => {
+                    const detailText = formatAuditLogDescription(record, t) || text?.trim();
                     if (!detailText) return <Typography.Text type="secondary">—</Typography.Text>;
                     return (
                         <Tooltip title={detailText}>

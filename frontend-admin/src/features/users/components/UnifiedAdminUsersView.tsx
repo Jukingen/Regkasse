@@ -1,0 +1,626 @@
+'use client';
+
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+    Alert,
+    Button,
+    Card,
+    Collapse,
+    Empty,
+    Flex,
+    Input,
+    Popconfirm,
+    Select,
+    Space,
+    Table,
+    Tag,
+    Typography,
+    message,
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import {
+    EditOutlined,
+    KeyOutlined,
+    MailOutlined,
+    ReloadOutlined,
+    SearchOutlined,
+    StopOutlined,
+    CheckCircleOutlined,
+    EyeOutlined,
+    UserDeleteOutlined,
+    UserOutlined,
+} from '@ant-design/icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+import { InviteUserModal } from '@/features/users/components/InviteUserModal';
+import type { InviteUserFormValues } from '@/features/users/components/InviteUserModal';
+import { UserCreatedSuccessModal } from '@/features/super-admin/components/UserCreatedSuccessModal';
+import { createTenantUser, type CreateTenantUserResult } from '@/features/super-admin/api/tenantUsers';
+import { UserInvitationsPanel } from '@/features/users/components/UserInvitationsPanel';
+import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
+import { ResetPasswordModal } from '@/features/super-admin/components/ResetPasswordModal';
+import {
+    adminUserToUserInfo,
+    adminUsersQueryKeys,
+    listPlatformUsers,
+    listTenantUsers,
+    removeUserFromTenant,
+    tenantRowToTenantUser,
+    type TenantUserRow,
+} from '@/features/users/api/users';
+import type { UserInfo } from '@/features/users/api/usersGateway';
+import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
+import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
+import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
+import {
+    ADMIN_USERS_FILTER_ALL,
+    ADMIN_USERS_FILTER_PLATFORM,
+    ADMIN_USERS_PAGE_PATH,
+    buildAdminUsersPageHref,
+    resolveAdminUsersTenantFilterFromSearchParams,
+} from '@/features/users/utils/adminUsersPageUrl';
+import { useI18n } from '@/i18n';
+import type { UsersPolicy } from '@/shared/auth/usersPolicy';
+
+const TENANT_ROLE_FILTER_VALUES = ['Manager', 'Cashier', 'Accountant'] as const;
+const FILTER_ALL = ADMIN_USERS_FILTER_ALL;
+const FILTER_PLATFORM = ADMIN_USERS_FILTER_PLATFORM;
+
+export type UnifiedAdminUserRow =
+    | {
+          kind: 'platform';
+          key: string;
+          tenantSlug: string;
+          tenantName: string;
+          userId: string;
+          name: string;
+          email: string;
+          role: string;
+          isActive: boolean;
+          user: UserInfo;
+      }
+    | {
+          kind: 'tenant';
+          key: string;
+          tenantSlug: string;
+          tenantName: string;
+          tenantId: string;
+          userId: string;
+          name: string;
+          email: string;
+          role: string;
+          isActive: boolean;
+          isOwner: boolean;
+          row: TenantUserRow;
+      };
+
+function platformDisplayName(user: UserInfo): string {
+    const first = user.firstName ?? '';
+    const last = user.lastName ?? '';
+    const name = `${first} ${last}`.trim();
+    return name || user.userName || user.id || '—';
+}
+
+export type UnifiedAdminUsersViewProps = {
+    policy: UsersPolicy;
+    roleDisplayLabel: (role: string) => string;
+    currentUserId?: string | null;
+    onView: (user: UserInfo) => void;
+    onEdit: (userId: string) => void;
+    onDeactivate: (user: UserInfo) => void;
+    onReactivate: (user: UserInfo) => void;
+    onResetPassword: (user: UserInfo) => void;
+    onCreatePlatformUser: () => void;
+};
+
+/** Single super-admin user list: platform + tenant memberships with tenant filter. */
+export function UnifiedAdminUsersView({
+    policy,
+    roleDisplayLabel,
+    currentUserId,
+    onView,
+    onEdit,
+    onDeactivate,
+    onReactivate,
+    onResetPassword,
+    onCreatePlatformUser,
+}: UnifiedAdminUsersViewProps) {
+    const { t } = useI18n();
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const queryClient = useQueryClient();
+
+    const [tenantFilter, setTenantFilter] = useState(() =>
+        resolveAdminUsersTenantFilterFromSearchParams(searchParams),
+    );
+    const [roleFilter, setRoleFilter] = useState<string | undefined>();
+    const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
+    const [search, setSearch] = useState('');
+    const [searchInput, setSearchInput] = useState('');
+    const [inviteOpen, setInviteOpen] = useState(false);
+    const [createResult, setCreateResult] = useState<CreateTenantUserResult | null>(null);
+    const [resetRow, setResetRow] = useState<TenantUserRow | null>(null);
+
+    useEffect(() => {
+        setTenantFilter(resolveAdminUsersTenantFilterFromSearchParams(searchParams));
+    }, [searchParams]);
+
+    const inviteFixedTenantId =
+        tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM ? tenantFilter : undefined;
+
+    const handleTenantFilterChange = (value: string) => {
+        setTenantFilter(value);
+        if (value === FILTER_ALL) {
+            router.replace(ADMIN_USERS_PAGE_PATH, { scroll: false });
+            return;
+        }
+        if (value === FILTER_PLATFORM) {
+            router.replace(`${ADMIN_USERS_PAGE_PATH}?filter=platform`, { scroll: false });
+            return;
+        }
+        router.replace(buildAdminUsersPageHref(value), { scroll: false });
+    };
+
+    const tenantsQuery = useGetApiAdminTenants();
+    const { tenants: inviteTenants, isLoading: inviteTenantsLoading } = useTenantList();
+    const businessTenants = useMemo(
+        () => (tenantsQuery.data ?? []).filter((row) => row.isActive && isBusinessTenantSlug(row.slug)),
+        [tenantsQuery.data],
+    );
+
+    const platformQuery = useQuery({
+        queryKey: adminUsersQueryKeys.platform(statusFilter),
+        queryFn: () => listPlatformUsers(statusFilter != null ? { isActive: statusFilter } : undefined),
+        select: (data) => data.map(adminUserToUserInfo),
+    });
+
+    const tenantApiTenantId =
+        tenantFilter && tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM
+            ? tenantFilter
+            : undefined;
+
+    const tenantUsersQuery = useQuery({
+        queryKey: adminUsersQueryKeys.tenant(tenantApiTenantId, roleFilter),
+        queryFn: () =>
+            listTenantUsers({
+                tenantId: tenantApiTenantId,
+                role: roleFilter || undefined,
+                isActive: statusFilter,
+            }),
+        enabled: tenantFilter !== FILTER_PLATFORM,
+        select: (data) => data.map(tenantRowToTenantUser),
+    });
+
+    const tenantFilterOptions = useMemo(
+        () => [
+            { value: FILTER_ALL, label: t('users.unified.filterAllTenants') },
+            { value: FILTER_PLATFORM, label: t('users.unified.filterPlatformOnly') },
+            ...businessTenants
+                .map((tenant) => ({
+                    value: tenant.id,
+                    label: tenant.slug,
+                }))
+                .sort((a, b) => a.label.localeCompare(b.label)),
+        ],
+        [businessTenants, t],
+    );
+
+    const statusFilterOptions = useMemo(
+        () => [
+            { value: 'active', label: t('users.list.statusActive') },
+            { value: 'inactive', label: t('users.list.statusInactive') },
+        ],
+        [t],
+    );
+
+    const unifiedRows = useMemo((): UnifiedAdminUserRow[] => {
+        const platformBadge = t('users.unified.platformBadge');
+        const rows: UnifiedAdminUserRow[] = [];
+
+        if (tenantFilter === FILTER_ALL || tenantFilter === FILTER_PLATFORM) {
+            for (const user of platformQuery.data ?? []) {
+                if (!user.id) continue;
+                rows.push({
+                    kind: 'platform',
+                    key: `platform:${user.id}`,
+                    tenantSlug: platformBadge,
+                    tenantName: platformBadge,
+                    userId: user.id,
+                    name: platformDisplayName(user),
+                    email: user.email ?? user.userName ?? '—',
+                    role: user.role ?? '—',
+                    isActive: user.isActive,
+                    user,
+                });
+            }
+        }
+
+        if (tenantFilter !== FILTER_PLATFORM) {
+            for (const row of tenantUsersQuery.data ?? []) {
+                rows.push({
+                    kind: 'tenant',
+                    key: `tenant:${row.tenantId}:${row.userId}`,
+                    tenantSlug: row.tenantSlug,
+                    tenantName: row.tenantName,
+                    tenantId: row.tenantId,
+                    userId: row.userId,
+                    name: row.name,
+                    email: row.email,
+                    role: row.role,
+                    isActive: row.isActive,
+                    isOwner: row.isOwner,
+                    row,
+                });
+            }
+        }
+
+        return rows;
+    }, [platformQuery.data, tenantUsersQuery.data, tenantFilter, t]);
+
+    const filteredRows = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return unifiedRows;
+        return unifiedRows.filter((row) => {
+            if (roleFilter && row.role !== roleFilter) return false;
+            return (
+                row.name.toLowerCase().includes(q) ||
+                row.email.toLowerCase().includes(q) ||
+                row.tenantSlug.toLowerCase().includes(q) ||
+                row.role.toLowerCase().includes(q)
+            );
+        });
+    }, [unifiedRows, search, roleFilter]);
+
+    const createMutation = useMutation({
+        mutationFn: (values: InviteUserFormValues) => {
+            if (!values.tenantId) throw new Error('tenantId required');
+            return createTenantUser(values.tenantId, {
+                email: values.email.trim(),
+                role: values.role,
+                isOwner: values.isOwner,
+            });
+        },
+        onSuccess: (res) => {
+            setCreateResult(res);
+            setInviteOpen(false);
+            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
+            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.platform() });
+            message.success(t('tenants.users.invite.messages.created'));
+        },
+        onError: () => message.error(t('tenants.users.invite.messages.failed')),
+    });
+
+    const removeMutation = useMutation({
+        mutationFn: ({ tenantId, userId }: { tenantId: string; userId: string }) =>
+            removeUserFromTenant(tenantId, userId),
+        onSuccess: () => {
+            message.success(t('users.tabs.tenant.removedSuccess'));
+            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
+        },
+        onError: () => message.error(t('users.list.errorLoad')),
+    });
+
+    const isLoading =
+        (tenantFilter !== FILTER_PLATFORM && tenantUsersQuery.isLoading) ||
+        ((tenantFilter === FILTER_ALL || tenantFilter === FILTER_PLATFORM) && platformQuery.isLoading);
+
+    const isFetching = platformQuery.isFetching || tenantUsersQuery.isFetching;
+    const isError = platformQuery.isError || tenantUsersQuery.isError;
+
+    const refetchAll = () => {
+        void platformQuery.refetch();
+        void tenantUsersQuery.refetch();
+    };
+
+    const columns: ColumnsType<UnifiedAdminUserRow> = useMemo(
+        () => [
+            {
+                title: t('users.tabs.tenant.columnTenant'),
+                key: 'tenant',
+                render: (_: unknown, row) =>
+                    row.kind === 'platform' ? (
+                        <Tag color="purple">{t('users.unified.platformBadge')}</Tag>
+                    ) : (
+                        <Space direction="vertical" size={0}>
+                            <Tag color="blue">{row.tenantName}</Tag>
+                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                                {row.tenantSlug}
+                            </Typography.Text>
+                        </Space>
+                    ),
+                sorter: (a, b) => a.tenantSlug.localeCompare(b.tenantSlug),
+            },
+            {
+                title: t('users.list.columnName'),
+                dataIndex: 'name',
+                key: 'name',
+            },
+            {
+                title: t('users.list.columnEmail'),
+                dataIndex: 'email',
+                key: 'email',
+                ellipsis: true,
+            },
+            {
+                title: t('users.list.columnRole'),
+                dataIndex: 'role',
+                key: 'role',
+                render: (role: string, row) => (
+                    <UserRoleBadge
+                        role={role}
+                        isOwner={row.kind === 'tenant' ? row.isOwner : false}
+                        platform={row.kind === 'platform'}
+                    />
+                ),
+            },
+            {
+                title: t('users.list.columnStatus'),
+                key: 'status',
+                render: (_: unknown, row) => (
+                    <Tag color={row.isActive ? 'green' : 'red'}>
+                        {row.isActive ? t('users.list.statusActive') : t('users.list.statusInactive')}
+                    </Tag>
+                ),
+            },
+            {
+                title: t('users.list.columnActions'),
+                key: 'actions',
+                render: (_: unknown, row) => {
+                    if (row.kind === 'platform') {
+                        const record = row.user;
+                        return (
+                            <Space wrap size="small">
+                                {policy.canEdit && (
+                                    <Button size="small" icon={<EyeOutlined />} onClick={() => onView(record)}>
+                                        {t('users.list.view')}
+                                    </Button>
+                                )}
+                                {policy.canEdit && (
+                                    <Button
+                                        size="small"
+                                        icon={<EditOutlined />}
+                                        onClick={() => onEdit(row.userId)}
+                                    >
+                                        {t('users.list.edit')}
+                                    </Button>
+                                )}
+                                {policy.canDeactivate && record.isActive && (
+                                    <Button
+                                        size="small"
+                                        danger
+                                        icon={<StopOutlined />}
+                                        onClick={() => onDeactivate(record)}
+                                    >
+                                        {t('users.tabs.platform.deactivateAccount')}
+                                    </Button>
+                                )}
+                                {policy.canReactivate && !record.isActive && (
+                                    <Button
+                                        size="small"
+                                        type="primary"
+                                        icon={<CheckCircleOutlined />}
+                                        onClick={() => onReactivate(record)}
+                                    >
+                                        {t('users.list.reactivate')}
+                                    </Button>
+                                )}
+                                {policy.canResetPassword(record.role) && record.id !== currentUserId && (
+                                    <Button
+                                        size="small"
+                                        icon={<KeyOutlined />}
+                                        onClick={() => onResetPassword(record)}
+                                    >
+                                        {t('users.list.resetPassword')}
+                                    </Button>
+                                )}
+                            </Space>
+                        );
+                    }
+
+                    return (
+                        <Space wrap size="small">
+                            {policy.canEdit && (
+                                <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(row.userId)}>
+                                    {t('users.list.edit')}
+                                </Button>
+                            )}
+                            {policy.canProvisionTenantCredentials && policy.canResetPassword(row.role) && (
+                                <Button size="small" icon={<KeyOutlined />} onClick={() => setResetRow(row.row)}>
+                                    {t('users.list.resetPassword')}
+                                </Button>
+                            )}
+                            {policy.canEdit && (
+                                <Popconfirm
+                                    title={t('users.tabs.tenant.confirmRemove.title')}
+                                    description={t('users.tabs.tenant.confirmRemove.body', {
+                                        tenant: row.tenantSlug,
+                                    })}
+                                    onConfirm={() =>
+                                        removeMutation.mutate({
+                                            tenantId: row.tenantId,
+                                            userId: row.userId,
+                                        })
+                                    }
+                                >
+                                    <Button
+                                        size="small"
+                                        danger
+                                        icon={<UserDeleteOutlined />}
+                                        loading={removeMutation.isPending}
+                                    >
+                                        {t('users.tabs.tenant.removeFromTenant')}
+                                    </Button>
+                                </Popconfirm>
+                            )}
+                        </Space>
+                    );
+                },
+            },
+        ],
+        [
+            t,
+            policy,
+            currentUserId,
+            onView,
+            onEdit,
+            onDeactivate,
+            onReactivate,
+            onResetPassword,
+            removeMutation,
+        ],
+    );
+
+    return (
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                {t('users.unified.pageIntro')}
+            </Typography.Paragraph>
+
+            <Card size="small" title={t('users.list.filterCardTitle')}>
+                <Flex wrap="wrap" gap="small" align="center">
+                    <Typography.Text type="secondary">{t('users.unified.filterTenantLabel')}</Typography.Text>
+                    <Select
+                        style={{ minWidth: 260 }}
+                        value={tenantFilter}
+                        onChange={handleTenantFilterChange}
+                        options={tenantFilterOptions}
+                    />
+                    <Input.Search
+                        allowClear
+                        placeholder={t('users.tabs.tenant.searchPlaceholder')}
+                        style={{ width: 280 }}
+                        value={searchInput}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setSearchInput(v);
+                            if (!v) setSearch('');
+                        }}
+                        onSearch={(v) => setSearch(v ?? '')}
+                        enterButton={<SearchOutlined />}
+                    />
+                    <Select
+                        allowClear
+                        placeholder={t('users.tabs.tenant.filterRole')}
+                        style={{ minWidth: 160 }}
+                        value={roleFilter}
+                        onChange={setRoleFilter}
+                        options={TENANT_ROLE_FILTER_VALUES.map((role) => ({
+                            value: role,
+                            label: roleDisplayLabel(role),
+                        }))}
+                    />
+                    <Select
+                        placeholder={t('users.list.filterStatusPlaceholder')}
+                        allowClear
+                        style={{ width: 120 }}
+                        value={
+                            statusFilter === undefined
+                                ? undefined
+                                : statusFilter
+                                  ? 'active'
+                                  : 'inactive'
+                        }
+                        onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
+                        options={statusFilterOptions}
+                    />
+                    <Button icon={<ReloadOutlined />} onClick={refetchAll} loading={isFetching}>
+                        {t('users.list.actionRefresh')}
+                    </Button>
+                </Flex>
+            </Card>
+
+            {isError ? (
+                <Alert
+                    type="error"
+                    showIcon
+                    message={t('users.list.errorLoad')}
+                    action={
+                        <Button size="small" onClick={refetchAll}>
+                            {t('users.list.retry')}
+                        </Button>
+                    }
+                />
+            ) : null}
+
+            <Space wrap>
+                {policy.canProvisionTenantCredentials && tenantFilter !== FILTER_PLATFORM ? (
+                    <Button type="primary" icon={<MailOutlined />} onClick={() => setInviteOpen(true)}>
+                        {t('users.invite.action')}
+                    </Button>
+                ) : null}
+                {policy.canCreate ? (
+                    <Button icon={<UserOutlined />} onClick={onCreatePlatformUser}>
+                        {t('users.page.createPlatformAdmin')}
+                    </Button>
+                ) : null}
+            </Space>
+
+            <Table
+                rowKey="key"
+                loading={isLoading}
+                dataSource={filteredRows}
+                columns={columns}
+                pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 50] }}
+                locale={{
+                    emptyText: (
+                        <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={t('users.unified.empty')}
+                        />
+                    ),
+                }}
+            />
+
+            {policy.canProvisionTenantCredentials ? (
+                <Collapse
+                    items={[
+                        {
+                            key: 'invitations',
+                            label: t('users.unified.invitationsSection'),
+                            children: <UserInvitationsPanel />,
+                        },
+                    ]}
+                />
+            ) : null}
+
+            {policy.canProvisionTenantCredentials ? (
+                <>
+                    <InviteUserModal
+                        open={inviteOpen}
+                        variant="usersPage"
+                        tenantId={inviteFixedTenantId}
+                        tenantRows={inviteTenants}
+                        tenantsLoading={inviteTenantsLoading}
+                        confirmLoading={createMutation.isPending}
+                        onClose={() => setInviteOpen(false)}
+                        onSubmit={(values) => createMutation.mutate(values)}
+                    />
+                    <UserCreatedSuccessModal
+                        open={!!createResult}
+                        result={createResult}
+                        onClose={() => setCreateResult(null)}
+                    />
+                    <ResetPasswordModal
+                        open={!!resetRow}
+                        tenantId={resetRow?.tenantId ?? ''}
+                        user={
+                            resetRow
+                                ? {
+                                      userId: resetRow.userId,
+                                      email: resetRow.email,
+                                      name: resetRow.name,
+                                      role: resetRow.role,
+                                      isOwner: resetRow.isOwner,
+                                      joinedAtUtc: resetRow.joinedAtUtc,
+                                  }
+                                : null
+                        }
+                        onClose={() => setResetRow(null)}
+                        onCompleted={() => tenantUsersQuery.refetch()}
+                    />
+                </>
+            ) : null}
+        </Space>
+    );
+}

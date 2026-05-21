@@ -102,6 +102,16 @@
     },
     "tenantChangedToast": "Tenant switched to: {slug}"
   },
+  "impersonation": {
+    "banner": {
+      "title": "Support impersonation active",
+      "description": "You are working in the tenant context of {name} ({slug}). All actions apply to this tenant.",
+      "exit": "End impersonation",
+      "expiryTitle": "Impersonation expiring soon",
+      "expiryWarning": "This impersonation session expires in about {minutes} minutes. End impersonation or start a new session from the admin host.",
+      "expiryToast": "Impersonation expires in {minutes} minutes."
+    }
+  },
   "group": {
     "operations": "Operations",
     "salesTransactions": "Sales & transactions",

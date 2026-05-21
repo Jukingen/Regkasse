@@ -363,6 +363,15 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("http_status_code");
 
+                    b.Property<string>("ImpersonatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("impersonated_by");
+
+                    b.Property<Guid?>("ImpersonatedTenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("impersonated_tenant");
+
                     b.Property<string>("IpAddress")
                         .HasMaxLength(45)
                         .HasColumnType("character varying(45)")
@@ -471,6 +480,10 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("EntityId");
 
                     b.HasIndex("EntityType");
+
+                    b.HasIndex("ImpersonatedBy");
+
+                    b.HasIndex("ImpersonatedTenantId");
 
                     b.HasIndex("TenantId");
 

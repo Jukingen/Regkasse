@@ -3,7 +3,7 @@
 /**
  * Super-admin tenant detail dashboard — overview, users, registers, license, settings.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -44,8 +44,12 @@ import { TenantDetailCashRegistersTab } from '@/features/super-admin/components/
 import { TenantDetailLicenseTab } from '@/features/super-admin/components/TenantDetailLicenseTab';
 import { TenantDetailOverviewTab } from '@/features/super-admin/components/TenantDetailOverviewTab';
 import { TenantDetailSettingsTab } from '@/features/super-admin/components/TenantDetailSettingsTab';
-import { TenantDetailUsersTab } from '@/features/super-admin/components/TenantDetailUsersTab';
-import { parseTenantDetailTab } from '@/features/super-admin/components/TenantDetailTabs';
+import {
+    parseTenantDetailTab,
+    TENANT_DETAIL_LEGACY_USERS_TAB,
+    type TenantDetailTabKey,
+} from '@/features/super-admin/components/TenantDetailTabs';
+import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 
 const TENANT_DETAIL_QUERY_KEY = ['admin', 'tenant-detail'] as const;
@@ -59,6 +63,8 @@ export default function SuperAdminTenantDetailPage() {
     const { user } = useAuth();
     const tenantId = typeof params.tenantId === 'string' ? params.tenantId : '';
     const activeTab = parseTenantDetailTab(searchParams.get('tab'));
+    const displayTab: TenantDetailTabKey =
+        activeTab === TENANT_DETAIL_LEGACY_USERS_TAB ? 'overview' : activeTab;
     const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
 
     const canAccess =
@@ -124,6 +130,12 @@ export default function SuperAdminTenantDetailPage() {
         [router, tenantId],
     );
 
+    useEffect(() => {
+        if (activeTab === TENANT_DETAIL_LEGACY_USERS_TAB && tenantId) {
+            router.replace(buildAdminUsersPageHref(tenantId));
+        }
+    }, [activeTab, tenantId, router]);
+
     const tabItems = useMemo(() => {
         const tenant = tenantQuery.data;
         if (!tenant) return [];
@@ -144,11 +156,6 @@ export default function SuperAdminTenantDetailPage() {
                         onHardDelete={(confirmSlug) => hardDeleteMutation.mutate(confirmSlug)}
                     />
                 ),
-            },
-            {
-                key: 'users',
-                label: t('tenants.detail.tabs.users'),
-                children: <TenantDetailUsersTab tenantId={tenantId} tenant={tenant} />,
             },
             {
                 key: 'registers',
@@ -251,7 +258,7 @@ export default function SuperAdminTenantDetailPage() {
             ) : null}
 
             <Card loading={tenantQuery.isLoading && !tenant}>
-                <Tabs activeKey={activeTab} onChange={setTab} items={tabItems} />
+                <Tabs activeKey={displayTab} onChange={setTab} items={tabItems} />
             </Card>
 
             {!tenantQuery.isLoading && !tenant && !tenantQuery.isError ? (

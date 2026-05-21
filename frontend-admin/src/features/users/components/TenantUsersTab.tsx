@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import {
+    Alert,
     Button,
     Empty,
     Input,
@@ -12,40 +13,35 @@ import {
     Tag,
     Typography,
     message,
-    Modal,
-    Alert,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
     EditOutlined,
     KeyOutlined,
-    LinkOutlined,
-    MailOutlined,
     ReloadOutlined,
+    UserAddOutlined,
     UserDeleteOutlined,
 } from '@ant-design/icons';
-import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { InviteUserModal } from '@/features/users/components/InviteUserModal';
 import type { InviteUserFormValues } from '@/features/users/components/InviteUserModal';
-import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
+import { UserCreatedSuccessModal } from '@/features/super-admin/components/UserCreatedSuccessModal';
+import { createTenantUser, type CreateTenantUserResult } from '@/features/super-admin/api/tenantUsers';
 import { ResetPasswordModal } from '@/features/super-admin/components/ResetPasswordModal';
 import {
     adminUsersQueryKeys,
-    inviteAdminUser,
     listTenantUsers,
     removeUserFromTenant,
     tenantRowToTenantUser,
     type TenantUserRow,
 } from '@/features/users/api/users';
+import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
 import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
 import { useI18n } from '@/i18n';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
-import type { TenantUserInviteResult } from '@/features/users/api/users';
-
 const TENANT_ROLE_FILTER_VALUES = ['Manager', 'Cashier', 'Accountant'] as const;
 
 export type TenantUsersTabProps = {
@@ -62,7 +58,7 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
     const [roleFilter, setRoleFilter] = useState<string | undefined>();
     const [search, setSearch] = useState('');
     const [inviteOpen, setInviteOpen] = useState(false);
-    const [inviteResult, setInviteResult] = useState<TenantUserInviteResult | null>(null);
+    const [createResult, setCreateResult] = useState<CreateTenantUserResult | null>(null);
     const [resetRow, setResetRow] = useState<TenantUserRow | null>(null);
 
     const tenantsQuery = useGetApiAdminTenants();
@@ -96,25 +92,20 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
         [businessTenants, t],
     );
 
-    const inviteMutation = useMutation({
+    const createMutation = useMutation({
         mutationFn: (values: InviteUserFormValues) => {
             if (!values.tenantId) throw new Error('tenantId required');
-            return inviteAdminUser({
-                email: values.email,
-                tenantId: values.tenantId,
+            return createTenantUser(values.tenantId, {
+                email: values.email.trim(),
                 role: values.role,
                 isOwner: values.isOwner,
             });
         },
         onSuccess: (res) => {
-            setInviteResult(res);
+            setCreateResult(res);
             setInviteOpen(false);
             void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
-            if (res.invitationEmailSent) {
-                message.success(t('tenants.users.invite.messages.sent'));
-            } else {
-                message.warning(t('tenants.users.invite.messages.assignedNoEmail'));
-            }
+            message.success(t('tenants.users.invite.messages.created'));
         },
         onError: () => message.error(t('tenants.users.invite.messages.failed')),
     });
@@ -195,7 +186,7 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
                                 {t('users.list.edit')}
                             </Button>
                         )}
-                        {policy.canResetPassword(row.role) && (
+                        {policy.canProvisionTenantCredentials && policy.canResetPassword(row.role) && (
                             <Button size="small" icon={<KeyOutlined />} onClick={() => setResetRow(row)}>
                                 {t('users.list.resetPassword')}
                             </Button>
@@ -220,11 +211,6 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
                                 </Button>
                             </Popconfirm>
                         )}
-                        <Link href={`/admin/tenants/${row.tenantId}?tab=users`}>
-                            <Button size="small" icon={<LinkOutlined />}>
-                                {t('users.tabs.tenant.openTenantUsers')}
-                            </Button>
-                        </Link>
                     </Space>
                 ),
             },
@@ -245,8 +231,8 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
                 >
                     {t('common.buttons.refresh')}
                 </Button>
-                {policy.canCreate ? (
-                    <Button type="primary" icon={<MailOutlined />} onClick={() => setInviteOpen(true)}>
+                {policy.canProvisionTenantCredentials ? (
+                    <Button type="primary" icon={<UserAddOutlined />} onClick={() => setInviteOpen(true)}>
                         {t('users.invite.action')}
                     </Button>
                 ) : null}
@@ -308,45 +294,19 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
                 variant="usersPage"
                 tenantRows={inviteTenants}
                 tenantsLoading={inviteTenantsLoading}
-                confirmLoading={inviteMutation.isPending}
+                confirmLoading={createMutation.isPending}
                 onClose={() => setInviteOpen(false)}
-                onSubmit={(values) => inviteMutation.mutate(values)}
+                onSubmit={(values) => createMutation.mutate(values)}
             />
-            <Modal
-                title={t('tenants.users.invite.resultTitle')}
-                open={!!inviteResult}
-                onCancel={() => setInviteResult(null)}
-                footer={[
-                    <Button key="close" onClick={() => setInviteResult(null)}>
-                        {t('common.buttons.close')}
-                    </Button>,
-                ]}
-            >
-                {inviteResult ? (
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                        <Typography.Text>
-                            {inviteResult.userCreated
-                                ? t('tenants.users.invite.resultCreated')
-                                : t('tenants.users.invite.resultExisting')}
-                        </Typography.Text>
-                        <Typography.Text type="secondary">{inviteResult.emailDeliveryNote}</Typography.Text>
-                        {inviteResult.generatedPassword ? (
-                            <Alert
-                                type="warning"
-                                showIcon
-                                message={t('tenants.users.invite.passwordOnce')}
-                                description={
-                                    <Typography.Text code copyable>
-                                        {inviteResult.generatedPassword}
-                                    </Typography.Text>
-                                }
-                            />
-                        ) : null}
-                    </Space>
-                ) : null}
-            </Modal>
-            <ResetPasswordModal
-                open={!!resetRow}
+            {policy.canProvisionTenantCredentials ? (
+                <>
+                    <UserCreatedSuccessModal
+                        open={!!createResult}
+                        result={createResult}
+                        onClose={() => setCreateResult(null)}
+                    />
+                    <ResetPasswordModal
+                        open={!!resetRow}
                 tenantId={resetRow?.tenantId ?? ''}
                 user={
                     resetRow
@@ -361,8 +321,10 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
                         : null
                 }
                 onClose={() => setResetRow(null)}
-                onCompleted={() => tenantUsersQuery.refetch()}
-            />
+                        onCompleted={() => tenantUsersQuery.refetch()}
+                    />
+                </>
+            ) : null}
         </Space>
     );
 }

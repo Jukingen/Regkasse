@@ -10,9 +10,12 @@ import type { TenantUserDto } from './tenantUserDto';
 export interface TenantUserInviteResultDto {
   /** @nullable */
   emailDeliveryNote?: string | null;
+  forcePasswordChangeOnNextLogin?: boolean;
   /** @nullable */
   generatedPassword?: string | null;
   invitationEmailSent?: boolean;
+  /** @nullable */
+  tenantPortalUrl?: string | null;
   user?: TenantUserDto;
   userCreated?: boolean;
 }

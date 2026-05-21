@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using System.Security.Claims;
 using System.Text.Json;
@@ -33,7 +34,8 @@ namespace KasseAPI_Final.Services
         Task<AuditLog> LogSystemOperationAsync(string action, string entityType, string userId, 
             string userRole, string? description = null, string? notes = null, 
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
-            object? requestData = null, object? responseData = null, string? correlationIdOverride = null);
+            object? requestData = null, object? responseData = null, string? correlationIdOverride = null,
+            ImpersonationAuditContext.Snapshot? impersonationSnapshot = null);
 
         Task<AuditLog> LogUserActivityAsync(string action, string userId, string userRole, 
             string? description = null, string? notes = null, AuditLogStatus status = AuditLogStatus.Success,
@@ -84,6 +86,14 @@ namespace KasseAPI_Final.Services
 
         /// <summary>Incident playbook: high-risk admin/user-lifecycle actions (deactivate, reactivate, password reset, role change, create).</summary>
         Task<IEnumerable<AuditLog>> GetSuspiciousAdminActionsAsync(DateTime? since = null, int limit = 100);
+
+        /// <summary>Records Super Admin impersonation session start (admin host; before tenant JWT is used).</summary>
+        Task<AuditLog> LogImpersonationSessionStartedAsync(
+            string superAdminUserId,
+            string superAdminRole,
+            Guid impersonatedTenantId,
+            string? tenantSlug = null,
+            string? correlationId = null);
     }
 
     /// <summary>Sprint 5: Result of audit cleanup; includes counts and retention/hold enforcement.</summary>
@@ -101,16 +111,19 @@ namespace KasseAPI_Final.Services
         private readonly AppDbContext _context;
         private readonly ILogger<AuditLogService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly IActorDisplayNameResolver _actorDisplayNameResolver;
         private readonly AuditRetentionOptions _retentionOptions;
 
         public AuditLogService(AppDbContext context, ILogger<AuditLogService> logger,
-            IHttpContextAccessor httpContextAccessor, IActorDisplayNameResolver actorDisplayNameResolver,
+            IHttpContextAccessor httpContextAccessor, ICurrentTenantAccessor tenantAccessor,
+            IActorDisplayNameResolver actorDisplayNameResolver,
             IOptions<AuditRetentionOptions> retentionOptions)
         {
             _context = context;
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
+            _tenantAccessor = tenantAccessor;
             _actorDisplayNameResolver = actorDisplayNameResolver;
             _retentionOptions = retentionOptions?.Value ?? new AuditRetentionOptions();
         }
@@ -166,6 +179,7 @@ namespace KasseAPI_Final.Services
                     TseSignature = AuditLogPersistenceSanitizer.Truncate(tseSignature, 500)
                 };
 
+                ApplyImpersonationContext(auditLog);
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
@@ -231,6 +245,7 @@ namespace KasseAPI_Final.Services
                     TseSignature = null
                 };
 
+                ApplyImpersonationContext(auditLog);
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
@@ -253,7 +268,8 @@ namespace KasseAPI_Final.Services
         public async Task<AuditLog> LogSystemOperationAsync(string action, string entityType, string userId,
             string userRole, string? description = null, string? notes = null,
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
-            object? requestData = null, object? responseData = null, string? correlationIdOverride = null)
+            object? requestData = null, object? responseData = null, string? correlationIdOverride = null,
+            ImpersonationAuditContext.Snapshot? impersonationSnapshot = null)
         {
             try
             {
@@ -298,6 +314,7 @@ namespace KasseAPI_Final.Services
                     TseSignature = null
                 };
 
+                ApplyImpersonationContext(auditLog, impersonationSnapshot);
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
@@ -361,6 +378,7 @@ namespace KasseAPI_Final.Services
                     TseSignature = null
                 };
 
+                ApplyImpersonationContext(auditLog);
                 _context.AuditLogs.Add(auditLog);
                 await _context.SaveChangesAsync();
 
@@ -469,6 +487,7 @@ namespace KasseAPI_Final.Services
                 ActionType = actionType
             };
 
+            ApplyImpersonationContext(auditLog);
             _context.AuditLogs.Add(auditLog);
             await _context.SaveChangesAsync();
 
@@ -476,6 +495,29 @@ namespace KasseAPI_Final.Services
                 actionType, targetUserId, actorUserId);
 
             return auditLog;
+        }
+
+        public async Task<AuditLog> LogImpersonationSessionStartedAsync(
+            string superAdminUserId,
+            string superAdminRole,
+            Guid impersonatedTenantId,
+            string? tenantSlug = null,
+            string? correlationId = null)
+        {
+            var slugNote = string.IsNullOrWhiteSpace(tenantSlug) ? null : $"slug={tenantSlug.Trim()}";
+            var description = $"Super Admin impersonation session started for tenant {impersonatedTenantId:D}";
+            return await LogSystemOperationAsync(
+                AuditLogActions.TENANT_IMPERSONATION_STARTED,
+                AuditLogEntityTypes.SYSTEM_CONFIG,
+                superAdminUserId,
+                superAdminRole,
+                description: description,
+                notes: slugNote,
+                status: AuditLogStatus.Success,
+                requestData: new { impersonatedTenantId, tenantSlug },
+                correlationIdOverride: correlationId,
+                impersonationSnapshot: ImpersonationAuditContext.ForSessionStart(superAdminUserId, impersonatedTenantId))
+                .ConfigureAwait(false);
         }
 
         /// <summary>Maps AuditEventType to legacy Action string for backward compatibility (existing queries/reports).</summary>
@@ -923,7 +965,8 @@ namespace KasseAPI_Final.Services
                     AuditLogActions.FORCE_RESET_PASSWORD,
                     AuditLogActions.CHANGE_OWN_PASSWORD,
                     AuditLogActions.USER_ROLE_CHANGE,
-                    AuditLogActions.USER_CREATE
+                    AuditLogActions.USER_CREATE,
+                    AuditLogActions.TENANT_QUICK_USER_CREATED
                 };
 
                 var query = _context.AuditLogs
@@ -1005,6 +1048,15 @@ namespace KasseAPI_Final.Services
             {
                 return null;
             }
+        }
+
+        private void ApplyImpersonationContext(
+            AuditLog auditLog,
+            ImpersonationAuditContext.Snapshot? explicitSnapshot = null)
+        {
+            var snapshot = explicitSnapshot
+                ?? ImpersonationAuditContext.FromHttpContext(_httpContextAccessor.HttpContext, _tenantAccessor);
+            ImpersonationAuditContext.ApplyTo(auditLog, snapshot);
         }
     }
 }

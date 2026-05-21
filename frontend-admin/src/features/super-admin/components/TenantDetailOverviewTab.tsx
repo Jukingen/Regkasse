@@ -7,6 +7,7 @@ import Link from 'next/link';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
 import { resolveTenantLicenseLabel } from '@/features/super-admin/utils/tenantLicenseLabel';
 import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { useI18n, formatDate, formatDateTime } from '@/i18n';
 
 export type TenantDetailOverviewTabProps = {
@@ -91,7 +92,7 @@ export function TenantDetailOverviewTab({
                                 {t('tenants.actions.delete')}
                             </Button>
                         </Popconfirm>
-                        <Link href={`/admin/tenants/${tenant.id}?tab=users`}>
+                        <Link href={buildAdminUsersPageHref(tenant.id)}>
                             <Button>{t('tenants.detail.overview.manageUsers')}</Button>
                         </Link>
                         <Link href={`/admin/tenants/${tenant.id}?tab=license`}>

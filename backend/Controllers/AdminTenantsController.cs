@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +15,16 @@ namespace KasseAPI_Final.Controllers;
 public sealed class AdminTenantsController : ControllerBase
 {
     private readonly IAdminTenantService _tenantService;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<AdminTenantsController> _logger;
 
-    public AdminTenantsController(IAdminTenantService tenantService, ILogger<AdminTenantsController> logger)
+    public AdminTenantsController(
+        IAdminTenantService tenantService,
+        IAuditLogService auditLogService,
+        ILogger<AdminTenantsController> logger)
     {
         _tenantService = tenantService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -194,6 +200,23 @@ public sealed class AdminTenantsController : ControllerBase
             return BadRequest(new { message = error });
 
         _logger.LogInformation("Impersonation token issued for tenant {TenantId} by {ActorUserId}", tenantId, actorId);
+
+        try
+        {
+            await _auditLogService
+                .LogImpersonationSessionStartedAsync(
+                    actorId,
+                    Roles.SuperAdmin,
+                    tenantId,
+                    result!.TenantSlug,
+                    HttpContext.TraceIdentifier)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to write impersonation start audit for tenant {TenantId}", tenantId);
+        }
+
         return Ok(result);
     }
 }

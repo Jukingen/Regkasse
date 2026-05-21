@@ -48,6 +48,8 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
     /** Operative closing + formal RKSV reports + special receipts (sidebar IA). */
     fiscalRksvClosing: 'grp-fiscal-rksv-closing',
     verwaltung: 'grp-verwaltung',
+    /** Super Admin: companies / tenants (platform). */
+    platformAdmin: 'grp-platform-admin',
     /** Nested under Verwaltung: /settings + /settings/payment-methods */
     settingsArea: 'grp-settings-area',
 } as const;
@@ -85,7 +87,11 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/admin/tse',
         '/rksv',
     ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: ['/users', ...SETTINGS_AREA_ROUTE_PATHS, '/admin/system/time-sync', '/admin/license', '/admin/tenants'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: [
+        ...SETTINGS_AREA_ROUTE_PATHS,
+        '/admin/system/time-sync',
+        '/admin/license',
+    ],
 };
 
 /**
@@ -160,8 +166,7 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
         p === '/settings' ||
         p.startsWith('/settings/') ||
         p === '/admin/system/time-sync' ||
-        p === '/admin/license' ||
-        p === '/admin/tenants'
+        p === '/admin/license'
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
     }
@@ -175,6 +180,8 @@ export type SidebarPermissionContext = {
     isMenuItemAllowed: (key: string, permissions: string[] | undefined) => boolean;
     canViewUsers: (role: string) => boolean;
     canShowRksvMenu: (role: string) => boolean;
+    canShowPlatformAdminMenu: (role: string) => boolean;
+    isSuperAdminRole: (role: string) => boolean;
 };
 
 /**
@@ -199,8 +206,11 @@ export function filterSidebarMenuItems(
             }
             return false;
         }
-        if (key === '/users') return ctx.canViewUsers(ctx.userRole);
+        if (key === '/users' || key === '/admin/users') return ctx.canViewUsers(ctx.userRole);
         if (key === '/rksv') return ctx.canShowRksvMenu(ctx.userRole);
+        if (key === '/admin/tenants') {
+            return ctx.canShowPlatformAdminMenu(ctx.userRole);
+        }
         return true;
     };
 

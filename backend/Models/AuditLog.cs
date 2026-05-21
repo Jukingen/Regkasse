@@ -110,6 +110,13 @@ namespace KasseAPI_Final.Models
         /// <summary>Typed action for user-lifecycle and role events; null for legacy rows.</summary>
         public AuditEventType? ActionType { get; set; }
 
+        /// <summary>When set, the action was performed under Super Admin impersonation (original actor user id).</summary>
+        [MaxLength(450)]
+        public string? ImpersonatedBy { get; set; }
+
+        /// <summary>Target tenant id when the action was performed under impersonation.</summary>
+        public Guid? ImpersonatedTenantId { get; set; }
+
         // Navigation properties
         [ForeignKey("UserId")]
         public virtual ApplicationUser? User { get; set; }
@@ -205,6 +212,9 @@ namespace KasseAPI_Final.Models
         public const string CHANGE_OWN_PASSWORD = "CHANGE_OWN_PASSWORD";
         public const string FORCE_RESET_PASSWORD = "FORCE_RESET_PASSWORD";
 
+        /// <summary>Super-admin one-click tenant user (auto email/password).</summary>
+        public const string TENANT_QUICK_USER_CREATED = "TENANT_QUICK_USER_CREATED";
+
         // System operations
         public const string SYSTEM_CONFIG_UPDATE = "SYSTEM_CONFIG_UPDATE";
         public const string TSE_STATUS_CHECK = "TSE_STATUS_CHECK";
@@ -232,6 +242,9 @@ namespace KasseAPI_Final.Models
 
         /// <summary>RKSV Sonderbeleg create attempt outcome from POS/admin API.</summary>
         public const string POS_SPL_RCPT = "POS_SPL_RCPT";
+
+        /// <summary>Super Admin issued a tenant-scoped impersonation JWT (support session start).</summary>
+        public const string TENANT_IMPERSONATION_STARTED = "TENANT_IMPERSONATION_STARTED";
 
         /// <summary>Permanent cash register decommission (RKSV Schlussbeleg / admin API).</summary>
         public const string CASH_REGISTER_DECOMMISSION = "CASH_REGISTER_DECOMMISSION";

@@ -102,6 +102,16 @@
     },
     "tenantChangedToast": "Mandant gewechselt zu: {slug}"
   },
+  "impersonation": {
+    "banner": {
+      "title": "Support-Impersonation aktiv",
+      "description": "Sie arbeiten im Mandantenkontext von {name} ({slug}). Alle Aktionen gelten für diesen Mandanten.",
+      "exit": "Impersonation beenden",
+      "expiryTitle": "Impersonation läuft bald ab",
+      "expiryWarning": "Die Impersonation-Sitzung läuft in etwa {minutes} Minuten ab. Beenden Sie die Impersonation oder starten Sie sie erneut vom Admin-Host.",
+      "expiryToast": "Impersonation läuft in {minutes} Minuten ab."
+    }
+  },
   "group": {
     "operations": "Betrieb",
     "salesTransactions": "Verkauf & Vorgänge",

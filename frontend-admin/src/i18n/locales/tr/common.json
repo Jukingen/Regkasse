@@ -115,6 +115,7 @@
     "scopeTotalLoading": "Toplam sayi yukleniyor …",
     "scopeActionIs": "Islem = {{action}}",
     "scopeNoDateFilter": "tarih filtresi yok",
+    "quickUserCreatedDescription": "Super Admin, '{{slug}}' kiracısı için hızlı kullanıcı '{{email}}' ({{role}}) oluşturdu",
     "actionLabels": {
       "login": "Giris",
       "createInvoice": "Fatura olustur",

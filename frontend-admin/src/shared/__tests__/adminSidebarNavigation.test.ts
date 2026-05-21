@@ -98,12 +98,14 @@ describe('adminSidebarNavigation', () => {
         expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
             ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
         );
+        expect(getNonRksvSidebarOpenGroupKeys('/admin/tenants')).toEqual([]);
+        expect(getNonRksvSidebarOpenGroupKeys('/admin/users')).toEqual([]);
     });
 
     it('detects Verwaltung routes for tenant context card', () => {
-        expect(isVerwaltungAdminPath('/users')).toBe(true);
+        expect(isVerwaltungAdminPath('/admin/users')).toBe(false);
         expect(isVerwaltungAdminPath('/settings/backup-dr')).toBe(true);
-        expect(isVerwaltungAdminPath('/admin/tenants')).toBe(true);
+        expect(isVerwaltungAdminPath('/admin/tenants')).toBe(false);
         expect(isVerwaltungAdminPath('/products')).toBe(false);
         expect(isVerwaltungAdminPath('/receipts/abc')).toBe(false);
     });

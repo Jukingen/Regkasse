@@ -1,93 +1,79 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Alert, Button, Modal, Space, Typography, message } from 'antd';
-import { MailOutlined } from '@ant-design/icons';
+import { Button, Space, Typography, message } from 'antd';
+import { UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { InviteUserModal } from '@/features/users/components/InviteUserModal';
 import type { InviteUserFormValues } from '@/features/users/components/InviteUserModal';
+import { SuperAdminCredentialsGate } from '@/features/super-admin/components/SuperAdminCredentialsGate';
+import { UserCreatedSuccessModal } from '@/features/super-admin/components/UserCreatedSuccessModal';
 import {
-    adminUsersQueryKeys,
-    inviteAdminUser,
-    type TenantUserInviteResult,
-} from '@/features/users/api/users';
+    createTenantUser,
+    type CreateTenantUserResult,
+} from '@/features/super-admin/api/tenantUsers';
+import { useSuperAdminPlatformPolicy } from '@/features/super-admin/auth/superAdminPlatformPolicy';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
+import { adminUsersQueryKeys } from '@/features/users/api/users';
 import { useI18n } from '@/i18n';
 
-/** Dedicated invitations tab — tenant dropdown with domain and license (Super Admin). */
+/** Super Admin only — create mandant users with one-time password (no email). */
 export function UserInvitationsPanel() {
     const { t } = useI18n();
     const queryClient = useQueryClient();
+    const { canProvisionTenantCredentials } = useSuperAdminPlatformPolicy();
     const [inviteOpen, setInviteOpen] = useState(false);
-    const [inviteResult, setInviteResult] = useState<TenantUserInviteResult | null>(null);
+    const [createResult, setCreateResult] = useState<CreateTenantUserResult | null>(null);
 
-    const { tenants, isLoading, isSuperAdmin } = useTenantList();
+    const { tenants, isLoading } = useTenantList();
 
-    const inviteMutation = useMutation({
-        mutationFn: (values: InviteUserFormValues) => {
+    const createMutation = useMutation({
+        mutationFn: async (values: InviteUserFormValues) => {
             if (!values.tenantId) throw new Error('tenantId required');
-            return inviteAdminUser({
-                email: values.email,
-                tenantId: values.tenantId,
+            return createTenantUser(values.tenantId, {
+                email: values.email.trim(),
                 role: values.role,
                 isOwner: values.isOwner,
             });
         },
         onSuccess: (res) => {
-            setInviteResult(res);
+            setCreateResult(res);
             setInviteOpen(false);
             void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
-            if (res.invitationEmailSent) {
-                message.success(t('tenants.users.invite.messages.sent'));
-            } else {
-                message.warning(t('tenants.users.invite.messages.assignedNoEmail'));
-            }
+            message.success(t('tenants.users.invite.messages.created'));
         },
         onError: () => message.error(t('tenants.users.invite.messages.failed')),
     });
 
+    if (!canProvisionTenantCredentials) {
+        return <SuperAdminCredentialsGate />;
+    }
+
     return (
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                {isSuperAdmin
-                    ? t('users.tabs.invitations.descriptionSuperAdmin')
-                    : t('users.tabs.invitations.description')}
+                {t('users.tabs.invitations.descriptionSuperAdmin')}
             </Typography.Paragraph>
-            <Alert type="info" showIcon message={t('users.tabs.invitations.smtpHint')} />
-            <Button type="primary" icon={<MailOutlined />} onClick={() => setInviteOpen(true)}>
-                {t('users.invite.action')}
-            </Button>
+            <SuperAdminCredentialsGate showRestrictedHint={false}>
+                <Button type="primary" icon={<UserAddOutlined />} onClick={() => setInviteOpen(true)}>
+                    {t('users.invite.action')}
+                </Button>
+            </SuperAdminCredentialsGate>
             <InviteUserModal
                 open={inviteOpen}
                 variant="usersPage"
                 tenantRows={tenants}
                 tenantsLoading={isLoading}
-                confirmLoading={inviteMutation.isPending}
+                confirmLoading={createMutation.isPending}
                 onClose={() => setInviteOpen(false)}
-                onSubmit={(values) => inviteMutation.mutate(values)}
+                onSubmit={(values) => createMutation.mutate(values)}
             />
-            <Modal
-                title={t('tenants.users.invite.resultTitle')}
-                open={!!inviteResult}
-                onCancel={() => setInviteResult(null)}
-                footer={[
-                    <Button key="close" onClick={() => setInviteResult(null)}>
-                        {t('common.buttons.close')}
-                    </Button>,
-                ]}
-            >
-                {inviteResult ? (
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                        <Typography.Text>
-                            {inviteResult.userCreated
-                                ? t('tenants.users.invite.resultCreated')
-                                : t('tenants.users.invite.resultExisting')}
-                        </Typography.Text>
-                        <Typography.Text type="secondary">{inviteResult.emailDeliveryNote}</Typography.Text>
-                    </Space>
-                ) : null}
-            </Modal>
+            <UserCreatedSuccessModal
+                open={!!createResult}
+                result={createResult}
+                onClose={() => setCreateResult(null)}
+            />
         </Space>
     );
 }

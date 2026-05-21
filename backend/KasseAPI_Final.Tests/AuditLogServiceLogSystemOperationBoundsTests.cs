@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -39,6 +40,7 @@ public sealed class AuditLogServiceLogSystemOperationBoundsTests
             context,
             new Mock<ILogger<AuditLogService>>().Object,
             httpContextAccessor.Object,
+            new NullCurrentTenantAccessor(),
             actorResolver.Object,
             retentionOptions.Object);
 

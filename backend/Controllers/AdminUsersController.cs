@@ -207,7 +207,7 @@ public class AdminUsersController : ControllerBase
         return Ok(users.Select(ToDto));
     }
 
-    /// <summary>Invite a user to a tenant by email (creates account if needed).</summary>
+    /// <summary>Create or assign a tenant user by email (generates password for new accounts; no invitation email).</summary>
     [HttpPost("invite")]
     [ProducesResponseType(typeof(TenantUserInviteResultDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
@@ -228,7 +228,7 @@ public class AdminUsersController : ControllerBase
                 Email = request.Email,
                 Role = request.Role,
                 IsOwner = request.IsOwner,
-            }, cancellationToken)
+            }, ActorId ?? "unknown", cancellationToken)
             .ConfigureAwait(false);
 
         if (error == "Tenant not found.")

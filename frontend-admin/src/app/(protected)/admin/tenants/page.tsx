@@ -43,6 +43,7 @@ import { useI18n, formatDate } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { CreateTenantWizard } from '@/features/super-admin/components/CreateTenantWizard';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
 import {
@@ -208,7 +209,7 @@ export default function SuperAdminTenantsPage() {
                             key: 'users',
                             icon: <TeamOutlined />,
                             label: (
-                                <Link href={`/admin/tenants/${row.id}?tab=users`}>
+                                <Link href={buildAdminUsersPageHref(row.id)}>
                                     {t('tenants.actions.manageUsers')}
                                 </Link>
                             ),

@@ -20,7 +20,7 @@ export type TenantUserTableProps = {
     onSetOwner: (userId: string) => void;
     onRemove: (userId: string) => void;
     onRoleChange: (userId: string, role: string) => void;
-    onResetPassword: (userId: string) => void;
+    onResetPassword?: (userId: string) => void;
 };
 
 export function TenantUserTable({
@@ -85,14 +85,16 @@ export function TenantUserTable({
             key: 'actions',
             render: (_, row) => (
                 <Space size="small" wrap>
-                    <Button
-                        size="small"
-                        icon={<KeyOutlined />}
-                        loading={resetPendingUserId === row.userId}
-                        onClick={() => onResetPassword(row.userId)}
-                    >
-                        {t('tenants.users.actions.resetPassword')}
-                    </Button>
+                    {onResetPassword ? (
+                        <Button
+                            size="small"
+                            icon={<KeyOutlined />}
+                            loading={resetPendingUserId === row.userId}
+                            onClick={() => onResetPassword(row.userId)}
+                        >
+                            {t('tenants.users.actions.resetPassword')}
+                        </Button>
+                    ) : null}
                     {!row.isOwner && (
                         <Button
                             size="small"

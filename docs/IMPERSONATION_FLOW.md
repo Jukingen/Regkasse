@@ -60,6 +60,10 @@ Same API; `applyTenantImpersonationSession()` stores tokens on the admin/dev ori
 | `frontend-admin/src/features/auth/components/ImpersonateCallback.tsx` | Tenant-side callback UI |
 | `frontend-admin/src/app/(public)/impersonate-callback/page.tsx` | Public route (middleware allow-list) |
 | `frontend-admin/src/features/super-admin/components/ImpersonationRedirectOverlay.tsx` | Loading overlay on admin host before navigation |
+| `frontend-admin/src/components/admin-layout/ImpersonationBanner.tsx` | Global banner on all protected pages (tenant scope + exit + expiry hint) |
+| `frontend-admin/src/lib/auth/exitImpersonation.ts` | Clears session and returns to `admin.{base}/admin/tenants` |
+| `backend/Services/ImpersonationAuditContext.cs` | Reads JWT `tenant_impersonation` + `tenant_id` for audit columns |
+| `backend/Services/AuditLogService.cs` | Applies impersonation fields on every audit insert |
 
 ## Security notes
 
@@ -67,7 +71,7 @@ Same API; `applyTenantImpersonationSession()` stores tokens on the admin/dev ori
 - Impersonation tokens are short-lived; re-issue from admin if expired.
 - Fragment handoff avoids leaving the JWT on `admin.regkasse.at` storage.
 - **Not yet enforced:** JWT `tenant_id` ↔ request host subdomain binding (see `docs/MULTI_TENANT.md`).
-- **Not yet in schema:** `AuditLog.impersonated_by` column; server logs actor today.
+- **Audit:** `audit_logs.impersonated_by` (Super Admin user id) and `audit_logs.impersonated_tenant` (target tenant uuid) are set on all rows written via `IAuditLogService` when JWT has `tenant_impersonation=true`, plus an explicit `TENANT_IMPERSONATION_STARTED` row when the session is issued.
 
 ## POS
 
@@ -75,5 +79,6 @@ The mobile POS does not consume this handoff. Operators use tenant-scoped login 
 
 ## Related
 
+- [`docs/IMPERSONATION.md`](./IMPERSONATION.md) — operator guide (DE) for Super Admin support staff
 - `docs/MULTI_TENANT.md` — tenancy model and Super Admin overview
 - `AGENTS.md` — impersonation summary in repo rules

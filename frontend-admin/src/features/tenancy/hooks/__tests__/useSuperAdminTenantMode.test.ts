@@ -11,6 +11,7 @@ describe('isPathAllowedWithoutTenant', () => {
     });
 
     it('blocks mandant-scoped routes', () => {
+        expect(isPathAllowedWithoutTenant('/admin/users')).toBe(true);
         expect(isPathAllowedWithoutTenant('/users')).toBe(false);
         expect(isPathAllowedWithoutTenant('/settings')).toBe(false);
         expect(isPathAllowedWithoutTenant('/products')).toBe(false);

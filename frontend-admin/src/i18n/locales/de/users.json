@@ -223,6 +223,16 @@
     "emptyListWithFilters": "Keine Benutzer für die aktuellen Filter. Filter zurücksetzen oder Suche/Rolle/Status anpassen.",
     "emptyListDefaultHint": "Hinweis: Standardmäßig werden nur aktive Konten gelistet (Status = aktiv)."
   },
+  "unified": {
+    "pageIntro": "Alle Plattform- und Mandanten-Benutzer an einem Ort. Mit dem Mandantenfilter grenzen Sie die Liste ein — ohne separate Menüpunkte.",
+    "filterTenantLabel": "Mandant filtern:",
+    "filterAllTenants": "Alle Mandanten",
+    "filterPlatformOnly": "Plattform",
+    "platformBadge": "Plattform (Super Admin)",
+    "platformTenantLabel": "(Plattform)",
+    "empty": "Keine Benutzer für die aktuellen Filter.",
+    "invitationsSection": "Einladungen (E-Mail)"
+  },
   "tabs": {
     "labelPlatform": "Plattform-Benutzer",
     "labelTenant": "Mandanten-Benutzer",
@@ -260,9 +270,11 @@
     }
   },
   "invite": {
-    "title": "Benutzer einladen",
+    "title": "Benutzer hinzufügen",
     "titleForTenant": "Benutzer zu «{{name}}» ({{slug}}) einladen",
-    "action": "Benutzer einladen",
+    "titleAddForTenant": "Benutzer zu «{{name}}» ({{slug}}) hinzufügen",
+    "action": "Benutzer hinzufügen",
+    "createUser": "Benutzer erstellen",
     "send": "Einladung senden",
     "email": "E-Mail-Adresse",
     "tenant": "Mandant (Firma)",
@@ -271,7 +283,7 @@
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "Keine Lizenz",
     "role": "Rolle",
-    "emailHint": "Der Benutzer erhält eine E-Mail mit Zugangsdaten (sofern SMTP konfiguriert ist).",
+    "emailHint": "Nach der Erstellung wird ein Passwort generiert und einmalig angezeigt. Teilen Sie es dem Benutzer mit.",
     "targetTenant": {
       "title": "Benutzer zu «{{name}}» ({{slug}}) einladen",
       "modalLabel": "Einladung für",

@@ -23,7 +23,6 @@ import {
     Empty,
     Flex,
     Tooltip,
-    Tabs,
 } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
@@ -40,6 +39,7 @@ import {
     ClearOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
@@ -75,10 +75,7 @@ import { RoleManagementDrawer } from '@/features/users/components/RoleManagement
 import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
 import { createUsersFormRules } from '@/features/users/constants/validation';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
-import { PlatformUsersTab } from '@/features/users/components/PlatformUsersTab';
-import { TenantUsersTab } from '@/features/users/components/TenantUsersTab';
-import { UserInvitationsPanel } from '@/features/users/components/UserInvitationsPanel';
-import { usePlatformUsersList } from '@/features/users/hooks/usePlatformUsersList';
+import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
 import { adminUsersQueryKeys, createPlatformUser } from '@/features/users/api/users';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 
@@ -118,6 +115,8 @@ function isCanonicalRoleName(roleName: string): roleName is (typeof CANONICAL_RO
 
 export default function UsersPage() {
     const { t, formatLocale } = useI18n();
+    const pathname = usePathname();
+    const router = useRouter();
 
     const roleDisplayLabel = useCallback(
         (roleName: string) =>
@@ -142,11 +141,16 @@ export default function UsersPage() {
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
     const [roleManagementDrawerOpen, setRoleManagementDrawerOpen] = useState(false);
-    const [superAdminTab, setSuperAdminTab] = useState<'platform' | 'tenant' | 'invitations'>('platform');
-
     const { user: currentUser } = useAuth();
     const policy = useUsersPolicy();
     const isSuperAdminLayout = isSuperAdmin(currentUser?.role);
+
+    useEffect(() => {
+        if (isSuperAdminLayout && pathname === '/users') {
+            const search = typeof window !== 'undefined' ? window.location.search : '';
+            router.replace(`/admin/users${search}`);
+        }
+    }, [isSuperAdminLayout, pathname, router]);
 
     const queryClient = useQueryClient();
     const listParams = useMemo(
@@ -159,13 +163,6 @@ export default function UsersPage() {
         }),
         [roleFilter, statusFilter, searchTerm, page, pageSize]
     );
-    const platformListParams = useMemo(
-        () => ({
-            isActive: statusFilter,
-            query: searchTerm.trim() || undefined,
-        }),
-        [statusFilter, searchTerm],
-    );
     const tenantScopedListParams = useMemo(
         () => ({
             ...listParams,
@@ -174,17 +171,6 @@ export default function UsersPage() {
         [listParams, roleFilter],
     );
 
-    const {
-        items: platformUsers,
-        isLoading: platformUsersLoading,
-        isFetching: platformUsersFetching,
-        isError: platformUsersError,
-        error: platformUsersListError,
-        refetch: refetchPlatformUsers,
-    } = usePlatformUsersList(platformListParams, {
-        enabled: policy.canView && isSuperAdminLayout && superAdminTab === 'platform',
-    });
-
     const { data: listData, isLoading, isFetching, isError, error: listError, refetch } = useUsersList(
         tenantScopedListParams,
         {
@@ -192,16 +178,10 @@ export default function UsersPage() {
         },
     );
     const users = useMemo(() => {
-        if (isSuperAdminLayout) return platformUsers;
         const items = listData?.items ?? [];
         return items.filter((u) => !isPlatformUserRole(u.role));
-    }, [isSuperAdminLayout, platformUsers, listData?.items]);
+    }, [listData?.items]);
 
-    const platformListLoading = isSuperAdminLayout ? platformUsersLoading : isLoading;
-    const platformListFetching = isSuperAdminLayout ? platformUsersFetching : isFetching;
-    const platformListIsError = isSuperAdminLayout ? platformUsersError : isError;
-    const platformListError = isSuperAdminLayout ? platformUsersListError : listError;
-    const platformListRefetch = isSuperAdminLayout ? refetchPlatformUsers : refetch;
     const pagination = listData?.pagination;
     useEffect(() => {
         setPage(DEFAULT_PAGE);
@@ -657,24 +637,23 @@ export default function UsersPage() {
                 breadcrumbs={[adminOverviewCrumb(t), { title: t('users.page.title') }]}
                 actions={
                     <Space wrap>
-                        <Tooltip title={t('common.toolbar.refetchHint')}>
-                            <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
-                                {t('users.list.actionRefresh')}
-                            </Button>
-                        </Tooltip>
-                        {policy.canCreate &&
-                            (!isSuperAdminLayout || superAdminTab === 'platform') && (
+                        {!isSuperAdminLayout ? (
+                            <Tooltip title={t('common.toolbar.refetchHint')}>
+                                <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
+                                    {t('users.list.actionRefresh')}
+                                </Button>
+                            </Tooltip>
+                        ) : null}
+                        {policy.canCreate && !isSuperAdminLayout && (
                             <Button
                                 type="primary"
                                 icon={<UserOutlined />}
                                 onClick={() => {
-                                    setCreatePlatformMode(isSuperAdminLayout && superAdminTab === 'platform');
+                                    setCreatePlatformMode(false);
                                     setCreateOpen(true);
                                 }}
                             >
-                                {isSuperAdminLayout && superAdminTab === 'platform'
-                                    ? t('users.page.createPlatformAdmin')
-                                    : t('users.page.createUser')}
+                                {t('users.page.createUser')}
                             </Button>
                         )}
                         {policy.canCreateRole && (
@@ -691,7 +670,7 @@ export default function UsersPage() {
                 }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                    {isSuperAdminLayout ? t('users.tabs.platform.description') : t('users.list.pageIntro')}
+                    {isSuperAdminLayout ? t('users.unified.pageIntro') : t('users.list.pageIntro')}
                 </Typography.Paragraph>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
                     {t('users.list.forensicsHintLead')}{' '}
@@ -702,97 +681,19 @@ export default function UsersPage() {
             </AdminPageHeader>
 
             {isSuperAdminLayout ? (
-                <Tabs
-                    activeKey={superAdminTab}
-                    onChange={(key) => setSuperAdminTab(key as 'platform' | 'tenant' | 'invitations')}
-                    items={[
-                        {
-                            key: 'platform',
-                            label: t('users.tabs.labelPlatform'),
-                            children: (
-                                <>
-                                    <Card size="small" title={t('users.list.filterCardTitle')} style={{ marginBottom: 16 }}>
-                                        <Flex wrap="wrap" gap="small" align="center">
-                                            <Typography.Text type="secondary">
-                                                {t('users.list.filterBandLabel')}
-                                            </Typography.Text>
-                                            <Input.Search
-                                                placeholder={t('users.list.searchPlaceholder')}
-                                                allowClear
-                                                value={searchInput}
-                                                onChange={(e) => {
-                                                    const v = e.target.value;
-                                                    setSearchInput(v);
-                                                    if (!v) setSearchTerm('');
-                                                }}
-                                                onSearch={(v) => setSearchTerm(v ?? '')}
-                                                style={{ width: 260 }}
-                                                enterButton={<SearchOutlined />}
-                                            />
-                                            <Select
-                                                placeholder={t('users.list.filterStatusPlaceholder')}
-                                                allowClear
-                                                style={{ width: 120 }}
-                                                value={
-                                                    statusFilter === undefined
-                                                        ? undefined
-                                                        : statusFilter
-                                                          ? 'active'
-                                                          : 'inactive'
-                                                }
-                                                onChange={(v) =>
-                                                    setStatusFilter(v === undefined ? undefined : v === 'active')
-                                                }
-                                                options={statusFilterOptions}
-                                            />
-                                            <Button icon={<ClearOutlined />} onClick={resetAllFilters}>
-                                                {t('users.list.clearAllFilters')}
-                                            </Button>
-                                        </Flex>
-                                    </Card>
-                                    {platformListIsError ? (
-                                        <Alert
-                                            type="error"
-                                            showIcon
-                                            message={t('users.list.errorLoad')}
-                                            action={
-                                                <Button size="small" onClick={() => platformListRefetch()}>
-                                                    {t('users.list.retry')}
-                                                </Button>
-                                            }
-                                        />
-                                    ) : null}
-                                    <PlatformUsersTab
-                                        users={users}
-                                        loading={platformListLoading}
-                                        policy={policy}
-                                        currentUserId={currentUser?.id}
-                                        onView={setDetailUser}
-                                        onEdit={(id) => setEditUserId(id)}
-                                        onDeactivate={setDeactivateUserRecord}
-                                        onReactivate={setReactivateUserRecord}
-                                        onResetPassword={setResetPasswordUser}
-                                    />
-                                </>
-                            ),
-                        },
-                        {
-                            key: 'tenant',
-                            label: t('users.tabs.labelTenant'),
-                            children: (
-                                <TenantUsersTab
-                                    policy={policy}
-                                    roleDisplayLabel={roleDisplayLabel}
-                                    onEdit={(id) => setEditUserId(id)}
-                                />
-                            ),
-                        },
-                        {
-                            key: 'invitations',
-                            label: t('users.tabs.labelInvitations'),
-                            children: <UserInvitationsPanel />,
-                        },
-                    ]}
+                <UnifiedAdminUsersView
+                    policy={policy}
+                    roleDisplayLabel={roleDisplayLabel}
+                    currentUserId={currentUser?.id}
+                    onView={setDetailUser}
+                    onEdit={(id) => setEditUserId(id)}
+                    onDeactivate={setDeactivateUserRecord}
+                    onReactivate={setReactivateUserRecord}
+                    onResetPassword={setResetPasswordUser}
+                    onCreatePlatformUser={() => {
+                        setCreatePlatformMode(true);
+                        setCreateOpen(true);
+                    }}
                 />
             ) : (
                 <>

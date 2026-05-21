@@ -12,6 +12,7 @@ import {
   canDeleteRole as roleCanDeleteRole,
   canEditRolePermissions as roleCanEditRolePermissions,
   canResetPassword as roleCanResetPassword,
+  canProvisionTenantCredentials,
 } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { UserWithPermissions } from './permissions';
@@ -37,6 +38,8 @@ export interface UsersPolicy {
   canDeleteRole: boolean;
   canEditRolePermissions: boolean;
   canResetPassword: (targetRole: string | undefined | null) => boolean;
+  /** Mandant user create with generated password — SuperAdmin only (not Manager). */
+  canProvisionTenantCredentials: boolean;
 }
 
 /**
@@ -61,6 +64,7 @@ export function getUsersPolicy(
     canEditRolePermissions: usePerms ? hasPermission(userWithPerms, PERMISSIONS.ROLE_MANAGE) : roleCanEditRolePermissions(role),
     canResetPassword: (targetRole: string | undefined | null) =>
       roleCanResetPassword(role, targetRole ?? ''),
+    canProvisionTenantCredentials: canProvisionTenantCredentials(role),
   };
 }
 

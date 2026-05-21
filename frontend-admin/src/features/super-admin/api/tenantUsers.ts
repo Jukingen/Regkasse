@@ -9,29 +9,40 @@ export type TenantUser = {
     joinedAtUtc: string;
 };
 
-export type AddTenantUserRequest = {
+export type AssignTenantUserRequest = {
     userId: string;
     role: string;
     isOwner?: boolean;
 };
 
-export type UpdateTenantUserRequest = {
-    role?: string;
-    isOwner?: boolean;
-};
-
-export type InviteTenantUserRequest = {
+export type CreateTenantUserRequest = {
     email: string;
     role: string;
     isOwner?: boolean;
 };
 
+export type CreateTenantUserResult = {
+    userId: string;
+    email: string;
+    generatedPassword: string;
+    forcePasswordChangeOnNextLogin: boolean;
+    success: boolean;
+    tenantPortalUrl?: string | null;
+    role?: string | null;
+};
+
+/** @deprecated Use CreateTenantUserRequest */
+export type InviteTenantUserRequest = CreateTenantUserRequest;
+
+/** @deprecated Use CreateTenantUserResult */
 export type TenantUserInviteResult = {
     user: TenantUser;
     userCreated: boolean;
     invitationEmailSent: boolean;
     emailDeliveryNote?: string | null;
     generatedPassword?: string | null;
+    forcePasswordChangeOnNextLogin?: boolean;
+    tenantPortalUrl?: string | null;
 };
 
 export const INVITE_TENANT_ROLES = ['Manager', 'Cashier', 'Accountant'] as const;
@@ -41,11 +52,29 @@ export async function listTenantUsers(tenantId: string): Promise<TenantUser[]> {
     return data;
 }
 
-export async function addTenantUser(tenantId: string, body: AddTenantUserRequest): Promise<TenantUser> {
-    const { data } = await AXIOS_INSTANCE.post<TenantUser>(`/api/admin/tenants/${tenantId}/users`, body);
+export async function createTenantUser(
+    tenantId: string,
+    body: CreateTenantUserRequest,
+): Promise<CreateTenantUserResult> {
+    const { data } = await AXIOS_INSTANCE.post<CreateTenantUserResult>(
+        `/api/admin/tenants/${tenantId}/users`,
+        body,
+    );
     return data;
 }
 
+export async function assignTenantUser(
+    tenantId: string,
+    body: AssignTenantUserRequest,
+): Promise<TenantUser> {
+    const { data } = await AXIOS_INSTANCE.post<TenantUser>(
+        `/api/admin/tenants/${tenantId}/users/assign`,
+        body,
+    );
+    return data;
+}
+
+/** @deprecated Prefer createTenantUser (POST /users) */
 export async function inviteTenantUser(
     tenantId: string,
     body: InviteTenantUserRequest,
@@ -56,6 +85,17 @@ export async function inviteTenantUser(
     );
     return data;
 }
+
+/** @deprecated Use assignTenantUser */
+export type AddTenantUserRequest = AssignTenantUserRequest;
+
+/** @deprecated Use assignTenantUser */
+export const addTenantUser = assignTenantUser;
+
+export type UpdateTenantUserRequest = {
+    role?: string;
+    isOwner?: boolean;
+};
 
 export async function updateTenantUser(
     tenantId: string,

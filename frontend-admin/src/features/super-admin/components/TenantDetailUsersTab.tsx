@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Alert, Button, Modal, Space, Typography, message } from 'antd';
-import { MailOutlined, ReloadOutlined, UserAddOutlined } from '@ant-design/icons';
+import { Button, Space, message } from 'antd';
+import { ReloadOutlined, ThunderboltOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { listPlatformUsers } from '@/features/users/api/users';
@@ -10,19 +10,26 @@ import { AddExistingUserModal } from '@/features/super-admin/components/AddExist
 import type { AddExistingUserFormValues } from '@/features/super-admin/components/AddExistingUserModal';
 import { InviteUserModal } from '@/features/super-admin/components/InviteUserModal';
 import type { InviteUserFormValues } from '@/features/super-admin/components/InviteUserModal';
+import { createQuickUser, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
+import { QuickUserModal } from '@/features/super-admin/components/QuickUserModal';
+import type { QuickUserFormValues } from '@/features/super-admin/components/QuickUserModal';
 import { ResetPasswordModal } from '@/features/super-admin/components/ResetPasswordModal';
 import { TenantUserTable } from '@/features/super-admin/components/TenantUserTable';
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 import {
-    addTenantUser,
-    inviteTenantUser,
+    assignTenantUser,
+    createTenantUser,
     listTenantUsers,
     removeTenantUser,
     updateTenantUser,
     updateTenantUserRole,
+    type CreateTenantUserResult,
     type TenantUser,
-    type TenantUserInviteResult,
 } from '@/features/super-admin/api/tenantUsers';
+import { SuperAdminCredentialsGate } from '@/features/super-admin/components/SuperAdminCredentialsGate';
+import { QuickUserSuccessModal } from '@/features/super-admin/components/QuickUserSuccessModal';
+import { UserCreatedSuccessModal } from '@/features/super-admin/components/UserCreatedSuccessModal';
+import { useSuperAdminPlatformPolicy } from '@/features/super-admin/auth/superAdminPlatformPolicy';
 import { InviteTenantContextBanner } from '@/features/users/components/InviteTenantContextBanner';
 import { useI18n } from '@/i18n';
 
@@ -35,12 +42,15 @@ export type TenantDetailUsersTabProps = {
 
 export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabProps) {
     const { t } = useI18n();
+    const { canProvisionTenantCredentials } = useSuperAdminPlatformPolicy();
     const queryClient = useQueryClient();
     const [addOpen, setAddOpen] = useState(false);
     const [inviteOpen, setInviteOpen] = useState(false);
-    const [inviteResult, setInviteResult] = useState<TenantUserInviteResult | null>(null);
+    const [quickOpen, setQuickOpen] = useState(false);
+    const [createResult, setCreateResult] = useState<CreateTenantUserResult | null>(null);
+    const [quickResult, setQuickResult] = useState<CreateQuickUserResult | null>(null);
+    const [quickRole, setQuickRole] = useState<string>('Manager');
     const [resetUser, setResetUser] = useState<TenantUser | null>(null);
-    const [smtpHint, setSmtpHint] = useState(false);
     const [roleChangeUserId, setRoleChangeUserId] = useState<string | null>(null);
 
     const usersQuery = useQuery({
@@ -61,7 +71,7 @@ export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabP
 
     const addMutation = useMutation({
         mutationFn: (values: AddExistingUserFormValues) =>
-            addTenantUser(tenantId, {
+            assignTenantUser(tenantId, {
                 userId: values.userId,
                 role: values.role,
                 isOwner: values.isOwner,
@@ -74,25 +84,39 @@ export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabP
         onError: () => message.error(t('tenants.users.messages.addFailed')),
     });
 
-    const inviteMutation = useMutation({
+    const createMutation = useMutation({
         mutationFn: (values: InviteUserFormValues) =>
-            inviteTenantUser(tenantId, {
+            createTenantUser(tenantId, {
                 email: values.email.trim(),
                 role: values.role,
                 isOwner: values.isOwner,
             }),
         onSuccess: (res) => {
             setInviteOpen(false);
-            setInviteResult(res);
-            setSmtpHint(res.invitationEmailSent);
+            setCreateResult(res);
             invalidate();
-            if (res.invitationEmailSent) {
-                message.success(t('tenants.users.invite.messages.sent'));
-            } else {
-                message.warning(t('tenants.users.invite.messages.assignedNoEmail'));
-            }
+            message.success(t('tenants.users.invite.messages.created'));
         },
         onError: () => message.error(t('tenants.users.invite.messages.failed')),
+    });
+
+    const quickMutation = useMutation({
+        mutationFn: (values: QuickUserFormValues) => createQuickUser(tenantId, { role: values.role }),
+        onSuccess: (res, values) => {
+            setQuickOpen(false);
+            setQuickRole(values.role);
+            setQuickResult(res);
+            invalidate();
+            message.success(t('tenants.users.quick.messages.created'));
+        },
+        onError: (err: unknown) => {
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 429) {
+                message.error(t('tenants.users.quick.messages.rateLimited'));
+                return;
+            }
+            message.error(t('tenants.users.quick.messages.failed'));
+        },
     });
 
     const removeMutation = useMutation({
@@ -153,10 +177,19 @@ export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabP
                 <Button icon={<UserAddOutlined />} onClick={() => setAddOpen(true)}>
                     {t('tenants.users.actions.add')}
                 </Button>
-                <Button type="primary" icon={<MailOutlined />} onClick={() => setInviteOpen(true)}>
-                    {t('tenants.users.invite.action')}
-                </Button>
+                <SuperAdminCredentialsGate showRestrictedHint={false}>
+                    <Button type="primary" icon={<UserAddOutlined />} onClick={() => setInviteOpen(true)}>
+                        {t('tenants.users.invite.action')}
+                    </Button>
+                    <Button icon={<ThunderboltOutlined />} onClick={() => setQuickOpen(true)}>
+                        {t('tenants.users.quick.action')}
+                    </Button>
+                </SuperAdminCredentialsGate>
             </Space>
+
+            {!canProvisionTenantCredentials ? (
+                <SuperAdminCredentialsGate />
+            ) : null}
 
             <TenantUserTable
                 users={usersQuery.data ?? []}
@@ -167,10 +200,14 @@ export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabP
                 onSetOwner={(userId) => setOwnerMutation.mutate(userId)}
                 onRemove={(userId) => removeMutation.mutate(userId)}
                 onRoleChange={(userId, role) => roleMutation.mutate({ userId, role })}
-                onResetPassword={(userId) => {
-                    const row = usersQuery.data?.find((u) => u.userId === userId) ?? null;
-                    setResetUser(row);
-                }}
+                onResetPassword={
+                    canProvisionTenantCredentials
+                        ? (userId) => {
+                              const row = usersQuery.data?.find((u) => u.userId === userId) ?? null;
+                              setResetUser(row);
+                          }
+                        : undefined
+                }
             />
 
             <AddExistingUserModal
@@ -182,59 +219,56 @@ export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabP
                 onSubmit={(values) => addMutation.mutate(values)}
             />
 
-            <InviteUserModal
-                open={inviteOpen}
-                variant="tenantDetail"
-                tenantId={tenantId}
-                tenantContext={tenant ?? undefined}
-                showOwnerToggle
-                confirmLoading={inviteMutation.isPending}
-                onClose={() => setInviteOpen(false)}
-                onSubmit={(values) => inviteMutation.mutate(values)}
-            />
+            {canProvisionTenantCredentials ? (
+                <>
+                    <InviteUserModal
+                        open={inviteOpen}
+                        variant="tenantDetail"
+                        tenantId={tenantId}
+                        tenantContext={tenant ?? undefined}
+                        showOwnerToggle
+                        confirmLoading={createMutation.isPending}
+                        onClose={() => setInviteOpen(false)}
+                        onSubmit={(values) => createMutation.mutate(values)}
+                    />
 
-            <ResetPasswordModal
-                open={!!resetUser}
-                tenantId={tenantId}
-                user={resetUser}
-                smtpConfigured={smtpHint}
-                onClose={() => setResetUser(null)}
-                onCompleted={invalidate}
-            />
+                    <QuickUserModal
+                        open={quickOpen}
+                        tenantSlug={tenant?.slug ?? 'tenant'}
+                        tenantName={tenant?.name}
+                        confirmLoading={quickMutation.isPending}
+                        onClose={() => setQuickOpen(false)}
+                        onSubmit={(values) => quickMutation.mutate(values)}
+                    />
 
-            <Modal
-                title={t('tenants.users.invite.resultTitle')}
-                open={!!inviteResult}
-                onCancel={() => setInviteResult(null)}
-                footer={[
-                    <Button key="ok" type="primary" onClick={() => setInviteResult(null)}>
-                        {t('common.ok', { defaultValue: 'OK' })}
-                    </Button>,
-                ]}
-            >
-                {inviteResult ? (
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                        <Typography.Text>
-                            {inviteResult.userCreated
-                                ? t('tenants.users.invite.resultCreated')
-                                : t('tenants.users.invite.resultExisting')}
-                        </Typography.Text>
-                        <Typography.Text type="secondary">{inviteResult.emailDeliveryNote}</Typography.Text>
-                        {inviteResult.generatedPassword ? (
-                            <Alert
-                                type="warning"
-                                showIcon
-                                message={t('tenants.users.invite.passwordOnce')}
-                                description={
-                                    <Typography.Text code copyable>
-                                        {inviteResult.generatedPassword}
-                                    </Typography.Text>
-                                }
-                            />
-                        ) : null}
-                    </Space>
-                ) : null}
-            </Modal>
+                    <ResetPasswordModal
+                        open={!!resetUser}
+                        tenantId={tenantId}
+                        user={resetUser}
+                        onClose={() => setResetUser(null)}
+                        onCompleted={invalidate}
+                    />
+
+                    <UserCreatedSuccessModal
+                        open={!!createResult}
+                        result={createResult}
+                        onClose={() => setCreateResult(null)}
+                    />
+
+                    <QuickUserSuccessModal
+                        open={!!quickResult}
+                        result={quickResult}
+                        role={quickRole}
+                        tenantName={tenant?.name ?? tenantId}
+                        tenantSlug={tenant?.slug ?? 'tenant'}
+                        onClose={() => setQuickResult(null)}
+                        onGenerateAnother={() => {
+                            setQuickResult(null);
+                            setQuickOpen(true);
+                        }}
+                    />
+                </>
+            ) : null}
         </Space>
     );
 }

@@ -6,6 +6,12 @@ describe('sidebarRegistryCatalog', () => {
         const ids = new Set(Object.keys(SIDEBAR_NAV_ITEM_CATALOG));
 
         for (const row of SIDEBAR_LAYOUT_ROWS) {
+            if (row.kind === 'leaves') {
+                for (const id of row.catalogIds) {
+                    expect(ids.has(id), `Unknown catalog id: ${id}`).toBe(true);
+                }
+                continue;
+            }
             if (row.kind !== 'domain') continue;
             for (const block of row.blocks) {
                 if (block.kind === 'leaves' || block.kind === 'nested') {

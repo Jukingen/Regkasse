@@ -121,6 +121,7 @@
     "scopeEntityTypeIs": "Entitaet = {{entityType}}",
     "scopeStatusIs": "Status = {{status}}",
     "scopeNoDateFilter": "kein Datumsfilter",
+    "quickUserCreatedDescription": "Super Admin erstellte Schnell-Benutzer '{{email}}' ({{role}}) für Mandant '{{slug}}'",
     "actionLabels": {
       "login": "Login",
       "createInvoice": "Rechnung erstellen",
