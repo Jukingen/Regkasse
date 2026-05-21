@@ -125,13 +125,54 @@ Access API: `http://test-cafe.localhost:5184`
 
 **Option 4 — FA tenant switcher**
 
-In **development** mode, FA shows a **tenant selector dropdown in the header** (`HeaderDevTenantSwitch`). Presets: `dev`, `cafe`, `bar` — sets `X-Tenant-Id` and reloads.
+In **development** mode, FA shows a **searchable tenant dropdown in the header** (`HeaderDevTenantSwitch`). It loads tenants from **`GET /api/tenants/switcher`** (database-backed): Super Admin sees all tenants; other users see active memberships only. Selection sets `X-Tenant-Id` via `localStorage.dev_tenant_id` and reloads.
+
+See [Tenant Switching](#tenant-switching) and [`../docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md).
 
 Backend must be `ASPNETCORE_ENVIRONMENT=Development`. See `REGKASSE_AI_ONBOARDING.md`.
 
 **Backend note:** `LicenseService` is a singleton and uses `IServiceScopeFactory` for database access (scoped `AppDbContext` / `ICurrentTenantAccessor`). Startup license warnings do not block the API.
 
 - Hosts file: e.g. `cafe.regkasse.local` → same slug resolution as production subdomains
+
+## Tenant Switching
+
+| Environment | Mechanism | Component / API |
+|-------------|-----------|-----------------|
+| **Production** | Subdomain + JWT `tenant_id`; Super Admin uses impersonation | `applyTenantImpersonationSession` |
+| **Development** | `HeaderDevTenantSwitch` | `GET /api/tenants/switcher`, `persistTenantSlugAndRefresh` |
+
+**Dev switcher features:** search by name/slug/email; status icons (active + admin / no admin / suspended); mandant license tag per row; Super Admin warning when switching to tenant without owner admin (`TenantSwitcherNoAdminFlow`).
+
+**Header context:** `TenantBadge` (active company or Super Admin mode), `LicenseStatusIndicator` (Manager mandant license only — not server On-Premise license).
+
+Utilities: `src/features/super-admin/utils/tenantHeaderSwitcher.ts`, `src/features/tenancy/hooks/useTenantListForSwitcher.ts`.
+
+![Dev tenant switcher](../docs/images/tenant-management/fa-header-tenant-switcher.png)
+
+## Super Admin Features
+
+Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperAdmin`** or `system.critical`.
+
+| Feature | Route | Key files |
+|---------|-------|-----------|
+| Tenant list / create / edit / suspend / delete | `/admin/tenants` | `app/(protected)/admin/tenants/page.tsx`, `features/super-admin/api/adminTenants.ts` |
+| Tenant detail (users, license, registers) | `/admin/tenants/[tenantId]` | `TenantDetailUsersTab`, `LicenseManager`, `TenantDetailCashRegistersTab` |
+| Impersonate (“Login as”) | list / detail / home selector | `impersonateAdminTenant`, `ImpersonationRedirectOverlay` |
+| Platform home (pick tenant) | `/admin` | `SuperAdminTenantSelector` |
+| Server license (On-Premise) | `/admin/license` | `api/manual/adminLicense.ts` — **not** the same as Mandantenlizenz |
+
+**Create tenant** runs backend `TenantProvisioningService` (cash register, demo products, owner admin, optional 30-day trial). Success modal shows one-time credentials.
+
+**Screenshots (add PNGs under `docs/images/tenant-management/`):**
+
+| Image | Description |
+|-------|-------------|
+| ![Tenant list](../docs/images/tenant-management/fa-tenant-list.png) | Mandantenverwaltung table |
+| ![Tenant users](../docs/images/tenant-management/fa-tenant-detail-users.png) | Invite / roles / reset password |
+| ![Super Admin home](../docs/images/tenant-management/fa-super-admin-selector.png) | Tenant picker + impersonate |
+
+Docs: [`../docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md), [`../docs/LICENSE_SYSTEM.md`](../docs/LICENSE_SYSTEM.md), [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
 
 ### Super Admin
 
@@ -156,7 +197,7 @@ Access: **`admin.regkasse.at`** in production (wildcard DNS + TLS).
 
 Details: [`../docs/IMPERSONATION_FLOW.md`](../docs/IMPERSONATION_FLOW.md).
 
-Issued licenses and operational data for another tenant require impersonation (or dev tenant header). See `docs/MULTI_TENANT.md`.
+Issued licenses and operational data for another tenant require impersonation (or dev tenant header). Mandant SaaS license is edited per tenant on the detail **License** tab; server On-Premise license is under `/admin/license`. See `docs/MULTI_TENANT.md` and `docs/LICENSE_SYSTEM.md`.
 
 ### Multi-Tenant Security (client)
 

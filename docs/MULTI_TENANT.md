@@ -19,8 +19,11 @@
 12. [Deployment](#deployment)
 13. [Background services and scoped DI](#background-services-and-scoped-di)
 14. [Troubleshooting](#troubleshooting)
-15. [Known gaps and roadmap](#known-gaps-and-roadmap)
-16. [Related documentation](#related-documentation)
+15. [Super Admin Tenant Management UI (FA)](#super-admin-tenant-management-ui-fa)
+16. [License display for different roles](#license-display-for-different-roles)
+17. [Tenant switcher behavior](#tenant-switcher-behavior)
+18. [Known gaps and roadmap](#known-gaps-and-roadmap)
+19. [Related documentation](#related-documentation)
 
 ---
 
@@ -515,6 +518,95 @@ dotnet test backend/KasseAPI_Final.Tests/KasseAPI_Final.Tests.csproj \
 
 ---
 
+## Super Admin Tenant Management UI (FA)
+
+Operator UI is **German**; routes and code identifiers are **English**. Full detail: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md).
+
+### Screenshots (place assets under `docs/images/tenant-management/`)
+
+| Screenshot | Route / component |
+|------------|-------------------|
+| ![Tenant list](images/tenant-management/fa-tenant-list.png) | `/admin/tenants` — list, create, suspend, impersonate |
+| ![Tenant detail users](images/tenant-management/fa-tenant-detail-users.png) | `/admin/tenants/{id}?tab=users` — `TenantDetailUsersTab` |
+| ![Tenant detail license](images/tenant-management/fa-tenant-detail-license.png) | `/admin/tenants/{id}?tab=license` — `LicenseManager` |
+| ![Super Admin selector](images/tenant-management/fa-super-admin-selector.png) | `/admin` — `SuperAdminTenantSelector` when no mandant context |
+
+### Primary surfaces
+
+| Surface | Path | Feature module |
+|---------|------|----------------|
+| Tenant list & CRUD | `frontend-admin/src/app/(protected)/admin/tenants/page.tsx` | `features/super-admin/` |
+| Tenant detail (tabs) | `frontend-admin/src/app/(protected)/admin/tenants/[tenantId]/page.tsx` | overview, users, registers, license, settings |
+| Create tenant | `CreateTenantModal` | slug check, `grantTrialLicense`, provisioning success |
+| Platform home | `SuperAdminTenantSelector` | impersonate active tenants; link to tenant management |
+| Impersonation | `ImpersonationRedirectOverlay` | production subdomain handoff — [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md) |
+
+### API boundaries
+
+| Operation | Endpoint | Auth |
+|-----------|----------|------|
+| List / CRUD / impersonate | `/api/admin/tenants` | `SuperAdmin` |
+| Tenant users | `/api/admin/tenants/{id}/users`, `…/invite`, `…/role` | `SuperAdmin` |
+| Tenant mandant license | `/api/admin/tenants/{id}/license/*` | `SuperAdmin` |
+| Dev switcher list | `GET /api/tenants/switcher` | authenticated; scoped by role |
+
+---
+
+## License display for different roles
+
+Two license types must not be conflated — see [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md).
+
+| License type | German UI | FA location | API |
+|--------------|-----------|-------------|-----|
+| **Deployment** | Lizenz (On-Premise) | `/admin/license` | `/api/admin/license/*` |
+| **Tenant (Mandant)** | Mandantenlizenz | Tenant list/detail; Manager header | `tenants.license_*`, `/api/admin/tenants/{id}/license` |
+
+| Role / host | Deployment in header | Mandant in header | Expiry banner |
+|-------------|---------------------|-------------------|---------------|
+| Super Admin on `admin.*` (no impersonation) | Hidden | Hidden (`suppressLicenseWarnings`) | Hidden |
+| Super Admin impersonating | Hidden | Via tenant context APIs | Hidden for SA user |
+| Manager on `{slug}.*` | Settings page only | `LicenseStatusIndicator` | `LicenseExpiryBanner` if ≤15 days or expired |
+
+Components:
+
+- `frontend-admin/src/components/admin-layout/LicenseStatusIndicator.tsx`
+- `frontend-admin/src/components/admin-layout/LicenseExpiryBanner.tsx`
+- `frontend-admin/src/components/admin-layout/TenantBadge.tsx`
+- `frontend-admin/src/features/tenant/hooks/useHeaderTenantLicense.ts`
+
+---
+
+## Tenant switcher behavior
+
+### Production
+
+- Tenant context from **subdomain** (and JWT `tenant_id` after login). No dev dropdown.
+- Super Admin on `admin.regkasse.at` uses **impersonation** or platform pages (`/admin/tenants`, `/admin/license`) until a mandant JWT context exists.
+
+### Development (`HeaderDevTenantSwitch`)
+
+Visible only when `NODE_ENV === 'development'`.
+
+```text
+GET /api/tenants/switcher
+  → SuperAdmin: all tenants (includeDeleted=false by default)
+  → Others: active memberships only
+  → persistTenantSlugAndRefresh(slug) → localStorage dev_tenant_id + reload
+```
+
+**UX:** search (name/slug/email), status icons (🟢/🟡/🔴/⚫), owner admin line, mandant license tag, no-admin confirmation for Super Admin.
+
+Implementation:
+
+- `frontend-admin/src/features/auth/components/HeaderDevTenantSwitch.tsx`
+- `frontend-admin/src/features/tenancy/hooks/useTenantListForSwitcher.ts`
+- `frontend-admin/src/features/super-admin/utils/tenantHeaderSwitcher.ts`
+- `backend/Controllers/TenantsController.cs`
+
+![Dev header switcher](images/tenant-management/fa-header-tenant-switcher.png)
+
+---
+
 ## Known gaps and roadmap
 
 | Item | Status |
@@ -533,11 +625,14 @@ When implementing security middleware, add tests to `TenantIsolationTests` and u
 
 | Document | Content |
 |----------|---------|
+| `docs/TENANT_MANAGEMENT.md` | FA tenant CRUD, users, switcher, provisioning |
+| `docs/LICENSE_SYSTEM.md` | Deployment vs Mandant license, FA badges/banners |
+| `docs/CHANGELOG_TENANT_MANAGEMENT.md` | Dated tenant/license FA changes |
 | `docs/IMPERSONATION_FLOW.md` | Super Admin impersonation redirect and token handshake |
 | `REGKASSE_AI_ONBOARDING.md` | AI brief, dev setup, API headers |
 | `AGENTS.md` | Agent rules, multi-tenant summary |
 | `backend/README.md` | Backend quick start, middleware paths |
-| `frontend-admin/README.md` | Admin setup, Super Admin UI |
+| `frontend-admin/README.md` | Admin setup, Super Admin UI, tenant switching |
 | `frontend-admin/docs/api-contract.md` | Admin API modules + tenant reference |
 | `ai/02_DATABASE_CONTRACT.md` | Schema + migration waves |
 | `ai/05_SECURITY_COMPLIANCE.md` | Security guarantees (Turkish) |
