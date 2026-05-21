@@ -3,8 +3,11 @@
 import { useMemo } from 'react';
 import type { CashRegister } from '@/api/generated/model';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import { useQueries } from '@tanstack/react-query';
-import { getMonatsbelegStatus, type MonatsbelegStatusDto } from '@/features/dashboard/api/monatsbelegStatus';
+import { useQuery } from '@tanstack/react-query';
+import {
+    getMonatsbelegStatusOverview,
+    type MonatsbelegStatusDto,
+} from '@/features/dashboard/api/monatsbelegStatus';
 
 const FIVE_MIN_MS = 5 * 60 * 1000;
 
@@ -26,8 +29,7 @@ export type RegisterMonatsbelegRow = {
 };
 
 /**
- * Loads tenant cash registers (GET /api/CashRegister) and Monatsbeleg status per register
- * (GET /api/rksv/monatsbeleg/status/{id}). Cached & deduped via TanStack Query.
+ * Loads tenant cash registers and Monatsbeleg status via GET /api/rksv/monatsbeleg/status-overview.
  */
 export function useAdminMonatsbelegOverview(enabled = true) {
     const {
@@ -40,7 +42,8 @@ export function useAdminMonatsbelegOverview(enabled = true) {
             enabled,
             staleTime: FIVE_MIN_MS,
             refetchInterval: FIVE_MIN_MS,
-            refetchOnWindowFocus: true,
+            refetchIntervalInBackground: false,
+            refetchOnWindowFocus: false,
         },
     });
 
@@ -54,38 +57,44 @@ export function useAdminMonatsbelegOverview(enabled = true) {
         [registers],
     );
 
-    const statusQueries = useQueries({
-        queries: registerIds.map((id) => ({
-            queryKey: ['rksv', 'monatsbeleg-status', id] as const,
-            queryFn: () => getMonatsbelegStatus(id),
-            enabled: enabled && registerIds.length > 0 && !registersLoading && !registersError,
-            staleTime: FIVE_MIN_MS,
-            refetchInterval: FIVE_MIN_MS,
-            refetchOnWindowFocus: true,
-        })),
+    const overviewQuery = useQuery({
+        queryKey: ['rksv', 'monatsbeleg-status-overview'] as const,
+        queryFn: getMonatsbelegStatusOverview,
+        enabled: enabled && registerIds.length > 0 && !registersLoading && !registersError,
+        staleTime: FIVE_MIN_MS,
+        refetchInterval: FIVE_MIN_MS,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: false,
     });
+
+    const statusByRegisterId = useMemo(() => {
+        const map = new Map<string, MonatsbelegStatusDto>();
+        for (const item of overviewQuery.data ?? []) {
+            const id = item.cashRegisterId?.trim();
+            if (id && item.status) map.set(id, item.status);
+        }
+        return map;
+    }, [overviewQuery.data]);
 
     const rows: RegisterMonatsbelegRow[] = useMemo(() => {
         const out: RegisterMonatsbelegRow[] = [];
-        for (let index = 0; index < registerIds.length; index++) {
-            const id = registerIds[index];
+        for (const id of registerIds) {
             const register = registers.find((r) => r.id === id);
             if (!register?.id) continue;
-            const q = statusQueries[index];
             out.push({
                 register,
                 registerId: id,
-                status: q?.data,
-                statusError: q?.isError ?? false,
-                statusLoading: q?.isPending ?? false,
+                status: statusByRegisterId.get(id),
+                statusError: overviewQuery.isError,
+                statusLoading: overviewQuery.isPending || overviewQuery.isLoading,
             });
         }
         return out;
-    }, [registerIds, registers, statusQueries]);
+    }, [registerIds, registers, statusByRegisterId, overviewQuery.isError, overviewQuery.isPending, overviewQuery.isLoading]);
 
     const redCount = useMemo(() => rows.filter((r) => r.status?.missingMonths?.some((m) => m.isOverdue)).length, [rows]);
 
-    const statusPending = statusQueries.some((q) => q.isPending || q.isLoading);
+    const statusPending = overviewQuery.isPending || overviewQuery.isLoading;
 
     return {
         registersLoading,

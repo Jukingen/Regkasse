@@ -51,9 +51,10 @@ export default function ModifierGroupsPage() {
   });
 
   const { data: productsRes } = useQuery({
-    queryKey: adminProductsQueryKeys.list(tenantSlug, { pageSize: 500 }),
-    queryFn: () => getAdminProductsList({ pageSize: 500 }),
+    queryKey: adminProductsQueryKeys.list(tenantSlug, { pageSize: 100, pageNumber: 1, isActive: 'true' }),
+    queryFn: () => getAdminProductsList({ pageSize: 100, pageNumber: 1, isActive: 'true' }),
     enabled: productModalOpen && productModalTab === 'existing',
+    staleTime: 60_000,
   });
 
   const categoryOptions = (categoryList ?? []).map((c: { id?: string; name?: string }) => ({ label: c.name ?? '', value: c.id ?? '' })).filter((o: { value: string }) => o.value);

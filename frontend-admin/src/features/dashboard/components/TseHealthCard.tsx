@@ -34,7 +34,12 @@ function statusBadge(data: TseHealthResponseDto | undefined) {
  */
 export function TseHealthCard() {
     const { data, isLoading } = useGetApiTseHealth(undefined, {
-        query: { refetchInterval: REFETCH_MS },
+        query: {
+            refetchInterval: REFETCH_MS,
+            refetchIntervalInBackground: false,
+            refetchOnWindowFocus: false,
+            staleTime: 60_000,
+        },
     });
 
     const healthPercent = useMemo(() => healthPercentFromSnapshot(data), [data]);

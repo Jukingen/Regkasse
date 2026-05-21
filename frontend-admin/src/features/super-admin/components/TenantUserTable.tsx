@@ -35,7 +35,7 @@ export function TenantUserTable({
     onRoleChange,
     onResetPassword,
 }: TenantUserTableProps) {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
 
     const columns: ColumnsType<TenantUser> = [
         {
@@ -78,7 +78,7 @@ export function TenantUserTable({
             title: t('tenants.users.columns.joined'),
             dataIndex: 'joinedAtUtc',
             key: 'joinedAtUtc',
-            render: (v: string) => formatDateTime(v),
+            render: (v: string) => formatDateTime(v, formatLocale),
         },
         {
             title: t('tenants.users.columns.actions'),

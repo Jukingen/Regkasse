@@ -6,7 +6,7 @@
  */
 import { customInstance } from '@/lib/axios';
 import { postApiAdminUsers } from '@/api/generated/admin/admin';
-import type { UserInfo } from '@/api/generated/model';
+import type { AdminUserDto as GeneratedAdminUserDto, UserInfo } from '@/api/generated/model';
 
 export type AdminUserDto = {
     id: string;
@@ -119,8 +119,29 @@ export async function removeUserFromTenant(tenantId: string, userId: string): Pr
     });
 }
 
+function mapGeneratedAdminUser(dto: GeneratedAdminUserDto): AdminUserDto {
+    if (!dto.id) {
+        throw new Error('Admin user response missing id');
+    }
+    return {
+        id: dto.id,
+        userName: dto.userName,
+        email: dto.email,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        employeeNumber: dto.employeeNumber,
+        role: dto.role,
+        taxNumber: dto.taxNumber,
+        notes: dto.notes,
+        isActive: dto.isActive ?? false,
+        createdAt: dto.createdAt,
+        lastLoginAt: dto.lastLoginAt,
+    };
+}
+
 export async function createPlatformUser(body: CreatePlatformUserRequest): Promise<AdminUserDto> {
-    return postApiAdminUsers({ ...body, role: 'SuperAdmin' });
+    const created = await postApiAdminUsers({ ...body, role: 'SuperAdmin' });
+    return mapGeneratedAdminUser(created);
 }
 
 export function adminUserToUserInfo(dto: AdminUserDto): UserInfo {

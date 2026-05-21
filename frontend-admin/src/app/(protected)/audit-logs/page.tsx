@@ -31,6 +31,7 @@ import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLab
 import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
 import { useAuditLogSearchParams } from '@/features/audit-logs/hooks/useAuditLogSearchParams';
+import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import {
     AUDIT_ACTION_FILTER_VALUES,
     toAuditLogStatusApiParam,
@@ -438,9 +439,10 @@ function AuditLogsPageContent() {
                     columns={columns}
                     dataSource={rows}
                     loading={isLoading}
+                    virtual={shouldUseAdminTableVirtual(rows.length)}
                     rowKey={(r) => r.id ?? `${r.timestamp ?? ''}-${r.action ?? ''}`}
                     size="middle"
-                    scroll={{ x: 1240 }}
+                    scroll={adminTableScrollXy(1240, rows.length)}
                     pagination={{
                         current: params.page,
                         pageSize: params.pageSize,

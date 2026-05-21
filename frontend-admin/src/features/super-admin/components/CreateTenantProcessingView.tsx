@@ -64,7 +64,7 @@ export function CreateTenantProcessingView({
                               ? def.labelKey
                               : def.labelKey;
 
-                    const values =
+                    const values: Record<string, string | number> | undefined =
                         def.id === 'company'
                             ? { name: companyName }
                             : def.id === 'subdomain'

@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { useI18n } from '@/i18n';
 import { formatRksvSpecialReceiptKindDisplay } from '@/features/receipts/utils/formatRksvSpecialReceiptKind';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
+import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
 interface ReceiptsTableProps {
     data: ReceiptListItemDto[];
@@ -222,6 +223,7 @@ export default function ReceiptsTable({
     });
 
     const scrollX = 1230 + (reprintEnabled ? 180 : 0) + (showPaymentPdfReprint ? 170 : 0);
+    const useVirtual = shouldUseAdminTableVirtual(data.length);
 
     return (
         <Table<ReceiptListItemDto>
@@ -229,6 +231,7 @@ export default function ReceiptsTable({
             dataSource={data}
             rowKey="receiptId"
             loading={loading && !isPlaceholderData}
+            virtual={useVirtual}
             onChange={onTableChange}
             pagination={{
                 current: pagination.current,
@@ -244,7 +247,7 @@ export default function ReceiptsTable({
                     }),
                 hideOnSinglePage: false,
             }}
-            scroll={{ x: scrollX }}
+            scroll={adminTableScrollXy(scrollX, data.length)}
             locale={emptyText ? { emptyText } : undefined}
             style={{
                 opacity: isPlaceholderData ? 0.6 : 1,

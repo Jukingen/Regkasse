@@ -1,2 +1,6 @@
 /** @deprecated Use CreateTenantWizard */
-export { CreateTenantWizard, CreateTenantWizard as CreateTenantModal } from '@/features/super-admin/components/CreateTenantWizard';
+export {
+    CreateTenantWizard,
+    CreateTenantWizard as CreateTenantModal,
+    type CreateTenantFormValues,
+} from '@/features/super-admin/components/CreateTenantWizard';

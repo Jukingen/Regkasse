@@ -102,3 +102,7 @@ services:
 - Env read / RKSV badge: `src/shared/config/rksvEnvironment.ts`
 - Build guard: `next.config.mjs`
 - Setup template: `.env.example`
+
+## 7. Coupled backend + frontend releases
+
+When shipping admin dashboard RKSV overview endpoints (`/api/rksv/monatsbeleg/status-overview`, `/api/rksv/reminder/status-overview`), deploy **API and `frontend-admin` together**. See **`docs/ADMIN_FA_DEPLOY.md`** for route matrix and smoke checks.

@@ -30,7 +30,10 @@ export function OfflineQueueDashboardCard() {
         queryKey: getGetApiAdminOfflineTransactionsSummaryQueryKey(),
         queryFn: ({ signal }) => getApiAdminOfflineTransactionsSummary({ signal }),
         enabled,
+        staleTime: 60_000,
         refetchInterval: REFETCH_MS,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: false,
     });
 
     if (!enabled) return null;

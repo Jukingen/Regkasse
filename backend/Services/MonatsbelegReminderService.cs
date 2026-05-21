@@ -125,6 +125,34 @@ public sealed class MonatsbelegReminderService : IMonatsbelegReminderService
         };
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<MonatsbelegRegisterStatusItemDto>> GetMonatsbelegStatusOverviewAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var registerIds = await _db.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
+            .OrderBy(r => r.RegisterNumber)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var results = new List<MonatsbelegRegisterStatusItemDto>(registerIds.Count);
+        foreach (var registerId in registerIds)
+        {
+            var status = await GetMonatsbelegStatusAsync(registerId, cancellationToken).ConfigureAwait(false);
+            if (status == null)
+                continue;
+            results.Add(new MonatsbelegRegisterStatusItemDto
+            {
+                CashRegisterId = registerId,
+                Status = status,
+            });
+        }
+
+        return results;
+    }
+
     public List<MissingMonth> GetMissingMonths(Guid cashRegisterId)
         => GetMissingMonthsAsync(cashRegisterId, CancellationToken.None).GetAwaiter().GetResult();
 

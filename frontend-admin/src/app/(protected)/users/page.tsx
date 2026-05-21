@@ -78,11 +78,8 @@ import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { PlatformUsersTab } from '@/features/users/components/PlatformUsersTab';
 import { TenantUsersTab } from '@/features/users/components/TenantUsersTab';
 import { UserInvitationsPanel } from '@/features/users/components/UserInvitationsPanel';
-import {
-    usePlatformUsersList,
-    platformUsersQueryKey,
-} from '@/features/users/hooks/usePlatformUsersList';
-import { createPlatformUser } from '@/features/users/api/users';
+import { usePlatformUsersList } from '@/features/users/hooks/usePlatformUsersList';
+import { adminUsersQueryKeys, createPlatformUser } from '@/features/users/api/users';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 
 function fullName(record: UserInfo): string {
@@ -306,18 +303,18 @@ export default function UsersPage() {
                 ? createPlatformUser({
                       userName: payload.data.userName!,
                       password: payload.data.password!,
-                      email: payload.data.email,
+                      email: payload.data.email ?? undefined,
                       firstName: payload.data.firstName!,
                       lastName: payload.data.lastName!,
-                      employeeNumber: payload.data.employeeNumber,
-                      taxNumber: payload.data.taxNumber,
-                      notes: payload.data.notes,
+                      employeeNumber: payload.data.employeeNumber ?? undefined,
+                      taxNumber: payload.data.taxNumber ?? undefined,
+                      notes: payload.data.notes ?? undefined,
                   }).then(() => undefined)
                 : gatewayCreateUser(payload.data),
         onSuccess: (_data, { platform }) => {
             message.success(usersCopy.successCreate);
             if (platform) {
-                void queryClient.invalidateQueries({ queryKey: platformUsersQueryKey });
+                void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.platform() });
             } else {
                 queryClient.invalidateQueries({ queryKey: listQueryKey });
             }

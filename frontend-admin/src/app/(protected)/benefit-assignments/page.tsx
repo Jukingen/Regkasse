@@ -41,14 +41,16 @@ import { useSearchParams } from 'next/navigation';
 export default function BenefitAssignmentsPage() {
   const { t } = useI18n();
   const queryClient = useQueryClient();
+  const [modalOpen, setModalOpen] = useState(false);
   const listQuery = useAdminBenefitAssignmentsList();
   const definitionsQuery = useAdminBenefitDefinitionsList();
-  const customersQuery = useGetApiCustomer({ pageNumber: 1, pageSize: 500 });
+  const customersQuery = useGetApiCustomer(
+    { pageNumber: 1, pageSize: 100 },
+    { query: { enabled: modalOpen, staleTime: 60_000 } },
+  );
   const createMutation = useCreateAdminBenefitAssignment();
   const updateMutation = useUpdateAdminBenefitAssignment();
   const deleteMutation = useDeleteAdminBenefitAssignment();
-
-  const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<BenefitAssignment | null>(null);
   const [form] = Form.useForm();
 

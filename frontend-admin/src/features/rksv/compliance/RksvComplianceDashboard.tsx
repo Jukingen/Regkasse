@@ -23,8 +23,10 @@ import type { MenuProps } from 'antd';
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import dayjs, { type Dayjs } from 'dayjs';
+import type { TranslateFn } from '@/shared/errors/userFacingApiError';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
+import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -62,7 +64,7 @@ function CheckStatusBadge({
 }: {
   severity: CheckSeverity;
   count: number;
-  t: (key: string, vars?: Record<string, unknown>) => string;
+  t: TranslateFn;
 }) {
   if (severity === 'ok') {
     return <Tag color="success">{t('rksvHub.compliancePage.statusOk')}</Tag>;
@@ -85,6 +87,13 @@ function chainStatusTag(status: string | undefined, t: (key: string) => string) 
   if (status === 'Pass') return <Tag color="success">{status}</Tag>;
   if (status === 'Warn') return <Tag color="warning">{status}</Tag>;
   return <Tag color="error">{status ?? t('rksvHub.compliancePage.chainUnknown')}</Tag>;
+}
+
+function complianceTableVirtualProps(rowCount: number, scrollX = 900) {
+  if (!shouldUseAdminTableVirtual(rowCount)) {
+    return {};
+  }
+  return { virtual: true as const, scroll: adminTableScrollXy(scrollX, rowCount) };
 }
 
 export default function RksvComplianceDashboard() {
@@ -212,6 +221,7 @@ export default function RksvComplianceDashboard() {
               pagination={{ pageSize: 10 }}
               rowKey="cashRegisterId"
               dataSource={startbelegMissing}
+              {...complianceTableVirtualProps(startbelegMissing.length, 640)}
               columns={[
                 {
                   title: t('rksvHub.compliancePage.colRegister'),
@@ -238,6 +248,7 @@ export default function RksvComplianceDashboard() {
               pagination={{ pageSize: 8 }}
               rowKey={(r) => `${r.paymentId}-${r.kind}`}
               dataSource={report?.specialReceipts}
+              {...complianceTableVirtualProps(report?.specialReceipts?.length ?? 0, 960)}
               columns={[
                 { title: t('rksvHub.compliancePage.colKind'), dataIndex: 'kind', key: 'kind' },
                 {
@@ -290,6 +301,7 @@ export default function RksvComplianceDashboard() {
           pagination={{ pageSize: 10 }}
           rowKey={(r: RksvComplianceSignatureChainItem) => r.receiptId ?? r.receiptNumber ?? ''}
           dataSource={chainIssues}
+          {...complianceTableVirtualProps(chainIssues.length, 1100)}
           columns={[
             {
               title: t('rksvHub.compliancePage.colReceiptNumber'),
@@ -334,6 +346,7 @@ export default function RksvComplianceDashboard() {
             `${r.cashRegisterId}-${r.sequenceDateUtc}-${r.expectedSequence}-${r.previousReceiptNumber}`
           }
           dataSource={report?.sequenceGaps}
+          {...complianceTableVirtualProps(report?.sequenceGaps?.length ?? 0, 1000)}
           columns={[
             {
               title: t('rksvHub.compliancePage.colRegister'),
@@ -383,6 +396,7 @@ export default function RksvComplianceDashboard() {
           pagination={{ pageSize: 10 }}
           rowKey={(r) => r.paymentId ?? r.receiptNumber ?? ''}
           dataSource={report?.tseSignatureMissing}
+          {...complianceTableVirtualProps(report?.tseSignatureMissing?.length ?? 0, 900)}
           columns={[
             {
               title: t('rksvHub.compliancePage.colReceiptNumber'),
@@ -433,6 +447,7 @@ export default function RksvComplianceDashboard() {
           pagination={{ pageSize: 10 }}
           rowKey={(r) => r.receiptId ?? r.receiptNumber ?? ''}
           dataSource={report?.qrPayloadValidation}
+          {...complianceTableVirtualProps(report?.qrPayloadValidation?.length ?? 0, 800)}
           columns={[
             {
               title: t('rksvHub.compliancePage.colReceiptNumber'),

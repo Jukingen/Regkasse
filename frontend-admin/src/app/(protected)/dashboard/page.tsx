@@ -2,26 +2,20 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Card, Col, Row, Statistic, DatePicker, Table, Spin, Typography } from 'antd';
+import { Card, Col, Row, Statistic, DatePicker, Table, Typography } from 'antd';
 import { DollarOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { MonatsbelegComplianceTable } from '@/features/dashboard/components/MonatsbelegComplianceTable';
+import { DashboardMonatsbelegSection } from '@/features/dashboard/components/DashboardMonatsbelegSection';
+import { DashboardRksvReminderSection } from '@/features/dashboard/components/DashboardRksvReminderSection';
 import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
-import { useAdminMonatsbelegOverview } from '@/features/dashboard/hooks/useAdminMonatsbelegOverview';
+import { useDashboardBusinessReports } from '@/features/dashboard/hooks/useDashboardBusinessReports';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
-import {
-    useGetApiReportsSales,
-    useGetApiReportsProducts,
-    useGetApiReportsPayments,
-    useGetApiReportsCustomers
-} from '@/api/generated/reports/reports';
 import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
-import { RksvReminderStatusCard } from '@/features/dashboard/components/RksvReminderStatusCard';
 import { LicenseDashboardSection } from '@/features/dashboard/components/LicenseDashboardSection';
 import dayjs from 'dayjs';
 
@@ -35,41 +29,16 @@ export default function DashboardPage() {
     const tseHealthCardEnabled = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
     const timeSyncDriftAlertEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
     const licenseDashboardEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
-    const monatsbelegOverview = useAdminMonatsbelegOverview(monatsbelegOverviewEnabled);
 
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
         dayjs().startOf('month'),
-        dayjs().endOf('month')
+        dayjs().endOf('month'),
     ]);
 
     const startDate = dateRange[0].format('YYYY-MM-DD');
     const endDate = dateRange[1].format('YYYY-MM-DD');
 
-    // 1. Sales Report
-    const { data: salesReport, isLoading: loadingSales } = useGetApiReportsSales({
-        startDate,
-        endDate
-    });
-
-    // 2. Products Report
-    const { data: productsReport } = useGetApiReportsProducts({
-        startDate,
-        endDate,
-    });
-
-    // 3. Payment Methods
-    const { data: paymentsReport } = useGetApiReportsPayments({
-        startDate,
-        endDate
-    });
-
-    // 4. Customer Stats
-    const { data: customersReport } = useGetApiReportsCustomers({
-        startDate,
-        endDate,
-    });
-
-    const loading = loadingSales;
+    const { sales, products, payments, customers } = useDashboardBusinessReports({ startDate, endDate });
 
     return (
         <div style={{ paddingBottom: 24 }}>
@@ -101,35 +70,18 @@ export default function DashboardPage() {
 
             {tseHealthCardEnabled ? <TseHealthCard /> : null}
 
-            {monatsbelegOverviewEnabled ? <RksvReminderStatusCard enabled={monatsbelegOverviewEnabled} /> : null}
+            {monatsbelegOverviewEnabled ? <DashboardRksvReminderSection enabled={monatsbelegOverviewEnabled} /> : null}
 
-            {monatsbelegOverviewEnabled ? (
-                <MonatsbelegComplianceTable
-                    rows={monatsbelegOverview.rows}
-                    loading={monatsbelegOverview.registersLoading || monatsbelegOverview.statusPending}
-                />
-            ) : null}
+            {monatsbelegOverviewEnabled ? <DashboardMonatsbelegSection enabled={monatsbelegOverviewEnabled} /> : null}
 
-            {loading ? (
-                <div
-                    role="status"
-                    aria-live="polite"
-                    aria-busy="true"
-                    aria-label="Berichte werden geladen"
-                    style={{ textAlign: 'center', padding: 50 }}
-                >
-                    <Spin size="large" tip="Berichte werden geladen…" />
-                </div>
-            ) : (
-                <>
             <HospitalityQuickLinksCard />
-            {/* Key Metrics Row */}
+
             <Row gutter={16} style={{ marginBottom: 24 }}>
-                <Col span={6}>
-                    <Card bordered={false}>
+                <Col xs={24} sm={12} md={6}>
+                    <Card bordered={false} loading={sales.isLoading}>
                         <Statistic
                             title="Gesamtumsatz"
-                            value={salesReport?.totalSales}
+                            value={sales.data?.totalSales}
                             precision={2}
                             valueStyle={{ color: '#3f8600' }}
                             prefix={<DollarOutlined />}
@@ -137,30 +89,30 @@ export default function DashboardPage() {
                         />
                     </Card>
                 </Col>
-                <Col span={6}>
-                    <Card bordered={false}>
+                <Col xs={24} sm={12} md={6}>
+                    <Card bordered={false} loading={sales.isLoading}>
                         <Statistic
                             title="Anzahl Verkäufe"
-                            value={salesReport?.totalInvoices}
+                            value={sales.data?.totalInvoices}
                             prefix={<ShoppingOutlined />}
                         />
                     </Card>
                 </Col>
-                <Col span={6}>
-                    <Card bordered={false}>
+                <Col xs={24} sm={12} md={6}>
+                    <Card bordered={false} loading={sales.isLoading}>
                         <Statistic
                             title="Ø Verkauf"
-                            value={salesReport?.averageOrderValue}
+                            value={sales.data?.averageOrderValue}
                             precision={2}
                             suffix="€"
                         />
                     </Card>
                 </Col>
-                <Col span={6}>
-                    <Card bordered={false}>
+                <Col xs={24} sm={12} md={6}>
+                    <Card bordered={false} loading={customers.isLoading}>
                         <Statistic
                             title="Aktive Kunden"
-                            value={customersReport?.totalCustomers}
+                            value={customers.data?.totalCustomers}
                             prefix={<UserOutlined />}
                         />
                     </Card>
@@ -168,11 +120,15 @@ export default function DashboardPage() {
             </Row>
 
             <Row gutter={16}>
-                {/* Top Selling Products */}
                 <Col span={12}>
-                    <Card title="Meistverkaufte Produkte" bordered={false} style={{ height: '100%' }}>
+                    <Card
+                        title="Meistverkaufte Produkte"
+                        bordered={false}
+                        style={{ height: '100%' }}
+                        loading={products.isLoading}
+                    >
                         <Table
-                            dataSource={(productsReport?.topSellingProducts ?? []).slice(0, 5)}
+                            dataSource={(products.data?.topSellingProducts ?? []).slice(0, 5)}
                             pagination={false}
                             rowKey="productId"
                             columns={[
@@ -184,11 +140,15 @@ export default function DashboardPage() {
                     </Card>
                 </Col>
 
-                {/* Sales by Payment Method */}
                 <Col span={12}>
-                    <Card title="Zahlungsarten" bordered={false} style={{ height: '100%' }}>
+                    <Card
+                        title="Zahlungsarten"
+                        bordered={false}
+                        style={{ height: '100%' }}
+                        loading={payments.isLoading}
+                    >
                         <Table
-                            dataSource={paymentsReport?.paymentsByMethod || []}
+                            dataSource={payments.data?.paymentsByMethod || []}
                             pagination={false}
                             rowKey="method"
                             columns={[
@@ -204,11 +164,15 @@ export default function DashboardPage() {
             <div style={{ height: 24 }} />
 
             <Row gutter={16}>
-                {/* Top Customers */}
                 <Col span={12}>
-                    <Card title="Top-Kunden" bordered={false} style={{ height: '100%' }}>
+                    <Card
+                        title="Top-Kunden"
+                        bordered={false}
+                        style={{ height: '100%' }}
+                        loading={customers.isLoading}
+                    >
                         <Table
-                            dataSource={(customersReport?.topCustomers ?? []).slice(0, 5)}
+                            dataSource={(customers.data?.topCustomers ?? []).slice(0, 5)}
                             pagination={false}
                             rowKey="customerId"
                             columns={[
@@ -220,8 +184,6 @@ export default function DashboardPage() {
                     </Card>
                 </Col>
             </Row>
-                </>
-            )}
         </div>
     );
 }

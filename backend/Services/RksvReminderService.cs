@@ -146,6 +146,34 @@ public sealed class RksvReminderService : IRksvReminderService
         };
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<RksvReminderRegisterStatusItemDto>> GetRksvStatusOverviewAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+        var registerIds = await _db.CashRegisters.AsNoTracking()
+            .Where(r => r.TenantId == tenantId)
+            .OrderBy(r => r.RegisterNumber)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var results = new List<RksvReminderRegisterStatusItemDto>(registerIds.Count);
+        foreach (var registerId in registerIds)
+        {
+            var status = await GetRksvStatusAsync(registerId, cancellationToken).ConfigureAwait(false);
+            if (status == null)
+                continue;
+            results.Add(new RksvReminderRegisterStatusItemDto
+            {
+                CashRegisterId = registerId,
+                Status = status,
+            });
+        }
+
+        return results;
+    }
+
     private async Task<bool> HasJahresbelegForViennaYearAsync(
         Guid cashRegisterId,
         int year,

@@ -5,7 +5,10 @@ import type { ColumnsType } from 'antd/es/table';
 import { LoginOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 
-import { listAdminTenantCashRegisters } from '@/features/super-admin/api/adminTenantCashRegisters';
+import {
+    listAdminTenantCashRegisters,
+    type AdminTenantCashRegister,
+} from '@/features/super-admin/api/adminTenantCashRegisters';
 import { registerStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 import { useI18n, formatDateTime } from '@/i18n';
 
@@ -20,14 +23,14 @@ export function TenantDetailCashRegistersTab({
     onImpersonate,
     impersonatePending,
 }: TenantDetailCashRegistersTabProps) {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
 
     const registersQuery = useQuery({
         queryKey: ['admin', 'tenant-cash-registers', tenantId],
         queryFn: () => listAdminTenantCashRegisters(tenantId),
     });
 
-    const columns: ColumnsType<(typeof registersQuery.data)[number]> = [
+    const columns: ColumnsType<AdminTenantCashRegister> = [
         {
             title: t('tenants.detail.registers.columns.name'),
             dataIndex: 'location',
@@ -48,7 +51,7 @@ export function TenantDetailCashRegistersTab({
             title: t('tenants.detail.registers.columns.lastUsed'),
             dataIndex: 'lastUsedAtUtc',
             key: 'lastUsedAtUtc',
-            render: (v: string) => formatDateTime(v),
+            render: (v: string) => formatDateTime(v, formatLocale),
         },
     ];
 

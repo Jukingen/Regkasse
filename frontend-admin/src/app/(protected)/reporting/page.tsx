@@ -39,7 +39,7 @@ import {
   useGetApiReportsOperationalPeriodic,
   useGetApiReportsOperationalSummary,
 } from '@/api/generated/operational-reports/operational-reports';
-import { useGetApiUserManagement } from '@/api/generated/user-management/user-management';
+import { useCashierFilterOptions } from '@/features/reporting/hooks/useCashierFilterOptions';
 import type { CashRegister, CashierBucketDto, ClosingReferenceRowDto, PaymentMethodBucketDto } from '@/api/generated/model';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -142,7 +142,8 @@ export default function ReportingPage() {
     : Array.isArray(registersData)
       ? (registersData as CashRegister[])
       : [];
-  const { data: usersPage } = useGetApiUserManagement({ pageSize: 500, isActive: true });
+  const { options: cashierOptions, loading: cashierOptionsLoading, onSearch: onCashierSearch } =
+    useCashierFilterOptions();
 
   const summaryQ = useGetApiReportsOperationalSummary(filterParams, {
     query: { enabled: tab === 'summary' },
@@ -287,16 +288,6 @@ export default function ReportingPage() {
     [registerRows],
   );
 
-  const cashierOptions = useMemo(() => {
-    const users = usersPage?.items ?? [];
-    return users
-      .filter((u) => u.id)
-      .map((u) => ({
-        value: u.id as string,
-        label: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.userName || u.id,
-      }));
-  }, [usersPage]);
-
   return (
     <div style={{ paddingBottom: 24 }}>
       <AdminPageHeader
@@ -353,14 +344,14 @@ export default function ReportingPage() {
             <Select
               showSearch
               allowClear
+              filterOption={false}
               placeholder={t('adminShell.reporting.cashierAll')}
               style={{ width: '100%', marginTop: 4 }}
               options={cashierOptions}
               value={cashierId}
               onChange={(v) => setCashierId(v)}
-              filterOption={(input, option) =>
-                (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
-              }
+              onSearch={onCashierSearch}
+              loading={cashierOptionsLoading}
             />
           </Col>
           <Col xs={24} md={8}>

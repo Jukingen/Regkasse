@@ -19,7 +19,7 @@ export type TenantFormFieldsProps = {
     fieldState: ReturnType<typeof useTenantCreateFormFields>;
 };
 
-export function TenantFormFields({ fieldState }: TenantFormFieldsProps) {
+export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
     const {
         t,
         baseDomain,

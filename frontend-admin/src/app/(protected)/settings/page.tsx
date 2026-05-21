@@ -667,7 +667,7 @@ function DemoResetTab() {
             >
                 <Typography.Paragraph>
                     Are you sure? This will delete ALL payments, receipts, vouchers, and reset the cash register.
-                    This cannot be undone. Type 'RESET' to confirm.
+                    This cannot be undone. Type {'RESET'} to confirm.
                 </Typography.Paragraph>
                 <Input
                     autoFocus

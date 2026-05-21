@@ -28,7 +28,11 @@ export function findRegistersMissingStartbeleg(
   );
 
   return inScope
-    .filter((r): r is CashRegisterRow & { id: string } => Boolean(r.id) && !withStartbeleg.has(r.id))
+    .filter((r): r is CashRegisterRow & { id: string } => {
+      const id = r.id?.trim();
+      if (!id) return false;
+      return !withStartbeleg.has(id);
+    })
     .map((r) => ({
       cashRegisterId: r.id,
       registerNumber: r.registerNumber,

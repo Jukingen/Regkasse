@@ -25,9 +25,22 @@ export type MonatsbelegStatusDto = {
     warningMessage?: string | null;
 };
 
+export type MonatsbelegRegisterStatusItemDto = {
+    cashRegisterId: string;
+    status: MonatsbelegStatusDto;
+};
+
 export async function getMonatsbelegStatus(cashRegisterId: string): Promise<MonatsbelegStatusDto> {
     return customInstance<MonatsbelegStatusDto>({
         url: `/api/rksv/monatsbeleg/status/${cashRegisterId}`,
+        method: 'GET',
+    });
+}
+
+/** Single request for dashboard Monatsbeleg table (replaces per-register N+1 from the browser). */
+export async function getMonatsbelegStatusOverview(): Promise<MonatsbelegRegisterStatusItemDto[]> {
+    return customInstance<MonatsbelegRegisterStatusItemDto[]>({
+        url: '/api/rksv/monatsbeleg/status-overview',
         method: 'GET',
     });
 }

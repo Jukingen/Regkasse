@@ -206,10 +206,16 @@ export default function RksvSonderbelegePage() {
         });
     }, [searchParams]);
 
+    const SONDERBELEG_RECEIPT_SCAN_PAGE_SIZE = 100;
+
     const { data: receiptScan, isLoading: scanLoading } = useQuery({
-        queryKey: ['rksv-sonderbelege-recent-special', 300],
+        queryKey: ['rksv-sonderbelege-recent-special', SONDERBELEG_RECEIPT_SCAN_PAGE_SIZE],
         queryFn: async () => {
-            const res = await getApiReceiptsList({ page: 1, pageSize: 300, sort: 'issuedAt:desc' });
+            const res = await getApiReceiptsList({
+                page: 1,
+                pageSize: SONDERBELEG_RECEIPT_SCAN_PAGE_SIZE,
+                sort: 'issuedAt:desc',
+            });
             const items = (res.items ?? []) as OrvalReceiptRow[];
             return items.filter((x) => Boolean(x.rksvSpecialReceiptKind?.trim()));
         },
@@ -864,7 +870,7 @@ export default function RksvSonderbelegePage() {
                                 Nur verwenden, wenn die Kasse endgültig außer Betrieb genommen wird.
                             </Typography.Text>
                             <Typography.Text type="secondary">
-                                Nach Erstellung wird der Status auf "Decommissioned" gesetzt. Neue Zahlungen sind danach nicht mehr erlaubt.
+                                {'Nach Erstellung wird der Status auf "Decommissioned" gesetzt. Neue Zahlungen sind danach nicht mehr erlaubt.'}
                             </Typography.Text>
                             {!canCreateSchlussbelegNow ? (
                                 <Alert
@@ -873,7 +879,7 @@ export default function RksvSonderbelegePage() {
                                     message={
                                         selectedRegisterHasOpenSession
                                             ? 'Nicht verfügbar: Es besteht eine offene Sitzung. Bitte Sitzung schließen.'
-                                            : 'Nicht verfügbar: Endbeleg nur bei Kassenstatus "Geschlossen".'
+                                            : 'Nicht verfügbar: Endbeleg nur bei Kassenstatus „Geschlossen".'
                                     }
                                 />
                             ) : null}

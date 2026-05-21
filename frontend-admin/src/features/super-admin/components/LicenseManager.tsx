@@ -27,7 +27,7 @@ type ExtendFormValues = {
 };
 
 export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const [extendForm] = Form.useForm<ExtendFormValues>();
 
@@ -82,7 +82,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
             title: t('tenants.detail.license.history.date'),
             dataIndex: 'atUtc',
             key: 'atUtc',
-            render: (v: string) => formatDateTime(v),
+            render: (v: string) => formatDateTime(v, formatLocale),
         },
         {
             title: t('tenants.detail.license.history.event'),
@@ -125,7 +125,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                                 : '—'}
                         </Descriptions.Item>
                         <Descriptions.Item label={t('tenants.detail.license.validUntil')}>
-                            {status.validUntilUtc ? formatDate(status.validUntilUtc) : '—'}
+                            {status.validUntilUtc ? formatDate(status.validUntilUtc, formatLocale) : '—'}
                         </Descriptions.Item>
                         {status.daysRemaining != null ? (
                             <Descriptions.Item label={t('tenants.detail.license.remaining')}>

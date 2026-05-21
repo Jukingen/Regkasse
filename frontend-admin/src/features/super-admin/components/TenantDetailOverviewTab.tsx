@@ -30,7 +30,7 @@ export function TenantDetailOverviewTab({
     onDelete,
     onHardDelete,
 }: TenantDetailOverviewTabProps) {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
     const [confirmSlug, setConfirmSlug] = useState('');
     const license = resolveTenantLicenseLabel(tenant.licenseValidUntilUtc, tenant.licenseKey);
     const slugMatches = confirmSlug.trim().toLowerCase() === tenant.slug.toLowerCase();
@@ -43,10 +43,10 @@ export function TenantDetailOverviewTab({
                         <Tag color={tenantStatusColor(tenant.status)}>{tenant.status}</Tag>
                     </Descriptions.Item>
                     <Descriptions.Item label={t('tenants.detail.overview.created')}>
-                        {formatDate(tenant.createdAt)}
+                        {formatDate(tenant.createdAt, formatLocale)}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('tenants.detail.overview.lastActivity')}>
-                        {tenant.lastActivityAtUtc ? formatDateTime(tenant.lastActivityAtUtc) : '—'}
+                        {tenant.lastActivityAtUtc ? formatDateTime(tenant.lastActivityAtUtc, formatLocale) : '—'}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('tenants.columns.adminUser')}>
                         {tenant.ownerAdminEmail ?? '—'}

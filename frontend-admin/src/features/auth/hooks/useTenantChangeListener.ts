@@ -37,7 +37,7 @@ export function useTenantChangeListener() {
     const lastDevSlugRef = useRef<string | null>(null);
     const lastHostSlugRef = useRef<string | null>(null);
     const handlingRef = useRef(false);
-    const reloadSafetyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const reloadSafetyTimerRef = useRef<number | null>(null);
 
     const clearReloadSafetyTimer = useCallback(() => {
         if (reloadSafetyTimerRef.current != null) {

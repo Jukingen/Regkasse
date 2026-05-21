@@ -68,7 +68,7 @@ type TenantFormValues = {
 };
 
 export default function SuperAdminTenantsPage() {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [includeDeleted, setIncludeDeleted] = useState(false);
@@ -190,7 +190,7 @@ export default function SuperAdminTenantsPage() {
                 title: t('tenants.columns.created'),
                 dataIndex: 'createdAt',
                 key: 'createdAt',
-                render: (v: string) => formatDate(v),
+                render: (v: string) => formatDate(v, formatLocale),
             },
             {
                 title: t('tenants.columns.actions'),

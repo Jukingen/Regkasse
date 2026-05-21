@@ -65,7 +65,7 @@ export function CashRegisterDetailDrawer({
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.lastBalanceUpdate')}>
                         {register.lastBalanceUpdate
-                            ? formatDateTime(register.lastBalanceUpdate)
+                            ? formatDateTime(register.lastBalanceUpdate, formatLocale)
                             : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.id')}>
@@ -73,7 +73,7 @@ export function CashRegisterDetailDrawer({
                     </Descriptions.Item>
                     {decommissionMeta?.decommissionedAtUtc ? (
                         <Descriptions.Item label={t('cashRegisters.detail.decommissionedAt')}>
-                            {formatDateTime(decommissionMeta.decommissionedAtUtc)}
+                            {formatDateTime(decommissionMeta.decommissionedAtUtc, formatLocale)}
                         </Descriptions.Item>
                     ) : null}
                     {decommissionMeta?.decommissionReason ? (

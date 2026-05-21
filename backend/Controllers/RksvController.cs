@@ -39,6 +39,30 @@ public sealed class RksvController : ControllerBase
         return Ok(status);
     }
 
+    /// <summary>Monatsbeleg status for all tenant cash registers (admin dashboard overview).</summary>
+    [HttpGet("monatsbeleg/status-overview")]
+    [HasPermission(AppPermissions.CashRegisterView)]
+    [ProducesResponseType(typeof(IReadOnlyList<MonatsbelegRegisterStatusItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<MonatsbelegRegisterStatusItemDto>>> GetMonatsbelegStatusOverview(
+        CancellationToken cancellationToken)
+    {
+        var items = await _monatsbelegReminder.GetMonatsbelegStatusOverviewAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(items);
+    }
+
+    /// <summary>Unified RKSV reminder status for all tenant cash registers (admin dashboard overview).</summary>
+    [HttpGet("reminder/status-overview")]
+    [HasPermission(AppPermissions.CashRegisterView)]
+    [ProducesResponseType(typeof(IReadOnlyList<RksvReminderRegisterStatusItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<RksvReminderRegisterStatusItemDto>>> GetRksvReminderStatusOverview(
+        CancellationToken cancellationToken)
+    {
+        var items = await _rksvReminder.GetRksvStatusOverviewAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(items);
+    }
+
     /// <summary>Unified RKSV reminder status (Startbeleg / Monatsbeleg / Jahresbeleg) for the cash register.</summary>
     [HttpGet("reminder/status/{cashRegisterId:guid}")]
     [HasPermission(AppPermissions.CashRegisterView)]

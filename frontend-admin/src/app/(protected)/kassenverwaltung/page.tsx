@@ -117,7 +117,12 @@ export default function KassenverwaltungPage() {
             await invalidateRegisters();
         },
         onError: (err) => {
-            message.error(getUserFacingApiErrorMessage(err, t));
+            message.error(
+                getUserFacingApiErrorMessage(t, err, {
+                    logContext: 'Kassenverwaltung.decommission',
+                    fallbackKey: 'common.messages.unknownError',
+                }),
+            );
         },
     });
 
@@ -132,7 +137,12 @@ export default function KassenverwaltungPage() {
             await invalidateRegisters();
         },
         onError: (err) => {
-            message.error(getUserFacingApiErrorMessage(err, t));
+            message.error(
+                getUserFacingApiErrorMessage(t, err, {
+                    logContext: 'Kassenverwaltung.hardDelete',
+                    fallbackKey: 'common.messages.unknownError',
+                }),
+            );
         },
     });
 
@@ -140,7 +150,7 @@ export default function KassenverwaltungPage() {
         const reg = decommissionRegister;
         const id = reg?.id?.trim();
         if (!id) return;
-        if (!canDecommissionRegister(rawRegisterStatus(reg))) {
+        if (!canDecommissionRegister(rawRegisterStatus(reg!))) {
             message.error(t('cashRegisters.decommission.mustCloseFirst'));
             return;
         }
@@ -168,9 +178,9 @@ export default function KassenverwaltungPage() {
         <AdminPageShell>
             <AdminPageHeader
                 title={t('cashRegisters.pageTitle')}
-                breadcrumbItems={[adminOverviewCrumb(t), { title: t('cashRegisters.pageTitle') }]}
+                breadcrumbs={[adminOverviewCrumb(t), { title: t('cashRegisters.pageTitle') }]}
             />
-            <AdminPageScopeSummary>
+            <AdminPageScopeSummary label={t('cashRegisters.pageTitle')}>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     {t('cashRegisters.pageIntro')}
                 </Typography.Paragraph>

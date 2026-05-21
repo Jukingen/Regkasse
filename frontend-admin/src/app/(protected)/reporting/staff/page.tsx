@@ -29,7 +29,7 @@ import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency, formatNumber, formatPercent } from '@/i18n/formatting';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import { useGetApiUserManagement } from '@/api/generated/user-management/user-management';
+import { useCashierFilterOptions } from '@/features/reporting/hooks/useCashierFilterOptions';
 import { useGetApiReportsOperationalStaffPerformance } from '@/api/generated/operational-reports/operational-reports';
 import type {
     CashRegister,
@@ -107,7 +107,8 @@ export default function StaffPerformanceReportingPage() {
         : Array.isArray(registersData)
             ? (registersData as CashRegister[])
             : [];
-    const { data: usersPage } = useGetApiUserManagement({ pageSize: 500, isActive: true });
+    const { options: cashierOptions, loading: cashierOptionsLoading, onSearch: onCashierSearch } =
+        useCashierFilterOptions();
 
     const reportQ = useGetApiReportsOperationalStaffPerformance(params, {
         query: { enabled: canView },
@@ -286,15 +287,14 @@ export default function StaffPerformanceReportingPage() {
                         <Select
                             allowClear
                             showSearch
-                            optionFilterProp="label"
+                            filterOption={false}
                             style={{ minWidth: 240 }}
                             placeholder={t('adminShell.reporting.cashierAll')}
                             value={cashierId}
                             onChange={(v) => setCashierId(v)}
-                            options={(usersPage?.items ?? []).map((u) => ({
-                                value: u.id,
-                                label: `${u.userName ?? u.email ?? u.id}`,
-                            }))}
+                            onSearch={onCashierSearch}
+                            loading={cashierOptionsLoading}
+                            options={cashierOptions}
                         />
                     </Space>
                     <Space direction="vertical" size={4}>

@@ -31,6 +31,9 @@ assertRksvPublicEnvironmentForProductionBuild();
 const nextConfig = {
     transpilePackages: ['@ant-design/icons', 'antd', 'rc-util', 'rc-pagination', 'rc-picker', 'rc-notification', 'rc-tooltip'],
     reactStrictMode: true,
+    experimental: {
+        optimizePackageImports: ['antd', '@ant-design/icons'],
+    },
 };
 
 export default nextConfig;

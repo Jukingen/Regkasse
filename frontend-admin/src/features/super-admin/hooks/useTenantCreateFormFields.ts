@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Form } from 'antd';
-import type { FormInstance } from 'antd';
+import type { FormInstance, Rule } from 'antd/es/form';
 import { useQuery } from '@tanstack/react-query';
 
 import { useDebounce } from '@/hooks/useDebounce';
@@ -140,7 +140,7 @@ export function useTenantCreateFormFields(
         return validateAddress(addressWatch) ? ('error' as const) : ('success' as const);
     }, [addressWatch]);
 
-    const slugRules = useMemo(
+    const slugRules = useMemo<Rule[]>(
         () => [
             { required: true, message: t('tenants.create.fields.slug.errors.required') },
             {
@@ -185,10 +185,10 @@ export function useTenantCreateFormFields(
         [t, availabilityQuery.data, availabilityQuery.isFetching, availabilityQuery.isError],
     );
 
-    const nameRules = useMemo(
+    const nameRules = useMemo<Rule[]>(
         () => [
             {
-                validateTrigger: ['onChange', 'onBlur'] as const,
+                validateTrigger: ['onChange', 'onBlur'],
                 validator: async (_: unknown, value: string | undefined) => {
                     const code = validateCompanyName(value);
                     if (code) {
@@ -200,7 +200,7 @@ export function useTenantCreateFormFields(
         [t],
     );
 
-    const emailRules = useMemo(
+    const emailRules = useMemo<Rule[]>(
         () => [
             { required: true, message: t('tenants.create.fields.contactEmail.errors.required') },
             {
@@ -209,7 +209,7 @@ export function useTenantCreateFormFields(
                 validateTrigger: ['onChange', 'onBlur'],
             },
             {
-                validateTrigger: ['onChange', 'onBlur'] as const,
+                validateTrigger: ['onChange', 'onBlur'],
                 validator: async (_: unknown, value: string | undefined) => {
                     const code = validateContactEmail(value);
                     if (code) {
@@ -221,10 +221,10 @@ export function useTenantCreateFormFields(
         [t],
     );
 
-    const phoneRules = useMemo(
+    const phoneRules = useMemo<Rule[]>(
         () => [
             {
-                validateTrigger: ['onChange', 'onBlur'] as const,
+                validateTrigger: ['onChange', 'onBlur'],
                 validator: async (_: unknown, value: string | undefined) => {
                     const code = validatePhone(value);
                     if (code) {
@@ -236,10 +236,10 @@ export function useTenantCreateFormFields(
         [t],
     );
 
-    const addressRules = useMemo(
+    const addressRules = useMemo<Rule[]>(
         () => [
             {
-                validateTrigger: ['onChange', 'onBlur'] as const,
+                validateTrigger: ['onChange', 'onBlur'],
                 validator: async (_: unknown, value: string | undefined) => {
                     const code = validateAddress(value);
                     if (code) {

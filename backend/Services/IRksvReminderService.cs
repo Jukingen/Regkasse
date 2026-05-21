@@ -7,4 +7,8 @@ public interface IRksvReminderService
 {
     /// <summary>Returns null if the cash register does not exist for the effective tenant.</summary>
     Task<RksvReminderStatusDto?> GetRksvStatusAsync(Guid cashRegisterId, CancellationToken cancellationToken = default);
+
+    /// <summary>Unified reminder status for all cash registers of the effective tenant.</summary>
+    Task<IReadOnlyList<RksvReminderRegisterStatusItemDto>> GetRksvStatusOverviewAsync(
+        CancellationToken cancellationToken = default);
 }

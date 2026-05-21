@@ -53,6 +53,7 @@ import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
+import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import {
   FORMAT_EMPTY_DISPLAY,
   createIntlFormatters,
@@ -602,7 +603,8 @@ export default function PaymentsPage() {
         dataSource={payments}
         loading={isLoading}
         rowKey="id"
-        scroll={{ x: 1280 }}
+        virtual={shouldUseAdminTableVirtual(payments.length)}
+        scroll={adminTableScrollXy(1280, payments.length)}
         pagination={{
           current: page,
           pageSize,
