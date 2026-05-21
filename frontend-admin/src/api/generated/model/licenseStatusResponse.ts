@@ -10,7 +10,10 @@ import type { LicenseReminderNotice } from './licenseReminderNotice';
 export interface LicenseStatusResponse {
   daysRemaining?: number;
   /** @nullable */
+  enabledFeatures?: string[] | null;
+  /** @nullable */
   expiryDate?: string | null;
+  isDevelopmentBypass?: boolean;
   isExpired?: boolean;
   isTrial?: boolean;
   isValid?: boolean;

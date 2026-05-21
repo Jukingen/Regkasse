@@ -7,14 +7,17 @@
  */
 
 export interface LicenseActivationResult {
-  /**
-   * Coarse label aligned with GET /api/license/status: Licensed, Trial, or Expired.
-   * @nullable
-   */
+  /** @nullable */
+  apiBaseUrl?: string | null;
+  /** @nullable */
   licenseType?: string | null;
   /** @nullable */
   message?: string | null;
   success?: boolean;
+  /** @nullable */
+  tenantId?: string | null;
+  /** @nullable */
+  tenantSlug?: string | null;
   /** @nullable */
   validUntil?: string | null;
 }

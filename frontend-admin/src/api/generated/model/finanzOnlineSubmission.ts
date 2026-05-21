@@ -5,6 +5,7 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { Tenant } from './tenant';
 
 export interface FinanzOnlineSubmission {
   /** @nullable */
@@ -19,4 +20,6 @@ export interface FinanzOnlineSubmission {
   responseStatusCode?: string | null;
   submittedAt?: string;
   success?: boolean;
+  tenant?: Tenant;
+  tenantId: string;
 }

@@ -6,16 +6,23 @@
  * OpenAPI spec version: v1
  */
 import {
-  useMutation
+  useMutation,
+  useQuery
 } from '@tanstack/react-query'
 import type {
   MutationFunction,
+  QueryFunction,
+  QueryKey,
   UseMutationOptions,
-  UseMutationResult
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult
 } from '@tanstack/react-query'
 import type {
   ActivateLicenseRequest,
-  LicenseActivationResult
+  LicenseActivationResult,
+  LicenseFeaturesDto,
+  LicensePublicStatusDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -23,6 +30,120 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
+export const getApiLicenseStatus = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<LicensePublicStatusDto>(
+      {url: `/api/license/status`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiLicenseStatusQueryKey = () => {
+    return [`/api/license/status`] as const;
+    }
+
+    
+export const getGetApiLicenseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseStatusQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseStatus>>> = ({ signal }) => getApiLicenseStatus(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiLicenseStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiLicenseStatus>>>
+export type GetApiLicenseStatusQueryError = unknown
+
+export const useGetApiLicenseStatus = <TData = Awaited<ReturnType<typeof getApiLicenseStatus>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiLicenseStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiLicenseFeatures = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<LicenseFeaturesDto>(
+      {url: `/api/license/features`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiLicenseFeaturesQueryKey = () => {
+    return [`/api/license/features`] as const;
+    }
+
+    
+export const getGetApiLicenseFeaturesQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseFeaturesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseFeatures>>> = ({ signal }) => getApiLicenseFeatures(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiLicenseFeaturesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiLicenseFeatures>>>
+export type GetApiLicenseFeaturesQueryError = unknown
+
+export const useGetApiLicenseFeatures = <TData = Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseFeatures>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiLicenseFeaturesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * Single activation contract for POS and frontend-admin. **Authentication is optional** (POS may activate before login; FA typically sends Bearer JWT for audit: initiating user id + `app_context` claim). When unauthenticated, send header `X-App-Context: pos` or `X-App-Context: admin` so activation attempts record the source app. Machine binding uses this server's canonical fingerprint (`ILicenseStorageService`); optional `machineFingerprint` in JSON or `X-Machine-Fingerprint` must match the server when provided.
+ * @summary Activate license (unified POS + FA)
+ */
 export const postApiLicenseActivate = (
     activateLicenseRequest: ActivateLicenseRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -38,7 +159,7 @@ export const postApiLicenseActivate = (
   
 
 
-export const getPostApiLicenseActivateMutationOptions = <TError = LicenseActivationResult,
+export const getPostApiLicenseActivateMutationOptions = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
@@ -59,9 +180,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiLicenseActivateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiLicenseActivate>>>
     export type PostApiLicenseActivateMutationBody = ActivateLicenseRequest
-    export type PostApiLicenseActivateMutationError = LicenseActivationResult
+    export type PostApiLicenseActivateMutationError = unknown
 
-    export const usePostApiLicenseActivate = <TError = LicenseActivationResult,
+    /**
+ * @summary Activate license (unified POS + FA)
+ */
+export const usePostApiLicenseActivate = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiLicenseActivate>>, TError,{data: ActivateLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiLicenseActivate>>,

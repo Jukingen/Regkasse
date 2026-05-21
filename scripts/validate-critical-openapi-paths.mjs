@@ -24,6 +24,8 @@ const CRITICAL_PATHS = [
   { path: '/api/admin/backup/status/latest', methods: ['get'] },
   { path: '/api/admin/restore-verification/runs/latest', methods: ['get'] },
   { path: '/api/admin/restore-verification/readiness', methods: ['get'] },
+  { path: '/api/rksv/monatsbeleg/status-overview', methods: ['get'] },
+  { path: '/api/rksv/reminder/status-overview', methods: ['get'] },
 ];
 
 const REQUIRED_SCHEMAS = [
@@ -33,6 +35,8 @@ const REQUIRED_SCHEMAS = [
   'BackupLatestStatusResponseDto',
   'RestoreVerificationRunResponseDto',
   'RestoreVerificationReadinessResponseDto',
+  'MonatsbelegRegisterStatusItemDto',
+  'RksvReminderRegisterStatusItemDto',
 ];
 
 /**

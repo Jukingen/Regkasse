@@ -19,6 +19,7 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  DevelopmentModeSettingsResponseDto,
   NtpManualSyncResponseDto,
   SystemTimeStatusDto
 } from '.././model'
@@ -26,6 +27,61 @@ import { customInstance } from '../../../lib/axios';
 
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
+
+
+export const getApiSystemDevelopmentMode = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DevelopmentModeSettingsResponseDto>(
+      {url: `/api/system/development-mode`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiSystemDevelopmentModeQueryKey = () => {
+    return [`/api/system/development-mode`] as const;
+    }
+
+    
+export const getGetApiSystemDevelopmentModeQueryOptions = <TData = Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSystemDevelopmentModeQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>> = ({ signal }) => getApiSystemDevelopmentMode(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiSystemDevelopmentModeQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>>
+export type GetApiSystemDevelopmentModeQueryError = unknown
+
+export const useGetApiSystemDevelopmentMode = <TData = Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSystemDevelopmentMode>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiSystemDevelopmentModeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
 
 
 export const getApiSystemTimeStatus = (

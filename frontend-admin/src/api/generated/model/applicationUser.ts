@@ -71,6 +71,7 @@ export interface ApplicationUser {
   /** @nullable */
   lockoutEnd?: string | null;
   loginCount?: number;
+  mustChangePasswordOnNextLogin?: boolean;
   /** @nullable */
   readonly name?: string | null;
   /** @nullable */

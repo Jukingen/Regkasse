@@ -7,18 +7,27 @@
  */
 
 export interface IssuedLicenseListItemDto {
+  activatedDeviceCount?: number;
   /** @nullable */
   customerName?: string | null;
   expiryAtUtc?: string;
+  /** @nullable */
+  features?: string[] | null;
   id?: string;
+  isCancelled?: boolean;
+  isDeleted?: boolean;
   isRevoked?: boolean;
   issuedAtUtc?: string;
   /** @nullable */
   issuedByUserId?: string | null;
   /** @nullable */
+  lastActivationAtUtc?: string | null;
+  /** @nullable */
   licenseKey?: string | null;
   /** @nullable */
   machineHashHex?: string | null;
+  /** @nullable */
+  recentMachineFingerprintShort?: string | null;
   requireFingerprint?: boolean;
   /** @nullable */
   revocationReason?: string | null;

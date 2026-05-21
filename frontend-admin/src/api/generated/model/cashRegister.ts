@@ -21,6 +21,13 @@ export interface CashRegister {
   currentUser?: ApplicationUser;
   /** @nullable */
   currentUserId?: string | null;
+  /** @nullable */
+  decommissionedAtUtc?: string | null;
+  /**
+   * @maxLength 450
+   * @nullable
+   */
+  decommissionReason?: string | null;
   id?: string;
   isActive?: boolean;
   lastBalanceUpdate: string;

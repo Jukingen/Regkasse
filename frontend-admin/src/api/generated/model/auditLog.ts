@@ -7,6 +7,7 @@
  */
 import type { AuditEventType } from './auditEventType';
 import type { AuditLogStatus } from './auditLogStatus';
+import type { Tenant } from './tenant';
 import type { ApplicationUser } from './applicationUser';
 
 export interface AuditLog {
@@ -117,6 +118,8 @@ export interface AuditLog {
    */
   sessionId: string;
   status: AuditLogStatus;
+  tenant?: Tenant;
+  tenantId?: string;
   timestamp: string;
   /**
    * @maxLength 100

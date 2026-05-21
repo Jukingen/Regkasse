@@ -15,8 +15,10 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  MonatsbelegRegisterStatusItemDto,
   MonatsbelegStatusDto,
   ProblemDetails,
+  RksvReminderRegisterStatusItemDto,
   RksvReminderStatusDto
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -70,6 +72,116 @@ export const useGetApiRksvMonatsbelegStatusCashRegisterId = <TData = Awaited<Ret
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiRksvMonatsbelegStatusCashRegisterIdQueryOptions(cashRegisterId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiRksvMonatsbelegStatusOverview = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<MonatsbelegRegisterStatusItemDto[]>(
+      {url: `/api/rksv/monatsbeleg/status-overview`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiRksvMonatsbelegStatusOverviewQueryKey = () => {
+    return [`/api/rksv/monatsbeleg/status-overview`] as const;
+    }
+
+    
+export const getGetApiRksvMonatsbelegStatusOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiRksvMonatsbelegStatusOverviewQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>> = ({ signal }) => getApiRksvMonatsbelegStatusOverview(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiRksvMonatsbelegStatusOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>>
+export type GetApiRksvMonatsbelegStatusOverviewQueryError = unknown
+
+export const useGetApiRksvMonatsbelegStatusOverview = <TData = Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvMonatsbelegStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiRksvMonatsbelegStatusOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiRksvReminderStatusOverview = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<RksvReminderRegisterStatusItemDto[]>(
+      {url: `/api/rksv/reminder/status-overview`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiRksvReminderStatusOverviewQueryKey = () => {
+    return [`/api/rksv/reminder/status-overview`] as const;
+    }
+
+    
+export const getGetApiRksvReminderStatusOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiRksvReminderStatusOverviewQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>> = ({ signal }) => getApiRksvReminderStatusOverview(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiRksvReminderStatusOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>>
+export type GetApiRksvReminderStatusOverviewQueryError = unknown
+
+export const useGetApiRksvReminderStatusOverview = <TData = Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiRksvReminderStatusOverview>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiRksvReminderStatusOverviewQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

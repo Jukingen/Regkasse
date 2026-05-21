@@ -19,10 +19,33 @@ Per-register routes remain available for POS/tools; the admin dashboard no longe
 
 Rolling **frontend before backend** briefly shows dashboard RKSV errors until the API is updated; rolling **backend only** is safe for older FA bundles (they keep using per-register calls until you ship the new admin build).
 
+## OpenAPI / Orval (overview endpoints)
+
+After backend RKSV overview routes change:
+
+```bash
+node scripts/generate-backend-openapi.mjs
+cd frontend-admin && npm run generate:api
+node scripts/validate-critical-openapi-paths.mjs
+node scripts/verify-api-client.mjs
+```
+
+Dashboard hooks use generated `getApiRksvMonatsbelegStatusOverview` / `getApiRksvReminderStatusOverview` from `src/api/generated/rksv/rksv.ts`.
+
+## Bundle analysis (local)
+
+```bash
+cd frontend-admin
+npm install
+npm run analyze
+```
+
+Opens webpack bundle reports in the browser (`ANALYZE=true` + `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST`).
+
 ## CI reference
 
 - Admin production build: `.github/workflows/api-client-alignment.yml` (`NEXT_PUBLIC_RKSV_ENVIRONMENT`, `npm run build`).
-- OpenAPI/orval: overview routes may be wired manually until `generate:api` is refreshed; coupled deploy does not require orval for runtime.
+- Commit updated `backend/swagger.json` whenever API routes/DTOs change (regenerate; do not hand-edit).
 
 ## Related docs
 

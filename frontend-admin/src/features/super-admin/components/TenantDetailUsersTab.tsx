@@ -5,7 +5,7 @@ import { Alert, Button, Modal, Space, Typography, message } from 'antd';
 import { MailOutlined, ReloadOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { getApiAdminUsers } from '@/api/generated/admin/admin';
+import { listPlatformUsers } from '@/features/users/api/users';
 import { AddExistingUserModal } from '@/features/super-admin/components/AddExistingUserModal';
 import type { AddExistingUserFormValues } from '@/features/super-admin/components/AddExistingUserModal';
 import { InviteUserModal } from '@/features/super-admin/components/InviteUserModal';
@@ -49,8 +49,8 @@ export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabP
     });
 
     const allUsersQuery = useQuery({
-        queryKey: ['admin', 'users', 'picker'],
-        queryFn: () => getApiAdminUsers({ isActive: true }),
+        queryKey: ['admin', 'users', 'picker', 'platform'],
+        queryFn: () => listPlatformUsers({ isActive: true }),
         enabled: addOpen,
     });
 

@@ -106,3 +106,13 @@ services:
 ## 7. Coupled backend + frontend releases
 
 When shipping admin dashboard RKSV overview endpoints (`/api/rksv/monatsbeleg/status-overview`, `/api/rksv/reminder/status-overview`), deploy **API and `frontend-admin` together**. See **`docs/ADMIN_FA_DEPLOY.md`** for route matrix and smoke checks.
+
+## 8. Bundle analysis (optional, local)
+
+From `frontend-admin/`:
+
+```bash
+npm run analyze
+```
+
+Uses `@next/bundle-analyzer` (`ANALYZE=true`, `NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST`). Not part of CI; for investigating client chunk size after dependency or route changes.

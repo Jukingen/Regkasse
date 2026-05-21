@@ -155,7 +155,11 @@ export function MonatsbelegComplianceTable({ rows, loading }: MonatsbelegComplia
                 render: (_, record) => {
                     if (record.statusLoading) return <Tag color="default">Laden…</Tag>;
                     if (record.statusError) return <Tag color="default">Status fehlgeschlagen</Tag>;
-                    return <Typography.Text>{formatMissingMonthsLabel(record.status?.missingMonths)}</Typography.Text>;
+                    return (
+                        <Typography.Text>
+                            {formatMissingMonthsLabel(record.status?.missingMonths ?? undefined)}
+                        </Typography.Text>
+                    );
                 },
             },
             {
@@ -166,7 +170,7 @@ export function MonatsbelegComplianceTable({ rows, loading }: MonatsbelegComplia
                     if (record.statusLoading) return <Typography.Text type="secondary">…</Typography.Text>;
                     if (record.statusError) return <Typography.Text type="warning">—</Typography.Text>;
 
-                    const progress = getYearlyProgress(record.status?.missingMonths);
+                    const progress = getYearlyProgress(record.status?.missingMonths ?? undefined);
                     return (
                         <Space direction="vertical" size={4} style={{ width: '100%' }}>
                             <Progress percent={progress.percent} size="small" />

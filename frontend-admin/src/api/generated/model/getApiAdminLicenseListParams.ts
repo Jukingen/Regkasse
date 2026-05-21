@@ -8,6 +8,7 @@
 
 export type GetApiAdminLicenseListParams = {
 search?: string;
+machineFingerprint?: string;
 pageNumber?: number;
 pageSize?: number;
 };

@@ -10,5 +10,7 @@ export interface ActivateLicenseRequest {
   /** @minLength 1 */
   licenseKey: string;
   /** @nullable */
+  machineFingerprint?: string | null;
+  /** @nullable */
   offlineActivationJwt?: string | null;
 }

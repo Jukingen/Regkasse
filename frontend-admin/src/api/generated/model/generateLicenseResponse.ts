@@ -10,6 +10,8 @@ export interface GenerateLicenseResponse {
   /** @nullable */
   expiryAtUtc?: string | null;
   /** @nullable */
+  readonly licenseJwt?: string | null;
+  /** @nullable */
   licenseKey?: string | null;
   /** @nullable */
   message?: string | null;

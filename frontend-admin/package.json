@@ -6,6 +6,7 @@
     "dev": "next dev",
     "dev:clean": "node ./scripts/rm-next-cache.mjs && next dev",
     "build": "next build",
+    "analyze": "cross-env ANALYZE=true NEXT_PUBLIC_RKSV_ENVIRONMENT=TEST next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -40,6 +41,7 @@
     "recharts": "^2.15.0"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^14.1.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20.11.19",
@@ -49,6 +51,7 @@
     "eslint": "^8.56.0",
     "eslint-config-next": "14.1.0",
     "jsdom": "^28.1.0",
+    "cross-env": "^7.0.3",
     "orval": "^6.24.0",
     "typescript": "^5.3.3",
     "vitest": "^4.0.18"

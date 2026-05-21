@@ -7,24 +7,55 @@
  */
 
 export interface Tenant {
+  /** @nullable */
+  address?: string | null;
   createdAt: string;
   /**
    * @maxLength 450
    * @nullable
    */
   createdBy?: string | null;
+  /** @nullable */
+  deletedAtUtc?: string | null;
+  /**
+   * @maxLength 450
+   * @nullable
+   */
+  deletedByUserId?: string | null;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  email?: string | null;
   id?: string;
   isActive?: boolean;
+  /**
+   * @maxLength 100
+   * @nullable
+   */
+  licenseKey?: string | null;
+  /** @nullable */
+  licenseValidUntilUtc?: string | null;
   /**
    * @minLength 1
    * @maxLength 200
    */
   name: string;
   /**
+   * @maxLength 50
+   * @nullable
+   */
+  phone?: string | null;
+  /**
    * @minLength 1
    * @maxLength 64
    */
   slug: string;
+  /**
+   * @minLength 1
+   * @maxLength 20
+   */
+  status: string;
   /** @nullable */
   updatedAt?: string | null;
   /**

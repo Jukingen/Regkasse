@@ -9,6 +9,7 @@ import type { DocumentType } from './documentType';
 import type { InvoiceInvoiceItems } from './invoiceInvoiceItems';
 import type { PaymentMethod } from './paymentMethod';
 import type { InvoiceStatus } from './invoiceStatus';
+import type { Tenant } from './tenant';
 
 export interface Invoice {
   cashRegisterId: string;
@@ -142,6 +143,8 @@ export interface Invoice {
   subtotal: number;
   taxAmount: number;
   taxDetails: unknown;
+  tenant?: Tenant;
+  tenantId?: string;
   totalAmount: number;
   /** @minLength 1 */
   tseSignature: string;

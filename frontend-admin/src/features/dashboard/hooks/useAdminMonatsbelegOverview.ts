@@ -5,9 +5,10 @@ import type { CashRegister } from '@/api/generated/model';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import { useQuery } from '@tanstack/react-query';
 import {
-    getMonatsbelegStatusOverview,
-    type MonatsbelegStatusDto,
-} from '@/features/dashboard/api/monatsbelegStatus';
+    getApiRksvMonatsbelegStatusOverview,
+    getGetApiRksvMonatsbelegStatusOverviewQueryKey,
+} from '@/api/generated/rksv/rksv';
+import type { MonatsbelegStatusDto } from '@/api/generated/model';
 
 const FIVE_MIN_MS = 5 * 60 * 1000;
 
@@ -58,8 +59,8 @@ export function useAdminMonatsbelegOverview(enabled = true) {
     );
 
     const overviewQuery = useQuery({
-        queryKey: ['rksv', 'monatsbeleg-status-overview'] as const,
-        queryFn: getMonatsbelegStatusOverview,
+        queryKey: getGetApiRksvMonatsbelegStatusOverviewQueryKey(),
+        queryFn: () => getApiRksvMonatsbelegStatusOverview(),
         enabled: enabled && registerIds.length > 0 && !registersLoading && !registersError,
         staleTime: FIVE_MIN_MS,
         refetchInterval: FIVE_MIN_MS,

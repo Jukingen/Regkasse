@@ -2,6 +2,8 @@
  * RKSV / FinanzOnline: üretim derlemesinde ortam etiketi zorunlu (operatör tarafında TEST|PROD ayrımı).
  * Türkçe: Eksik veya geçersiz NEXT_PUBLIC_RKSV_ENVIRONMENT ile sessiz üretim artefaktı üretilmez.
  */
+import bundleAnalyzer from '@next/bundle-analyzer';
+
 /** UTF-8 BOM; `rksvEnvironment.ts` ile aynı kural (editör .env başına FEFF ekleyebilir). */
 function stripBomAndTrimRksvEnv(raw) {
     if (raw === undefined || raw === null) return '';
@@ -27,6 +29,10 @@ function assertRksvPublicEnvironmentForProductionBuild() {
 
 assertRksvPublicEnvironmentForProductionBuild();
 
+const withBundleAnalyzer = bundleAnalyzer({
+    enabled: process.env.ANALYZE === 'true',
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     transpilePackages: ['@ant-design/icons', 'antd', 'rc-util', 'rc-pagination', 'rc-picker', 'rc-notification', 'rc-tooltip'],
@@ -36,4 +42,4 @@ const nextConfig = {
     },
 };
 
-export default nextConfig;
+export default withBundleAnalyzer(nextConfig);

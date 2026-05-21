@@ -9,4 +9,7 @@
 export type GetApiAdminUsersParams = {
 role?: string;
 isActive?: boolean;
+type?: string;
+scope?: string;
+tenantId?: string;
 };

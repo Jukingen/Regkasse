@@ -5,7 +5,10 @@ import type { CashRegister } from '@/api/generated/model';
 import type { RksvReminderStatusDto } from '@/api/generated/model';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import { useQuery } from '@tanstack/react-query';
-import { getRksvReminderStatusOverview } from '@/features/dashboard/api/rksvReminderStatus';
+import {
+    getApiRksvReminderStatusOverview,
+    getGetApiRksvReminderStatusOverviewQueryKey,
+} from '@/api/generated/rksv/rksv';
 
 const FIVE_MIN_MS = 5 * 60 * 1000;
 
@@ -71,8 +74,8 @@ export function useRksvReminderOverview(enabled = true) {
     );
 
     const overviewQuery = useQuery({
-        queryKey: ['rksv', 'reminder-status-overview'] as const,
-        queryFn: getRksvReminderStatusOverview,
+        queryKey: getGetApiRksvReminderStatusOverviewQueryKey(),
+        queryFn: () => getApiRksvReminderStatusOverview(),
         enabled: enabled && registerIds.length > 0 && !registersLoading && !registersError,
         staleTime: FIVE_MIN_MS,
         refetchInterval: FIVE_MIN_MS,

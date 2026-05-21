@@ -8,9 +8,13 @@
 
 export interface GenerateLicenseRequestBody {
   /** @nullable */
+  bindToMachineFingerprint?: boolean | null;
+  /** @nullable */
   customerName?: string | null;
   /** @nullable */
   expiryDate?: string | null;
+  /** @nullable */
+  features?: string[] | null;
   /** @nullable */
   machineHashHex?: string | null;
   requireFingerprint?: boolean;
