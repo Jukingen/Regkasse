@@ -40,6 +40,7 @@ import {
     type TenantUserRow,
 } from '@/features/users/api/users';
 import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
+import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
 import { useI18n } from '@/i18n';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
@@ -65,6 +66,7 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
     const [resetRow, setResetRow] = useState<TenantUserRow | null>(null);
 
     const tenantsQuery = useGetApiAdminTenants();
+    const { tenants: inviteTenants, isLoading: inviteTenantsLoading } = useTenantList();
     const businessTenants = useMemo(
         () => (tenantsQuery.data ?? []).filter((row) => row.isActive && isBusinessTenantSlug(row.slug)),
         [tenantsQuery.data],
@@ -91,15 +93,6 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
                 }))
                 .sort((a, b) => a.label.localeCompare(b.label)),
         ],
-        [businessTenants, t],
-    );
-
-    const tenantInviteOptions = useMemo(
-        () =>
-            businessTenants.map((tenant) => ({
-                value: tenant.id,
-                label: t('users.invite.tenantOption', { name: tenant.name, slug: tenant.slug }),
-            })),
         [businessTenants, t],
     );
 
@@ -313,7 +306,8 @@ export function TenantUsersTab({ policy, roleDisplayLabel, onEdit }: TenantUsers
             <InviteUserModal
                 open={inviteOpen}
                 variant="usersPage"
-                tenantOptions={tenantInviteOptions}
+                tenantRows={inviteTenants}
+                tenantsLoading={inviteTenantsLoading}
                 confirmLoading={inviteMutation.isPending}
                 onClose={() => setInviteOpen(false)}
                 onSubmit={(values) => inviteMutation.mutate(values)}

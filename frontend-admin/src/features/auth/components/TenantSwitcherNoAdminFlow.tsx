@@ -137,6 +137,9 @@ export function TenantSwitcherNoAdminFlow({
             </Modal>
             <InviteUserModal
                 open={inviteOpen}
+                variant="tenantDetail"
+                tenantId={tenant?.id}
+                tenantContext={tenant?.source}
                 confirmLoading={inviteMutation.isPending}
                 onClose={() => setInviteOpen(false)}
                 onSubmit={(values) => inviteMutation.mutate(values)}

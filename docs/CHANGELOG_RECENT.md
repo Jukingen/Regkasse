@@ -1,8 +1,48 @@
-# Recent fiscal & compliance changes
+# Recent engineering changes
 
-Engineering changelog (not legal advice). Date reflects the documentation pass; individual commits may differ.
+Engineering changelog (not legal advice). Dates reflect documentation / feature delivery waves; individual commits may differ.
 
-## 2026-05-07
+---
+
+## 2026-05-21 — Multi-tenant isolation & tenant UX (FA + API)
+
+### Multi-tenant isolation
+
+- JWT `tenant_id` applied after host/dev resolution (`TenantContextMiddleware`); dev `X-Tenant-Id` / `?tenant=` disabled in Production
+- Cross-tenant IDOR remains **404** (`TenantIsolationTests`)
+- Offline queue and fiscal tables retain `tenant_id` through replay
+
+### Tenant management UI (complete)
+
+- Super Admin `/admin/tenants` CRUD, suspend, soft-delete, detail tabs (users, registers, license, settings)
+- `GET /api/tenants/switcher` — DB-backed dev header switcher for all tenants (Super Admin) or memberships only
+- Impersonation production handoff: `{slug}.regkasse.at/impersonate-callback`
+
+### Customer onboarding wizard
+
+- `CreateTenantWizard` + atomic `TenantOnboardingService` / `TenantProvisioningService` with transaction rollback
+- Slug availability + suggestions APIs; structured error modal
+- Optional welcome email via `WelcomeEmailService` (`Email:Smtp`)
+
+### License display clarity
+
+- Mandantenlizenz separated from Server-Lizenz (`/admin/license`); Manager header badge + expiry banner; Super Admin platform mode suppresses misleading warnings
+
+### Cash register decommission
+
+- RKSV Schlussbeleg + `Decommissioned` status; `PUT /api/admin/cash-registers/{id}/decommission`; audit `CASH_REGISTER_DECOMMISSION`
+- FA `/kassenverwaltung` + tenant detail registers tab; dev-only hard delete guarded
+
+### User management separation
+
+- `/users` platform vs mandant tabs; tenant invite/reset/remove via `/api/admin/tenants/{id}/users/*`
+- `ownerAdminEmail` on tenant list for switcher 🟢/🟡 indicators
+
+**Docs:** `TENANT_MANAGEMENT.md`, `CUSTOMER_ONBOARDING.md`, `LICENSE_SYSTEM.md`, `CASH_REGISTER_LIFECYCLE.md`, `USER_MANAGEMENT.md`, `MULTI_TENANT.md`, `CHANGELOG_TENANT_MANAGEMENT.md`.
+
+---
+
+## 2026-05-07 — Fiscal & compliance
 
 ### Backend
 

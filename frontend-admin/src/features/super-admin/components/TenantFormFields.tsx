@@ -1,26 +1,25 @@
 'use client';
 
 /**
- * Super-admin tenant create form body: live validation, slug availability, collapsible optional fields.
+ * Super-admin tenant create form: operator-friendly fields, live subdomain check, automation toggles.
  */
 import React from 'react';
-import { Checkbox, Collapse, Divider, Form, Input, Space, Typography } from 'antd';
+import { Checkbox, Collapse, Divider, Form, Input, Space } from 'antd';
 import type { FormInstance } from 'antd';
 
 import { CreateTenantFormField } from '@/features/super-admin/components/CreateTenantFormField';
-import { TenantAdminAccessPreview } from '@/features/super-admin/components/TenantAdminAccessPreview';
 import { TenantSlugFieldExtras } from '@/features/super-admin/components/TenantSlugFieldExtras';
-import { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenantCreateFormFields';
+import type { useTenantCreateFormFields } from '@/features/super-admin/hooks/useTenantCreateFormFields';
 import type { CreateTenantFormValues } from '@/features/super-admin/components/CreateTenantModal';
 import styles from '@/styles/tenant-form.module.css';
 
 export type TenantFormFieldsProps = {
     form: FormInstance<CreateTenantFormValues & { formError?: string }>;
     open: boolean;
+    fieldState: ReturnType<typeof useTenantCreateFormFields>;
 };
 
-export function TenantFormFields({ form, open }: TenantFormFieldsProps) {
-    const fields = useTenantCreateFormFields(form, open);
+export function TenantFormFields({ fieldState }: TenantFormFieldsProps) {
     const {
         t,
         baseDomain,
@@ -40,7 +39,7 @@ export function TenantFormFields({ form, open }: TenantFormFieldsProps) {
         handleSlugChange,
         handleSlugBlur,
         handleNameBlur,
-    } = fields;
+    } = fieldState;
 
     return (
         <>
@@ -59,10 +58,6 @@ export function TenantFormFields({ form, open }: TenantFormFieldsProps) {
                 }}
             </Form.Item>
 
-            <Typography.Title level={5} style={{ marginTop: 0 }}>
-                {t('tenants.create.sections.basic')}
-            </Typography.Title>
-
             <CreateTenantFormField
                 name="name"
                 label={t('tenants.create.fields.name.label')}
@@ -77,6 +72,23 @@ export function TenantFormFields({ form, open }: TenantFormFieldsProps) {
                     placeholder={t('tenants.create.fields.name.placeholder')}
                     maxLength={200}
                     showCount
+                />
+            </CreateTenantFormField>
+
+            <CreateTenantFormField
+                name="email"
+                label={t('tenants.create.fields.contactEmail.label')}
+                tooltip={t('tenants.create.fields.contactEmail.tooltip')}
+                hint={t('tenants.create.fields.contactEmail.hint')}
+                required
+                rules={emailRules}
+                validateStatus={emailFieldStatus}
+            >
+                <Input
+                    type="email"
+                    name="email"
+                    placeholder={t('tenants.create.fields.contactEmail.placeholder')}
+                    autoComplete="email"
                 />
             </CreateTenantFormField>
 
@@ -107,32 +119,33 @@ export function TenantFormFields({ form, open }: TenantFormFieldsProps) {
                 </Space>
             </CreateTenantFormField>
 
-            <TenantAdminAccessPreview slugValue={slugWatch} />
+            <Divider style={{ margin: '4px 0 12px' }} />
 
-            <Divider style={{ margin: '8px 0 16px' }} />
-
-            <Typography.Title level={5}>{t('tenants.create.sections.contact')}</Typography.Title>
-
-            <CreateTenantFormField
-                name="email"
-                label={t('tenants.create.fields.contactEmail.label')}
-                tooltip={t('tenants.create.fields.contactEmail.tooltip')}
-                hint={t('tenants.create.fields.contactEmail.hint')}
-                required
-                rules={emailRules}
-                validateStatus={emailFieldStatus}
+            <Form.Item
+                name="grantTrialLicense"
+                valuePropName="checked"
+                tooltip={t('tenants.create.fields.grantTrialLicense.tooltip')}
+                style={{ marginBottom: 4 }}
             >
-                <Input
-                    type="email"
-                    name="email"
-                    placeholder={t('tenants.create.fields.contactEmail.placeholder')}
-                    autoComplete="email"
-                />
-            </CreateTenantFormField>
+                <Checkbox>
+                    <span>{t('tenants.create.fields.grantTrialLicense.label')}</span>
+                </Checkbox>
+            </Form.Item>
+
+            <Form.Item
+                name="autoDemoSetup"
+                valuePropName="checked"
+                tooltip={t('tenants.create.fields.autoDemoSetup.tooltip')}
+                style={{ marginBottom: 8 }}
+            >
+                <Checkbox disabled>
+                    <span>{t('tenants.create.fields.autoDemoSetup.label')}</span>
+                </Checkbox>
+            </Form.Item>
 
             <Collapse
                 ghost
-                style={{ marginBottom: 8 }}
+                style={{ marginBottom: 0 }}
                 items={[
                     {
                         key: 'advanced',
@@ -174,21 +187,6 @@ export function TenantFormFields({ form, open }: TenantFormFieldsProps) {
                 ]}
             />
 
-            <Divider style={{ margin: '8px 0 16px' }} />
-
-            <Form.Item
-                name="grantTrialLicense"
-                valuePropName="checked"
-                tooltip={t('tenants.create.fields.grantTrialLicense.tooltip')}
-                style={{ marginBottom: 8 }}
-            >
-                <Checkbox>
-                    <span>
-                        {t('tenants.create.fields.grantTrialLicense.label')}
-                        <span className={styles.subtext}>{t('tenants.create.fields.grantTrialLicense.subtext')}</span>
-                    </span>
-                </Checkbox>
-            </Form.Item>
         </>
     );
 }

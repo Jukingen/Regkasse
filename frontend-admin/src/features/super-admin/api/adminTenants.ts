@@ -33,6 +33,8 @@ export type TenantProvisioning = {
     categoryId: string;
     productIds: string[];
     trialLicenseValidUntilUtc?: string | null;
+    welcomeEmailSent?: boolean;
+    forcePasswordChangeOnNextLogin?: boolean;
 };
 
 /** Public tenant FA URL for onboarding hints (https://{slug}.regkasse.at). */
@@ -45,30 +47,26 @@ export function formatTenantProvisioningHandoff(
     tenantName: string,
     slug: string,
     provisioning: TenantProvisioning,
+    contactEmail?: string,
 ): string {
     const portalUrl = buildTenantPortalUrl(slug);
-    const trialLine = provisioning.trialLicenseValidUntilUtc
-        ? `Demo-Lizenz: 30 Tage gültig (bis ${new Date(provisioning.trialLicenseValidUntilUtc).toLocaleDateString('de-AT')})`
-        : '';
+    const notifyEmail = contactEmail?.trim() || provisioning.adminEmail;
     return [
-        `Mandant "${tenantName}" wurde erfolgreich erstellt!`,
+        `Kunde "${tenantName}" wurde erfolgreich angelegt!`,
         '',
-        'Zugangsdaten für den Administrator:',
-        `E-Mail: ${provisioning.adminEmail}`,
+        'Zugangsdaten:',
+        `Admin E-Mail: ${provisioning.adminEmail}`,
         `Passwort: ${provisioning.generatedPassword}`,
         '',
-        trialLine,
-        trialLine ? '' : null,
-        `Standardkasse: Hauptkasse (${provisioning.cashRegisterNumber})`,
-        `Demo-Produkte: ${provisioning.productIds.length} Stück wurden angelegt`,
+        'Erste Schritte:',
+        `1. Kunde einloggen: ${portalUrl}`,
+        '2. Passwort ändern',
+        '3. Produkte anpassen',
+        '4. Kasse mit Drucker verbinden',
+        '5. Test-Transaktion durchführen',
         '',
-        'Nächste Schritte:',
-        '1. Melden Sie sich mit den obigen Zugangsdaten an',
-        `2. Wechseln Sie zu ${portalUrl}`,
-        '3. Passen Sie Produkte, Steuern und Einstellungen an',
-    ]
-        .filter((line): line is string => line != null && line !== '')
-        .join('\n');
+        `E-Mail mit Zugangsdaten: ${notifyEmail}`,
+    ].join('\n');
 }
 
 export type AdminTenantDetail = AdminTenantListItem & {
@@ -126,6 +124,17 @@ export async function checkAdminTenantSlugAvailability(slug: string): Promise<Te
         params: { slug },
     });
     return data;
+}
+
+export async function getAdminTenantSlugSuggestions(
+    companyName?: string,
+    preferredSlug?: string,
+    max = 5,
+): Promise<string[]> {
+    const { data } = await AXIOS_INSTANCE.get<{ suggestions: string[] }>('/api/admin/tenants/slug-suggestions', {
+        params: { name: companyName, slug: preferredSlug, max },
+    });
+    return data.suggestions ?? [];
 }
 
 export async function listAdminTenants(includeDeleted = false): Promise<AdminTenantListItem[]> {

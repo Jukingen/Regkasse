@@ -277,6 +277,17 @@ export function useTenantCreateFormFields(
         }
     };
 
+    const canSubmit = Boolean(
+        nameWatch?.trim() &&
+            !validateCompanyName(nameWatch) &&
+            emailWatch?.trim() &&
+            !validateContactEmail(emailWatch) &&
+            slugReadyForAvailability &&
+            slugAvailabilityUi === 'available' &&
+            !slugFormatError &&
+            !availabilityQuery.isFetching,
+    );
+
     return {
         t,
         baseDomain,
@@ -296,5 +307,6 @@ export function useTenantCreateFormFields(
         handleSlugChange,
         handleSlugBlur,
         handleNameBlur,
+        canSubmit,
     };
 }

@@ -111,6 +111,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             CashRegisterId = cashRegister.Id,
         };
 
+        adminUser.MustChangePasswordOnNextLogin = true;
+
         var createResult = await _userManager.CreateAsync(adminUser, password).ConfigureAwait(false);
         if (!createResult.Succeeded)
         {

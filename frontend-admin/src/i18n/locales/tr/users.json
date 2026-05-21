@@ -251,6 +251,7 @@
     },
     "invitations": {
       "description": "E-posta ile yeni mandant kullanıcıları davet edin. Hedef mandantı seçin ve davet gönderin (e-posta için SMTP gerekir).",
+      "descriptionSuperAdmin": "E-posta ile kullanıcı davet edin. Hedef mandantı listeden seçin (domain ve lisans durumu görünür).",
       "smtpHint": "SMTP yapılandırması olmadan hesap oluşturulur ancak davet e-postası gönderilemeyebilir.",
       "columnTenant": "Mandant",
       "columnOwner": "Mandant yöneticisi (e-posta)",
@@ -260,6 +261,7 @@
   },
   "invite": {
     "title": "Kullanıcı davet et",
+    "titleForTenant": "«{{name}}» ({{slug}}) mandantına kullanıcı davet et",
     "action": "Kullanıcı davet et",
     "send": "Davet gönder",
     "email": "E-posta adresi",
@@ -267,8 +269,23 @@
     "tenantRequired": "Lütfen bir mandant seçin.",
     "tenantPlaceholder": "Mandant seçin …",
     "tenantOption": "{{name}} ({{slug}})",
+    "licenseNone": "Lisans yok",
     "role": "Rol",
     "emailHint": "SMTP yapılandırıldığında kullanıcı erişim bilgileri içeren bir e-posta alır.",
+    "targetTenant": {
+      "title": "«{{name}}» ({{slug}}) mandantına kullanıcı davet et",
+      "modalLabel": "Davet hedefi",
+      "licenseLine": "Lisans: {{license}}"
+    },
+    "multiTenant": {
+      "tenantsLabel": "Mandantlar (firmalar)",
+      "roleForAll": "Seçilen tüm mandantlar için rol",
+      "tenantsRequired": "En az bir mandant seçin.",
+      "separateCredentialsWarning": "Kullanıcı, seçilen her mandant için ayrı erişim bilgileri alır (mandant başına bir hesap).",
+      "allSuccess": "{{count}} davet başarılı.",
+      "partialSuccess": "{{ok}} başarılı, {{failed}} başarısız.",
+      "resultSummary": "{{ok}} mandant atandı, {{failed}} başarısız."
+    },
     "roleOptions": {
       "Manager": { "label": "Manager (bu firma için tam yetki)" },
       "Cashier": { "label": "Kasiyer (yalnızca POS)" },

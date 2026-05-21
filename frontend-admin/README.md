@@ -172,32 +172,25 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 | ![Tenant users](../docs/images/tenant-management/fa-tenant-detail-users.png) | Invite / roles / reset password |
 | ![Super Admin home](../docs/images/tenant-management/fa-super-admin-selector.png) | Tenant picker + impersonate |
 
-Docs: [`../docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md), [`../docs/LICENSE_SYSTEM.md`](../docs/LICENSE_SYSTEM.md), [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
+**Customer onboarding:** `CreateTenantWizard` on tenant list — see [`../docs/CUSTOMER_ONBOARDING.md`](../docs/CUSTOMER_ONBOARDING.md).
 
-### Super Admin
+**Impersonation (production):** redirect to `https://{tenantSlug}.regkasse.at/impersonate-callback#impersonate_token=…` — [`../docs/IMPERSONATION_FLOW.md`](../docs/IMPERSONATION_FLOW.md).
 
-Access: **`admin.regkasse.at`** in production (wildcard DNS + TLS).
+**Docs index:** [`../docs/TENANT_MANAGEMENT.md`](../docs/TENANT_MANAGEMENT.md), [`../docs/CUSTOMER_ONBOARDING.md`](../docs/CUSTOMER_ONBOARDING.md), [`../docs/USER_MANAGEMENT.md`](../docs/USER_MANAGEMENT.md), [`../docs/CASH_REGISTER_LIFECYCLE.md`](../docs/CASH_REGISTER_LIFECYCLE.md), [`../docs/LICENSE_SYSTEM.md`](../docs/LICENSE_SYSTEM.md), [`../docs/MULTI_TENANT.md`](../docs/MULTI_TENANT.md).
 
-**Who can access:** `SuperAdmin` role or `system.critical` permission → `/admin/tenants` (`src/app/(protected)/admin/tenants/page.tsx`).
+## License display
 
-**Capabilities (via `src/features/super-admin/api/adminTenants.ts`):**
+| What you see | Meaning |
+|--------------|---------|
+| **Super Admin Modus** (`TenantBadge`) | Platform host; no mandant context |
+| Green/orange/red **Mandantenlizenz** tag (Manager on `{slug}.*`) | `tenants.license_valid_until_utc` / trial heuristic — **not** server On-Premise |
+| **Lizenz (On-Premise)** `/admin/license` | Deployment / machine license (`LicenseService`) |
+| Dev switcher license column | Same mandant fields per tenant row |
 
-| Action | API |
-|--------|-----|
-| List / create / edit / delete tenants | `/api/admin/tenants` |
-| Login as (impersonate) | `POST /api/admin/tenants/{tenantId}/impersonate` |
+Expiry: header tag **orange** if ≤7 days; **red** if expired; content **banner** for Managers if ≤15 days or expired. Super Admin platform mode hides these (`suppressLicenseWarnings`).
 
-**Impersonation flow:**
-
-1. User clicks impersonate on tenant table.
-2. FA calls `POST /api/admin/tenants/{tenantId}/impersonate`.
-3. **Production** (`admin.regkasse.at`): browser redirects to `https://{tenantSlug}.regkasse.at/impersonate-callback#impersonate_token=…` (fragment handoff; token is not stored on the admin host).
-4. Tenant FA callback validates `tenant_impersonation`, persists tokens, strips the hash, opens `/dashboard`.
-5. **Development** (localhost / `*.local`): same-origin reload with `dev_tenant_id` and `X-Tenant-Id` on API calls.
-
-Details: [`../docs/IMPERSONATION_FLOW.md`](../docs/IMPERSONATION_FLOW.md).
-
-Issued licenses and operational data for another tenant require impersonation (or dev tenant header). Mandant SaaS license is edited per tenant on the detail **License** tab; server On-Premise license is under `/admin/license`. See `docs/MULTI_TENANT.md` and `docs/LICENSE_SYSTEM.md`.
+![Manager license badge (placeholder)](../docs/images/tenant-management/fa-manager-license-badge.png)  
+![Deployment license page (placeholder)](../docs/images/tenant-management/fa-deployment-license.png)
 
 ### Multi-Tenant Security (client)
 

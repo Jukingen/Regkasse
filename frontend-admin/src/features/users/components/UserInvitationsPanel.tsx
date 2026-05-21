@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Alert, Button, Modal, Space, Typography, message } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,28 +12,17 @@ import {
     inviteAdminUser,
     type TenantUserInviteResult,
 } from '@/features/users/api/users';
-import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
-import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
+import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useI18n } from '@/i18n';
 
-/** Dedicated invitations tab — same modal as tenant tab. */
+/** Dedicated invitations tab — tenant dropdown with domain and license (Super Admin). */
 export function UserInvitationsPanel() {
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const [inviteOpen, setInviteOpen] = useState(false);
     const [inviteResult, setInviteResult] = useState<TenantUserInviteResult | null>(null);
 
-    const tenantsQuery = useGetApiAdminTenants();
-    const tenantInviteOptions = useMemo(
-        () =>
-            (tenantsQuery.data ?? [])
-                .filter((row) => row.isActive && isBusinessTenantSlug(row.slug))
-                .map((tenant) => ({
-                    value: tenant.id,
-                    label: t('users.invite.tenantOption', { name: tenant.name, slug: tenant.slug }),
-                })),
-        [tenantsQuery.data, t],
-    );
+    const { tenants, isLoading, isSuperAdmin } = useTenantList();
 
     const inviteMutation = useMutation({
         mutationFn: (values: InviteUserFormValues) => {
@@ -61,7 +50,9 @@ export function UserInvitationsPanel() {
     return (
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                {t('users.tabs.invitations.description')}
+                {isSuperAdmin
+                    ? t('users.tabs.invitations.descriptionSuperAdmin')
+                    : t('users.tabs.invitations.description')}
             </Typography.Paragraph>
             <Alert type="info" showIcon message={t('users.tabs.invitations.smtpHint')} />
             <Button type="primary" icon={<MailOutlined />} onClick={() => setInviteOpen(true)}>
@@ -70,7 +61,8 @@ export function UserInvitationsPanel() {
             <InviteUserModal
                 open={inviteOpen}
                 variant="usersPage"
-                tenantOptions={tenantInviteOptions}
+                tenantRows={tenants}
+                tenantsLoading={isLoading}
                 confirmLoading={inviteMutation.isPending}
                 onClose={() => setInviteOpen(false)}
                 onSubmit={(values) => inviteMutation.mutate(values)}

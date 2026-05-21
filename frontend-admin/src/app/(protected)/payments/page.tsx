@@ -43,7 +43,7 @@ import type {
   AdminPaymentListItemDto,
 } from '@/api/generated/model';
 import dayjs from 'dayjs';
-import { useMutation } from '@tanstack/react-query';
+import { keepPreviousData, useMutation } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -63,6 +63,10 @@ import {
 const { RangePicker } = DatePicker;
 
 const DEFAULT_DATE_RANGE = { startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'), endDate: dayjs().format('YYYY-MM-DD') };
+
+const DEFAULT_LIST_PAGE_SIZE = 50;
+
+const PAYMENT_STATUS_FILTER_VALUES = ['Success', 'Pending', 'Failed', 'Cancelled', 'Refunded'] as const;
 
 interface PaymentStatisticsShape {
   totalPayments?: number;
@@ -157,6 +161,8 @@ export default function PaymentsPage() {
   ]);
   const [methodFilter, setMethodFilter] = useState<string | undefined>();
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_LIST_PAGE_SIZE);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [refundReason, setRefundReason] = useState('');
@@ -166,17 +172,25 @@ export default function PaymentsPage() {
     if (pid) setSelectedPaymentId(pid);
   }, [searchParams]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [dateRange, methodFilter, statusFilter]);
+
   const listParams = useMemo(
     () => ({
       startDate: dateRange[0].format('YYYY-MM-DD'),
       endDate: dateRange[1].format('YYYY-MM-DD'),
-      pageSize: 500,
-      pageNumber: 1,
+      pageNumber: page,
+      pageSize,
+      method: methodFilter,
+      status: statusFilter,
     }),
-    [dateRange]
+    [dateRange, page, pageSize, methodFilter, statusFilter],
   );
 
-  const { data, isLoading, isError, error, refetch } = useGetApiAdminPayments(listParams);
+  const { data, isLoading, isError, error, refetch } = useGetApiAdminPayments(listParams, {
+    query: { placeholderData: keepPreviousData },
+  });
   const { data: statsRaw, isLoading: statsLoading } = useGetApiAdminPaymentsStatistics({
     startDate: listParams.startDate,
     endDate: listParams.endDate,
@@ -186,37 +200,26 @@ export default function PaymentsPage() {
   });
   const paymentDetailData = paymentDetail as AdminPaymentDetailDto | undefined;
 
-  const paymentsResponse = data as { items?: AdminPaymentListItemDto[] } | undefined;
-  const payments: AdminPaymentListItemDto[] = useMemo(
-    () => paymentsResponse?.items ?? [],
-    [paymentsResponse?.items]
-  );
+  const payments: AdminPaymentListItemDto[] = useMemo(() => data?.items ?? [], [data?.items]);
+  const totalCount = data?.total ?? payments.length;
 
   const stats: PaymentStatisticsShape | null =
     statsRaw && typeof statsRaw === 'object' ? (statsRaw as PaymentStatisticsShape) : null;
   const operationalDetail = paymentDetailData;
   const safeOperationalDetail: AdminPaymentDetailDto = operationalDetail ?? ({} as AdminPaymentDetailDto);
 
-  const filteredPayments = useMemo(() => {
-    return payments.filter((p) => {
-      if (methodFilter && p.method !== methodFilter) return false;
-      if (statusFilter && p.status !== statusFilter) return false;
-      return true;
-    });
-  }, [payments, methodFilter, statusFilter]);
-
   const paymentsScopeSummary = useMemo(() => {
     const startStr = fmt.formatDate(dateRange[0].toDate());
     const endStr = fmt.formatDate(dateRange[1].toDate());
     const parts = [
       `${startStr}–${endStr}`,
-      t('payments.scope.serverLine', { count: payments.length }),
-      t('payments.scope.filteredLine', { count: filteredPayments.length }),
+      t('payments.scope.serverLine', { count: totalCount }),
+      t('payments.scope.filteredLine', { count: payments.length }),
     ];
     if (methodFilter) parts.push(t('payments.scope.methodLine', { value: methodFilter }));
     if (statusFilter) parts.push(t('payments.scope.statusLine', { value: paymentStatusUiLabel(statusFilter) }));
     return parts.join(' · ');
-  }, [dateRange, payments.length, filteredPayments.length, methodFilter, statusFilter, fmt, t, paymentStatusUiLabel]);
+  }, [dateRange, totalCount, payments.length, methodFilter, statusFilter, fmt, t, paymentStatusUiLabel]);
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
@@ -276,8 +279,18 @@ export default function PaymentsPage() {
     }
   };
 
-  const methodOptions = Array.from(new Set(payments.map((p) => p.method).filter(Boolean))) as string[];
-  const statusOptions = Array.from(new Set(payments.map((p) => p.status).filter(Boolean))) as string[];
+  const methodOptions = useMemo(
+    () => Array.from(new Set(payments.map((p) => p.method).filter(Boolean))) as string[],
+    [payments],
+  );
+  const statusOptions = useMemo(
+    () =>
+      PAYMENT_STATUS_FILTER_VALUES.map((s) => ({
+        value: s,
+        label: paymentStatusUiLabel(s),
+      })),
+    [paymentStatusUiLabel],
+  );
 
   const columns = useMemo(
     () => [
@@ -486,7 +499,7 @@ export default function PaymentsPage() {
             value={statusFilter}
             onChange={(v) => setStatusFilter(v)}
             style={{ width: 180 }}
-            options={statusOptions.map((s) => ({ value: s, label: paymentStatusUiLabel(s) }))}
+            options={statusOptions}
           />
         </Space>
       </Card>
@@ -524,7 +537,7 @@ export default function PaymentsPage() {
           <Card size="small">
             <Statistic
               title={t('payments.stats.paymentCount')}
-              value={stats?.totalPayments ?? filteredPayments.length}
+              value={stats?.totalPayments ?? totalCount}
               loading={statsLoading}
               formatter={(v) => fmt.formatNumber(Number(v), { maximumFractionDigits: 0 })}
             />
@@ -586,10 +599,21 @@ export default function PaymentsPage() {
       {!isError ? (
       <Table
         columns={columns}
-        dataSource={filteredPayments}
+        dataSource={payments}
         loading={isLoading}
         rowKey="id"
         scroll={{ x: 1280 }}
+        pagination={{
+          current: page,
+          pageSize,
+          total: totalCount,
+          showSizeChanger: true,
+          pageSizeOptions: ['25', '50', '100'],
+          onChange: (p, ps) => {
+            setPage(p);
+            setPageSize(ps);
+          },
+        }}
         locale={{
           emptyText: (
             <Empty

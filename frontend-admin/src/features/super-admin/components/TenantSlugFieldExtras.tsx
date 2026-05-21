@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Live subdomain preview, availability status, and allowed/disallowed examples below the slug input.
+ * Live address preview and availability below the subdomain field.
  */
 import React from 'react';
 import { Spin, Typography } from 'antd';
@@ -30,22 +30,6 @@ export function TenantSlugFieldExtras({
 
     return (
         <div>
-            {previewSegment ? (
-                <p className={styles.preview}>
-                    <LinkOutlined aria-hidden style={{ marginRight: 6 }} />
-                    {t('tenants.create.fields.slug.previewLabel')}{' '}
-                    {portalUrl ? (
-                        <Typography.Link href={portalUrl} target="_blank" rel="noopener noreferrer" strong>
-                            {previewSegment}.{baseDomain}
-                        </Typography.Link>
-                    ) : (
-                        <Typography.Text strong>
-                            {previewSegment}.{baseDomain}
-                        </Typography.Text>
-                    )}
-                </p>
-            ) : null}
-
             {availabilityUi === 'checking' ? (
                 <p className={`${styles.availability} ${styles.availabilityChecking}`}>
                     <Spin size="small" style={{ marginRight: 8 }} />
@@ -63,16 +47,20 @@ export function TenantSlugFieldExtras({
                 </p>
             ) : null}
 
-            <div className={styles.example}>
-                <p className={styles.exampleLine}>
-                    <Typography.Text type="success">✅ {t('tenants.create.fields.slug.allowedTitle')}</Typography.Text>{' '}
-                    {t('tenants.create.fields.slug.allowedExamples')}
+            {previewSegment && availabilityUi === 'available' ? (
+                <p className={styles.preview}>
+                    <LinkOutlined aria-hidden style={{ marginRight: 6 }} />
+                    {portalUrl ? (
+                        <Typography.Link href={portalUrl} target="_blank" rel="noopener noreferrer" strong>
+                            {previewSegment}.{baseDomain}
+                        </Typography.Link>
+                    ) : (
+                        <Typography.Text strong>
+                            {previewSegment}.{baseDomain}
+                        </Typography.Text>
+                    )}
                 </p>
-                <p className={styles.exampleLine}>
-                    <Typography.Text type="danger">❌ {t('tenants.create.fields.slug.disallowedTitle')}</Typography.Text>{' '}
-                    {t('tenants.create.fields.slug.disallowedExamples')}
-                </p>
-            </div>
+            ) : null}
         </div>
     );
 }

@@ -43,7 +43,7 @@ import { useI18n, formatDate } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
-import { CreateTenantModal } from '@/features/super-admin/components/CreateTenantModal';
+import { CreateTenantWizard } from '@/features/super-admin/components/CreateTenantWizard';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
 import {
     applyTenantImpersonationSession,
@@ -347,10 +347,13 @@ export default function SuperAdminTenantsPage() {
                 />
             </Card>
 
-            <CreateTenantModal
+            <CreateTenantWizard
                 open={createOpen}
                 onClose={() => setCreateOpen(false)}
                 onCreated={() => void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY })}
+                onCreateAnother={() => setCreateOpen(true)}
+                onSwitchToTenant={(tenantId) => impersonateMutation.mutate(tenantId)}
+                switchToTenantLoading={impersonateMutation.isPending}
             />
 
             <Modal

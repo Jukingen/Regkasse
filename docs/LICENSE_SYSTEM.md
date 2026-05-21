@@ -111,7 +111,11 @@ Mapped in `mandantLicenseBadge.ts`:
 | Trial / ≤7 days | `orange` | same trial label |
 | Paid / valid | `green` | `license.badge.tenant.licensed.label` |
 
-Tooltips append `license.badge.tenant.baseTooltip` (*Mandant*, not server).
+Tooltips append `license.badge.tenant.baseTooltip` (*Mandantenlizenz*, not server).
+
+**≤7 days remaining:** header tag uses **`orange`** (trial label); operators should renew before expiry.
+
+**Expired:** `red` tag + `LicenseExpiryBanner` **error** alert for Managers.
 
 ### Content banner (`LicenseExpiryBanner`)
 
@@ -141,6 +145,22 @@ Messages: `license.banner.expired.*`, `license.banner.warning.*` in `frontend-ad
 **UI:** `CreateTenantModal` checkbox bound to `grantTrialLicense`; success modal shows `trialLicenseValidUntilUtc` from provisioning DTO when present.
 
 **Post-create:** Super Admin can extend via `LicenseManager` → *Testversion aktivieren* (`POST …/license/trial`) or manual key/date.
+
+---
+
+## License extension process (manual key)
+
+**German UI:** tenant detail → **Lizenz** → *Lizenz verlängern / anpassen*.
+
+| Step | Action |
+|------|--------|
+| 1 | Open `/admin/tenants/{tenantId}?tab=license` (Super Admin) or tenant settings as Manager where permitted |
+| 2 | Enter **Lizenzschlüssel (Mandant)** (`licenseKey`) and/or **Gültig bis** (`validUntilUtc`) |
+| 3 | Save → `PUT` / extend endpoint on `/api/admin/tenants/{tenantId}/license` |
+| 4 | Optional: **30-Tage Demo aktivieren** if trial expired — `POST …/license/trial` |
+| 5 | Issued POS/deployment JWTs remain under **Lizenzen** (`/admin/license`) — separate from Mandanten row |
+
+**Hint in UI (DE):** REGK-Schlüssel aus „Lizenzen“ oder manuelles Enddatum; issued licenses may require impersonation on tenant host.
 
 ---
 

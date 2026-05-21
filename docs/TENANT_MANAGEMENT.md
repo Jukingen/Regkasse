@@ -14,7 +14,31 @@
 | **Firma wechseln** (Dev) | tenant switch | `X-Tenant-Id` + `localStorage.dev_tenant_id` reload |
 | **Plattform-Admin** | platform admin host | `admin.regkasse.at` — no mandant context until impersonation |
 
-Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md).
+Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md), [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md).
+
+---
+
+## What is a tenant (Mandant)?
+
+A **Mandant** is one SaaS customer company in Regkasse:
+
+- **Row:** `tenants` (UUID `id`, unique `slug`, contact fields, status, Mandantenlizenz columns)
+- **URL:** `https://{slug}.regkasse.at` (POS + tenant admin)
+- **Data:** All business tables with `tenant_id` (products, registers, receipts, …) are isolated via EF global filters
+
+**Super Admin** works on `admin.regkasse.at` without mandant business context until **impersonation** or (dev only) header switcher selects a slug.
+
+---
+
+## Tenant status meanings
+
+| Status (API) | German (UI) | `isActive` | Operator effect |
+|--------------|-------------|------------|-----------------|
+| `active` | Aktiv | `true` | Normal operation; impersonation allowed |
+| `suspended` | Gesperrt | usually `false` | Login/impersonation blocked; data retained |
+| `deleted` | Gelöscht | `false` | Soft-delete; hidden from default lists; optional hard-delete later |
+
+**List filter:** *Gelöschte anzeigen* → `includeDeleted=true` on `GET /api/admin/tenants`.
 
 ---
 
@@ -29,13 +53,27 @@ Related: [`MULTI_TENANT.md`](MULTI_TENANT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYS
 
 ![Tenant list (placeholder)](images/tenant-management/fa-tenant-list.png)
 
-### Create tenant
+### Tenant detail page (tabs)
 
-**UI:** `CreateTenantModal` — `frontend-admin/src/features/super-admin/components/CreateTenantModal.tsx`
+| Tab (DE) | Content |
+|----------|---------|
+| **Übersicht** | Name, slug, status, contact, impersonate |
+| **Benutzer** | Invite, roles, owner, reset password — see [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) |
+| **Kassen** | Registers, decommission — see [`CASH_REGISTER_LIFECYCLE.md`](CASH_REGISTER_LIFECYCLE.md) |
+| **Lizenz** | Mandantenlizenz (`LicenseManager`) — see [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) |
+| **Einstellungen** | Address, status, danger zone (hard-delete mandant) |
+
+Route: `/admin/tenants/[tenantId]` — query `?tab=users|registers|license|settings`.
+
+![Tenant detail overview (placeholder)](images/tenant-management/fa-tenant-detail-overview.png)
+
+### Create tenant (onboarding wizard)
+
+**UI:** `CreateTenantWizard` (exported alias `CreateTenantModal`) — foolproof flow documented in [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md)
 
 - Live slug normalization (`normalizeTenantSlugInput`) and availability check (`CheckSlugAvailabilityAsync` on backend).
 - Optional **trial license** checkbox maps to `grantTrialLicense` (default **true** in API DTO).
-- On success, `CreateTenantSuccessModal` shows one-time **provisioning** payload (admin password, register id, demo product ids).
+- On success, `OnboardingSuccessModal` shows one-time **provisioning** payload (admin password, register id, demo product ids).
 
 **Backend:** `AdminTenantService.CreateAsync` runs provisioning inside a DB transaction:
 
@@ -77,7 +115,18 @@ See [Auto-provisioning](#auto-provisioning-tenantprovisioningservice).
 
 ---
 
-## Tenant user management
+## How to invite users to a tenant
+
+1. Open tenant → tab **Benutzer** (or `/admin/tenants/{id}/users`).
+2. Click **Benutzer einladen**.
+3. Enter **E-Mail**, choose **Rolle** (`Manager` / `Cashier` / `Accountant`), optionally **Mandanten-Administrator (Owner)**.
+4. Confirm — backend creates or links Identity user and membership; sends invitation email if SMTP is configured.
+
+Alternatively: **Bestehenden Benutzer** — attach an existing account without creating a new login.
+
+Full role and password semantics: [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md).
+
+## Tenant user management (reference)
 
 **UI:** `TenantDetailUsersTab` — `frontend-admin/src/features/super-admin/components/TenantDetailUsersTab.tsx`  
 **API:** `frontend-admin/src/features/super-admin/api/tenantUsers.ts`
@@ -141,6 +190,18 @@ Badge colors for i18n labels: `mandantLicenseBadge.ts` → `mapTenantLicenseLabe
 **Expiry banner (Manager only):** `LicenseExpiryBanner` — warning if ≤15 days, error if expired. Super Admin never sees it.
 
 ---
+
+## How to switch between tenants (Super Admin)
+
+| Environment | Mechanism |
+|-------------|-----------|
+| **Production** | **Als Mandant anmelden** (impersonate) → redirect `https://{slug}.regkasse.at/impersonate-callback#impersonate_token=…` |
+| **Development** | Header **Firma wechseln** (`HeaderDevTenantSwitch`) → `GET /api/tenants/switcher` → `localStorage.dev_tenant_id` + reload |
+| **Platform home** | `/admin` — `SuperAdminTenantSelector` search + impersonate |
+
+Super Admin without mandant context sees **Super Admin Modus** in `TenantBadge`; most business routes require tenant selection or impersonation (`useSuperAdminTenantMode`).
+
+If a tenant has **no owner admin** (🟡), switching triggers `TenantSwitcherNoAdminFlow` (invite or impersonate).
 
 ## Tenant switcher behavior
 
@@ -216,7 +277,7 @@ When create succeeds, provisioning (same transaction) typically creates:
         }
 ```
 
-Response includes `provisioning` DTO (one-time password, register id, product ids) for `CreateTenantSuccessModal`.
+Response includes `provisioning` DTO (one-time password, register id, product ids) for `OnboardingSuccessModal`.
 
 ---
 

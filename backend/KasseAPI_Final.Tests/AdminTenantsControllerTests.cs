@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -40,9 +41,21 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<ILogger<UserManager<ApplicationUser>>>());
     }
 
-    private static AdminTenantService CreateService(AppDbContext db, ITenantProvisioningService? provisioning = null)
+    private static ITenantOnboardingService CreateOnboardingService(
+        AppDbContext db,
+        ITenantProvisioningService? provisioning = null)
     {
         var provisioningMock = provisioning ?? CreateSuccessfulProvisioningMock();
+        return new TenantOnboardingService(
+            db,
+            provisioningMock,
+            Mock.Of<IWelcomeEmailService>(),
+            Mock.Of<IAuditLogService>(),
+            Mock.Of<ILogger<TenantOnboardingService>>());
+    }
+
+    private static AdminTenantService CreateService(AppDbContext db, ITenantProvisioningService? provisioning = null)
+    {
         return new AdminTenantService(
             db,
             CreateUserManagerStub(),
@@ -50,7 +63,7 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<IRefreshTokenService>(),
             Mock.Of<IJwtAccessTokenIssuer>(),
             Options.Create(new AuthOptions()),
-            provisioningMock,
+            CreateOnboardingService(db, provisioning),
             Mock.Of<ILogger<AdminTenantService>>());
     }
 
@@ -105,6 +118,54 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
+    public async Task CreateAsync_WhenSlugTaken_ReturnsSuggestions()
+    {
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Cafe",
+            Slug = "cafe-beispiel",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var (_, failure) = await service.CreateWithFailureDetailAsync(
+            new CreateAdminTenantRequest { Name = "Café Beispiel", Slug = "cafe-beispiel", Email = "owner@test.at" },
+            "actor-1");
+
+        Assert.NotNull(failure);
+        Assert.Equal(TenantOnboardingErrorCodes.SlugTaken, failure!.Code);
+        Assert.NotEmpty(failure.SlugSuggestions ?? Array.Empty<string>());
+        Assert.DoesNotContain("cafe-beispiel", failure.SlugSuggestions!, StringComparer.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetSlugSuggestionsAsync_ExcludesTakenSlugs()
+    {
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Taken",
+            Slug = "cafe-beispiel",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var suggestions = await service.GetSlugSuggestionsAsync("Café Beispiel", "cafe-beispiel");
+
+        Assert.NotEmpty(suggestions);
+        Assert.DoesNotContain("cafe-beispiel", suggestions, StringComparer.Ordinal);
+    }
+
+    [Fact]
     public async Task CheckSlugAvailabilityAsync_ReturnsAvailableForNewSlug()
     {
         await using var db = CreateDb();
@@ -123,12 +184,12 @@ public sealed class AdminTenantsControllerTests
         var service = CreateService(db);
 
         var (result, error) = await service.CreateAsync(
-            new CreateAdminTenantRequest { Name = "Test Cafe", Slug = "test_cafe" },
+            new CreateAdminTenantRequest { Name = "Test Cafe", Slug = "test-cafe" },
             "actor-1");
 
         Assert.Null(error);
         Assert.NotNull(result);
-        Assert.Equal("test_cafe", result!.Slug);
+        Assert.Equal("test-cafe", result!.Slug);
         Assert.Equal(TenantStatuses.Active, result.Status);
         Assert.NotNull(result.Provisioning);
         Assert.Equal("KASSE-001", result.Provisioning!.CashRegisterNumber);

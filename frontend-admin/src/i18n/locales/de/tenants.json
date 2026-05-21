@@ -48,26 +48,54 @@
       "availabilityFailed": "Verfügbarkeit konnte nicht geprüft werden. Bitte erneut versuchen."
     }
   },
+  "onboarding": {
+    "errors": {
+      "title": "Fehler beim Anlegen des Kunden",
+      "slugTaken": "Subdomain „{{slug}}“ ist bereits vergeben.",
+      "adminEmailTaken": "Diese E-Mail-Adresse wird bereits von einem anderen Benutzer verwendet.",
+      "suggestionsTitle": "Vorschläge:",
+      "useSuggestion": "Verwenden",
+      "tryAgain": "Anderen Namen versuchen",
+      "rollbackNote": "Es wurden keine Daten gespeichert (automatisches Zurückrollen)."
+    }
+  },
   "create": {
-    "title": "Neuer Mandant",
-    "subtitle": "Legen Sie einen neuen Mandanten mit eigener Subdomain an. Administrator-Zugang wird automatisch erstellt.",
-    "submit": "Mandant anlegen",
-    "autoProvisionTitle": "Automatische Einrichtung",
-    "autoProvisionDescription": "Hauptkasse, Administrator (Passwort wird einmalig angezeigt) und Demo-Kategorie mit 3 Produkten.",
-    "adminEmailAutoTitle": "Administrator-Anmeldung (automatisch)",
-    "adminEmailAutoDescription": "Nach dem Anlegen können Sie sich mit {{email}} anmelden. Das Passwort wird im nächsten Schritt angezeigt.",
+    "title": "Neuen Kunden (Mandant) anlegen",
+    "subtitle": "Alle technischen Schritte (Kasse, Demo-Daten, Administrator) werden automatisch eingerichtet.",
+    "submit": "Kunden anlegen",
     "sections": {
-      "basic": "Mandant & Subdomain",
-      "contact": "Kontakt",
-      "contactOptional": "Telefon und Adresse sind optional. Die Kontakt-E-Mail ist für Systembenachrichtigungen erforderlich.",
-      "advanced": "Erweiterte Einstellungen"
+      "advanced": "Weitere Angaben (optional)"
+    },
+    "processing": {
+      "title": "Kunde wird angelegt …",
+      "subtitle": "Bitte warten Sie, bis die Einrichtung abgeschlossen ist.",
+      "subtitleError": "Die Einrichtung wurde abgebrochen. Es wurden keine Daten gespeichert.",
+      "rollbackHint": "Falls ein Schritt fehlschlägt, wird automatisch zurückgerollt.",
+      "failedTitle": "Einrichtung fehlgeschlagen",
+      "backToForm": "Zurück zum Formular",
+      "steps": {
+        "company": "Firma wird angelegt …",
+        "companyDone": "Firma „{{name}}“ angelegt",
+        "subdomain": "Adresse wird aktiviert …",
+        "subdomainDone": "Adresse {{slug}}.{{domain}} aktiviert",
+        "admin": "Administrator wird erstellt …",
+        "adminDone": "Administrator-Zugang erstellt",
+        "license": "Demo-Lizenz wird aktiviert …",
+        "licenseDone": "Demo-Lizenz (30 Tage) aktiviert",
+        "register": "Kasse wird eingerichtet …",
+        "registerDone": "Kasse „Hauptkasse“ eingerichtet",
+        "products": "Demo-Produkte werden angelegt …",
+        "productsDone": "Demo-Produkte angelegt",
+        "handoff": "Zugangsdaten werden bereitgestellt …",
+        "handoffDone": "Zugangsdaten bereit (im nächsten Schritt)"
+      }
     },
     "fields": {
       "name": {
         "label": "Firmenname",
-        "tooltip": "Der offizielle Name Ihres Unternehmens (wird auf Belegen angezeigt)",
-        "placeholder": "z. B. Café Beispiel GmbH",
-        "hint": "Der offizielle Name Ihres Unternehmens. Erscheint auf Belegen.",
+        "tooltip": "Wie der Kunde auf Belegen und in der Verwaltung erscheint",
+        "placeholder": "Café Beispiel",
+        "hint": "Wie der Kunde auf Belegen erscheint",
         "errors": {
           "required": "Bitte geben Sie einen Firmennamen ein.",
           "tooShort": "Der Firmenname muss mindestens 2 Zeichen haben.",
@@ -75,19 +103,14 @@
         }
       },
       "slug": {
-        "label": "Subdomain",
-        "tooltip": "Die Adresse für Ihre Kasse und Ihr Admin-Panel",
-        "placeholder": "cafe-example",
-        "hint": "Nur Kleinbuchstaben, Zahlen und Bindestriche. Beispiel: cafe-example",
-        "previewLabel": "Ihre Zugangsadresse:",
-        "availableShort": "✓ Verfügbar",
-        "takenShort": "❌ Bereits vergeben",
+        "label": "Subdomain / Adresse",
+        "tooltip": "Internet-Adresse für Kasse und Verwaltung des Kunden",
+        "placeholder": "cafe-beispiel",
+        "hint": "Wird automatisch aus dem Firmennamen vorgeschlagen",
+        "availableShort": "✅ Verfügbar",
+        "takenShort": "Bereits vergeben",
         "checkingShort": "Verfügbarkeit wird geprüft …",
-        "allowedTitle": "Erlaubt:",
-        "allowedExamples": "cafe, cafe-shop, mein-cafe-123",
-        "disallowedTitle": "Nicht erlaubt:",
-        "disallowedExamples": "Café (Großbuchstaben), cafe.shop (Punkt), cafe shop (Leerzeichen)",
-        "success": "Diese Subdomain ist verfügbar.",
+        "success": "Diese Adresse ist verfügbar.",
         "errors": {
           "required": "Bitte eine Subdomain eingeben (z. B. cafe-example).",
           "pattern": "Nur Kleinbuchstaben, Zahlen und Bindestriche erlaubt",
@@ -100,9 +123,9 @@
       },
       "contactEmail": {
         "label": "E-Mail (Kontakt)",
-        "tooltip": "Für Benachrichtigungen und Support-Anfragen",
-        "placeholder": "kontakt@cafe-example.at",
-        "hint": "Für Benachrichtigungen und Support. Eine gültige E-Mail-Adresse.",
+        "tooltip": "Wird auch als Anmelde-E-Mail für den Administrator verwendet",
+        "placeholder": "geschaeftsfuehrer@cafe-beispiel.at",
+        "hint": "Für Rechnungen, Support und Administrator-Anmeldung",
         "errors": {
           "required": "Bitte eine gültige E-Mail-Adresse eingeben.",
           "invalid": "Bitte eine gültige E-Mail-Adresse eingeben."
@@ -135,22 +158,24 @@
         "copy": "E-Mail kopieren"
       },
       "grantTrialLicense": {
-        "label": "✅ 30-Tage Demo-Lizenz aktivieren",
-        "tooltip": "30 Tage kostenlos testen, danach Verlängerung möglich",
-        "subtext": "30 Tage kostenlos. Danach Verlängerung möglich."
+        "label": "Demo-Lizenz (30 Tage kostenlos) aktivieren",
+        "tooltip": "30 Tage kostenlos testen, danach Verlängerung möglich"
+      },
+      "autoDemoSetup": {
+        "label": "Demo-Produkte und Kasse automatisch anlegen",
+        "tooltip": "Legt Hauptkasse und drei Demo-Produkte an (empfohlen)"
       }
     }
   },
   "provisioning": {
     "title": "Mandant „{{name}}“ eingerichtet",
     "successTitle": "Mandant angelegt",
-    "successHeadline": "Mandant „{{name}}“ wurde erfolgreich erstellt!",
+    "successHeadline": "Kunde „{{name}}“ wurde erfolgreich angelegt!",
     "missingWarning": "Die automatische Einrichtung konnte nicht bestätigt werden. Bitte Mandant prüfen oder Support kontaktieren.",
-    "passwordWarning": "Das Administrator-Passwort wird nur einmal angezeigt. Bitte sicher notieren oder an den Mandanten übermitteln.",
-    "credentialsTitle": "Administrator-Zugang",
-    "loginEmail": "Anmelde-E-Mail",
+    "passwordWarning": "Dieses Passwort wird nur JETZT einmal angezeigt!",
+    "credentialsTitle": "Zugangsdaten (einmalige Anzeige!)",
+    "adminEmailLabel": "Admin E-Mail",
     "password": "Passwort",
-    "passwordOnce": "(einmalig)",
     "showPassword": "Passwort anzeigen",
     "hidePassword": "Passwort verbergen",
     "passwordStrength": {
@@ -161,15 +186,19 @@
       "good": "Gut",
       "strong": "Sehr stark"
     },
-    "trialLicense": "Demo-Lizenz: 30 Tage gültig",
-    "register": "Standardkasse: {{location}} ({{number}})",
-    "products": "Demo-Produkte: {{count}} Stück in Kategorie „Allgemein“",
-    "nextStepsTitle": "Nächste Schritte",
-    "nextStepLogin": "Mit den Zugangsdaten oben anmelden",
-    "nextStepPortalOnly": "Mandanten-Verwaltung öffnen unter",
-    "nextStepPortal": "Mandanten-URL:",
-    "nextStepCustomize": "Produkte, Steuern und Einstellungen anpassen",
-    "copyAll": "Zugangsdaten kopieren",
+    "firstStepsTitle": "Erste Schritte",
+    "firstStepLogin": "Kunde einloggen:",
+    "firstStepChangePassword": "Passwort ändern",
+    "firstStepProducts": "Produkte anpassen",
+    "firstStepPrinter": "Kasse mit Drucker verbinden",
+    "firstStepTestSale": "Test-Transaktion durchführen",
+    "emailSent": "Eine E-Mail mit den Zugangsdaten wurde an {{email}} gesendet.",
+    "emailNotSent": "SMTP ist nicht konfiguriert oder der Versand ist fehlgeschlagen. Bitte übermitteln Sie die Zugangsdaten manuell an {{email}}.",
+    "forcePasswordChange": "Der Kunde muss das Passwort bei der ersten Anmeldung ändern.",
+    "createAnother": "Neuen Kunden anlegen",
+    "switchToTenant": "Zum Kunden wechseln",
+    "copyAll": "Alle Zugangsdaten kopieren",
+    "copyEmail": "E-Mail kopieren",
     "copyPassword": "Passwort kopieren",
     "copySuccess": "In die Zwischenablage kopiert",
     "copyFailed": "Kopieren fehlgeschlagen"

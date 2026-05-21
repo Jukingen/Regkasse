@@ -99,7 +99,10 @@ Host: cafe.regkasse.at
 |-------------|------------|
 | **Production** | First label of `Host` (`cafe.regkasse.at` → `cafe`), except `admin` / `www` → admin context |
 | **Development** | Same as production **or** `X-Tenant-Id: {slug}` **or** `?tenant={slug}` |
+| **After login** | JWT `tenant_id` claim may **override** host-resolved accessor (`TenantContextMiddleware`) |
 | **Stored value** | Always **UUID** on rows; slug is only for routing |
+
+**JWT vs header (2026-05):** FA dev switcher and POS dev tenant id set the **ambient** tenant before login; after authentication, APIs prefer JWT `tenant_id`. Production does **not** accept `X-Tenant-Id`. Strict host↔JWT binding in production is still a [known gap](#known-gaps-and-roadmap).
 
 Code:
 
@@ -392,10 +395,14 @@ dotnet ef migrations add <DescriptiveName> \
 
 ### Admin (`frontend-admin`)
 
-| Mode | Tenant source |
-|------|----------------|
-| Production | Subdomain of FA URL |
-| Development | `HeaderDevTenantSwitch`, `X-Tenant-Id`, `localStorage.dev_tenant_id` |
+| Mode | Tenant source | API calls |
+|------|----------------|-------------|
+| **Production** | Subdomain of FA URL (`cafe.regkasse.at`) | JWT `tenant_id` after login; Super Admin on `admin.*` uses impersonation for mandant data |
+| **Development** | `HeaderDevTenantSwitch` → `GET /api/tenants/switcher` | `localStorage.dev_tenant_id` + `X-Tenant-Id: {slug}` on reload; JWT overrides after login |
+
+**Production Super Admin:** no header switcher; use **Als Mandant anmelden** or platform routes (`/admin/tenants`, `/admin/license`).
+
+**Development Super Admin:** switcher lists **all** DB tenants; search, status emoji, mandant license tag per row.
 
 Env: `NEXT_PUBLIC_API_BASE_URL` (build-time). See `frontend-admin/README.md`.
 
@@ -626,8 +633,12 @@ When implementing security middleware, add tests to `TenantIsolationTests` and u
 | Document | Content |
 |----------|---------|
 | `docs/TENANT_MANAGEMENT.md` | FA tenant CRUD, users, switcher, provisioning |
+| `docs/CUSTOMER_ONBOARDING.md` | Onboarding wizard, rollback, welcome email |
+| `docs/USER_MANAGEMENT.md` | Platform vs tenant users, invite, reset |
+| `docs/CASH_REGISTER_LIFECYCLE.md` | RKSV decommission, Schlussbeleg |
 | `docs/LICENSE_SYSTEM.md` | Deployment vs Mandant license, FA badges/banners |
 | `docs/CHANGELOG_TENANT_MANAGEMENT.md` | Dated tenant/license FA changes |
+| `docs/CHANGELOG_RECENT.md` | Cross-cutting recent engineering changes |
 | `docs/IMPERSONATION_FLOW.md` | Super Admin impersonation redirect and token handshake |
 | `REGKASSE_AI_ONBOARDING.md` | AI brief, dev setup, API headers |
 | `AGENTS.md` | Agent rules, multi-tenant summary |

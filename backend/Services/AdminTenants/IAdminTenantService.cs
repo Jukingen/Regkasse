@@ -28,6 +28,17 @@ public interface IAdminTenantService
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
+    Task<(AdminTenantDetailDto? Result, TenantOnboardingFailureDto? Failure)> CreateWithFailureDetailAsync(
+        CreateAdminTenantRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<string>> GetSlugSuggestionsAsync(
+        string? companyName,
+        string? preferredSlug,
+        int maxCount = 5,
+        CancellationToken cancellationToken = default);
+
     Task<(AdminTenantDetailDto? Result, string? Error)> UpdateAsync(
         Guid tenantId,
         UpdateAdminTenantRequest request,

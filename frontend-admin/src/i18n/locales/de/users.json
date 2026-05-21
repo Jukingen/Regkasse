@@ -251,6 +251,7 @@
     },
     "invitations": {
       "description": "Neue Mandanten-Benutzer per E-Mail einladen. Wählen Sie den Zielmandanten und versenden Sie die Einladung (SMTP erforderlich für E-Mail-Versand).",
+      "descriptionSuperAdmin": "Neue Benutzer per E-Mail einladen. Wählen Sie den Zielmandanten in der Liste (Domain und Lizenzstatus sichtbar).",
       "smtpHint": "Ohne SMTP-Konfiguration wird das Konto angelegt, die Einladungs-E-Mail kann jedoch nicht versendet werden.",
       "columnTenant": "Mandant",
       "columnOwner": "Mandanten-Admin (E-Mail)",
@@ -260,6 +261,7 @@
   },
   "invite": {
     "title": "Benutzer einladen",
+    "titleForTenant": "Benutzer zu «{{name}}» ({{slug}}) einladen",
     "action": "Benutzer einladen",
     "send": "Einladung senden",
     "email": "E-Mail-Adresse",
@@ -267,8 +269,23 @@
     "tenantRequired": "Bitte einen Mandanten wählen.",
     "tenantPlaceholder": "Mandant wählen …",
     "tenantOption": "{{name}} ({{slug}})",
+    "licenseNone": "Keine Lizenz",
     "role": "Rolle",
     "emailHint": "Der Benutzer erhält eine E-Mail mit Zugangsdaten (sofern SMTP konfiguriert ist).",
+    "targetTenant": {
+      "title": "Benutzer zu «{{name}}» ({{slug}}) einladen",
+      "modalLabel": "Einladung für",
+      "licenseLine": "Lizenz: {{license}}"
+    },
+    "multiTenant": {
+      "tenantsLabel": "Mandanten (Firmen)",
+      "roleForAll": "Rolle für alle ausgewählten Mandanten",
+      "tenantsRequired": "Bitte mindestens einen Mandanten auswählen.",
+      "separateCredentialsWarning": "Der Benutzer erhält für jeden ausgewählten Mandanten separate Zugangsdaten (eigenes Konto pro Mandant).",
+      "allSuccess": "{{count}} Einladung(en) erfolgreich.",
+      "partialSuccess": "{{ok}} erfolgreich, {{failed}} fehlgeschlagen.",
+      "resultSummary": "{{ok}} Mandant(en) zugewiesen, {{failed}} fehlgeschlagen."
+    },
     "roleOptions": {
       "Manager": {
         "label": "Manager (volle Rechte für diese Firma)"

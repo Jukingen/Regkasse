@@ -251,6 +251,7 @@
     },
     "invitations": {
       "description": "Invite new tenant users by email. Pick the target tenant and send the invitation (SMTP required for email delivery).",
+      "descriptionSuperAdmin": "Invite users by email. Pick the target tenant from the list (domain and license status shown).",
       "smtpHint": "Without SMTP configuration the account is created but the invitation email may not be sent.",
       "columnTenant": "Tenant",
       "columnOwner": "Tenant admin (email)",
@@ -260,6 +261,7 @@
   },
   "invite": {
     "title": "Invite user",
+    "titleForTenant": "Invite user to «{{name}}» ({{slug}})",
     "action": "Invite user",
     "send": "Send invitation",
     "email": "Email address",
@@ -267,8 +269,23 @@
     "tenantRequired": "Please select a tenant.",
     "tenantPlaceholder": "Select tenant …",
     "tenantOption": "{{name}} ({{slug}})",
+    "licenseNone": "No license",
     "role": "Role",
     "emailHint": "The user receives an email with access credentials when SMTP is configured.",
+    "targetTenant": {
+      "title": "Invite user to «{{name}}» ({{slug}})",
+      "modalLabel": "Invitation for",
+      "licenseLine": "License: {{license}}"
+    },
+    "multiTenant": {
+      "tenantsLabel": "Tenants (companies)",
+      "roleForAll": "Role for all selected tenants",
+      "tenantsRequired": "Select at least one tenant.",
+      "separateCredentialsWarning": "The user receives separate credentials for each selected tenant (one account per tenant).",
+      "allSuccess": "{{count}} invitation(s) succeeded.",
+      "partialSuccess": "{{ok}} succeeded, {{failed}} failed.",
+      "resultSummary": "{{ok}} tenant(s) assigned, {{failed}} failed."
+    },
     "roleOptions": {
       "Manager": { "label": "Manager (full rights for this company)" },
       "Cashier": { "label": "Cashier (POS only)" },

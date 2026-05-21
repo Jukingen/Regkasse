@@ -18,6 +18,15 @@
   outline-offset: 1px;
 }
 
+@keyframes fa-page-loader-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
 body {
   margin: 0;
   padding: 0;

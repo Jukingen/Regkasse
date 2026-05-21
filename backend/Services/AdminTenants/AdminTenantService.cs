@@ -21,7 +21,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly IJwtAccessTokenIssuer _jwtIssuer;
     private readonly AuthOptions _authOptions;
-    private readonly ITenantProvisioningService _provisioningService;
+    private readonly ITenantOnboardingService _onboardingService;
     private readonly ILogger<AdminTenantService> _logger;
 
     public AdminTenantService(
@@ -31,7 +31,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         IRefreshTokenService refreshTokenService,
         IJwtAccessTokenIssuer jwtIssuer,
         IOptions<AuthOptions> authOptions,
-        ITenantProvisioningService provisioningService,
+        ITenantOnboardingService onboardingService,
         ILogger<AdminTenantService> logger)
     {
         _db = db;
@@ -40,7 +40,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         _refreshTokenService = refreshTokenService;
         _jwtIssuer = jwtIssuer;
         _authOptions = authOptions.Value;
-        _provisioningService = provisioningService;
+        _onboardingService = onboardingService;
         _logger = logger;
     }
 
@@ -189,12 +189,19 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .ConfigureAwait(false);
     }
 
+    public Task<IReadOnlyList<string>> GetSlugSuggestionsAsync(
+        string? companyName,
+        string? preferredSlug,
+        int maxCount = 5,
+        CancellationToken cancellationToken = default) =>
+        _onboardingService.GetSlugSuggestionsAsync(companyName, preferredSlug, maxCount, cancellationToken);
+
     public async Task<TenantSlugAvailabilityDto> CheckSlugAvailabilityAsync(
         string slug,
         CancellationToken cancellationToken = default)
     {
-        var normalized = NormalizeSlug(slug);
-        if (!TryValidateSlug(normalized, out _))
+        var normalized = TenantSlugSuggestions.NormalizeSlug(slug);
+        if (!TenantSlugSuggestions.IsValidSlug(normalized))
             return new TenantSlugAvailabilityDto(normalized, IsValid: false, Available: false);
 
         var taken = await _db.Tenants
@@ -210,66 +217,18 @@ public sealed partial class AdminTenantService : IAdminTenantService
         string? actorUserId,
         CancellationToken cancellationToken = default)
     {
-        var slug = NormalizeSlug(request.Slug);
-        if (!TryValidateSlug(slug, out var slugError))
-            return (null, slugError);
+        var (result, failure) = await _onboardingService
+            .CreateAsync(request, actorUserId, cancellationToken)
+            .ConfigureAwait(false);
 
-        if (await _db.Tenants.AnyAsync(t => t.Slug == slug, cancellationToken).ConfigureAwait(false))
-            return (null, "Tenant slug is already in use.");
-
-        var now = DateTime.UtcNow;
-        var tenant = new Tenant
-        {
-            Id = Guid.NewGuid(),
-            Name = request.Name.Trim(),
-            Slug = slug,
-            Email = TrimOrNull(request.Email),
-            Phone = TrimOrNull(request.Phone),
-            Address = TrimOrNull(request.Address),
-            Status = TenantStatuses.Active,
-            IsActive = true,
-            LicenseKey = TrimOrNull(request.LicenseKey),
-            LicenseValidUntilUtc = request.LicenseValidUntilUtc.HasValue
-                ? DateTime.SpecifyKind(request.LicenseValidUntilUtc.Value, DateTimeKind.Utc)
-                : null,
-            CreatedAt = now,
-            UpdatedAt = now,
-            CreatedBy = actorUserId,
-            UpdatedBy = actorUserId,
-        };
-
-        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            _db.Tenants.Add(tenant);
-            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-
-            var (provisioning, provisionError) = await _provisioningService
-                .ProvisionAsync(
-                    tenant,
-                    request.AdminEmail,
-                    request.AdminPassword,
-                    request.GrantTrialLicense,
-                    cancellationToken)
-                .ConfigureAwait(false);
-
-            if (provisionError != null)
-            {
-                await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
-                return (null, provisionError);
-            }
-
-            await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
-            _logger.LogInformation("Super-admin created tenant {TenantId} slug {Slug}", tenant.Id, tenant.Slug);
-            return (ToDetail(tenant, provisioning?.ToDto()), null);
-        }
-        catch (Exception ex)
-        {
-            await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            _logger.LogError(ex, "Tenant create failed for slug {Slug}", slug);
-            return (null, "Tenant creation failed.");
-        }
+        return failure == null ? (result, null) : (null, failure.Message);
     }
+
+    public async Task<(AdminTenantDetailDto? Result, TenantOnboardingFailureDto? Failure)> CreateWithFailureDetailAsync(
+        CreateAdminTenantRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default) =>
+        await _onboardingService.CreateAsync(request, actorUserId, cancellationToken).ConfigureAwait(false);
 
     public async Task<(AdminTenantDetailDto? Result, string? Error)> UpdateAsync(
         Guid tenantId,

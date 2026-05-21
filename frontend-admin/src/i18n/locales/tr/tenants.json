@@ -48,19 +48,47 @@
       "availabilityFailed": "Uygunluk kontrol edilemedi. Lütfen tekrar deneyin."
     }
   },
+  "onboarding": {
+    "errors": {
+      "title": "Müşteri oluşturulurken hata",
+      "slugTaken": "„{{slug}}“ subdomain zaten kullanılıyor.",
+      "adminEmailTaken": "Bu e-posta adresi başka bir kullanıcı tarafından kullanılıyor.",
+      "suggestionsTitle": "Öneriler:",
+      "useSuggestion": "Kullan",
+      "tryAgain": "Başka ad dene",
+      "rollbackNote": "Veri kaydedilmedi (otomatik geri alma)."
+    }
+  },
   "create": {
-    "title": "Yeni kiracı",
-    "subtitle": "Kendi alt alanı olan bir kiracı oluşturun. Yönetici erişimi otomatik oluşturulur.",
-    "submit": "Kiracı oluştur",
-    "autoProvisionTitle": "Otomatik kurulum",
-    "autoProvisionDescription": "Ana kasa, yönetici (şifre bir kez gösterilir) ve 3 ürünlü demo kategori.",
-    "adminEmailAutoTitle": "Yönetici girişi (otomatik)",
-    "adminEmailAutoDescription": "Oluşturma sonrası {{email}} ile giriş yapın. Şifre bir sonraki ekranda gösterilir.",
+    "title": "Yeni müşteri (kiracı) ekle",
+    "subtitle": "Teknik adımlar (kasa, demo veriler, yönetici) otomatik yapılır.",
+    "submit": "Müşteri oluştur",
     "sections": {
-      "basic": "Kiracı ve alt alan",
-      "contact": "İletişim",
-      "contactOptional": "Telefon ve adres isteğe bağlıdır. İletişim e-postası sistem bildirimleri için zorunludur.",
-      "advanced": "Gelişmiş ayarlar"
+      "advanced": "Ek bilgiler (isteğe bağlı)"
+    },
+    "processing": {
+      "title": "Müşteri oluşturuluyor …",
+      "subtitle": "Kurulum bitene kadar lütfen bekleyin.",
+      "subtitleError": "Kurulum iptal edildi. Veri kaydedilmedi.",
+      "rollbackHint": "Bir adım başarısız olursa otomatik geri alınır.",
+      "failedTitle": "Kurulum başarısız",
+      "backToForm": "Forma dön",
+      "steps": {
+        "company": "Şirket oluşturuluyor …",
+        "companyDone": "„{{name}}“ şirketi oluşturuldu",
+        "subdomain": "Adres etkinleştiriliyor …",
+        "subdomainDone": "{{slug}}.{{domain}} adresi etkin",
+        "admin": "Yönetici oluşturuluyor …",
+        "adminDone": "Yönetici erişimi hazır",
+        "license": "Demo lisans etkinleştiriliyor …",
+        "licenseDone": "Demo lisans (30 gün) etkin",
+        "register": "Kasa kuruluyor …",
+        "registerDone": "„Hauptkasse“ kasası hazır",
+        "products": "Demo ürünler ekleniyor …",
+        "productsDone": "Demo ürünler eklendi",
+        "handoff": "Erişim bilgileri hazırlanıyor …",
+        "handoffDone": "Erişim bilgileri hazır (sonraki adım)"
+      }
     },
     "fields": {
       "name": {
@@ -75,19 +103,14 @@
         }
       },
       "slug": {
-        "label": "Subdomain",
-        "tooltip": "Kasa ve yönetim paneli adresiniz",
-        "placeholder": "cafe-example",
-        "hint": "Yalnızca küçük harf, rakam ve tire. Örnek: cafe-example",
-        "previewLabel": "Erişim adresiniz:",
-        "availableShort": "✓ Uygun",
-        "takenShort": "❌ Zaten alınmış",
+        "label": "Subdomain / adres",
+        "tooltip": "Müşterinin kasa ve yönetim adresi",
+        "placeholder": "cafe-ornek",
+        "hint": "Şirket adından otomatik önerilir",
+        "availableShort": "Uygun",
+        "takenShort": "Zaten alınmış",
         "checkingShort": "Uygunluk kontrol ediliyor …",
-        "allowedTitle": "İzin verilen:",
-        "allowedExamples": "cafe, cafe-shop, benim-cafe-123",
-        "disallowedTitle": "İzin verilmeyen:",
-        "disallowedExamples": "Café (büyük harf), cafe.shop (nokta), cafe shop (boşluk)",
-        "success": "Bu subdomain kullanılabilir.",
+        "success": "Bu adres kullanılabilir.",
         "errors": {
           "required": "Lütfen bir subdomain girin (ör. cafe-example).",
           "pattern": "Yalnızca küçük harf, rakam ve tire kullanılabilir",
@@ -135,22 +158,24 @@
         "copy": "E-postayı kopyala"
       },
       "grantTrialLicense": {
-        "label": "✅ 30 günlük demo lisansını etkinleştir",
-        "tooltip": "30 gün ücretsiz deneme, ardından uzatma mümkün",
-        "subtext": "30 gün sonra ücretli lisans satın alınabilir"
+        "label": "30 günlük demo lisansını etkinleştir (ücretsiz)",
+        "tooltip": "30 gün ücretsiz deneme, ardından uzatma mümkün"
+      },
+      "autoDemoSetup": {
+        "label": "Demo ürünler ve kasayı otomatik oluştur",
+        "tooltip": "Ana kasa ve üç demo ürün oluşturur (önerilir)"
       }
     }
   },
   "provisioning": {
     "title": "“{{name}}” kiracısı hazırlandı",
     "successTitle": "Kiracı oluşturuldu",
-    "successHeadline": "“{{name}}” kiracısı başarıyla oluşturuldu!",
+    "successHeadline": "“{{name}}” müşterisi başarıyla oluşturuldu!",
     "missingWarning": "Otomatik kurulum doğrulanamadı. Kiracıyı elle kontrol edin veya destekle iletişime geçin.",
-    "passwordWarning": "Yönetici şifresi yalnızca bir kez gösterilir. Güvenli şekilde kaydedin veya kiracıya iletin.",
-    "credentialsTitle": "Yönetici erişimi",
-    "loginEmail": "Giriş e-postası",
+    "passwordWarning": "Bu şifre yalnızca ŞİMDİ, bir kez gösterilir!",
+    "credentialsTitle": "Erişim bilgileri (tek seferlik!)",
+    "adminEmailLabel": "Admin e-posta",
     "password": "Şifre",
-    "passwordOnce": "(bir kez)",
     "showPassword": "Şifreyi göster",
     "hidePassword": "Şifreyi gizle",
     "passwordStrength": {
@@ -161,15 +186,19 @@
       "good": "İyi",
       "strong": "Çok güçlü"
     },
-    "trialLicense": "Demo lisans: 30 gün geçerli",
-    "register": "Varsayılan kasa: {{location}} ({{number}})",
-    "products": "Demo ürünler: {{count}} adet („Allgemein“ kategorisi)",
-    "nextStepsTitle": "Sonraki adımlar",
-    "nextStepLogin": "Yukarıdaki bilgilerle giriş yapın",
-    "nextStepPortalOnly": "Kiracı yönetimini şurada açın",
-    "nextStepPortal": "Kiracı URL:",
-    "nextStepCustomize": "Ürünleri, vergileri ve ayarları uyarlayın",
-    "copyAll": "Giriş bilgilerini kopyala",
+    "firstStepsTitle": "İlk adımlar",
+    "firstStepLogin": "Müşteri girişi:",
+    "firstStepChangePassword": "Şifreyi değiştir",
+    "firstStepProducts": "Ürünleri uyarla",
+    "firstStepPrinter": "Kasayı yazıcıya bağla",
+    "firstStepTestSale": "Test satışı yap",
+    "emailSent": "Erişim bilgileri içeren e-posta {{email}} adresine gönderildi.",
+    "emailNotSent": "SMTP yapılandırılmadı veya gönderim başarısız. Erişim bilgilerini {{email}} ile manuel paylaşın.",
+    "forcePasswordChange": "Müşteri ilk girişte şifreyi değiştirmelidir.",
+    "createAnother": "Yeni müşteri ekle",
+    "switchToTenant": "Müşteriye geç",
+    "copyAll": "Tüm erişim bilgilerini kopyala",
+    "copyEmail": "E-postayı kopyala",
     "copyPassword": "Şifreyi kopyala",
     "copySuccess": "Panoya kopyalandı",
     "copyFailed": "Kopyalama başarısız"

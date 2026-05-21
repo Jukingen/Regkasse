@@ -93,11 +93,28 @@ Chronological summary of notable changes tied to Super Admin tenant UX, mandant 
 
 ---
 
+## 2026-05-21 — Customer onboarding wizard & welcome email
+
+**Summary:** Foolproof create flow with progress UI, rollback on failure, SMTP welcome mail.
+
+**Changes:**
+
+- `TenantOnboardingService` — transactional create + audit correlation
+- `CreateTenantWizard`, `OnboardingErrorModal`, `OnboardingSuccessModal`
+- `WelcomeEmailService` + `Email:Smtp` configuration
+- Slug APIs: `slug-availability`, `slug-suggestions`
+
+---
+
 ## Documentation added (2026-05-21)
 
 - `docs/TENANT_MANAGEMENT.md`
+- `docs/CUSTOMER_ONBOARDING.md`
+- `docs/USER_MANAGEMENT.md`
+- `docs/CASH_REGISTER_LIFECYCLE.md`
 - `docs/LICENSE_SYSTEM.md`
 - `docs/CHANGELOG_TENANT_MANAGEMENT.md` (this file)
-- `docs/MULTI_TENANT.md` — sections: Super Admin UI, license by role, switcher
-- `frontend-admin/README.md` — Tenant switching & Super Admin features
-- Screenshot placeholders: `docs/images/tenant-management/`
+- `docs/CHANGELOG_RECENT.md` — tenant wave summary
+- `docs/MULTI_TENANT.md` — sections: Super Admin UI, license by role, switcher, JWT vs dev header
+- `frontend-admin/README.md` — Super Admin, switching, license display
+- Screenshot placeholders: `docs/images/tenant-management/`, `onboarding/`, `cash-registers/`, `user-management/`

@@ -35,6 +35,21 @@ public sealed class AdminTenantsController : ControllerBase
         return Ok(items);
     }
 
+    /// <summary>Suggest available subdomain slugs from company name and/or preferred slug.</summary>
+    [HttpGet("slug-suggestions")]
+    [ProducesResponseType(typeof(TenantSlugSuggestionsDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TenantSlugSuggestionsDto>> GetSlugSuggestions(
+        [FromQuery] string? name,
+        [FromQuery] string? slug,
+        [FromQuery] int max = 5,
+        CancellationToken cancellationToken = default)
+    {
+        var suggestions = await _tenantService
+            .GetSlugSuggestionsAsync(name, slug, Math.Clamp(max, 1, 10), cancellationToken)
+            .ConfigureAwait(false);
+        return Ok(new TenantSlugSuggestionsDto(suggestions));
+    }
+
     /// <summary>Check whether a tenant slug is valid and not already taken.</summary>
     [HttpGet("slug-availability")]
     [ProducesResponseType(typeof(TenantSlugAvailabilityDto), StatusCodes.Status200OK)]
@@ -86,9 +101,18 @@ public sealed class AdminTenantsController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var (result, error) = await _tenantService.CreateAsync(request, ActorUserId, cancellationToken).ConfigureAwait(false);
-        if (error != null)
-            return BadRequest(new { message = error });
+        var (result, failure) = await _tenantService
+            .CreateWithFailureDetailAsync(request, ActorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (failure != null)
+        {
+            return BadRequest(new
+            {
+                message = failure.Message,
+                code = failure.Code,
+                suggestions = failure.SlugSuggestions,
+            });
+        }
 
         return CreatedAtAction(nameof(GetById), new { tenantId = result!.Id }, result);
     }

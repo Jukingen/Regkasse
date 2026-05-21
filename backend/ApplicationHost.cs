@@ -19,6 +19,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
+using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Data.Repositories;
@@ -368,6 +369,8 @@ builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService
 builder.Services.AddScoped<ITenantUserService, TenantUserService>();
 builder.Services.AddScoped<ITenantInvitationEmailSender, TenantInvitationEmailSender>();
 builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
+builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
+builder.Services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
 builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
 // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
 builder.Services.AddScoped<IAuthTenantSnapshotProvider, AuthTenantSnapshotProvider>();

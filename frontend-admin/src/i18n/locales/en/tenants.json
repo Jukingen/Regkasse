@@ -48,26 +48,54 @@
       "availabilityFailed": "Could not check availability. Please try again."
     }
   },
+  "onboarding": {
+    "errors": {
+      "title": "Error creating customer",
+      "slugTaken": "Subdomain \"{{slug}}\" is already taken.",
+      "adminEmailTaken": "This email address is already used by another user.",
+      "suggestionsTitle": "Suggestions:",
+      "useSuggestion": "Use",
+      "tryAgain": "Try another name",
+      "rollbackNote": "No data was saved (automatic rollback)."
+    }
+  },
   "create": {
-    "title": "New tenant",
-    "subtitle": "Create a tenant with its own subdomain. Administrator access is created automatically.",
-    "submit": "Create tenant",
-    "autoProvisionTitle": "Automatic setup",
-    "autoProvisionDescription": "Main register, administrator (password shown once), and demo category with 3 products.",
-    "adminEmailAutoTitle": "Administrator sign-in (automatic)",
-    "adminEmailAutoDescription": "After creation, sign in with {{email}}. The password is shown on the next screen.",
+    "title": "Add new customer (tenant)",
+    "subtitle": "Technical setup (register, demo data, administrator) runs automatically.",
+    "submit": "Create customer",
     "sections": {
-      "basic": "Tenant & subdomain",
-      "contact": "Contact",
-      "contactOptional": "Phone and address are optional. Contact email is required for system notifications.",
-      "advanced": "Advanced settings"
+      "advanced": "Additional details (optional)"
+    },
+    "processing": {
+      "title": "Creating customer …",
+      "subtitle": "Please wait until setup is complete.",
+      "subtitleError": "Setup was cancelled. No data was saved.",
+      "rollbackHint": "If a step fails, changes are rolled back automatically.",
+      "failedTitle": "Setup failed",
+      "backToForm": "Back to form",
+      "steps": {
+        "company": "Creating company …",
+        "companyDone": "Company \"{{name}}\" created",
+        "subdomain": "Activating address …",
+        "subdomainDone": "Address {{slug}}.{{domain}} activated",
+        "admin": "Creating administrator …",
+        "adminDone": "Administrator access created",
+        "license": "Activating demo license …",
+        "licenseDone": "Demo license (30 days) activated",
+        "register": "Setting up register …",
+        "registerDone": "Register \"Hauptkasse\" ready",
+        "products": "Creating demo products …",
+        "productsDone": "Demo products created",
+        "handoff": "Preparing credentials …",
+        "handoffDone": "Credentials ready (next step)"
+      }
     },
     "fields": {
       "name": {
         "label": "Company name",
-        "tooltip": "Official business name (shown on receipts)",
-        "placeholder": "e.g. Café Example Ltd",
-        "hint": "This name appears on your receipts and invoices.",
+        "tooltip": "How the customer appears on receipts and in admin",
+        "placeholder": "Café Example",
+        "hint": "Shown on receipts",
         "errors": {
           "required": "Please enter a company name.",
           "tooShort": "Company name must be at least 2 characters.",
@@ -75,19 +103,14 @@
         }
       },
       "slug": {
-        "label": "Subdomain",
-        "tooltip": "The address for your register and admin panel",
+        "label": "Subdomain / address",
+        "tooltip": "Web address for the customer's register and admin",
         "placeholder": "cafe-example",
-        "hint": "Lowercase letters, digits, and hyphens only. Example: cafe-example",
-        "previewLabel": "Your access address:",
-        "availableShort": "✓ Available",
-        "takenShort": "❌ Already taken",
+        "hint": "Suggested automatically from the company name",
+        "availableShort": "Available",
+        "takenShort": "Already taken",
         "checkingShort": "Checking availability …",
-        "allowedTitle": "Allowed:",
-        "allowedExamples": "cafe, cafe-shop, my-cafe-123",
-        "disallowedTitle": "Not allowed:",
-        "disallowedExamples": "Café (uppercase), cafe.shop (dot), cafe shop (spaces)",
-        "success": "This subdomain is available.",
+        "success": "This address is available.",
         "errors": {
           "required": "Please enter a subdomain (e.g. cafe-example).",
           "pattern": "Only lowercase letters, digits, and hyphens are allowed",
@@ -100,9 +123,9 @@
       },
       "contactEmail": {
         "label": "Email (contact)",
-        "tooltip": "For notifications and support requests",
-        "placeholder": "contact@cafe-example.at",
-        "hint": "We send important system notifications to this address.",
+        "tooltip": "Also used as the administrator sign-in email",
+        "placeholder": "owner@cafe-example.at",
+        "hint": "For invoices, support, and administrator sign-in",
         "errors": {
           "required": "Please enter a valid email address.",
           "invalid": "Please enter a valid email address."
@@ -135,22 +158,24 @@
         "copy": "Copy email"
       },
       "grantTrialLicense": {
-        "label": "✅ Enable 30-day demo license",
-        "tooltip": "30 days free trial, renewal available afterwards",
-        "subtext": "After 30 days you can purchase a paid license"
+        "label": "Enable 30-day demo license (free)",
+        "tooltip": "30 days free trial, renewal available afterwards"
+      },
+      "autoDemoSetup": {
+        "label": "Create demo products and register automatically",
+        "tooltip": "Creates main register and three demo products (recommended)"
       }
     }
   },
   "provisioning": {
     "title": "Tenant “{{name}}” provisioned",
     "successTitle": "Tenant created",
-    "successHeadline": "Tenant “{{name}}” was created successfully!",
+    "successHeadline": "Customer “{{name}}” was created successfully!",
     "missingWarning": "Automatic setup could not be confirmed. Please verify the tenant or contact support.",
-    "passwordWarning": "The administrator password is shown only once. Store it securely or hand it off to the tenant.",
-    "credentialsTitle": "Administrator access",
-    "loginEmail": "Sign-in email",
+    "passwordWarning": "This password is shown only NOW, once!",
+    "credentialsTitle": "Credentials (one-time display!)",
+    "adminEmailLabel": "Admin email",
     "password": "Password",
-    "passwordOnce": "(shown once)",
     "showPassword": "Show password",
     "hidePassword": "Hide password",
     "passwordStrength": {
@@ -161,15 +186,19 @@
       "good": "Good",
       "strong": "Very strong"
     },
-    "trialLicense": "Demo license: valid for 30 days",
-    "register": "Default register: {{location}} ({{number}})",
-    "products": "Demo products: {{count}} in category “Allgemein”",
-    "nextStepsTitle": "Next steps",
-    "nextStepLogin": "Sign in with the credentials above",
-    "nextStepPortalOnly": "Open tenant admin at",
-    "nextStepPortal": "Tenant URL:",
-    "nextStepCustomize": "Adjust products, taxes, and settings",
-    "copyAll": "Copy credentials",
+    "firstStepsTitle": "First steps",
+    "firstStepLogin": "Customer sign-in:",
+    "firstStepChangePassword": "Change password",
+    "firstStepProducts": "Adjust products",
+    "firstStepPrinter": "Connect register to printer",
+    "firstStepTestSale": "Run a test transaction",
+    "emailSent": "An email with the credentials was sent to {{email}}.",
+    "emailNotSent": "SMTP is not configured or delivery failed. Please share the credentials manually with {{email}}.",
+    "forcePasswordChange": "The customer must change the password on first sign-in.",
+    "createAnother": "Add another customer",
+    "switchToTenant": "Switch to customer",
+    "copyAll": "Copy all credentials",
+    "copyEmail": "Copy email",
     "copyPassword": "Copy password",
     "copySuccess": "Copied to clipboard",
     "copyFailed": "Copy failed"

@@ -5,7 +5,8 @@ import { Alert, Button, Card, DatePicker, Select, Space, Table, Tag, Typography 
 import type { ColumnsType } from 'antd/es/table';
 import { DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { getApiAdminPayments, useGetApiAdminPayments } from '@/api/generated/admin/admin';
+import { useGetApiAdminPayments } from '@/api/generated/admin/admin';
+import { fetchAllAdminPaymentsPages } from '@/features/payments/api/fetchAllAdminPayments';
 import type { AdminPaymentListItemDto } from '@/api/generated/model';
 import { StornoRefundAuditDetailModal } from '@/features/payments/stornoRefundAudit/StornoRefundAuditDetailModal';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -206,13 +207,8 @@ export default function StornoRefundAuditPage() {
     const onExportCsv = useCallback(async () => {
         setExportBusy(true);
         try {
-            const exportParams = {
-                ...listParams,
-                pageNumber: 1,
-                pageSize: 500,
-            };
-            const res = await getApiAdminPayments(exportParams);
-            const rows = res.items ?? [];
+            const { pageNumber: _pn, pageSize: _ps, ...exportBase } = listParams;
+            const rows = await fetchAllAdminPaymentsPages(exportBase);
             const header = [
                 t('payments.stornoRefundAudit.table.colOriginalReceipt'),
                 t('payments.stornoRefundAudit.table.colNewReceipt'),

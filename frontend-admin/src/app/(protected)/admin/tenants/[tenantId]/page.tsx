@@ -148,7 +148,7 @@ export default function SuperAdminTenantDetailPage() {
             {
                 key: 'users',
                 label: t('tenants.detail.tabs.users'),
-                children: <TenantDetailUsersTab tenantId={tenantId} />,
+                children: <TenantDetailUsersTab tenantId={tenantId} tenant={tenant} />,
             },
             {
                 key: 'registers',

@@ -9,7 +9,9 @@ public sealed record TenantProvisioningDto(
     string GeneratedPassword,
     Guid CategoryId,
     IReadOnlyList<Guid> ProductIds,
-    DateTime? TrialLicenseValidUntilUtc);
+    DateTime? TrialLicenseValidUntilUtc,
+    bool WelcomeEmailSent = false,
+    bool ForcePasswordChangeOnNextLogin = false);
 
 public sealed class TenantProvisioningResult
 {
@@ -22,7 +24,7 @@ public sealed class TenantProvisioningResult
     public required IReadOnlyList<Guid> ProductIds { get; init; }
     public DateTime? TrialLicenseValidUntilUtc { get; init; }
 
-    public TenantProvisioningDto ToDto() =>
+    public TenantProvisioningDto ToDto(bool welcomeEmailSent = false, bool forcePasswordChangeOnNextLogin = false) =>
         new(
             CashRegisterId,
             CashRegisterNumber,
@@ -31,5 +33,7 @@ public sealed class TenantProvisioningResult
             GeneratedPassword,
             CategoryId,
             ProductIds,
-            TrialLicenseValidUntilUtc);
+            TrialLicenseValidUntilUtc,
+            welcomeEmailSent,
+            forcePasswordChangeOnNextLogin);
 }

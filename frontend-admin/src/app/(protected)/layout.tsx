@@ -25,6 +25,7 @@ import {
     type SidebarPermissionContext,
 } from '@/shared/adminSidebarNavigation';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
+import { PageLoader } from '@/components/ui/PageLoader';
 import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBanner';
 import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenantGate';
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
@@ -250,6 +251,9 @@ export default function DashboardLayout({
     return (
         <AuthGate mode="protected">
             <PermissionRouteGuard>
+                <Suspense fallback={null}>
+                    <PageLoader />
+                </Suspense>
                 <Layout style={{ minHeight: '100vh' }}>
                     {!isMobile && (
                         <Sider

@@ -12,6 +12,7 @@ import { InviteUserModal } from '@/features/super-admin/components/InviteUserMod
 import type { InviteUserFormValues } from '@/features/super-admin/components/InviteUserModal';
 import { ResetPasswordModal } from '@/features/super-admin/components/ResetPasswordModal';
 import { TenantUserTable } from '@/features/super-admin/components/TenantUserTable';
+import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 import {
     addTenantUser,
     inviteTenantUser,
@@ -22,15 +23,17 @@ import {
     type TenantUser,
     type TenantUserInviteResult,
 } from '@/features/super-admin/api/tenantUsers';
+import { InviteTenantContextBanner } from '@/features/users/components/InviteTenantContextBanner';
 import { useI18n } from '@/i18n';
 
 const TENANT_USERS_QUERY_KEY = ['admin', 'tenant-users'] as const;
 
 export type TenantDetailUsersTabProps = {
     tenantId: string;
+    tenant?: AdminTenantListItem | null;
 };
 
-export function TenantDetailUsersTab({ tenantId }: TenantDetailUsersTabProps) {
+export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabProps) {
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const [addOpen, setAddOpen] = useState(false);
@@ -142,6 +145,7 @@ export function TenantDetailUsersTab({ tenantId }: TenantDetailUsersTabProps) {
 
     return (
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            {tenant ? <InviteTenantContextBanner tenant={tenant} variant="page" /> : null}
             <Space wrap>
                 <Button icon={<ReloadOutlined />} onClick={() => invalidate()}>
                     {t('common.refresh')}
@@ -180,7 +184,9 @@ export function TenantDetailUsersTab({ tenantId }: TenantDetailUsersTabProps) {
 
             <InviteUserModal
                 open={inviteOpen}
-                fixedTenantId={tenantId}
+                variant="tenantDetail"
+                tenantId={tenantId}
+                tenantContext={tenant ?? undefined}
                 showOwnerToggle
                 confirmLoading={inviteMutation.isPending}
                 onClose={() => setInviteOpen(false)}
