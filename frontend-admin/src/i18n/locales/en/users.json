@@ -226,12 +226,19 @@
   "unified": {
     "pageIntro": "All platform and tenant users in one place. Use the tenant filter to narrow the list — no separate menu entries.",
     "filterTenantLabel": "Filter tenant:",
+    "filterTenantPlaceholder": "Filter tenant",
     "filterAllTenants": "All tenants",
     "filterPlatformOnly": "Platform",
+    "filterPlatformOption": "🏢 Platform (Super Admin)",
     "platformBadge": "Platform (Super Admin)",
     "platformTenantLabel": "(Platform)",
     "empty": "No users match the current filters.",
-    "invitationsSection": "Invitations (email)"
+    "invitationsSection": "Invitations (email)",
+    "quickUserAction": "Quick user",
+    "columnType": "Type",
+    "typeBadgePlatformAdmin": "👑 Platform admin",
+    "typeBadgePlatform": "🏢 Platform",
+    "typeBadgeTenant": "👤 Tenant"
   },
   "tabs": {
     "labelPlatform": "Platform users",

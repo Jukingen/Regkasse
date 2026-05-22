@@ -30,3 +30,14 @@ export function resolveAdminUsersTenantFilterFromSearchParams(
 }
 
 export { FILTER_ALL as ADMIN_USERS_FILTER_ALL, FILTER_PLATFORM as ADMIN_USERS_FILTER_PLATFORM };
+
+/** UI value for the tenant filter dropdown (all mandants + platform). */
+export const TENANT_FILTER_ALL_UI = 'all';
+
+export function tenantFilterToUiValue(filter: string): string {
+    return filter === FILTER_ALL ? TENANT_FILTER_ALL_UI : filter;
+}
+
+export function tenantFilterFromUiValue(ui: string): string {
+    return ui === TENANT_FILTER_ALL_UI ? FILTER_ALL : ui;
+}

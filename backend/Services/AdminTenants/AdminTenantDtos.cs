@@ -14,6 +14,7 @@ public sealed record AdminTenantListItemDto(
     DateTime? LicenseValidUntilUtc,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
+    int? LicenseDaysRemaining = null,
     string? OwnerAdminEmail = null,
     bool IsDemoPreset = false);
 

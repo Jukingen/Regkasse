@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Regkasse.LicenseTools;
@@ -134,15 +135,18 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
 
     private readonly IOptions<LicenseOptions> _options;
     private readonly AppDbContext _db;
+    private readonly ILicenseSyncService _licenseSync;
     private readonly ILogger<LicenseIssuanceService> _logger;
 
     public LicenseIssuanceService(
         IOptions<LicenseOptions> options,
         AppDbContext db,
+        ILicenseSyncService licenseSync,
         ILogger<LicenseIssuanceService> logger)
     {
         _options = options;
         _db = db;
+        _licenseSync = licenseSync;
         _logger = logger;
     }
 
@@ -230,6 +234,10 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             request.RequireFingerprint,
             SafePrefix(issued.LicenseKey),
             issuedByUserId ?? "(system)");
+
+        await _licenseSync
+            .SyncTenantsForLicenseKeyAsync(issued.LicenseKey, cancellationToken)
+            .ConfigureAwait(false);
 
         return new GenerateLicenseResult(
             Success: true,
@@ -406,6 +414,10 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             }
 
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            await _licenseSync
+                .SyncTenantsForLicenseKeyReplacementAsync(old.LicenseKey, issued.LicenseKey, cancellationToken)
+                .ConfigureAwait(false);
 
             _logger.LogInformation(
                 "License renewed: customer=\"{Customer}\" oldKeyPrefix={OldPrefix} newKeyPrefix={NewPrefix} renewedBy={UserId}",
@@ -604,6 +616,10 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             }
 
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
+
+            await _licenseSync
+                .SyncTenantsForLicenseKeyReplacementAsync(old.LicenseKey, issued.LicenseKey, cancellationToken)
+                .ConfigureAwait(false);
 
             var reasonLog = string.IsNullOrWhiteSpace(command.Reason) ? "(none)" : command.Reason.Trim();
             _logger.LogInformation(
@@ -877,6 +893,10 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
 
             await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
 
+            await _licenseSync
+                .SyncTenantsForLicenseKeyReplacementAsync(old.LicenseKey, issued.LicenseKey, cancellationToken)
+                .ConfigureAwait(false);
+
             var reasonLog = string.IsNullOrWhiteSpace(command.Reason) ? "(none)" : command.Reason.Trim();
             _logger.LogInformation(
                 "License transferred: customer=\"{Customer}\" oldKeyPrefix={OldPrefix} newKeyPrefix={NewPrefix} transferredBy={UserId} reason={Reason}",
@@ -1030,6 +1050,10 @@ public sealed class LicenseIssuanceService : ILicenseIssuanceService
             SafePrefix(old.LicenseKey),
             newExpiryUtc,
             actorUserId ?? "(system)");
+
+        await _licenseSync
+            .SyncTenantsForLicenseKeyAsync(old.LicenseKey, cancellationToken)
+            .ConfigureAwait(false);
 
         return new GenerateLicenseResult(true, old.LicenseKey, jwt, newExpiryUtc, null);
     }

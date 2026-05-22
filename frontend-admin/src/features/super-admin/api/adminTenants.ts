@@ -18,6 +18,8 @@ export type AdminTenantListItem = {
     isActive: boolean;
     licenseKey?: string | null;
     licenseValidUntilUtc?: string | null;
+    /** Server-computed; same day math as POS mandant license status. */
+    licenseDaysRemaining?: number | null;
     createdAt: string;
     updatedAt?: string | null;
     ownerAdminEmail?: string | null;

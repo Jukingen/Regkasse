@@ -77,7 +77,7 @@ public sealed class TenantUserService : ITenantUserService
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return null;
 
-        return await _db.UserTenantMemberships
+        return await MembershipsUnfiltered()
             .AsNoTracking()
             .Where(m => m.TenantId == tenantId && m.IsActive)
             .Join(
@@ -129,10 +129,9 @@ public sealed class TenantUserService : ITenantUserService
         if (assignError != null)
             return (null, assignError);
 
-        var membership = await _db.UserTenantMemberships
-            .AsNoTracking()
-            .FirstAsync(m => m.UserId == user.Id && m.TenantId == tenantId && m.IsActive, cancellationToken)
-            .ConfigureAwait(false);
+        var membership = await FindActiveMembershipAsync(user.Id, tenantId, cancellationToken).ConfigureAwait(false);
+        if (membership == null)
+            return (null, "Membership was not created for this tenant.");
 
         return (ToDto(user, membership), null);
     }
@@ -227,7 +226,6 @@ public sealed class TenantUserService : ITenantUserService
             LastName = tenant.Name.Length > 50 ? tenant.Name[..50] : tenant.Name,
             EmployeeNumber = $"INV{Guid.NewGuid():N}"[..20],
             Role = normalizedRole,
-            TaxNumber = string.Empty,
             Notes = $"{notesSuffix} for tenant {tenant.Slug}",
             IsActive = true,
             EmailConfirmed = true,
@@ -320,10 +318,10 @@ public sealed class TenantUserService : ITenantUserService
         }
 
         var created = createResult.Result!;
-        var membership = await _db.UserTenantMemberships
-            .AsNoTracking()
-            .FirstAsync(m => m.UserId == created.UserId && m.TenantId == tenantId && m.IsActive, cancellationToken)
-            .ConfigureAwait(false);
+        var membership = await FindActiveMembershipAsync(created.UserId, tenantId, cancellationToken).ConfigureAwait(false);
+        if (membership == null)
+            return (null, "Membership was not created for this tenant.");
+
         var user = await _userManager.FindByIdAsync(created.UserId).ConfigureAwait(false);
         if (user == null)
             return (null, "User not found.");
@@ -357,7 +355,7 @@ public sealed class TenantUserService : ITenantUserService
         if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
             return (null, "SuperAdmin users cannot be assigned to a tenant via invite.");
 
-        var alreadyMember = await _db.UserTenantMemberships.AsNoTracking()
+        var alreadyMember = await MembershipsUnfiltered().AsNoTracking()
             .AnyAsync(m => m.UserId == user.Id && m.TenantId == tenantId && m.IsActive, cancellationToken)
             .ConfigureAwait(false);
         if (alreadyMember)
@@ -368,10 +366,9 @@ public sealed class TenantUserService : ITenantUserService
         if (assignError != null)
             return (null, assignError);
 
-        var membership = await _db.UserTenantMemberships
-            .AsNoTracking()
-            .FirstAsync(m => m.UserId == user.Id && m.TenantId == tenantId && m.IsActive, cancellationToken)
-            .ConfigureAwait(false);
+        var membership = await FindActiveMembershipAsync(user.Id, tenantId, cancellationToken).ConfigureAwait(false);
+        if (membership == null)
+            return (null, "Membership was not created for this tenant.");
 
         return (new TenantUserInviteResultDto(
             ToDto(user, membership),
@@ -492,7 +489,7 @@ public sealed class TenantUserService : ITenantUserService
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return (null, "Tenant not found.");
 
-        var membership = await _db.UserTenantMemberships
+        var membership = await MembershipsUnfiltered()
             .FirstOrDefaultAsync(m => m.UserId == userId && m.TenantId == tenantId && m.IsActive, cancellationToken)
             .ConfigureAwait(false);
         if (membership == null)
@@ -537,11 +534,11 @@ public sealed class TenantUserService : ITenantUserService
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return (null, "Tenant not found.");
 
-        var membership = await _db.UserTenantMemberships
+        var hasMembership = await MembershipsUnfiltered()
             .AsNoTracking()
             .AnyAsync(m => m.UserId == userId && m.TenantId == tenantId && m.IsActive, cancellationToken)
             .ConfigureAwait(false);
-        if (!membership)
+        if (!hasMembership)
             return (null, "User is not assigned to this tenant.");
 
         var user = await _userManager.FindByIdAsync(userId).ConfigureAwait(false);
@@ -652,7 +649,7 @@ public sealed class TenantUserService : ITenantUserService
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return (false, "Tenant not found.");
 
-        var membership = await _db.UserTenantMemberships
+        var membership = await MembershipsUnfiltered()
             .FirstOrDefaultAsync(m => m.UserId == userId && m.TenantId == tenantId && m.IsActive, cancellationToken)
             .ConfigureAwait(false);
         if (membership == null)
@@ -720,12 +717,28 @@ public sealed class TenantUserService : ITenantUserService
         return string.Join(Environment.NewLine, lines);
     }
 
+    /// <summary>
+    /// Super-admin APIs pass explicit <paramref name="tenantId"/>; bypass <see cref="ITenantEntity"/> ambient filter.
+    /// </summary>
+    private IQueryable<UserTenantMembership> MembershipsUnfiltered() =>
+        _db.UserTenantMemberships.IgnoreQueryFilters();
+
+    private Task<UserTenantMembership?> FindActiveMembershipAsync(
+        string userId,
+        Guid tenantId,
+        CancellationToken cancellationToken) =>
+        MembershipsUnfiltered()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                m => m.UserId == userId && m.TenantId == tenantId && m.IsActive,
+                cancellationToken);
+
     private async Task<bool> TenantExistsAsync(Guid tenantId, CancellationToken cancellationToken) =>
         await _db.Tenants.AsNoTracking().AnyAsync(t => t.Id == tenantId, cancellationToken).ConfigureAwait(false);
 
     private async Task ClearTenantOwnersExceptAsync(Guid tenantId, Guid exceptMembershipId, CancellationToken cancellationToken)
     {
-        var others = await _db.UserTenantMemberships
+        var others = await MembershipsUnfiltered()
             .Where(m => m.TenantId == tenantId && m.IsOwner && m.Id != exceptMembershipId)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

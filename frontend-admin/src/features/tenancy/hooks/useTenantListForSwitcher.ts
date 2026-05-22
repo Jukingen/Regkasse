@@ -26,7 +26,12 @@ export type TenantListItemForSwitcher = {
 };
 
 function mapTenantForSwitcher(row: AdminTenantListItem): TenantListItemForSwitcher {
-    const license = resolveTenantLicenseLabel(row.licenseValidUntilUtc, row.licenseKey);
+    const license = resolveTenantLicenseLabel(
+        row.licenseValidUntilUtc,
+        row.licenseKey,
+        Date.now(),
+        row.licenseDaysRemaining,
+    );
     return {
         id: row.id,
         name: row.name,

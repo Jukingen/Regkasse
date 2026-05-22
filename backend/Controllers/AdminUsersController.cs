@@ -143,6 +143,7 @@ public class AdminUsersController : ControllerBase
                 TenantSlug = x.Tenant.Slug,
                 TenantName = x.Tenant.Name,
                 JoinedAtUtc = x.Membership.CreatedAtUtc,
+                LastLoginAt = x.User.LastLoginAt,
             })
             .ToList();
     }
@@ -293,7 +294,7 @@ public class AdminUsersController : ControllerBase
             LastName = request.LastName,
             EmployeeNumber = request.EmployeeNumber ?? "",
             Role = request.Role,
-            TaxNumber = request.TaxNumber ?? "",
+            TaxNumber = string.IsNullOrWhiteSpace(request.TaxNumber) ? null : request.TaxNumber.Trim(),
             Notes = request.Notes ?? "",
             IsActive = true,
             EmailConfirmed = true,
@@ -378,7 +379,8 @@ public class AdminUsersController : ControllerBase
         if (request.LastName != null) user.LastName = request.LastName;
         if (request.Email != null) user.Email = request.Email;
         if (request.EmployeeNumber != null) user.EmployeeNumber = request.EmployeeNumber;
-        if (request.TaxNumber != null) user.TaxNumber = request.TaxNumber;
+        if (request.TaxNumber != null)
+            user.TaxNumber = string.IsNullOrWhiteSpace(request.TaxNumber) ? null : request.TaxNumber.Trim();
         if (request.Notes != null) user.Notes = request.Notes;
         if (request.IsDemo.HasValue) user.IsDemo = request.IsDemo.Value;
         if (request.Role != null && request.Role != user.Role)
@@ -575,6 +577,7 @@ public class AdminUsersController : ControllerBase
         public string TenantSlug { get; set; } = string.Empty;
         public string TenantName { get; set; } = string.Empty;
         public DateTime JoinedAtUtc { get; set; }
+        public DateTime? LastLoginAt { get; set; }
     }
 
     public class AdminInviteUserRequest

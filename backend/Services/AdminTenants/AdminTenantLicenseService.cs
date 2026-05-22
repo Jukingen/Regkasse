@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Services.AdminTenants;
@@ -36,11 +37,16 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
     }
 
     private readonly AppDbContext _db;
+    private readonly ILicenseSyncService _licenseSync;
     private readonly ILogger<AdminTenantLicenseService> _logger;
 
-    public AdminTenantLicenseService(AppDbContext db, ILogger<AdminTenantLicenseService> logger)
+    public AdminTenantLicenseService(
+        AppDbContext db,
+        ILicenseSyncService licenseSync,
+        ILogger<AdminTenantLicenseService> logger)
     {
         _db = db;
+        _licenseSync = licenseSync;
         _logger = logger;
     }
 
@@ -97,7 +103,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         {
             var key = request.LicenseKey.Trim();
             var issued = await _db.IssuedLicenses.AsNoTracking()
-                .Where(il => il.LicenseKey == key && !il.IsDeleted)
+                .Where(il => il.LicenseKey == key && !il.IsDeleted && !il.IsRevoked && !il.IsCancelled && il.SupersededByLicenseId == null)
                 .OrderByDescending(il => il.IssuedAtUtc)
                 .FirstOrDefaultAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -119,6 +125,8 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         tenant.UpdatedAt = now;
         tenant.UpdatedBy = actorUserId;
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(tenant.LicenseKey))
+            await _licenseSync.SyncTenantLicenseExpiryAsync(tenantId, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("Super-admin extended license for tenant {TenantId}", tenantId);
         return (await GetOverviewAsync(tenantId, cancellationToken).ConfigureAwait(false), null);
     }
@@ -253,25 +261,15 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         IReadOnlyList<TenantLicenseHistoryItemDto> history,
         IReadOnlyList<string> features)
     {
-        var now = DateTime.UtcNow;
-        var until = tenant.LicenseValidUntilUtc;
-        int? days = null;
-        string kind;
-        if (!until.HasValue)
-        {
-            kind = "none";
-        }
-        else
-        {
-            days = (int)Math.Ceiling((until.Value - now).TotalDays);
-            kind = days < 0 ? "expired" : string.IsNullOrWhiteSpace(tenant.LicenseKey) ? "trial" : "active";
-        }
+        var (days, kind) = TenantLicenseStatusMapper.ComputeKindAndDays(
+            tenant.LicenseValidUntilUtc,
+            tenant.LicenseKey);
 
         _ = history;
         return new TenantLicenseStatusDto(
             kind,
             tenant.LicenseKey,
-            until,
+            tenant.LicenseValidUntilUtc,
             days,
             InferTier(features),
             features);

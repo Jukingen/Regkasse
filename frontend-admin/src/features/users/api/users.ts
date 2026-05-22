@@ -34,6 +34,7 @@ export type TenantUserRowDto = {
     tenantSlug: string;
     tenantName: string;
     joinedAtUtc: string;
+    lastLoginAt?: string | null;
 };
 
 export type ListAdminUsersParams = {
@@ -175,6 +176,7 @@ export function tenantRowToTenantUser(row: TenantUserRowDto) {
         tenantSlug: row.tenantSlug,
         tenantName: row.tenantName,
         isActive: row.isActive,
+        lastLoginAt: row.lastLoginAt ?? undefined,
     };
 }
 

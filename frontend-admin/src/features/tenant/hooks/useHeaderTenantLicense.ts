@@ -50,7 +50,12 @@ export function useHeaderTenantLicense() {
         if (!row) {
             return null;
         }
-        return resolveTenantLicenseLabel(row.licenseValidUntilUtc, row.licenseKey);
+        return resolveTenantLicenseLabel(
+            row.licenseValidUntilUtc,
+            row.licenseKey,
+            Date.now(),
+            row.licenseDaysRemaining,
+        );
     }, [mode, ctx.tenantSlug, tenantsQuery.data]);
 
     const licenseValidUntilUtc = useMemo(() => {

@@ -173,13 +173,15 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LastName).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.EmployeeNumber).HasMaxLength(20);
                 entity.Property(e => e.Role).HasMaxLength(20);
-                entity.Property(e => e.TaxNumber).HasMaxLength(20);
+                entity.Property(e => e.TaxNumber).HasMaxLength(20).IsRequired(false);
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.DeactivatedBy).HasMaxLength(450);
                 entity.Property(e => e.DeactivationReason).HasMaxLength(500);
                 
                 entity.HasIndex(e => e.EmployeeNumber).IsUnique();
-                entity.HasIndex(e => e.TaxNumber).IsUnique();
+                entity.HasIndex(e => e.TaxNumber)
+                    .IsUnique()
+                    .HasFilter("tax_number IS NOT NULL AND tax_number <> ''");
             });
 
             builder.Entity<AuthSession>(entity =>
@@ -235,6 +237,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
                 entity.Property(e => e.UpdatedAtUtc).HasColumnName("updated_at_utc");
 
+                // Composite unique: one membership row per (user, tenant); user may belong to many tenants.
+                entity.HasIndex(e => new { e.UserId, e.TenantId }).IsUnique();
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => e.UserId);
+
                 entity.HasOne(e => e.User)
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
@@ -244,12 +251,6 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasIndex(e => new { e.UserId, e.TenantId }).IsUnique();
-                entity.HasIndex(e => e.TenantId);
-                entity.HasIndex(e => e.UserId)
-                    .IsUnique()
-                    .HasFilter("\"is_active\" = true");
             });
 
             // Product configuration - RKSV uyumlu güncellenmiş yapı

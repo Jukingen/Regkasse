@@ -230,7 +230,7 @@
       "statusCard": "Status & metadata",
       "created": "Created",
       "lastActivity": "Last activity",
-      "manageUsers": "Manage users",
+      "manageUsers": "Manage users →",
       "statsTitle": "Metrics",
       "confirmSuspend": {
         "title": "Suspend tenant?",

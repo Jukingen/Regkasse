@@ -4,7 +4,11 @@ import {
     buildAdminUsersPageHref,
     readTenantIdFromSearchParams,
     resolveAdminUsersTenantFilterFromSearchParams,
+    ADMIN_USERS_FILTER_ALL,
     ADMIN_USERS_FILTER_PLATFORM,
+    TENANT_FILTER_ALL_UI,
+    tenantFilterFromUiValue,
+    tenantFilterToUiValue,
 } from '../adminUsersPageUrl';
 
 describe('adminUsersPageUrl', () => {
@@ -26,5 +30,11 @@ describe('adminUsersPageUrl', () => {
         expect(resolveAdminUsersTenantFilterFromSearchParams(new URLSearchParams('tenantId=cafe-id'))).toBe(
             'cafe-id',
         );
+    });
+
+    it('maps UI tenant filter value all ↔ internal empty filter', () => {
+        expect(tenantFilterToUiValue(ADMIN_USERS_FILTER_ALL)).toBe(TENANT_FILTER_ALL_UI);
+        expect(tenantFilterFromUiValue(TENANT_FILTER_ALL_UI)).toBe(ADMIN_USERS_FILTER_ALL);
+        expect(tenantFilterToUiValue('cafe-id')).toBe('cafe-id');
     });
 });

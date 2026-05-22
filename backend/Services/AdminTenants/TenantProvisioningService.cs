@@ -100,7 +100,6 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             LastName = tenant.Name.Length > 50 ? tenant.Name[..50] : tenant.Name,
             EmployeeNumber = "ADMIN001",
             Role = Roles.Manager,
-            TaxNumber = string.Empty,
             Notes = $"Provisioned admin for tenant {tenant.Slug}",
             IsActive = true,
             EmailConfirmed = true,

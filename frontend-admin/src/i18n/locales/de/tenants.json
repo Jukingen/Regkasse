@@ -230,7 +230,7 @@
       "statusCard": "Status & Metadaten",
       "created": "Erstellt",
       "lastActivity": "Letzte Aktivität",
-      "manageUsers": "Benutzer verwalten",
+      "manageUsers": "Benutzer verwalten →",
       "statsTitle": "Kennzahlen",
       "confirmSuspend": {
         "title": "Mandant sperren?",

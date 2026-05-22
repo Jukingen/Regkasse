@@ -230,7 +230,7 @@
       "statusCard": "Durum ve meta veriler",
       "created": "Oluşturulma",
       "lastActivity": "Son aktivite",
-      "manageUsers": "Kullanıcıları yönet",
+      "manageUsers": "Kullanıcıları yönet →",
       "statsTitle": "Özet",
       "confirmSuspend": {
         "title": "Kiracı askıya alınsın mı?",

@@ -19,13 +19,13 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class TenantUserServiceTests
 {
-    private static AppDbContext CreateDb()
+    private static AppDbContext CreateDb(ICurrentTenantAccessor? tenantAccessor = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"TenantUsers_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        return new AppDbContext(options, tenantAccessor ?? NullCurrentTenantAccessor.Instance);
     }
 
     private static UserManager<ApplicationUser> CreateUserManager(AppDbContext db)
@@ -50,7 +50,8 @@ public sealed class TenantUserServiceTests
         IUserUniquenessValidationService? uniqueness = null,
         IUserSessionInvalidation? sessionInvalidation = null,
         IQuickUserGeneratorService? quickUserGenerator = null,
-        IAuditLogService? auditLog = null) =>
+        IAuditLogService? auditLog = null,
+        ICurrentTenantAccessor? tenantAccessor = null) =>
         new(
             db,
             userManager,
@@ -64,7 +65,7 @@ public sealed class TenantUserServiceTests
                 uniqueness ?? CreateUniquenessMock().Object),
             auditLog ?? Mock.Of<IAuditLogService>(),
             Mock.Of<IHttpContextAccessor>(),
-            NullCurrentTenantAccessor.Instance,
+            tenantAccessor ?? NullCurrentTenantAccessor.Instance,
             Mock.Of<ILogger<TenantUserService>>());
 
     private static Mock<IAuditLogService> CreateAuditMock()
@@ -185,6 +186,47 @@ public sealed class TenantUserServiceTests
                 It.IsAny<object?>(),
                 It.IsAny<string?>()),
             Times.Once);
+
+        var created = await db.Users.AsNoTracking().SingleAsync(u => u.Email == "create@cafe.test");
+        Assert.Null(created.TaxNumber);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Allows_Second_User_Without_Tax_Number()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Multi User Cafe",
+            Slug = "multi-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db));
+        var actorId = Guid.NewGuid().ToString("D");
+
+        var (first, firstError) = await service.CreateAsync(tenantId, new CreateTenantUserRequest
+        {
+            Email = "first@multi.test",
+            Role = Roles.Cashier,
+        }, actorId);
+        var (second, secondError) = await service.CreateAsync(tenantId, new CreateTenantUserRequest
+        {
+            Email = "second@multi.test",
+            Role = Roles.Cashier,
+        }, actorId);
+
+        Assert.Null(firstError);
+        Assert.Null(secondError);
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.NotEqual(first!.Email, second!.Email);
     }
 
     [Fact]
@@ -273,6 +315,39 @@ public sealed class TenantUserServiceTests
     }
 
     [Fact]
+    public async Task InviteAsync_Succeeds_When_Ambient_Tenant_Differs_From_Target()
+    {
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        await using var db = CreateDb(tenantAccessor);
+        await SeedRolesAsync(db);
+        var targetTenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = targetTenantId,
+            Name = "Remote Cafe",
+            Slug = "remote-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db), tenantAccessor: tenantAccessor);
+        var (result, error) = await service.InviteAsync(targetTenantId, new InviteTenantUserRequest
+        {
+            Email = "remote.manager@cafe.test",
+            Role = Roles.Manager,
+        }, "actor-1");
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.True(result!.UserCreated);
+        Assert.Equal(
+            targetTenantId,
+            (await db.UserTenantMemberships.IgnoreQueryFilters().SingleAsync()).TenantId);
+    }
+
+    [Fact]
     public async Task InviteAsync_Assigns_Existing_User_Without_Password()
     {
         await using var db = CreateDb();
@@ -298,7 +373,6 @@ public sealed class TenantUserServiceTests
             LastName = "U",
             EmployeeNumber = "E2",
             Role = Roles.Cashier,
-            TaxNumber = string.Empty,
             IsActive = true,
             EmailConfirmed = true,
             CreatedAt = DateTime.UtcNow,
@@ -344,7 +418,6 @@ public sealed class TenantUserServiceTests
             LastName = "U",
             EmployeeNumber = "E1",
             Role = Roles.Cashier,
-            TaxNumber = string.Empty,
             IsActive = true,
             EmailConfirmed = true,
             CreatedAt = DateTime.UtcNow,

@@ -230,6 +230,9 @@ export default function SuperAdminTenantDetailPage() {
                         </Button>
                         {tenant && tenant.status !== 'deleted' ? (
                             <>
+                                <Link href={buildAdminUsersPageHref(tenantId)}>
+                                    <Button>{t('tenants.detail.overview.manageUsers')}</Button>
+                                </Link>
                                 <Link href={`/admin/tenants/${tenantId}?tab=settings`}>
                                     <Button icon={<EditOutlined />}>{t('tenants.actions.edit')}</Button>
                                 </Link>

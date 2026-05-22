@@ -32,7 +32,7 @@ namespace KasseAPI_Final.Models
         
         [Column("tax_number")]
         [MaxLength(20)]
-        public string TaxNumber { get; set; } = string.Empty;
+        public string? TaxNumber { get; set; }
         
         [Column("notes")]
         [MaxLength(500)]

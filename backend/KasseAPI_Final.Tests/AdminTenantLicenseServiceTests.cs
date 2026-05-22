@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -37,7 +38,10 @@ public sealed class AdminTenantLicenseServiceTests
         });
         await db.SaveChangesAsync();
 
-        var service = new AdminTenantLicenseService(db, Mock.Of<ILogger<AdminTenantLicenseService>>());
+        var service = new AdminTenantLicenseService(
+            db,
+            Mock.Of<ILicenseSyncService>(),
+            Mock.Of<ILogger<AdminTenantLicenseService>>());
         var (result, error) = await service.ActivateTrialAsync(tenantId, "actor");
 
         Assert.Null(error);

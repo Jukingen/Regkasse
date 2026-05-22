@@ -226,12 +226,19 @@
   "unified": {
     "pageIntro": "Alle Plattform- und Mandanten-Benutzer an einem Ort. Mit dem Mandantenfilter grenzen Sie die Liste ein — ohne separate Menüpunkte.",
     "filterTenantLabel": "Mandant filtern:",
+    "filterTenantPlaceholder": "Mandant filtern",
     "filterAllTenants": "Alle Mandanten",
     "filterPlatformOnly": "Plattform",
+    "filterPlatformOption": "🏢 Plattform (Super Admin)",
     "platformBadge": "Plattform (Super Admin)",
     "platformTenantLabel": "(Plattform)",
     "empty": "Keine Benutzer für die aktuellen Filter.",
-    "invitationsSection": "Einladungen (E-Mail)"
+    "invitationsSection": "Einladungen (E-Mail)",
+    "quickUserAction": "Schnell-Benutzer",
+    "columnType": "Typ",
+    "typeBadgePlatformAdmin": "👑 Plattform-Admin",
+    "typeBadgePlatform": "🏢 Plattform",
+    "typeBadgeTenant": "👤 Mandant"
   },
   "tabs": {
     "labelPlatform": "Plattform-Benutzer",

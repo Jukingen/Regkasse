@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
@@ -479,8 +480,12 @@ public sealed partial class AdminTenantService : IAdminTenantService
         return string.IsNullOrEmpty(t) ? null : t;
     }
 
-    private static AdminTenantListItemDto ToListItem(Tenant t, string? ownerAdminEmail = null) =>
-        new(
+    private static AdminTenantListItemDto ToListItem(Tenant t, string? ownerAdminEmail = null)
+    {
+        var (licenseDaysRemaining, _) = TenantLicenseStatusMapper.ComputeKindAndDays(
+            t.LicenseValidUntilUtc,
+            t.LicenseKey);
+        return new(
             t.Id,
             t.Name,
             t.Slug,
@@ -492,8 +497,10 @@ public sealed partial class AdminTenantService : IAdminTenantService
             t.LicenseValidUntilUtc,
             t.CreatedAt,
             t.UpdatedAt,
+            licenseDaysRemaining,
             ownerAdminEmail,
             DemoTenantIds.IsDemoPresetSlug(t.Slug));
+    }
 
     private static AdminTenantDetailDto ToDetail(
         Tenant t,

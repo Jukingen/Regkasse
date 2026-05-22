@@ -234,6 +234,8 @@ export function TenantDetailUsersTab({ tenantId, tenant }: TenantDetailUsersTabP
 
                     <QuickUserModal
                         open={quickOpen}
+                        variant="tenantDetail"
+                        tenantId={tenantId}
                         tenantSlug={tenant?.slug ?? 'tenant'}
                         tenantName={tenant?.name}
                         confirmLoading={quickMutation.isPending}

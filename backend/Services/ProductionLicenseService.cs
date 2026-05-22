@@ -1,15 +1,23 @@
+using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services;
 
 /// <summary>
 /// Production-facing <see cref="ILicenseService"/> adapter that delegates all operations to the
 /// process-wide <see cref="LicenseService"/> singleton (trial, offline JWT, remote validation, revocation overlay).
+/// When an HTTP request resolves a mandant via <see cref="ICurrentTenantAccessor"/>, public status uses
+/// <see cref="Tenant.LicenseValidUntilUtc"/> as the authoritative expiry (SaaS mandant license).
 /// </summary>
 /// <remarks>
 /// <para>
 /// In non-development hosting this type is registered as <strong>scoped</strong> so <see cref="ILicenseService"/>
-/// can be resolved per HTTP request; all authoritative state remains on the inner singleton <see cref="LicenseService"/>.
+/// can be resolved per HTTP request; all authoritative deployment state remains on the inner singleton <see cref="LicenseService"/>.
 /// </para>
 /// <para>
 /// During OpenAPI export, the same adapter is registered as a <strong>singleton</strong> so <see cref="ILicenseService"/>
@@ -19,35 +27,136 @@ namespace KasseAPI_Final.Services;
 public sealed class ProductionLicenseService : ILicenseService
 {
     private readonly LicenseService _inner;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     /// <summary>Creates an adapter around the shared <see cref="LicenseService"/> implementation.</summary>
-    /// <param name="inner">The singleton license evaluator.</param>
-    public ProductionLicenseService(LicenseService inner)
+    public ProductionLicenseService(
+        LicenseService inner,
+        IHttpContextAccessor httpContextAccessor,
+        IServiceScopeFactory scopeFactory)
     {
         _inner = inner;
+        _httpContextAccessor = httpContextAccessor;
+        _scopeFactory = scopeFactory;
     }
 
     /// <inheritdoc />
     public void EvaluateOnStartup() => _inner.EvaluateOnStartup();
 
     /// <inheritdoc />
-    public LicenseStatusResponse GetStatus() => _inner.GetStatus();
+    public LicenseStatusResponse GetStatus() =>
+        ApplyTenantMandantOverlayIfPresent(_inner.GetStatus());
 
     /// <inheritdoc />
-    public Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default) =>
-        _inner.GetCurrentStatusAsync(cancellationToken);
+    public async Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default)
+    {
+        var deployment = await _inner.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
+        return ApplyTenantMandantOverlayIfPresent(deployment);
+    }
 
     /// <inheritdoc />
     public bool IsLicenseSnapshotInitialized => _inner.IsLicenseSnapshotInitialized;
 
     /// <inheritdoc />
-    public Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default) =>
-        _inner.ValidateAsync(cancellationToken);
+    public async Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
+    {
+        if (ResolveRequestTenantId() is Guid tenantId && tenantId != Guid.Empty
+            && await TenantHasMandantLicenseExpiryAsync(tenantId, cancellationToken).ConfigureAwait(false))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var s = await GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
+            var paid = s.IsValid && !s.IsTrial;
+            var trialActive = s.IsTrial && !s.IsExpired;
+            return new LicenseValidationResult
+            {
+                IsLicenseOperational = paid || trialActive,
+                IsTrial = s.IsTrial,
+                IsExpired = s.IsExpired,
+                IsPaidValid = paid,
+                DaysRemaining = s.DaysRemaining,
+                ExpiryUtc = s.ExpiryDate,
+            };
+        }
+
+        return await _inner.ValidateAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc />
-    public Task<LicenseActivationResult> ActivateAsync(
+    public async Task<LicenseActivationResult> ActivateAsync(
         ActivateLicenseRequest request,
         LicenseActivationClientInfo? clientInfo = null,
-        CancellationToken cancellationToken = default) =>
-        _inner.ActivateAsync(request, clientInfo, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _inner.ActivateAsync(request, clientInfo, cancellationToken).ConfigureAwait(false);
+        if (!result.Success)
+            return result;
+
+        using (var scope = _scopeFactory.CreateScope())
+        {
+            var licenseSync = scope.ServiceProvider.GetRequiredService<ILicenseSyncService>();
+            if (!string.IsNullOrWhiteSpace(request.LicenseKey))
+            {
+                await licenseSync
+                    .SyncTenantsForLicenseKeyAsync(request.LicenseKey.Trim(), cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            if (ResolveRequestTenantId() is Guid tenantId && tenantId != Guid.Empty)
+            {
+                await licenseSync
+                    .SyncTenantLicenseExpiryAsync(tenantId, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+
+        return result;
+    }
+
+    private LicenseStatusResponse ApplyTenantMandantOverlayIfPresent(LicenseStatusResponse deployment)
+    {
+        var tenantId = ResolveRequestTenantId();
+        if (tenantId is null || tenantId == Guid.Empty)
+            return deployment;
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var tenant = db.Tenants
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .FirstOrDefault(t => t.Id == tenantId);
+            if (tenant == null)
+                return deployment;
+
+            var overlay = TenantLicenseStatusMapper.TryMapToLicenseStatus(tenant, deployment.MachineHash);
+            return overlay ?? deployment;
+        }
+        catch
+        {
+            return deployment;
+        }
+    }
+
+    private async Task<bool> TenantHasMandantLicenseExpiryAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await db.Tenants
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .AnyAsync(t => t.Id == tenantId && t.LicenseValidUntilUtc != null, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private Guid? ResolveRequestTenantId()
+    {
+        var http = _httpContextAccessor.HttpContext;
+        if (http is null)
+            return null;
+
+        var accessor = http.RequestServices.GetService<ICurrentTenantAccessor>();
+        return accessor?.TenantId;
+    }
 }

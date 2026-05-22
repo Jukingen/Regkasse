@@ -4,18 +4,27 @@ import { useEffect, useMemo } from 'react';
 import { Alert, Form, Modal, Select, Typography } from 'antd';
 import { ThunderboltOutlined } from '@ant-design/icons';
 
+import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 import { QUICK_USER_ROLES } from '@/features/super-admin/api/quickUser';
+import { TenantSelector } from '@/features/users/components/TenantSelector';
 import { useI18n } from '@/i18n';
 
 export type QuickUserFormValues = {
     role: string;
+    tenantId?: string;
 };
 
 export type QuickUserModalProps = {
     open: boolean;
     confirmLoading?: boolean;
-    tenantSlug: string;
+    /** Fixed mandant (tenant detail); hides selector when set. */
+    tenantId?: string;
+    tenantSlug?: string;
     tenantName?: string;
+    /** Mandant picker on unified users page. */
+    tenantRows?: AdminTenantListItem[];
+    tenantsLoading?: boolean;
+    variant?: 'tenantDetail' | 'usersPage';
     onClose: () => void;
     onSubmit: (values: QuickUserFormValues) => void;
 };
@@ -23,13 +32,19 @@ export type QuickUserModalProps = {
 export function QuickUserModal({
     open,
     confirmLoading,
-    tenantSlug,
-    tenantName,
+    tenantId: fixedTenantId,
+    tenantSlug: fixedTenantSlug,
+    tenantName: fixedTenantName,
+    tenantRows = [],
+    tenantsLoading = false,
+    variant = 'tenantDetail',
     onClose,
     onSubmit,
 }: QuickUserModalProps) {
     const { t } = useI18n();
     const [form] = Form.useForm<QuickUserFormValues>();
+
+    const showTenantSelector = variant === 'usersPage' && !fixedTenantId && tenantRows.length > 0;
 
     const roleOptions = useMemo(
         () =>
@@ -40,21 +55,36 @@ export function QuickUserModal({
         [t],
     );
 
+    const tenantById = useMemo(() => new Map(tenantRows.map((row) => [row.id, row])), [tenantRows]);
+
     useEffect(() => {
         if (!open) {
             form.resetFields();
             return;
         }
-        form.setFieldsValue({ role: 'Manager' });
-    }, [open, form]);
+        form.setFieldsValue({
+            role: 'Manager',
+            ...(fixedTenantId ? { tenantId: fixedTenantId } : {}),
+        });
+    }, [open, form, fixedTenantId]);
 
     const watchedRole = Form.useWatch('role', form) ?? 'Manager';
+    const watchedTenantId = Form.useWatch('tenantId', form) ?? fixedTenantId;
+    const previewTenant = watchedTenantId ? tenantById.get(watchedTenantId) : undefined;
+    const previewSlug = previewTenant?.slug ?? fixedTenantSlug ?? 'mandant';
 
     const infoEmailExample = t('tenants.users.quick.emailPreview', {
         role: watchedRole.toLowerCase(),
         random: 'a3f9k2',
-        slug: tenantSlug,
+        slug: previewSlug,
     });
+
+    const handleFinish = (values: QuickUserFormValues) => {
+        onSubmit({
+            role: values.role,
+            tenantId: fixedTenantId ?? values.tenantId,
+        });
+    };
 
     return (
         <Modal
@@ -72,10 +102,22 @@ export function QuickUserModal({
             confirmLoading={confirmLoading}
             destroyOnClose
         >
-            <Form form={form} layout="vertical" onFinish={onSubmit}>
-                {tenantName ? (
+            <Form form={form} layout="vertical" onFinish={handleFinish}>
+                {showTenantSelector ? (
+                    <Form.Item
+                        name="tenantId"
+                        label={t('users.invite.tenant')}
+                        rules={[{ required: true, message: t('users.invite.tenantRequired') }]}
+                    >
+                        <TenantSelector
+                            tenants={tenantRows}
+                            loading={tenantsLoading}
+                            placeholder={t('users.invite.tenantPlaceholder')}
+                        />
+                    </Form.Item>
+                ) : fixedTenantName && fixedTenantSlug ? (
                     <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
-                        {tenantName} ({tenantSlug})
+                        {fixedTenantName} ({fixedTenantSlug})
                     </Typography.Paragraph>
                 ) : null}
                 <Form.Item name="role" label={t('tenants.users.quick.role')} rules={[{ required: true }]}>

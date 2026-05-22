@@ -334,7 +334,7 @@ namespace KasseAPI_Final.Controllers
                     LastName = request.LastName,
                     EmployeeNumber = request.EmployeeNumber.Trim(),
                     Role = request.Role,
-                    TaxNumber = request.TaxNumber ?? string.Empty,
+                    TaxNumber = string.IsNullOrWhiteSpace(request.TaxNumber) ? null : request.TaxNumber.Trim(),
                     Notes = request.Notes ?? string.Empty,
                     IsActive = true,
                     EmailConfirmed = true
@@ -474,7 +474,7 @@ namespace KasseAPI_Final.Controllers
                 user.FirstName = request.FirstName;
                 user.LastName = request.LastName;
                 user.EmployeeNumber = request.EmployeeNumber.Trim();
-                user.TaxNumber = request.TaxNumber;
+                user.TaxNumber = string.IsNullOrWhiteSpace(request.TaxNumber) ? null : request.TaxNumber.Trim();
                 user.Notes = request.Notes;
                 if (request.IsDemo.HasValue)
                     user.IsDemo = request.IsDemo.Value;

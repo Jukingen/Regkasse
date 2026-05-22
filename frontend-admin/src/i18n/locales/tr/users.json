@@ -226,12 +226,19 @@
   "unified": {
     "pageIntro": "Tüm platform ve mandant kullanıcıları tek yerde. Mandant filtresi ile listeyi daraltın — ayrı menü girişleri yok.",
     "filterTenantLabel": "Mandant filtrele:",
+    "filterTenantPlaceholder": "Mandant filtrele",
     "filterAllTenants": "Tüm mandantlar",
     "filterPlatformOnly": "Platform",
+    "filterPlatformOption": "🏢 Platform (Süper Admin)",
     "platformBadge": "Platform (Süper Admin)",
     "platformTenantLabel": "(Platform)",
     "empty": "Mevcut filtrelere uyan kullanıcı yok.",
-    "invitationsSection": "Davetler (e-posta)"
+    "invitationsSection": "Davetler (e-posta)",
+    "quickUserAction": "Hızlı kullanıcı",
+    "columnType": "Tür",
+    "typeBadgePlatformAdmin": "👑 Platform yöneticisi",
+    "typeBadgePlatform": "🏢 Platform",
+    "typeBadgeTenant": "👤 Mandant"
   },
   "tabs": {
     "labelPlatform": "Platform kullanıcıları",

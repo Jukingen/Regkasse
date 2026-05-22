@@ -27,11 +27,11 @@ public sealed class UserTenantMembershipProvisioner : IUserTenantMembershipProvi
         if (!tenantOk)
             throw new InvalidOperationException($"Tenant '{tenantId:D}' does not exist; membership not provisioned.");
 
-        var existingForPair = await _db.UserTenantMemberships
+        var existingForPair = await MembershipsUnfiltered()
             .FirstOrDefaultAsync(m => m.UserId == userId && m.TenantId == tenantId, cancellationToken)
             .ConfigureAwait(false);
 
-        var activeForUser = await _db.UserTenantMemberships
+        var activeForUser = await MembershipsUnfiltered()
             .Where(m => m.UserId == userId && m.IsActive)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -72,7 +72,7 @@ public sealed class UserTenantMembershipProvisioner : IUserTenantMembershipProvi
 
         if (isOwner)
         {
-            var otherOwners = await _db.UserTenantMemberships
+            var otherOwners = await MembershipsUnfiltered()
                 .Where(m => m.TenantId == tenantId && m.IsOwner && m.Id != target.Id)
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -87,4 +87,8 @@ public sealed class UserTenantMembershipProvisioner : IUserTenantMembershipProvi
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>Membership rows are keyed by explicit <paramref name="tenantId"/>; ignore ambient tenant filter.</summary>
+    private IQueryable<UserTenantMembership> MembershipsUnfiltered() =>
+        _db.UserTenantMemberships.IgnoreQueryFilters();
 }

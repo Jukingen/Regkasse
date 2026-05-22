@@ -24,6 +24,7 @@ import {
     MailOutlined,
     ReloadOutlined,
     SearchOutlined,
+    ThunderboltOutlined,
     StopOutlined,
     CheckCircleOutlined,
     EyeOutlined,
@@ -36,9 +37,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { InviteUserModal } from '@/features/users/components/InviteUserModal';
 import type { InviteUserFormValues } from '@/features/users/components/InviteUserModal';
 import { UserCreatedSuccessModal } from '@/features/super-admin/components/UserCreatedSuccessModal';
+import { QuickUserModal } from '@/features/super-admin/components/QuickUserModal';
+import type { QuickUserFormValues } from '@/features/super-admin/components/QuickUserModal';
+import { QuickUserSuccessModal } from '@/features/super-admin/components/QuickUserSuccessModal';
+import { createQuickUser, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
 import { createTenantUser, type CreateTenantUserResult } from '@/features/super-admin/api/tenantUsers';
 import { UserInvitationsPanel } from '@/features/users/components/UserInvitationsPanel';
 import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
+import { UserTypeBadge } from '@/features/users/components/UserTypeBadge';
 import { ResetPasswordModal } from '@/features/super-admin/components/ResetPasswordModal';
 import {
     adminUserToUserInfo,
@@ -50,50 +56,27 @@ import {
     type TenantUserRow,
 } from '@/features/users/api/users';
 import type { UserInfo } from '@/features/users/api/usersGateway';
-import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
+import { TenantFilter } from '@/features/users/components/TenantFilter';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
-import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
 import {
     ADMIN_USERS_FILTER_ALL,
     ADMIN_USERS_FILTER_PLATFORM,
     ADMIN_USERS_PAGE_PATH,
     buildAdminUsersPageHref,
     resolveAdminUsersTenantFilterFromSearchParams,
+    tenantFilterFromUiValue,
+    tenantFilterToUiValue,
 } from '@/features/users/utils/adminUsersPageUrl';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
+import type { UnifiedAdminUserRow } from '@/features/users/types/unifiedAdminUserRow';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
+
+export type { UnifiedAdminUserRow } from '@/features/users/types/unifiedAdminUserRow';
 
 const TENANT_ROLE_FILTER_VALUES = ['Manager', 'Cashier', 'Accountant'] as const;
 const FILTER_ALL = ADMIN_USERS_FILTER_ALL;
 const FILTER_PLATFORM = ADMIN_USERS_FILTER_PLATFORM;
-
-export type UnifiedAdminUserRow =
-    | {
-          kind: 'platform';
-          key: string;
-          tenantSlug: string;
-          tenantName: string;
-          userId: string;
-          name: string;
-          email: string;
-          role: string;
-          isActive: boolean;
-          user: UserInfo;
-      }
-    | {
-          kind: 'tenant';
-          key: string;
-          tenantSlug: string;
-          tenantName: string;
-          tenantId: string;
-          userId: string;
-          name: string;
-          email: string;
-          role: string;
-          isActive: boolean;
-          isOwner: boolean;
-          row: TenantUserRow;
-      };
 
 function platformDisplayName(user: UserInfo): string {
     const first = user.firstName ?? '';
@@ -126,47 +109,58 @@ export function UnifiedAdminUsersView({
     onResetPassword,
     onCreatePlatformUser,
 }: UnifiedAdminUsersViewProps) {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
     const router = useRouter();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
 
-    const [tenantFilter, setTenantFilter] = useState(() =>
-        resolveAdminUsersTenantFilterFromSearchParams(searchParams),
+    const [selectedTenant, setSelectedTenant] = useState(() =>
+        tenantFilterToUiValue(resolveAdminUsersTenantFilterFromSearchParams(searchParams)),
     );
+    const tenantFilter = tenantFilterFromUiValue(selectedTenant);
     const [roleFilter, setRoleFilter] = useState<string | undefined>();
     const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
     const [search, setSearch] = useState('');
     const [searchInput, setSearchInput] = useState('');
     const [inviteOpen, setInviteOpen] = useState(false);
+    const [quickOpen, setQuickOpen] = useState(false);
     const [createResult, setCreateResult] = useState<CreateTenantUserResult | null>(null);
+    const [quickResult, setQuickResult] = useState<CreateQuickUserResult | null>(null);
+    const [quickRole, setQuickRole] = useState('Manager');
+    const [quickTenantCtx, setQuickTenantCtx] = useState<{ name: string; slug: string } | null>(null);
     const [resetRow, setResetRow] = useState<TenantUserRow | null>(null);
 
     useEffect(() => {
-        setTenantFilter(resolveAdminUsersTenantFilterFromSearchParams(searchParams));
+        setSelectedTenant(
+            tenantFilterToUiValue(resolveAdminUsersTenantFilterFromSearchParams(searchParams)),
+        );
     }, [searchParams]);
 
     const inviteFixedTenantId =
         tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM ? tenantFilter : undefined;
 
     const handleTenantFilterChange = (value: string) => {
-        setTenantFilter(value);
-        if (value === FILTER_ALL) {
+        setSelectedTenant(value);
+        const filter = tenantFilterFromUiValue(value);
+        if (filter === FILTER_ALL) {
             router.replace(ADMIN_USERS_PAGE_PATH, { scroll: false });
             return;
         }
-        if (value === FILTER_PLATFORM) {
+        if (filter === FILTER_PLATFORM) {
             router.replace(`${ADMIN_USERS_PAGE_PATH}?filter=platform`, { scroll: false });
             return;
         }
-        router.replace(buildAdminUsersPageHref(value), { scroll: false });
+        router.replace(buildAdminUsersPageHref(filter), { scroll: false });
     };
 
-    const tenantsQuery = useGetApiAdminTenants();
     const { tenants: inviteTenants, isLoading: inviteTenantsLoading } = useTenantList();
-    const businessTenants = useMemo(
-        () => (tenantsQuery.data ?? []).filter((row) => row.isActive && isBusinessTenantSlug(row.slug)),
-        [tenantsQuery.data],
+
+    const quickFixedTenant = useMemo(
+        () =>
+            inviteFixedTenantId
+                ? inviteTenants.find((row) => row.id === inviteFixedTenantId)
+                : undefined,
+        [inviteFixedTenantId, inviteTenants],
     );
 
     const platformQuery = useQuery({
@@ -192,20 +186,6 @@ export function UnifiedAdminUsersView({
         select: (data) => data.map(tenantRowToTenantUser),
     });
 
-    const tenantFilterOptions = useMemo(
-        () => [
-            { value: FILTER_ALL, label: t('users.unified.filterAllTenants') },
-            { value: FILTER_PLATFORM, label: t('users.unified.filterPlatformOnly') },
-            ...businessTenants
-                .map((tenant) => ({
-                    value: tenant.id,
-                    label: tenant.slug,
-                }))
-                .sort((a, b) => a.label.localeCompare(b.label)),
-        ],
-        [businessTenants, t],
-    );
-
     const statusFilterOptions = useMemo(
         () => [
             { value: 'active', label: t('users.list.statusActive') },
@@ -215,7 +195,7 @@ export function UnifiedAdminUsersView({
     );
 
     const unifiedRows = useMemo((): UnifiedAdminUserRow[] => {
-        const platformBadge = t('users.unified.platformBadge');
+        const platformTenantLabel = t('users.unified.filterPlatformOnly');
         const rows: UnifiedAdminUserRow[] = [];
 
         if (tenantFilter === FILTER_ALL || tenantFilter === FILTER_PLATFORM) {
@@ -224,13 +204,14 @@ export function UnifiedAdminUsersView({
                 rows.push({
                     kind: 'platform',
                     key: `platform:${user.id}`,
-                    tenantSlug: platformBadge,
-                    tenantName: platformBadge,
+                    tenantSlug: platformTenantLabel,
+                    tenantName: platformTenantLabel,
                     userId: user.id,
                     name: platformDisplayName(user),
                     email: user.email ?? user.userName ?? '—',
                     role: user.role ?? '—',
                     isActive: user.isActive,
+                    lastLoginAt: user.lastLoginAt ?? null,
                     user,
                 });
             }
@@ -250,6 +231,7 @@ export function UnifiedAdminUsersView({
                     role: row.role,
                     isActive: row.isActive,
                     isOwner: row.isOwner,
+                    lastLoginAt: row.lastLoginAt ?? null,
                     row,
                 });
             }
@@ -266,6 +248,7 @@ export function UnifiedAdminUsersView({
             return (
                 row.name.toLowerCase().includes(q) ||
                 row.email.toLowerCase().includes(q) ||
+                row.tenantName.toLowerCase().includes(q) ||
                 row.tenantSlug.toLowerCase().includes(q) ||
                 row.role.toLowerCase().includes(q)
             );
@@ -289,6 +272,35 @@ export function UnifiedAdminUsersView({
             message.success(t('tenants.users.invite.messages.created'));
         },
         onError: () => message.error(t('tenants.users.invite.messages.failed')),
+    });
+
+    const quickMutation = useMutation({
+        mutationFn: (values: QuickUserFormValues) => {
+            const tenantId = values.tenantId ?? inviteFixedTenantId;
+            if (!tenantId) throw new Error('tenantId required');
+            return createQuickUser(tenantId, { role: values.role });
+        },
+        onSuccess: (res, values) => {
+            const tenantId = values.tenantId ?? inviteFixedTenantId;
+            const tenant = inviteTenants.find((row) => row.id === tenantId);
+            setQuickTenantCtx({
+                name: tenant?.name ?? tenantId ?? '',
+                slug: tenant?.slug ?? 'tenant',
+            });
+            setQuickOpen(false);
+            setQuickRole(values.role);
+            setQuickResult(res);
+            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
+            message.success(t('tenants.users.quick.messages.created'));
+        },
+        onError: (err: unknown) => {
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 429) {
+                message.error(t('tenants.users.quick.messages.rateLimited'));
+                return;
+            }
+            message.error(t('tenants.users.quick.messages.failed'));
+        },
     });
 
     const removeMutation = useMutation({
@@ -317,19 +329,17 @@ export function UnifiedAdminUsersView({
         () => [
             {
                 title: t('users.tabs.tenant.columnTenant'),
-                key: 'tenant',
-                render: (_: unknown, row) =>
-                    row.kind === 'platform' ? (
-                        <Tag color="purple">{t('users.unified.platformBadge')}</Tag>
-                    ) : (
-                        <Space direction="vertical" size={0}>
-                            <Tag color="blue">{row.tenantName}</Tag>
-                            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                                {row.tenantSlug}
-                            </Typography.Text>
-                        </Space>
-                    ),
-                sorter: (a, b) => a.tenantSlug.localeCompare(b.tenantSlug),
+                dataIndex: 'tenantName',
+                key: 'tenantName',
+                width: 150,
+                ellipsis: true,
+                sorter: (a, b) => a.tenantName.localeCompare(b.tenantName),
+            },
+            {
+                title: t('users.unified.columnType'),
+                key: 'userType',
+                width: 130,
+                render: (_: unknown, row) => <UserTypeBadge row={row} />,
             },
             {
                 title: t('users.list.columnName'),
@@ -346,6 +356,7 @@ export function UnifiedAdminUsersView({
                 title: t('users.list.columnRole'),
                 dataIndex: 'role',
                 key: 'role',
+                width: 120,
                 render: (role: string, row) => (
                     <UserRoleBadge
                         role={role}
@@ -356,16 +367,26 @@ export function UnifiedAdminUsersView({
             },
             {
                 title: t('users.list.columnStatus'),
-                key: 'status',
-                render: (_: unknown, row) => (
-                    <Tag color={row.isActive ? 'green' : 'red'}>
-                        {row.isActive ? t('users.list.statusActive') : t('users.list.statusInactive')}
+                dataIndex: 'isActive',
+                key: 'isActive',
+                width: 100,
+                render: (active: boolean) => (
+                    <Tag color={active ? 'green' : 'red'}>
+                        {active ? t('users.list.statusActive') : t('users.list.statusInactive')}
                     </Tag>
                 ),
             },
             {
+                title: t('users.list.columnLastLogin'),
+                dataIndex: 'lastLoginAt',
+                key: 'lastLoginAt',
+                width: 180,
+                render: (v: string | null | undefined) => (v ? formatDateTime(v, formatLocale) : '—'),
+            },
+            {
                 title: t('users.list.columnActions'),
                 key: 'actions',
+                width: 150,
                 render: (_: unknown, row) => {
                     if (row.kind === 'platform') {
                         const record = row.user;
@@ -460,6 +481,7 @@ export function UnifiedAdminUsersView({
         ],
         [
             t,
+            formatLocale,
             policy,
             currentUserId,
             onView,
@@ -480,11 +502,10 @@ export function UnifiedAdminUsersView({
             <Card size="small" title={t('users.list.filterCardTitle')}>
                 <Flex wrap="wrap" gap="small" align="center">
                     <Typography.Text type="secondary">{t('users.unified.filterTenantLabel')}</Typography.Text>
-                    <Select
-                        style={{ minWidth: 260 }}
-                        value={tenantFilter}
+                    <TenantFilter
+                        value={selectedTenant}
                         onChange={handleTenantFilterChange}
-                        options={tenantFilterOptions}
+                        includePlatformOption
                     />
                     <Input.Search
                         allowClear
@@ -545,9 +566,14 @@ export function UnifiedAdminUsersView({
 
             <Space wrap>
                 {policy.canProvisionTenantCredentials && tenantFilter !== FILTER_PLATFORM ? (
-                    <Button type="primary" icon={<MailOutlined />} onClick={() => setInviteOpen(true)}>
-                        {t('users.invite.action')}
-                    </Button>
+                    <>
+                        <Button type="primary" icon={<MailOutlined />} onClick={() => setInviteOpen(true)}>
+                            {t('users.invite.action')}
+                        </Button>
+                        <Button icon={<ThunderboltOutlined />} onClick={() => setQuickOpen(true)}>
+                            {t('users.unified.quickUserAction')}
+                        </Button>
+                    </>
                 ) : null}
                 {policy.canCreate ? (
                     <Button icon={<UserOutlined />} onClick={onCreatePlatformUser}>
@@ -600,6 +626,30 @@ export function UnifiedAdminUsersView({
                         open={!!createResult}
                         result={createResult}
                         onClose={() => setCreateResult(null)}
+                    />
+                    <QuickUserModal
+                        open={quickOpen}
+                        variant="usersPage"
+                        tenantId={inviteFixedTenantId}
+                        tenantSlug={quickFixedTenant?.slug}
+                        tenantName={quickFixedTenant?.name}
+                        tenantRows={inviteTenants}
+                        tenantsLoading={inviteTenantsLoading}
+                        confirmLoading={quickMutation.isPending}
+                        onClose={() => setQuickOpen(false)}
+                        onSubmit={(values) => quickMutation.mutate(values)}
+                    />
+                    <QuickUserSuccessModal
+                        open={!!quickResult}
+                        result={quickResult}
+                        role={quickRole}
+                        tenantName={quickTenantCtx?.name ?? ''}
+                        tenantSlug={quickTenantCtx?.slug ?? 'tenant'}
+                        onClose={() => setQuickResult(null)}
+                        onGenerateAnother={() => {
+                            setQuickResult(null);
+                            setQuickOpen(true);
+                        }}
                     />
                     <ResetPasswordModal
                         open={!!resetRow}

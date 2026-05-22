@@ -175,7 +175,12 @@ export default function SuperAdminTenantsPage() {
                 title: t('tenants.columns.license'),
                 key: 'license',
                 render: (_, row) => {
-                    const lic = resolveTenantLicenseLabel(row.licenseValidUntilUtc, row.licenseKey);
+                    const lic = resolveTenantLicenseLabel(
+                        row.licenseValidUntilUtc,
+                        row.licenseKey,
+                        Date.now(),
+                        row.licenseDaysRemaining,
+                    );
                     const color =
                         lic.kind === 'expired'
                             ? 'red'

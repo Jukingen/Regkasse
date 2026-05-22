@@ -18,6 +18,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Services.Pricing;
@@ -170,6 +171,7 @@ builder.Services.AddHttpClient("LicenseRemote", client =>
 builder.Services.AddSingleton<ILicenseStorageService, LicenseStorageService>();
 builder.Services.AddLicenseServices(builder.Environment);
 // Scoped: holds AppDbContext per request for the issuance audit row.
+builder.Services.AddScoped<ILicenseSyncService, LicenseSyncService>();
 builder.Services.AddScoped<ILicenseIssuanceService, LicenseIssuanceService>();
 builder.Services.AddHostedService<LicenseComplianceHostedService>();
 builder.Services.AddSingleton<ILicenseReminderNotificationStore, LicenseReminderNotificationStore>();

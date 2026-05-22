@@ -103,7 +103,6 @@ public sealed class DemoResetService : IDemoResetService
                 Email = "guest@demo.local",
                 Phone = string.Empty,
                 Address = string.Empty,
-                TaxNumber = string.Empty,
                 Category = CustomerCategory.Regular,
                 LoyaltyPoints = 0,
                 TotalSpent = 0m,
