@@ -29,6 +29,19 @@ import UsersPage from '../page';
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import type { UsersListResponse } from '@/features/users/api/usersApi';
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/users',
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 // --- Gateway: gerçek response şekilleri ---
 const mockGetUsersList = vi.fn();
 const mockCreateUser = vi.fn();
@@ -102,7 +115,7 @@ vi.mock('@/features/users/components/RoleManagementDrawer', () => ({
   RoleManagementDrawer: () => null,
 }));
 
-const mockPlatformUserItems = vi.fn<UserInfo[], []>(() => []);
+const mockPlatformUserItems = vi.fn((): UserInfo[] => []);
 const platformHookState = { isError: false };
 vi.mock('@/features/users/hooks/usePlatformUsersList', () => ({
   usePlatformUsersList: () => ({
@@ -118,14 +131,18 @@ vi.mock('@/features/users/hooks/usePlatformUsersList', () => ({
 const mockCreatePlatformUser = vi.fn();
 vi.mock('@/features/users/api/users', () => ({
   adminUsersQueryKeys: {
-    platform: (isActive?: boolean) => ['admin', 'users', 'platform', isActive ?? 'all'] as const,
-    tenant: (tenantId?: string, role?: string) =>
-      ['admin', 'users', 'tenant', tenantId ?? 'all', role ?? 'all'] as const,
+    all: (isActive?: boolean, role?: string, search?: string) =>
+      ['admin', 'users', 'all', isActive ?? 'all', role ?? 'all', search ?? ''] as const,
+    platform: (isActive?: boolean, search?: string) =>
+      ['admin', 'users', 'platform', isActive ?? 'all', search ?? ''] as const,
+    tenant: (tenantId?: string, role?: string, search?: string) =>
+      ['admin', 'users', 'tenant', tenantId ?? 'all', role ?? 'all', search ?? ''] as const,
+    userTenants: (userId: string) => ['admin', 'users', userId, 'tenants'] as const,
   },
   createPlatformUser: (data: unknown) => mockCreatePlatformUser(data),
+  listAllAdminUsers: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
   listPlatformUsers: vi.fn().mockResolvedValue([]),
   listTenantUsers: vi.fn().mockResolvedValue([]),
-  inviteAdminUser: vi.fn(),
   removeUserFromTenant: vi.fn(),
   adminUserToUserInfo: (dto: { id: string; isActive: boolean; firstName?: string; lastName?: string; email?: string; userName?: string; role?: string }) => ({
     id: dto.id,
@@ -142,8 +159,8 @@ vi.mock('@/features/users/components/TenantUsersTab', () => ({
   TenantUsersTab: () => null,
 }));
 
-vi.mock('@/features/users/components/UserInvitationsPanel', () => ({
-  UserInvitationsPanel: () => null,
+vi.mock('@/features/users/components/UserTenantCreatePanel', () => ({
+  UserTenantCreatePanel: () => null,
 }));
 
 vi.mock('@/features/users/components/UserFormDrawer', () => ({
@@ -216,6 +233,7 @@ describe('Users page', () => {
       canDeleteRole: false,
       canEditRolePermissions: false,
       canResetPassword: () => true,
+      canProvisionTenantCredentials: true,
     });
     vi.spyOn(message, 'success').mockImplementation((() => ({}) as any) as any);
     vi.spyOn(message, 'error').mockImplementation((() => ({}) as any) as any);

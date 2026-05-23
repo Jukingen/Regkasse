@@ -20,6 +20,15 @@
       "Kitchen": "Kitchen",
       "ReportViewer": "Reports (read-only)",
       "Accountant": "Accounting"
+    },
+    "badgeLabels": {
+      "SuperAdmin": "Platform admin",
+      "Manager": "Tenant admin",
+      "Cashier": "Cashier",
+      "Accountant": "Accountant",
+      "Waiter": "Waiter",
+      "Kitchen": "Kitchen",
+      "ReportViewer": "Reports"
     }
   },
   "roleDrawer": {
@@ -223,6 +232,19 @@
     "emptyListWithFilters": "No users match the current filters. Clear filters or adjust search/role/status.",
     "emptyListDefaultHint": "Note: By default only active accounts are listed (status = active)."
   },
+  "tenants": {
+    "loading": "Loading tenants…",
+    "platformSuperAdmin": "Platform (Super Admin)",
+    "platformOnly": "Platform (no business tenant)",
+    "editReadOnlyHint": "Tenant assignments are read-only here. Use «Manage tenants» (Super Admin) to change them.",
+    "manageAction": "Manage tenants",
+    "manageTitle": "Tenant assignment",
+    "manageHint": "Active business tenants for this user. Removing a tenant only deactivates membership; the account remains.",
+    "manageSave": "Save",
+    "manageCancel": "Cancel",
+    "manageSaved": "Tenant assignment saved.",
+    "manageFailed": "Could not save tenant assignment."
+  },
   "unified": {
     "pageIntro": "All platform and tenant users in one place. Use the tenant filter to narrow the list — no separate menu entries.",
     "filterTenantLabel": "Filter tenant:",
@@ -233,12 +255,43 @@
     "platformBadge": "Platform (Super Admin)",
     "platformTenantLabel": "(Platform)",
     "empty": "No users match the current filters.",
-    "invitationsSection": "Invitations (email)",
+    "tenantCreateSection": "Create tenant users",
     "quickUserAction": "Quick user",
     "columnType": "Type",
-    "typeBadgePlatformAdmin": "👑 Platform admin",
-    "typeBadgePlatform": "🏢 Platform",
-    "typeBadgeTenant": "👤 Tenant"
+    "columnUser": "User",
+    "columnTwoFactor": "2FA",
+    "searchPlaceholder": "Name, email …",
+    "tenantTooltip": "This user belongs to tenant «{{tenant}}».",
+    "statusPending": "Pending",
+    "twoFactorYes": "Yes",
+    "twoFactorNo": "No",
+    "typeBadgePlatformAdmin": "Platform admin",
+    "typeBadgePlatform": "Platform",
+    "typeBadgeTenant": "Tenant",
+    "columns": {
+      "user": "User",
+      "tenant": "Tenant",
+      "role": "Role",
+      "status": "Status",
+      "lastLogin": "Last login",
+      "twoFactor": "2FA",
+      "actions": "Actions"
+    },
+    "filters": {
+      "searchPlaceholder": "Search users…",
+      "tenantFilter": "Filter tenant",
+      "roleFilter": "Filter role",
+      "statusFilter": "Filter status",
+      "platform": "Platform",
+      "allTenants": "All tenants"
+    },
+    "badges": {
+      "active": "Active",
+      "inactive": "Deactivated",
+      "pending": "Pending",
+      "platform": "Platform",
+      "tenant": "Tenant"
+    }
   },
   "tabs": {
     "labelPlatform": "Platform users",
@@ -266,49 +319,45 @@
         "body": "The user loses access to «{{tenant}}». The account is kept for other tenants or later assignment."
       }
     },
-    "invitations": {
-      "description": "Invite new tenant users by email. Pick the target tenant and send the invitation (SMTP required for email delivery).",
-      "descriptionSuperAdmin": "Invite users by email. Pick the target tenant from the list (domain and license status shown).",
-      "smtpHint": "Without SMTP configuration the account is created but the invitation email may not be sent.",
-      "columnTenant": "Tenant",
-      "columnOwner": "Tenant admin (email)",
-      "sendInvite": "Send invitation",
-      "emptyTenants": "No active business tenants available."
+    "tenantCreate": {
+      "descriptionSuperAdmin": "Create a new tenant user. The password is generated automatically and shown once."
     }
   },
-  "invite": {
-    "title": "Add user",
-    "titleForTenant": "Invite user to «{{name}}» ({{slug}})",
-    "titleAddForTenant": "Add user to «{{name}}» ({{slug}})",
-    "action": "Add user",
-    "createUser": "Create user",
-    "send": "Send invitation",
-    "email": "Email address",
-    "tenant": "Tenant (company)",
+  "create": {
+    "title": "Create new user",
+    "email": "Email",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "role": "Role",
+    "tenant": "Tenant",
+    "password": "Password",
+    "copyPassword": "Copy password",
+    "submit": "Create user",
+    "success": "User created successfully",
+    "generatedPasswordInfo": "The password is shown only once. Save it securely and share it with the user.",
+    "passwordWarningTitle": "Important",
+    "close": "Close",
+    "action": "Create user",
     "tenantRequired": "Please select a tenant.",
     "tenantPlaceholder": "Select tenant …",
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "No license",
-    "role": "Role",
-    "emailHint": "After creation a password is generated and shown once. Share it with the user.",
+    "emailRequired": "Please enter an email address.",
+    "emailInvalid": "Please enter a valid email address.",
+    "isOwner": "Tenant administrator (owner)",
+    "titleForTenant": "Create user for «{{name}}» ({{slug}})",
+    "titleAddForTenant": "Create user for «{{name}}» ({{slug}})",
     "targetTenant": {
-      "title": "Invite user to «{{name}}» ({{slug}})",
-      "modalLabel": "Invitation for",
+      "title": "User for «{{name}}» ({{slug}})",
+      "modalLabel": "Tenant",
       "licenseLine": "License: {{license}}"
     },
-    "multiTenant": {
-      "tenantsLabel": "Tenants (companies)",
-      "roleForAll": "Role for all selected tenants",
-      "tenantsRequired": "Select at least one tenant.",
-      "separateCredentialsWarning": "The user receives separate credentials for each selected tenant (one account per tenant).",
-      "allSuccess": "{{count}} invitation(s) succeeded.",
-      "partialSuccess": "{{ok}} succeeded, {{failed}} failed.",
-      "resultSummary": "{{ok}} tenant(s) assigned, {{failed}} failed."
-    },
     "roleOptions": {
-      "Manager": { "label": "Manager (full rights for this company)" },
-      "Cashier": { "label": "Cashier (POS only)" },
-      "Accountant": { "label": "Accountant (reports only)" }
+      "Manager": { "label": "Manager" },
+      "Cashier": { "label": "Cashier" },
+      "Accountant": { "label": "Accountant" },
+      "Waiter": { "label": "Waiter" },
+      "Kitchen": { "label": "Kitchen" }
     }
   }
 }

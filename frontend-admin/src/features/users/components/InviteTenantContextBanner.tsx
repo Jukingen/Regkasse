@@ -28,7 +28,7 @@ export function InviteTenantContextBanner({ tenant, variant = 'modal' }: InviteT
         licenseBadge?.label ??
         formatInviteTenantLicenseShort(tenant, t);
 
-    const message = t('users.invite.targetTenant.title', {
+    const message = t('users.create.targetTenant.title', {
         name: tenant.name,
         slug: tenant.slug,
     });
@@ -40,7 +40,7 @@ export function InviteTenantContextBanner({ tenant, variant = 'modal' }: InviteT
             </Typography.Link>
             <br />
             <Typography.Text type="secondary">
-                {t('users.invite.targetTenant.licenseLine', { license: licenseLine })}
+                {t('users.create.targetTenant.licenseLine', { license: licenseLine })}
             </Typography.Text>
         </>
     );
@@ -63,7 +63,7 @@ export function InviteTenantContextBanner({ tenant, variant = 'modal' }: InviteT
             type="info"
             showIcon
             icon={<MailOutlined />}
-            message={t('users.invite.targetTenant.modalLabel')}
+            message={t('users.create.targetTenant.modalLabel')}
             description={
                 <>
                     <Typography.Text strong>
@@ -75,7 +75,7 @@ export function InviteTenantContextBanner({ tenant, variant = 'modal' }: InviteT
                     </Typography.Link>
                     <br />
                     <Typography.Text type="secondary">
-                        {t('users.invite.targetTenant.licenseLine', { license: licenseLine })}
+                        {t('users.create.targetTenant.licenseLine', { license: licenseLine })}
                     </Typography.Text>
                 </>
             }

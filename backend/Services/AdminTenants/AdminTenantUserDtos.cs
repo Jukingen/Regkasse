@@ -37,6 +37,12 @@ public sealed class CreateTenantUserRequest
     [MaxLength(256)]
     public string Email { get; set; } = string.Empty;
 
+    [MaxLength(50)]
+    public string? FirstName { get; set; }
+
+    [MaxLength(50)]
+    public string? LastName { get; set; }
+
     [Required]
     [MaxLength(64)]
     public string Role { get; set; } = string.Empty;
@@ -52,21 +58,6 @@ public sealed class CreateQuickTenantUserRequest
     public string Role { get; set; } = string.Empty;
 }
 
-/// <summary>Legacy invite route body (same shape as create).</summary>
-public sealed class InviteTenantUserRequest
-{
-    [Required]
-    [EmailAddress]
-    [MaxLength(256)]
-    public string Email { get; set; } = string.Empty;
-
-    [Required]
-    [MaxLength(64)]
-    public string Role { get; set; } = string.Empty;
-
-    public bool IsOwner { get; set; }
-}
-
 public sealed record CreateTenantUserResultDto(
     string UserId,
     string Email,
@@ -76,15 +67,6 @@ public sealed record CreateTenantUserResultDto(
     string? TenantPortalUrl = null,
     string? Role = null);
 
-public sealed record TenantUserInviteResultDto(
-    TenantUserDto User,
-    bool UserCreated,
-    bool InvitationEmailSent,
-    string? EmailDeliveryNote,
-    string? GeneratedPassword,
-    bool ForcePasswordChangeOnNextLogin = false,
-    string? TenantPortalUrl = null);
-
 public sealed class UpdateTenantUserRoleRequest
 {
     [Required]
@@ -92,17 +74,9 @@ public sealed class UpdateTenantUserRoleRequest
     public string Role { get; set; } = string.Empty;
 }
 
-public sealed class ResetTenantUserPasswordRequest
-{
-    /// <summary>When true and SMTP is configured, email the new password to the user.</summary>
-    public bool SendEmail { get; set; } = true;
-}
-
 public sealed record TenantUserPasswordResetResultDto(
     string UserId,
     string Email,
     string GeneratedPassword,
     string DeliveryNote,
-    bool EmailSent,
-    bool SmtpConfigured,
     bool ForcePasswordChangeOnNextLogin);

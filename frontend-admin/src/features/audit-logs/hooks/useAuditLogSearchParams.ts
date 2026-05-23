@@ -18,10 +18,11 @@ export type AuditLogListParams = {
     action?: string;
     userId?: string;
     entityType?: AuditLogEntityTypeFilter;
+    entityId?: string;
     status?: AuditLogStatusFilter;
 };
 
-const FILTER_KEYS = ['startDate', 'endDate', 'action', 'userId', 'entityType', 'status'] as const;
+const FILTER_KEYS = ['startDate', 'endDate', 'action', 'userId', 'entityType', 'entityId', 'status'] as const;
 
 function parsePositiveInt(raw: string | null, fallback: number): number {
     if (!raw) return fallback;
@@ -45,6 +46,7 @@ export function useAuditLogSearchParams() {
             action: raw.action?.trim() || undefined,
             userId: raw.userId?.trim() || undefined,
             entityType: (raw.entityType?.trim() || undefined) as AuditLogEntityTypeFilter | undefined,
+            entityId: raw.entityId?.trim() || undefined,
             status: parseAuditLogStatusFromUrl(raw.status),
         };
     }, [searchParams]);
@@ -69,6 +71,7 @@ export function useAuditLogSearchParams() {
             if (merged.action) qp.set('action', merged.action);
             if (merged.userId) qp.set('userId', merged.userId);
             if (merged.entityType) qp.set('entityType', merged.entityType);
+            if (merged.entityId) qp.set('entityId', merged.entityId);
             if (merged.status) qp.set('status', toAuditLogStatusUrlParam(merged.status));
 
             const qs = qp.toString();

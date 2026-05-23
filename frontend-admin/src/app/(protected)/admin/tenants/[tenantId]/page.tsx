@@ -33,10 +33,11 @@ import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 import {
     applyTenantImpersonationSession,
-    deleteAdminTenant,
     getAdminTenantById,
     hardDeleteAdminTenant,
     impersonateAdminTenant,
+    restoreAdminTenant,
+    softDeleteAdminTenant,
     updateAdminTenant,
 } from '@/features/super-admin/api/adminTenants';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
@@ -90,8 +91,8 @@ export default function SuperAdminTenantDetailPage() {
         onError: () => message.error(t('tenants.messages.saveFailed')),
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: () => deleteAdminTenant(tenantId),
+    const softDeleteMutation = useMutation({
+        mutationFn: () => softDeleteAdminTenant(tenantId),
         onSuccess: () => {
             message.success(t('tenants.messages.deleted'));
             invalidateTenant();
@@ -99,10 +100,19 @@ export default function SuperAdminTenantDetailPage() {
         onError: () => message.error(t('tenants.messages.deleteFailed')),
     });
 
+    const restoreMutation = useMutation({
+        mutationFn: () => restoreAdminTenant(tenantId),
+        onSuccess: () => {
+            message.success(t('tenants.messages.restored'));
+            invalidateTenant();
+        },
+        onError: () => message.error(t('tenants.messages.restoreFailed')),
+    });
+
     const hardDeleteMutation = useMutation({
         mutationFn: (confirmSlug: string) => hardDeleteAdminTenant(tenantId, confirmSlug),
         onSuccess: () => {
-            message.success(t('tenants.detail.danger.hardDeleteSuccess'));
+            message.success(t('tenants.messages.hardDeleted'));
             router.push('/admin/tenants');
         },
         onError: (err: unknown) => {
@@ -110,7 +120,7 @@ export default function SuperAdminTenantDetailPage() {
                 err && typeof err === 'object' && 'response' in err
                     ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
                     : null;
-            message.error(msg ?? t('tenants.detail.danger.hardDeleteFailed'));
+            message.error(msg ?? t('tenants.messages.hardDeleteFailed'));
         },
     });
 
@@ -148,12 +158,8 @@ export default function SuperAdminTenantDetailPage() {
                     <TenantDetailOverviewTab
                         tenant={tenant}
                         suspendPending={statusMutation.isPending}
-                        deletePending={deleteMutation.isPending}
-                        hardDeletePending={hardDeleteMutation.isPending}
                         onSuspend={() => statusMutation.mutate('suspended')}
                         onReactivate={() => statusMutation.mutate('active')}
-                        onDelete={() => deleteMutation.mutate()}
-                        onHardDelete={(confirmSlug) => hardDeleteMutation.mutate(confirmSlug)}
                     />
                 ),
             },
@@ -176,7 +182,18 @@ export default function SuperAdminTenantDetailPage() {
             {
                 key: 'settings',
                 label: t('tenants.detail.tabs.settings'),
-                children: <TenantDetailSettingsTab tenant={tenant} onUpdated={invalidateTenant} />,
+                children: (
+                    <TenantDetailSettingsTab
+                        tenant={tenant}
+                        onUpdated={invalidateTenant}
+                        softDeletePending={softDeleteMutation.isPending}
+                        restorePending={restoreMutation.isPending}
+                        hardDeletePending={hardDeleteMutation.isPending}
+                        onSoftDelete={() => softDeleteMutation.mutateAsync()}
+                        onRestore={() => restoreMutation.mutateAsync()}
+                        onHardDelete={(confirmSlug) => hardDeleteMutation.mutateAsync(confirmSlug)}
+                    />
+                ),
             },
         ];
     }, [
@@ -184,8 +201,9 @@ export default function SuperAdminTenantDetailPage() {
         tenantQuery.data,
         tenantId,
         statusMutation.isPending,
-        deleteMutation.isPending,
-        hardDeleteMutation.isPending,
+        softDeleteMutation,
+        restoreMutation,
+        hardDeleteMutation,
         impersonateMutation.isPending,
         invalidateTenant,
     ]);

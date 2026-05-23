@@ -55,13 +55,13 @@ Chronological summary of notable changes tied to Super Admin tenant UX, mandant 
 
 ## 2026-05-21 — User management for tenants added
 
-**Summary:** Super Admin can manage tenant memberships from detail UI: invite, add existing user, roles, owner, remove, reset password.
+**Summary:** Super Admin can manage tenant memberships from detail UI: create user, add existing user, roles, owner, remove, reset password. (Invite-by-email flow removed 2026-05-22 — see `CHANGELOG_RECENT.md`.)
 
 **Changes:**
 
-- FA: `TenantDetailUsersTab`, `TenantUserTable`, `InviteUserModal`, `AddExistingUserModal`, `ResetPasswordModal`
+- FA: `TenantDetailUsersTab`, `TenantUserTable`, `CreateUserModal`, `AddExistingUserModal`, `ResetPasswordModal`
 - API client: `tenantUsers.ts` → `/api/admin/tenants/{tenantId}/users/*`
-- Backend: `TenantUserService` (invite, membership CRUD, password reset)
+- Backend: `TenantUserService` (create, membership CRUD, password reset)
 - List column `ownerAdminEmail` for admin visibility and switcher 🟡/🟢 indicators
 - Cash registers tab and hard-delete tenant (same release wave)
 

@@ -146,6 +146,7 @@ namespace KasseAPI_Final.Models
         UserLogout = 11,
         UserDeleted = 12,
         LoginFailed = 14,  // New; 11–12 preserved for existing logs
+        UserTenantMembershipChanged = 15,
         Other = 99
     }
 
@@ -203,6 +204,8 @@ namespace KasseAPI_Final.Models
         public const string USER_LOGIN = "USER_LOGIN";
         public const string USER_LOGOUT = "USER_LOGOUT";
         public const string USER_CREATE = "USER_CREATE";
+        /// <summary>Preferred action label for direct user provisioning (no invitation email).</summary>
+        public const string USER_CREATED = "USER_CREATED";
         public const string USER_UPDATE = "USER_UPDATE";
         public const string USER_DELETE = "USER_DELETE";
         public const string USER_ROLE_CHANGE = "USER_ROLE_CHANGE";
@@ -214,6 +217,7 @@ namespace KasseAPI_Final.Models
 
         /// <summary>Super-admin one-click tenant user (auto email/password).</summary>
         public const string TENANT_QUICK_USER_CREATED = "TENANT_QUICK_USER_CREATED";
+        public const string USER_TENANT_MEMBERSHIP_CHANGED = "USER_TENANT_MEMBERSHIP_CHANGED";
 
         // System operations
         public const string SYSTEM_CONFIG_UPDATE = "SYSTEM_CONFIG_UPDATE";
@@ -245,6 +249,15 @@ namespace KasseAPI_Final.Models
 
         /// <summary>Super Admin issued a tenant-scoped impersonation JWT (support session start).</summary>
         public const string TENANT_IMPERSONATION_STARTED = "TENANT_IMPERSONATION_STARTED";
+
+        /// <summary>Super Admin soft-deleted a tenant (status=deleted).</summary>
+        public const string TENANT_SOFT_DELETED = "TENANT_SOFT_DELETED";
+
+        /// <summary>Super Admin permanently removed a soft-deleted tenant row.</summary>
+        public const string TENANT_HARD_DELETED = "TENANT_HARD_DELETED";
+
+        /// <summary>Super Admin restored a soft-deleted tenant.</summary>
+        public const string TENANT_RESTORED = "TENANT_RESTORED";
 
         /// <summary>Permanent cash register decommission (RKSV Schlussbeleg / admin API).</summary>
         public const string CASH_REGISTER_DECOMMISSION = "CASH_REGISTER_DECOMMISSION";

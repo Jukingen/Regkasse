@@ -101,7 +101,8 @@ public class UserManagementControllerUserLifecycleTests
             uniquenessValidation ?? CreateUniquenessValidationMock(),
             roleMgmt,
             logger,
-            provisioner);
+            provisioner,
+            NullCurrentTenantAccessor.Instance);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),

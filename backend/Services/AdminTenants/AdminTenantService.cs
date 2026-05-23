@@ -23,6 +23,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
     private readonly IJwtAccessTokenIssuer _jwtIssuer;
     private readonly AuthOptions _authOptions;
     private readonly ITenantOnboardingService _onboardingService;
+    private readonly ITenantService _tenantService;
     private readonly ILogger<AdminTenantService> _logger;
 
     public AdminTenantService(
@@ -33,6 +34,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         IJwtAccessTokenIssuer jwtIssuer,
         IOptions<AuthOptions> authOptions,
         ITenantOnboardingService onboardingService,
+        ITenantService tenantService,
         ILogger<AdminTenantService> logger)
     {
         _db = db;
@@ -42,6 +44,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         _jwtIssuer = jwtIssuer;
         _authOptions = authOptions.Value;
         _onboardingService = onboardingService;
+        _tenantService = tenantService;
         _logger = logger;
     }
 
@@ -90,16 +93,31 @@ public sealed partial class AdminTenantService : IAdminTenantService
         bool includeDeleted,
         CancellationToken cancellationToken = default)
     {
-        var items = await ListAsync(includeDeleted, cancellationToken).ConfigureAwait(false);
+        if (!actorIsSuperAdmin)
+            includeDeleted = false;
+
+        // Super Admin (or anonymous actor): all tenants from Tenants table only — no membership join.
         if (actorIsSuperAdmin || string.IsNullOrWhiteSpace(actorUserId))
         {
-            return items;
+            var all = await ListAsync(includeDeleted, cancellationToken).ConfigureAwait(false);
+            return DeduplicateSwitcherItems(all);
         }
+
+        var items = await ListAsync(includeDeleted: false, cancellationToken).ConfigureAwait(false);
 
         var memberTenantIds = await _db.UserTenantMemberships
             .AsNoTracking()
             .Where(m => m.UserId == actorUserId && m.IsActive)
-            .Select(m => m.TenantId)
+            .Join(
+                _db.Tenants.AsNoTracking(),
+                m => m.TenantId,
+                t => t.Id,
+                (m, t) => new { m.TenantId, t.Status, t.IsActive })
+            .Where(x =>
+                x.IsActive
+                && !string.Equals(x.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.TenantId)
+            .Distinct()
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -109,8 +127,13 @@ public sealed partial class AdminTenantService : IAdminTenantService
         }
 
         var allowed = memberTenantIds.ToHashSet();
-        return items.Where(t => allowed.Contains(t.Id)).ToList();
+        return DeduplicateSwitcherItems(items.Where(t => allowed.Contains(t.Id)));
     }
+
+    /// <summary>Guards switcher API against duplicate tenant ids (defensive; ListAsync is already one row per tenant).</summary>
+    private static List<AdminTenantListItemDto> DeduplicateSwitcherItems(
+        IEnumerable<AdminTenantListItemDto> items) =>
+        items.DistinctBy(t => t.Id).ToList();
 
     public async Task<AdminTenantDetailDto?> GetByIdAsync(Guid tenantId, CancellationToken cancellationToken = default)
     {
@@ -280,115 +303,24 @@ public sealed partial class AdminTenantService : IAdminTenantService
         return (ToDetail(tenant), null);
     }
 
-    public async Task<(bool Success, string? Error)> HardDeleteAsync(
+    public Task<(bool Success, string? Error)> HardDeleteAsync(
         Guid tenantId,
         HardDeleteAdminTenantRequest request,
         string? actorUserId,
-        CancellationToken cancellationToken = default)
-    {
-        if (tenantId == LegacyDefaultTenantIds.Primary)
-            return (false, "The legacy default tenant cannot be permanently deleted.");
+        CancellationToken cancellationToken = default) =>
+        _tenantService.HardDeleteAsync(tenantId, request, actorUserId, cancellationToken);
 
-        var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
-            .ConfigureAwait(false);
-        if (tenant == null)
-            return (false, "Tenant not found.");
-
-        if (tenant.Status != TenantStatuses.Deleted)
-            return (false, "Tenant must be soft-deleted before permanent deletion.");
-
-        var confirmSlug = NormalizeSlug(request.ConfirmSlug);
-        if (!string.Equals(confirmSlug, tenant.Slug, StringComparison.Ordinal))
-            return (false, "Confirmation slug does not match tenant slug.");
-
-        var hasReceipts = await _db.Receipts.AsNoTracking()
-            .AnyAsync(r => r.TenantId == tenantId, cancellationToken)
-            .ConfigureAwait(false);
-
-        if (hasReceipts)
-        {
-            return (false,
-                "Cannot permanently delete tenant with fiscal receipts. Keep the soft-deleted record for compliance.");
-        }
-
-        var hasOffline = await _db.OfflineTransactions.AsNoTracking()
-            .AnyAsync(o => o.TenantId == tenantId, cancellationToken)
-            .ConfigureAwait(false);
-        if (hasOffline)
-            return (false, "Cannot permanently delete tenant with offline transaction queue rows.");
-
-        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            var registerIds = await _db.CashRegisters
-                .Where(cr => cr.TenantId == tenantId)
-                .Select(cr => cr.Id)
-                .ToListAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (registerIds.Count > 0)
-            {
-                await _db.CashRegisterTransactions
-                    .Where(t => registerIds.Contains(t.CashRegisterId))
-                    .ExecuteDeleteAsync(cancellationToken)
-                    .ConfigureAwait(false);
-            }
-
-            await _db.Products.Where(p => p.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
-                .ConfigureAwait(false);
-            await _db.Categories.Where(c => c.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
-                .ConfigureAwait(false);
-            await _db.CashRegisters.Where(cr => cr.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
-                .ConfigureAwait(false);
-            await _db.CompanySettings.Where(s => s.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
-                .ConfigureAwait(false);
-            await _db.UserTenantMemberships.Where(m => m.TenantId == tenantId).ExecuteDeleteAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            _db.Tenants.Remove(tenant);
-            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            await tx.CommitAsync(cancellationToken).ConfigureAwait(false);
-
-            _logger.LogWarning(
-                "Super-admin permanently deleted tenant {TenantId} slug {Slug} by {ActorUserId}",
-                tenant.Id,
-                tenant.Slug,
-                actorUserId);
-            return (true, null);
-        }
-        catch (Exception ex)
-        {
-            await tx.RollbackAsync(cancellationToken).ConfigureAwait(false);
-            _logger.LogError(ex, "Permanent tenant delete failed for {TenantId}", tenantId);
-            return (false, "Permanent delete failed due to remaining dependencies.");
-        }
-    }
-
-    public async Task<(bool Success, string? Error)> SoftDeleteAsync(
+    public Task<(bool Success, string? Error)> SoftDeleteAsync(
         Guid tenantId,
         string? actorUserId,
-        CancellationToken cancellationToken = default)
-    {
-        if (tenantId == LegacyDefaultTenantIds.Primary)
-            return (false, "The legacy default tenant cannot be deleted.");
+        CancellationToken cancellationToken = default) =>
+        _tenantService.SoftDeleteAsync(tenantId, actorUserId, cancellationToken);
 
-        var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken).ConfigureAwait(false);
-        if (tenant == null)
-            return (false, "Tenant not found.");
-
-        if (tenant.Status == TenantStatuses.Deleted)
-            return (true, null);
-
-        tenant.Status = TenantStatuses.Deleted;
-        tenant.IsActive = false;
-        tenant.DeletedAtUtc = DateTime.UtcNow;
-        tenant.DeletedByUserId = actorUserId;
-        tenant.UpdatedAt = tenant.DeletedAtUtc;
-        tenant.UpdatedBy = actorUserId;
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        _logger.LogWarning("Super-admin soft-deleted tenant {TenantId} slug {Slug}", tenant.Id, tenant.Slug);
-        return (true, null);
-    }
+    public Task<(bool Success, string? Error)> RestoreAsync(
+        Guid tenantId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default) =>
+        _tenantService.RestoreAsync(tenantId, actorUserId, cancellationToken);
 
     public async Task<(TenantImpersonationResponseDto? Result, string? Error)> ImpersonateAsync(
         Guid tenantId,
@@ -542,4 +474,5 @@ public sealed partial class AdminTenantService : IAdminTenantService
 
         return max;
     }
+
 }

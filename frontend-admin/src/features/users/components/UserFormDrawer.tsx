@@ -12,9 +12,13 @@
  * - User switch: form key edit-${user.id} resets component; sync effect sets values from new user (no stale selection).
  */
 import React, { useEffect, useMemo } from 'react';
-import { Drawer, Form, Input, Radio, Button, Space, Spin, Alert } from 'antd';
+import { Drawer, Form, Input, Radio, Button, Space, Spin, Alert, Typography, Divider } from 'antd';
 import type { UserInfo } from '@/api/generated/model';
 import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
+import { TenantMembershipManager, membershipsToManagerRows } from '@/features/users/components/TenantMembershipManager';
+import { UserTenantSummary } from '@/features/users/components/UserTenantSummary';
+import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
+import { useI18n } from '@/i18n';
 import { usersCopy } from '../constants/copy';
 import { createUsersFormRules, NAME_MAX_LENGTH, EMAIL_MAX_LENGTH, SHORT_FIELD_MAX_LENGTH, NOTES_MAX_LENGTH } from '../constants/validation';
 
@@ -41,6 +45,8 @@ type Props = {
   rolesLoading?: boolean;
   onSubmit: (values: CreateUserRequest | UpdateUserRequest) => void;
   loading?: boolean;
+  /** Super Admin: open tenant membership manager (edit mode only). */
+  canManageTenants?: boolean;
 };
 
 const formRulesContext = {
@@ -91,9 +97,17 @@ export function UserFormDrawer({
   rolesLoading = false,
   onSubmit,
   loading = false,
+  canManageTenants = false,
 }: Props) {
+  const { t } = useI18n();
   const [form] = Form.useForm();
   const rules = useMemo(() => createUsersFormRules(formRulesContext), []);
+  const editUserId = mode === 'edit' && user?.id ? user.id : null;
+  const {
+    data: memberships = [],
+    isLoading: tenantsLoading,
+    refetch: refetchTenants,
+  } = useAdminUserTenants(editUserId, open && mode === 'edit' && !!editUserId);
 
   const isPlatformCreate = mode === 'create' && createVariant === 'platform';
   const effectiveRoleOptions = isPlatformCreate
@@ -234,6 +248,34 @@ export function UserFormDrawer({
           <Form.Item name="notes" label={usersCopy.notes} rules={rules.notes}>
             <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
           </Form.Item>
+          {mode === 'edit' && user?.id ? (
+            <>
+              <Divider style={{ margin: '8px 0 16px' }} />
+              <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
+                {t('users.tabs.tenant.columnTenant')}
+              </Typography.Text>
+              <Alert
+                type="info"
+                showIcon
+                message={t('users.tenants.editReadOnlyHint')}
+                style={{ marginBottom: 12 }}
+              />
+              <UserTenantSummary
+                userRole={user.role}
+                memberships={memberships}
+                loading={tenantsLoading}
+              />
+              {canManageTenants && user.role !== 'SuperAdmin' ? (
+                <div style={{ marginTop: 16 }}>
+                  <TenantMembershipManager
+                    userId={user.id}
+                    currentTenants={membershipsToManagerRows(memberships)}
+                    onSuccess={() => void refetchTenants()}
+                  />
+                </div>
+              ) : null}
+            </>
+          ) : null}
         </Form>
       ) : null}
     </Drawer>

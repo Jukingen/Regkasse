@@ -78,6 +78,26 @@ If a password or JWT key was ever stored in a tracked file, shared screenshot, o
 - `JwtSettings:SecretKey` (invalidates existing JWTs).
 - Any FinanzOnline password stored in plaintext outside the intended secure store.
 
+## Email and user management
+
+**Email is no longer required for day-to-day user management.** Tenant and platform users are created via admin APIs; a one-time generated password is returned in the HTTP response and must be delivered to the operator out of band. Audit logs record `USER_CREATED` with `createdByUserId`, `tenantId`, and `role` — never the password value.
+
+Optional SMTP (`Email:Smtp` in `appsettings`) may still be used for **tenant onboarding welcome mail** (`WelcomeEmailService` in `TenantOnboardingService`). It is **not** used for user invitations (removed) or for tenant user password reset (password returned in API/UI only).
+
+Example shape (welcome/onboarding only — do not commit real credentials):
+
+```json
+"Email": {
+  "Smtp": {
+    "Host": "smtp.example.com",
+    "Port": 587,
+    "From": "noreply@regkasse.at"
+  }
+}
+```
+
+If `Host` or `From` is empty, welcome email is skipped; onboarding success UI shows credentials once instead.
+
 ## Logging
 
 Connection strings printed at startup use `ConnectionStringMasking`; raw passwords must not appear in logs. Do not enable verbose logging of HTTP bodies or SOAP envelopes that might contain session tokens in production without redaction.

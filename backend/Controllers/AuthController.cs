@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Tenancy;
@@ -41,6 +42,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IRefreshTokenService _refreshTokenService;
         private readonly IAuthTenantSnapshotProvider _authTenantSnapshotProvider;
         private readonly ILoginTenantResolver _loginTenantResolver;
+        private readonly IAuthService _authService;
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
 
         /// <summary>Throttles diagnostic logs when /me is called without a resolvable user id claim.</summary>
@@ -58,6 +60,7 @@ namespace KasseAPI_Final.Controllers
             IRefreshTokenService refreshTokenService,
             IAuthTenantSnapshotProvider authTenantSnapshotProvider,
             ILoginTenantResolver loginTenantResolver,
+            IAuthService authService,
             IUserTenantMembershipProvisioner tenantMembershipProvisioner)
         {
             _context = context;
@@ -70,6 +73,7 @@ namespace KasseAPI_Final.Controllers
             _refreshTokenService = refreshTokenService;
             _authTenantSnapshotProvider = authTenantSnapshotProvider;
             _loginTenantResolver = loginTenantResolver;
+            _authService = authService;
             _tenantMembershipProvisioner = tenantMembershipProvisioner;
         }
 
@@ -164,9 +168,24 @@ namespace KasseAPI_Final.Controllers
                         user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
                 }
 
-                var tenantSnapshot = await _loginTenantResolver.ResolveSnapshotForLoginAsync(user.Id, authCt);
+                var tenantAccess = await _authService.ResolveLoginTenantAccessAsync(user.Id, authCt);
+                if (!tenantAccess.Allowed)
+                {
+                    return BadRequest(new
+                    {
+                        message = tenantAccess.Message,
+                        code = tenantAccess.Code,
+                    });
+                }
 
-                Guid? sessionTenantKey = Guid.TryParse(tenantSnapshot.TenantId, out var loginTenantGuid) ? loginTenantGuid : null;
+                if (tenantAccess.Snapshot is not AuthTenantSnapshot loginTenantSnapshot)
+                {
+                    return BadRequest(new { message = "Kein Zugriff auf diesen Mandanten", code = "TENANT_MEMBERSHIP_REQUIRED" });
+                }
+
+                Guid? sessionTenantKey = Guid.TryParse(loginTenantSnapshot.TenantId, out var loginTenantGuid)
+                    ? loginTenantGuid
+                    : null;
 
                 var issuedTokens = await _refreshTokenService.IssueLoginTokensAsync(
                     user.Id,
@@ -205,11 +224,11 @@ namespace KasseAPI_Final.Controllers
                         roles = roles,
                         permissions = permissions,
                         isDemo = user.IsDemo,
-                        tenantId = tenantSnapshot.TenantId,
-                        tenantDisplayName = tenantSnapshot.TenantDisplayName,
-                        tenantSlug = tenantSnapshot.TenantSlug,
-                        branchId = tenantSnapshot.BranchId,
-                        branchDisplayName = tenantSnapshot.BranchDisplayName,
+                        tenantId = loginTenantSnapshot.TenantId,
+                        tenantDisplayName = loginTenantSnapshot.TenantDisplayName,
+                        tenantSlug = loginTenantSnapshot.TenantSlug,
+                        branchId = loginTenantSnapshot.BranchId,
+                        branchDisplayName = loginTenantSnapshot.BranchDisplayName,
                         mustChangePasswordOnNextLogin = user.MustChangePasswordOnNextLogin,
                     },
                     appContext = resolvedClientApp

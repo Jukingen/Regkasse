@@ -1,6 +1,21 @@
 'use client';
 
-import { Button, Card, DatePicker, Descriptions, Form, Input, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { useState } from 'react';
+import {
+    Alert,
+    Button,
+    Card,
+    DatePicker,
+    Descriptions,
+    Form,
+    Input,
+    Select,
+    Space,
+    Table,
+    Tag,
+    Typography,
+    message,
+} from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Link from 'next/link';
@@ -9,9 +24,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
 import {
     activateAdminTenantTrial,
+    checkAdminTenantLicenseConsistency,
     extendAdminTenantLicense,
     getAdminTenantLicense,
+    issueAdminTenantDeploymentLicense,
     setAdminTenantLicenseTier,
+    type TenantLicenseConsistency,
     type TenantLicenseHistoryItem,
 } from '@/features/super-admin/api/adminTenantLicense';
 import { useI18n, formatDate, formatDateTime } from '@/i18n';
@@ -30,6 +48,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const [extendForm] = Form.useForm<ExtendFormValues>();
+    const [consistency, setConsistency] = useState<TenantLicenseConsistency | null>(null);
 
     const licenseQuery = useQuery({
         queryKey: ['admin', 'tenant-license', tenant.id],
@@ -70,6 +89,33 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
         onSuccess: () => {
             message.success(t('tenants.detail.license.tierUpdated'));
             invalidate();
+        },
+        onError: () => message.error(t('tenants.messages.saveFailed')),
+    });
+
+    const syncCheckMutation = useMutation({
+        mutationFn: () => checkAdminTenantLicenseConsistency(tenant.id),
+        onSuccess: (result) => {
+            setConsistency(result);
+            if (result.isConsistent) {
+                message.success(t('tenants.detail.license.consistencyOk'));
+            } else {
+                message.warning(t('tenants.detail.license.consistencyWarning'));
+            }
+        },
+        onError: () => message.error(t('tenants.messages.saveFailed')),
+    });
+
+    const issueJwtMutation = useMutation({
+        mutationFn: () => issueAdminTenantDeploymentLicense(tenant.id),
+        onSuccess: (result) => {
+            if (result.success) {
+                message.success(result.message ?? t('tenants.detail.license.jwtIssued'));
+                setConsistency(null);
+                invalidate();
+            } else {
+                message.error(result.message ?? t('tenants.messages.saveFailed'));
+            }
         },
         onError: () => message.error(t('tenants.messages.saveFailed')),
     });
@@ -139,7 +185,45 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                         </Descriptions.Item>
                     </Descriptions>
                 ) : null}
+                {consistency && !consistency.isConsistent ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        style={{ marginTop: 16 }}
+                        message={t('tenants.detail.license.consistencyTitle')}
+                        description={
+                            <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                {consistency.warnings.map((w) => (
+                                    <li key={w}>{w}</li>
+                                ))}
+                            </ul>
+                        }
+                    />
+                ) : null}
+                {consistency?.isConsistent ? (
+                    <Alert
+                        type="success"
+                        showIcon
+                        style={{ marginTop: 16 }}
+                        message={t('tenants.detail.license.consistencyOk')}
+                    />
+                ) : null}
                 <Space wrap style={{ marginTop: 16 }}>
+                    <Button
+                        loading={syncCheckMutation.isPending}
+                        onClick={() => syncCheckMutation.mutate()}
+                    >
+                        {t('tenants.detail.license.consistencyCheck')}
+                    </Button>
+                    {consistency?.canIssueDeploymentLicense ? (
+                        <Button
+                            type="primary"
+                            loading={issueJwtMutation.isPending}
+                            onClick={() => issueJwtMutation.mutate()}
+                        >
+                            {t('tenants.detail.license.issueJwt')}
+                        </Button>
+                    ) : null}
                     <Button loading={trialMutation.isPending} onClick={() => trialMutation.mutate()}>
                         {t('tenants.detail.license.activateTrial')}
                     </Button>

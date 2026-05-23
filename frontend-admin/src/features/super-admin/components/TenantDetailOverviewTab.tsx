@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import { Alert, Button, Card, Descriptions, Input, Popconfirm, Space, Tag, Typography } from 'antd';
+import { Button, Card, Descriptions, Popconfirm, Space, Tag, Typography } from 'antd';
 import Link from 'next/link';
 
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
@@ -13,28 +12,18 @@ import { useI18n, formatDate, formatDateTime } from '@/i18n';
 export type TenantDetailOverviewTabProps = {
     tenant: AdminTenantDetail;
     suspendPending?: boolean;
-    deletePending?: boolean;
-    hardDeletePending?: boolean;
     onSuspend: () => void;
     onReactivate: () => void;
-    onDelete: () => void;
-    onHardDelete: (confirmSlug: string) => void;
 };
 
 export function TenantDetailOverviewTab({
     tenant,
     suspendPending,
-    deletePending,
-    hardDeletePending,
     onSuspend,
     onReactivate,
-    onDelete,
-    onHardDelete,
 }: TenantDetailOverviewTabProps) {
     const { t, formatLocale } = useI18n();
-    const [confirmSlug, setConfirmSlug] = useState('');
     const license = resolveTenantLicenseLabel(tenant.licenseValidUntilUtc, tenant.licenseKey);
-    const slugMatches = confirmSlug.trim().toLowerCase() === tenant.slug.toLowerCase();
 
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -83,15 +72,6 @@ export function TenantDetailOverviewTab({
                                 {t('tenants.actions.reactivate')}
                             </Button>
                         )}
-                        <Popconfirm
-                            title={t('tenants.confirmDelete.title')}
-                            description={t('tenants.confirmDelete.body')}
-                            onConfirm={onDelete}
-                        >
-                            <Button danger loading={deletePending}>
-                                {t('tenants.actions.delete')}
-                            </Button>
-                        </Popconfirm>
                         <Link href={buildAdminUsersPageHref(tenant.id)}>
                             <Button>{t('tenants.detail.overview.manageUsers')}</Button>
                         </Link>
@@ -117,28 +97,9 @@ export function TenantDetailOverviewTab({
             </Card>
 
             {tenant.status === 'deleted' ? (
-                <Card title={t('tenants.detail.danger.title')} type="inner">
-                    <Alert type="error" showIcon message={t('tenants.detail.danger.hint')} style={{ marginBottom: 16 }} />
-                    <Typography.Paragraph>
-                        {t('tenants.detail.danger.confirmLabel', { slug: tenant.slug })}
-                    </Typography.Paragraph>
-                    <Input
-                        value={confirmSlug}
-                        onChange={(e) => setConfirmSlug(e.target.value)}
-                        placeholder={tenant.slug}
-                        style={{ maxWidth: 320, marginBottom: 12 }}
-                    />
-                    <Popconfirm
-                        title={t('tenants.detail.danger.confirmTitle')}
-                        description={t('tenants.detail.danger.confirmBody')}
-                        disabled={!slugMatches}
-                        onConfirm={() => onHardDelete(confirmSlug.trim())}
-                    >
-                        <Button danger disabled={!slugMatches} loading={hardDeletePending}>
-                            {t('tenants.detail.danger.hardDelete')}
-                        </Button>
-                    </Popconfirm>
-                </Card>
+                <Typography.Paragraph type="secondary">
+                    {t('tenants.detail.settings.danger.deletedSettingsHint')}
+                </Typography.Paragraph>
             ) : null}
         </Space>
     );

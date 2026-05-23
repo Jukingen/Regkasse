@@ -20,6 +20,15 @@
       "Kitchen": "Küche",
       "ReportViewer": "Berichte (nur Lesen)",
       "Accountant": "Buchhaltung"
+    },
+    "badgeLabels": {
+      "SuperAdmin": "Plattform-Admin",
+      "Manager": "Mandant-Admin",
+      "Cashier": "Kassierer",
+      "Accountant": "Buchhalter",
+      "Waiter": "Kellner",
+      "Kitchen": "Küche",
+      "ReportViewer": "Berichte"
     }
   },
   "roleDrawer": {
@@ -223,22 +232,66 @@
     "emptyListWithFilters": "Keine Benutzer für die aktuellen Filter. Filter zurücksetzen oder Suche/Rolle/Status anpassen.",
     "emptyListDefaultHint": "Hinweis: Standardmäßig werden nur aktive Konten gelistet (Status = aktiv)."
   },
+  "tenants": {
+    "loading": "Mandanten werden geladen…",
+    "platformSuperAdmin": "Plattform (Super Admin)",
+    "platformOnly": "Plattform (kein Geschäftsmandant)",
+    "editReadOnlyHint": "Mandant-Zuordnungen werden hier nur angezeigt. Änderungen nur über «Mandanten verwalten» (Super Admin).",
+    "manageAction": "Mandanten verwalten",
+    "manageTitle": "Mandanten-Zuordnung",
+    "manageHint": "Aktive Geschäftsmandanten für diesen Benutzer. Entfernte Mandanten deaktivieren nur die Mitgliedschaft, das Konto bleibt bestehen.",
+    "manageSave": "Speichern",
+    "manageCancel": "Abbrechen",
+    "manageSaved": "Mandanten-Zuordnung gespeichert.",
+    "manageFailed": "Mandanten-Zuordnung konnte nicht gespeichert werden."
+  },
   "unified": {
     "pageIntro": "Alle Plattform- und Mandanten-Benutzer an einem Ort. Mit dem Mandantenfilter grenzen Sie die Liste ein — ohne separate Menüpunkte.",
     "filterTenantLabel": "Mandant filtern:",
     "filterTenantPlaceholder": "Mandant filtern",
     "filterAllTenants": "Alle Mandanten",
     "filterPlatformOnly": "Plattform",
-    "filterPlatformOption": "🏢 Plattform (Super Admin)",
+    "filterPlatformOption": "Plattform (Super Admin)",
     "platformBadge": "Plattform (Super Admin)",
     "platformTenantLabel": "(Plattform)",
     "empty": "Keine Benutzer für die aktuellen Filter.",
-    "invitationsSection": "Einladungen (E-Mail)",
+    "tenantCreateSection": "Mandanten-Benutzer anlegen",
     "quickUserAction": "Schnell-Benutzer",
     "columnType": "Typ",
-    "typeBadgePlatformAdmin": "👑 Plattform-Admin",
-    "typeBadgePlatform": "🏢 Plattform",
-    "typeBadgeTenant": "👤 Mandant"
+    "columnUser": "Benutzer",
+    "columnTwoFactor": "2FA",
+    "searchPlaceholder": "Name, E-Mail …",
+    "tenantTooltip": "Dieser Benutzer gehört zum Mandanten «{{tenant}}».",
+    "statusPending": "Ausstehend",
+    "twoFactorYes": "Ja",
+    "twoFactorNo": "Nein",
+    "typeBadgePlatformAdmin": "Plattform-Admin",
+    "typeBadgePlatform": "Plattform",
+    "typeBadgeTenant": "Mandant",
+    "columns": {
+      "user": "Benutzer",
+      "tenant": "Mandant",
+      "role": "Rolle",
+      "status": "Status",
+      "lastLogin": "Letzter Login",
+      "twoFactor": "2FA",
+      "actions": "Aktionen"
+    },
+    "filters": {
+      "searchPlaceholder": "Benutzer suchen…",
+      "tenantFilter": "Mandant filtern",
+      "roleFilter": "Rolle filtern",
+      "statusFilter": "Status filtern",
+      "platform": "Plattform",
+      "allTenants": "Alle Mandanten"
+    },
+    "badges": {
+      "active": "Aktiv",
+      "inactive": "Deaktiviert",
+      "pending": "Ausstehend",
+      "platform": "Plattform",
+      "tenant": "Mandant"
+    }
   },
   "tabs": {
     "labelPlatform": "Plattform-Benutzer",
@@ -266,55 +319,45 @@
         "body": "Der Benutzer verliert den Zugang zu «{{tenant}}». Das Konto bleibt für andere Mandanten oder eine spätere Zuweisung erhalten."
       }
     },
-    "invitations": {
-      "description": "Neue Mandanten-Benutzer per E-Mail einladen. Wählen Sie den Zielmandanten und versenden Sie die Einladung (SMTP erforderlich für E-Mail-Versand).",
-      "descriptionSuperAdmin": "Neue Benutzer per E-Mail einladen. Wählen Sie den Zielmandanten in der Liste (Domain und Lizenzstatus sichtbar).",
-      "smtpHint": "Ohne SMTP-Konfiguration wird das Konto angelegt, die Einladungs-E-Mail kann jedoch nicht versendet werden.",
-      "columnTenant": "Mandant",
-      "columnOwner": "Mandanten-Admin (E-Mail)",
-      "sendInvite": "Einladung senden",
-      "emptyTenants": "Keine aktiven Geschäftsmandanten vorhanden."
+    "tenantCreate": {
+      "descriptionSuperAdmin": "Neuen Mandanten-Benutzer anlegen. Das Passwort wird automatisch erzeugt und einmalig angezeigt."
     }
   },
-  "invite": {
-    "title": "Benutzer hinzufügen",
-    "titleForTenant": "Benutzer zu «{{name}}» ({{slug}}) einladen",
-    "titleAddForTenant": "Benutzer zu «{{name}}» ({{slug}}) hinzufügen",
-    "action": "Benutzer hinzufügen",
-    "createUser": "Benutzer erstellen",
-    "send": "Einladung senden",
-    "email": "E-Mail-Adresse",
-    "tenant": "Mandant (Firma)",
+  "create": {
+    "title": "Neuen Benutzer anlegen",
+    "email": "E-Mail",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "role": "Rolle",
+    "tenant": "Mandant",
+    "password": "Passwort",
+    "copyPassword": "Passwort kopieren",
+    "submit": "Benutzer erstellen",
+    "success": "Benutzer erfolgreich erstellt",
+    "generatedPasswordInfo": "Das Passwort wird nur einmal angezeigt. Bitte speichern Sie es sicher und übermitteln Sie es dem Benutzer.",
+    "passwordWarningTitle": "Wichtiger Hinweis",
+    "close": "Schließen",
+    "action": "Benutzer anlegen",
     "tenantRequired": "Bitte einen Mandanten wählen.",
     "tenantPlaceholder": "Mandant wählen …",
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "Keine Lizenz",
-    "role": "Rolle",
-    "emailHint": "Nach der Erstellung wird ein Passwort generiert und einmalig angezeigt. Teilen Sie es dem Benutzer mit.",
+    "emailRequired": "Bitte eine E-Mail-Adresse eingeben.",
+    "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
+    "isOwner": "Mandanten-Administrator (Owner)",
+    "titleForTenant": "Benutzer für «{{name}}» ({{slug}}) anlegen",
+    "titleAddForTenant": "Benutzer für «{{name}}» ({{slug}}) anlegen",
     "targetTenant": {
-      "title": "Benutzer zu «{{name}}» ({{slug}}) einladen",
-      "modalLabel": "Einladung für",
+      "title": "Benutzer für «{{name}}» ({{slug}})",
+      "modalLabel": "Mandant",
       "licenseLine": "Lizenz: {{license}}"
     },
-    "multiTenant": {
-      "tenantsLabel": "Mandanten (Firmen)",
-      "roleForAll": "Rolle für alle ausgewählten Mandanten",
-      "tenantsRequired": "Bitte mindestens einen Mandanten auswählen.",
-      "separateCredentialsWarning": "Der Benutzer erhält für jeden ausgewählten Mandanten separate Zugangsdaten (eigenes Konto pro Mandant).",
-      "allSuccess": "{{count}} Einladung(en) erfolgreich.",
-      "partialSuccess": "{{ok}} erfolgreich, {{failed}} fehlgeschlagen.",
-      "resultSummary": "{{ok}} Mandant(en) zugewiesen, {{failed}} fehlgeschlagen."
-    },
     "roleOptions": {
-      "Manager": {
-        "label": "Manager (volle Rechte für diese Firma)"
-      },
-      "Cashier": {
-        "label": "Kassierer (nur Kasse)"
-      },
-      "Accountant": {
-        "label": "Buchhaltung (nur Berichte)"
-      }
+      "Manager": { "label": "Manager" },
+      "Cashier": { "label": "Kassierer" },
+      "Accountant": { "label": "Buchhaltung" },
+      "Waiter": { "label": "Kellner" },
+      "Kitchen": { "label": "Küche" }
     }
   }
 }

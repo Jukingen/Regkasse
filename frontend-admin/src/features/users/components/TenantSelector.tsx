@@ -43,7 +43,7 @@ function TenantSelectorOption({ tenant }: { tenant: AdminTenantListItem }) {
     return (
         <Flex vertical gap={2} style={{ padding: '4px 0' }}>
             <Typography.Text strong>
-                {t('users.invite.tenantOption', { name: tenant.name, slug: tenant.slug })}
+                {t('users.create.tenantOption', { name: tenant.name, slug: tenant.slug })}
             </Typography.Text>
             <Flex gap={6} wrap align="center">
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -72,7 +72,7 @@ export function TenantSelector({
     const options = useMemo(
         (): TenantSelectOption[] =>
             tenants.map((tenant) => {
-                const label = t('users.invite.tenantOption', { name: tenant.name, slug: tenant.slug });
+                const label = t('users.create.tenantOption', { name: tenant.name, slug: tenant.slug });
                 const host = buildTenantPortalHost(tenant.slug);
                 const license = formatInviteTenantLicenseShort(tenant, t);
                 return {
@@ -104,7 +104,7 @@ export function TenantSelector({
             disabled={disabled}
             value={value}
             onChange={onChange}
-            placeholder={placeholder ?? t('users.invite.tenantPlaceholder')}
+            placeholder={placeholder ?? t('users.create.tenantPlaceholder')}
             filterOption={filterOption}
             options={options}
             optionRender={(option) => {

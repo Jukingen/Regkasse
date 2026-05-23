@@ -8,13 +8,21 @@ public static class PasswordGenerator
     private const string Lowers = "abcdefghjkmnpqrstuvwxyz";
     private const string Uppers = "ABCDEFGHJKMNPQRSTUVWXYZ";
     private const string Digits = "23456789";
-    private const string Symbols = "!@#$%&*";
+    private const string Symbols = "!@#$%^&*()";
     private const int MinLength = 12;
 
     /// <summary>
     /// At least 12 characters with upper, lower, digit, and special character.
     /// </summary>
     public static string GenerateRandomPassword(int length = 14)
+    {
+        return GenerateSecurePassword(length);
+    }
+
+    /// <summary>
+    /// Cryptographically secure password with at least one upper, lower, digit, and special (default 12 chars).
+    /// </summary>
+    public static string GenerateSecurePassword(int length = 12)
     {
         if (length < MinLength)
             length = MinLength;
@@ -35,18 +43,5 @@ public static class PasswordGenerator
         }
 
         return new string(buffer);
-    }
-
-    /// <summary>Cryptographically secure password for quick-user provisioning (default 12 chars).</summary>
-    public static string GenerateSecurePassword(int length = 12)
-    {
-        if (length < MinLength)
-            length = MinLength;
-
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
-        return new string(
-            Enumerable.Repeat(chars, length)
-                .Select(s => s[RandomNumberGenerator.GetInt32(s.Length)])
-                .ToArray());
     }
 }

@@ -210,6 +210,8 @@
     "create": "Mandant anlegen",
     "edit": "Bearbeiten",
     "delete": "Löschen",
+    "restore": "Wiederherstellen",
+    "hardDelete": "Endgültig löschen",
     "impersonate": "Als Mandant anmelden",
     "manageUsers": "Benutzer",
     "manageLicense": "Lizenz",
@@ -270,6 +272,12 @@
       "extendHint": "REGK-Schlüssel aus „Lizenzen“ oder ein Enddatum manuell setzen.",
       "issuedHint": "Ausgestellte Lizenzschlüssel und Aktivierungen verwalten Sie unter „Lizenzen“ (ggf. nach Impersonation im Mandanten-Kontext).",
       "openIssuedLicenses": "Lizenzen öffnen",
+      "consistencyCheck": "Konsistenz prüfen",
+      "consistencyTitle": "Abweichung Mandant ↔ Deployment-Lizenz",
+      "consistencyOk": "Mandant- und Deployment-Lizenz sind abgestimmt.",
+      "consistencyWarning": "Inkonsistenz erkannt — Details unten.",
+      "issueJwt": "JWT erstellen",
+      "jwtIssued": "Deployment-Lizenz (JWT) wurde erstellt.",
       "tiers": {
         "basic": "Basic",
         "standard": "Standard",
@@ -292,22 +300,56 @@
       "hardDeleteFailed": "Endgültiges Löschen fehlgeschlagen."
     },
     "settings": {
-      "save": "Einstellungen speichern"
+      "save": "Einstellungen speichern",
+      "danger": {
+        "softDeleteButton": "Mandant archivieren / löschen",
+        "softDeleteHint": "Wenn Sie diesen Mandanten löschen, können sich Benutzer nicht mehr anmelden. Daten bleiben erhalten und können wiederhergestellt werden.",
+        "softDeleteModalTitle": "Mandant löschen?",
+        "softDeleteNoAccess": "Benutzer verlieren den Zugriff auf diesen Mandanten.",
+        "softDeleteRecoverable": "Die Daten bleiben gespeichert; Sie können den Mandanten jederzeit wiederherstellen.",
+        "softDeleteConfirm": "Mandant löschen",
+        "restoreButton": "Mandant wiederherstellen",
+        "hardDeleteButton": "Mandant ENDGÜLTIG LÖSCHEN",
+        "deletedWarning": "Dieser Mandant ist gelöscht. Sie können ihn wiederherstellen oder endgültig entfernen (nicht rückgängig).",
+        "deletedSettingsHint": "Löschen, Wiederherstellen und endgültiges Entfernen finden Sie unter Einstellungen → Gefahrenzone.",
+        "restoreModalTitle": "Mandant wiederherstellen?",
+        "restoreModalBody": "Nach der Wiederherstellung können alle Benutzer mit aktiver Mitgliedschaft wieder auf den Mandanten zugreifen.",
+        "restoreConfirm": "Wiederherstellen",
+        "hardDeleteModalTitle": "Mandant endgültig löschen",
+        "hardDeleteDataLoss": "Alle nicht geschützten Daten von „{{name}}“ werden dauerhaft gelöscht.",
+        "hardDeleteAck": "Ich verstehe, dass diese Aktion nicht rückgängig gemacht werden kann.",
+        "hardDeleteConfirm": "Endgültig löschen",
+        "auditLink": "Vorgänge zu diesem Mandanten in den Audit-Protokollen anzeigen →"
+      }
     }
   },
   "edit": {
     "title": "Mandant bearbeiten"
   },
   "confirmDelete": {
-    "title": "Mandant löschen?",
-    "body": "Soft-Delete: Status wird auf deleted gesetzt."
+    "title": "Diesen Mandanten wirklich löschen?",
+    "body": "Der Mandant wird als gelöscht markiert und kann später wiederhergestellt werden. Benutzer verlieren den Zugriff auf diesen Mandanten."
+  },
+  "confirmRestore": {
+    "title": "Mandant wiederherstellen?",
+    "body": "Status wird auf aktiv gesetzt; Benutzer-Mitgliedschaften werden reaktiviert."
+  },
+  "confirmHardDelete": {
+    "title": "Mandant endgültig löschen",
+    "irreversible": "Diese Aktion kann NICHT rückgängig gemacht werden.",
+    "dataLoss": "Alle nicht geschützten Daten von „{{name}}“ werden dauerhaft entfernt.",
+    "confirmSlugLabel": "Zur Bestätigung Subdomain-Kürzel eingeben: „{{slug}}“"
   },
   "messages": {
     "created": "Mandant wurde angelegt.",
     "updated": "Mandant wurde gespeichert.",
     "deleted": "Mandant wurde gelöscht.",
+    "restored": "Mandant wurde wiederhergestellt.",
+    "hardDeleted": "Mandant wurde endgültig gelöscht.",
     "saveFailed": "Speichern fehlgeschlagen.",
     "deleteFailed": "Löschen fehlgeschlagen.",
+    "restoreFailed": "Wiederherstellen fehlgeschlagen.",
+    "hardDeleteFailed": "Endgültiges Löschen fehlgeschlagen.",
     "impersonationStarted": "Impersonation gestartet: {{name}}",
     "impersonationFailed": "Impersonation fehlgeschlagen."
   },
@@ -335,7 +377,7 @@
     },
     "actions": {
       "back": "Zurück zur Liste",
-      "add": "Bestehenden Benutzer",
+      "add": "Bestehenden Benutzer hinzufügen",
       "remove": "Entfernen",
       "setOwner": "Als Mandanten-Admin",
       "resetPassword": "Passwort"
@@ -355,6 +397,28 @@
     "superAdminOnly": {
       "credentialsTitle": "Nur für Super Admin",
       "credentialsHint": "Das Erzeugen von Mandanten-Benutzern mit Einmalpasswort sowie die Anzeige von Zugangsdaten sind ausschließlich der Rolle Super Admin vorbehalten."
+    },
+    "create": {
+      "action": "Benutzer anlegen",
+      "hint": "Nach der Erstellung wird ein Passwort automatisch erzeugt und einmalig angezeigt. Teilen Sie es dem Benutzer mit.",
+      "passwordAutoHint": "Das Passwort wird nach dem Anlegen im Erfolgsdialog angezeigt (nur einmal).",
+      "emailRequired": "Bitte eine E-Mail-Adresse eingeben.",
+      "emailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben.",
+      "isOwner": "Mandanten-Administrator (Owner)",
+      "resultSuccessTitle": "Benutzer wurde erstellt",
+      "resultDone": "Fertig",
+      "credentialsFor": "Zugangsdaten für: {{email}}",
+      "passwordLabel": "Passwort:",
+      "passwordOnceWarning": "Dieses Passwort wird nur JETZT einmal angezeigt!",
+      "nextStepsTitle": "Nächste Schritte:",
+      "nextStep1": "Teilen Sie das Passwort sicher mit dem Benutzer",
+      "nextStep2": "Der Benutzer meldet sich beim ersten Login unter {{portalUrl}} an",
+      "nextStep2NoUrl": "Der Benutzer meldet sich beim ersten Login am Mandanten-Portal an",
+      "nextStep3": "Das Passwort wird dann geändert",
+      "messages": {
+        "created": "Benutzer wurde erstellt.",
+        "failed": "Benutzer konnte nicht erstellt werden."
+      }
     },
     "invite": {
       "action": "Benutzer hinzufügen",

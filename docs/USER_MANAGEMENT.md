@@ -3,7 +3,7 @@
 > **Audience:** Super Admin, tenant Managers, FA maintainers.  
 > **UI:** German (de-AT). **Technical:** English.
 
-Explains **platform users** vs **tenant (Mandant) users**, roles, invitations, password reset, and remove-vs-delete semantics.
+Explains **platform users** vs **tenant (Mandant) users**, **direct user creation** (no invitation emails), password handoff, reset, and remove-vs-delete semantics.
 
 Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md).
 
@@ -44,9 +44,9 @@ flowchart TB
 | **Accountant** | Reports, exports | Required |
 | **Waiter / Kitchen** | POS workflows (where enabled) | Optional per deployment |
 
-Authorization is **permission-first** on the API (`[HasPermission(...)]`); FA gates menus via `usersPolicy` and role checks.
+Authorization is **permission-first** on the API (`[HasPermission(AppPermissions.UserManage)]`); FA gates menus via `usersPolicy` and role checks.
 
-**Invite roles (tenant):** `Manager`, `Cashier`, `Accountant` — constant `INVITE_TENANT_ROLES` in Super Admin tenant users UI.
+**Tenant create roles:** `Manager`, `Cashier`, `Accountant`, `Waiter`, `Kitchen` — `TENANT_CREATE_ROLES` in FA.
 
 ---
 
@@ -54,55 +54,89 @@ Authorization is **permission-first** on the API (`[HasPermission(...)]`); FA ga
 
 | Surface | Route | Component |
 |---------|-------|-----------|
-| Combined users page | `/users` | `users/page.tsx` — tabs **Plattform** / **Mandant** / invitations |
-| Tenant-only (Super Admin) | `/admin/tenants/{tenantId}/users` | `TenantDetailUsersTab` |
-| Platform users API | `/api/admin/platform-users` (see `createPlatformUser`) | `PlatformUsersTab` |
-| Tenant users API | `/api/admin/tenants/{tenantId}/users/*` | `tenantUsers.ts` |
+| Combined users page | `/users` | `UnifiedAdminUsersView`, `UserTenantCreatePanel` |
+| Tenant detail users | `/admin/tenants/{tenantId}` → Benutzer | `TenantUsersTabCore`, `TenantDetailUsersTab` |
+| Create user modal | (modal) | `CreateUserModal` — form + one-time password modal |
+| Add existing user | (modal, tenant detail) | `AddExistingUserModal` |
+| Platform users API | `POST /api/admin/users` | `createPlatformUser` / `createUser` |
+| Tenant users API | `POST /api/admin/tenants/{tenantId}/users` | `createTenantUser` / `createUser` |
 
 ![Users page platform tab (placeholder)](images/user-management/fa-users-platform.png)  
 ![Tenant users tab (placeholder)](images/user-management/fa-tenant-users.png)
 
 ---
 
-## How to invite users
+## How to create users
 
-### Super Admin — select tenant
+There is **no invitation email flow**. Administrators create users directly; the API returns a **one-time generated password** for secure handoff outside the product.
 
-1. Open `/admin/tenants/{tenantId}` → tab **Benutzer**, or `/admin/tenants/{tenantId}/users`
-2. **Benutzer einladen** → `InviteUserModal`
-3. Enter **E-Mail**, **Rolle**, optional **Mandanten-Administrator (Owner)**
-4. Submit → `POST /api/admin/tenants/{tenantId}/users/invite`
+### Super Admin — new tenant user
 
-Backend (`TenantUserService`):
+1. Open `/admin/tenants/{tenantId}` → tab **Benutzer**, or `/users` → **Benutzer anlegen**
+2. **Benutzer anlegen** → `CreateUserModal`
+3. Enter **E-Mail**, optional **Vorname** / **Nachname**, **Rolle**, optional **Mandanten-Administrator (Owner)**
+4. Submit → `POST /api/admin/tenants/{tenantId}/users` (or `POST /api/admin/users` with `tenantId` in body)
 
-- If account missing → create Identity user + membership
-- If account exists → add membership only
-- If SMTP configured → invitation email; else one-time password in modal (DE hint)
+Backend (`TenantUserService.CreateAsync`):
+
+- Creates Identity user + `user_tenant_memberships` + ASP.NET role
+- Generates compliant password server-side (`PasswordGenerator.GenerateSecurePassword`)
+- Sets `MustChangePasswordOnNextLogin = true`
+- Audit: `USER_CREATED` with metadata `createdByUserId`, `tenantId`, `role` — **password is never logged**
+
+### Super Admin — platform user
+
+1. `POST /api/admin/users` without `tenantId` — email + role (e.g. `SuperAdmin`)
+2. Response: `AdminCreateUserResponseDto` with `generatedPassword` (shown once in FA)
 
 ### Tenant Admin (Manager) — fixed tenant
 
-1. Open `/users` on tenant host (`{slug}.regkasse.at`) or while impersonating
-2. Tab **Mandanten-Benutzer** → same invite patterns scoped to **current tenant JWT**
-3. Cannot assign users to other tenants
+1. Open `/users` on tenant host (`{slug}.regkasse.at`)
+2. **Benutzer anlegen** — same modal; tenant is implicit from JWT (no mandant picker)
+3. Cannot create users for other tenants
 
-### Add existing user (no new Identity row)
+### Frontend mutation pattern
 
-**Bestehenden Benutzer hinzufügen** → `AddExistingUserModal` → `POST …/users` with existing `userId`.
+```typescript
+// src/features/users/api/users.ts + hooks/useCreateUser.ts
+createUser({ email, firstName, lastName, role, isOwner?, tenantId? });
+// tenantId set → createTenantUser; omitted → createPlatformUser
+```
+
+`CreateUserModal` shows the generated password in a second modal (copy + warning).
 
 ---
 
-## Password reset and first login
+## Add existing user (no new Identity row)
+
+**Bestehenden Benutzer hinzufügen** → `AddExistingUserModal` → `POST /api/admin/tenants/{tenantId}/users/assign` with existing `userId`.
+
+Use when the person already has an account (e.g. works at another mandant). Does **not** issue a new password or send email.
+
+---
+
+## Password management
+
+### Password generation policy
+
+- Server-side: `PasswordGenerator.GenerateSecurePassword` (min 12 chars; upper, lower, digit, special from `!@#$%^&*()`).
+- Returned **once** in API response (`generatedPassword` / `CreateUserResult`).
+- **Never** written to audit log metadata or application logs.
+
+### First login — force change
+
+- `MustChangePasswordOnNextLogin = true` on create and on admin reset.
+- User must set a new password at next login (German UI messaging in FA).
+
+### Reset password flow (no email)
 
 | Feature | Behavior |
 |---------|----------|
-| **Reset password** (tenant tab) | `ResetPasswordModal` → generates compliant one-time password |
-| **Send email** | Checkbox when SMTP configured (`TenantInvitationEmailSender` / same `Email:Smtp` section) |
-| **Force change** | `MustChangePasswordOnNextLogin` set on invite, reset, and onboarding admin |
-| **Onboarding admin** | Always force change; password shown once in `OnboardingSuccessModal` |
+| **Reset password** (tenant tab) | `ResetPasswordModal` → admin reset endpoint → new one-time password in modal |
+| **Force change** | Same flag as create; operator delivers password securely |
+| **Onboarding admin** | Provisioning wizard still may use welcome email (`WelcomeEmailService`) — separate from day-to-day user create |
 
-German hint: *„Der Benutzer muss sich beim nächsten Login anmelden und das Passwort ändern.“*
-
-Without SMTP: password displayed once in UI; operator must deliver securely.
+SMTP is **not** required for tenant user creation or password reset. Optional `Email:Smtp` remains only for **tenant onboarding welcome** mail (see [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md)).
 
 ---
 
@@ -112,11 +146,11 @@ Without SMTP: password displayed once in UI; operator must deliver securely.
 |-------------|-----|--------|
 | **Zuweisung entfernen** / **Entfernen** | `DELETE /api/admin/tenants/{tenantId}/users/{userId}` | Removes **membership**; Identity user may remain for other tenants |
 | **Benutzer deaktivieren** (global) | Deactivate on `/users` | `IsActive=false`; login blocked platform-wide |
-| **Plattform-Benutzer anlegen** | Platform create endpoint | Super Admin staff only |
+| **Plattform-Benutzer anlegen** | `POST /api/admin/users` (no `tenantId`) | Super Admin staff only |
 
-**Important:** Removing a user from a tenant is **not** the same as deleting the Identity account. Deletion is restricted and may fail if audit/history requires retention.
+**Important:** Removing a user from a tenant is **not** the same as deleting the Identity account.
 
-**Owner:** At most one active **Owner** per tenant (`is_owner=true` on `user_tenant_memberships`). Setting owner updates support visibility (🟢/🟡) in tenant switcher.
+**Owner:** At most one active **Owner** per tenant (`is_owner=true` on `user_tenant_memberships`). Drives switcher 🟢/🟡 status.
 
 ---
 
@@ -125,28 +159,23 @@ Without SMTP: password displayed once in UI; operator must deliver securely.
 | Action | Super Admin | Manager (tenant) |
 |--------|-------------|------------------|
 | List platform users | ✅ | ❌ |
-| Invite to any tenant | ✅ | Own tenant only |
+| Create user in any tenant | ✅ | Own tenant only |
+| Add existing user to tenant | ✅ | Own tenant (if permitted) |
 | Set tenant owner | ✅ | Policy-dependent |
 | Reset tenant user password | ✅ | Own tenant (if permitted) |
 | Role management drawer | ✅ (global roles) | Limited |
 
 ---
 
-## SMTP configuration (invitations)
+## Removed (2026-05-22)
 
-Same as welcome email — `Email:Smtp` in `appsettings`:
-
-```json
-"Email": {
-  "Smtp": {
-    "Host": "smtp.example.com",
-    "Port": 587,
-    "From": "noreply@regkasse.at"
-  }
-}
-```
-
-If `Host` or `From` is empty, `IsConfigured` is false → FA shows `smtpOff` / `smtpHint` strings in DE.
+| Removed | Replacement |
+|---------|-------------|
+| `POST /api/admin/users/invite` | `POST /api/admin/users` (+ `tenantId` for mandant users) |
+| `POST /api/admin/tenants/{id}/users/invite` | `POST /api/admin/tenants/{id}/users` |
+| `TenantInvitationEmailSender` / invitation SMTP for users | One-time password in UI |
+| FA invite acceptance route `/invite/accept` | N/A — direct create only |
+| `InviteUserModal` | `CreateUserModal` |
 
 ---
 
@@ -155,13 +184,14 @@ If `Host` or `From` is empty, `IsConfigured` is false → FA shows `smtpOff` / `
 | Area | Path |
 |------|------|
 | Users page | `frontend-admin/src/app/(protected)/users/page.tsx` |
-| Platform tab | `frontend-admin/src/features/users/components/PlatformUsersTab.tsx` |
-| Tenant tab | `frontend-admin/src/features/users/components/TenantUsersTab.tsx` |
-| Tenant detail users | `frontend-admin/src/features/super-admin/components/TenantDetailUsersTab.tsx` |
-| Invite / reset | `InviteUserModal.tsx`, `ResetPasswordModal.tsx` |
-| API | `frontend-admin/src/features/super-admin/api/tenantUsers.ts` |
-| Backend | `backend/Services/AdminTenants/TenantUserService.cs` |
-| i18n (DE) | `frontend-admin/src/i18n/locales/de/users.json`, `tenants.json` → `users.*` |
+| Unified view | `frontend-admin/src/features/users/components/UnifiedAdminUsersView.tsx` |
+| Create modal | `frontend-admin/src/features/users/components/CreateUserModal.tsx` |
+| Add existing | `frontend-admin/src/features/super-admin/components/AddExistingUserModal.tsx` |
+| API + hook | `frontend-admin/src/features/users/api/users.ts`, `hooks/useCreateUser.ts` |
+| Tenant users API | `frontend-admin/src/features/super-admin/api/tenantUsers.ts` |
+| Backend | `backend/Services/AdminTenants/TenantUserService.cs`, `Controllers/AdminUsersController.cs` |
+| Audit metadata | `backend/Services/UserCreatedAuditDetails.cs` |
+| i18n (DE) | `frontend-admin/src/i18n/locales/de/users.json`, `tenants.json` |
 
 ---
 
@@ -173,4 +203,4 @@ Suggested paths under `docs/images/user-management/`:
 |------|---------|
 | `fa-users-platform.png` | `/users` → Plattform-Benutzer |
 | `fa-tenant-users.png` | Mandanten-Benutzer or tenant detail users tab |
-| `fa-invite-user.png` | Invite modal with role + owner checkbox |
+| `fa-create-user.png` | Create user modal + one-time password modal |

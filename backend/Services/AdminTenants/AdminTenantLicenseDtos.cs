@@ -40,3 +40,21 @@ public sealed class SetTenantLicenseTierRequest
     /// <summary>Optional explicit end date; otherwise extends 365 days from max(now, current end).</summary>
     public DateTime? ValidUntilUtc { get; set; }
 }
+
+/// <summary>Result of mandant vs deployment license (<c>issued_licenses</c>) consistency check.</summary>
+public sealed record TenantLicenseConsistencyDto(
+    bool IsConsistent,
+    IReadOnlyList<string> Warnings,
+    DateTime? TenantValidUntilUtc,
+    Guid? MatchedIssuedLicenseId,
+    string? MatchedLicenseKey,
+    DateTime? IssuedExpiryAtUtc,
+    bool CanIssueDeploymentLicense);
+
+/// <summary>Creates a floating deployment JWT row linked to the tenant mandant license.</summary>
+public sealed record TenantLicenseIssueDeploymentResultDto(
+    bool Success,
+    string? Message,
+    string? LicenseKey,
+    Guid? IssuedLicenseId,
+    TenantLicenseOverviewDto? Overview);

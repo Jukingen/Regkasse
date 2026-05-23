@@ -21,7 +21,7 @@ export function formatInviteTenantLicenseShort(
 ): string {
     const lic = resolveTenantLicenseLabel(tenant.licenseValidUntilUtc, tenant.licenseKey);
     if (lic.kind === 'none') {
-        return t('users.invite.licenseNone');
+        return t('users.create.licenseNone');
     }
     if (lic.kind === 'expired') {
         return t('license.badge.expired.label');
@@ -45,7 +45,7 @@ export function buildInviteTenantPickerLabel(tenant: AdminTenantListItem, t: Tra
             : status.kind === 'demo'
               ? t('superadmin.selector.demoTenant')
               : '';
-    const base = t('users.invite.tenantOption', { name: tenant.name, slug: tenant.slug });
+    const base = t('users.create.tenantOption', { name: tenant.name, slug: tenant.slug });
     const parts = [base, license];
     if (statusShort) {
         parts.push(statusShort);

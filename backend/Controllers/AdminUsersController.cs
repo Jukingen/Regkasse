@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
@@ -34,6 +36,7 @@ public class AdminUsersController : ControllerBase
     private readonly ILogger<AdminUsersController> _logger;
     private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
     private readonly ITenantUserService _tenantUserService;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
 
     public AdminUsersController(
         AppDbContext context,
@@ -44,7 +47,8 @@ public class AdminUsersController : ControllerBase
         IUserUniquenessValidationService uniquenessValidation,
         ILogger<AdminUsersController> logger,
         IUserTenantMembershipProvisioner tenantMembershipProvisioner,
-        ITenantUserService tenantUserService)
+        ITenantUserService tenantUserService,
+        ICurrentTenantAccessor tenantAccessor)
     {
         _context = context;
         _userManager = userManager;
@@ -55,7 +59,14 @@ public class AdminUsersController : ControllerBase
         _logger = logger;
         _tenantMembershipProvisioner = tenantMembershipProvisioner;
         _tenantUserService = tenantUserService;
+        _tenantAccessor = tenantAccessor;
     }
+
+    private bool IsActorSuperAdmin() =>
+        string.Equals(
+            RoleCanonicalization.GetCanonicalRole(ActorRole),
+            Roles.SuperAdmin,
+            StringComparison.Ordinal);
 
     private string? ActorId => User.GetActorUserId();
     private string ActorRole => User.GetActorRole() ?? "Unknown";
@@ -70,9 +81,38 @@ public class AdminUsersController : ControllerBase
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-    private async Task<List<AdminUserDto>> ListPlatformUsersAsync(bool? isActive, CancellationToken cancellationToken)
+    private static IQueryable<ApplicationUser> ApplyUserSearchFilter(IQueryable<ApplicationUser> query, string? search)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+            return query;
+
+        var term = search.Trim().ToLowerInvariant();
+        return query.Where(u =>
+            (u.FirstName + " " + u.LastName).ToLower().Contains(term)
+            || (u.Email != null && u.Email.ToLower().Contains(term))
+            || (u.UserName != null && u.UserName.ToLower().Contains(term))
+            || (u.EmployeeNumber != null && u.EmployeeNumber.ToLower().Contains(term)));
+    }
+
+    private static bool MatchesTenantUserSearch(string? search, string name, string email, string tenantName, string tenantSlug)
+    {
+        if (string.IsNullOrWhiteSpace(search))
+            return true;
+
+        var term = search.Trim().ToLowerInvariant();
+        return name.ToLowerInvariant().Contains(term)
+            || email.ToLowerInvariant().Contains(term)
+            || tenantName.ToLowerInvariant().Contains(term)
+            || tenantSlug.ToLowerInvariant().Contains(term);
+    }
+
+    private async Task<List<AdminUserDto>> ListPlatformUsersAsync(
+        bool? isActive,
+        string? search,
+        CancellationToken cancellationToken)
     {
         var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
+        var businessTenantIdSet = businessTenantIds.ToHashSet();
 
         var userIdsWithBusinessMembership = await _context.UserTenantMemberships
             .AsNoTracking()
@@ -82,35 +122,96 @@ public class AdminUsersController : ControllerBase
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        var query = _userManager.Users.AsQueryable();
+        var query = UsersWithMembershipsQuery();
         if (isActive.HasValue)
             query = query.Where(u => u.IsActive == isActive.Value);
 
         query = query.Where(u =>
             u.Role == Roles.SuperAdmin || !userIdsWithBusinessMembership.Contains(u.Id));
+        query = ApplyUserSearchFilter(query, search);
 
         var users = await query
             .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return users.Select(ToDto).ToList();
+        return users.Select(u => ToDto(u, businessTenantIdSet)).ToList();
     }
 
     private async Task<List<AdminTenantUserRowDto>> ListTenantUsersAsync(
         string? role,
         bool? isActive,
         Guid? tenantId,
+        string? search,
         CancellationToken cancellationToken)
     {
+        if (!IsActorSuperAdmin())
+        {
+            if (_tenantAccessor.TenantId is Guid ambientTenantId)
+                tenantId = ambientTenantId;
+            else
+                return new List<AdminTenantUserRowDto>();
+        }
+
+        if (tenantId.HasValue && tenantId.Value != Guid.Empty)
+        {
+            var tenantUsers = await _tenantUserService
+                .ListAsync(tenantId.Value, cancellationToken)
+                .ConfigureAwait(false);
+            if (tenantUsers == null)
+                return new List<AdminTenantUserRowDto>();
+
+            var tenant = await _context.Tenants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == tenantId.Value, cancellationToken)
+                .ConfigureAwait(false);
+            if (tenant == null)
+                return new List<AdminTenantUserRowDto>();
+
+            var userIds = tenantUsers.Select(u => u.UserId).ToList();
+            var usersById = await _context.Users
+                .AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .ToDictionaryAsync(u => u.Id, cancellationToken)
+                .ConfigureAwait(false);
+
+            return tenantUsers
+                .Where(dto =>
+                {
+                    if (!usersById.TryGetValue(dto.UserId, out var user))
+                        return false;
+                    if (isActive.HasValue && user.IsActive != isActive.Value)
+                        return false;
+                    if (!string.IsNullOrWhiteSpace(role) && user.Role != role)
+                        return false;
+                    return MatchesTenantUserSearch(search, dto.Name, dto.Email, tenant.Name, tenant.Slug);
+                })
+                .Select(dto =>
+                {
+                    usersById.TryGetValue(dto.UserId, out var user);
+                    return new AdminTenantUserRowDto
+                    {
+                        UserId = dto.UserId,
+                        Email = dto.Email,
+                        Name = dto.Name,
+                        Role = dto.Role,
+                        IsOwner = dto.IsOwner,
+                        IsActive = user?.IsActive ?? true,
+                        TenantId = tenant.Id,
+                        TenantSlug = tenant.Slug,
+                        TenantName = tenant.Name,
+                        JoinedAtUtc = dto.JoinedAtUtc,
+                        LastLoginAt = user?.LastLoginAt,
+                    };
+                })
+                .ToList();
+        }
+
         var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
 
         var membershipQuery = _context.UserTenantMemberships
             .AsNoTracking()
             .Where(m => m.IsActive && businessTenantIds.Contains(m.TenantId));
-
-        if (tenantId.HasValue && tenantId.Value != Guid.Empty)
-            membershipQuery = membershipQuery.Where(m => m.TenantId == tenantId.Value);
 
         var rows = await (
             from m in membershipQuery
@@ -125,6 +226,16 @@ public class AdminUsersController : ControllerBase
             filtered = filtered.Where(x => x.User.IsActive == isActive.Value);
         if (!string.IsNullOrWhiteSpace(role))
             filtered = filtered.Where(x => x.User.Role == role);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            filtered = filtered.Where(x =>
+                MatchesTenantUserSearch(
+                    search,
+                    FormatTenantUserName(x.User),
+                    x.User.Email ?? x.User.UserName ?? string.Empty,
+                    x.Tenant.Name,
+                    x.Tenant.Slug));
+        }
 
         return filtered
             .OrderBy(x => x.Tenant.Slug)
@@ -154,24 +265,79 @@ public class AdminUsersController : ControllerBase
         return string.IsNullOrEmpty(name) ? u.UserName ?? u.Id : name;
     }
 
-    private static AdminUserDto ToDto(ApplicationUser u) => new()
+    private IQueryable<ApplicationUser> UsersWithMembershipsQuery() =>
+        _context.Users
+            .AsNoTracking()
+            .Include(u => u.UserTenantMemberships)
+            .ThenInclude(m => m.Tenant);
+
+    private static UserTenantMembership? PickPrimaryMembership(
+        ApplicationUser user,
+        IReadOnlySet<Guid>? businessTenantIds)
     {
-        Id = u.Id,
-        UserName = u.UserName,
-        Email = u.Email,
-        FirstName = u.FirstName,
-        LastName = u.LastName,
-        EmployeeNumber = u.EmployeeNumber,
-        Role = u.Role,
-        TaxNumber = u.TaxNumber,
-        Notes = u.Notes,
-        IsActive = u.IsActive,
-        CreatedAt = u.CreatedAt,
-        LastLoginAt = u.LastLoginAt,
-        UpdatedAt = u.UpdatedAt,
-        DeactivatedAt = u.DeactivatedAt,
-        Etag = u.ConcurrencyStamp,
-    };
+        var active = user.UserTenantMemberships
+            .Where(m => m.IsActive
+                && m.Tenant != null
+                && m.Tenant.IsActive
+                && !string.Equals(m.Tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (active.Count == 0)
+            return null;
+
+        var business = businessTenantIds is { Count: > 0 }
+            ? active.Where(m => businessTenantIds.Contains(m.TenantId)).ToList()
+            : active;
+
+        var pool = business.Count > 0 ? business : active;
+
+        return pool
+            .OrderByDescending(m => m.IsOwner)
+            .ThenBy(m => m.CreatedAtUtc)
+            .ThenBy(m => m.Id)
+            .FirstOrDefault();
+    }
+
+    private static AdminUserDto ToDto(ApplicationUser u, IReadOnlySet<Guid>? businessTenantIds = null)
+    {
+        var dto = new AdminUserDto
+        {
+            Id = u.Id,
+            UserName = u.UserName,
+            Email = u.Email,
+            FirstName = u.FirstName,
+            LastName = u.LastName,
+            EmployeeNumber = u.EmployeeNumber,
+            Role = u.Role,
+            TaxNumber = u.TaxNumber,
+            Notes = u.Notes,
+            IsActive = u.IsActive,
+            CreatedAt = u.CreatedAt,
+            LastLoginAt = u.LastLoginAt,
+            UpdatedAt = u.UpdatedAt,
+            DeactivatedAt = u.DeactivatedAt,
+            Etag = u.ConcurrencyStamp,
+        };
+
+        if (string.Equals(u.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+        {
+            dto.UserType = "Platform";
+            return dto;
+        }
+
+        var primary = PickPrimaryMembership(u, businessTenantIds);
+        if (primary?.Tenant == null)
+        {
+            dto.UserType = "Platform";
+            return dto;
+        }
+
+        dto.UserType = "Tenant";
+        dto.TenantId = primary.TenantId.ToString();
+        dto.TenantName = primary.Tenant.Name;
+        dto.TenantSlug = primary.Tenant.Slug;
+        return dto;
+    }
 
     /// <summary>
     /// List users. <paramref name="type"/> = <c>platform</c> | <c>tenant</c> (alias: <c>scope</c>).
@@ -186,164 +352,372 @@ public class AdminUsersController : ControllerBase
         [FromQuery] bool? isActive = null,
         [FromQuery] string? type = null,
         [FromQuery] string? scope = null,
-        [FromQuery] Guid? tenantId = null)
+        [FromQuery] Guid? tenantId = null,
+        [FromQuery] string? search = null)
     {
         var listType = (type ?? scope)?.Trim();
         if (string.Equals(listType, "tenant", StringComparison.OrdinalIgnoreCase))
-            return Ok(await ListTenantUsersAsync(role, isActive, tenantId, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
+            return Ok(await ListTenantUsersAsync(role, isActive, tenantId, search, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
 
         if (string.Equals(listType, "platform", StringComparison.OrdinalIgnoreCase))
-            return Ok(await ListPlatformUsersAsync(isActive, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
+            return Ok(await ListPlatformUsersAsync(isActive, search, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
 
-        var query = _userManager.Users.AsQueryable();
+        var cancellationToken = HttpContext?.RequestAborted ?? default;
+        var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
+        var businessTenantIdSet = businessTenantIds.ToHashSet();
+
+        var query = UsersWithMembershipsQuery();
         if (isActive.HasValue)
             query = query.Where(u => u.IsActive == isActive.Value);
         if (!string.IsNullOrWhiteSpace(role))
             query = query.Where(u => u.Role == role);
+        query = ApplyUserSearchFilter(query, search);
 
         var users = await query
             .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
-            .ToListAsync(HttpContext?.RequestAborted ?? default)
+            .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        return Ok(users.Select(ToDto));
-    }
-
-    /// <summary>Create or assign a tenant user by email (generates password for new accounts; no invitation email).</summary>
-    [HttpPost("invite")]
-    [ProducesResponseType(typeof(TenantUserInviteResultDto), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TenantUserInviteResultDto>> Invite(
-        [FromBody] AdminInviteUserRequest request,
-        CancellationToken cancellationToken = default)
-    {
-        if (request == null)
-            return BadRequest(ApiError.Validation("Invalid body", new Dictionary<string, string[]> { ["body"] = new[] { "Request body is required." } }));
-
-        if (request.TenantId == Guid.Empty)
-            return BadRequest(ApiError.Validation("Validation failed", new Dictionary<string, string[]> { ["tenantId"] = new[] { "Tenant id is required." } }));
-
-        var (result, error) = await _tenantUserService
-            .InviteAsync(request.TenantId, new InviteTenantUserRequest
-            {
-                Email = request.Email,
-                Role = request.Role,
-                IsOwner = request.IsOwner,
-            }, ActorId ?? "unknown", cancellationToken)
-            .ConfigureAwait(false);
-
-        if (error == "Tenant not found.")
-            return NotFound(ApiError.NotFound("Tenant not found", error));
-        if (error != null)
-            return BadRequest(ApiError.Validation("Invite failed", new Dictionary<string, string[]> { ["invite"] = new[] { error } }));
-
-        return CreatedAtAction(nameof(List), new { type = "tenant", tenantId = request.TenantId }, result);
+        return Ok(users.Select(u => ToDto(u, businessTenantIdSet)));
     }
 
     /// <summary>Get user by id. Returns 404 if not found.</summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(AdminUserDto), 200)]
     [ProducesResponseType(typeof(ApiError), 404)]
-    public async Task<ActionResult<AdminUserDto>> GetById(string id)
+    public async Task<ActionResult<AdminUserDto>> GetById(string id, CancellationToken cancellationToken = default)
+    {
+        var businessTenantIdSet = (await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
+        var user = await UsersWithMembershipsQuery()
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken)
+            .ConfigureAwait(false);
+        if (user == null)
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+        return Ok(ToDto(user, businessTenantIdSet));
+    }
+
+    /// <summary>Active tenant memberships for a user (super-admin user management).</summary>
+    [HttpGet("{id}/tenants")]
+    [ProducesResponseType(typeof(IEnumerable<AdminUserTenantMembershipDto>), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    public async Task<ActionResult<IEnumerable<AdminUserTenantMembershipDto>>> GetUserTenants(
+        string id,
+        CancellationToken cancellationToken = default)
     {
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
-        return Ok(ToDto(user));
+
+        var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
+        var rows = await _context.UserTenantMemberships
+            .AsNoTracking()
+            .Include(m => m.Tenant)
+            .Where(m => m.UserId == id && m.IsActive && businessTenantIds.Contains(m.TenantId))
+            .OrderBy(m => m.Tenant!.Slug)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return Ok(rows.Select(m => new AdminUserTenantMembershipDto
+        {
+            TenantId = m.TenantId,
+            TenantName = m.Tenant?.Name ?? string.Empty,
+            TenantSlug = m.Tenant?.Slug ?? string.Empty,
+            IsOwner = m.IsOwner,
+            Role = user.Role ?? Roles.FallbackUnknown,
+        }));
     }
 
-    /// <summary>Create a new user. Writes audit event.</summary>
-    [HttpPost]
-    [ProducesResponseType(typeof(AdminUserDto), 201)]
+    /// <summary>Replace active business-tenant memberships for a user. Super-admin only; not for platform operators.</summary>
+    [HttpPut("{id}/tenants")]
+    [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ApiError), 400)]
-    public async Task<ActionResult<AdminUserDto>> Create([FromBody] AdminCreateUserRequest request)
+    [ProducesResponseType(typeof(ApiError), 404)]
+    public async Task<IActionResult> PutUserTenants(
+        string id,
+        [FromBody] UpdateUserTenantsRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!IsActorSuperAdmin())
+            return StatusCode(403, ApiError.Forbidden("Forbidden", "Only Super Admin can change user tenant memberships."));
+
+        if (request == null)
+            return BadRequest(ApiError.Validation("Invalid body", new Dictionary<string, string[]> { ["body"] = new[] { "Request body is required." } }));
+
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null)
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
+        if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            return BadRequest(ApiError.BusinessRule("Platform users cannot be assigned to tenants."));
+
+        var requestedIds = (request.TenantIds ?? new List<Guid>())
+            .Where(t => t != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
+        var businessSet = businessTenantIds.ToHashSet();
+        var invalid = requestedIds.Where(t => !businessSet.Contains(t)).ToList();
+        if (invalid.Count > 0)
+            return BadRequest(ApiError.Validation("Invalid tenant ids", new Dictionary<string, string[]>
+            {
+                ["tenantIds"] = new[] { "One or more tenant ids are not valid business tenants." },
+            }));
+
+        var existing = await _context.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .Where(m => m.UserId == id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var previousActive = existing
+            .Where(m => m.IsActive && businessSet.Contains(m.TenantId))
+            .Select(m => m.TenantId)
+            .OrderBy(x => x)
+            .ToList();
+
+        var requestedSet = requestedIds.ToHashSet();
+        var now = DateTime.UtcNow;
+
+        foreach (var membership in existing)
+        {
+            if (!businessSet.Contains(membership.TenantId))
+                continue;
+
+            var shouldBeActive = requestedSet.Contains(membership.TenantId);
+            if (membership.IsActive == shouldBeActive)
+                continue;
+
+            membership.IsActive = shouldBeActive;
+            membership.UpdatedAtUtc = now;
+        }
+
+        foreach (var tenantId in requestedIds)
+        {
+            if (existing.Any(m => m.TenantId == tenantId))
+                continue;
+
+            _context.UserTenantMemberships.Add(new UserTenantMembership
+            {
+                UserId = id,
+                TenantId = tenantId,
+                IsActive = true,
+                CreatedAtUtc = now,
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        var newActive = requestedIds.OrderBy(x => x).ToList();
+        if (ActorId != null)
+        {
+            await _auditLogService.LogUserLifecycleAsync(
+                AuditEventType.UserTenantMembershipChanged,
+                ActorId,
+                ActorRole,
+                id,
+                null,
+                null,
+                AuditLogStatus.Success,
+                $"User tenant memberships updated: {user.UserName}",
+                oldValues: new { TenantIds = previousActive },
+                newValues: new { TenantIds = newActive });
+        }
+
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Create a user without invitation email. Password is generated when omitted and returned once in the response.
+    /// When <see cref="AdminCreateUserRequest.TenantId"/> is set, creates a tenant-scoped user.
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(AdminCreateUserResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CreateTenantUserResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiError), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Create(
+        [FromBody] AdminCreateUserRequest request,
+        CancellationToken cancellationToken = default)
     {
         if (request == null)
             return BadRequest(ApiError.Validation("Invalid body", new Dictionary<string, string[]> { ["body"] = new[] { "Request body is required." } }));
 
+        if (request.TenantId is Guid tenantId && tenantId != Guid.Empty)
+            return await CreateTenantUserAsync(tenantId, request, cancellationToken).ConfigureAwait(false);
+
+        return await CreatePlatformUserAsync(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IActionResult> CreatePlatformUserAsync(
+        AdminCreateUserRequest request,
+        CancellationToken cancellationToken)
+    {
         var errors = new Dictionary<string, string[]>();
-        if (string.IsNullOrWhiteSpace(request.UserName))
-            errors["userName"] = new[] { "Username is required." };
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
-            errors["password"] = new[] { "Password must be at least 8 characters." };
-        if (string.IsNullOrWhiteSpace(request.FirstName))
-            errors["firstName"] = new[] { "First name is required." };
-        if (string.IsNullOrWhiteSpace(request.LastName))
-            errors["lastName"] = new[] { "Last name is required." };
+        var email = request.Email?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+            errors["email"] = new[] { "Email is required." };
+        if (string.IsNullOrWhiteSpace(request.Role))
+            errors["role"] = new[] { "Role is required." };
+        if (!string.IsNullOrWhiteSpace(request.Password) && request.Password!.Length < 8)
+            errors["password"] = new[] { "Password must be at least 8 characters when provided." };
+        if (errors.Count > 0)
+            return BadRequest(ApiError.Validation("Validation failed", errors));
+
+        var roleName = request.Role!.Trim();
+        if (await _roleManager.FindByNameAsync(roleName).ConfigureAwait(false) == null)
+            return BadRequest(ApiError.Validation("Role not found", new Dictionary<string, string[]> { ["role"] = new[] { "The specified role does not exist." } }));
+
+        var userName = string.IsNullOrWhiteSpace(request.UserName) ? email : request.UserName.Trim();
+        var existing = await _userManager.FindByNameAsync(userName).ConfigureAwait(false);
+        if (existing != null)
+            return BadRequest(ApiError.Conflict("Username already exists", $"Username '{userName}' is already in use."));
+
+        if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(email, excludeUserId: null).ConfigureAwait(false))
+            return BadRequest(ApiError.Conflict("Email already exists", $"Email '{email}' is already in use."));
+        if (await _uniquenessValidation.IsEmployeeNumberTakenByOtherUserAsync(request.EmployeeNumber, excludeUserId: null).ConfigureAwait(false))
+            return BadRequest(ApiError.Conflict("Employee number already exists", "Employee number is already in use."));
+        if (await _uniquenessValidation.IsTaxNumberTakenByOtherUserAsync(request.TaxNumber, excludeUserId: null).ConfigureAwait(false))
+            return BadRequest(ApiError.Conflict("Tax number already exists", "Tax number is already in use."));
+
+        var generatedPassword = string.IsNullOrWhiteSpace(request.Password)
+            ? PasswordGenerator.GenerateSecurePassword(12)
+            : request.Password!;
+        var employeeNumber = string.IsNullOrWhiteSpace(request.EmployeeNumber)
+            ? $"ADM{Guid.NewGuid():N}"[..20]
+            : request.EmployeeNumber.Trim();
+
+        var user = new ApplicationUser
+        {
+            UserName = userName,
+            Email = email,
+            FirstName = request.FirstName?.Trim() ?? string.Empty,
+            LastName = request.LastName?.Trim() ?? string.Empty,
+            EmployeeNumber = employeeNumber,
+            Role = roleName,
+            TaxNumber = string.IsNullOrWhiteSpace(request.TaxNumber) ? null : request.TaxNumber.Trim(),
+            Notes = request.Notes ?? string.Empty,
+            IsActive = true,
+            EmailConfirmed = true,
+            MustChangePasswordOnNextLogin = string.IsNullOrWhiteSpace(request.Password),
+        };
+
+        var createCt = HttpContext?.RequestAborted ?? cancellationToken;
+        await using var tx = await _context.Database.BeginTransactionAsync(createCt);
+        try
+        {
+            var result = await _userManager.CreateAsync(user, generatedPassword).ConfigureAwait(false);
+            if (!result.Succeeded)
+            {
+                await tx.RollbackAsync(createCt).ConfigureAwait(false);
+                errors = result.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+                return BadRequest(ApiError.Validation("User creation failed", errors));
+            }
+
+            var roleAdd = await _userManager.AddToRoleAsync(user, roleName).ConfigureAwait(false);
+            if (!roleAdd.Succeeded)
+            {
+                await tx.RollbackAsync(createCt).ConfigureAwait(false);
+                _logger.LogWarning("Failed to add role {Role} to user {UserName}", roleName, userName);
+                return BadRequest(ApiError.Validation("Role assignment failed",
+                    roleAdd.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray())));
+            }
+
+            if (!string.Equals(roleName, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            {
+                await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
+                    user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt).ConfigureAwait(false);
+            }
+
+            await tx.CommitAsync(createCt).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync(createCt).ConfigureAwait(false);
+            _logger.LogError(ex, "Admin user create failed (rolled back): Identity or tenant membership for attempted user {UserName}", userName);
+            return StatusCode(500, ApiError.ServerError("User creation failed", "User creation failed."));
+        }
+
+        if (ActorId != null)
+        {
+            await _auditLogService.LogUserLifecycleAsync(
+                AuditEventType.UserCreated,
+                ActorId,
+                ActorRole,
+                user.Id,
+                status: AuditLogStatus.Success,
+                description: $"User created: {user.UserName}",
+                userCreatedDetails: new UserCreatedAuditDetails(
+                    ActorId,
+                    roleName,
+                    TenantId: null,
+                    PasswordReturned: true)).ConfigureAwait(false);
+        }
+
+        return CreatedAtAction(nameof(GetById), new { id = user.Id }, ToCreateResponse(ToDto(user), generatedPassword));
+    }
+
+    private async Task<IActionResult> CreateTenantUserAsync(
+        Guid tenantId,
+        AdminCreateUserRequest request,
+        CancellationToken cancellationToken)
+    {
+        var errors = new Dictionary<string, string[]>();
+        if (string.IsNullOrWhiteSpace(request.Email))
+            errors["email"] = new[] { "Email is required." };
         if (string.IsNullOrWhiteSpace(request.Role))
             errors["role"] = new[] { "Role is required." };
         if (errors.Count > 0)
             return BadRequest(ApiError.Validation("Validation failed", errors));
 
-        var existing = await _userManager.FindByNameAsync(request.UserName);
-        if (existing != null)
-            return BadRequest(ApiError.Conflict("Username already exists", $"Username '{request.UserName}' is already in use."));
-
-        if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(request.Email, excludeUserId: null))
-            return BadRequest(ApiError.Conflict("Email already exists", $"Email '{request.Email}' is already in use."));
-        if (await _uniquenessValidation.IsEmployeeNumberTakenByOtherUserAsync(request.EmployeeNumber, excludeUserId: null))
-            return BadRequest(ApiError.Conflict("Employee number already exists", "Employee number is already in use."));
-        if (await _uniquenessValidation.IsTaxNumberTakenByOtherUserAsync(request.TaxNumber, excludeUserId: null))
-            return BadRequest(ApiError.Conflict("Tax number already exists", "Tax number is already in use."));
-
-        var user = new ApplicationUser
-        {
-            UserName = request.UserName,
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            EmployeeNumber = request.EmployeeNumber ?? "",
-            Role = request.Role,
-            TaxNumber = string.IsNullOrWhiteSpace(request.TaxNumber) ? null : request.TaxNumber.Trim(),
-            Notes = request.Notes ?? "",
-            IsActive = true,
-            EmailConfirmed = true,
-        };
-
-        var createCt = HttpContext?.RequestAborted ?? default;
-        await using var tx = await _context.Database.BeginTransactionAsync(createCt);
-        try
-        {
-            var result = await _userManager.CreateAsync(user, request.Password);
-            if (!result.Succeeded)
-            {
-                await tx.RollbackAsync(createCt);
-                errors = result.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
-                return BadRequest(ApiError.Validation("User creation failed", errors));
-            }
-
-            if (!string.IsNullOrEmpty(request.Role))
-            {
-                var roleAdd = await _userManager.AddToRoleAsync(user, request.Role);
-                if (!roleAdd.Succeeded)
+        var actorId = ActorId ?? "unknown";
+        var (result, error) = await _tenantUserService
+            .CreateAsync(
+                tenantId,
+                new CreateTenantUserRequest
                 {
-                    await tx.RollbackAsync(createCt);
-                    _logger.LogWarning("Failed to add role {Role} to user {UserName}", request.Role, request.UserName);
-                    return BadRequest(ApiError.Validation("Role assignment failed",
-                        roleAdd.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray())));
-                }
-            }
+                    Email = request.Email.Trim(),
+                    FirstName = request.FirstName,
+                    LastName = request.LastName,
+                    Role = request.Role.Trim(),
+                    IsOwner = request.IsOwner,
+                },
+                actorId,
+                ActorRole,
+                cancellationToken)
+            .ConfigureAwait(false);
 
-            if (!string.Equals(request.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
-            {
-                await _tenantMembershipProvisioner.ProvisionActiveMembershipAsync(
-                    user.Id, LegacyDefaultTenantIds.Primary, cancellationToken: createCt);
-            }
+        if (error == "Tenant not found.")
+            return NotFound(ApiError.NotFound("Tenant not found", error));
+        if (error != null)
+            return BadRequest(ApiError.Validation("User creation failed", new Dictionary<string, string[]> { ["create"] = new[] { error } }));
 
-            await tx.CommitAsync(createCt);
-        }
-        catch (Exception ex)
-        {
-            await tx.RollbackAsync(createCt);
-            _logger.LogError(ex, "Admin user create failed (rolled back): Identity or tenant membership for attempted user {UserName}", request.UserName);
-            return StatusCode(500, ApiError.ServerError("User creation failed", "User creation failed."));
-        }
-
-        if (ActorId != null)
-            await _auditLogService.LogUserLifecycleAsync(AuditEventType.UserCreated, ActorId, ActorRole, user.Id, null, null, AuditLogStatus.Success, $"User created: {user.UserName}");
-
-        return CreatedAtAction(nameof(GetById), new { id = user.Id }, ToDto(user));
+        return CreatedAtAction(nameof(List), new { type = "tenant", tenantId }, result);
     }
+
+    private static AdminCreateUserResponseDto ToCreateResponse(AdminUserDto dto, string generatedPassword) =>
+        new()
+        {
+            Id = dto.Id,
+            UserName = dto.UserName,
+            Email = dto.Email,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            EmployeeNumber = dto.EmployeeNumber,
+            Role = dto.Role,
+            TaxNumber = dto.TaxNumber,
+            Notes = dto.Notes,
+            IsActive = dto.IsActive,
+            CreatedAt = dto.CreatedAt,
+            LastLoginAt = dto.LastLoginAt,
+            UpdatedAt = dto.UpdatedAt,
+            DeactivatedAt = dto.DeactivatedAt,
+            Etag = dto.Etag,
+            TenantId = dto.TenantId,
+            TenantName = dto.TenantName,
+            TenantSlug = dto.TenantSlug,
+            UserType = dto.UserType,
+            GeneratedPassword = generatedPassword,
+        };
 
     /// <summary>Partial update. Use If-Match: "{etag}" for optimistic concurrency (ConcurrencyStamp).</summary>
     [HttpPatch("{id}")]
@@ -580,21 +954,18 @@ public class AdminUsersController : ControllerBase
         public DateTime? LastLoginAt { get; set; }
     }
 
-    public class AdminInviteUserRequest
+    public class AdminUserTenantMembershipDto
     {
-        [Required]
         public Guid TenantId { get; set; }
-
-        [Required]
-        [EmailAddress]
-        [MaxLength(256)]
-        public string Email { get; set; } = string.Empty;
-
-        [Required]
-        [MaxLength(64)]
+        public string TenantName { get; set; } = string.Empty;
+        public string TenantSlug { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
-
         public bool IsOwner { get; set; }
+    }
+
+    public class UpdateUserTenantsRequest
+    {
+        public List<Guid> TenantIds { get; set; } = new();
     }
 
     public class AdminUserDto
@@ -615,28 +986,11 @@ public class AdminUsersController : ControllerBase
         public DateTime? DeactivatedAt { get; set; }
         /// <summary>Concurrency stamp for If-Match (optimistic concurrency).</summary>
         public string? Etag { get; set; }
-    }
-
-    public class AdminCreateUserRequest
-    {
-        [Required, MaxLength(50)]
-        public string UserName { get; set; } = string.Empty;
-        [Required, MinLength(8)]
-        public string Password { get; set; } = string.Empty;
-        [EmailAddress, MaxLength(256)]
-        public string? Email { get; set; }
-        [Required, MaxLength(50)]
-        public string FirstName { get; set; } = string.Empty;
-        [Required, MaxLength(50)]
-        public string LastName { get; set; } = string.Empty;
-        [MaxLength(20)]
-        public string? EmployeeNumber { get; set; }
-        [Required, MaxLength(20)]
-        public string Role { get; set; } = string.Empty;
-        [MaxLength(20)]
-        public string? TaxNumber { get; set; }
-        [MaxLength(500)]
-        public string? Notes { get; set; }
+        public string? TenantId { get; set; }
+        public string? TenantName { get; set; }
+        public string? TenantSlug { get; set; }
+        /// <summary><c>Platform</c> or <c>Tenant</c>.</summary>
+        public string? UserType { get; set; }
     }
 
     public class AdminPatchUserRequest

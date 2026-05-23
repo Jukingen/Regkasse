@@ -1,4 +1,5 @@
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
+import { isLocalDevHostname } from '@/features/auth/services/devTenant';
 import { getMandantLicenseBadgeDisplay } from '@/features/tenant/utils/mandantLicenseBadge';
 
 export type TenantHeaderIndicatorKind = 'activeWithAdmin' | 'activeNoAdmin' | 'suspended' | 'deleted';
@@ -134,4 +135,93 @@ export function findTenantBySlug(
 ): AdminTenantListItem | undefined {
     const normalized = slug.trim().toLowerCase();
     return tenants.find((row) => row.slug.toLowerCase() === normalized);
+}
+
+export function findTenantById(
+    tenants: AdminTenantListItem[],
+    tenantId: string,
+): AdminTenantListItem | undefined {
+    const normalized = tenantId.trim().toLowerCase();
+    return tenants.find((row) => row.id.toLowerCase() === normalized);
+}
+
+/** Keeps first occurrence per tenant id (API should not duplicate; guards client merges). */
+export function dedupeAdminTenantsById<T extends { id: string }>(rows: T[]): T[] {
+    const seen = new Map<string, T>();
+    for (const row of rows) {
+        const key = row.id.trim().toLowerCase();
+        if (!seen.has(key)) {
+            seen.set(key, row);
+        }
+    }
+    return [...seen.values()];
+}
+
+export function isTenantSuspendedOrInactive(
+    tenant: Pick<AdminTenantListItem, 'status' | 'isActive'>,
+): boolean {
+    return tenant.status === 'suspended' || !tenant.isActive;
+}
+
+export type ResolveActiveTenantInput = {
+    jwtTenantId: string | null;
+    jwtTenantSlug: string | null;
+    isImpersonating: boolean;
+    isDevTenantOverride: boolean;
+    devTenantSlug: string | null;
+    hostSlug: string;
+};
+
+/**
+ * Picks the mandant row shown in header badge and dev switcher.
+ * Impersonation / dev override first; then JWT tenant_id; then dev slug / host.
+ */
+export function resolveActiveTenantFromSwitcherList(
+    tenants: AdminTenantListItem[],
+    input: ResolveActiveTenantInput,
+): AdminTenantListItem | null {
+    const deduped = dedupeAdminTenantsById(tenants);
+    const byId = (id: string) => findTenantById(deduped, id);
+    const bySlug = (slug: string) => findTenantBySlug(deduped, slug);
+
+    if (input.isImpersonating && input.jwtTenantId) {
+        return byId(input.jwtTenantId) ?? null;
+    }
+    if (input.isDevTenantOverride && input.devTenantSlug) {
+        return bySlug(input.devTenantSlug) ?? null;
+    }
+    if (input.jwtTenantId) {
+        const fromJwt = byId(input.jwtTenantId);
+        if (fromJwt) {
+            return fromJwt;
+        }
+    }
+    if (input.devTenantSlug) {
+        const fromDev = bySlug(input.devTenantSlug);
+        if (fromDev) {
+            return fromDev;
+        }
+    }
+    if (input.hostSlug && input.hostSlug !== 'admin') {
+        return bySlug(input.hostSlug) ?? null;
+    }
+    if (input.jwtTenantSlug) {
+        return bySlug(input.jwtTenantSlug) ?? null;
+    }
+    return null;
+}
+
+/** Dev header switcher: localhost / NODE_ENV=development / *.regkasse.local — never on *.regkasse.at. */
+export function shouldShowHeaderDevTenantSwitch(): boolean {
+    if (typeof window === 'undefined') {
+        return process.env.NODE_ENV === 'development';
+    }
+    const host = window.location.hostname.toLowerCase();
+    if (host === 'regkasse.at' || host.endsWith('.regkasse.at')) {
+        return false;
+    }
+    if (process.env.NODE_ENV === 'development') {
+        return true;
+    }
+    return isLocalDevHostname(host);
 }

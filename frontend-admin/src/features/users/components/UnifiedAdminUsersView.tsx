@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
     Alert,
+    Avatar,
     Button,
     Card,
     Collapse,
@@ -14,45 +15,45 @@ import {
     Space,
     Table,
     Tag,
+    Tooltip,
     Typography,
     message,
 } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import {
+    CheckCircleOutlined,
     EditOutlined,
-    KeyOutlined,
-    MailOutlined,
+    EyeOutlined,
     ReloadOutlined,
     SearchOutlined,
-    ThunderboltOutlined,
     StopOutlined,
-    CheckCircleOutlined,
-    EyeOutlined,
+    ThunderboltOutlined,
+    UserAddOutlined,
     UserDeleteOutlined,
     UserOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import { InviteUserModal } from '@/features/users/components/InviteUserModal';
-import type { InviteUserFormValues } from '@/features/users/components/InviteUserModal';
-import { UserCreatedSuccessModal } from '@/features/super-admin/components/UserCreatedSuccessModal';
+import { CreateUserModal } from '@/features/users/components/CreateUserModal';
+import type { CreateUserFormValues } from '@/features/users/components/CreateUserModal';
 import { QuickUserModal } from '@/features/super-admin/components/QuickUserModal';
 import type { QuickUserFormValues } from '@/features/super-admin/components/QuickUserModal';
 import { QuickUserSuccessModal } from '@/features/super-admin/components/QuickUserSuccessModal';
 import { createQuickUser, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
-import { createTenantUser, type CreateTenantUserResult } from '@/features/super-admin/api/tenantUsers';
-import { UserInvitationsPanel } from '@/features/users/components/UserInvitationsPanel';
+import { useCreateUser } from '@/features/users/hooks/useCreateUser';
+import { UserTenantCreatePanel } from '@/features/users/components/UserTenantCreatePanel';
 import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
-import { UserTypeBadge } from '@/features/users/components/UserTypeBadge';
 import { ResetPasswordModal } from '@/features/super-admin/components/ResetPasswordModal';
 import {
     adminUserToUserInfo,
     adminUsersQueryKeys,
+    listAllAdminUsers,
     listPlatformUsers,
     listTenantUsers,
     removeUserFromTenant,
     tenantRowToTenantUser,
+    type AdminUserDto,
     type TenantUserRow,
 } from '@/features/users/api/users';
 import type { UserInfo } from '@/features/users/api/usersGateway';
@@ -67,22 +68,83 @@ import {
     tenantFilterFromUiValue,
     tenantFilterToUiValue,
 } from '@/features/users/utils/adminUsersPageUrl';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
-import type { UnifiedAdminUserRow } from '@/features/users/types/unifiedAdminUserRow';
+import { getColorFromName } from '@/features/users/utils/avatarColor';
+import type { UnifiedAdminUserRow, UnifiedAdminUserType } from '@/features/users/types/unifiedAdminUserRow';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
+import styles from '@/features/users/components/unifiedAdminUsersTable.module.css';
 
 export type { UnifiedAdminUserRow } from '@/features/users/types/unifiedAdminUserRow';
 
-const TENANT_ROLE_FILTER_VALUES = ['Manager', 'Cashier', 'Accountant'] as const;
+const TENANT_ROLE_FILTER_VALUES = ['SuperAdmin', 'Manager', 'Cashier', 'Accountant', 'Waiter', 'Kitchen'] as const;
 const FILTER_ALL = ADMIN_USERS_FILTER_ALL;
 const FILTER_PLATFORM = ADMIN_USERS_FILTER_PLATFORM;
+const TABLE_SCROLL_X = 1200;
+const TABLE_SCROLL_Y = 'calc(100vh - 250px)';
+const DEFAULT_PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
 
 function platformDisplayName(user: UserInfo): string {
     const first = user.firstName ?? '';
     const last = user.lastName ?? '';
     const name = `${first} ${last}`.trim();
     return name || user.userName || user.id || '—';
+}
+
+function avatarInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '?';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase();
+}
+
+function resolveUserType(dto: AdminUserDto): UnifiedAdminUserType {
+    if (dto.userType === 'Tenant') return 'Tenant';
+    if (dto.userType === 'Platform') return 'Platform';
+    if (dto.tenantId && dto.tenantName) return 'Tenant';
+    return 'Platform';
+}
+
+function rowFromAdminDto(dto: AdminUserDto): UnifiedAdminUserRow {
+    const user = adminUserToUserInfo(dto);
+    const userType = resolveUserType(dto);
+    const kind = userType === 'Tenant' ? 'tenant' : 'platform';
+    const tenantId = dto.tenantId ?? undefined;
+    const tenantName = dto.tenantName ?? '';
+    const tenantSlug = dto.tenantSlug ?? '';
+    const base: UnifiedAdminUserRow = {
+        key: tenantId ? `tenant:${tenantId}:${dto.id}` : `platform:${dto.id}`,
+        kind,
+        userType,
+        userId: dto.id,
+        name: platformDisplayName(user),
+        email: dto.email ?? dto.userName ?? '—',
+        role: dto.role ?? '—',
+        isActive: dto.isActive,
+        lastLoginAt: dto.lastLoginAt ?? null,
+        tenantId,
+        tenantSlug,
+        tenantName,
+        user,
+    };
+    if (kind === 'tenant' && tenantId) {
+        base.row = {
+            userId: dto.id,
+            email: base.email,
+            name: base.name,
+            role: base.role,
+            isOwner: false,
+            joinedAtUtc: dto.createdAt ?? new Date(0).toISOString(),
+            tenantId,
+            tenantSlug,
+            tenantName,
+            isActive: dto.isActive,
+            lastLoginAt: dto.lastLoginAt ?? undefined,
+        };
+    }
+    return base;
 }
 
 export type UnifiedAdminUsersViewProps = {
@@ -97,7 +159,7 @@ export type UnifiedAdminUsersViewProps = {
     onCreatePlatformUser: () => void;
 };
 
-/** Single super-admin user list: platform + tenant memberships with tenant filter. */
+/** Single super-admin user list with tenant metadata, filters, and row actions. */
 export function UnifiedAdminUsersView({
     policy,
     roleDisplayLabel,
@@ -120,11 +182,13 @@ export function UnifiedAdminUsersView({
     const tenantFilter = tenantFilterFromUiValue(selectedTenant);
     const [roleFilter, setRoleFilter] = useState<string | undefined>();
     const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
-    const [search, setSearch] = useState('');
     const [searchInput, setSearchInput] = useState('');
-    const [inviteOpen, setInviteOpen] = useState(false);
+    const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_MS);
+    const searchParam = debouncedSearch.trim() || undefined;
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [createOpen, setCreateOpen] = useState(false);
     const [quickOpen, setQuickOpen] = useState(false);
-    const [createResult, setCreateResult] = useState<CreateTenantUserResult | null>(null);
     const [quickResult, setQuickResult] = useState<CreateQuickUserResult | null>(null);
     const [quickRole, setQuickRole] = useState('Manager');
     const [quickTenantCtx, setQuickTenantCtx] = useState<{ name: string; slug: string } | null>(null);
@@ -136,7 +200,11 @@ export function UnifiedAdminUsersView({
         );
     }, [searchParams]);
 
-    const inviteFixedTenantId =
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [tenantFilter, roleFilter, statusFilter, debouncedSearch]);
+
+    const createFixedTenantId =
         tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM ? tenantFilter : undefined;
 
     const handleTenantFilterChange = (value: string) => {
@@ -153,20 +221,37 @@ export function UnifiedAdminUsersView({
         router.replace(buildAdminUsersPageHref(filter), { scroll: false });
     };
 
-    const { tenants: inviteTenants, isLoading: inviteTenantsLoading } = useTenantList();
+    const { tenants: createTenants, isLoading: createTenantsLoading } = useTenantList();
 
     const quickFixedTenant = useMemo(
         () =>
-            inviteFixedTenantId
-                ? inviteTenants.find((row) => row.id === inviteFixedTenantId)
+            createFixedTenantId
+                ? createTenants.find((row) => row.id === createFixedTenantId)
                 : undefined,
-        [inviteFixedTenantId, inviteTenants],
+        [createFixedTenantId, createTenants],
     );
 
+    const allUsersQuery = useQuery({
+        queryKey: adminUsersQueryKeys.all(statusFilter, roleFilter, searchParam),
+        queryFn: () =>
+            listAllAdminUsers({
+                ...(statusFilter != null ? { isActive: statusFilter } : {}),
+                ...(roleFilter ? { role: roleFilter } : {}),
+                ...(searchParam ? { search: searchParam } : {}),
+            }),
+        enabled: tenantFilter === FILTER_ALL,
+        select: (data) => data.map(rowFromAdminDto),
+    });
+
     const platformQuery = useQuery({
-        queryKey: adminUsersQueryKeys.platform(statusFilter),
-        queryFn: () => listPlatformUsers(statusFilter != null ? { isActive: statusFilter } : undefined),
-        select: (data) => data.map(adminUserToUserInfo),
+        queryKey: adminUsersQueryKeys.platform(statusFilter, searchParam),
+        queryFn: () =>
+            listPlatformUsers({
+                ...(statusFilter != null ? { isActive: statusFilter } : {}),
+                ...(searchParam ? { search: searchParam } : {}),
+            }),
+        enabled: tenantFilter === FILTER_PLATFORM,
+        select: (data) => data.map(rowFromAdminDto),
     });
 
     const tenantApiTenantId =
@@ -175,53 +260,22 @@ export function UnifiedAdminUsersView({
             : undefined;
 
     const tenantUsersQuery = useQuery({
-        queryKey: adminUsersQueryKeys.tenant(tenantApiTenantId, roleFilter),
+        queryKey: adminUsersQueryKeys.tenant(tenantApiTenantId, roleFilter, searchParam),
         queryFn: () =>
             listTenantUsers({
                 tenantId: tenantApiTenantId,
                 role: roleFilter || undefined,
                 isActive: statusFilter,
+                ...(searchParam ? { search: searchParam } : {}),
             }),
-        enabled: tenantFilter !== FILTER_PLATFORM,
-        select: (data) => data.map(tenantRowToTenantUser),
-    });
-
-    const statusFilterOptions = useMemo(
-        () => [
-            { value: 'active', label: t('users.list.statusActive') },
-            { value: 'inactive', label: t('users.list.statusInactive') },
-        ],
-        [t],
-    );
-
-    const unifiedRows = useMemo((): UnifiedAdminUserRow[] => {
-        const platformTenantLabel = t('users.unified.filterPlatformOnly');
-        const rows: UnifiedAdminUserRow[] = [];
-
-        if (tenantFilter === FILTER_ALL || tenantFilter === FILTER_PLATFORM) {
-            for (const user of platformQuery.data ?? []) {
-                if (!user.id) continue;
-                rows.push({
-                    kind: 'platform',
-                    key: `platform:${user.id}`,
-                    tenantSlug: platformTenantLabel,
-                    tenantName: platformTenantLabel,
-                    userId: user.id,
-                    name: platformDisplayName(user),
-                    email: user.email ?? user.userName ?? '—',
-                    role: user.role ?? '—',
-                    isActive: user.isActive,
-                    lastLoginAt: user.lastLoginAt ?? null,
-                    user,
-                });
-            }
-        }
-
-        if (tenantFilter !== FILTER_PLATFORM) {
-            for (const row of tenantUsersQuery.data ?? []) {
-                rows.push({
+        enabled: tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM,
+        select: (data) =>
+            data.map((row): UnifiedAdminUserRow => {
+                const tenantUser = tenantRowToTenantUser(row);
+                return {
                     kind: 'tenant',
                     key: `tenant:${row.tenantId}:${row.userId}`,
+                    userType: 'Tenant',
                     tenantSlug: row.tenantSlug,
                     tenantName: row.tenantName,
                     tenantId: row.tenantId,
@@ -232,57 +286,68 @@ export function UnifiedAdminUsersView({
                     isActive: row.isActive,
                     isOwner: row.isOwner,
                     lastLoginAt: row.lastLoginAt ?? null,
-                    row,
-                });
-            }
-        }
+                    row: tenantUser,
+                    user: {
+                        id: row.userId,
+                        email: row.email,
+                        firstName: row.name.split(' ')[0] ?? '',
+                        lastName: row.name.split(' ').slice(1).join(' '),
+                        role: row.role,
+                        isActive: row.isActive,
+                        lastLoginAt: row.lastLoginAt ?? undefined,
+                    },
+                };
+            }),
+    });
 
-        return rows;
-    }, [platformQuery.data, tenantUsersQuery.data, tenantFilter, t]);
+    const statusFilterOptions = useMemo(
+        () => [
+            { value: 'active', label: t('users.unified.badges.active') },
+            { value: 'inactive', label: t('users.unified.badges.inactive') },
+        ],
+        [t],
+    );
+
+    const unifiedRows = useMemo((): UnifiedAdminUserRow[] => {
+        if (tenantFilter === FILTER_ALL) return allUsersQuery.data ?? [];
+        if (tenantFilter === FILTER_PLATFORM) return platformQuery.data ?? [];
+        return tenantUsersQuery.data ?? [];
+    }, [allUsersQuery.data, platformQuery.data, tenantUsersQuery.data, tenantFilter]);
 
     const filteredRows = useMemo(() => {
-        const q = search.trim().toLowerCase();
-        if (!q) return unifiedRows;
-        return unifiedRows.filter((row) => {
-            if (roleFilter && row.role !== roleFilter) return false;
-            return (
-                row.name.toLowerCase().includes(q) ||
-                row.email.toLowerCase().includes(q) ||
-                row.tenantName.toLowerCase().includes(q) ||
-                row.tenantSlug.toLowerCase().includes(q) ||
-                row.role.toLowerCase().includes(q)
-            );
-        });
-    }, [unifiedRows, search, roleFilter]);
+        let rows = unifiedRows;
+        if (tenantFilter === FILTER_PLATFORM) {
+            rows = rows.filter((row) => row.userType === 'Platform');
+        } else if (tenantApiTenantId) {
+            rows = rows.filter((row) => row.tenantId === tenantApiTenantId);
+        }
+        if (roleFilter) {
+            rows = rows.filter((row) => row.role === roleFilter);
+        }
+        return rows;
+    }, [unifiedRows, roleFilter, tenantFilter, tenantApiTenantId]);
 
-    const createMutation = useMutation({
-        mutationFn: (values: InviteUserFormValues) => {
-            if (!values.tenantId) throw new Error('tenantId required');
-            return createTenantUser(values.tenantId, {
-                email: values.email.trim(),
-                role: values.role,
-                isOwner: values.isOwner,
-            });
+    const invalidateUserLists = () => {
+        void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    };
+
+    const createMutation = useCreateUser({
+        fixedTenantId: createFixedTenantId,
+        onSuccess: () => {
+            setCreateOpen(false);
+            invalidateUserLists();
         },
-        onSuccess: (res) => {
-            setCreateResult(res);
-            setInviteOpen(false);
-            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
-            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.platform() });
-            message.success(t('tenants.users.invite.messages.created'));
-        },
-        onError: () => message.error(t('tenants.users.invite.messages.failed')),
     });
 
     const quickMutation = useMutation({
         mutationFn: (values: QuickUserFormValues) => {
-            const tenantId = values.tenantId ?? inviteFixedTenantId;
+            const tenantId = values.tenantId ?? createFixedTenantId;
             if (!tenantId) throw new Error('tenantId required');
             return createQuickUser(tenantId, { role: values.role });
         },
         onSuccess: (res, values) => {
-            const tenantId = values.tenantId ?? inviteFixedTenantId;
-            const tenant = inviteTenants.find((row) => row.id === tenantId);
+            const tenantId = values.tenantId ?? createFixedTenantId;
+            const tenant = createTenants.find((row) => row.id === tenantId);
             setQuickTenantCtx({
                 name: tenant?.name ?? tenantId ?? '',
                 slug: tenant?.slug ?? 'tenant',
@@ -290,7 +355,7 @@ export function UnifiedAdminUsersView({
             setQuickOpen(false);
             setQuickRole(values.role);
             setQuickResult(res);
-            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
+            invalidateUserLists();
             message.success(t('tenants.users.quick.messages.created'));
         },
         onError: (err: unknown) => {
@@ -308,175 +373,222 @@ export function UnifiedAdminUsersView({
             removeUserFromTenant(tenantId, userId),
         onSuccess: () => {
             message.success(t('users.tabs.tenant.removedSuccess'));
-            void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.tenant() });
+            invalidateUserLists();
         },
         onError: () => message.error(t('users.list.errorLoad')),
     });
 
     const isLoading =
-        (tenantFilter !== FILTER_PLATFORM && tenantUsersQuery.isLoading) ||
-        ((tenantFilter === FILTER_ALL || tenantFilter === FILTER_PLATFORM) && platformQuery.isLoading);
+        (tenantFilter === FILTER_ALL && allUsersQuery.isLoading) ||
+        (tenantFilter === FILTER_PLATFORM && platformQuery.isLoading) ||
+        (tenantFilter !== FILTER_ALL &&
+            tenantFilter !== FILTER_PLATFORM &&
+            tenantUsersQuery.isLoading);
 
-    const isFetching = platformQuery.isFetching || tenantUsersQuery.isFetching;
-    const isError = platformQuery.isError || tenantUsersQuery.isError;
+    const isFetching = allUsersQuery.isFetching || platformQuery.isFetching || tenantUsersQuery.isFetching;
+    const isError = allUsersQuery.isError || platformQuery.isError || tenantUsersQuery.isError;
 
     const refetchAll = () => {
+        void allUsersQuery.refetch();
         void platformQuery.refetch();
         void tenantUsersQuery.refetch();
+    };
+
+    const renderTenantCell = (row: UnifiedAdminUserRow) => {
+        if (row.userType === 'Platform') {
+            return <Typography.Text type="secondary">—</Typography.Text>;
+        }
+        const label = row.tenantName || '?';
+        return (
+            <Tooltip title={t('users.unified.tenantTooltip', { tenant: label })}>
+                <Typography.Text ellipsis style={{ maxWidth: 160 }}>
+                    {label}
+                </Typography.Text>
+            </Tooltip>
+        );
+    };
+
+    const renderStatusBadge = (row: UnifiedAdminUserRow) => {
+        if (row.isPending) {
+            return <Tag color="orange">{t('users.unified.badges.pending')}</Tag>;
+        }
+        return (
+            <Tag color={row.isActive ? 'green' : 'red'}>
+                {row.isActive ? t('users.unified.badges.active') : t('users.unified.badges.inactive')}
+            </Tag>
+        );
+    };
+
+    const renderTwoFactorBadge = () => (
+        <Tag color="default">{t('users.unified.twoFactorNo')}</Tag>
+    );
+
+    const renderActions = (row: UnifiedAdminUserRow) => {
+        const record = row.user;
+        const isPlatformRow = row.userType === 'Platform';
+
+        return (
+            <Space size={4} wrap>
+                {policy.canEdit && isPlatformRow ? (
+                    <Tooltip title={t('users.list.view')}>
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<EyeOutlined />}
+                            aria-label={t('users.list.view')}
+                            onClick={() => onView(record)}
+                        />
+                    </Tooltip>
+                ) : null}
+                {policy.canEdit ? (
+                    <Tooltip title={t('users.list.edit')}>
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<EditOutlined />}
+                            aria-label={t('users.list.edit')}
+                            onClick={() => onEdit(row.userId)}
+                        />
+                    </Tooltip>
+                ) : null}
+                {policy.canResetPassword(row.role) && record.id !== currentUserId ? (
+                    <Tooltip title={t('users.list.resetPassword')}>
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<ReloadOutlined />}
+                            aria-label={t('users.list.resetPassword')}
+                            onClick={() => {
+                                if (row.row) {
+                                    setResetRow(row.row);
+                                    return;
+                                }
+                                onResetPassword(record);
+                            }}
+                        />
+                    </Tooltip>
+                ) : null}
+                {policy.canDeactivate && record.isActive && isPlatformRow ? (
+                    <Tooltip title={t('users.tabs.platform.deactivateAccount')}>
+                        <Button
+                            type="text"
+                            size="small"
+                            danger
+                            icon={<StopOutlined />}
+                            aria-label={t('users.tabs.platform.deactivateAccount')}
+                            onClick={() => onDeactivate(record)}
+                        />
+                    </Tooltip>
+                ) : null}
+                {policy.canReactivate && !record.isActive && isPlatformRow ? (
+                    <Tooltip title={t('users.list.reactivate')}>
+                        <Button
+                            type="text"
+                            size="small"
+                            icon={<CheckCircleOutlined />}
+                            aria-label={t('users.list.reactivate')}
+                            onClick={() => onReactivate(record)}
+                        />
+                    </Tooltip>
+                ) : null}
+                {row.kind === 'tenant' && row.tenantId && policy.canEdit ? (
+                    <Popconfirm
+                        title={t('users.tabs.tenant.confirmRemove.title')}
+                        description={t('users.tabs.tenant.confirmRemove.body', {
+                            tenant: row.tenantSlug || row.tenantName,
+                        })}
+                        onConfirm={() =>
+                            removeMutation.mutate({
+                                tenantId: row.tenantId!,
+                                userId: row.userId,
+                            })
+                        }
+                    >
+                        <Tooltip title={t('users.tabs.tenant.removeFromTenant')}>
+                            <Button
+                                type="text"
+                                size="small"
+                                danger
+                                icon={<UserDeleteOutlined />}
+                                loading={removeMutation.isPending}
+                                aria-label={t('users.tabs.tenant.removeFromTenant')}
+                            />
+                        </Tooltip>
+                    </Popconfirm>
+                ) : null}
+            </Space>
+        );
     };
 
     const columns: ColumnsType<UnifiedAdminUserRow> = useMemo(
         () => [
             {
-                title: t('users.tabs.tenant.columnTenant'),
-                dataIndex: 'tenantName',
-                key: 'tenantName',
-                width: 150,
+                title: t('users.unified.columns.user'),
+                key: 'user',
+                width: '25%',
+                render: (_: unknown, row) => (
+                    <Flex gap="small" align="center">
+                        <Avatar style={{ backgroundColor: getColorFromName(row.name) }}>
+                            {avatarInitials(row.name)}
+                        </Avatar>
+                        <Flex vertical gap={0} style={{ minWidth: 0, flex: 1 }}>
+                            <Typography.Text strong ellipsis>
+                                {row.name}
+                            </Typography.Text>
+                            <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
+                                {row.email}
+                            </Typography.Text>
+                        </Flex>
+                    </Flex>
+                ),
+            },
+            {
+                title: t('users.unified.columns.tenant'),
+                key: 'tenant',
+                width: '15%',
                 ellipsis: true,
-                sorter: (a, b) => a.tenantName.localeCompare(b.tenantName),
+                render: (_: unknown, row) => renderTenantCell(row),
+                sorter: (a, b) => (a.tenantName || '').localeCompare(b.tenantName || ''),
             },
             {
-                title: t('users.unified.columnType'),
-                key: 'userType',
-                width: 130,
-                render: (_: unknown, row) => <UserTypeBadge row={row} />,
-            },
-            {
-                title: t('users.list.columnName'),
-                dataIndex: 'name',
-                key: 'name',
-            },
-            {
-                title: t('users.list.columnEmail'),
-                dataIndex: 'email',
-                key: 'email',
-                ellipsis: true,
-            },
-            {
-                title: t('users.list.columnRole'),
+                title: t('users.unified.columns.role'),
                 dataIndex: 'role',
                 key: 'role',
-                width: 120,
+                width: '12%',
                 render: (role: string, row) => (
                     <UserRoleBadge
                         role={role}
                         isOwner={row.kind === 'tenant' ? row.isOwner : false}
-                        platform={row.kind === 'platform'}
                     />
                 ),
             },
             {
-                title: t('users.list.columnStatus'),
-                dataIndex: 'isActive',
-                key: 'isActive',
-                width: 100,
-                render: (active: boolean) => (
-                    <Tag color={active ? 'green' : 'red'}>
-                        {active ? t('users.list.statusActive') : t('users.list.statusInactive')}
-                    </Tag>
-                ),
+                title: t('users.unified.columns.status'),
+                key: 'status',
+                width: '10%',
+                render: (_: unknown, row) => renderStatusBadge(row),
             },
             {
-                title: t('users.list.columnLastLogin'),
+                title: t('users.unified.columns.lastLogin'),
                 dataIndex: 'lastLoginAt',
                 key: 'lastLoginAt',
-                width: 180,
-                render: (v: string | null | undefined) => (v ? formatDateTime(v, formatLocale) : '—'),
+                width: '12%',
+                render: (v: string | null | undefined) =>
+                    v ? formatDateTime(v, formatLocale) : '—',
             },
             {
-                title: t('users.list.columnActions'),
+                title: t('users.unified.columns.twoFactor'),
+                key: 'twoFactor',
+                width: '8%',
+                align: 'center',
+                render: () => renderTwoFactorBadge(),
+            },
+            {
+                title: t('users.unified.columns.actions'),
                 key: 'actions',
-                width: 150,
-                render: (_: unknown, row) => {
-                    if (row.kind === 'platform') {
-                        const record = row.user;
-                        return (
-                            <Space wrap size="small">
-                                {policy.canEdit && (
-                                    <Button size="small" icon={<EyeOutlined />} onClick={() => onView(record)}>
-                                        {t('users.list.view')}
-                                    </Button>
-                                )}
-                                {policy.canEdit && (
-                                    <Button
-                                        size="small"
-                                        icon={<EditOutlined />}
-                                        onClick={() => onEdit(row.userId)}
-                                    >
-                                        {t('users.list.edit')}
-                                    </Button>
-                                )}
-                                {policy.canDeactivate && record.isActive && (
-                                    <Button
-                                        size="small"
-                                        danger
-                                        icon={<StopOutlined />}
-                                        onClick={() => onDeactivate(record)}
-                                    >
-                                        {t('users.tabs.platform.deactivateAccount')}
-                                    </Button>
-                                )}
-                                {policy.canReactivate && !record.isActive && (
-                                    <Button
-                                        size="small"
-                                        type="primary"
-                                        icon={<CheckCircleOutlined />}
-                                        onClick={() => onReactivate(record)}
-                                    >
-                                        {t('users.list.reactivate')}
-                                    </Button>
-                                )}
-                                {policy.canResetPassword(record.role) && record.id !== currentUserId && (
-                                    <Button
-                                        size="small"
-                                        icon={<KeyOutlined />}
-                                        onClick={() => onResetPassword(record)}
-                                    >
-                                        {t('users.list.resetPassword')}
-                                    </Button>
-                                )}
-                            </Space>
-                        );
-                    }
-
-                    return (
-                        <Space wrap size="small">
-                            {policy.canEdit && (
-                                <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(row.userId)}>
-                                    {t('users.list.edit')}
-                                </Button>
-                            )}
-                            {policy.canProvisionTenantCredentials && policy.canResetPassword(row.role) && (
-                                <Button size="small" icon={<KeyOutlined />} onClick={() => setResetRow(row.row)}>
-                                    {t('users.list.resetPassword')}
-                                </Button>
-                            )}
-                            {policy.canEdit && (
-                                <Popconfirm
-                                    title={t('users.tabs.tenant.confirmRemove.title')}
-                                    description={t('users.tabs.tenant.confirmRemove.body', {
-                                        tenant: row.tenantSlug,
-                                    })}
-                                    onConfirm={() =>
-                                        removeMutation.mutate({
-                                            tenantId: row.tenantId,
-                                            userId: row.userId,
-                                        })
-                                    }
-                                >
-                                    <Button
-                                        size="small"
-                                        danger
-                                        icon={<UserDeleteOutlined />}
-                                        loading={removeMutation.isPending}
-                                    >
-                                        {t('users.tabs.tenant.removeFromTenant')}
-                                    </Button>
-                                </Popconfirm>
-                            )}
-                        </Space>
-                    );
-                },
+                width: '18%',
+                fixed: 'right',
+                render: (_: unknown, row) => renderActions(row),
             },
         ],
         [
@@ -489,9 +601,23 @@ export function UnifiedAdminUsersView({
             onDeactivate,
             onReactivate,
             onResetPassword,
-            removeMutation,
+            removeMutation.isPending,
         ],
     );
+
+    const pagination: TablePaginationConfig = {
+        current: currentPage,
+        pageSize,
+        total: filteredRows.length,
+        showSizeChanger: true,
+        pageSizeOptions: [10, 25, 50, 100],
+        showTotal: (total, range) =>
+            t('users.list.paginationRange', { from: range[0], to: range[1], total }),
+        onChange: (page, size) => {
+            setCurrentPage(page);
+            if (size && size !== pageSize) setPageSize(size);
+        },
+    };
 
     return (
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
@@ -499,30 +625,25 @@ export function UnifiedAdminUsersView({
                 {t('users.unified.pageIntro')}
             </Typography.Paragraph>
 
-            <Card size="small" title={t('users.list.filterCardTitle')}>
-                <Flex wrap="wrap" gap="small" align="center">
-                    <Typography.Text type="secondary">{t('users.unified.filterTenantLabel')}</Typography.Text>
+            <Card size="small" styles={{ body: { padding: 16 } }}>
+                <Flex wrap="wrap" gap="middle" align="center">
+                    <Input
+                        allowClear
+                        prefix={<SearchOutlined />}
+                        placeholder={t('users.unified.filters.searchPlaceholder')}
+                        style={{ width: 280, flex: '1 1 220px', maxWidth: 360 }}
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                    />
                     <TenantFilter
                         value={selectedTenant}
                         onChange={handleTenantFilterChange}
                         includePlatformOption
-                    />
-                    <Input.Search
-                        allowClear
-                        placeholder={t('users.tabs.tenant.searchPlaceholder')}
-                        style={{ width: 280 }}
-                        value={searchInput}
-                        onChange={(e) => {
-                            const v = e.target.value;
-                            setSearchInput(v);
-                            if (!v) setSearch('');
-                        }}
-                        onSearch={(v) => setSearch(v ?? '')}
-                        enterButton={<SearchOutlined />}
+                        style={{ minWidth: 220, flex: '1 1 200px' }}
                     />
                     <Select
                         allowClear
-                        placeholder={t('users.tabs.tenant.filterRole')}
+                        placeholder={t('users.unified.filters.roleFilter')}
                         style={{ minWidth: 160 }}
                         value={roleFilter}
                         onChange={setRoleFilter}
@@ -532,9 +653,9 @@ export function UnifiedAdminUsersView({
                         }))}
                     />
                     <Select
-                        placeholder={t('users.list.filterStatusPlaceholder')}
+                        placeholder={t('users.unified.filters.statusFilter')}
                         allowClear
-                        style={{ width: 120 }}
+                        style={{ width: 140 }}
                         value={
                             statusFilter === undefined
                                 ? undefined
@@ -564,11 +685,11 @@ export function UnifiedAdminUsersView({
                 />
             ) : null}
 
-            <Space wrap>
+            <Flex wrap="wrap" gap="small">
                 {policy.canProvisionTenantCredentials && tenantFilter !== FILTER_PLATFORM ? (
                     <>
-                        <Button type="primary" icon={<MailOutlined />} onClick={() => setInviteOpen(true)}>
-                            {t('users.invite.action')}
+                        <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreateOpen(true)}>
+                            {t('users.create.action')}
                         </Button>
                         <Button icon={<ThunderboltOutlined />} onClick={() => setQuickOpen(true)}>
                             {t('users.unified.quickUserAction')}
@@ -580,14 +701,17 @@ export function UnifiedAdminUsersView({
                         {t('users.page.createPlatformAdmin')}
                     </Button>
                 ) : null}
-            </Space>
+            </Flex>
 
-            <Table
-                rowKey="key"
-                loading={isLoading}
-                dataSource={filteredRows}
-                columns={columns}
-                pagination={{ pageSize: 20, showSizeChanger: true, pageSizeOptions: [10, 20, 50] }}
+            <div className={styles.tableWrap}>
+                <Table<UnifiedAdminUserRow>
+                    rowKey="key"
+                    sticky
+                    loading={isLoading || (isFetching && !!searchParam)}
+                    dataSource={filteredRows}
+                    columns={columns}
+                    scroll={{ x: TABLE_SCROLL_X, y: TABLE_SCROLL_Y }}
+                    pagination={pagination}
                 locale={{
                     emptyText: (
                         <Empty
@@ -596,15 +720,16 @@ export function UnifiedAdminUsersView({
                         />
                     ),
                 }}
-            />
+                />
+            </div>
 
             {policy.canProvisionTenantCredentials ? (
                 <Collapse
                     items={[
                         {
-                            key: 'invitations',
-                            label: t('users.unified.invitationsSection'),
-                            children: <UserInvitationsPanel />,
+                            key: 'tenant-create',
+                            label: t('users.unified.tenantCreateSection'),
+                            children: <UserTenantCreatePanel />,
                         },
                     ]}
                 />
@@ -612,29 +737,26 @@ export function UnifiedAdminUsersView({
 
             {policy.canProvisionTenantCredentials ? (
                 <>
-                    <InviteUserModal
-                        open={inviteOpen}
+                    <CreateUserModal
+                        open={createOpen}
                         variant="usersPage"
-                        tenantId={inviteFixedTenantId}
-                        tenantRows={inviteTenants}
-                        tenantsLoading={inviteTenantsLoading}
+                        isSuperAdmin
+                        tenantId={createFixedTenantId}
+                        tenantRows={createTenants}
+                        tenantsLoading={createTenantsLoading}
                         confirmLoading={createMutation.isPending}
-                        onClose={() => setInviteOpen(false)}
-                        onSubmit={(values) => createMutation.mutate(values)}
-                    />
-                    <UserCreatedSuccessModal
-                        open={!!createResult}
-                        result={createResult}
-                        onClose={() => setCreateResult(null)}
+                        onClose={() => setCreateOpen(false)}
+                        onComplete={() => setCreateOpen(false)}
+                        onSubmit={(values) => createMutation.mutateAsync(values)}
                     />
                     <QuickUserModal
                         open={quickOpen}
                         variant="usersPage"
-                        tenantId={inviteFixedTenantId}
+                        tenantId={createFixedTenantId}
                         tenantSlug={quickFixedTenant?.slug}
                         tenantName={quickFixedTenant?.name}
-                        tenantRows={inviteTenants}
-                        tenantsLoading={inviteTenantsLoading}
+                        tenantRows={createTenants}
+                        tenantsLoading={createTenantsLoading}
                         confirmLoading={quickMutation.isPending}
                         onClose={() => setQuickOpen(false)}
                         onSubmit={(values) => quickMutation.mutate(values)}

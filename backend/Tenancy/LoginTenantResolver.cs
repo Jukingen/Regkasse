@@ -33,7 +33,11 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
         var active = await _db.UserTenantMemberships
             .AsNoTracking()
             .Include(m => m.Tenant)
-            .Where(m => m.UserId == userId && m.IsActive)
+            .Where(m => m.UserId == userId
+                && m.IsActive
+                && m.Tenant != null
+                && m.Tenant.Status != TenantStatuses.Deleted
+                && m.Tenant.IsActive)
             .OrderBy(m => m.CreatedAtUtc)
             .ThenBy(m => m.Id)
             .ToListAsync(cancellationToken)
@@ -55,6 +59,13 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
 
         if (active.Count == 0)
         {
+            if (await HasDeletedTenantMembershipOnlyAsync(userId, cancellationToken).ConfigureAwait(false))
+            {
+                throw new LoginTenantBlockedException(
+                    Services.Auth.AuthService.TenantDisabledMessageDe,
+                    LoginTenantBlockedException.CodeTenantDisabled);
+            }
+
             _logger.LogWarning(
                 "Login tenant: user {UserId} has no active membership; using legacy default tenant (configure membership provisioning or enable RequireTenantMembershipForLogin to block).",
                 userId);
@@ -105,7 +116,43 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
     /// <inheritdoc />
     public Task<bool> HasActiveMembershipAsync(string userId, CancellationToken cancellationToken = default) =>
         _db.UserTenantMemberships.AsNoTracking()
-            .AnyAsync(m => m.UserId == userId && m.IsActive, cancellationToken);
+            .Where(m => m.UserId == userId && m.IsActive)
+            .Join(
+                _db.Tenants.AsNoTracking(),
+                m => m.TenantId,
+                t => t.Id,
+                (_, t) => t)
+            .AnyAsync(
+                t => t.Status != TenantStatuses.Deleted && t.IsActive,
+                cancellationToken);
+
+    private async Task<bool> HasDeletedTenantMembershipOnlyAsync(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var rows = await _db.UserTenantMemberships
+            .AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .Select(m => new
+            {
+                m.IsActive,
+                TenantStatus = m.Tenant!.Status,
+                TenantIsActive = m.Tenant!.IsActive,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (rows.Count == 0)
+            return false;
+
+        var hasEligible = rows.Any(m =>
+            m.IsActive
+            && m.TenantStatus != TenantStatuses.Deleted
+            && m.TenantIsActive);
+
+        return !hasEligible
+            && rows.Any(m => m.TenantStatus == TenantStatuses.Deleted);
+    }
 
     private async Task<AuthTenantSnapshot> ResolveLegacyDefaultSnapshotAsync(CancellationToken cancellationToken)
     {

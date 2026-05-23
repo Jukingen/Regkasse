@@ -70,6 +70,7 @@ function AuditLogsPageContent() {
             action: params.action,
             userId: params.userId,
             entityType: params.entityType,
+            entityId: params.entityId,
             status: toAuditLogStatusApiParam(params.status) as never,
         }),
         [params],

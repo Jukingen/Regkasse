@@ -52,7 +52,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.Manager) }, "Test")) }
@@ -75,7 +75,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.Manager) }, "Test")) }
@@ -99,7 +99,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -122,7 +122,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -150,7 +150,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -173,7 +173,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -196,7 +196,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -219,7 +219,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -243,7 +243,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -265,7 +265,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -293,7 +293,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -315,7 +315,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -341,7 +341,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -425,7 +425,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

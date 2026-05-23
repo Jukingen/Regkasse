@@ -7,7 +7,7 @@ Place captured screenshots here for documentation cross-links. Suggested filenam
 | `fa-header-tenant-switcher.png` | Dev header: `HeaderDevTenantSwitch` with search, status emoji, license tag |
 | `fa-tenant-list.png` | `/admin/tenants` table (name, slug, status, admin, license) |
 | `fa-tenant-detail-overview.png` | Tenant detail — overview tab |
-| `fa-tenant-detail-users.png` | Tenant detail → Users tab (invite, reset password) |
+| `fa-tenant-detail-users.png` | Tenant detail → Users tab (create user, add existing, reset password) |
 | `fa-tenant-detail-license.png` | Tenant detail → License tab (`LicenseManager`) |
 | `fa-super-admin-selector.png` | Platform home: `SuperAdminTenantSelector` + impersonate |
 | `fa-manager-license-badge.png` | Manager on tenant host: `LicenseStatusIndicator` + `LicenseExpiryBanner` |

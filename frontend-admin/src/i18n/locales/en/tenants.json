@@ -210,6 +210,8 @@
     "create": "Create tenant",
     "edit": "Edit",
     "delete": "Delete",
+    "restore": "Restore",
+    "hardDelete": "Delete permanently",
     "impersonate": "Sign in as tenant",
     "manageUsers": "Users",
     "manageLicense": "License",
@@ -270,6 +272,12 @@
       "extendHint": "Use a REGK key from Licenses or set an end date manually.",
       "issuedHint": "Manage issued license keys under Licenses (may require impersonation for tenant-scoped activation).",
       "openIssuedLicenses": "Open licenses",
+      "consistencyCheck": "Consistency check",
+      "consistencyTitle": "Mandant vs deployment license mismatch",
+      "consistencyOk": "Mandant and deployment license are aligned.",
+      "consistencyWarning": "Inconsistency detected — see details below.",
+      "issueJwt": "Create JWT",
+      "jwtIssued": "Deployment license (JWT) was created.",
       "tiers": {
         "basic": "Basic",
         "standard": "Standard",
@@ -292,22 +300,56 @@
       "hardDeleteFailed": "Permanent delete failed."
     },
     "settings": {
-      "save": "Save settings"
+      "save": "Save settings",
+      "danger": {
+        "softDeleteButton": "Archive / delete tenant",
+        "softDeleteHint": "If you delete this tenant, users cannot sign in. Data is kept and can be restored.",
+        "softDeleteModalTitle": "Delete tenant?",
+        "softDeleteNoAccess": "Users will lose access to this tenant.",
+        "softDeleteRecoverable": "Data is retained; you can restore the tenant at any time.",
+        "softDeleteConfirm": "Delete tenant",
+        "restoreButton": "Restore tenant",
+        "hardDeleteButton": "PERMANENTLY DELETE TENANT",
+        "deletedWarning": "This tenant is deleted. Restore it or remove it permanently (cannot be undone).",
+        "deletedSettingsHint": "Delete, restore, and permanent removal are under Settings → Danger zone.",
+        "restoreModalTitle": "Restore tenant?",
+        "restoreModalBody": "After restore, users with active membership can access the tenant again.",
+        "restoreConfirm": "Restore",
+        "hardDeleteModalTitle": "Permanently delete tenant",
+        "hardDeleteDataLoss": "All unprotected data for “{{name}}” will be permanently deleted.",
+        "hardDeleteAck": "I understand this action cannot be undone.",
+        "hardDeleteConfirm": "Delete permanently",
+        "auditLink": "View operations for this tenant in audit logs →"
+      }
     }
   },
   "edit": {
     "title": "Edit tenant"
   },
   "confirmDelete": {
-    "title": "Delete tenant?",
-    "body": "Soft delete sets status to deleted."
+    "title": "Delete this tenant?",
+    "body": "The tenant will be marked deleted and can be restored later. Users will lose access to this tenant."
+  },
+  "confirmRestore": {
+    "title": "Restore tenant?",
+    "body": "Status will be set to active and memberships reactivated."
+  },
+  "confirmHardDelete": {
+    "title": "Permanently delete tenant",
+    "irreversible": "This action CANNOT be undone.",
+    "dataLoss": "All unprotected data for “{{name}}” will be permanently removed.",
+    "confirmSlugLabel": "Type subdomain slug to confirm: “{{slug}}”"
   },
   "messages": {
     "created": "Tenant created.",
     "updated": "Tenant saved.",
     "deleted": "Tenant deleted.",
+    "restored": "Tenant restored.",
+    "hardDeleted": "Tenant permanently deleted.",
     "saveFailed": "Save failed.",
     "deleteFailed": "Delete failed.",
+    "restoreFailed": "Restore failed.",
+    "hardDeleteFailed": "Permanent delete failed.",
     "impersonationStarted": "Impersonation started: {{name}}",
     "impersonationFailed": "Impersonation failed."
   },
@@ -335,7 +377,7 @@
     },
     "actions": {
       "back": "Back to list",
-      "add": "Existing user",
+      "add": "Add existing user",
       "remove": "Remove",
       "setOwner": "Set as tenant admin",
       "resetPassword": "Password"
@@ -355,6 +397,28 @@
     "superAdminOnly": {
       "credentialsTitle": "Super Admin only",
       "credentialsHint": "Creating tenant users with a one-time password and viewing credentials is restricted to the Super Admin role."
+    },
+    "create": {
+      "action": "Create user",
+      "hint": "After creation a password is generated automatically and shown once. Share it with the user.",
+      "passwordAutoHint": "The password is shown in the success dialog after creation (once only).",
+      "emailRequired": "Please enter an email address.",
+      "emailInvalid": "Please enter a valid email address.",
+      "isOwner": "Tenant administrator (owner)",
+      "resultSuccessTitle": "User created",
+      "resultDone": "Done",
+      "credentialsFor": "Credentials for: {{email}}",
+      "passwordLabel": "Password:",
+      "passwordOnceWarning": "This password is shown only once!",
+      "nextStepsTitle": "Next steps:",
+      "nextStep1": "Share the password securely with the user",
+      "nextStep2": "The user signs in for the first time at {{portalUrl}}",
+      "nextStep2NoUrl": "The user signs in for the first time at the tenant portal",
+      "nextStep3": "They must change the password on first login",
+      "messages": {
+        "created": "User was created.",
+        "failed": "Could not create user."
+      }
     },
     "invite": {
       "action": "Add user",

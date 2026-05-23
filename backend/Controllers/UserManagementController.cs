@@ -30,6 +30,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IRoleManagementService _roleManagementService;
         private readonly ILogger<UserManagementController> _logger;
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
+        private readonly ICurrentTenantAccessor _tenantAccessor;
 
         public UserManagementController(
             AppDbContext context,
@@ -40,7 +41,8 @@ namespace KasseAPI_Final.Controllers
             IUserUniquenessValidationService uniquenessValidation,
             IRoleManagementService roleManagementService,
             ILogger<UserManagementController> logger,
-            IUserTenantMembershipProvisioner tenantMembershipProvisioner)
+            IUserTenantMembershipProvisioner tenantMembershipProvisioner,
+            ICurrentTenantAccessor tenantAccessor)
         {
             _context = context;
             _userManager = userManager;
@@ -51,6 +53,7 @@ namespace KasseAPI_Final.Controllers
             _roleManagementService = roleManagementService;
             _logger = logger;
             _tenantMembershipProvisioner = tenantMembershipProvisioner;
+            _tenantAccessor = tenantAccessor;
         }
 
         private string? GetCurrentUserId() => User.GetActorUserId();
@@ -175,6 +178,18 @@ namespace KasseAPI_Final.Controllers
                 if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
                 var q = _userManager.Users.AsQueryable();
+
+                var actorCanonicalRole = RoleCanonicalization.GetCanonicalRole(GetCurrentUserRole());
+                var isSuperAdmin = string.Equals(actorCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal);
+                if (!isSuperAdmin && _tenantAccessor.TenantId is Guid scopedTenantId)
+                {
+                    var memberUserIds = await _context.UserTenantMemberships
+                        .AsNoTracking()
+                        .Where(m => m.TenantId == scopedTenantId && m.IsActive)
+                        .Select(m => m.UserId)
+                        .ToListAsync();
+                    q = q.Where(u => memberUserIds.Contains(u.Id) && u.Role != Roles.SuperAdmin);
+                }
 
                 if (isActive.HasValue)
                     q = q.Where(u => u.IsActive == isActive.Value);

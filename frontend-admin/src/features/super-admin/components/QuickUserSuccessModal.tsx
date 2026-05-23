@@ -35,7 +35,7 @@ export function QuickUserSuccessModal({
 
     const portalUrl = result.tenantPortalUrl ?? `https://${tenantSlug}.regkasse.at`;
     const displayRole = result.role ?? role;
-    const roleLabelKey = `users.invite.roleOptions.${displayRole}.label` as const;
+    const roleLabelKey = `users.create.roleOptions.${displayRole}.label` as const;
     const roleLabel = t(roleLabelKey) !== roleLabelKey ? t(roleLabelKey) : displayRole;
 
     const copyPassword = async () => {

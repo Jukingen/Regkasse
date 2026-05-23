@@ -243,7 +243,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.UserId);
 
                 entity.HasOne(e => e.User)
-                    .WithMany()
+                    .WithMany(u => u.UserTenantMemberships)
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 

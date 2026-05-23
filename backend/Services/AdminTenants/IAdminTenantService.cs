@@ -50,6 +50,11 @@ public interface IAdminTenantService
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
+    Task<(bool Success, string? Error)> RestoreAsync(
+        Guid tenantId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
     Task<(bool Success, string? Error)> HardDeleteAsync(
         Guid tenantId,
         HardDeleteAdminTenantRequest request,

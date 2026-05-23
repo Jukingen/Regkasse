@@ -50,12 +50,13 @@ function mapTenantForSwitcher(row: AdminTenantListItem): TenantListItemForSwitch
  * Super Admin: all non-deleted tenants from the database.
  * Other users: tenants with an active membership (backend-filtered).
  */
-export function useTenantListForSwitcher() {
+export function useTenantListForSwitcher(options?: { includeDeleted?: boolean }) {
     const { user } = useAuth();
     const enabled = process.env.NODE_ENV === 'development' && Boolean(user?.id);
+    const includeDeleted = options?.includeDeleted ?? false;
 
     const query = useGetApiAdminTenants(
-        { includeDeleted: false },
+        { includeDeleted },
         {
             enabled,
             staleTime: 60_000,

@@ -164,10 +164,19 @@ export async function updateAdminTenant(
     return data;
 }
 
-export async function deleteAdminTenant(tenantId: string): Promise<void> {
+/** Soft-delete tenant (status=deleted, memberships deactivated). */
+export async function softDeleteAdminTenant(tenantId: string): Promise<void> {
     await AXIOS_INSTANCE.delete(`/api/admin/tenants/${tenantId}`);
 }
 
+/** @deprecated Use {@link softDeleteAdminTenant}. */
+export const deleteAdminTenant = softDeleteAdminTenant;
+
+export async function restoreAdminTenant(tenantId: string): Promise<void> {
+    await AXIOS_INSTANCE.post(`/api/admin/tenants/${tenantId}/restore`);
+}
+
+/** Permanent delete; requires prior soft-delete and matching {@link confirmSlug}. */
 export async function hardDeleteAdminTenant(tenantId: string, confirmSlug: string): Promise<void> {
     await AXIOS_INSTANCE.delete(`/api/admin/tenants/${tenantId}/permanent`, {
         data: { confirmSlug },

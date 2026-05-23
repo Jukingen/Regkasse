@@ -295,9 +295,25 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 | Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; legacy default tenant cannot be deleted |
 | Issue licenses | `/admin/license` + tenant `licenseKey` | Issued-license flows are tenant-scoped; use impersonation for another tenant’s context |
 | Impersonate | `POST /api/admin/tenants/{tenantId}/impersonate` | JWT + `tenant_impersonation` claim |
+| Create tenant users | `POST /api/admin/tenants/{tenantId}/users` | One-time `generatedPassword`; no invitation email |
+| Create platform users | `POST /api/admin/users` (no `tenantId`) | Super Admin staff; same password handoff |
+| Assign existing user | `POST /api/admin/tenants/{tenantId}/users/assign` | Membership only — no new Identity row |
 | System-wide metrics | — | Per-tenant dashboard/reports only; no dedicated cross-tenant SaaS metrics API yet |
 
-**Role:** `SuperAdmin` only on `AdminTenantsController` (`[Authorize(Roles = SuperAdmin)]`).
+**Roles:** `SuperAdmin` on `AdminTenantsController`; tenant user endpoints also accept `[HasPermission(user.manage)]` (Managers on their tenant where policy allows).
+
+#### User management (direct creation)
+
+- **No email invitations** for mandant or platform users (removed 2026-05-22).
+- FA: `CreateUserModal` + `useCreateUser` / `createUser` in `frontend-admin`.
+- Backend: `TenantUserService.CreateAsync`, `AdminUsersController.Create` → `PasswordGenerator.GenerateSecurePassword`.
+- **Add existing user:** `AddExistingUserModal` — assign membership only.
+- Audit: `USER_CREATED` with `createdByUserId`, `tenantId`, `role`; password **not** in audit metadata.
+- Optional `Email:Smtp` is for **onboarding welcome** only — see `docs/CUSTOMER_ONBOARDING.md`, `backend/CONFIGURATION.md`.
+
+Full guide: **`docs/USER_MANAGEMENT.md`**.
+
+**Role:** `SuperAdmin` only on `AdminTenantsController` for tenant CRUD (`[Authorize(Roles = SuperAdmin)]`).
 
 #### Impersonation flow
 

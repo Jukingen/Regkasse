@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -54,8 +55,13 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<ILogger<TenantOnboardingService>>());
     }
 
-    private static AdminTenantService CreateService(AppDbContext db, ITenantProvisioningService? provisioning = null)
+    private static AdminTenantService CreateService(
+        AppDbContext db,
+        ITenantProvisioningService? provisioning = null,
+        IAuditLogService? auditLog = null)
     {
+        var audit = auditLog ?? Mock.Of<IAuditLogService>();
+        var tenantLifecycle = new TenantService(db, audit, Mock.Of<ILogger<TenantService>>());
         return new AdminTenantService(
             db,
             CreateUserManagerStub(),
@@ -64,6 +70,7 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<IJwtAccessTokenIssuer>(),
             Options.Create(new AuthOptions()),
             CreateOnboardingService(db, provisioning),
+            tenantLifecycle,
             Mock.Of<ILogger<AdminTenantService>>());
     }
 
@@ -196,7 +203,7 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
-    public async Task SoftDeleteAsync_MarksDeleted()
+    public async Task SoftDeleteAsync_ValidTenant_SetsStatusDeleted()
     {
         await using var db = CreateDb();
         var tenant = new Tenant
@@ -331,6 +338,69 @@ public sealed class AdminTenantsControllerTests
 
         var superList = await service.ListForSwitcherAsync("manager-1", actorIsSuperAdmin: true, includeDeleted: false);
         Assert.Equal(2, superList.Count);
+        Assert.Equal(superList.Count, superList.Select(x => x.Id).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task ListForSwitcherAsync_SuperAdmin_Returns_Unique_Tenant_Ids_Even_With_Multiple_Owner_Memberships()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Dup Guard Cafe",
+            Slug = "dup-guard-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "owner-a",
+            UserName = "a@test.local",
+            Email = "a@test.local",
+            FirstName = "A",
+            LastName = "A",
+            Role = Roles.Manager,
+            IsActive = true,
+            EmailConfirmed = true,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "owner-b",
+            UserName = "b@test.local",
+            Email = "b@test.local",
+            FirstName = "B",
+            LastName = "B",
+            Role = Roles.Manager,
+            IsActive = true,
+            EmailConfirmed = true,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "owner-a",
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "owner-b",
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListForSwitcherAsync("super-1", actorIsSuperAdmin: true, includeDeleted: false);
+
+        var matches = list.Where(x => x.Id == tenantId).ToList();
+        Assert.Single(matches);
+        Assert.Equal(list.Count, list.Select(x => x.Id).Distinct().Count());
     }
 
     [Fact]
@@ -419,7 +489,7 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
-    public async Task SoftDeleteAsync_RejectsLegacyDefaultTenant()
+    public async Task SoftDeleteAsync_LegacyDefaultTenant_ThrowsError()
     {
         await using var db = CreateDb();
         db.Tenants.Add(new Tenant
@@ -438,5 +508,388 @@ public sealed class AdminTenantsControllerTests
 
         Assert.False(success);
         Assert.NotNull(error);
+    }
+
+    [Fact]
+    public async Task SoftDeleteAsync_Idempotent_WhenAlreadyDeleted()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Gone",
+            Slug = "gone-tenant",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+            DeletedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        var service = CreateService(db, auditLog: audit.Object);
+        var (success, error) = await service.SoftDeleteAsync(tenantId, "actor-1");
+
+        Assert.True(success);
+        Assert.Null(error);
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                AuditLogActions.TENANT_SOFT_DELETED,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task SoftDeleteAsync_DeactivatesMemberships_And_WritesAudit()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe Off",
+            Slug = "cafe-off",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "u1",
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                AuditLogActions.TENANT_SOFT_DELETED,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid(), Action = AuditLogActions.TENANT_SOFT_DELETED });
+
+        var service = CreateService(db, auditLog: audit.Object);
+        var (success, _) = await service.SoftDeleteAsync(tenantId, "actor-1");
+
+        Assert.True(success);
+        var membership = await db.UserTenantMemberships.SingleAsync(m => m.UserId == "u1" && m.TenantId == tenantId);
+        Assert.False(membership.IsActive);
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                AuditLogActions.TENANT_SOFT_DELETED,
+                "Tenant",
+                "actor-1",
+                Roles.SuperAdmin,
+                It.Is<string?>(d => d != null && d.Contains("Cafe Off")),
+                It.Is<string?>(n => n != null && n.Contains("cafe-off")),
+                AuditLogStatus.Success,
+                null,
+                It.IsAny<object?>(),
+                null,
+                null,
+                null),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ListAsync_IncludeDeleted_ShowsSoftDeletedTenant()
+    {
+        await using var db = CreateDb();
+        var activeId = Guid.NewGuid();
+        var deletedId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = activeId,
+            Name = "Active",
+            Slug = "active-one",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = deletedId,
+            Name = "Removed",
+            Slug = "removed-one",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var defaultList = await service.ListAsync(includeDeleted: false);
+        var withDeleted = await service.ListAsync(includeDeleted: true);
+
+        Assert.DoesNotContain(defaultList, t => t.Id == deletedId);
+        Assert.Contains(withDeleted, t => t.Id == deletedId);
+        Assert.Contains(withDeleted, t => t.Id == activeId);
+    }
+
+    [Fact]
+    public async Task RestoreAsync_DeletedTenant_SetsActive()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Back",
+            Slug = "back-tenant",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+            DeletedAtUtc = DateTime.UtcNow,
+            DeletedByUserId = "actor-1",
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "u1",
+            TenantId = tenantId,
+            IsActive = false,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                AuditLogActions.TENANT_RESTORED,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid(), Action = AuditLogActions.TENANT_RESTORED });
+
+        var service = CreateService(db, auditLog: audit.Object);
+        var (success, error) = await service.RestoreAsync(tenantId, "actor-2");
+
+        Assert.True(success);
+        Assert.Null(error);
+        var tenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
+        Assert.Equal(TenantStatuses.Active, tenant.Status);
+        Assert.True(tenant.IsActive);
+        Assert.Null(tenant.DeletedAtUtc);
+        var membership = await db.UserTenantMemberships.SingleAsync(m => m.UserId == "u1");
+        Assert.True(membership.IsActive);
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_RequiresSoftDeleted_And_EmptyFiscalState()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Empty",
+            Slug = "empty-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var (blocked, blockedError) = await service.HardDeleteAsync(
+            tenantId,
+            new HardDeleteAdminTenantRequest { ConfirmSlug = "empty-tenant" },
+            "actor-1");
+
+        Assert.False(blocked);
+        Assert.Contains("soft-deleted", blockedError, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_TenantWithRegisters_ThrowsError()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Busy",
+            Slug = "busy-tenant",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var (blocked, error) = await service.HardDeleteAsync(
+            tenantId,
+            new HardDeleteAdminTenantRequest { ConfirmSlug = "busy-tenant" },
+            "actor-1");
+
+        Assert.False(blocked);
+        Assert.Contains("cash register", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_TenantWithPayments_ThrowsError()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Fiscal",
+            Slug = "fiscal-tenant",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        db.PaymentDetails.Add(new PaymentDetails
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = Guid.NewGuid(),
+            CustomerName = "Walk-in",
+            TableNumber = 1,
+            CashierId = "cashier-1",
+            TotalAmount = 10m,
+            TaxAmount = 2m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = registerId,
+            TseSignature = "sig-test",
+            TseTimestamp = DateTime.UtcNow,
+            ReceiptNumber = "AT-TEST-20260101-001",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var (blocked, error) = await service.HardDeleteAsync(
+            tenantId,
+            new HardDeleteAdminTenantRequest { ConfirmSlug = "fiscal-tenant" },
+            "actor-1");
+
+        Assert.False(blocked);
+        Assert.True(
+            error != null && (error.Contains("cash register", StringComparison.OrdinalIgnoreCase)
+                || error.Contains("fiscal payment", StringComparison.OrdinalIgnoreCase)),
+            error);
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_DeletedTenantWithNoData_RemovesRow()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Gone Forever",
+            Slug = "gone-forever",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+            DeletedAtUtc = DateTime.UtcNow,
+        });
+        db.CompanySettings.Add(new CompanySettings
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CompanyName = "Gone Forever",
+            CompanyAddress = "Test 1",
+            CompanyTaxNumber = "ATU12345678",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(a => a.LogSystemOperationAsync(
+                AuditLogActions.TENANT_HARD_DELETED,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid(), Action = AuditLogActions.TENANT_HARD_DELETED });
+
+        var service = CreateService(db, auditLog: audit.Object);
+        var (success, error) = await service.HardDeleteAsync(
+            tenantId,
+            new HardDeleteAdminTenantRequest { ConfirmSlug = "gone-forever" },
+            "actor-1");
+
+        Assert.True(success);
+        Assert.Null(error);
+        Assert.False(await db.Tenants.AnyAsync(t => t.Id == tenantId));
+        audit.Verify(
+            a => a.LogSystemOperationAsync(
+                AuditLogActions.TENANT_HARD_DELETED,
+                "Tenant",
+                "actor-1",
+                Roles.SuperAdmin,
+                It.Is<string?>(d => d != null && d.Contains("Gone Forever")),
+                It.Is<string?>(n => n != null && n.Contains("gone-forever")),
+                AuditLogStatus.Success,
+                null,
+                It.IsAny<object?>(),
+                null,
+                null,
+                null),
+            Times.Once);
     }
 }

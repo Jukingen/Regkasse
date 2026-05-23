@@ -17,6 +17,8 @@ export type AssignTenantUserRequest = {
 
 export type CreateTenantUserRequest = {
     email: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
     isOwner?: boolean;
 };
@@ -31,21 +33,10 @@ export type CreateTenantUserResult = {
     role?: string | null;
 };
 
-/** @deprecated Use CreateTenantUserRequest */
-export type InviteTenantUserRequest = CreateTenantUserRequest;
+export const TENANT_CREATE_ROLES = ['Manager', 'Cashier', 'Accountant', 'Waiter', 'Kitchen'] as const;
 
-/** @deprecated Use CreateTenantUserResult */
-export type TenantUserInviteResult = {
-    user: TenantUser;
-    userCreated: boolean;
-    invitationEmailSent: boolean;
-    emailDeliveryNote?: string | null;
-    generatedPassword?: string | null;
-    forcePasswordChangeOnNextLogin?: boolean;
-    tenantPortalUrl?: string | null;
-};
-
-export const INVITE_TENANT_ROLES = ['Manager', 'Cashier', 'Accountant'] as const;
+/** @deprecated Use TENANT_CREATE_ROLES */
+export const INVITE_TENANT_ROLES = TENANT_CREATE_ROLES;
 
 export async function listTenantUsers(tenantId: string): Promise<TenantUser[]> {
     const { data } = await AXIOS_INSTANCE.get<TenantUser[]>(`/api/admin/tenants/${tenantId}/users`);
@@ -69,18 +60,6 @@ export async function assignTenantUser(
 ): Promise<TenantUser> {
     const { data } = await AXIOS_INSTANCE.post<TenantUser>(
         `/api/admin/tenants/${tenantId}/users/assign`,
-        body,
-    );
-    return data;
-}
-
-/** @deprecated Prefer createTenantUser (POST /users) */
-export async function inviteTenantUser(
-    tenantId: string,
-    body: InviteTenantUserRequest,
-): Promise<TenantUserInviteResult> {
-    const { data } = await AXIOS_INSTANCE.post<TenantUserInviteResult>(
-        `/api/admin/tenants/${tenantId}/users/invite`,
         body,
     );
     return data;
@@ -121,28 +100,21 @@ export async function updateTenantUserRole(
     return data;
 }
 
-export type ResetTenantUserPasswordRequest = {
-    sendEmail?: boolean;
-};
-
 export type TenantUserPasswordResetResult = {
     userId: string;
     email: string;
     generatedPassword: string;
     deliveryNote: string;
-    emailSent: boolean;
-    smtpConfigured: boolean;
     forcePasswordChangeOnNextLogin: boolean;
 };
 
 export async function resetTenantUserPassword(
     tenantId: string,
     userId: string,
-    body?: ResetTenantUserPasswordRequest,
 ): Promise<TenantUserPasswordResetResult> {
     const { data } = await AXIOS_INSTANCE.post<TenantUserPasswordResetResult>(
         `/api/admin/tenants/${tenantId}/users/${userId}/reset-password`,
-        body ?? {},
+        {},
     );
     return data;
 }

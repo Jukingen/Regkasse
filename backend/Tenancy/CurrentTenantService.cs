@@ -1,4 +1,5 @@
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -36,7 +37,7 @@ public sealed class CurrentTenantService
             .AsNoTracking()
             .IgnoreQueryFilters()
             .Where(t => t.Slug == slug)
-            .Select(t => new { t.Id })
+            .Select(t => new { t.Id, t.Status, t.IsActive })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -47,6 +48,17 @@ public sealed class CurrentTenantService
                 slug,
                 LegacyDefaultTenantIds.Primary);
             _tenantAccessor.TenantId = LegacyDefaultTenantIds.Primary;
+            return;
+        }
+
+        if (string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase)
+            || !tenant.IsActive)
+        {
+            _logger.LogWarning(
+                "Tenant slug {Slug} is deleted or inactive (status={Status}); refusing host tenant binding",
+                slug,
+                tenant.Status);
+            _tenantAccessor.TenantId = null;
             return;
         }
 

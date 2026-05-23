@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Alert, Form, Modal, Select, Typography } from 'antd';
 import { ThunderboltOutlined } from '@ant-design/icons';
 
@@ -50,7 +50,7 @@ export function QuickUserModal({
         () =>
             QUICK_USER_ROLES.map((role) => ({
                 value: role,
-                label: t(`users.invite.roleOptions.${role}.label`),
+                label: t(`users.create.roleOptions.${role}.label`, { defaultValue: role }),
             })),
         [t],
     );
@@ -106,13 +106,13 @@ export function QuickUserModal({
                 {showTenantSelector ? (
                     <Form.Item
                         name="tenantId"
-                        label={t('users.invite.tenant')}
-                        rules={[{ required: true, message: t('users.invite.tenantRequired') }]}
+                        label={t('users.create.tenant')}
+                        rules={[{ required: true, message: t('users.create.tenantRequired') }]}
                     >
                         <TenantSelector
                             tenants={tenantRows}
                             loading={tenantsLoading}
-                            placeholder={t('users.invite.tenantPlaceholder')}
+                            placeholder={t('users.create.tenantPlaceholder')}
                         />
                     </Form.Item>
                 ) : fixedTenantName && fixedTenantSlug ? (

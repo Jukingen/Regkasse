@@ -15,18 +15,44 @@ const CANONICAL_ROLES = [
     'Accountant',
 ] as const;
 
+const ROLE_COLORS: Record<string, string> = {
+    SuperAdmin: 'red',
+    Manager: 'blue',
+    Cashier: 'green',
+    Accountant: 'orange',
+    Waiter: 'default',
+    Kitchen: 'default',
+    ReportViewer: 'default',
+};
+
 export type UserRoleBadgeProps = {
     role: string;
     isOwner?: boolean;
-    /** SuperAdmin platform badge styling */
+    /** @deprecated Prefer role-based colors; kept for callers that still pass it. */
     platform?: boolean;
 };
 
-export function UserRoleBadge({ role, isOwner, platform }: UserRoleBadgeProps) {
+const BADGE_LABEL_KEYS: Partial<Record<(typeof CANONICAL_ROLES)[number], string>> = {
+    SuperAdmin: 'users.roles.badgeLabels.SuperAdmin',
+    Manager: 'users.roles.badgeLabels.Manager',
+    Cashier: 'users.roles.badgeLabels.Cashier',
+    Accountant: 'users.roles.badgeLabels.Accountant',
+    Waiter: 'users.roles.badgeLabels.Waiter',
+    Kitchen: 'users.roles.badgeLabels.Kitchen',
+    ReportViewer: 'users.roles.badgeLabels.ReportViewer',
+};
+
+export function UserRoleBadge({ role, isOwner }: UserRoleBadgeProps) {
     const { t } = useI18n();
     const isCanonical = (CANONICAL_ROLES as readonly string[]).includes(role);
-    const label = isCanonical ? t(`users.roles.displayNames.${role}`) : role;
-    const color = platform || role === 'SuperAdmin' ? 'purple' : 'gold';
+    const badgeKey = BADGE_LABEL_KEYS[role as (typeof CANONICAL_ROLES)[number]];
+    const label =
+        isCanonical && badgeKey
+            ? t(badgeKey)
+            : isCanonical
+              ? t(`users.roles.displayNames.${role}` as 'users.roles.displayNames.SuperAdmin')
+              : role;
+    const color = ROLE_COLORS[role] ?? 'default';
 
     return (
         <>

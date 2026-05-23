@@ -116,6 +116,36 @@ public class LoginTenantResolverTests
     }
 
     [Fact]
+    public async Task Deleted_Tenant_Membership_Only_Blocks_Login()
+    {
+        await using var db = CreateDb();
+        var deletedTenantId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        db.Tenants.Add(new Tenant
+        {
+            Id = deletedTenantId,
+            Name = "Closed Org",
+            Slug = "closed",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "u1",
+            TenantId = deletedTenantId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var resolver = CreateResolver(db);
+        Assert.False(await resolver.HasActiveMembershipAsync("u1"));
+
+        var ex = await Assert.ThrowsAsync<LoginTenantBlockedException>(
+            () => resolver.ResolveSnapshotForLoginAsync("u1"));
+        Assert.Equal(LoginTenantBlockedException.CodeTenantDisabled, ex.ErrorCode);
+    }
+
+    [Fact]
     public async Task Only_Inactive_Membership_Falls_Back_To_Default()
     {
         await using var db = CreateDb();

@@ -87,6 +87,7 @@ namespace KasseAPI_Final.Models
         public virtual ICollection<Cart> Carts { get; set; } = new List<Cart>();
         public virtual ICollection<CashRegisterTransaction> Transactions { get; set; } = new List<CashRegisterTransaction>();
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
+        public virtual ICollection<UserTenantMembership> UserTenantMemberships { get; set; } = new List<UserTenantMembership>();
         /// <summary>Legacy column; prefer <see cref="UserSettings.CashRegisterId"/> for POS payment register preference.</summary>
         [Column("cash_register_id")]
         public Guid? CashRegisterId { get; set; }

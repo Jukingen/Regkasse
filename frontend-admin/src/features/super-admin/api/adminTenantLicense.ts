@@ -22,6 +22,24 @@ export type TenantLicenseOverview = {
     history: TenantLicenseHistoryItem[];
 };
 
+export type TenantLicenseConsistency = {
+    isConsistent: boolean;
+    warnings: string[];
+    tenantValidUntilUtc?: string | null;
+    matchedIssuedLicenseId?: string | null;
+    matchedLicenseKey?: string | null;
+    issuedExpiryAtUtc?: string | null;
+    canIssueDeploymentLicense: boolean;
+};
+
+export type TenantLicenseIssueDeploymentResult = {
+    success: boolean;
+    message?: string | null;
+    licenseKey?: string | null;
+    issuedLicenseId?: string | null;
+    overview?: TenantLicenseOverview | null;
+};
+
 export type ExtendTenantLicenseRequest = {
     licenseKey?: string | null;
     validUntilUtc?: string | null;
@@ -64,6 +82,24 @@ export async function setAdminTenantLicenseTier(
     const { data } = await AXIOS_INSTANCE.post<TenantLicenseOverview>(
         `/api/admin/tenants/${tenantId}/license/tier`,
         body,
+    );
+    return data;
+}
+
+export async function checkAdminTenantLicenseConsistency(
+    tenantId: string,
+): Promise<TenantLicenseConsistency> {
+    const { data } = await AXIOS_INSTANCE.post<TenantLicenseConsistency>(
+        `/api/admin/tenants/${tenantId}/license/sync`,
+    );
+    return data;
+}
+
+export async function issueAdminTenantDeploymentLicense(
+    tenantId: string,
+): Promise<TenantLicenseIssueDeploymentResult> {
+    const { data } = await AXIOS_INSTANCE.post<TenantLicenseIssueDeploymentResult>(
+        `/api/admin/tenants/${tenantId}/license/sync/issue`,
     );
     return data;
 }

@@ -8,32 +8,19 @@ import {
     Alert,
     Button,
     Card,
-    Dropdown,
     Form,
     Input,
     Modal,
-    Popconfirm,
     Select,
     Space,
+    Switch,
     Table,
     Tag,
     Typography,
     message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { MenuProps } from 'antd';
-import {
-    PlusOutlined,
-    ReloadOutlined,
-    LoginOutlined,
-    TeamOutlined,
-    MoreOutlined,
-    PauseCircleOutlined,
-    PlayCircleOutlined,
-    KeyOutlined,
-    EyeOutlined,
-} from '@ant-design/icons';
-import Link from 'next/link';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -43,21 +30,31 @@ import { useI18n, formatDate } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
-import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
+import { useCanManageTenantDeletion } from '@/features/super-admin/hooks/useCanManageTenantDeletion';
 import { CreateTenantWizard } from '@/features/super-admin/components/CreateTenantWizard';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
+import { TenantStatusBadge } from '@/features/super-admin/components/TenantStatusBadge';
+import { TenantTableActions } from '@/features/super-admin/components/TenantTableActions';
 import {
     applyTenantImpersonationSession,
-    deleteAdminTenant,
+    hardDeleteAdminTenant,
     impersonateAdminTenant,
     listAdminTenants,
+    restoreAdminTenant,
+    softDeleteAdminTenant,
     updateAdminTenant,
     type AdminTenantListItem,
 } from '@/features/super-admin/api/adminTenants';
 import { resolveTenantLicenseLabel } from '@/features/super-admin/utils/tenantLicenseLabel';
-import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import Link from 'next/link';
+import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
 const TENANT_QUERY_KEY = ['admin', 'tenants'] as const;
+
+const DELETED_ROW_STYLE: React.CSSProperties = {
+    background: '#f5f5f5',
+    opacity: 0.7,
+};
 
 type TenantFormValues = {
     name: string;
@@ -77,15 +74,22 @@ export default function SuperAdminTenantsPage() {
     const [editRow, setEditRow] = useState<AdminTenantListItem | null>(null);
     const [editForm] = Form.useForm<TenantFormValues>();
     const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
+    const [actionTenantId, setActionTenantId] = useState<string | null>(null);
 
     const canAccess =
         isSuperAdmin(user?.role) || hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
+    const canManageDeletion = useCanManageTenantDeletion();
 
     const tenantsQuery = useQuery({
         queryKey: [...TENANT_QUERY_KEY, includeDeleted],
         queryFn: () => listAdminTenants(includeDeleted),
         enabled: canAccess,
     });
+
+    const invalidateTenants = useCallback(
+        () => void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY }),
+        [queryClient],
+    );
 
     const updateMutation = useMutation({
         mutationFn: ({ id, body }: { id: string; body: TenantFormValues }) =>
@@ -99,7 +103,7 @@ export default function SuperAdminTenantsPage() {
         onSuccess: () => {
             message.success(t('tenants.messages.updated'));
             setEditRow(null);
-            void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY });
+            invalidateTenants();
         },
         onError: () => message.error(t('tenants.messages.saveFailed')),
     });
@@ -107,24 +111,53 @@ export default function SuperAdminTenantsPage() {
     const suspendMutation = useMutation({
         mutationFn: ({ id, status }: { id: string; status: string }) =>
             updateAdminTenant(id, { status }),
+        onMutate: ({ id }) => setActionTenantId(id),
+        onSettled: () => setActionTenantId(null),
         onSuccess: () => {
             message.success(t('tenants.messages.updated'));
-            void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY });
+            invalidateTenants();
         },
         onError: () => message.error(t('tenants.messages.saveFailed')),
     });
 
     const deleteMutation = useMutation({
-        mutationFn: (id: string) => deleteAdminTenant(id),
+        mutationFn: (id: string) => softDeleteAdminTenant(id),
+        onMutate: (id) => setActionTenantId(id),
+        onSettled: () => setActionTenantId(null),
         onSuccess: () => {
             message.success(t('tenants.messages.deleted'));
-            void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY });
+            invalidateTenants();
         },
         onError: () => message.error(t('tenants.messages.deleteFailed')),
     });
 
+    const restoreMutation = useMutation({
+        mutationFn: (id: string) => restoreAdminTenant(id),
+        onMutate: (id) => setActionTenantId(id),
+        onSettled: () => setActionTenantId(null),
+        onSuccess: () => {
+            message.success(t('tenants.messages.restored'));
+            invalidateTenants();
+        },
+        onError: () => message.error(t('tenants.messages.restoreFailed')),
+    });
+
+    const hardDeleteMutation = useMutation({
+        mutationFn: ({ id, confirmSlug }: { id: string; confirmSlug: string }) =>
+            hardDeleteAdminTenant(id, confirmSlug),
+        onMutate: ({ id }) => setActionTenantId(id),
+        onSettled: () => setActionTenantId(null),
+        onSuccess: () => {
+            message.success(t('tenants.messages.hardDeleted'));
+            invalidateTenants();
+        },
+        onError: () => message.error(t('tenants.messages.hardDeleteFailed')),
+    });
+
     const impersonateMutation = useMutation({
         mutationFn: (id: string) => impersonateAdminTenant(id),
+        onMutate: (id) => setActionTenantId(id),
+        onSettled: () => setActionTenantId(null),
         onSuccess: (res) => {
             setImpersonationRedirecting(true);
             applyTenantImpersonationSession(res);
@@ -161,9 +194,7 @@ export default function SuperAdminTenantsPage() {
                 title: t('tenants.columns.status'),
                 dataIndex: 'status',
                 key: 'status',
-                render: (status: string) => (
-                    <Tag color={tenantStatusColor(status)}>{t(`tenants.status.${status}`, { defaultValue: status })}</Tag>
-                ),
+                render: (status: string) => <TenantStatusBadge status={status} />,
             },
             {
                 title: t('tenants.columns.adminUser'),
@@ -201,97 +232,48 @@ export default function SuperAdminTenantsPage() {
             {
                 title: t('tenants.columns.actions'),
                 key: 'actions',
-                render: (_, row) => {
-                    const moreItems: MenuProps['items'] = [
-                        {
-                            key: 'view',
-                            icon: <EyeOutlined />,
-                            label: (
-                                <Link href={`/admin/tenants/${row.id}`}>{t('tenants.actions.view')}</Link>
-                            ),
-                        },
-                        {
-                            key: 'users',
-                            icon: <TeamOutlined />,
-                            label: (
-                                <Link href={buildAdminUsersPageHref(row.id)}>
-                                    {t('tenants.actions.manageUsers')}
-                                </Link>
-                            ),
-                        },
-                        {
-                            key: 'license',
-                            icon: <KeyOutlined />,
-                            label: (
-                                <Link href={`/admin/tenants/${row.id}?tab=license`}>
-                                    {t('tenants.actions.manageLicense')}
-                                </Link>
-                            ),
-                        },
-                        { type: 'divider' },
-                        {
-                            key: 'edit',
-                            label: t('tenants.actions.edit'),
-                            onClick: () => openEdit(row),
-                        },
-                        {
-                            key: 'impersonate',
-                            icon: <LoginOutlined />,
-                            label: t('tenants.actions.impersonate'),
-                            disabled: row.status === 'deleted' || row.status === 'suspended',
-                            onClick: () => impersonateMutation.mutate(row.id),
-                        },
-                    ];
-
-                    if (row.status === 'active') {
-                        moreItems.push({
-                            key: 'suspend',
-                            icon: <PauseCircleOutlined />,
-                            label: t('tenants.actions.suspend'),
-                            onClick: () => suspendMutation.mutate({ id: row.id, status: 'suspended' }),
-                        });
-                    } else if (row.status === 'suspended') {
-                        moreItems.push({
-                            key: 'reactivate',
-                            icon: <PlayCircleOutlined />,
-                            label: t('tenants.actions.reactivate'),
-                            onClick: () => suspendMutation.mutate({ id: row.id, status: 'active' }),
-                        });
-                    }
-
-                    if (row.status !== 'deleted') {
-                        moreItems.push({
-                            key: 'delete',
-                            danger: true,
-                            label: (
-                                <Popconfirm
-                                    title={t('tenants.confirmDelete.title')}
-                                    description={t('tenants.confirmDelete.body')}
-                                    onConfirm={() => deleteMutation.mutate(row.id)}
-                                >
-                                    <span onClick={(e) => e.stopPropagation()}>{t('tenants.actions.delete')}</span>
-                                </Popconfirm>
-                            ),
-                        });
-                    }
-
-                    return (
-                        <Space size="small">
-                            <Link href={`/admin/tenants/${row.id}`}>
-                                <Button size="small" icon={<EyeOutlined />}>
-                                    {t('tenants.actions.view')}
-                                </Button>
-                            </Link>
-                            <Dropdown menu={{ items: moreItems }} trigger={['click']}>
-                                <Button size="small" icon={<MoreOutlined />} />
-                            </Dropdown>
-                        </Space>
-                    );
-                },
+                fixed: 'right',
+                width: 320,
+                render: (_, row) =>
+                    canManageDeletion ? (
+                        <TenantTableActions
+                            tenant={row}
+                            softDeletePending={deleteMutation.isPending && actionTenantId === row.id}
+                            restorePending={restoreMutation.isPending && actionTenantId === row.id}
+                            hardDeletePending={hardDeleteMutation.isPending && actionTenantId === row.id}
+                            impersonatePending={
+                                impersonateMutation.isPending && actionTenantId === row.id
+                            }
+                            suspendPending={suspendMutation.isPending && actionTenantId === row.id}
+                            onEdit={openEdit}
+                            onSuspend={(id, status) => suspendMutation.mutate({ id, status })}
+                            onImpersonate={(id) => impersonateMutation.mutate(id)}
+                            onSoftDelete={(id) => deleteMutation.mutate(id)}
+                            onRestore={(id) => restoreMutation.mutate(id)}
+                            onHardDelete={async (id, confirmSlug) => {
+                                await hardDeleteMutation.mutateAsync({ id, confirmSlug });
+                            }}
+                        />
+                    ) : (
+                        <Typography.Text type="secondary">—</Typography.Text>
+                    ),
             },
         ],
-        [t, openEdit, deleteMutation, impersonateMutation, suspendMutation],
+        [
+            t,
+            formatLocale,
+            openEdit,
+            deleteMutation.isPending,
+            restoreMutation.isPending,
+            hardDeleteMutation,
+            impersonateMutation.isPending,
+            suspendMutation.isPending,
+            actionTenantId,
+            canManageDeletion,
+        ],
     );
+
+    const tenantRows = tenantsQuery.data ?? [];
 
     if (!canAccess) {
         return (
@@ -313,10 +295,7 @@ export default function SuperAdminTenantsPage() {
                 ]}
                 actions={
                     <Space>
-                        <Button
-                            icon={<ReloadOutlined />}
-                            onClick={() => void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY })}
-                        >
+                        <Button icon={<ReloadOutlined />} onClick={invalidateTenants}>
                             {t('common.refresh')}
                         </Button>
                         <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
@@ -332,31 +311,47 @@ export default function SuperAdminTenantsPage() {
             </Typography.Paragraph>
 
             <Card>
-                <Space style={{ marginBottom: 16 }}>
-                    <span>{t('tenants.filters.includeDeleted')}</span>
-                    <Select
-                        value={includeDeleted ? 'yes' : 'no'}
-                        style={{ width: 120 }}
-                        onChange={(v) => setIncludeDeleted(v === 'yes')}
-                        options={[
-                            { value: 'no', label: t('common.no', { defaultValue: 'Nein' }) },
-                            { value: 'yes', label: t('common.yes', { defaultValue: 'Ja' }) },
-                        ]}
-                    />
-                </Space>
+                <div
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        flexWrap: 'wrap',
+                        gap: 12,
+                        marginBottom: 16,
+                    }}
+                >
+                    <Typography.Text strong>{t('tenants.page.title')}</Typography.Text>
+                    <Space>
+                        <span>{t('tenants.filters.includeDeleted')}</span>
+                        <Switch checked={includeDeleted} onChange={setIncludeDeleted} />
+                    </Space>
+                </div>
                 <Table
                     rowKey="id"
                     loading={tenantsQuery.isLoading}
-                    dataSource={tenantsQuery.data ?? []}
+                    dataSource={tenantRows}
                     columns={columns}
-                    pagination={{ pageSize: 20 }}
+                    rowClassName={(record) =>
+                        record.status === 'deleted' ? 'tenant-row-deleted' : ''
+                    }
+                    onRow={(record) =>
+                        record.status === 'deleted' ? { style: DELETED_ROW_STYLE } : {}
+                    }
+                    virtual={shouldUseAdminTableVirtual(tenantRows.length)}
+                    scroll={adminTableScrollXy(1320, tenantRows.length)}
+                    pagination={{
+                        pageSize: 20,
+                        showSizeChanger: true,
+                        pageSizeOptions: [10, 20, 50, 100],
+                    }}
                 />
             </Card>
 
             <CreateTenantWizard
                 open={createOpen}
                 onClose={() => setCreateOpen(false)}
-                onCreated={() => void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY })}
+                onCreated={invalidateTenants}
                 onCreateAnother={() => setCreateOpen(true)}
                 onSwitchToTenant={(tenantId) => impersonateMutation.mutate(tenantId)}
                 switchToTenantLoading={impersonateMutation.isPending}

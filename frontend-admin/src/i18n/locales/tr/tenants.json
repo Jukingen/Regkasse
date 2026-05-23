@@ -210,6 +210,8 @@
     "create": "Kiracı oluştur",
     "edit": "Düzenle",
     "delete": "Sil",
+    "restore": "Geri yükle",
+    "hardDelete": "Kalıcı olarak sil",
     "impersonate": "Kiracı olarak giriş",
     "manageUsers": "Kullanıcılar",
     "manageLicense": "Lisans",
@@ -270,6 +272,12 @@
       "extendHint": "Lisanslar sayfasındaki REGK anahtarı veya manuel bitiş tarihi.",
       "issuedHint": "Verilen lisans anahtarları Lisanslar sayfasından yönetilir (kiracı kapsamı için impersonation gerekebilir).",
       "openIssuedLicenses": "Lisansları aç",
+      "consistencyCheck": "Tutarlılık Kontrolü",
+      "consistencyTitle": "Mandant ↔ deployment lisans uyumsuzluğu",
+      "consistencyOk": "Mandant ve deployment lisansı uyumlu.",
+      "consistencyWarning": "Tutarsızlık tespit edildi — ayrıntılar aşağıda.",
+      "issueJwt": "JWT oluştur",
+      "jwtIssued": "Deployment lisansı (JWT) oluşturuldu.",
       "tiers": {
         "basic": "Basic",
         "standard": "Standard",
@@ -292,22 +300,56 @@
       "hardDeleteFailed": "Kalıcı silme başarısız."
     },
     "settings": {
-      "save": "Ayarları kaydet"
+      "save": "Ayarları kaydet",
+      "danger": {
+        "softDeleteButton": "Mandantı arşivle / sil",
+        "softDeleteHint": "Bu mandantı silerseniz kullanıcılar erişemez. Veriler saklanır ve geri yüklenebilir.",
+        "softDeleteModalTitle": "Mandant silinsin mi?",
+        "softDeleteNoAccess": "Kullanıcılar bu mandanta erişemez.",
+        "softDeleteRecoverable": "Veriler saklanır; istediğiniz zaman geri yükleyebilirsiniz.",
+        "softDeleteConfirm": "Mandantı sil",
+        "restoreButton": "Mandantı geri yükle",
+        "hardDeleteButton": "Mandantı KALICI OLARAK SİL",
+        "deletedWarning": "Bu mandant silinmiş. Geri yükleyebilir veya kalıcı olarak silebilirsiniz (geri alınamaz).",
+        "deletedSettingsHint": "Silme, geri yükleme ve kalıcı silme: Ayarlar → Tehlikeli bölge.",
+        "restoreModalTitle": "Mandant geri yüklensin mi?",
+        "restoreModalBody": "Geri yüklendiğinde aktif üyeliği olan tüm kullanıcılar tekrar erişebilir.",
+        "restoreConfirm": "Geri yükle",
+        "hardDeleteModalTitle": "Mandantı kalıcı olarak sil",
+        "hardDeleteDataLoss": "“{{name}}” mandantına ait korunmayan tüm veriler kalıcı olarak silinir.",
+        "hardDeleteAck": "Bu işlemin geri alınamayacağını anlıyorum.",
+        "hardDeleteConfirm": "Kalıcı olarak sil",
+        "auditLink": "Bu mandant için yapılan işlemleri denetim kayıtlarında görüntüle →"
+      }
     }
   },
   "edit": {
     "title": "Kiracıyı düzenle"
   },
   "confirmDelete": {
-    "title": "Kiracı silinsin mi?",
-    "body": "Soft delete: durum deleted olur."
+    "title": "Bu kiracıyı silmek istediğinize emin misiniz?",
+    "body": "Kiracı silinmiş olarak işaretlenir ve daha sonra geri yüklenebilir. Kullanıcılar bu kiracıya erişemez."
+  },
+  "confirmRestore": {
+    "title": "Kiracı geri yüklemek istediğinize emin misiniz?",
+    "body": "Durum aktif olur ve üyelikler yeniden etkinleştirilir."
+  },
+  "confirmHardDelete": {
+    "title": "Kiracı kalıcı olarak sil",
+    "irreversible": "Bu işlem GERİ ALINAMAZ.",
+    "dataLoss": "“{{name}}” kiracısına ait korunmayan tüm veriler kalıcı olarak silinir.",
+    "confirmSlugLabel": "Onay için alt alan adı (slug) girin: “{{slug}}”"
   },
   "messages": {
     "created": "Kiracı oluşturuldu.",
     "updated": "Kiracı kaydedildi.",
     "deleted": "Kiracı silindi.",
+    "restored": "Kiracı geri yüklendi.",
+    "hardDeleted": "Kiracı kalıcı olarak silindi.",
     "saveFailed": "Kaydetme başarısız.",
     "deleteFailed": "Silme başarısız.",
+    "restoreFailed": "Geri yükleme başarısız.",
+    "hardDeleteFailed": "Kalıcı silme başarısız.",
     "impersonationStarted": "Impersonation başladı: {{name}}",
     "impersonationFailed": "Impersonation başarısız."
   },
@@ -335,7 +377,7 @@
     },
     "actions": {
       "back": "Listeye dön",
-      "add": "Mevcut kullanıcı",
+      "add": "Mevcut kullanıcı ekle",
       "remove": "Kaldır",
       "setOwner": "Kiracı yöneticisi yap",
       "resetPassword": "Şifre"
@@ -355,6 +397,28 @@
     "superAdminOnly": {
       "credentialsTitle": "Yalnızca Super Admin",
       "credentialsHint": "Tek kullanımlık şifre ile kiracı kullanıcısı oluşturma ve erişim bilgilerini görüntüleme yalnızca Super Admin rolüne açıktır."
+    },
+    "create": {
+      "action": "Kullanıcı oluştur",
+      "hint": "Oluşturma sonrası şifre otomatik üretilir ve yalnızca bir kez gösterilir. Kullanıcıyla paylaşın.",
+      "passwordAutoHint": "Şifre, oluşturma sonrası başarı iletişim kutusunda gösterilir (yalnızca bir kez).",
+      "emailRequired": "Lütfen bir e-posta adresi girin.",
+      "emailInvalid": "Lütfen geçerli bir e-posta girin.",
+      "isOwner": "Kiracı yöneticisi (owner)",
+      "resultSuccessTitle": "Kullanıcı oluşturuldu",
+      "resultDone": "Tamam",
+      "credentialsFor": "Erişim bilgileri: {{email}}",
+      "passwordLabel": "Şifre:",
+      "passwordOnceWarning": "Bu şifre yalnızca ŞİMDİ bir kez gösterilir!",
+      "nextStepsTitle": "Sonraki adımlar:",
+      "nextStep1": "Şifreyi kullanıcıyla güvenli şekilde paylaşın",
+      "nextStep2": "Kullanıcı ilk girişte {{portalUrl}} adresinden oturum açar",
+      "nextStep2NoUrl": "Kullanıcı ilk girişte kiracı portalından oturum açar",
+      "nextStep3": "Ardından şifre değiştirilir",
+      "messages": {
+        "created": "Kullanıcı oluşturuldu.",
+        "failed": "Kullanıcı oluşturulamadı."
+      }
     },
     "invite": {
       "action": "Kullanıcı ekle",

@@ -48,13 +48,15 @@ namespace KasseAPI_Final.Services
         Task<AuditLog> LogUserLifecycleAsync(AuditEventType actionType, string actorUserId, string actorRole,
             string targetUserId, string? reason = null, string? correlationId = null,
             AuditLogStatus status = AuditLogStatus.Success, string? description = null,
-            object? oldValues = null, object? newValues = null);
+            object? oldValues = null, object? newValues = null,
+            UserCreatedAuditDetails? userCreatedDetails = null);
 
         /// <summary>Legacy overload: maps action string to AuditEventType and delegates. Prefer LogUserLifecycleAsync(AuditEventType, ...).</summary>
         Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
             string targetUserId, string? reason = null, string? correlationId = null,
             AuditLogStatus status = AuditLogStatus.Success, string? description = null,
-            object? oldValues = null, object? newValues = null);
+            object? oldValues = null, object? newValues = null,
+            UserCreatedAuditDetails? userCreatedDetails = null);
 
         Task<IEnumerable<AuditLog>> GetAuditLogsAsync(DateTime? startDate = null, DateTime? endDate = null,
             string? userId = null, string? userRole = null, string? action = null, string? entityType = null,
@@ -403,25 +405,28 @@ namespace KasseAPI_Final.Services
         public async Task<AuditLog> LogUserLifecycleAsync(AuditEventType actionType, string actorUserId, string actorRole,
             string targetUserId, string? reason = null, string? correlationId = null,
             AuditLogStatus status = AuditLogStatus.Success, string? description = null,
-            object? oldValues = null, object? newValues = null)
+            object? oldValues = null, object? newValues = null,
+            UserCreatedAuditDetails? userCreatedDetails = null)
         {
             var action = GetActionString(actionType);
-            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues);
+            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues, userCreatedDetails);
         }
 
         /// <summary>Legacy overload: maps action string to AuditEventType and delegates.</summary>
         public async Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
             string targetUserId, string? reason = null, string? correlationId = null,
             AuditLogStatus status = AuditLogStatus.Success, string? description = null,
-            object? oldValues = null, object? newValues = null)
+            object? oldValues = null, object? newValues = null,
+            UserCreatedAuditDetails? userCreatedDetails = null)
         {
             var actionType = MapActionToEventType(action);
-            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues);
+            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues, userCreatedDetails);
         }
 
         private async Task<AuditLog> LogUserLifecycleAsyncCore(AuditEventType actionType, string action,
             string actorUserId, string actorRole, string targetUserId, string? reason, string? correlationId,
-            AuditLogStatus status, string? description, object? oldValues, object? newValues)
+            AuditLogStatus status, string? description, object? oldValues, object? newValues,
+            UserCreatedAuditDetails? userCreatedDetails)
         {
             var httpContext = _httpContextAccessor.HttpContext;
             var sessionId = Guid.NewGuid().ToString();
@@ -450,6 +455,15 @@ namespace KasseAPI_Final.Services
             };
             if (!string.IsNullOrEmpty(reason))
                 metadata["reason"] = reason;
+            if (userCreatedDetails != null)
+            {
+                metadata["createdByUserId"] = userCreatedDetails.CreatedByUserId;
+                metadata["role"] = userCreatedDetails.Role;
+                metadata["passwordReturned"] = userCreatedDetails.PasswordReturned;
+                if (userCreatedDetails.TenantId is Guid tid)
+                    metadata["tenantId"] = tid;
+            }
+
             var metadataJson = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(metadata);
 
             var actionCol = AuditLogPersistenceSanitizer.TruncateForAction(action);
@@ -525,7 +539,7 @@ namespace KasseAPI_Final.Services
         {
             return actionType switch
             {
-                AuditEventType.UserCreated => AuditLogActions.USER_CREATE,
+                AuditEventType.UserCreated => AuditLogActions.USER_CREATED,
                 AuditEventType.UserUpdated => AuditLogActions.USER_UPDATE,
                 AuditEventType.UserRoleChanged => AuditLogActions.USER_ROLE_CHANGE,
                 AuditEventType.UserDeactivated => AuditLogActions.USER_DEACTIVATE,
@@ -539,6 +553,7 @@ namespace KasseAPI_Final.Services
                 AuditEventType.LoginFailed => AuditLogActions.USER_LOGIN,
                 AuditEventType.UserLogout => AuditLogActions.USER_LOGOUT,
                 AuditEventType.UserDeleted => AuditLogActions.USER_DELETE,
+                AuditEventType.UserTenantMembershipChanged => AuditLogActions.USER_TENANT_MEMBERSHIP_CHANGED,
                 _ => AuditLogActions.USER_UPDATE
             };
         }
@@ -550,6 +565,7 @@ namespace KasseAPI_Final.Services
             return action switch
             {
                 AuditLogActions.USER_CREATE => AuditEventType.UserCreated,
+                AuditLogActions.USER_CREATED => AuditEventType.UserCreated,
                 AuditLogActions.USER_UPDATE => AuditEventType.UserUpdated,
                 AuditLogActions.USER_ROLE_CHANGE => AuditEventType.UserRoleChanged,
                 AuditLogActions.USER_DEACTIVATE => AuditEventType.UserDeactivated,
@@ -562,6 +578,7 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.USER_LOGIN => AuditEventType.LoginSuccess,
                 AuditLogActions.USER_LOGOUT => AuditEventType.UserLogout,
                 AuditLogActions.USER_DELETE => AuditEventType.UserDeleted,
+                AuditLogActions.USER_TENANT_MEMBERSHIP_CHANGED => AuditEventType.UserTenantMembershipChanged,
                 _ => AuditEventType.Other
             };
         }

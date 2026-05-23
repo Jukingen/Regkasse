@@ -20,6 +20,15 @@
       "Kitchen": "Mutfak",
       "ReportViewer": "Raporlar (salt okunur)",
       "Accountant": "Muhasebe"
+    },
+    "badgeLabels": {
+      "SuperAdmin": "Platform yöneticisi",
+      "Manager": "Mandant yöneticisi",
+      "Cashier": "Kasiyer",
+      "Accountant": "Muhasebeci",
+      "Waiter": "Garson",
+      "Kitchen": "Mutfak",
+      "ReportViewer": "Raporlar"
     }
   },
   "roleDrawer": {
@@ -223,6 +232,19 @@
     "emptyListWithFilters": "Filtrelere uyan kullanıcı yok. Filtreleri temizleyin veya arama/rol/durumu değiştirin.",
     "emptyListDefaultHint": "Not: Varsayılan olarak yalnızca aktif hesaplar listelenir (durum = aktif)."
   },
+  "tenants": {
+    "loading": "Mandantlar yükleniyor…",
+    "platformSuperAdmin": "Platform (Süper Admin)",
+    "platformOnly": "Platform (iş mandantı yok)",
+    "editReadOnlyHint": "Mandant atamaları burada salt okunurdur. Değişiklik için «Mandantları yönet» (Süper Admin) kullanın.",
+    "manageAction": "Mandantları yönet",
+    "manageTitle": "Mandant ataması",
+    "manageHint": "Bu kullanıcı için aktif iş mandantları. Kaldırma yalnızca üyeliği devre dışı bırakır; hesap kalır.",
+    "manageSave": "Kaydet",
+    "manageCancel": "İptal",
+    "manageSaved": "Mandant ataması kaydedildi.",
+    "manageFailed": "Mandant ataması kaydedilemedi."
+  },
   "unified": {
     "pageIntro": "Tüm platform ve mandant kullanıcıları tek yerde. Mandant filtresi ile listeyi daraltın — ayrı menü girişleri yok.",
     "filterTenantLabel": "Mandant filtrele:",
@@ -233,12 +255,43 @@
     "platformBadge": "Platform (Süper Admin)",
     "platformTenantLabel": "(Platform)",
     "empty": "Mevcut filtrelere uyan kullanıcı yok.",
-    "invitationsSection": "Davetler (e-posta)",
+    "tenantCreateSection": "Mandant kullanıcısı oluştur",
     "quickUserAction": "Hızlı kullanıcı",
     "columnType": "Tür",
-    "typeBadgePlatformAdmin": "👑 Platform yöneticisi",
-    "typeBadgePlatform": "🏢 Platform",
-    "typeBadgeTenant": "👤 Mandant"
+    "columnUser": "Kullanıcı",
+    "columnTwoFactor": "2FA",
+    "searchPlaceholder": "Ad, e-posta …",
+    "tenantTooltip": "Bu kullanıcı «{{tenant}}» mandantına aittir.",
+    "statusPending": "Beklemede",
+    "twoFactorYes": "Evet",
+    "twoFactorNo": "Hayır",
+    "typeBadgePlatformAdmin": "Platform yöneticisi",
+    "typeBadgePlatform": "Platform",
+    "typeBadgeTenant": "Mandant",
+    "columns": {
+      "user": "Kullanıcı",
+      "tenant": "Mandant",
+      "role": "Rol",
+      "status": "Durum",
+      "lastLogin": "Son giriş",
+      "twoFactor": "2FA",
+      "actions": "İşlemler"
+    },
+    "filters": {
+      "searchPlaceholder": "Kullanıcı ara…",
+      "tenantFilter": "Mandant filtrele",
+      "roleFilter": "Rol filtrele",
+      "statusFilter": "Durum filtrele",
+      "platform": "Platform",
+      "allTenants": "Tüm mandantlar"
+    },
+    "badges": {
+      "active": "Aktif",
+      "inactive": "Devre dışı",
+      "pending": "Beklemede",
+      "platform": "Platform",
+      "tenant": "Mandant"
+    }
   },
   "tabs": {
     "labelPlatform": "Platform kullanıcıları",
@@ -266,49 +319,45 @@
         "body": "Kullanıcı «{{tenant}}» erişimini kaybeder. Hesap diğer mandantlar veya sonraki atama için korunur."
       }
     },
-    "invitations": {
-      "description": "E-posta ile yeni mandant kullanıcıları davet edin. Hedef mandantı seçin ve davet gönderin (e-posta için SMTP gerekir).",
-      "descriptionSuperAdmin": "E-posta ile kullanıcı davet edin. Hedef mandantı listeden seçin (domain ve lisans durumu görünür).",
-      "smtpHint": "SMTP yapılandırması olmadan hesap oluşturulur ancak davet e-postası gönderilemeyebilir.",
-      "columnTenant": "Mandant",
-      "columnOwner": "Mandant yöneticisi (e-posta)",
-      "sendInvite": "Davet gönder",
-      "emptyTenants": "Aktif iş mandantı yok."
+    "tenantCreate": {
+      "descriptionSuperAdmin": "Yeni mandant kullanıcısı oluşturun. Şifre otomatik üretilir ve yalnızca bir kez gösterilir."
     }
   },
-  "invite": {
-    "title": "Kullanıcı ekle",
-    "titleForTenant": "«{{name}}» ({{slug}}) mandantına kullanıcı davet et",
-    "titleAddForTenant": "«{{name}}» ({{slug}}) mandantına kullanıcı ekle",
-    "action": "Kullanıcı ekle",
-    "createUser": "Kullanıcı oluştur",
-    "send": "Davet gönder",
-    "email": "E-posta adresi",
-    "tenant": "Mandant (firma)",
+  "create": {
+    "title": "Yeni kullanıcı oluştur",
+    "email": "E-posta",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "role": "Rol",
+    "tenant": "Mandant",
+    "password": "Şifre",
+    "copyPassword": "Şifreyi kopyala",
+    "submit": "Kullanıcı oluştur",
+    "success": "Kullanıcı başarıyla oluşturuldu",
+    "generatedPasswordInfo": "Şifre yalnızca bir kez gösterilir. Güvenle kaydedin ve kullanıcıya iletin.",
+    "passwordWarningTitle": "Önemli uyarı",
+    "close": "Kapat",
+    "action": "Kullanıcı oluştur",
     "tenantRequired": "Lütfen bir mandant seçin.",
     "tenantPlaceholder": "Mandant seçin …",
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "Lisans yok",
-    "role": "Rol",
-    "emailHint": "Oluşturma sonrası şifre üretilir ve yalnızca bir kez gösterilir. Kullanıcıyla paylaşın.",
+    "emailRequired": "Lütfen bir e-posta adresi girin.",
+    "emailInvalid": "Lütfen geçerli bir e-posta girin.",
+    "isOwner": "Mandant yöneticisi (owner)",
+    "titleForTenant": "«{{name}}» ({{slug}}) için kullanıcı oluştur",
+    "titleAddForTenant": "«{{name}}» ({{slug}}) için kullanıcı oluştur",
     "targetTenant": {
-      "title": "«{{name}}» ({{slug}}) mandantına kullanıcı davet et",
-      "modalLabel": "Davet hedefi",
+      "title": "«{{name}}» ({{slug}}) kullanıcısı",
+      "modalLabel": "Mandant",
       "licenseLine": "Lisans: {{license}}"
     },
-    "multiTenant": {
-      "tenantsLabel": "Mandantlar (firmalar)",
-      "roleForAll": "Seçilen tüm mandantlar için rol",
-      "tenantsRequired": "En az bir mandant seçin.",
-      "separateCredentialsWarning": "Kullanıcı, seçilen her mandant için ayrı erişim bilgileri alır (mandant başına bir hesap).",
-      "allSuccess": "{{count}} davet başarılı.",
-      "partialSuccess": "{{ok}} başarılı, {{failed}} başarısız.",
-      "resultSummary": "{{ok}} mandant atandı, {{failed}} başarısız."
-    },
     "roleOptions": {
-      "Manager": { "label": "Manager (bu firma için tam yetki)" },
-      "Cashier": { "label": "Kasiyer (yalnızca POS)" },
-      "Accountant": { "label": "Muhasebe (yalnızca raporlar)" }
+      "Manager": { "label": "Manager" },
+      "Cashier": { "label": "Kasiyer" },
+      "Accountant": { "label": "Muhasebe" },
+      "Waiter": { "label": "Garson" },
+      "Kitchen": { "label": "Mutfak" }
     }
   }
 }

@@ -8,6 +8,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
@@ -363,6 +364,7 @@ public sealed class TenantIsolationTests
             Mock.Of<IJwtAccessTokenIssuer>(),
             Options.Create(new AuthOptions()),
             Mock.Of<ITenantOnboardingService>(),
+            new TenantService(db, Mock.Of<IAuditLogService>(), Mock.Of<ILogger<TenantService>>()),
             Mock.Of<ILogger<AdminTenantService>>());
 
         var list = await service.ListAsync(includeDeleted: false);

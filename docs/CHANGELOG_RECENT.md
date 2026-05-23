@@ -4,6 +4,29 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ---
 
+## 2026-05-22 — Remove email invitation system
+
+**Backend:**
+
+- Removed `POST /api/admin/users/invite` and `POST /api/admin/tenants/{tenantId}/users/invite` endpoints
+- Removed `TenantInvitationEmailSender` and user-invitation email sending
+- Added direct user creation: `POST /api/admin/users` and `POST /api/admin/tenants/{tenantId}/users` with one-time `generatedPassword` in the response (password not audited)
+- User-create audit action `USER_CREATED` with metadata `createdByUserId`, `tenantId`, `role` (no password in logs)
+
+**Frontend Admin:**
+
+- Replaced «Einladen» / invite flows with **Benutzer anlegen** (`CreateUserModal`)
+- One-time password modal after successful create; `useCreateUser` / `createUser` API helper
+- Removed invitation acceptance route `(public)/invite/accept` (if present)
+- **Bestehenden Benutzer hinzufügen** unchanged (`AddExistingUserModal` → membership assign only)
+
+**Documentation:**
+
+- Updated user management docs to reflect direct creation flow
+- SMTP no longer required for day-to-day user provisioning (optional welcome email on tenant onboarding only)
+
+---
+
 ## 2026-05-21 — Multi-tenant isolation & tenant UX (FA + API)
 
 ### Multi-tenant isolation
@@ -35,7 +58,7 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ### User management separation
 
-- `/users` platform vs mandant tabs; tenant invite/reset/remove via `/api/admin/tenants/{id}/users/*`
+- `/users` platform vs mandant tabs; tenant create/reset/remove via `/api/admin/tenants/{id}/users/*` (invite endpoints since removed — see 2026-05-22 entry)
 - `ownerAdminEmail` on tenant list for switcher 🟢/🟡 indicators
 
 **Docs:** `TENANT_MANAGEMENT.md`, `CUSTOMER_ONBOARDING.md`, `LICENSE_SYSTEM.md`, `CASH_REGISTER_LIFECYCLE.md`, `USER_MANAGEMENT.md`, `MULTI_TENANT.md`, `CHANGELOG_TENANT_MANAGEMENT.md`.

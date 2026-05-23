@@ -1,12 +1,14 @@
 'use client';
 
 /**
- * User detail drawer – Details + Activity; bilgi hiyerarşisi: Status/Rolle → Identität → Sonstiges.
+ * User detail drawer – Details + Activity; bilgi hiyerarşisi: Status/Rolle → Identität → Mandant → Sonstiges.
  */
 import React, { useState } from 'react';
 import { Drawer, Tabs, Descriptions, Tag, Typography } from 'antd';
 import type { UserInfo } from '@/api/generated/model';
 import { UserActivityTimeline } from './UserActivityTimeline';
+import { UserTenantSummary } from './UserTenantSummary';
+import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
 import { usersCopy } from '../constants/copy';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatDateTime } from '@/i18n/formatting';
@@ -29,7 +31,9 @@ type Props = {
 
 export function UserDetailDrawer({ open, onClose, user }: Props) {
   const [activeTab, setActiveTab] = useState('activity');
-  const { formatLocale } = useI18n();
+  const { t, formatLocale } = useI18n();
+  const userId = user?.id ?? null;
+  const { data: memberships = [], isLoading: tenantsLoading } = useAdminUserTenants(userId, open && !!userId);
 
   if (!user) return null;
 
@@ -69,6 +73,13 @@ export function UserDetailDrawer({ open, onClose, user }: Props) {
                   </Descriptions.Item>
                   <Descriptions.Item label={usersCopy.role}>
                     <Tag color="gold">{user.role ?? NA}</Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label={t('users.tabs.tenant.columnTenant')}>
+                    <UserTenantSummary
+                      userRole={user.role}
+                      memberships={memberships}
+                      loading={tenantsLoading}
+                    />
                   </Descriptions.Item>
                   <Descriptions.Item label={usersCopy.userName}>{user.userName ?? NA}</Descriptions.Item>
                   <Descriptions.Item label={usersCopy.email}>{user.email ?? NA}</Descriptions.Item>

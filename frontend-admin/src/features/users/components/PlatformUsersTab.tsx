@@ -17,6 +17,7 @@ import {
     EyeOutlined,
     KeyOutlined,
     StopOutlined,
+    UserAddOutlined,
     UserOutlined,
 } from '@ant-design/icons';
 
@@ -43,6 +44,7 @@ export type PlatformUsersTabProps = {
     onDeactivate: (user: UserInfo) => void;
     onReactivate: (user: UserInfo) => void;
     onResetPassword: (user: UserInfo) => void;
+    onCreatePlatformUser?: () => void;
 };
 
 /** Platform operators: edit, disable account, reset password — no tenant membership actions. */
@@ -56,6 +58,7 @@ export function PlatformUsersTab({
     onDeactivate,
     onReactivate,
     onResetPassword,
+    onCreatePlatformUser,
 }: PlatformUsersTabProps) {
     const { t, formatLocale } = useI18n();
 
@@ -165,6 +168,11 @@ export function PlatformUsersTab({
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                 {t('users.tabs.platform.description')}
             </Typography.Paragraph>
+            {policy.canCreate && onCreatePlatformUser ? (
+                <Button type="primary" icon={<UserAddOutlined />} onClick={onCreatePlatformUser}>
+                    {t('users.page.createPlatformAdmin')}
+                </Button>
+            ) : null}
             <Table
                 rowKey={(r) => r.id ?? ''}
                 loading={loading}

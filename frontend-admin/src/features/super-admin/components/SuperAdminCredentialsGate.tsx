@@ -7,7 +7,7 @@ import { useSuperAdminPlatformPolicy } from '@/features/super-admin/auth/superAd
 import { useI18n } from '@/i18n';
 
 export type SuperAdminCredentialsGateProps = {
-    children: ReactNode;
+    children?: ReactNode;
     /** When false, render nothing (no fallback alert). */
     showRestrictedHint?: boolean;
 };

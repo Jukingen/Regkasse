@@ -158,6 +158,8 @@ export * from './createSchlussbelegRequest';
 export * from './createSchlussbelegResponse';
 export * from './createStartbelegRequest';
 export * from './createStartbelegResponse';
+export * from './createTenantUserRequest';
+export * from './createTenantUserResultDto';
 export * from './createUserRequest';
 export * from './currencyInfo';
 export * from './customer';

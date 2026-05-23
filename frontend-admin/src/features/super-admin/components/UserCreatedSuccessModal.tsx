@@ -37,45 +37,36 @@ export function UserCreatedSuccessModal({ open, result, onClose }: UserCreatedSu
 
     return (
         <Modal
-            title={t('tenants.users.invite.resultSuccessTitle')}
+            title={t('users.create.success')}
             open={open}
             onCancel={onClose}
             destroyOnClose
             footer={[
                 <Button key="done" type="primary" onClick={onClose}>
-                    {t('tenants.users.invite.resultDone')}
+                    {t('common.ok', { defaultValue: 'OK' })}
                 </Button>,
             ]}
         >
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Typography.Text>
-                    {t('tenants.users.invite.credentialsFor', { email: result.email })}
-                </Typography.Text>
+                <Typography.Text>{result.email}</Typography.Text>
                 <Alert
                     type="info"
                     message={
                         <Space wrap>
-                            <Typography.Text strong>{t('tenants.users.invite.passwordLabel')}</Typography.Text>
+                            <Typography.Text strong>{t('users.create.password')}</Typography.Text>
                             <Typography.Text code>{result.generatedPassword}</Typography.Text>
                             <Button size="small" icon={<CopyOutlined />} onClick={() => void copyPassword()}>
-                                {t('tenants.provisioning.copyPassword')}
+                                {t('users.create.copyPassword')}
                             </Button>
                         </Space>
                     }
                 />
-                <Alert type="warning" showIcon message={t('tenants.users.invite.passwordOnceWarning')} />
-                <Typography.Text strong>{t('tenants.users.invite.nextStepsTitle')}</Typography.Text>
-                <Typography.Paragraph style={{ marginBottom: 0 }}>
-                    <ol style={{ paddingLeft: 20, margin: 0 }}>
-                        <li>{t('tenants.users.invite.nextStep1')}</li>
-                        <li>
-                            {portalUrl
-                                ? t('tenants.users.invite.nextStep2', { portalUrl })
-                                : t('tenants.users.invite.nextStep2NoUrl')}
-                        </li>
-                        <li>{t('tenants.users.invite.nextStep3')}</li>
-                    </ol>
-                </Typography.Paragraph>
+                <Alert type="warning" showIcon message={t('users.create.generatedPasswordInfo')} />
+                {portalUrl ? (
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {portalUrl}
+                    </Typography.Text>
+                ) : null}
             </Space>
         </Modal>
     );

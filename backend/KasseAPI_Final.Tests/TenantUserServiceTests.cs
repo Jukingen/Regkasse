@@ -1,3 +1,4 @@
+using System.IO;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
@@ -5,6 +6,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -31,9 +33,10 @@ public sealed class TenantUserServiceTests
     private static UserManager<ApplicationUser> CreateUserManager(AppDbContext db)
     {
         var store = new UserStore<ApplicationUser>(db);
-        return new UserManager<ApplicationUser>(
+        var identityOptions = Options.Create(new IdentityOptions());
+        var userManager = new UserManager<ApplicationUser>(
             store,
-            Options.Create(new IdentityOptions()),
+            identityOptions,
             new PasswordHasher<ApplicationUser>(),
             new List<IUserValidator<ApplicationUser>>(),
             new List<IPasswordValidator<ApplicationUser>>(),
@@ -41,12 +44,22 @@ public sealed class TenantUserServiceTests
             new IdentityErrorDescriber(),
             null!,
             Mock.Of<ILogger<UserManager<ApplicationUser>>>());
+
+        var dataProtection = DataProtectionProvider.Create(
+            new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-tenant-user-tests")));
+        userManager.RegisterTokenProvider(
+            TokenOptions.DefaultProvider,
+            new DataProtectorTokenProvider<ApplicationUser>(
+                dataProtection,
+                Options.Create(new DataProtectionTokenProviderOptions()),
+                Mock.Of<ILogger<DataProtectorTokenProvider<ApplicationUser>>>()));
+
+        return userManager;
     }
 
     private static TenantUserService CreateService(
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
-        ITenantInvitationEmailSender? invitationEmail = null,
         IUserUniquenessValidationService? uniqueness = null,
         IUserSessionInvalidation? sessionInvalidation = null,
         IQuickUserGeneratorService? quickUserGenerator = null,
@@ -57,7 +70,6 @@ public sealed class TenantUserServiceTests
             userManager,
             new UserTenantMembershipProvisioner(db),
             uniqueness ?? CreateUniquenessMock().Object,
-            invitationEmail ?? CreateInvitationEmailMock(sent: false).Object,
             sessionInvalidation ?? Mock.Of<IUserSessionInvalidation>(),
             quickUserGenerator ?? new QuickUserGeneratorService(
                 db,
@@ -85,6 +97,19 @@ public sealed class TenantUserServiceTests
                 It.IsAny<string?>(),
                 It.IsAny<ImpersonationAuditContext.Snapshot?>()))
             .ReturnsAsync(new AuditLog { Id = Guid.NewGuid() });
+        m.Setup(x => x.LogUserLifecycleAsync(
+                It.IsAny<AuditEventType>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<UserCreatedAuditDetails?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid() });
         return m;
     }
 
@@ -93,15 +118,6 @@ public sealed class TenantUserServiceTests
         var m = new Mock<IUserUniquenessValidationService>();
         m.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync(emailTaken);
-        return m;
-    }
-
-    private static Mock<ITenantInvitationEmailSender> CreateInvitationEmailMock(bool sent, bool configured = true)
-    {
-        var m = new Mock<ITenantInvitationEmailSender>();
-        m.Setup(x => x.IsConfigured).Returns(configured);
-        m.Setup(x => x.TrySendInvitationAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(sent);
         return m;
     }
 
@@ -136,7 +152,7 @@ public sealed class TenantUserServiceTests
         Assert.Matches(@"[A-Z]", password);
         Assert.Matches(@"[a-z]", password);
         Assert.Matches(@"\d", password);
-        Assert.Matches(@"[!@#$%&*]", password);
+        Assert.Matches(@"[!@#$%^&*()]", password);
     }
 
     [Fact]
@@ -163,7 +179,7 @@ public sealed class TenantUserServiceTests
         {
             Email = "create@cafe.test",
             Role = Roles.Manager,
-        }, actorId);
+        }, actorId, Roles.SuperAdmin);
 
         Assert.Null(error);
         Assert.NotNull(result);
@@ -173,18 +189,22 @@ public sealed class TenantUserServiceTests
         Assert.Equal("create@cafe.test", result.Email);
 
         audit.Verify(
-            x => x.LogSystemOperationAsync(
-                "TENANT_USER_CREATED",
-                "TenantUser",
+            x => x.LogUserLifecycleAsync(
+                AuditEventType.UserCreated,
                 actorId,
                 Roles.SuperAdmin,
+                It.IsAny<string>(),
                 It.IsAny<string?>(),
-                It.Is<string?>(n => n != null && n.Contains("role=Manager")),
+                It.IsAny<string?>(),
                 AuditLogStatus.Success,
                 It.IsAny<string?>(),
                 It.IsAny<object?>(),
                 It.IsAny<object?>(),
-                It.IsAny<string?>()),
+                It.Is<UserCreatedAuditDetails>(d =>
+                    d.CreatedByUserId == actorId
+                    && d.Role == Roles.Manager
+                    && d.TenantId == tenantId
+                    && d.PasswordReturned)),
             Times.Once);
 
         var created = await db.Users.AsNoTracking().SingleAsync(u => u.Email == "create@cafe.test");
@@ -215,12 +235,12 @@ public sealed class TenantUserServiceTests
         {
             Email = "first@multi.test",
             Role = Roles.Cashier,
-        }, actorId);
+        }, actorId, Roles.SuperAdmin);
         var (second, secondError) = await service.CreateAsync(tenantId, new CreateTenantUserRequest
         {
             Email = "second@multi.test",
             Role = Roles.Cashier,
-        }, actorId);
+        }, actorId, Roles.SuperAdmin);
 
         Assert.Null(firstError);
         Assert.Null(secondError);
@@ -278,44 +298,7 @@ public sealed class TenantUserServiceTests
     }
 
     [Fact]
-    public async Task InviteAsync_Creates_User_Assigns_Membership_And_Returns_Password()
-    {
-        await using var db = CreateDb();
-        await SeedRolesAsync(db);
-        var tenantId = Guid.NewGuid();
-        db.Tenants.Add(new Tenant
-        {
-            Id = tenantId,
-            Name = "Test Cafe",
-            Slug = "cafe",
-            Status = TenantStatuses.Active,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow,
-        });
-        await db.SaveChangesAsync();
-
-        var service = CreateService(db, CreateUserManager(db));
-        var (result, error) = await service.InviteAsync(tenantId, new InviteTenantUserRequest
-        {
-            Email = "new.manager@cafe.test",
-            Role = Roles.Manager,
-        }, "actor-1");
-
-        Assert.Null(error);
-        Assert.NotNull(result);
-        Assert.True(result!.UserCreated);
-        Assert.False(result.InvitationEmailSent);
-        Assert.False(string.IsNullOrEmpty(result.GeneratedPassword));
-        Assert.True(result.ForcePasswordChangeOnNextLogin);
-        Assert.Equal("https://cafe.regkasse.at", result.TenantPortalUrl);
-
-        var user = await db.Users.SingleAsync(u => u.Email == "new.manager@cafe.test");
-        Assert.Equal(Roles.Manager, user.Role);
-        Assert.True(user.MustChangePasswordOnNextLogin);
-    }
-
-    [Fact]
-    public async Task InviteAsync_Succeeds_When_Ambient_Tenant_Differs_From_Target()
+    public async Task CreateAsync_Succeeds_When_Ambient_Tenant_Differs_From_Target()
     {
         var tenantAccessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
         await using var db = CreateDb(tenantAccessor);
@@ -333,22 +316,22 @@ public sealed class TenantUserServiceTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db, CreateUserManager(db), tenantAccessor: tenantAccessor);
-        var (result, error) = await service.InviteAsync(targetTenantId, new InviteTenantUserRequest
+        var (result, error) = await service.CreateAsync(targetTenantId, new CreateTenantUserRequest
         {
             Email = "remote.manager@cafe.test",
             Role = Roles.Manager,
-        }, "actor-1");
+        }, "actor-1", Roles.Manager);
 
         Assert.Null(error);
         Assert.NotNull(result);
-        Assert.True(result!.UserCreated);
+        Assert.True(result!.Success);
         Assert.Equal(
             targetTenantId,
             (await db.UserTenantMemberships.IgnoreQueryFilters().SingleAsync()).TenantId);
     }
 
     [Fact]
-    public async Task InviteAsync_Assigns_Existing_User_Without_Password()
+    public async Task CreateAsync_Rejects_Existing_Email()
     {
         await using var db = CreateDb();
         await SeedRolesAsync(db);
@@ -381,17 +364,14 @@ public sealed class TenantUserServiceTests
         await userManager.AddToRoleAsync(existing, Roles.Cashier);
 
         var service = CreateService(db, userManager);
-        var (result, error) = await service.InviteAsync(tenantId, new InviteTenantUserRequest
+        var (result, error) = await service.CreateAsync(tenantId, new CreateTenantUserRequest
         {
             Email = "existing@bar.test",
             Role = Roles.Manager,
-        }, "actor-1");
+        }, "actor-1", Roles.SuperAdmin);
 
-        Assert.Null(error);
-        Assert.NotNull(result);
-        Assert.False(result!.UserCreated);
-        Assert.Null(result.GeneratedPassword);
-        Assert.False(result.ForcePasswordChangeOnNextLogin);
+        Assert.Null(result);
+        Assert.Contains("already exists", error ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

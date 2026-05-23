@@ -5,12 +5,12 @@ import { Alert, Button, Modal, Typography, message } from 'antd';
 import { useCallback, useMemo, useState } from 'react';
 
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
-import { InviteUserModal, type InviteUserFormValues } from '@/features/super-admin/components/InviteUserModal';
+import { CreateUserModal, type CreateUserFormValues } from '@/features/super-admin/components/CreateUserModal';
 import {
     applyTenantImpersonationSession,
     impersonateAdminTenant,
 } from '@/features/super-admin/api/adminTenants';
-import { inviteTenantUser } from '@/features/super-admin/api/tenantUsers';
+import { useCreateUser } from '@/features/users/hooks/useCreateUser';
 import { getApiAdminTenantsQueryKey } from '@/features/tenancy/api/getApiAdminTenants';
 import type { TenantListItemForSwitcher } from '@/features/tenancy/hooks/useTenantListForSwitcher';
 import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
@@ -31,7 +31,7 @@ export function TenantSwitcherNoAdminFlow({
 }: TenantSwitcherNoAdminFlowProps) {
     const { t } = useI18n();
     const queryClient = useQueryClient();
-    const [inviteOpen, setInviteOpen] = useState(false);
+    const [createOpen, setCreateOpen] = useState(false);
     const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
 
     const defaultAdminEmail = useMemo(
@@ -39,8 +39,8 @@ export function TenantSwitcherNoAdminFlow({
         [tenant],
     );
 
-    const inviteInitialValues = useMemo(
-        (): Partial<InviteUserFormValues> => ({
+    const createInitialValues = useMemo(
+        (): Partial<CreateUserFormValues> => ({
             email: defaultAdminEmail,
             role: 'Manager',
             isOwner: true,
@@ -49,7 +49,7 @@ export function TenantSwitcherNoAdminFlow({
     );
 
     const closeAll = useCallback(() => {
-        setInviteOpen(false);
+        setCreateOpen(false);
         onClose();
     }, [onClose]);
 
@@ -64,29 +64,21 @@ export function TenantSwitcherNoAdminFlow({
         onError: () => message.error(t('tenants.messages.impersonationFailed')),
     });
 
-    const inviteMutation = useMutation({
-        mutationFn: (values: InviteUserFormValues) =>
-            inviteTenantUser(tenant!.id, {
-                email: values.email,
-                role: values.role,
-                isOwner: values.isOwner,
-            }),
-        onSuccess: (result) => {
+    const createMutation = useCreateUser({
+        fixedTenantId: tenant?.id,
+        onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: getApiAdminTenantsQueryKey(false) });
-            if (result.userCreated) {
-                message.success(t('tenants.users.invite.messages.sent'));
-            } else {
-                message.warning(t('tenants.users.invite.messages.assignedNoEmail'));
-            }
-            setInviteOpen(false);
-            closeAll();
-            onCompleted?.();
-            if (tenant) {
-                persistTenantSlugAndRefresh(tenant.slug);
-            }
         },
-        onError: () => message.error(t('tenants.users.invite.messages.failed')),
     });
+
+    const handleCreateComplete = useCallback(() => {
+        setCreateOpen(false);
+        closeAll();
+        onCompleted?.();
+        if (tenant) {
+            persistTenantSlugAndRefresh(tenant.slug);
+        }
+    }, [closeAll, onCompleted, tenant]);
 
     const handleSwitchDev = useCallback(() => {
         if (!tenant) return;
@@ -100,7 +92,7 @@ export function TenantSwitcherNoAdminFlow({
             {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
             <Modal
                 title={t('adminShell.tenant.devSwitcher.noAdminSwitchTitle')}
-                open={open && !inviteOpen}
+                open={open && !createOpen}
                 onCancel={closeAll}
                 footer={[
                     <Button key="cancel" onClick={closeAll}>
@@ -109,7 +101,7 @@ export function TenantSwitcherNoAdminFlow({
                     <Button key="dev" onClick={handleSwitchDev}>
                         {t('adminShell.tenant.devSwitcher.switchAnywayDev')}
                     </Button>,
-                    <Button key="create" onClick={() => setInviteOpen(true)}>
+                    <Button key="create" onClick={() => setCreateOpen(true)}>
                         {t('adminShell.tenant.devSwitcher.createAdmin')}
                     </Button>,
                     <Button
@@ -135,15 +127,16 @@ export function TenantSwitcherNoAdminFlow({
                     />
                 ) : null}
             </Modal>
-            <InviteUserModal
-                open={inviteOpen}
+            <CreateUserModal
+                open={createOpen}
                 variant="tenantDetail"
                 tenantId={tenant?.id}
-                tenantContext={tenant?.source}
-                confirmLoading={inviteMutation.isPending}
-                onClose={() => setInviteOpen(false)}
-                onSubmit={(values) => inviteMutation.mutate(values)}
-                initialValues={inviteInitialValues}
+                showOwnerToggle
+                confirmLoading={createMutation.isPending}
+                onClose={() => setCreateOpen(false)}
+                onComplete={handleCreateComplete}
+                onSubmit={(values) => createMutation.mutateAsync(values)}
+                initialValues={createInitialValues}
             />
         </>
     );

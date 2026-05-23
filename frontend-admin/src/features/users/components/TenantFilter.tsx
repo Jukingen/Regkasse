@@ -52,7 +52,7 @@ export function TenantFilter({
         for (const tenant of businessTenants) {
             rows.push({
                 value: tenant.id,
-                label: t('users.invite.tenantOption', { name: tenant.name, slug: tenant.slug }),
+                label: t('users.create.tenantOption', { name: tenant.name, slug: tenant.slug }),
             });
         }
         return rows;

@@ -64,6 +64,16 @@ public sealed class QuickUserGeneratorServiceTests
     }
 
     [Fact]
+    public void GenerateSecurePassword_Meets_Complexity_Rules()
+    {
+        var password = PasswordGenerator.GenerateSecurePassword(12);
+        Assert.Matches(@"[A-Z]", password);
+        Assert.Matches(@"[a-z]", password);
+        Assert.Matches(@"\d", password);
+        Assert.Matches(@"[!@#$%^&*()]", password);
+    }
+
+    [Fact]
     public async Task PrepareAsync_Returns_Rate_Limit_Error_After_Ten_Quick_Users_In_Hour()
     {
         await using var db = CreateDb();

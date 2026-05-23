@@ -1,12 +1,16 @@
 /**
  * Admin user management API — platform vs tenant separation.
  * @see GET /api/admin/users?type=platform|tenant
- * @see POST /api/admin/users/invite
+ * @see POST /api/admin/users (tenantId in body for mandant users)
  * @see DELETE /api/admin/tenants/{tenantId}/users/{userId}
  */
 import { customInstance } from '@/lib/axios';
-import { postApiAdminUsers } from '@/api/generated/admin/admin';
-import type { AdminUserDto as GeneratedAdminUserDto, UserInfo } from '@/api/generated/model';
+import {
+    createTenantUser,
+    type CreateTenantUserRequest,
+    type CreateTenantUserResult,
+} from '@/features/super-admin/api/tenantUsers';
+import type { UserInfo } from '@/api/generated/model';
 
 export type AdminUserDto = {
     id: string;
@@ -21,6 +25,11 @@ export type AdminUserDto = {
     isActive: boolean;
     createdAt?: string;
     lastLoginAt?: string | null;
+    tenantId?: string | null;
+    tenantName?: string | null;
+    tenantSlug?: string | null;
+    /** `Platform` or `Tenant` from GET /api/admin/users (unified list). */
+    userType?: string | null;
 };
 
 export type TenantUserRowDto = {
@@ -42,54 +51,162 @@ export type ListAdminUsersParams = {
     tenantId?: string;
     role?: string;
     isActive?: boolean;
+    search?: string;
 };
 
-export type InviteAdminUserRequest = {
+/** Unified admin create (platform or tenant); password is generated server-side. */
+export type CreateUserRequest = {
     email: string;
-    tenantId: string;
+    firstName?: string;
+    lastName?: string;
     role: string;
     isOwner?: boolean;
+    tenantId?: string;
 };
 
-export type TenantUserInviteResult = {
-    user: {
-        userId: string;
-        email: string;
-        name: string;
-        role: string;
-        isOwner: boolean;
-        joinedAtUtc: string;
-    };
-    userCreated: boolean;
-    invitationEmailSent: boolean;
-    emailDeliveryNote?: string | null;
-    generatedPassword?: string | null;
-    forcePasswordChangeOnNextLogin?: boolean;
+export type CreateUserResult = {
+    userId: string;
+    email: string;
+    generatedPassword: string;
+    forcePasswordChangeOnNextLogin: boolean;
+    success: boolean;
     tenantPortalUrl?: string | null;
 };
 
-export type CreatePlatformUserRequest = {
-    userName: string;
-    password: string;
-    email?: string;
-    firstName: string;
-    lastName: string;
-    employeeNumber?: string;
-    taxNumber?: string;
-    notes?: string;
+type AdminCreateUserResponseDto = {
+    id: string;
+    email?: string | null;
+    generatedPassword: string;
+    forcePasswordChangeOnNextLogin?: boolean;
+};
+
+function mapTenantCreateResult(result: CreateTenantUserResult): CreateUserResult {
+    return {
+        userId: result.userId,
+        email: result.email,
+        generatedPassword: result.generatedPassword,
+        forcePasswordChangeOnNextLogin: result.forcePasswordChangeOnNextLogin,
+        success: result.success,
+        tenantPortalUrl: result.tenantPortalUrl,
+    };
+}
+
+export async function createUser(data: CreateUserRequest): Promise<CreateUserResult> {
+    const email = data.email.trim();
+    if (data.tenantId) {
+        const tenantBody: CreateTenantUserRequest = {
+            email,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            role: data.role,
+            isOwner: data.isOwner,
+        };
+        const result = await createTenantUser(data.tenantId, tenantBody);
+        return mapTenantCreateResult(result);
+    }
+    return createPlatformUser({ ...data, email });
+}
+
+export async function createPlatformUser(
+    data: Omit<CreateUserRequest, 'tenantId' | 'isOwner'>,
+): Promise<CreateUserResult> {
+    const created = await customInstance<AdminCreateUserResponseDto>({
+        url: '/api/admin/users',
+        method: 'POST',
+        data: {
+            email: data.email.trim(),
+            firstName: data.firstName,
+            lastName: data.lastName,
+            role: data.role,
+        },
+    });
+    if (!created.id || !created.generatedPassword) {
+        throw new Error('Create user response missing id or generatedPassword');
+    }
+    return {
+        userId: created.id,
+        email: created.email ?? data.email,
+        generatedPassword: created.generatedPassword,
+        forcePasswordChangeOnNextLogin: true,
+        success: true,
+    };
+}
+
+export type AdminUserTenantMembership = {
+    tenantId: string;
+    tenantName: string;
+    tenantSlug: string;
+    role: string;
+    isOwner: boolean;
 };
 
 export const adminUsersQueryKeys = {
-    platform: (isActive?: boolean) => ['admin', 'users', 'platform', isActive ?? 'all'] as const,
-    tenant: (tenantId?: string, role?: string) =>
-        ['admin', 'users', 'tenant', tenantId ?? 'all', role ?? 'all'] as const,
+    all: (isActive?: boolean, role?: string, search?: string) =>
+        ['admin', 'users', 'all', isActive ?? 'all', role ?? 'all', search ?? ''] as const,
+    userTenants: (userId: string) => ['admin', 'users', userId, 'tenants'] as const,
+    platform: (isActive?: boolean, search?: string) =>
+        ['admin', 'users', 'platform', isActive ?? 'all', search ?? ''] as const,
+    tenant: (tenantId?: string, role?: string, search?: string) =>
+        ['admin', 'users', 'tenant', tenantId ?? 'all', role ?? 'all', search ?? ''] as const,
 };
 
-export async function listPlatformUsers(params?: Pick<ListAdminUsersParams, 'isActive'>): Promise<AdminUserDto[]> {
+export async function getAdminUserTenants(userId: string): Promise<AdminUserTenantMembership[]> {
+    const rows = await customInstance<
+        Array<{
+            tenantId: string;
+            tenantName: string;
+            tenantSlug: string;
+            role: string;
+            isOwner: boolean;
+        }>
+    >({
+        url: `/api/admin/users/${userId}/tenants`,
+        method: 'GET',
+    });
+    return rows.map((r) => ({
+        tenantId: String(r.tenantId),
+        tenantName: r.tenantName,
+        tenantSlug: r.tenantSlug,
+        role: r.role,
+        isOwner: r.isOwner,
+    }));
+}
+
+export async function updateUserTenants(userId: string, tenantIds: string[]): Promise<void> {
+    await customInstance<void>({
+        url: `/api/admin/users/${userId}/tenants`,
+        method: 'PUT',
+        data: { tenantIds },
+    });
+}
+
+/** Unified user list (platform + tenant) with tenant metadata per row. */
+function listSearchParams(params?: Pick<ListAdminUsersParams, 'isActive' | 'role' | 'search'>) {
+    const search = params?.search?.trim();
+    return {
+        ...(params?.isActive != null ? { isActive: params.isActive } : {}),
+        ...(params?.role ? { role: params.role } : {}),
+        ...(search ? { search } : {}),
+    };
+}
+
+export async function listAllAdminUsers(
+    params?: Pick<ListAdminUsersParams, 'isActive' | 'role' | 'search'>,
+): Promise<AdminUserDto[]> {
     return customInstance<AdminUserDto[]>({
         url: '/api/admin/users',
         method: 'GET',
-        params: { type: 'platform', ...(params?.isActive != null ? { isActive: params.isActive } : {}) },
+        params: listSearchParams(params),
+    });
+}
+
+export async function listPlatformUsers(
+    params?: Pick<ListAdminUsersParams, 'isActive' | 'search'>,
+): Promise<AdminUserDto[]> {
+    return customInstance<AdminUserDto[]>({
+        url: '/api/admin/users',
+        method: 'GET',
+        params: { type: 'platform', ...listSearchParams(params) },
     });
 }
 
@@ -100,17 +217,8 @@ export async function listTenantUsers(params?: ListAdminUsersParams): Promise<Te
         params: {
             type: 'tenant',
             ...(params?.tenantId ? { tenantId: params.tenantId } : {}),
-            ...(params?.role ? { role: params.role } : {}),
-            ...(params?.isActive != null ? { isActive: params.isActive } : {}),
+            ...listSearchParams(params),
         },
-    });
-}
-
-export async function inviteAdminUser(body: InviteAdminUserRequest): Promise<TenantUserInviteResult> {
-    return customInstance<TenantUserInviteResult>({
-        url: '/api/admin/users/invite',
-        method: 'POST',
-        data: body,
     });
 }
 
@@ -120,31 +228,6 @@ export async function removeUserFromTenant(tenantId: string, userId: string): Pr
         url: `/api/admin/tenants/${tenantId}/users/${userId}`,
         method: 'DELETE',
     });
-}
-
-function mapGeneratedAdminUser(dto: GeneratedAdminUserDto): AdminUserDto {
-    if (!dto.id) {
-        throw new Error('Admin user response missing id');
-    }
-    return {
-        id: dto.id,
-        userName: dto.userName,
-        email: dto.email,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        employeeNumber: dto.employeeNumber,
-        role: dto.role,
-        taxNumber: dto.taxNumber,
-        notes: dto.notes,
-        isActive: dto.isActive ?? false,
-        createdAt: dto.createdAt,
-        lastLoginAt: dto.lastLoginAt,
-    };
-}
-
-export async function createPlatformUser(body: CreatePlatformUserRequest): Promise<AdminUserDto> {
-    const created = await postApiAdminUsers({ ...body, role: 'SuperAdmin' });
-    return mapGeneratedAdminUser(created);
 }
 
 export function adminUserToUserInfo(dto: AdminUserDto): UserInfo {

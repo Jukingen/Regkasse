@@ -5,55 +5,85 @@ import { useQuery } from '@tanstack/react-query';
 
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
+import { getDevTenant, isDevelopment } from '@/features/auth/services/devTenant';
+import { readTokenTenantClaims } from '@/features/auth/services/tokenTenantClaims';
+import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
 import { useTenantContext } from '@/features/tenancy/hooks/useTenantContext';
 import { useSuperAdminTenantMode } from '@/features/tenancy/hooks/useSuperAdminTenantMode';
-import { resolveTenantSlug } from '@/lib/tenantResolver';
-
-const ADMIN_TENANTS_QUERY_KEY = ['admin', 'tenants', false] as const;
+import {
+    isTenantSuspendedOrInactive,
+    resolveActiveTenantFromSwitcherList,
+} from '@/features/super-admin/utils/tenantHeaderSwitcher';
 
 /**
- * Header badge and admin UI: slug from dev override / subdomain, id from JWT/storage,
- * display name from JWT or Super Admin tenant list when missing.
+ * Header badge, dev switcher, and mandant-scoped pages: one resolved tenant row
+ * (JWT tenant_id → dev localStorage slug → host subdomain).
  */
 export function useCurrentTenant() {
     const { user } = useAuth();
     const ctx = useTenantContext();
     const mode = useSuperAdminTenantMode();
 
-    const shouldFetchName =
-        isSuperAdmin(user?.role) &&
-        !ctx.tenantName &&
-        ctx.tenantSlug !== 'admin' &&
-        ctx.hasAuthToken;
-
-    const tenantsQuery = useQuery({
-        queryKey: ADMIN_TENANTS_QUERY_KEY,
-        queryFn: () => listAdminTenants(false),
-        enabled: shouldFetchName,
-        staleTime: 60_000,
-    });
+    const switcherQuery = useGetApiAdminTenants(
+        { includeDeleted: false },
+        {
+            enabled: ctx.hasAuthToken,
+            staleTime: 60_000,
+        },
+    );
 
     return useMemo(() => {
-        const tenantSlug = ctx.tenantSlug || resolveTenantSlug();
-        const tenantId = ctx.tenantId;
-        const tenantNameFromApi = tenantsQuery.data?.find((row) => row.slug === tenantSlug)?.name ?? null;
-        const tenantName = ctx.tenantName ?? tenantNameFromApi;
+        const tokenSnapshot = readTokenTenantClaims();
+        const jwtTenantId =
+            user?.tenantId ?? tokenSnapshot.tenantId ?? ctx.tenantId ?? null;
+        const jwtTenantSlug = user?.tenantSlug ?? tokenSnapshot.tenantSlug ?? ctx.jwtTenantSlug ?? null;
+        const rawDevSlug = isDevelopment() ? (ctx.devSelectedSlug ?? getDevTenant()) : null;
+        const devTenantSlug =
+            rawDevSlug && rawDevSlug !== 'admin' ? rawDevSlug : null;
+
+        const resolvedRow = resolveActiveTenantFromSwitcherList(switcherQuery.data ?? [], {
+            jwtTenantId,
+            jwtTenantSlug,
+            isImpersonating: ctx.isImpersonating,
+            isDevTenantOverride: ctx.isDevTenantOverride,
+            devTenantSlug,
+            hostSlug: ctx.hostSlug,
+        });
+
+        const tenantSlug = resolvedRow?.slug ?? ctx.tenantSlug;
+        const tenantId = resolvedRow?.id ?? jwtTenantId;
+        const tenantName = resolvedRow?.name ?? ctx.tenantName;
+        const tenantStatus = resolvedRow?.status ?? null;
+        const isActive = resolvedRow?.isActive ?? true;
+        const licenseValidUntilUtc = resolvedRow?.licenseValidUntilUtc ?? null;
+        const licenseKey = resolvedRow?.licenseKey ?? null;
+        const isTenantSuspended = resolvedRow ? isTenantSuspendedOrInactive(resolvedRow) : false;
+
         const isSuperAdminUser = isSuperAdmin(user?.role);
         const isRealTenantSlug = Boolean(tenantSlug && tenantSlug !== 'admin');
         const isManager = user?.role === 'Manager';
 
-        /** Manager on a tenant host/slug — mandant SaaS license in header (LicenseStatusIndicator). */
         const showTenantLicenseInHeader =
             ctx.hasAuthToken && !isSuperAdminUser && isManager && isRealTenantSlug;
 
-        /** Super Admin never sees deployment or mandant expiry warnings in the shell. */
         const suppressLicenseWarnings = isSuperAdminUser;
+
+        const isTenantRecordLoading =
+            ctx.hasAuthToken &&
+            switcherQuery.isLoading &&
+            switcherQuery.fetchStatus !== 'idle' &&
+            !resolvedRow;
 
         return {
             tenantSlug,
             tenantId,
             tenantName,
+            tenantStatus,
+            isActive,
+            isTenantSuspended,
+            licenseValidUntilUtc,
+            licenseKey,
+            resolvedTenant: resolvedRow,
             displayLabel: tenantName ?? (tenantSlug !== 'admin' ? tenantSlug : null),
             hasAuthToken: ctx.hasAuthToken,
             isImpersonating: ctx.isImpersonating,
@@ -66,12 +96,16 @@ export function useCurrentTenant() {
             isRealTenantSlug,
             showTenantLicenseInHeader,
             suppressLicenseWarnings,
+            isTenantRecordLoading,
         };
     }, [
         user?.role,
+        user?.tenantId,
+        user?.tenantSlug,
         ctx.tenantSlug,
         ctx.tenantId,
         ctx.tenantName,
+        ctx.jwtTenantSlug,
         ctx.hasAuthToken,
         ctx.isImpersonating,
         ctx.isDevTenantOverride,
@@ -79,6 +113,8 @@ export function useCurrentTenant() {
         ctx.hostSlug,
         mode.requiresTenantSelection,
         mode.isSuperAdminPlatformMode,
-        tenantsQuery.data,
+        switcherQuery.data,
+        switcherQuery.isLoading,
+        switcherQuery.fetchStatus,
     ]);
 }

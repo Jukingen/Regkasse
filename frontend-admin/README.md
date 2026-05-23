@@ -75,6 +75,26 @@ Code: `src/shared/config/rksvEnvironment.ts`.
 - **UI**: Ant Design v5 with CSS-in-JS registry for SSR.
 - **i18n**: Custom `I18nProvider` + JSON catalogs; runtime namespace’ler ve dosya adı eşlemesi için `src/i18n/README.md` kaynak kabul edilir.
 
+## User Management
+
+Users are created directly by administrators (Super Admin or Manager). **No email invitations** are sent.
+
+### Creating a user
+
+1. Navigate to **Users** → **Create User** (or tenant detail → **Benutzer** tab → **Benutzer anlegen**).
+2. Fill in **E-Mail**, name, **Rolle**, and **Mandant** (Super Admin only, when not on a fixed tenant).
+3. The system generates a secure password (shown **once** in a follow-up modal).
+4. Copy the password and share it securely with the user (not via the product email channel).
+5. The user must change the password on first login (`MustChangePasswordOnNextLogin`).
+
+### Add existing user (tenant only)
+
+On tenant detail (`/admin/tenants/{tenantId}`), **Bestehenden Benutzer hinzufügen** assigns an existing Identity account to the tenant (`AddExistingUserModal` → `POST …/users/assign`). This does **not** create a new login.
+
+**API:** `createUser` in `src/features/users/api/users.ts` (tenant → `POST /api/admin/tenants/{id}/users`; platform → `POST /api/admin/users`). Hook: `useCreateUser`.
+
+**Docs:** [`../docs/USER_MANAGEMENT.md`](../docs/USER_MANAGEMENT.md).
+
 ## Multi-Tenant Architecture
 
 Regkasse uses a multi-tenant architecture where a single backend instance serves multiple tenants (companies/customers).
@@ -169,7 +189,7 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 | Image | Description |
 |-------|-------------|
 | ![Tenant list](../docs/images/tenant-management/fa-tenant-list.png) | Mandantenverwaltung table |
-| ![Tenant users](../docs/images/tenant-management/fa-tenant-detail-users.png) | Invite / roles / reset password |
+| ![Tenant users](../docs/images/tenant-management/fa-tenant-detail-users.png) | Create user / add existing / roles / reset password |
 | ![Super Admin home](../docs/images/tenant-management/fa-super-admin-selector.png) | Tenant picker + impersonate |
 
 **Customer onboarding:** `CreateTenantWizard` on tenant list — see [`../docs/CUSTOMER_ONBOARDING.md`](../docs/CUSTOMER_ONBOARDING.md).

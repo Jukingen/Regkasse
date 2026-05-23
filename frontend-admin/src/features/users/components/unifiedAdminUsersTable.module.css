@@ -1,0 +1,13 @@
+.tableWrap :global(.ant-table-wrapper .ant-table-row:hover > td) {
+    background-color: #fafafa !important;
+}
+
+.tableWrap :global(.ant-table-wrapper .ant-table-row:hover) {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.tableWrap :global(.ant-table-wrapper .ant-table-thead > tr > th) {
+    background: #fafafa;
+    font-weight: 600;
+}

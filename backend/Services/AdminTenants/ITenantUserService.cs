@@ -13,17 +13,12 @@ public interface ITenantUserService
         Guid tenantId,
         CreateTenantUserRequest request,
         string actorUserId,
+        string actorRole,
         CancellationToken cancellationToken = default);
 
     Task<(CreateTenantUserResultDto? Result, string? Error)> CreateQuickAsync(
         Guid tenantId,
         CreateQuickTenantUserRequest request,
-        string actorUserId,
-        CancellationToken cancellationToken = default);
-
-    Task<(TenantUserInviteResultDto? Result, string? Error)> InviteAsync(
-        Guid tenantId,
-        InviteTenantUserRequest request,
         string actorUserId,
         CancellationToken cancellationToken = default);
 
@@ -41,7 +36,6 @@ public interface ITenantUserService
     Task<(TenantUserPasswordResetResultDto? Result, string? Error)> ResetPasswordAsync(
         Guid tenantId,
         string userId,
-        ResetTenantUserPasswordRequest? request = null,
         CancellationToken cancellationToken = default);
 
     Task<(TenantUserDto? Result, string? Error)> UpdateRoleAsync(

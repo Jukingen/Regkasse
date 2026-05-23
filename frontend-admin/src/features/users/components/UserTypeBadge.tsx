@@ -10,16 +10,16 @@ export type UserTypeBadgeProps = {
     row: UnifiedAdminUserRow;
 };
 
-/** Distinguishes platform operators vs mandant membership rows in the unified admin user list. */
+/** Optional compact user-type badge (platform vs mandant). */
 export function UserTypeBadge({ row }: UserTypeBadgeProps) {
     const { t } = useI18n();
 
-    if (row.kind === 'platform') {
+    if (row.userType === 'Platform' || row.kind === 'platform') {
         if (row.role === 'SuperAdmin') {
             return <Tag color="purple">{t('users.unified.typeBadgePlatformAdmin')}</Tag>;
         }
-        return <Tag color="blue">{t('users.unified.typeBadgePlatform')}</Tag>;
+        return <Tag color="default">{t('users.unified.typeBadgePlatform')}</Tag>;
     }
 
-    return <Tag color="green">{t('users.unified.typeBadgeTenant')}</Tag>;
+    return <Tag color="blue">{t('users.unified.typeBadgeTenant')}</Tag>;
 }

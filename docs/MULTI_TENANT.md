@@ -553,7 +553,7 @@ Operator UI is **German**; routes and code identifiers are **English**. Full det
 | Operation | Endpoint | Auth |
 |-----------|----------|------|
 | List / CRUD / impersonate | `/api/admin/tenants` | `SuperAdmin` |
-| Tenant users | `/api/admin/tenants/{id}/users`, `…/invite`, `…/role` | `SuperAdmin` |
+| Tenant users | `/api/admin/tenants/{id}/users`, `…/users/assign`, `…/role` | `user.manage` / `SuperAdmin` |
 | Tenant mandant license | `/api/admin/tenants/{id}/license/*` | `SuperAdmin` |
 | Dev switcher list | `GET /api/tenants/switcher` | authenticated; scoped by role |
 
@@ -634,7 +634,7 @@ When implementing security middleware, add tests to `TenantIsolationTests` and u
 |----------|---------|
 | `docs/TENANT_MANAGEMENT.md` | FA tenant CRUD, users, switcher, provisioning |
 | `docs/CUSTOMER_ONBOARDING.md` | Onboarding wizard, rollback, welcome email |
-| `docs/USER_MANAGEMENT.md` | Platform vs tenant users, invite, reset |
+| `docs/USER_MANAGEMENT.md` | Platform vs tenant users, direct create, reset |
 | `docs/CASH_REGISTER_LIFECYCLE.md` | RKSV decommission, Schlussbeleg |
 | `docs/LICENSE_SYSTEM.md` | Deployment vs Mandant license, FA badges/banners |
 | `docs/CHANGELOG_TENANT_MANAGEMENT.md` | Dated tenant/license FA changes |

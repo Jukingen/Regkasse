@@ -23,6 +23,7 @@ import {
     Empty,
     Flex,
     Tooltip,
+    Descriptions,
 } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
@@ -75,9 +76,12 @@ import { RoleManagementDrawer } from '@/features/users/components/RoleManagement
 import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
 import { createUsersFormRules } from '@/features/users/constants/validation';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
 import { adminUsersQueryKeys, createPlatformUser } from '@/features/users/api/users';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
+import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
 function fullName(record: UserInfo): string {
     const first = record.firstName ?? '';
@@ -111,6 +115,90 @@ const modalFormRulesContext = {
 
 function isCanonicalRoleName(roleName: string): roleName is (typeof CANONICAL_ROLE_VALUES)[number] {
     return (CANONICAL_ROLE_VALUES as readonly string[]).includes(roleName);
+}
+
+/** Aktiver Mandant-Kontext (Badge + API) — einheitlich über useCurrentTenant. */
+function UsersPageActiveTenantContext() {
+    const { t } = useI18n();
+    const {
+        hasAuthToken,
+        isSuperAdminPlatformMode,
+        isRealTenantSlug,
+        tenantName,
+        tenantSlug,
+        tenantId,
+        isTenantSuspended,
+        licenseValidUntilUtc,
+        licenseKey,
+        isTenantRecordLoading,
+        isDevTenantOverride,
+        isImpersonating,
+    } = useCurrentTenant();
+
+    const licenseBadge = useMemo(
+        () =>
+            getTenantSwitcherLicenseBadge(
+                { licenseValidUntilUtc: licenseValidUntilUtc ?? null, licenseKey: licenseKey ?? null },
+                t,
+            ),
+        [licenseValidUntilUtc, licenseKey, t],
+    );
+
+    if (!hasAuthToken || isSuperAdminPlatformMode || !isRealTenantSlug) {
+        return null;
+    }
+
+    const displayName = tenantName?.trim() || tenantSlug || '—';
+
+    return (
+        <Card
+            size="small"
+            loading={isTenantRecordLoading}
+            style={{ marginBottom: 16 }}
+            title={t('common.tenant.badgeDualLabel', { name: displayName })}
+        >
+            {isTenantSuspended ? (
+                <Alert
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message={t('adminShell.tenant.devSwitcher.suspendedSuffix')}
+                />
+            ) : null}
+            <Flex gap={4} wrap="wrap" style={{ marginBottom: 8 }}>
+                {isImpersonating ? (
+                    <Tag color="purple">{t('adminShell.tenant.infoCardImpersonationTag')}</Tag>
+                ) : null}
+                {isDevTenantOverride ? (
+                    <Tag color="gold">{t('adminShell.tenant.infoCardDevOverrideTag')}</Tag>
+                ) : null}
+                {licenseBadge ? (
+                    <Tooltip title={licenseBadge.tooltip}>
+                        <Tag color={licenseBadge.color}>{licenseBadge.label}</Tag>
+                    </Tooltip>
+                ) : null}
+            </Flex>
+            <Descriptions column={1} size="small">
+                <Descriptions.Item label={t('adminShell.tenant.infoCardName')}>
+                    {tenantName || '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label={t('adminShell.tenant.info.slug')}>
+                    <Typography.Text code copyable>
+                        {tenantSlug}
+                    </Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label={t('adminShell.tenant.infoCardId')}>
+                    {tenantId ? (
+                        <Typography.Text code copyable={{ text: tenantId }}>
+                            {tenantId}
+                        </Typography.Text>
+                    ) : (
+                        '—'
+                    )}
+                </Descriptions.Item>
+            </Descriptions>
+        </Card>
+    );
 }
 
 export default function UsersPage() {
@@ -281,14 +369,10 @@ export default function UsersPage() {
         mutationFn: (payload: { platform: boolean; data: CreateUserRequest }) =>
             payload.platform
                 ? createPlatformUser({
-                      userName: payload.data.userName!,
-                      password: payload.data.password!,
-                      email: payload.data.email ?? undefined,
-                      firstName: payload.data.firstName!,
-                      lastName: payload.data.lastName!,
-                      employeeNumber: payload.data.employeeNumber ?? undefined,
-                      taxNumber: payload.data.taxNumber ?? undefined,
-                      notes: payload.data.notes ?? undefined,
+                      email: payload.data.email ?? '',
+                      firstName: payload.data.firstName,
+                      lastName: payload.data.lastName,
+                      role: 'SuperAdmin',
                   }).then(() => undefined)
                 : gatewayCreateUser(payload.data),
         onSuccess: (_data, { platform }) => {
@@ -680,6 +764,8 @@ export default function UsersPage() {
                 </Typography.Paragraph>
             </AdminPageHeader>
 
+            <UsersPageActiveTenantContext />
+
             {isSuperAdminLayout ? (
                 <UnifiedAdminUsersView
                     policy={policy}
@@ -822,6 +908,8 @@ export default function UsersPage() {
                         dataSource={users}
                         loading={isLoading}
                         rowKey={(r) => r.id ?? ''}
+                        virtual={shouldUseAdminTableVirtual(users.length)}
+                        scroll={adminTableScrollXy(1280, users.length)}
                         pagination={{
                             current: pagination?.page ?? DEFAULT_PAGE,
                             pageSize: pagination?.pageSize ?? DEFAULT_PAGE_SIZE,
@@ -894,6 +982,7 @@ export default function UsersPage() {
                 rolesLoading={rolesLoading}
                 onSubmit={handleEdit}
                 loading={updateMutation.isPending}
+                canManageTenants={isSuperAdminLayout}
             />
 
             <UserDetailDrawer

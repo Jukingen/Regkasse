@@ -25,7 +25,6 @@ import type {
   AdminCreateUserRequest,
   AdminDeactivateRequest,
   AdminForcePasswordResetRequest,
-  AdminInviteUserRequest,
   AdminOfflineTransactionRetryResponseDto,
   AdminOfflineTransactionsListResponse,
   AdminOfflineTransactionsSummaryDto,
@@ -74,6 +73,8 @@ import type {
   CreateLegalHoldRequest,
   CreatePaymentMethodDefinitionRequest,
   CreatePricingRuleRequest,
+  CreateTenantUserRequest,
+  CreateTenantUserResultDto,
   DailyClosingSummaryDto,
   DecommissionCashRegisterRequest,
   DecommissionCashRegisterResponse,
@@ -134,7 +135,6 @@ import type {
   HardDeleteCashRegisterRequest,
   IncidentInvestigationResponse,
   IntegrityReportDto,
-  InviteTenantUserRequest,
   IssuedLicenseDetailResponse,
   IssuedLicensesListResponse,
   LegalHoldDto,
@@ -185,7 +185,6 @@ import type {
   TenantSlugAvailabilityDto,
   TenantSlugSuggestionsDto,
   TenantUserDto,
-  TenantUserInviteResultDto,
   TenantUserPasswordResetResultDto,
   TimeSyncDriftSummaryDto,
   TransferLicenseRequestBody,
@@ -5913,14 +5912,14 @@ export const useGetApiAdminTenantsTenantIdUsers = <TData = Awaited<ReturnType<ty
 
 export const postApiAdminTenantsTenantIdUsers = (
     tenantId: string,
-    addAdminTenantUserRequest: AddAdminTenantUserRequest,
+    createTenantUserRequest: CreateTenantUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<TenantUserDto>(
+      return customInstance<CreateTenantUserResultDto>(
       {url: `/api/admin/tenants/${tenantId}/users`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: addAdminTenantUserRequest
+      data: createTenantUserRequest
     },
       options);
     }
@@ -5928,14 +5927,14 @@ export const postApiAdminTenantsTenantIdUsers = (
 
 
 export const getPostApiAdminTenantsTenantIdUsersMutationOptions = <TError = ProblemDetails,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, TError,{tenantId: string;data: AddAdminTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, TError,{tenantId: string;data: AddAdminTenantUserRequest}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, TError,{tenantId: string;data: CreateTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, TError,{tenantId: string;data: CreateTenantUserRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, {tenantId: string;data: AddAdminTenantUserRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, {tenantId: string;data: CreateTenantUserRequest}> = (props) => {
           const {tenantId,data} = props ?? {};
 
           return  postApiAdminTenantsTenantIdUsers(tenantId,data,requestOptions)
@@ -5947,15 +5946,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiAdminTenantsTenantIdUsersMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>>
-    export type PostApiAdminTenantsTenantIdUsersMutationBody = AddAdminTenantUserRequest
+    export type PostApiAdminTenantsTenantIdUsersMutationBody = CreateTenantUserRequest
     export type PostApiAdminTenantsTenantIdUsersMutationError = ProblemDetails
 
     export const usePostApiAdminTenantsTenantIdUsers = <TError = ProblemDetails,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, TError,{tenantId: string;data: AddAdminTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>, TError,{tenantId: string;data: CreateTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsers>>,
         TError,
-        {tenantId: string;data: AddAdminTenantUserRequest},
+        {tenantId: string;data: CreateTenantUserRequest},
         TContext
       > => {
 
@@ -5963,34 +5962,34 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const postApiAdminTenantsTenantIdUsersInvite = (
+    export const postApiAdminTenantsTenantIdUsersAssign = (
     tenantId: string,
-    inviteTenantUserRequest: InviteTenantUserRequest,
+    addAdminTenantUserRequest: AddAdminTenantUserRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<TenantUserInviteResultDto>(
-      {url: `/api/admin/tenants/${tenantId}/users/invite`, method: 'POST',
+      return customInstance<TenantUserDto>(
+      {url: `/api/admin/tenants/${tenantId}/users/assign`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: inviteTenantUserRequest
+      data: addAdminTenantUserRequest
     },
       options);
     }
   
 
 
-export const getPostApiAdminTenantsTenantIdUsersInviteMutationOptions = <TError = ProblemDetails,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersInvite>>, TError,{tenantId: string;data: InviteTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersInvite>>, TError,{tenantId: string;data: InviteTenantUserRequest}, TContext> => {
+export const getPostApiAdminTenantsTenantIdUsersAssignMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersAssign>>, TError,{tenantId: string;data: AddAdminTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersAssign>>, TError,{tenantId: string;data: AddAdminTenantUserRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersInvite>>, {tenantId: string;data: InviteTenantUserRequest}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersAssign>>, {tenantId: string;data: AddAdminTenantUserRequest}> = (props) => {
           const {tenantId,data} = props ?? {};
 
-          return  postApiAdminTenantsTenantIdUsersInvite(tenantId,data,requestOptions)
+          return  postApiAdminTenantsTenantIdUsersAssign(tenantId,data,requestOptions)
         }
 
         
@@ -5998,20 +5997,20 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type PostApiAdminTenantsTenantIdUsersInviteMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersInvite>>>
-    export type PostApiAdminTenantsTenantIdUsersInviteMutationBody = InviteTenantUserRequest
-    export type PostApiAdminTenantsTenantIdUsersInviteMutationError = ProblemDetails
+    export type PostApiAdminTenantsTenantIdUsersAssignMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersAssign>>>
+    export type PostApiAdminTenantsTenantIdUsersAssignMutationBody = AddAdminTenantUserRequest
+    export type PostApiAdminTenantsTenantIdUsersAssignMutationError = unknown
 
-    export const usePostApiAdminTenantsTenantIdUsersInvite = <TError = ProblemDetails,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersInvite>>, TError,{tenantId: string;data: InviteTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const usePostApiAdminTenantsTenantIdUsersAssign = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersAssign>>, TError,{tenantId: string;data: AddAdminTenantUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
-        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersInvite>>,
+        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdUsersAssign>>,
         TError,
-        {tenantId: string;data: InviteTenantUserRequest},
+        {tenantId: string;data: AddAdminTenantUserRequest},
         TContext
       > => {
 
-      const mutationOptions = getPostApiAdminTenantsTenantIdUsersInviteMutationOptions(options);
+      const mutationOptions = getPostApiAdminTenantsTenantIdUsersAssignMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -6328,57 +6327,6 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminUsersMutationOptions(options);
-
-      return useMutation(mutationOptions);
-    }
-    export const postApiAdminUsersInvite = (
-    adminInviteUserRequest: AdminInviteUserRequest,
- options?: SecondParameter<typeof customInstance>,) => {
-      
-      
-      return customInstance<TenantUserInviteResultDto>(
-      {url: `/api/admin/users/invite`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: adminInviteUserRequest
-    },
-      options);
-    }
-  
-
-
-export const getPostApiAdminUsersInviteMutationOptions = <TError = ApiError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersInvite>>, TError,{data: AdminInviteUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersInvite>>, TError,{data: AdminInviteUserRequest}, TContext> => {
-const {mutation: mutationOptions, request: requestOptions} = options ?? {};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminUsersInvite>>, {data: AdminInviteUserRequest}> = (props) => {
-          const {data} = props ?? {};
-
-          return  postApiAdminUsersInvite(data,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PostApiAdminUsersInviteMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminUsersInvite>>>
-    export type PostApiAdminUsersInviteMutationBody = AdminInviteUserRequest
-    export type PostApiAdminUsersInviteMutationError = ApiError
-
-    export const usePostApiAdminUsersInvite = <TError = ApiError,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersInvite>>, TError,{data: AdminInviteUserRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationResult<
-        Awaited<ReturnType<typeof postApiAdminUsersInvite>>,
-        TError,
-        {data: AdminInviteUserRequest},
-        TContext
-      > => {
-
-      const mutationOptions = getPostApiAdminUsersInviteMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

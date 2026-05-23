@@ -1,5 +1,6 @@
 /** Backend `AuditLogEntityTypes` — see `KasseAPI_Final.Models.AuditLog.AuditLogEntityTypes`. */
 export const AUDIT_LOG_ENTITY_TYPE_FILTER_VALUES = [
+    'Tenant',
     'Payment',
     'Invoice',
     'Receipt',

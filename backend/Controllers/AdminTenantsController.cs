@@ -179,6 +179,21 @@ public sealed class AdminTenantsController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Restore a soft-deleted tenant (status=active, is_active=true).</summary>
+    [HttpPost("{tenantId:guid}/restore")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Restore(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var (success, error) = await _tenantService.RestoreAsync(tenantId, ActorUserId, cancellationToken).ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (!success)
+            return BadRequest(new { message = error });
+        return NoContent();
+    }
+
     /// <summary>Issue a short-lived admin JWT scoped to the target tenant (support impersonation).</summary>
     [HttpPost("{tenantId:guid}/impersonate")]
     [ProducesResponseType(typeof(TenantImpersonationResponseDto), StatusCodes.Status200OK)]

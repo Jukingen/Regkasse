@@ -20,4 +20,13 @@ public interface IAdminTenantLicenseService
         SetTenantLicenseTierRequest request,
         string? actorUserId,
         CancellationToken cancellationToken = default);
+
+    Task<(TenantLicenseConsistencyDto? Result, string? Error)> CheckDeploymentConsistencyAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
+    Task<(TenantLicenseIssueDeploymentResultDto? Result, string? Error)> IssueDeploymentLicenseAsync(
+        Guid tenantId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
 }

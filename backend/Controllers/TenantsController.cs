@@ -29,8 +29,9 @@ public sealed class TenantsController : ControllerBase
     {
         var actorUserId = User.GetActorUserId();
         var actorIsSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var effectiveIncludeDeleted = actorIsSuperAdmin && includeDeleted;
         var items = await _tenantService
-            .ListForSwitcherAsync(actorUserId, actorIsSuperAdmin, includeDeleted, cancellationToken)
+            .ListForSwitcherAsync(actorUserId, actorIsSuperAdmin, effectiveIncludeDeleted, cancellationToken)
             .ConfigureAwait(false);
         return Ok(items);
     }

@@ -115,14 +115,14 @@ See [Auto-provisioning](#auto-provisioning-tenantprovisioningservice).
 
 ---
 
-## How to invite users to a tenant
+## How to create users for a tenant
 
 1. Open tenant → tab **Benutzer** (or `/admin/tenants/{id}/users`).
-2. Click **Benutzer einladen**.
-3. Enter **E-Mail**, choose **Rolle** (`Manager` / `Cashier` / `Accountant`), optionally **Mandanten-Administrator (Owner)**.
-4. Confirm — backend creates or links Identity user and membership; sends invitation email if SMTP is configured.
+2. Click **Benutzer anlegen**.
+3. Enter **E-Mail**, optional name, **Rolle** (`Manager` / `Cashier` / `Accountant`, …), optionally **Mandanten-Administrator (Owner)**.
+4. Confirm — backend creates Identity user + membership; returns a **one-time password** in the UI (no invitation email).
 
-Alternatively: **Bestehenden Benutzer** — attach an existing account without creating a new login.
+**Bestehenden Benutzer hinzufügen** — attach an existing account (`AddExistingUserModal` → assign membership only; no new login).
 
 Full role and password semantics: [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md).
 
@@ -133,14 +133,14 @@ Full role and password semantics: [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md).
 
 | Operator action (DE) | API | Component |
 |----------------------|-----|-----------|
-| Benutzer einladen | `POST …/users/invite` | `InviteUserModal` |
-| Bestehenden Benutzer hinzufügen | `POST …/users` | `AddExistingUserModal` |
+| Benutzer anlegen | `POST …/users` | `CreateUserModal` |
+| Bestehenden Benutzer hinzufügen | `POST …/users/assign` | `AddExistingUserModal` |
 | Rolle ändern | `PUT …/users/{userId}/role` | `TenantUserTable` |
 | Inhaber setzen | `PUT …/users/{userId}` `{ isOwner: true }` | table action |
 | Passwort zurücksetzen | reset endpoint via modal | `ResetPasswordModal` |
 | Mitglied entfernen | `DELETE …/users/{userId}` | confirm in table |
 
-Roles for invite: `Manager`, `Cashier`, `Accountant` (`INVITE_TENANT_ROLES`).
+Roles for create: `Manager`, `Cashier`, `Accountant`, … (`TENANT_CREATE_ROLES`).
 
 **Owner admin email** on tenant list comes from `user_tenant_memberships` where `is_owner=true`, joined in `AdminTenantService.ListAsync` → DTO field `ownerAdminEmail`. This drives header switcher status (🟢/🟡) and “Kein Admin” warnings.
 
@@ -201,7 +201,7 @@ Badge colors for i18n labels: `mandantLicenseBadge.ts` → `mapTenantLicenseLabe
 
 Super Admin without mandant context sees **Super Admin Modus** in `TenantBadge`; most business routes require tenant selection or impersonation (`useSuperAdminTenantMode`).
 
-If a tenant has **no owner admin** (🟡), switching triggers `TenantSwitcherNoAdminFlow` (invite or impersonate).
+If a tenant has **no owner admin** (🟡), switching triggers `TenantSwitcherNoAdminFlow` (create admin or impersonate).
 
 ## Tenant switcher behavior
 
@@ -230,7 +230,7 @@ export async function getApiAdminTenants(includeDeleted = false): Promise<AdminT
 | Status icons | 🟢 active + owner admin; 🟡 active, no owner; 🔴 suspended; ⚫ deleted |
 | Admin line | `ownerAdminEmail` under title |
 | License tag | Mandant badge from `licenseValidUntilUtc` / `licenseKey` |
-| No-admin guard | Super Admin switching to tenant without owner → `TenantSwitcherNoAdminFlow` (impersonate or invite) |
+| No-admin guard | Super Admin switching to tenant without owner → `TenantSwitcherNoAdminFlow` (impersonate or create admin) |
 | Persist | `persistTenantSlugAndRefresh` → `localStorage.dev_tenant_id` + full reload |
 
 Utilities: `tenantHeaderSwitcher.ts` — `getTenantStatusIcon`, `getTenantHeaderTitle`, `sortTenantsForHeaderSwitcher`.

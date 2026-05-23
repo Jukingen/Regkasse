@@ -4,24 +4,27 @@
  * Development-only tenant switcher: all DB tenants (Super Admin) or membership-scoped list.
  * Search, status/admin/license rows, no-admin confirmation with impersonate or quick invite.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Dropdown, Flex, Input, Spin, Tag, Tooltip, Typography } from 'antd';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { Alert, Button, Checkbox, Dropdown, Flex, Input, Spin, Tag, Tooltip, Typography } from 'antd';
 import type { InputRef } from 'antd';
-import { DownOutlined, QuestionCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CheckOutlined, DownOutlined, QuestionCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 
 import { TenantSwitcherNoAdminFlow } from '@/features/auth/components/TenantSwitcherNoAdminFlow';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { getDevTenant, isLocalDevHostname } from '@/features/auth/services/devTenant';
+import { isLocalDevHostname } from '@/features/auth/services/devTenant';
 import { TenantNoAdminWarningPill } from '@/features/super-admin/components/TenantNoAdminWarningPill';
 import {
-    findTenantBySlug,
+    dedupeAdminTenantsById,
+    findTenantById,
     getTenantHeaderDetailLines,
     getTenantHeaderTitle,
     getTenantSwitcherLicenseBadge,
+    shouldShowHeaderDevTenantSwitch,
     tenantHeaderShowsNoAdminWarning,
 } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
     filterTenantSwitcherItems,
     tenantNeedsNoAdminWarning,
@@ -33,12 +36,21 @@ import { useI18n } from '@/i18n';
 
 const { Search } = Input;
 
+function dedupeSwitcherItems(items: TenantListItemForSwitcher[]): TenantListItemForSwitcher[] {
+    const sources = dedupeAdminTenantsById(items.map((row) => row.source));
+    const byId = new Map(items.map((row) => [row.id, row]));
+    return sources
+        .map((source) => byId.get(source.id))
+        .filter((row): row is TenantListItemForSwitcher => row != null);
+}
+
 type TenantSwitcherRowProps = {
     tenant: TenantListItemForSwitcher;
+    isActiveTenant: boolean;
     onSwitch: (tenant: TenantListItemForSwitcher) => void;
 };
 
-function TenantSwitcherRow({ tenant, onSwitch }: TenantSwitcherRowProps) {
+function TenantSwitcherRow({ tenant, isActiveTenant, onSwitch }: TenantSwitcherRowProps) {
     const { t } = useI18n();
     const title = getTenantHeaderTitle(tenant.source, t);
     const { adminLine } = getTenantHeaderDetailLines(tenant.source, t);
@@ -53,6 +65,7 @@ function TenantSwitcherRow({ tenant, onSwitch }: TenantSwitcherRowProps) {
             style={{
                 padding: '8px 4px',
                 borderBottom: '1px solid rgba(0,0,0,0.06)',
+                background: isActiveTenant ? 'rgba(22, 119, 255, 0.06)' : undefined,
             }}
         >
             <Flex vertical gap={2} style={{ minWidth: 0, flex: 1 }}>
@@ -60,6 +73,11 @@ function TenantSwitcherRow({ tenant, onSwitch }: TenantSwitcherRowProps) {
                     <Typography.Text strong style={{ fontSize: 13 }}>
                         {title}
                     </Typography.Text>
+                    {isActiveTenant ? (
+                        <Tag color="blue" icon={<CheckOutlined />} style={{ marginInlineEnd: 0 }}>
+                            {t('adminShell.tenant.info.active')}
+                        </Tag>
+                    ) : null}
                     {showNoAdminPill ? <TenantNoAdminWarningPill tenantId={tenant.id} /> : null}
                 </Flex>
                 {adminLine ? (
@@ -78,9 +96,15 @@ function TenantSwitcherRow({ tenant, onSwitch }: TenantSwitcherRowProps) {
                     </Tooltip>
                 ) : null}
             </Flex>
-            <Button size="small" type="link" onClick={() => onSwitch(tenant)}>
-                {t('adminShell.tenant.devSwitcher.switchAction')}
-            </Button>
+            {isActiveTenant ? (
+                <Typography.Text type="secondary" style={{ fontSize: 12, flexShrink: 0 }}>
+                    ✓
+                </Typography.Text>
+            ) : (
+                <Button size="small" type="link" onClick={() => onSwitch(tenant)}>
+                    {t('adminShell.tenant.devSwitcher.switchAction')}
+                </Button>
+            )}
         </Flex>
     );
 }
@@ -91,20 +115,26 @@ function TenantSwitcherDropdown({
     isFetching,
     isError,
     tenantCount,
-    currentSlug,
+    currentTenantId,
     onRequestSwitch,
     onRetry,
     minWidth,
+    showIncludeDeletedToggle = false,
+    includeDeleted = false,
+    onIncludeDeletedChange,
 }: {
     tenants: TenantListItemForSwitcher[];
     loading: boolean;
     isFetching: boolean;
     isError: boolean;
     tenantCount: number;
-    currentSlug: string;
+    currentTenantId: string | null | undefined;
     onRequestSwitch: (tenant: TenantListItemForSwitcher) => void;
     onRetry: () => void;
     minWidth: number;
+    showIncludeDeletedToggle?: boolean;
+    includeDeleted?: boolean;
+    onIncludeDeletedChange?: (checked: boolean) => void;
 }) {
     const { t } = useI18n();
     const [open, setOpen] = useState(false);
@@ -119,10 +149,13 @@ function TenantSwitcherDropdown({
     const searchQuery = search.trim();
     const isFiltering = searchQuery.length > 0;
 
-    const currentRow = findTenantBySlug(apiRows, currentSlug);
+    const normalizedCurrentId = currentTenantId?.trim().toLowerCase() ?? '';
+    const currentRow = normalizedCurrentId
+        ? findTenantById(apiRows, normalizedCurrentId)
+        : undefined;
     const triggerLabel = currentRow
         ? getTenantHeaderTitle(currentRow, t)
-        : `${currentSlug} (${t('adminShell.tenant.devSwitcher.unknownTenant')})`;
+        : t('adminShell.tenant.devSwitcher.unknownTenant');
 
     const handleOpenChange = useCallback(
         (next: boolean) => {
@@ -176,6 +209,15 @@ function TenantSwitcherDropdown({
                       })
                     : t('adminShell.tenant.devSwitcher.tenantCount', { count: tenantCount })}
             </Typography.Text>
+            {showIncludeDeletedToggle ? (
+                <Checkbox
+                    checked={includeDeleted}
+                    onChange={(e) => onIncludeDeletedChange?.(e.target.checked)}
+                    style={{ marginTop: 8 }}
+                >
+                    {t('tenants.filters.includeDeleted')}
+                </Checkbox>
+            ) : null}
             <Flex align="center" gap={6} style={{ marginTop: 8 }}>
                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                     {t('adminShell.tenant.devSwitcher.licenseColumnHint')}
@@ -218,7 +260,15 @@ function TenantSwitcherDropdown({
                 ) : null}
                 {!loading && !isError
                     ? filteredTenants.map((row) => (
-                          <TenantSwitcherRow key={row.id} tenant={row} onSwitch={handleRequestSwitch} />
+                          <TenantSwitcherRow
+                              key={row.id}
+                              tenant={row}
+                              isActiveTenant={
+                                  normalizedCurrentId.length > 0 &&
+                                  row.id.trim().toLowerCase() === normalizedCurrentId
+                              }
+                              onSwitch={handleRequestSwitch}
+                          />
                       ))
                     : null}
             </div>
@@ -253,22 +303,23 @@ export function HeaderDevTenantSwitch() {
     const { t } = useI18n();
     const { user } = useAuth();
     const { isPlatformAdminHost } = useTenantContext();
+    const { tenantId: currentTenantId } = useCurrentTenant();
     const isSuperAdminUser = isSuperAdmin(user?.role);
-    const { tenants, isLoading, isFetching, isError, refetch, tenantCount } = useTenantListForSwitcher();
-    const [currentTenant, setCurrentTenant] = useState<string>(() =>
-        typeof window !== 'undefined' ? getDevTenant() : 'dev',
-    );
+    const [includeDeleted, setIncludeDeleted] = useState(false);
+    const { tenants: rawTenants, isLoading, isFetching, isError, refetch, tenantCount } =
+        useTenantListForSwitcher({
+            includeDeleted: isSuperAdminUser && includeDeleted,
+        });
     const [noAdminTenant, setNoAdminTenant] = useState<TenantListItemForSwitcher | null>(null);
+
+    const tenants = useMemo(() => dedupeSwitcherItems(rawTenants), [rawTenants]);
+    const uniqueTenantCount = tenants.length;
 
     const hostHint = useMemo(() => {
         if (typeof window === 'undefined') return null;
         const host = window.location.hostname;
         if (!isLocalDevHostname(host)) return null;
         return host;
-    }, []);
-
-    useEffect(() => {
-        setCurrentTenant(getDevTenant());
     }, []);
 
     const applySlugSwitch = useCallback((slug: string) => {
@@ -288,7 +339,7 @@ export function HeaderDevTenantSwitch() {
 
     const controlMinWidth = isPlatformAdminHost ? 420 : 360;
 
-    if (process.env.NODE_ENV !== 'development') {
+    if (!shouldShowHeaderDevTenantSwitch()) {
         return null;
     }
 
@@ -306,11 +357,14 @@ export function HeaderDevTenantSwitch() {
             loading={isLoading}
             isFetching={isFetching}
             isError={isError}
-            tenantCount={tenantCount}
-            currentSlug={currentTenant}
+            tenantCount={uniqueTenantCount}
+            currentTenantId={currentTenantId}
             onRequestSwitch={requestSwitch}
             onRetry={() => void refetch()}
             minWidth={controlMinWidth}
+            showIncludeDeletedToggle={isSuperAdminUser}
+            includeDeleted={includeDeleted}
+            onIncludeDeletedChange={setIncludeDeleted}
         />
     );
 

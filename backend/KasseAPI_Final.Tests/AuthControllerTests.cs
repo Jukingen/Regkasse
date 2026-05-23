@@ -6,6 +6,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -168,6 +169,7 @@ public class AuthControllerTests
                 });
         var authTenant = authTenantSnapshotMock ?? CreateAuthTenantSnapshotMock();
         var loginTenant = loginTenantResolverMock ?? CreateLoginTenantResolverMock();
+        var authService = CreateAuthServiceMock(loginTenant);
         var provisioner = tenantMembershipProvisionerMock ?? CreateMembershipProvisionerMock();
         var dbOptions = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"AuthCtl_{Guid.NewGuid():N}")
@@ -185,7 +187,20 @@ public class AuthControllerTests
             refreshTokenService.Object,
             authTenant.Object,
             loginTenant.Object,
+            authService.Object,
             provisioner.Object);
+    }
+
+    private static Mock<IAuthService> CreateAuthServiceMock(Mock<ILoginTenantResolver> loginTenantResolver)
+    {
+        var mock = new Mock<IAuthService>();
+        mock.Setup(s => s.ResolveLoginTenantAccessAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(async (string userId, CancellationToken ct) =>
+            {
+                var snapshot = await loginTenantResolver.Object.ResolveSnapshotForLoginAsync(userId, ct);
+                return LoginTenantAccessResult.Ok(snapshot);
+            });
+        return mock;
     }
 
     /// <summary>Default: same effective set as pre-alignment matrix-only JSON (system/custom via resolver in production).</summary>

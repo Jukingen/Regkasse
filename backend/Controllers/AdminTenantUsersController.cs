@@ -1,11 +1,8 @@
 using System.Security.Claims;
 
 using KasseAPI_Final.Authorization;
-
 using KasseAPI_Final.Services.AdminTenants;
-
 using Microsoft.AspNetCore.Authorization;
-
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -20,10 +17,9 @@ namespace KasseAPI_Final.Controllers;
 
 [Route("api/admin/tenants/{tenantId:guid}/users")]
 
-[Authorize(Roles = Roles.SuperAdmin)]
-
+[Authorize]
+[HasPermission(AppPermissions.UserManage)]
 [Produces("application/json")]
-
 public sealed class AdminTenantUsersController : ControllerBase
 
 {
@@ -47,8 +43,10 @@ public sealed class AdminTenantUsersController : ControllerBase
 
 
     private string ActorUserId =>
-
         User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "unknown";
+
+    private string ActorRole =>
+        User.FindFirstValue(ClaimTypes.Role) ?? Roles.FallbackUnknown;
 
 
 
@@ -108,7 +106,7 @@ public sealed class AdminTenantUsersController : ControllerBase
 
         var (result, error) = await _tenantUserService
 
-            .CreateAsync(tenantId, request, ActorUserId, cancellationToken)
+            .CreateAsync(tenantId, request, ActorUserId, ActorRole, cancellationToken)
 
             .ConfigureAwait(false);
 
@@ -256,66 +254,6 @@ public sealed class AdminTenantUsersController : ControllerBase
 
 
 
-    /// <summary>Legacy invite route — creates user with password or assigns existing (no email).</summary>
-
-    [HttpPost("invite")]
-
-    [ProducesResponseType(typeof(TenantUserInviteResultDto), StatusCodes.Status201Created)]
-
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-
-    public async Task<ActionResult<TenantUserInviteResultDto>> Invite(
-
-        Guid tenantId,
-
-        [FromBody] InviteTenantUserRequest request,
-
-        CancellationToken cancellationToken = default)
-
-    {
-
-        if (!ModelState.IsValid)
-
-            return ValidationProblem(ModelState);
-
-
-
-        var (result, error) = await _tenantUserService
-
-            .InviteAsync(tenantId, request, ActorUserId, cancellationToken)
-
-            .ConfigureAwait(false);
-
-        if (error == "Tenant not found.")
-
-            return NotFound(new { message = error });
-
-        if (error != null)
-
-            return BadRequest(new { message = error });
-
-
-
-        _logger.LogInformation(
-
-            "Tenant user invite processed for {TenantId}: {Email}, created={Created}",
-
-            tenantId,
-
-            request.Email,
-
-            result!.UserCreated);
-
-
-
-        return CreatedAtAction(nameof(List), new { tenantId }, result);
-
-    }
-
-
-
     /// <summary>Update role for a tenant user.</summary>
 
     [HttpPut("{userId}/role")]
@@ -378,15 +316,13 @@ public sealed class AdminTenantUsersController : ControllerBase
 
         string userId,
 
-        [FromBody] ResetTenantUserPasswordRequest? request,
-
         CancellationToken cancellationToken = default)
 
     {
 
         var (result, error) = await _tenantUserService
 
-            .ResetPasswordAsync(tenantId, userId, request, cancellationToken)
+            .ResetPasswordAsync(tenantId, userId, cancellationToken)
 
             .ConfigureAwait(false);
 
