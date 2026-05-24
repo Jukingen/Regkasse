@@ -264,6 +264,12 @@ namespace KasseAPI_Final.Models
 
         /// <summary>Dev/test-only hard delete of an empty cash register row.</summary>
         public const string CASH_REGISTER_HARD_DELETE = "CASH_REGISTER_HARD_DELETE";
+
+        /// <summary>New cash register inventory row created (POST /api/CashRegister).</summary>
+        public const string CASH_REGISTER_CREATED = "CASH_REGISTER_CREATED";
+
+        /// <summary>Cash register stammdaten updated (PUT /api/admin/cash-registers/{id}).</summary>
+        public const string CASH_REGISTER_UPDATED = "CASH_REGISTER_UPDATED";
     }
 
             // Entity types for audit logging

@@ -1,0 +1,15 @@
+/**
+ * Admin shell responsive breakpoints.
+ * @custom-media aliases are expanded at build time via postcss-custom-media.
+ * CSS variables are available for JS/layout helpers (not usable inside @media).
+ */
+@custom-media --mobile (max-width: 768px);
+@custom-media --tablet (min-width: 769px) and (max-width: 1200px);
+@custom-media --desktop (min-width: 1201px);
+
+:root {
+  --breakpoint-mobile-max: 768px;
+  --breakpoint-tablet-min: 769px;
+  --breakpoint-tablet-max: 1200px;
+  --breakpoint-desktop-min: 1201px;
+}

@@ -7594,7 +7594,7 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.HasOne("KasseAPI_Final.Models.ApplicationUser", "User")
-                        .WithMany()
+                        .WithMany("UserTenantMemberships")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -7717,6 +7717,8 @@ namespace KasseAPI_Final.Migrations
                     b.Navigation("Orders");
 
                     b.Navigation("Transactions");
+
+                    b.Navigation("UserTenantMemberships");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.AuthSession", b =>

@@ -49,8 +49,10 @@ public static class AppPermissions
     /// Does <strong>not</strong> relax operational shift ownership: payment validation, POS picker listing, and ensure-ready conflict
     /// checks still treat another user&apos;s open shift as blocking for payment and &quot;ready&quot; session state.
     /// </summary>
-    public const string CashRegisterView = "cashregister.view";
-    public const string CashRegisterManage = "cashregister.manage";
+    public const string CashRegisterView = "cash_register.view";
+    public const string CashRegisterManage = "cash_register.manage";
+    /// <summary>Permanent cash register decommission (Stilllegen) via admin API; issues RKSV Schlussbeleg internally.</summary>
+    public const string CashRegisterDecommission = "cash_register.decommission";
     public const string CashdrawerOpen = "cashdrawer.open";
     public const string CashdrawerClose = "cashdrawer.close";
     public const string ShiftView = "shift.view";

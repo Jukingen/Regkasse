@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using KasseAPI_Final.Security;
@@ -32,19 +34,22 @@ namespace KasseAPI_Final.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ICashRegisterShiftService _cashRegisterShift;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly ICashRegisterManagementService _cashRegisterManagement;
 
         public CashRegisterController(
             ILogger<CashRegisterController> logger,
             AppDbContext context,
             UserManager<ApplicationUser> userManager,
             ICashRegisterShiftService cashRegisterShift,
-            ISettingsTenantResolver settingsTenantResolver)
+            ISettingsTenantResolver settingsTenantResolver,
+            ICashRegisterManagementService cashRegisterManagement)
         {
             _logger = logger;
             _context = context;
             _userManager = userManager;
             _cashRegisterShift = cashRegisterShift;
             _settingsTenantResolver = settingsTenantResolver;
+            _cashRegisterManagement = cashRegisterManagement;
         }
 
         /// <summary>Full register inventory (open and closed). Not filtered for POS assignment.</summary>
@@ -95,30 +100,57 @@ namespace KasseAPI_Final.Controllers
             }
         }
 
+        /// <summary>
+        /// Creates a new cash register row for the effective tenant (Closed, no shift transaction).
+        /// Requires <see cref="AppPermissions.CashRegisterManage"/> — SuperAdmin and Manager only.
+        /// </summary>
         [HttpPost]
         [HasPermission(AppPermissions.CashRegisterManage)]
-        public async Task<IActionResult> CreateCashRegister([FromBody] CreateCashRegisterModel model)
+        public async Task<IActionResult> CreateCashRegister(
+            [FromBody] CreateCashRegisterRequest request,
+            CancellationToken cancellationToken)
         {
+            if (request == null)
+                return BadRequest(new { message = "Request body is required." });
+
+            var actorUserId = User.GetActorUserId();
+            if (string.IsNullOrEmpty(actorUserId))
+                return Unauthorized(new { message = "User not authenticated." });
+
+            var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+
             try
             {
-                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(HttpContext?.RequestAborted ?? default);
-                var register = new CashRegister
-                {
-                    TenantId = tenantId,
-                    RegisterNumber = await GenerateRegisterNumberAsync(tenantId),
-                    Location = model.Location,
-                    StartingBalance = model.StartingBalance,
-                    CurrentBalance = model.StartingBalance,
-                    LastBalanceUpdate = DateTime.UtcNow,
-                    Status = RegisterStatus.Closed
-                };
+                var register = await _cashRegisterManagement.CreateAsync(
+                    request,
+                    actorUserId,
+                    actorRole,
+                    User.IsInRole(Roles.SuperAdmin),
+                    cancellationToken).ConfigureAwait(false);
 
-                _context.CashRegisters.Add(register);
-                // Do not insert TransactionType.Open here: register is Created as Closed. Shift open is logged by CashRegisterShiftService.TryOpenCashRegisterAsync.
-                await _context.SaveChangesAsync();
-
-                return CreatedAtAction(nameof(GetCashRegister), new { id = register.Id }, 
+                return CreatedAtAction(nameof(GetCashRegister), new { id = register.Id },
                     new { message = "Kasa başarıyla oluşturuldu", register });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, "Cash register create rejected: missing tenant context");
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("TenantId is only allowed", StringComparison.Ordinal))
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("Tenant not found", StringComparison.OrdinalIgnoreCase))
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
+            {
+                return Conflict(new { message = ex.Message, registerNumber = request.RegisterNumber.Trim() });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -260,34 +292,9 @@ namespace KasseAPI_Final.Controllers
                 return StatusCode(500, new { message = "İşlemler getirilirken bir hata oluştu", error = ex.Message });
             }
         }
-
-        private async Task<string> GenerateRegisterNumberAsync(Guid tenantId)
-        {
-            var lastRegister = await _context.CashRegisters
-                .Where(r => r.TenantId == tenantId)
-                .OrderByDescending(r => r.RegisterNumber)
-                .FirstOrDefaultAsync();
-
-            if (lastRegister == null)
-            {
-                return "K001";
-            }
-
-            var lastNumber = int.Parse(lastRegister.RegisterNumber.Substring(1));
-            return $"K{(lastNumber + 1):D3}";
-        }
     }
 
     // DTOs
-    public class CreateCashRegisterModel
-    {
-        [Required]
-        public string Location { get; set; } = string.Empty;
-        
-        [Required]
-        public decimal StartingBalance { get; set; }
-    }
-
     public class OpenCashRegisterModel
     {
         [Required]

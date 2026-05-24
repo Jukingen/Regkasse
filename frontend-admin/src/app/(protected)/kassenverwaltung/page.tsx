@@ -2,11 +2,11 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { Alert, Button, Card, Checkbox, Space, Typography, message } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { getApiCashRegister, getGetApiCashRegisterQueryKey } from '@/api/generated/cash-register/cash-register';
+import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
@@ -17,10 +17,12 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { normalizeCashRegisterList } from '@/features/cash-registers/normalizers';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
+import { CreateCashRegisterModal } from '@/features/cash-registers/components/CreateCashRegisterModal';
 import { DecommissionModal } from '@/features/cash-registers/components/DecommissionModal';
 import { CashRegisterDetailDrawer } from '@/features/cash-registers/components/CashRegisterDetailDrawer';
 import { CashRegisterHardDeleteModal } from '@/features/cash-registers/components/CashRegisterHardDeleteModal';
 import {
+    cashRegisterListQueryKey,
     decommissionCashRegister,
     getCashRegisterCapabilities,
     hardDeleteCashRegister,
@@ -30,6 +32,7 @@ import {
     isDecommissionedRegister,
     rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import styles from './kassenverwaltung.module.css';
 
 const CAPABILITIES_QUERY_KEY = ['admin', 'cash-registers', 'capabilities'] as const;
@@ -37,10 +40,17 @@ const CAPABILITIES_QUERY_KEY = ['admin', 'cash-registers', 'capabilities'] as co
 export default function KassenverwaltungPage() {
     const { t } = useI18n();
     const queryClient = useQueryClient();
-    const { hasPermission } = usePermissions();
+    const {
+        canViewCashRegisters,
+        canManageCashRegisters,
+        canDecommissionCashRegisters,
+        hasPermission,
+    } = usePermissions();
+    const { tenantId, isSuperAdminUser } = useCurrentTenant();
 
-    const canView = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
-    const canDecommission = hasPermission(PERMISSIONS.RKSV_SCHLUSSBELEG_CREATE);
+    const canView = canViewCashRegisters;
+    const canCreate = canManageCashRegisters;
+    const canDecommission = canDecommissionCashRegisters;
     const canHardDelete = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
     const [showDecommissioned, setShowDecommissioned] = useState(false);
@@ -49,6 +59,7 @@ export default function KassenverwaltungPage() {
     const [hardDeleteRegister, setHardDeleteRegister] = useState<CashRegister | null>(null);
     const [decommissionReason, setDecommissionReason] = useState('');
     const [hardDeleteConfirm, setHardDeleteConfirm] = useState('');
+    const [createOpen, setCreateOpen] = useState(false);
 
     const capabilitiesQuery = useQuery({
         queryKey: CAPABILITIES_QUERY_KEY,
@@ -61,7 +72,7 @@ export default function KassenverwaltungPage() {
         canHardDelete && (capabilitiesQuery.data?.allowHardDelete ?? false);
 
     const registersQuery = useQuery({
-        queryKey: getGetApiCashRegisterQueryKey(),
+        queryKey: cashRegisterListQueryKey,
         queryFn: () => getApiCashRegister(),
         enabled: canView,
     });
@@ -104,7 +115,7 @@ export default function KassenverwaltungPage() {
     );
 
     const invalidateRegisters = useCallback(async () => {
-        await queryClient.invalidateQueries({ queryKey: getGetApiCashRegisterQueryKey() });
+        await queryClient.invalidateQueries({ queryKey: cashRegisterListQueryKey });
     }, [queryClient]);
 
     const decommissionMutation = useMutation({
@@ -166,6 +177,14 @@ export default function KassenverwaltungPage() {
         hardDeleteMutation.mutate({ id, confirmPhrase: hardDeleteConfirm.trim() });
     }, [hardDeleteRegister, hardDeleteConfirm, hardDeleteMutation]);
 
+    const openCreateModal = useCallback(() => {
+        setCreateOpen(true);
+    }, []);
+
+    const closeCreateModal = useCallback(() => {
+        setCreateOpen(false);
+    }, []);
+
     if (!canView) {
         return (
             <AdminPageShell>
@@ -195,6 +214,11 @@ export default function KassenverwaltungPage() {
                     >
                         {t('cashRegisters.actions.refresh')}
                     </Button>
+                    {canCreate && (
+                        <Button type="primary" onClick={openCreateModal}>
+                            <PlusOutlined /> {t('cashRegisters.actions.create')}
+                        </Button>
+                    )}
                     <Checkbox
                         checked={showDecommissioned}
                         onChange={(e) => setShowDecommissioned(e.target.checked)}
@@ -227,6 +251,9 @@ export default function KassenverwaltungPage() {
                 <CashRegisterTable
                     registers={visibleRegisters}
                     loading={registersQuery.isLoading}
+                    canCreate={canCreate}
+                    canManage={canCreate}
+                    totalRegisterCount={allRegisters.length}
                     canDecommission={canDecommission}
                     statusLabel={statusLabel}
                     rowClassName={(record) =>
@@ -256,6 +283,12 @@ export default function KassenverwaltungPage() {
                           }
                         : undefined
                 }
+            />
+
+            <CreateCashRegisterModal
+                visible={createOpen}
+                tenantId={!isSuperAdminUser ? (tenantId ?? undefined) : undefined}
+                onClose={closeCreateModal}
             />
 
             <DecommissionModal

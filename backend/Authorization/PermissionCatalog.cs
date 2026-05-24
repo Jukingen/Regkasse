@@ -54,6 +54,7 @@ public static class PermissionCatalog
         // CashRegister, Cashdrawer, Shift
         AppPermissions.CashRegisterView,
         AppPermissions.CashRegisterManage,
+        AppPermissions.CashRegisterDecommission,
         AppPermissions.CashdrawerOpen,
         AppPermissions.CashdrawerClose,
         AppPermissions.ShiftView,

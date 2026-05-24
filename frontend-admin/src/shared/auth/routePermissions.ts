@@ -6,7 +6,7 @@
  * Empty array = route requires at least one permission (no specific permission).
  * Fail-closed: no permissions in token → deny unless migration flag is set.
  */
-import { PERMISSIONS } from './permissions';
+import { AppPermissions, PERMISSIONS } from './permissions';
 
 export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/dashboard': PERMISSIONS.SETTINGS_VIEW,
@@ -30,7 +30,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/reporting/jahresbericht': PERMISSIONS.REPORT_VIEW,
   '/reports/daily-closing': PERMISSIONS.REPORT_VIEW,
   '/tables': PERMISSIONS.TABLE_VIEW,
-  '/kassenverwaltung': PERMISSIONS.CASHREGISTER_VIEW,
+  '/kassenverwaltung': AppPermissions.CashRegisterView,
   '/tagesabschluss': PERMISSIONS.TSE_SIGN,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
   '/admin/audit/fiscal-exports': PERMISSIONS.AUDIT_VIEW,

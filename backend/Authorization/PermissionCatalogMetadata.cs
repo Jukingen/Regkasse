@@ -26,6 +26,7 @@ public static class PermissionCatalogMetadata
         ["refund"] = "Payment",
         ["discount"] = "Payment",
         ["cashregister"] = "Cash & Shift",
+        ["cash_register"] = "Cash & Shift",
         ["cashdrawer"] = "Cash & Shift",
         ["shift"] = "Cash & Shift",
         ["inventory"] = "Inventory",
@@ -112,8 +113,13 @@ public static class PermissionCatalogMetadata
 
     private static string? GetDescription(string key)
     {
-        // Optional: return null or a short description for known keys. Keep minimal for now.
-        return null;
+        return key switch
+        {
+            AppPermissions.CashRegisterView => "Kassen anzeigen",
+            AppPermissions.CashRegisterManage => "Kassen verwalten (erstellen, bearbeiten)",
+            AppPermissions.CashRegisterDecommission => "Kassen stilllegen",
+            _ => null,
+        };
     }
 
     /// <summary>

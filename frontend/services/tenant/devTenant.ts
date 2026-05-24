@@ -1,3 +1,4 @@
+import { canonicalDevTenantSlug } from '../../constants/devTenantCatalog';
 import { storage } from '../../utils/storage';
 import { TENANT_HTTP_HEADER } from './tenantStorage';
 
@@ -16,7 +17,10 @@ const isDev = __DEV__;
 
 function normalizeSlug(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : null;
+  if (!trimmed) {
+    return null;
+  }
+  return canonicalDevTenantSlug(trimmed);
 }
 
 /** Slug from Expo env in development; defaults to <c>dev</c> when unset. */

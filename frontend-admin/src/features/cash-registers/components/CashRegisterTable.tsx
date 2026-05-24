@@ -16,6 +16,10 @@ import {
 export type CashRegisterTableProps = {
     registers: CashRegister[];
     loading?: boolean;
+    canCreate?: boolean;
+    canManage?: boolean;
+    /** Total registers before visibility filter (decommissioned hidden). */
+    totalRegisterCount?: number;
     canDecommission: boolean;
     statusLabel: (status: number | undefined) => string;
     rowClassName?: (record: CashRegister) => string;
@@ -26,6 +30,9 @@ export type CashRegisterTableProps = {
 export function CashRegisterTable({
     registers,
     loading,
+    canCreate = false,
+    canManage = false,
+    totalRegisterCount = 0,
     canDecommission,
     statusLabel,
     rowClassName,
@@ -33,6 +40,15 @@ export function CashRegisterTable({
     onDecommission,
 }: CashRegisterTableProps) {
     const { t } = useI18n();
+
+    const emptyDescription =
+        totalRegisterCount === 0
+            ? canCreate
+                ? t('cashRegisters.emptyCanCreate')
+                : t('cashRegisters.emptyContactAdmin')
+            : t('cashRegisters.empty');
+
+    const showActionsColumn = canManage || canDecommission;
 
     const columns: ColumnsType<CashRegister> = [
         {
@@ -60,52 +76,64 @@ export function CashRegisterTable({
                 );
             },
         },
-        {
-            title: t('cashRegisters.columns.actions'),
-            key: 'actions',
-            width: 300,
-            render: (_: unknown, record) => {
-                const status = rawRegisterStatus(record);
-                const decommissioned = isDecommissionedRegister(status);
-                const canStilllegen =
-                    canDecommission && !decommissioned && canDecommissionRegister(status);
+        ...(showActionsColumn
+            ? [
+                  {
+                      title: t('cashRegisters.columns.actions'),
+                      key: 'actions',
+                      width: 300,
+                      render: (_: unknown, record: CashRegister) => {
+                          const status = rawRegisterStatus(record);
+                          const decommissioned = isDecommissionedRegister(status);
+                          const canStilllegen =
+                              canDecommission &&
+                              !decommissioned &&
+                              canDecommissionRegister(status);
 
-                return (
-                    <Space wrap size="small">
-                        <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(record)}>
-                            {t('cashRegisters.actions.edit')}
-                        </Button>
-                        {decommissioned ? (
-                            <Tooltip title={t('cashRegisters.decommission.restoreTooltip')}>
-                                <Button size="small" disabled>
-                                    {t('cashRegisters.actions.restore')}
-                                </Button>
-                            </Tooltip>
-                        ) : (
-                            <Tooltip
-                                title={
-                                    !canDecommission
-                                        ? undefined
-                                        : !canDecommissionRegister(status)
-                                          ? t('cashRegisters.decommission.mustCloseFirst')
-                                          : undefined
-                                }
-                            >
-                                <Button
-                                    size="small"
-                                    icon={<LockOutlined />}
-                                    danger
-                                    disabled={!canStilllegen}
-                                    onClick={() => onDecommission(record)}
-                                >
-                                    {t('cashRegisters.actions.decommission')}
-                                </Button>
-                            </Tooltip>
-                        )}
-                    </Space>
-                );
-            },
-        },
+                          return (
+                              <Space wrap size="small">
+                                  {canManage ? (
+                                      <Button
+                                          size="small"
+                                          icon={<EditOutlined />}
+                                          onClick={() => onEdit(record)}
+                                      >
+                                          {t('cashRegisters.actions.edit')}
+                                      </Button>
+                                  ) : null}
+                                  {decommissioned ? (
+                                      <Tooltip title={t('cashRegisters.decommission.restoreTooltip')}>
+                                          <Button size="small" disabled>
+                                              {t('cashRegisters.actions.restore')}
+                                          </Button>
+                                      </Tooltip>
+                                  ) : canDecommission ? (
+                                      <Tooltip
+                                          title={
+                                              !canDecommission
+                                                  ? undefined
+                                                  : !canDecommissionRegister(status)
+                                                    ? t('cashRegisters.decommission.mustCloseFirst')
+                                                    : undefined
+                                          }
+                                      >
+                                          <Button
+                                              size="small"
+                                              icon={<LockOutlined />}
+                                              danger
+                                              disabled={!canStilllegen}
+                                              onClick={() => onDecommission(record)}
+                                          >
+                                              {t('cashRegisters.actions.decommission')}
+                                          </Button>
+                                      </Tooltip>
+                                  ) : null}
+                              </Space>
+                          );
+                      },
+                  } satisfies ColumnsType<CashRegister>[number],
+              ]
+            : []),
     ];
 
     return (
@@ -117,7 +145,7 @@ export function CashRegisterTable({
             rowClassName={rowClassName}
             pagination={{ pageSize: 20, showSizeChanger: true }}
             locale={{
-                emptyText: <Empty description={t('cashRegisters.empty')} />,
+                emptyText: <Empty description={emptyDescription} />,
             }}
         />
     );

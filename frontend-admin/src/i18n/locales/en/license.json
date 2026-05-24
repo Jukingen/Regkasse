@@ -10,6 +10,12 @@
   },
   "badge": {
     "loading": "License status…",
+    "headerShort": {
+      "expired": "License expired",
+      "daysRemaining": "{{days}} days",
+      "trial": "Trial",
+      "licensed": "Licensed"
+    },
     "unavailable": "License unknown",
     "unavailableTooltip": "Could not load license status (missing permission or server error).",
     "expired": {
@@ -38,6 +44,15 @@
     },
     "tenant": {
       "baseTooltip": "License of the active tenant (company). The admin UI itself has no license restriction.",
+      "none": {
+        "label": "No license",
+        "tooltip": "No license expiry is stored for this tenant."
+      },
+      "short": {
+        "expired": "Expired",
+        "days": "{{days}} days",
+        "licensed": "Licensed"
+      },
       "trial": {
         "label": "Tenant license: TRIAL ({{days}} days)",
         "tooltip": "Tenant trial. {{days}} day(s) remaining."

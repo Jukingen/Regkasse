@@ -1,0 +1,202 @@
+/* Admin shell header layout (imported via globals.css). */
+
+.admin-shell-header {
+  --header-gap: var(--admin-header-gap, 16px);
+  --tenant-gap: var(--admin-tenant-section-gap, 8px);
+
+  padding: 0 !important;
+  line-height: 1.5;
+  z-index: var(--header-zindex, var(--admin-shell-header-z, 1000));
+  background: var(--header-bg, var(--admin-header-bg, #ffffff)) !important;
+  border-bottom: 1px solid var(--header-border, var(--admin-header-border, #f0f0f0));
+  box-shadow: var(--admin-header-shadow, 0 1px 4px rgba(0, 0, 0, 0.04));
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--header-gap);
+  height: var(--header-height, 64px);
+  min-width: 0;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+
+.admin-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--header-gap);
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.admin-header-center {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.admin-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--header-gap);
+  margin-left: auto;
+  min-width: 0;
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+.admin-header-toolbar-scroll {
+  display: flex;
+  align-items: center;
+  gap: var(--header-gap);
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-header-toolbar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.tenant-section {
+  display: flex;
+  align-items: center;
+  gap: var(--tenant-gap);
+  min-width: 0;
+  flex-shrink: 1;
+  padding: 4px 12px;
+  background: var(--admin-tenant-section-bg, #f5f5f5);
+  border-radius: 32px;
+  transition: background-color 0.2s ease;
+}
+
+.tenant-section:hover {
+  background: var(--admin-tenant-section-bg-hover, #ebebeb);
+}
+
+.admin-header-utilities {
+  display: flex;
+  align-items: center;
+  gap: var(--header-gap);
+  flex-shrink: 0;
+}
+
+.admin-header-nav-toggle {
+  flex-shrink: 0;
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 16px;
+}
+
+.admin-header-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tenant-gap);
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  transition: background-color 0.2s ease;
+}
+
+.admin-header-logo:hover {
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+}
+
+.admin-header-logo:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+}
+
+.admin-header-logo-image {
+  flex-shrink: 0;
+  display: block;
+  object-fit: contain;
+}
+
+.admin-header-logo-text {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-header-user-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--tenant-gap);
+  flex-shrink: 0;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.admin-header-user-menu:hover {
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+}
+
+.admin-header-user-label {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.admin-header-env-badge {
+  flex-shrink: 0;
+}
+
+@media not (--desktop) {
+  .admin-header-logo-text {
+    display: none;
+  }
+}
+
+@media (--mobile) {
+  .admin-shell-header,
+  .admin-header {
+    --header-gap: var(--admin-header-gap-mobile, 8px);
+  }
+
+  .admin-header {
+    padding: 0 16px;
+  }
+
+  .admin-header-right {
+    flex: 1 1 auto;
+    max-width: calc(100% - 56px);
+    gap: 4px;
+  }
+
+  .admin-header-toolbar-scroll,
+  .admin-header-utilities {
+    gap: 4px;
+  }
+
+  .admin-header-center {
+    display: none;
+  }
+
+  .tenant-section {
+    padding: 4px 8px;
+  }
+
+  .admin-header-user-label {
+    display: none;
+  }
+
+  .admin-header-nav-toggle {
+    width: 44px !important;
+    height: 44px !important;
+  }
+}

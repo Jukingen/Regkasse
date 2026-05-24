@@ -11,6 +11,7 @@
     "hiddenCount": "{{count}} kapatılmış kasa gizli"
   },
   "actions": {
+    "create": "Yeni kasa",
     "edit": "Düzenle",
     "decommission": "Devre dışı bırak",
     "restore": "Geri yükle",
@@ -64,8 +65,28 @@
     "confirm": "Kalıcı sil",
     "success": "Kasa hard-delete (test) tamamlandı."
   },
+  "create": {
+    "modalTitle": "Yeni kasa oluştur",
+    "registerNumberLabel": "Kasa numarası",
+    "registerNumberPlaceholder": "örn. KASSE-001",
+    "registerNumberRequired": "Kasa numarası zorunludur.",
+    "registerNumberMax": "En fazla 20 karakter.",
+    "locationLabel": "Konum / açıklama",
+    "locationPlaceholder": "örn. Hauptkasse, tezgah",
+    "locationRequired": "Konum zorunludur.",
+    "locationMax": "En fazla 100 karakter.",
+    "tenantLabel": "Mandant",
+    "tenantPlaceholder": "Mandant seçin",
+    "tenantRequired": "Lütfen mandant seçin.",
+    "tenantOption": "{{name}} ({{slug}})",
+    "confirm": "Oluştur",
+    "cancel": "İptal",
+    "success": "Kasa oluşturuldu."
+  },
   "errors": {
     "loadFailed": "Kasa listesi yüklenemedi."
   },
-  "empty": "Kasa bulunamadı."
+  "empty": "Kasa bulunamadı.",
+  "emptyCanCreate": "Kayıtlı kasa yok. Oluşturmak için «Yeni kasa» düğmesine tıklayın.",
+  "emptyContactAdmin": "Kayıtlı kasa yok. Lütfen yöneticinizle iletişime geçin."
 }

@@ -210,6 +210,56 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Manager_Has_CashRegisterDecommission()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.CashRegisterDecommission));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_CashRegisterDecommission()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.CashRegisterDecommission));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_DoesNotHave_CashRegisterDecommission()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.CashRegisterDecommission));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_CashRegisterView_Manage_Decommission()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.CashRegisterView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.CashRegisterManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.CashRegisterDecommission));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_CashRegisterView_Manage_Decommission()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.CashRegisterView));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.CashRegisterManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.CashRegisterDecommission));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_Has_CashRegisterView_Only()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.CashRegisterView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.CashRegisterManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.CashRegisterDecommission));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Accountant_Has_CashRegisterView_Only()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Accountant, AppPermissions.CashRegisterView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Accountant, AppPermissions.CashRegisterManage));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Accountant, AppPermissions.CashRegisterDecommission));
+    }
+
+    [Fact]
     public void RoleHasPermission_Manager_DoesNotHave_UserManage()
     {
         Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.UserManage));

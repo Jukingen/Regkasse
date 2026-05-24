@@ -1,6 +1,15 @@
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 import { isLocalDevHostname } from '@/features/auth/services/devTenant';
-import { getMandantLicenseBadgeDisplay } from '@/features/tenant/utils/mandantLicenseBadge';
+import {
+    canonicalDevTenantSlug,
+    devTenantCatalogSortIndex,
+    formatDisplaySlug,
+    formatTenantDisplay,
+    isDevelopmentOrTestTenantSlug,
+} from '@/features/tenancy/devTenantCatalog';
+import { getTenantSwitcherLicenseBadgeDisplay } from '@/features/tenant/utils/mandantLicenseBadge';
+
+export { formatTenantDisplay, formatDisplaySlug };
 
 export type TenantHeaderIndicatorKind = 'activeWithAdmin' | 'activeNoAdmin' | 'suspended' | 'deleted';
 
@@ -51,7 +60,8 @@ export function getTenantHeaderTitle(
     t: TranslateFn,
 ): string {
     const { emoji } = getTenantHeaderIndicator(tenant);
-    const base = `${tenant.name} (${tenant.slug})`;
+    const { displayName, displaySlug } = formatTenantDisplay(tenant);
+    const base = `${displayName} (${displaySlug})`;
     if (tenant.status === 'suspended' || !tenant.isActive) {
         return `${emoji} ${base} - ${t('adminShell.tenant.devSwitcher.suspendedSuffix')}`;
     }
@@ -78,22 +88,19 @@ export function getTenantHeaderDetailLines(
 
 function formatLicenseLine(tenant: AdminTenantListItem, t: TranslateFn): string | null {
     const badge = getTenantSwitcherLicenseBadge(tenant, t);
-    return badge?.label ?? null;
+    return badge.label;
 }
 
 /** Mandant SaaS license line for header switcher rows (not deployment/on-premise license). */
 export function getTenantSwitcherLicenseBadge(
     tenant: Pick<AdminTenantListItem, 'licenseValidUntilUtc' | 'licenseKey'>,
     t: TranslateFn,
-): { label: string; color: string; tooltip: string; daysRemaining: number | null } | null {
-    const display = getMandantLicenseBadgeDisplay(
+): { label: string; color: string; tooltip: string; daysRemaining: number | null } {
+    const display = getTenantSwitcherLicenseBadgeDisplay(
         tenant.licenseValidUntilUtc,
         tenant.licenseKey,
         t,
     );
-    if (!display) {
-        return null;
-    }
     return {
         label: display.label,
         color: display.color,
@@ -102,12 +109,38 @@ export function getTenantSwitcherLicenseBadge(
     };
 }
 
+export type TenantSwitcherPartition<T> = {
+    development: T[];
+    production: T[];
+};
+
+/** Split switcher rows into Entwicklung/Test vs Produktion (preserves relative order within each group). */
+export function partitionTenantsForSwitcher<T extends { slug: string }>(
+    items: T[],
+): TenantSwitcherPartition<T> {
+    const development: T[] = [];
+    const production: T[] = [];
+    for (const row of items) {
+        if (isDevelopmentOrTestTenantSlug(row.slug)) {
+            development.push(row);
+        } else {
+            production.push(row);
+        }
+    }
+    return { development, production };
+}
+
 export function sortTenantsForHeaderSwitcher(tenants: AdminTenantListItem[]): AdminTenantListItem[] {
     return [...tenants].sort((a, b) => {
         const aSuspended = a.status === 'suspended' || !a.isActive;
         const bSuspended = b.status === 'suspended' || !b.isActive;
         if (aSuspended !== bSuspended) {
             return aSuspended ? 1 : -1;
+        }
+        const aCatalog = devTenantCatalogSortIndex(a.slug);
+        const bCatalog = devTenantCatalogSortIndex(b.slug);
+        if (aCatalog !== bCatalog) {
+            return aCatalog - bCatalog;
         }
         return a.name.localeCompare(b.name, 'de');
     });
@@ -122,7 +155,15 @@ export function filterTenantsForHeaderSearch(
         return tenants;
     }
     return tenants.filter((row) => {
-        const haystack = [row.name, row.slug, row.ownerAdminEmail ?? '', row.email ?? '']
+        const { displayName, displaySlug } = formatTenantDisplay(row);
+        const haystack = [
+            row.name,
+            row.slug,
+            displayName,
+            displaySlug,
+            row.ownerAdminEmail ?? '',
+            row.email ?? '',
+        ]
             .join(' ')
             .toLowerCase();
         return haystack.includes(q);
@@ -133,8 +174,8 @@ export function findTenantBySlug(
     tenants: AdminTenantListItem[],
     slug: string,
 ): AdminTenantListItem | undefined {
-    const normalized = slug.trim().toLowerCase();
-    return tenants.find((row) => row.slug.toLowerCase() === normalized);
+    const normalized = canonicalDevTenantSlug(slug).toLowerCase();
+    return tenants.find((row) => canonicalDevTenantSlug(row.slug).toLowerCase() === normalized);
 }
 
 export function findTenantById(

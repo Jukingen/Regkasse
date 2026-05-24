@@ -66,6 +66,35 @@ public sealed class CurrentTenantServiceTests
     }
 
     [Fact]
+    public async Task ApplyCurrentTenantAsync_LegacyTestCafeAlias_ResolvesCafeTenant()
+    {
+        await using var db = CreateContext();
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Cafe,
+            Name = "Test Cafe",
+            Slug = "cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var accessor = new CurrentTenantAccessor();
+        var provider = new Mock<ITenantProvider>();
+        provider.Setup(p => p.GetCurrentTenantId()).Returns("test_cafe");
+
+        var service = new CurrentTenantService(
+            provider.Object,
+            accessor,
+            db,
+            NullLogger<CurrentTenantService>.Instance);
+
+        await service.ApplyCurrentTenantAsync();
+
+        Assert.Equal(DemoTenantIds.Cafe, accessor.TenantId);
+    }
+
+    [Fact]
     public async Task ApplyCurrentTenantAsync_UnknownSlug_FallsBackToLegacyDefault()
     {
         await using var db = CreateContext();

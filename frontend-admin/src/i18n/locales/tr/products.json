@@ -9,7 +9,7 @@
     "newProduct": "Yeni ürün",
     "searchHint": "Ürün adına göre arama yapın; en az {{min}} karakter sunucu sorgusu tetikler.",
     "loadErrorTitle": "Ürünler yüklenemedi",
-    "empty": "Bu arama veya sayfa için ürün bulunamadı."
+    "empty": "Ürün bulunamadı. Lütfen önce ürün oluşturun."
   },
   "table": {
     "product": "Urun",

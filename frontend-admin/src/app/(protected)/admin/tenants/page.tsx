@@ -14,6 +14,7 @@ import {
     Select,
     Space,
     Switch,
+    Empty,
     Table,
     Tag,
     Typography,
@@ -51,10 +52,9 @@ import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/
 
 const TENANT_QUERY_KEY = ['admin', 'tenants'] as const;
 
-const DELETED_ROW_STYLE: React.CSSProperties = {
-    background: '#f5f5f5',
-    opacity: 0.7,
-};
+function isTenantRowDeleted(row: Pick<AdminTenantListItem, 'status' | 'isActive'>): boolean {
+    return row.status === 'deleted' || !row.isActive;
+}
 
 type TenantFormValues = {
     name: string;
@@ -78,6 +78,7 @@ export default function SuperAdminTenantsPage() {
 
     const canAccess =
         isSuperAdmin(user?.role) || hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
+    const isSuperAdminUser = isSuperAdmin(user?.role);
     const canManageDeletion = useCanManageTenantDeletion();
 
     const tenantsQuery = useQuery({
@@ -185,9 +186,17 @@ export default function SuperAdminTenantsPage() {
                 title: t('tenants.columns.name'),
                 dataIndex: 'name',
                 key: 'name',
-                render: (name: string, row) => (
-                    <Link href={`/admin/tenants/${row.id}`}>{name}</Link>
-                ),
+                render: (name: string, row) => {
+                    const deleted = isTenantRowDeleted(row);
+                    return (
+                        <Link
+                            href={`/admin/tenants/${row.id}`}
+                            className={deleted ? 'tenant-deleted-name' : undefined}
+                        >
+                            {name}
+                        </Link>
+                    );
+                },
             },
             { title: t('tenants.columns.slug'), dataIndex: 'slug', key: 'slug' },
             {
@@ -322,10 +331,16 @@ export default function SuperAdminTenantsPage() {
                     }}
                 >
                     <Typography.Text strong>{t('tenants.page.title')}</Typography.Text>
-                    <Space>
-                        <span>{t('tenants.filters.includeDeleted')}</span>
-                        <Switch checked={includeDeleted} onChange={setIncludeDeleted} />
-                    </Space>
+                    {isSuperAdminUser ? (
+                        <Space>
+                            <span>{t('tenants.filters.includeDeleted')}</span>
+                            <Switch
+                                checked={includeDeleted}
+                                onChange={setIncludeDeleted}
+                                aria-label={t('tenants.filters.includeDeleted')}
+                            />
+                        </Space>
+                    ) : null}
                 </div>
                 <Table
                     rowKey="id"
@@ -333,11 +348,16 @@ export default function SuperAdminTenantsPage() {
                     dataSource={tenantRows}
                     columns={columns}
                     rowClassName={(record) =>
-                        record.status === 'deleted' ? 'tenant-row-deleted' : ''
+                        isTenantRowDeleted(record) ? 'tenant-row-deleted' : ''
                     }
-                    onRow={(record) =>
-                        record.status === 'deleted' ? { style: DELETED_ROW_STYLE } : {}
-                    }
+                    locale={{
+                        emptyText: (
+                            <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description={t('tenants.page.empty')}
+                            />
+                        ),
+                    }}
                     virtual={shouldUseAdminTableVirtual(tenantRows.length)}
                     scroll={adminTableScrollXy(1320, tenantRows.length)}
                     pagination={{

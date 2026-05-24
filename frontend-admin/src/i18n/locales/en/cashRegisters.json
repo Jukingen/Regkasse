@@ -11,6 +11,7 @@
     "hiddenCount": "{{count}} decommissioned register(s) hidden"
   },
   "actions": {
+    "create": "New register",
     "edit": "Edit",
     "decommission": "Decommission",
     "restore": "Restore",
@@ -64,8 +65,28 @@
     "confirm": "Delete permanently",
     "success": "Register hard-deleted (test)."
   },
+  "create": {
+    "modalTitle": "Create cash register",
+    "registerNumberLabel": "Register number",
+    "registerNumberPlaceholder": "e.g. KASSE-001",
+    "registerNumberRequired": "Register number is required.",
+    "registerNumberMax": "Maximum 20 characters.",
+    "locationLabel": "Location label",
+    "locationPlaceholder": "e.g. Hauptkasse, counter",
+    "locationRequired": "Location is required.",
+    "locationMax": "Maximum 100 characters.",
+    "tenantLabel": "Tenant",
+    "tenantPlaceholder": "Select tenant",
+    "tenantRequired": "Please select a tenant.",
+    "tenantOption": "{{name}} ({{slug}})",
+    "confirm": "Create",
+    "cancel": "Cancel",
+    "success": "Cash register created."
+  },
   "errors": {
     "loadFailed": "Could not load cash registers."
   },
-  "empty": "No cash registers found."
+  "empty": "No cash registers found.",
+  "emptyCanCreate": "No cash registers yet. Click «New register» to create one.",
+  "emptyContactAdmin": "No cash registers yet. Please contact your administrator."
 }

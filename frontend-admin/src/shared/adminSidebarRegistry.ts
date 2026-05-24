@@ -10,6 +10,7 @@ import { collectRksvMenuLeafKeys } from '@/shared/rksvMenuModel';
 import { FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS } from '@/shared/fiscalRksvClosingSidebar';
 import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
 import { registerRksvSidebar, type RksvSidebarRegistryAttachment } from '@/features/rksv/sidebarPlugin';
+import { AppPermissions } from '@/shared/auth/permissions';
 
 export type SidebarDomainId =
     | 'operations'
@@ -71,6 +72,8 @@ export type SidebarNavCatalogItem = {
     href: string;
     labelKey: string;
     icon?: SidebarIconToken;
+    /** Required permission(s) for sidebar visibility (must match `ROUTE_PERMISSIONS[menuKey]`). */
+    permission?: string | string[];
 };
 
 /**
@@ -97,6 +100,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/kassenverwaltung',
         labelKey: 'nav.kassenverwaltung',
         icon: 'ShopOutlined',
+        permission: AppPermissions.CashRegisterView,
     },
     tagesabschluss: {
         id: 'tagesabschluss',

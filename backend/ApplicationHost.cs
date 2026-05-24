@@ -570,6 +570,7 @@ builder.Services.AddScoped<IReceiptSequenceService, ReceiptSequenceService>();
 builder.Services.AddScoped<ICashRegisterResolutionService, CashRegisterResolutionService>();
 builder.Services.AddScoped<ICashRegisterShiftService, CashRegisterShiftService>();
 builder.Services.AddScoped<ICashRegisterDecommissionService, CashRegisterDecommissionService>();
+builder.Services.AddScoped<ICashRegisterManagementService, CashRegisterManagementService>();
 builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
 builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
 builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();

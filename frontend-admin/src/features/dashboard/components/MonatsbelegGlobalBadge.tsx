@@ -13,7 +13,7 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
  */
 export function MonatsbelegGlobalBadge() {
     const { hasPermission } = usePermissions();
-    /** Same inventory GET as dashboard table (requires cashregister.view on API). */
+    /** Same inventory GET as dashboard table (requires cash_register.view on API). */
     const canSee = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
 
     const { redCount, registersLoading } = useAdminMonatsbelegOverview(canSee);

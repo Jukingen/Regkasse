@@ -1,0 +1,14 @@
+/* Super-admin tenants list — deleted row styling. */
+
+.tenant-row-deleted td {
+  background: var(--tenant-deleted-row-bg, #f5f5f5) !important;
+}
+
+.tenant-row-deleted .tenant-deleted-name {
+  text-decoration: line-through;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+[data-theme='dark'] .tenant-row-deleted td {
+  --tenant-deleted-row-bg: #1f1f1f;
+}

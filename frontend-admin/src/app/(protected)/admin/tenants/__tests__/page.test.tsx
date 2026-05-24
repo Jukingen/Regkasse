@@ -113,6 +113,16 @@ describe('SuperAdminTenantsPage', () => {
         expect(screen.getByRole('switch')).toBeInTheDocument();
     });
 
+    it('hides includeDeleted toggle for non-Super Admin', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { id: 'mgr-1', role: 'Manager', permissions: ['system.critical'] },
+        });
+        renderPage();
+        await waitFor(() => expect(mockListAdminTenants).toHaveBeenCalled());
+        expect(screen.queryByText('Gelöschte anzeigen')).not.toBeInTheDocument();
+        expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+    });
+
     it('soft delete button shows modal and calls API', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('Cafe Demo')).toBeInTheDocument());

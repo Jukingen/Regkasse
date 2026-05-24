@@ -11,6 +11,7 @@
     "hiddenCount": "{{count}} stillgelegte Kasse(n) ausgeblendet"
   },
   "actions": {
+    "create": "Neue Kasse",
     "edit": "Bearbeiten",
     "decommission": "Stilllegen",
     "restore": "Wiederherstellen",
@@ -64,8 +65,28 @@
     "confirm": "Endgültig löschen",
     "success": "Kasse (Test) wurde hard-deleted."
   },
+  "create": {
+    "modalTitle": "Neue Kasse anlegen",
+    "registerNumberLabel": "Kassennummer",
+    "registerNumberPlaceholder": "z. B. KASSE-001",
+    "registerNumberRequired": "Kassennummer ist erforderlich.",
+    "registerNumberMax": "Maximal 20 Zeichen.",
+    "locationLabel": "Bezeichnung / Standort",
+    "locationPlaceholder": "z. B. Hauptkasse, Theke",
+    "locationRequired": "Standort ist erforderlich.",
+    "locationMax": "Maximal 100 Zeichen.",
+    "tenantLabel": "Mandant",
+    "tenantPlaceholder": "Mandant auswählen",
+    "tenantRequired": "Bitte Mandant auswählen.",
+    "tenantOption": "{{name}} ({{slug}})",
+    "confirm": "Anlegen",
+    "cancel": "Abbrechen",
+    "success": "Kasse wurde angelegt."
+  },
   "errors": {
     "loadFailed": "Kassenliste konnte nicht geladen werden."
   },
-  "empty": "Keine Kassen gefunden."
+  "empty": "Keine Kassen gefunden.",
+  "emptyCanCreate": "Keine Kassen vorhanden. Klicken Sie auf «Neue Kasse», um eine anzulegen.",
+  "emptyContactAdmin": "Keine Kassen vorhanden. Bitte kontaktieren Sie Ihren Administrator."
 }

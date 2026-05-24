@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text } from 'react-native';
 
 import { SoftColors, SoftSpacing } from '../constants/SoftTheme';
+import { getEnvironmentBadge } from '../shared/config/environmentBadge';
 import type { DevelopmentModeSettings } from '../services/developmentModeClientCache';
 
 type Props = {
@@ -14,8 +15,21 @@ type Props = {
 export function EnvironmentBadge({ settings }: Props) {
   const [open, setOpen] = useState(false);
 
+  const buildEnvBadge = getEnvironmentBadge();
+
   if (!settings?.enabled) {
-    return null;
+    if (!buildEnvBadge.text) {
+      return null;
+    }
+    return (
+      <Pressable
+        style={[styles.chip, styles.chipBuildEnv]}
+        accessibilityRole="text"
+        accessibilityLabel={buildEnvBadge.text}
+      >
+        <Text style={styles.chipText}>{buildEnvBadge.text}</Text>
+      </Pressable>
+    );
   }
 
   const active: string[] = [];
@@ -39,7 +53,10 @@ export function EnvironmentBadge({ settings }: Props) {
         accessibilityRole="button"
         accessibilityLabel="Entwicklungsmodus"
       >
-        <Text style={styles.chipText}>DEV{active.length > 0 ? ` (${active.join(', ')})` : ''}</Text>
+        <Text style={styles.chipText}>
+          {buildEnvBadge?.text ?? '🧪 Entwicklung'}
+          {active.length > 0 ? ` · DEV (${active.join(', ')})` : ' · DEV'}
+        </Text>
       </Pressable>
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
@@ -66,6 +83,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: SoftSpacing.sm,
     paddingVertical: 4,
     borderRadius: 6,
+    backgroundColor: '#fa8c16',
+  },
+  chipBuildEnv: {
     backgroundColor: '#fa8c16',
   },
   chipText: {

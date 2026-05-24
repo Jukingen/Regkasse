@@ -20,7 +20,7 @@
   "errorLoadingProducts": "Ürünler yüklenemedi",
   "loadingMore": "Daha fazla yükleniyor...",
   "noSearchResults": "Arama sonucu bulunamadı",
-  "noProductsFound": "Ürün bulunamadı",
+  "noProductsFound": "Ürün bulunamadı. Lütfen önce ürün oluşturun.",
   "page": "Sayfa",
   "products": "ürün",
   "roleLoading": "Rol yükleniyor...",

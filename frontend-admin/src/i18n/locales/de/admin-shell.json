@@ -41,7 +41,10 @@
     "badgePlatformAdmin": "Plattform-Admin",
     "badgePlatformAdminTooltip": "Kein Mandantenkontext — Daten beziehen sich auf die Plattform oder den Legacy-Standardmandanten.",
     "badgeImpersonatingTooltip": "Support-Impersonation aktiv",
+    "badgeSupportModeTag": "Support-Modus",
     "badgeDevOverrideTooltip": "Entwicklung: Mandant per Header-Dropdown überschrieben",
+    "badgeDevModeTag": "Entwicklung",
+    "badgeDevModeTooltip": "Entwicklungsmodus – nur für Tests",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
     "infoCardTitle": "Aktuelle Firma",
     "infoCardEyebrow": "Firmen-Info",
@@ -78,7 +81,9 @@
       "licenseHintTooltip": "Dies ist die Lizenz des ausgewählten Mandanten (Unternehmens). Die Verwaltungsoberfläche selbst hat keine Lizenzbeschränkung.",
       "suspendedSuffix": "Gesperrt",
       "unknownTenant": "unbekannt",
-      "emptySearch": "Keine Mandanten gefunden."
+      "emptySearch": "Keine Mandanten gefunden.",
+      "sectionDevelopment": "🧪 Entwicklung / Test",
+      "sectionProduction": "🏢 Produktion"
     },
     "infoCardApiSlug": "API-Kontext",
     "infoCardApiSlugHint": "Alle Listen und Einstellungen beziehen sich auf den oben gewählten Mandanten (Header / Subdomain / JWT).",

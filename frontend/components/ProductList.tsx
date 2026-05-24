@@ -343,7 +343,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           !cacheLoading ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
-                {searchQuery ? t('common.noSearchResults') : t('common.noProductsFound')}
+                {searchQuery ? t('noSearchResults') : t('noProductsFound')}
               </Text>
             </View>
           ) : null

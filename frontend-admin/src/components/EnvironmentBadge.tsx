@@ -10,6 +10,8 @@ import {
   fetchPublicDevelopmentModeSettings,
   publicDevelopmentModeQueryKey,
 } from '@/features/development-mode/developmentModeApi';
+import { ENVIRONMENT_CONFIG } from '@/shared/config/environmentBadge';
+import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
 
 /**
  * Header badge: shows when persisted development-mode is enabled (effective bypasses still require a Development host).
@@ -21,8 +23,17 @@ export function EnvironmentBadge() {
     refetchInterval: 30_000,
   });
 
+  const buildEnvBadge = ENVIRONMENT_CONFIG.getEnvironmentBadge();
+
   if (!data?.enabled) {
-    return null;
+    if (!buildEnvBadge) {
+      return null;
+    }
+    return (
+      <Tag color={buildEnvBadge.color} style={{ cursor: 'default', marginInlineEnd: 0 }}>
+        {buildEnvBadge.text}
+      </Tag>
+    );
   }
 
   const activeBypasses: string[] = [];
@@ -60,10 +71,19 @@ export function EnvironmentBadge() {
     ),
   });
 
+  const envLabel = buildEnvBadge?.text ?? '🧪 Entwicklung';
+
   return (
-    <Dropdown menu={{ items }} trigger={['click']}>
+    <Dropdown
+      menu={{ items }}
+      trigger={['click']}
+      placement="bottomRight"
+      overlayClassName="admin-header-dropdown"
+      getPopupContainer={getAdminHeaderPopupContainer}
+    >
       <Tag color="orange" style={{ cursor: 'pointer', marginInlineEnd: 0 }}>
-        DEV{activeBypasses.length > 0 ? ` (${activeBypasses.join(', ')})` : ''}
+        {envLabel}
+        {activeBypasses.length > 0 ? ` · DEV (${activeBypasses.join(', ')})` : ' · DEV'}
       </Tag>
     </Dropdown>
   );

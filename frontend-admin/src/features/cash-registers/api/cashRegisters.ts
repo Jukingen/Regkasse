@@ -1,3 +1,4 @@
+import type { CashRegister } from '@/api/generated/model';
 import { customInstance } from '@/lib/axios';
 
 export type CashRegisterCapabilities = {
@@ -20,6 +21,30 @@ export type DecommissionCashRegisterResponse = {
 export type HardDeleteCashRegisterRequest = {
     confirmPhrase: string;
 };
+
+export type CreateCashRegisterRequest = {
+    registerNumber: string;
+    location: string;
+    tenantId?: string | null;
+};
+
+export type CreateCashRegisterResponse = {
+    message: string;
+    register: CashRegister;
+};
+
+export const cashRegisterListQueryKey = ['cash-registers'] as const;
+
+export async function createCashRegister(
+    body: CreateCashRegisterRequest,
+): Promise<CreateCashRegisterResponse> {
+    return customInstance<CreateCashRegisterResponse>({
+        url: '/api/admin/cash-registers',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: body,
+    });
+}
 
 export async function getCashRegisterCapabilities(): Promise<CashRegisterCapabilities> {
     const data = await customInstance<{

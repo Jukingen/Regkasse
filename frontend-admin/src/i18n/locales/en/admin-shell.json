@@ -41,7 +41,10 @@
     "badgePlatformAdmin": "Platform admin",
     "badgePlatformAdminTooltip": "No tenant context — data refers to the platform or legacy default tenant.",
     "badgeImpersonatingTooltip": "Support impersonation active",
+    "badgeSupportModeTag": "Support mode",
     "badgeDevOverrideTooltip": "Development: tenant overridden via header dropdown",
+    "badgeDevModeTag": "Development",
+    "badgeDevModeTooltip": "Development mode – for testing only",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
     "infoCardTitle": "Current company",
     "infoCardEyebrow": "Company info",
@@ -78,7 +81,9 @@
       "licenseHintTooltip": "This is the selected tenant's (company) license. The admin UI itself has no license restriction.",
       "suspendedSuffix": "Suspended",
       "unknownTenant": "unknown",
-      "emptySearch": "No tenants found."
+      "emptySearch": "No tenants found.",
+      "sectionDevelopment": "🧪 Development / test",
+      "sectionProduction": "🏢 Production"
     },
     "infoCardApiSlug": "API context",
     "infoCardApiSlugHint": "All lists and settings use the tenant above (header / subdomain / JWT).",

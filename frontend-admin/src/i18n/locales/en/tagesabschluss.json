@@ -24,7 +24,7 @@
     "noRegistersTitle": "No register found for this tenant. Create a register or check permissions.",
     "selectPlaceholder": "Select register",
     "noListTitle": "No register list",
-    "noListDescription": "Permission cashregister.view is missing — enter register ID manually as UUID.",
+    "noListDescription": "Permission cash_register.view is missing — enter register ID manually as UUID.",
     "manualLabel": "Register ID",
     "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
     "uuidWarning": "Please set a valid UUID (from list or manual)."

@@ -2,7 +2,8 @@
   "page": {
     "title": "Tenants",
     "subtitle": "Super admin: create tenants, edit metadata, and impersonate for support.",
-    "listHelp": "Each tenant has its own products, registers, and receipts."
+    "listHelp": "Each tenant has its own products, registers, and receipts.",
+    "empty": "No tenants found."
   },
   "accessDenied": {
     "title": "Access denied",

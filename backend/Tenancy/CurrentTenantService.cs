@@ -65,8 +65,13 @@ public sealed class CurrentTenantService
         _tenantAccessor.TenantId = tenant.Id;
     }
 
-    private static string NormalizeSlug(string slug) =>
-        string.Equals(slug, "admin", StringComparison.OrdinalIgnoreCase)
-            ? LegacyDefaultTenantIds.PrimarySlug
-            : slug.Trim();
+    private static string NormalizeSlug(string slug)
+    {
+        if (string.Equals(slug, "admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return LegacyDefaultTenantIds.PrimarySlug;
+        }
+
+        return DevTenantSlugAliases.ResolveCanonical(slug);
+    }
 }

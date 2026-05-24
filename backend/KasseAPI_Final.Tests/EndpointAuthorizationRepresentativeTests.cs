@@ -145,6 +145,46 @@ public class EndpointAuthorizationRepresentativeTests
         Assert.True(result.Succeeded);
     }
 
+    [Fact]
+    public async Task CashRegister_CashRegisterManage_Manager_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Manager), null, Policy(AppPermissions.CashRegisterManage));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task CashRegister_CashRegisterManage_SuperAdmin_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.SuperAdmin), null, Policy(AppPermissions.CashRegisterManage));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task CashRegister_CashRegisterManage_Cashier_Denied()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Cashier), null, Policy(AppPermissions.CashRegisterManage));
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task CashRegister_CashRegisterDecommission_Manager_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Manager), null, Policy(AppPermissions.CashRegisterDecommission));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task CashRegister_CashRegisterDecommission_Cashier_Denied()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Cashier), null, Policy(AppPermissions.CashRegisterDecommission));
+        Assert.False(result.Succeeded);
+    }
+
     // --- Reports ---
     [Fact]
     public async Task Reports_ReportView_ReportViewer_Allowed()

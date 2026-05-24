@@ -20,7 +20,7 @@
   "errorLoadingProducts": "Error loading products",
   "loadingMore": "Loading more...",
   "noSearchResults": "No search results found",
-  "noProductsFound": "No products found",
+  "noProductsFound": "No products found. Please create products first.",
   "page": "Page",
   "products": "products",
   "roleLoading": "Loading role...",

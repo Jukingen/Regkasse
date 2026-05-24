@@ -1,4 +1,5 @@
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
+import { canonicalDevTenantSlug } from '@/features/tenancy/devTenantCatalog';
 
 /** Dev-only manual tenant switch (value is tenant slug, not Guid). */
 export const DEV_TENANT_LOCAL_STORAGE_KEY = 'dev_tenant_id';
@@ -19,7 +20,10 @@ export function isDevelopment(): boolean {
 
 function normalizeSlug(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
-  return trimmed && trimmed.length > 0 ? trimmed : null;
+  if (!trimmed) {
+    return null;
+  }
+  return canonicalDevTenantSlug(trimmed);
 }
 
 /** Hosts-file dev domains (e.g. cafe.regkasse.local). */

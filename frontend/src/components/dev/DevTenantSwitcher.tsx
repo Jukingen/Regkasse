@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { getDevTenantPresetName, isSameDevTenantPreset } from '../../../constants/devTenantCatalog';
 import { DEV_TENANT_PRESETS } from '../../../constants/devTenantPresets';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../../constants/SoftTheme';
 import {
@@ -39,8 +40,7 @@ export function DevTenantSwitcher() {
     return null;
   }
 
-  const currentLabel =
-    DEV_TENANT_PRESETS.find((p) => p.value === currentTenant)?.label ?? currentTenant;
+  const currentLabel = getDevTenantPresetName(currentTenant) ?? currentTenant;
 
   return (
     <>
@@ -66,22 +66,22 @@ export function DevTenantSwitcher() {
             </Text>
             {DEV_TENANT_PRESETS.map((preset) => (
               <Pressable
-                key={preset.value}
+                key={preset.slug}
                 style={[
                   styles.option,
-                  preset.value === currentTenant && styles.optionSelected,
+                  isSameDevTenantPreset(preset.slug, currentTenant) && styles.optionSelected,
                 ]}
-                onPress={() => void onSelect(preset.value)}
+                onPress={() => void onSelect(preset.slug)}
               >
                 <Text
                   style={[
                     styles.optionText,
-                    preset.value === currentTenant && styles.optionTextSelected,
+                    isSameDevTenantPreset(preset.slug, currentTenant) && styles.optionTextSelected,
                   ]}
                 >
-                  {preset.label}
+                  {preset.name}
                 </Text>
-                <Text style={styles.optionSlug}>{preset.value}</Text>
+                <Text style={styles.optionSlug}>{preset.slug}</Text>
               </Pressable>
             ))}
             <Pressable style={styles.cancelBtn} onPress={() => setOpen(false)}>

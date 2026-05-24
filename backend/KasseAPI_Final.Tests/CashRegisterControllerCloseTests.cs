@@ -4,6 +4,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -50,7 +51,8 @@ public class CashRegisterControllerCloseTests
             ctx,
             CreateTestUserManager(),
             shift,
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver,
+            Mock.Of<ICashRegisterManagementService>());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

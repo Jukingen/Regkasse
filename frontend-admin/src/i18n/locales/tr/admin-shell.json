@@ -41,7 +41,10 @@
     "badgePlatformAdmin": "Platform yöneticisi",
     "badgePlatformAdminTooltip": "Kiracı bağlamı yok — veriler platform veya varsayılan kiracıya aittir.",
     "badgeImpersonatingTooltip": "Destek kimliği (impersonation) etkin",
+    "badgeSupportModeTag": "Destek modu",
     "badgeDevOverrideTooltip": "Geliştirme: kiracı üst bilgi açılır menüsüyle geçersiz kılındı",
+    "badgeDevModeTag": "Geliştirme",
+    "badgeDevModeTooltip": "Geliştirme modu – yalnızca test için",
     "badgeApiSlugHint": "API (X-Tenant-Id): {slug}",
     "infoCardTitle": "Geçerli firma",
     "infoCardEyebrow": "Firma bilgisi",
@@ -78,7 +81,9 @@
       "licenseHintTooltip": "Bu, seçilen kiracının (işletmenin) lisansıdır. Yönetim arayüzünün kendisinin lisans kısıtı yoktur.",
       "suspendedSuffix": "Askıda",
       "unknownTenant": "bilinmiyor",
-      "emptySearch": "Kiracı bulunamadı."
+      "emptySearch": "Kiracı bulunamadı.",
+      "sectionDevelopment": "🧪 Geliştirme / test",
+      "sectionProduction": "🏢 Üretim"
     },
     "infoCardApiSlug": "API bağlamı",
     "infoCardApiSlugHint": "Tüm listeler ve ayarlar yukarıdaki kiracıyı kullanır (üst bilgi / alt alan adı / JWT).",

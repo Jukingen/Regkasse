@@ -1,0 +1,138 @@
+/* Tenant badge pill in header toolbar. */
+
+.tenant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 280px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 32px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.tenant-badge-clickable {
+  cursor: pointer;
+}
+
+.tenant-badge-clickable:hover {
+  background: var(--tenant-badge-hover-bg, rgba(0, 0, 0, 0.04));
+}
+
+.tenant-badge-clickable:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #1677ff);
+  outline-offset: 2px;
+}
+
+.tenant-badge-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  color: var(--tenant-badge-icon-color, #1677ff);
+}
+
+.tenant-badge-icon-platform {
+  color: #fa8c16;
+}
+
+.tenant-badge-icon-super-admin {
+  color: #1677ff;
+}
+
+.tenant-badge-icon-impersonating {
+  color: #722ed1;
+}
+
+.tenant-badge-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.tenant-badge-dev-mode-tag {
+  margin: 0;
+  font-size: 11px;
+  line-height: 18px;
+  border-radius: 10px;
+}
+
+.tenant-badge-name {
+  overflow: hidden;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--tenant-badge-name-color, #1f1f1f);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tenant-badge-chevron {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--tenant-badge-chevron-color, #8c8c8c);
+  transition: transform 0.2s ease;
+}
+
+.tenant-badge-expanded .tenant-badge-chevron {
+  transform: rotate(180deg);
+}
+
+.tenant-badge-impersonation-tag {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 18px;
+}
+
+.tenant-badge-tooltip-trigger {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tenant-badge-compact {
+  max-width: 120px;
+  padding: 4px 8px;
+}
+
+.tenant-badge-compact .tenant-badge-name {
+  font-size: 12px;
+}
+
+.tenant-badge-compact .tenant-badge-icon,
+.tenant-badge-compact .tenant-badge-chevron {
+  font-size: 12px;
+}
+
+[data-theme='dark'] .tenant-badge-clickable:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .tenant-badge-name {
+  --tenant-badge-name-color: rgba(255, 255, 255, 0.88);
+}
+
+[data-theme='dark'] .tenant-badge-chevron {
+  --tenant-badge-chevron-color: rgba(255, 255, 255, 0.45);
+}
+
+@media (--mobile) {
+  .tenant-badge {
+    padding: 4px 8px;
+  }
+
+  .tenant-badge-name {
+    max-width: 100px;
+    font-size: 12px;
+  }
+
+  .tenant-badge-icon,
+  .tenant-badge-chevron {
+    font-size: 12px;
+  }
+}

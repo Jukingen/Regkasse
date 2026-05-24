@@ -105,7 +105,7 @@ When changing persistence, auth, or API handlers, read `REGKASSE_AI_ONBOARDING.m
 
 Production deploys need wildcard DNS `*.regkasse.at`, wildcard TLS, and `ASPNETCORE_ENVIRONMENT=Production` (no dev tenant header overrides).
 
-Local multi-tenant smoke: `curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/health` or `?tenant=test_cafe` (Development only; slug not UUID). POS: `EXPO_PUBLIC_DEV_TENANT_ID=test_cafe`. FA: header tenant dropdown in dev.
+Local multi-tenant smoke: `curl -H "X-Tenant-Id: cafe" http://localhost:5184/api/health` or `?tenant=cafe` (Development only; slug not UUID). Legacy `test_cafe`/`test_bar` alias to `cafe`/`bar`. POS: `EXPO_PUBLIC_DEV_TENANT_ID=dev|cafe|bar`. FA: header tenant dropdown in dev.
 
 ### Tenant resolution in background services
 

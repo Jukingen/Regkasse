@@ -2,7 +2,8 @@
   "page": {
     "title": "Kiracılar",
     "subtitle": "Süper admin: kiracı oluşturma, düzenleme ve destek için impersonation.",
-    "listHelp": "Her kiracının kendi ürünleri, kasaları ve fişleri vardır."
+    "listHelp": "Her kiracının kendi ürünleri, kasaları ve fişleri vardır.",
+    "empty": "Kiracı bulunamadı."
   },
   "accessDenied": {
     "title": "Erişim reddedildi",

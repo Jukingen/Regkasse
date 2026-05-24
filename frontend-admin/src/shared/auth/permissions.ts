@@ -8,6 +8,13 @@
  * UI decisions (route guard, menu, buttons) should use permissions, not roles.
  */
 
+/** Backend-aligned permission keys (PascalCase) — extend per domain as needed. */
+export const AppPermissions = {
+  CashRegisterView: 'cash_register.view',
+  CashRegisterManage: 'cash_register.manage',
+  CashRegisterDecommission: 'cash_register.decommission',
+} as const;
+
 export const PERMISSIONS = {
   USER_VIEW: 'user.view',
   USER_MANAGE: 'user.manage',
@@ -55,8 +62,9 @@ export const PERMISSIONS = {
   INVENTORY_MANAGE: 'inventory.manage',
   INVENTORY_ADJUST: 'inventory.adjust',
   INVENTORY_DELETE: 'inventory.delete',
-  CASHREGISTER_VIEW: 'cashregister.view',
-  CASHREGISTER_MANAGE: 'cashregister.manage',
+  CASHREGISTER_VIEW: AppPermissions.CashRegisterView,
+  CASHREGISTER_MANAGE: AppPermissions.CashRegisterManage,
+  CASHREGISTER_DECOMMISSION: AppPermissions.CashRegisterDecommission,
   LOCALIZATION_VIEW: 'localization.view',
   LOCALIZATION_MANAGE: 'localization.manage',
   RECEIPT_TEMPLATE_VIEW: 'receipttemplate.view',

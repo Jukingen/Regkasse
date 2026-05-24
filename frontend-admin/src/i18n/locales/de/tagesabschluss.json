@@ -24,7 +24,7 @@
     "noRegistersTitle": "Keine Kasse im Mandanten gefunden. Bitte zuerst eine Kasse anlegen oder Berechtigungen prüfen.",
     "selectPlaceholder": "Kasse wählen",
     "noListTitle": "Keine Kassenliste",
-    "noListDescription": "Berechtigung cashregister.view fehlt — Kassen-ID manuell als UUID eingeben.",
+    "noListDescription": "Berechtigung cash_register.view fehlt — Kassen-ID manuell als UUID eingeben.",
     "manualLabel": "Kassen-ID",
     "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
     "uuidWarning": "Bitte gültige UUID setzen (Liste oder manuell)."

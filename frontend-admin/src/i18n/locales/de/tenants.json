@@ -2,7 +2,8 @@
   "page": {
     "title": "Mandanten",
     "subtitle": "Super-Admin: Mandanten anlegen, bearbeiten und für Support impersonieren.",
-    "listHelp": "Jeder Mandant hat eigene Produkte, Kassen und Belege."
+    "listHelp": "Jeder Mandant hat eigene Produkte, Kassen und Belege.",
+    "empty": "Keine Mandanten gefunden."
   },
   "accessDenied": {
     "title": "Zugriff verweigert",

@@ -8,6 +8,15 @@ namespace KasseAPI_Final.Authorization;
 /// SuperAdmin: full set including system.critical, tse.diagnostics, audit.cleanup, inventory.delete.
 /// Other canonical roles: explicit sets. Admin role removed; former Admin users migrated to SuperAdmin.
 /// </summary>
+/// <remarks>
+/// Cash register permissions (code-only; no DB seed):
+/// <list type="bullet">
+/// <item><description>SuperAdmin — cash_register.view, manage, decommission (via full catalog)</description></item>
+/// <item><description>Manager — view, manage, decommission (tenant-scoped at API layer)</description></item>
+/// <item><description>Cashier — view only</description></item>
+/// <item><description>Accountant — view only</description></item>
+/// </list>
+/// </remarks>
 public static class RolePermissionMatrix
 {
     private static readonly FrozenDictionary<string, FrozenSet<string>> RolePermissions = BuildMatrix();
@@ -69,6 +78,7 @@ public static class RolePermissionMatrix
                 AppPermissions.RefundCreate,
                 AppPermissions.DiscountApply, AppPermissions.PriceOverride,
                 AppPermissions.CashRegisterView, AppPermissions.CashRegisterManage,
+                AppPermissions.CashRegisterDecommission,
                 AppPermissions.ShiftView, AppPermissions.ShiftManage,
                 AppPermissions.InventoryView, AppPermissions.InventoryManage,
                 AppPermissions.InventoryAdjust,
@@ -152,6 +162,7 @@ public static class RolePermissionMatrix
                 AppPermissions.AuditView,
                 AppPermissions.FinanzOnlineView,
                 AppPermissions.FinanzOnlineSubmit,
+                AppPermissions.CashRegisterView,
                 AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
                 AppPermissions.RksvMonatsbelegCreate,

@@ -4,11 +4,13 @@ import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenant
 
 import {
     filterTenantsForHeaderSearch,
+    formatTenantDisplay,
     getTenantHeaderDetailLines,
     getTenantHeaderIndicator,
     getTenantHeaderTitle,
     getTenantStatusIcon,
     getTenantSwitcherLicenseBadge,
+    partitionTenantsForSwitcher,
     sortTenantsForHeaderSwitcher,
     tenantHeaderShowsNoAdminWarning,
 } from '../tenantHeaderSwitcher';
@@ -34,6 +36,13 @@ const t = (key: string, params?: Record<string, string | number>) => {
     if (key === 'license.badge.tenant.expired.tooltip') {
         return 'Abgelaufen.';
     }
+    if (key === 'license.badge.tenant.none.label') return 'Keine Lizenz';
+    if (key === 'license.badge.tenant.none.tooltip') return 'Keine Lizenz.';
+    if (key === 'license.badge.tenant.short.expired') return 'Abgelaufen';
+    if (key === 'license.badge.tenant.short.days' && params?.days != null) {
+        return `${params.days} Tage`;
+    }
+    if (key === 'license.badge.tenant.short.licensed') return 'Lizenziert';
     return key;
 };
 
@@ -78,6 +87,17 @@ describe('tenantHeaderSwitcher', () => {
         ).toBe('🔴');
     });
 
+    it('formatTenantDisplay maps seed slugs to hyphen preset slugs', () => {
+        expect(formatTenantDisplay(baseRow({ name: 'Test Cafe', slug: 'cafe' }))).toEqual({
+            displayName: 'Test Cafe',
+            displaySlug: 'test-cafe',
+        });
+        expect(formatTenantDisplay(baseRow({ name: 'Legacy', slug: 'test_cafe' }))).toEqual({
+            displayName: 'Test Cafe',
+            displaySlug: 'test-cafe',
+        });
+    });
+
     it('appends suspended suffix to title', () => {
         const title = getTenantHeaderTitle(
             baseRow({ name: 'Development', slug: 'dev', status: 'suspended', isActive: false }),
@@ -102,6 +122,7 @@ describe('tenantHeaderSwitcher', () => {
             baseRow({ name: 'Bar', slug: 'bar', ownerAdminEmail: null }),
         ];
         expect(filterTenantsForHeaderSearch(rows, 'cafe')).toHaveLength(1);
+        expect(filterTenantsForHeaderSearch(rows, 'test-cafe')).toHaveLength(1);
         expect(filterTenantsForHeaderSearch(rows, 'admin@bar')).toHaveLength(0);
     });
 
@@ -112,6 +133,34 @@ describe('tenantHeaderSwitcher', () => {
         ];
         expect(filterTenantsForHeaderSearch(rows, 'adler')).toHaveLength(1);
         expect(filterTenantsForHeaderSearch(rows, 'BAR')).toHaveLength(1);
+    });
+
+    it('partitions development and production tenants by slug', () => {
+        const rows = [
+            baseRow({ slug: 'dev', name: 'Development' }),
+            baseRow({ slug: 'cafe', name: 'Test Cafe' }),
+            baseRow({ slug: 'acme', name: 'Acme' }),
+        ];
+        const { development, production } = partitionTenantsForSwitcher(rows);
+        expect(development.map((r) => r.slug)).toEqual(['dev', 'cafe']);
+        expect(production.map((r) => r.slug)).toEqual(['acme']);
+    });
+
+    it('shows compact license badge for missing license', () => {
+        const badge = getTenantSwitcherLicenseBadge(baseRow({ licenseValidUntilUtc: null }), t);
+        expect(badge.label).toBe('Keine Lizenz');
+        expect(badge.color).toBe('default');
+    });
+
+    it('shows short licensed badge when validity is beyond 7 days', () => {
+        const until = new Date();
+        until.setDate(until.getDate() + 30);
+        const badge = getTenantSwitcherLicenseBadge(
+            baseRow({ licenseValidUntilUtc: until.toISOString(), licenseKey: 'KEY' }),
+            t,
+        );
+        expect(badge.label).toBe('Lizenziert');
+        expect(badge.color).toBe('success');
     });
 
     it('builds admin and license detail lines', () => {
@@ -127,12 +176,12 @@ describe('tenantHeaderSwitcher', () => {
             t,
         );
         expect(lines.adminLine).toBe('Admin: admin@cafe.regkasse.at');
-        expect(lines.licenseLine).toBe('Mandanten-Lizenz: TESTVERSION (21 Tage)');
+        expect(lines.licenseLine).toBe('Lizenziert');
     });
 
-    it('uses Mandanten-Lizenz TESTVERSION label for trial tenants', () => {
+    it('uses warning days label when seven or fewer days remain', () => {
         const until = new Date();
-        until.setDate(until.getDate() + 8);
+        until.setDate(until.getDate() + 5);
         const badge = getTenantSwitcherLicenseBadge(
             baseRow({
                 licenseValidUntilUtc: until.toISOString(),
@@ -140,9 +189,8 @@ describe('tenantHeaderSwitcher', () => {
             }),
             t,
         );
-        expect(badge?.label).toMatch(/^Mandanten-Lizenz: TESTVERSION \(\d+ Tage\)$/);
-        expect(badge?.color).toBe('blue');
-        expect(badge?.tooltip).toContain('Mandanten-Lizenz Hinweis');
+        expect(badge.label).toBe('5 Tage');
+        expect(badge.color).toBe('warning');
     });
 
     it('omits admin line when no owner admin (pill shown in UI instead)', () => {

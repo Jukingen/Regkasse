@@ -5,15 +5,30 @@
  * Super Admin platform mode is consolidated into TenantBadge.
  */
 
-import { Tag, Tooltip } from 'antd';
+import { LoadingOutlined, SafetyOutlined } from '@ant-design/icons';
+import { Tooltip } from 'antd';
 
+import {
+    getHeaderLicenseStatusClass,
+    getHeaderLicenseStatusText,
+} from '@/features/tenant/utils/headerLicenseStatus';
 import { useHeaderTenantLicense } from '@/features/tenant/hooks/useHeaderTenantLicense';
 import { mapTenantLicenseLabelToBadge } from '@/features/tenant/utils/mandantLicenseBadge';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useI18n } from '@/i18n';
 
-export function LicenseStatusIndicator() {
+export type LicenseStatusIndicatorProps = {
+    compact?: boolean;
+};
+
+export function LicenseStatusIndicator({ compact: _compact = false }: LicenseStatusIndicatorProps) {
     const { t } = useI18n();
+    const { isSuperAdminPlatformMode, suppressLicenseWarnings } = useCurrentTenant();
     const { mode, license, isLoading } = useHeaderTenantLicense();
+
+    if (suppressLicenseWarnings || isSuperAdminPlatformMode) {
+        return null;
+    }
 
     if (mode !== 'tenant') {
         return null;
@@ -21,9 +36,18 @@ export function LicenseStatusIndicator() {
 
     if (isLoading) {
         return (
-            <Tag aria-busy="true" aria-live="polite">
-                {t('license.badge.loading')}
-            </Tag>
+            <Tooltip
+                title={t('license.badge.loading')}
+                placement="bottom"
+                mouseEnterDelay={0.2}
+            >
+                <span className="license-badge-tooltip-trigger">
+                    <div className="license-badge loading" aria-busy="true" aria-live="polite">
+                        <LoadingOutlined className="license-icon" spin aria-hidden />
+                        <span className="license-text">{t('license.badge.loading')}</span>
+                    </div>
+                </span>
+            </Tooltip>
         );
     }
 
@@ -36,9 +60,17 @@ export function LicenseStatusIndicator() {
         return null;
     }
 
+    const statusClass = getHeaderLicenseStatusClass(license);
+    const statusText = getHeaderLicenseStatusText(license, t);
+
     return (
-        <Tooltip title={display.tooltip}>
-            <Tag color={display.color}>{display.label}</Tag>
+        <Tooltip title={display.tooltip} placement="bottom" mouseEnterDelay={0.2}>
+            <span className="license-badge-tooltip-trigger">
+                <div className={`license-badge ${statusClass}`} aria-label={statusText}>
+                    <SafetyOutlined className="license-icon" aria-hidden />
+                    <span className="license-text">{statusText}</span>
+                </div>
+            </span>
         </Tooltip>
     );
 }

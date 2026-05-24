@@ -31,4 +31,8 @@ module.exports = {
   testTimeout: 30000,
   // Verbose output
   verbose: true,
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/$1',
+    '^shared/(.*)$': '<rootDir>/shared/$1',
+  },
 };

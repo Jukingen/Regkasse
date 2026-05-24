@@ -8,6 +8,8 @@ module.exports = function (api) {
         extensions: ['.ios.js', '.android.js', '.js', '.ts', '.tsx', '.json'],
         alias: {
           '@': './',
+          '@/shared': './shared',
+          shared: './shared',
           tests: ['./tests/'],
           '@components': './components',
           stream: 'stream-browserify',

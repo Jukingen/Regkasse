@@ -24,7 +24,7 @@
     "noRegistersTitle": "Bu kiraci icin kasa bulunamadi. Kasa olusturun veya yetkileri kontrol edin.",
     "selectPlaceholder": "Kasa sec",
     "noListTitle": "Kasa listesi yok",
-    "noListDescription": "cashregister.view yetkisi yok — kasa kimligini UUID olarak elle girin.",
+    "noListDescription": "cash_register.view yetkisi yok — kasa kimligini UUID olarak elle girin.",
     "manualLabel": "Kasa kimligi",
     "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
     "uuidWarning": "Gecerli UUID girin (liste veya elle)."

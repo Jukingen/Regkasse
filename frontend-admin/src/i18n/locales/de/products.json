@@ -9,7 +9,7 @@
     "newProduct": "Neues Produkt",
     "searchHint": "Suche nach Produktname; mindestens {{min}} Zeichen lösen eine Serverabfrage aus.",
     "loadErrorTitle": "Produkte konnten nicht geladen werden",
-    "empty": "Keine Produkte für diese Suche oder Seite."
+    "empty": "Keine Produkte gefunden. Bitte legen Sie zuerst Produkte an."
   },
   "table": {
     "product": "Produkt",

@@ -10,6 +10,12 @@
   },
   "badge": {
     "loading": "Lisans durumu…",
+    "headerShort": {
+      "expired": "Lisans süresi doldu",
+      "daysRemaining": "{{days}} gün",
+      "trial": "Deneme sürümü",
+      "licensed": "Lisanslı"
+    },
     "unavailable": "Lisans bilinmiyor",
     "unavailableTooltip": "Lisans durumu yüklenemedi (yetki eksikliği veya sunucu hatası).",
     "expired": {
@@ -38,6 +44,15 @@
     },
     "tenant": {
       "baseTooltip": "Aktif kiracının (işletmenin) lisansı. Yönetim arayüzünün kendisinin lisans kısıtı yoktur.",
+      "none": {
+        "label": "Lisans yok",
+        "tooltip": "Bu kiracı için lisans bitiş tarihi kayıtlı değil."
+      },
+      "short": {
+        "expired": "Süresi doldu",
+        "days": "{{days}} gün",
+        "licensed": "Lisanslı"
+      },
       "trial": {
         "label": "Kiracı lisansı: DENEME ({{days}} gün)",
         "tooltip": "Kiracı deneme sürümü. Kalan: {{days}} gün."

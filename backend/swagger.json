@@ -7360,17 +7360,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCashRegisterModel"
+                "$ref": "#/components/schemas/CreateCashRegisterRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCashRegisterModel"
+                "$ref": "#/components/schemas/CreateCashRegisterRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCashRegisterModel"
+                "$ref": "#/components/schemas/CreateCashRegisterRequest"
               }
             }
           }
@@ -24012,20 +24012,27 @@
         },
         "additionalProperties": false
       },
-      "CreateCashRegisterModel": {
+      "CreateCashRegisterRequest": {
         "required": [
           "location",
-          "startingBalance"
+          "registerNumber"
         ],
         "type": "object",
         "properties": {
-          "location": {
+          "registerNumber": {
+            "maxLength": 20,
             "minLength": 1,
             "type": "string"
           },
-          "startingBalance": {
-            "type": "number",
-            "format": "double"
+          "location": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false

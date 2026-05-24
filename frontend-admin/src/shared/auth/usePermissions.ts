@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import {
+  AppPermissions,
   hasPermission as checkPermission,
   hasAnyPermission as checkAnyPermission,
   hasAllPermissions as checkAllPermissions,
@@ -27,6 +28,12 @@ export function usePermissions() {
         checkAnyPermission(userWithPerms, permissions),
       hasAllPermissions: (permissions: string[]) =>
         checkAllPermissions(userWithPerms, permissions),
+      canViewCashRegisters: checkPermission(userWithPerms, AppPermissions.CashRegisterView),
+      canManageCashRegisters: checkPermission(userWithPerms, AppPermissions.CashRegisterManage),
+      canDecommissionCashRegisters: checkPermission(
+        userWithPerms,
+        AppPermissions.CashRegisterDecommission,
+      ),
     }),
     [user, userWithPerms]
   );

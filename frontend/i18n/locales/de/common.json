@@ -20,7 +20,7 @@
   "errorLoadingProducts": "Fehler beim Laden der Produkte",
   "loadingMore": "Lade mehr...",
   "noSearchResults": "Keine Suchergebnisse gefunden",
-  "noProductsFound": "Keine Produkte gefunden",
+  "noProductsFound": "Keine Produkte gefunden. Bitte legen Sie zuerst Produkte an.",
   "page": "Seite",
   "products": "Produkte",
   "roleLoading": "Rolle wird geladen...",

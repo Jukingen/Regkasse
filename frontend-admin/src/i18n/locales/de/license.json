@@ -10,6 +10,12 @@
   },
   "badge": {
     "loading": "Lizenzstatus…",
+    "headerShort": {
+      "expired": "Lizenz abgelaufen",
+      "daysRemaining": "{{days}} Tage",
+      "trial": "Testversion",
+      "licensed": "Lizenziert"
+    },
     "unavailable": "Lizenz unbekannt",
     "unavailableTooltip": "Lizenzstatus konnte nicht geladen werden (fehlende Berechtigung oder Serverfehler).",
     "expired": {
@@ -38,6 +44,15 @@
     },
     "tenant": {
       "baseTooltip": "Lizenz des aktiven Mandanten (Unternehmens). Die Verwaltungsoberfläche selbst hat keine Lizenzbeschränkung.",
+      "none": {
+        "label": "Keine Lizenz",
+        "tooltip": "Für diesen Mandanten ist kein Lizenzende hinterlegt."
+      },
+      "short": {
+        "expired": "Abgelaufen",
+        "days": "{{days}} Tage",
+        "licensed": "Lizenziert"
+      },
       "trial": {
         "label": "Mandanten-Lizenz: TESTVERSION ({{days}} Tage)",
         "tooltip": "Testversion des Mandanten. Noch {{days}} Tag(e) gültig."
