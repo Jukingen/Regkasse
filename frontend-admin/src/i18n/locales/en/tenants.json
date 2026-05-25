@@ -5,6 +5,41 @@
     "listHelp": "Each tenant has its own products, registers, and receipts.",
     "empty": "No tenants found."
   },
+  "licensesPage": {
+    "subtitle": "Super admin: filter, export, and manage license status across all tenants.",
+    "searchPlaceholder": "Search by tenant, subdomain, email, or license key",
+    "tenantStatusPlaceholder": "Tenant status",
+    "licenseStatusPlaceholder": "License status",
+    "validFromPlaceholder": "Valid from",
+    "validUntilPlaceholder": "Valid until",
+    "allShort": "All",
+    "allTenantStatuses": "All tenant statuses",
+    "allLicenseStatuses": "All license phases",
+    "clearFilters": "Reset filters",
+    "export": "Export CSV",
+    "exported": "Exported {{count}} tenants.",
+    "noRowsToExport": "There are no filtered tenants to export.",
+    "healthColumn": "License health",
+    "modalTitle": "Manage license: {{name}} ({{slug}})",
+    "sendReminder": "Send reminder email",
+    "reminderSent": "Reminder sent to {{recipient}}",
+    "reminderFailed": "Failed to send the email",
+    "daysOverdue": "{{days}} days overdue",
+    "daysUnit": "days",
+    "extendModal": {
+      "title": "Extend license - {{name}}",
+      "dateRequired": "Please choose a date",
+      "licenseKey": "License key (optional)",
+      "licenseKeyTooltip": "If left empty, only the date will be updated",
+      "hintTitle": "Note",
+      "hintDescription": "After the extension, the tenant will be able to work normally again.",
+      "success": "License for {{name}} extended successfully"
+    },
+    "summary": {
+      "total": "Filtered tenants",
+      "expiringSoon": "Expiring within 30 days"
+    }
+  },
   "accessDenied": {
     "title": "Access denied",
     "body": "Only super administrators may open this page."

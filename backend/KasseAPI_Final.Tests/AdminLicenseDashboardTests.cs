@@ -5,6 +5,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,37 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<ILicenseService>(),
             Mock.Of<ILicenseIssuanceService>(),
             db,
+            Mock.Of<IAdminTenantService>(),
+            Mock.Of<ILicenseReminderNotificationStore>(),
+            Mock.Of<IAuditLogService>(),
+            NullLogger<AdminLicenseController>.Instance);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, actorId),
+            new(ClaimTypes.Role, actorRole),
+        };
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test")),
+            },
+        };
+        return controller;
+    }
+
+    private static AdminLicenseController CreateController(
+        AppDbContext db,
+        string actorId,
+        string actorRole,
+        IAdminTenantService adminTenantService)
+    {
+        var controller = new AdminLicenseController(
+            Mock.Of<ILicenseService>(),
+            Mock.Of<ILicenseIssuanceService>(),
+            db,
+            adminTenantService,
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             NullLogger<AdminLicenseController>.Instance);
@@ -366,5 +398,65 @@ public sealed class AdminLicenseDashboardTests
         Assert.Equal("REGK-****-****-CCCCC", revoked.LicenseKey);
         Assert.Equal("admin@test.local", revoked.UserEmail);
         Assert.False(string.IsNullOrEmpty(revoked.MachineHash));
+    }
+
+    [Fact]
+    public async Task GetAllTenantLicenses_Filters_By_Search_Status_And_LicenseStatus()
+    {
+        await using var db = CreateDb();
+        var now = DateTime.UtcNow;
+
+        var service = new Mock<IAdminTenantService>();
+        service.Setup(x => x.ListAsync(false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+            [
+                new AdminTenantListItemDto(
+                    Guid.NewGuid(),
+                    "Cafe Alpha",
+                    "cafe-alpha",
+                    null,
+                    null,
+                    TenantStatuses.Active,
+                    true,
+                    "REGK-AAAAA-BBBBB-CCCCC",
+                    now.AddDays(14),
+                    now.AddDays(-20),
+                    null,
+                    14,
+                    "alpha@tenant.test",
+                    false),
+                new AdminTenantListItemDto(
+                    Guid.NewGuid(),
+                    "Beta Store",
+                    "beta-store",
+                    null,
+                    null,
+                    TenantStatuses.Suspended,
+                    false,
+                    null,
+                    null,
+                    now.AddDays(-30),
+                    null,
+                    null,
+                    "beta@tenant.test",
+                    false),
+            ]);
+
+        var controller = CreateController(db, "super-1", Roles.SuperAdmin, service.Object);
+
+        var result = await controller.GetAllTenantLicenses(
+            search: "alpha",
+            status: TenantStatuses.Active,
+            licenseStatus: "active",
+            cancellationToken: CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var rows = Assert.IsType<List<TenantLicenseDto>>(ok.Value);
+        var row = Assert.Single(rows);
+
+        Assert.Equal("Cafe Alpha", row.Name);
+        Assert.Equal("alpha@tenant.test", row.OwnerEmail);
+        Assert.Equal("REGK-****-****-CCCCC", row.LicenseKey);
+        Assert.Equal("active", row.LicenseStatus);
     }
 }

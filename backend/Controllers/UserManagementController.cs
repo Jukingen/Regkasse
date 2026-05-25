@@ -790,6 +790,7 @@ namespace KasseAPI_Final.Controllers
                 user.DeactivatedAt = null;
                 user.DeactivatedBy = null;
                 user.DeactivationReason = null;
+                user.LockoutEnd = null;
 
                 var result = await _userManager.UpdateAsync(user);
                 if (!result.Succeeded)

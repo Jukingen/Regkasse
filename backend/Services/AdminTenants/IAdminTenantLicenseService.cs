@@ -29,4 +29,9 @@ public interface IAdminTenantLicenseService
         Guid tenantId,
         string? actorUserId,
         CancellationToken cancellationToken = default);
+
+    Task<(TenantLicenseReminderResultDto? Result, string? Error)> SendReminderEmailAsync(
+        Guid tenantId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
 }

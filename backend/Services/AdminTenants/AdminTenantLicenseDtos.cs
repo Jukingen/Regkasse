@@ -58,3 +58,8 @@ public sealed record TenantLicenseIssueDeploymentResultDto(
     string? LicenseKey,
     Guid? IssuedLicenseId,
     TenantLicenseOverviewDto? Overview);
+
+public sealed record TenantLicenseReminderResultDto(
+    bool Success,
+    string RecipientEmail,
+    string? Message);

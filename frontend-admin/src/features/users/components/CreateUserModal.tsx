@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Form, Input, Modal, Select, Space, Switch, Typography, message } from 'antd';
+import { Alert, Button, Form, Input, Modal, Select, Space, Switch, Tabs, Typography, message } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
+import { QuickUserSuccessModal } from '@/features/super-admin/components/QuickUserSuccessModal';
+import { QUICK_USER_ROLES, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
 import type { CreateUserResult } from '@/features/users/api/users';
 import { TENANT_CREATE_ROLES } from '@/features/super-admin/api/tenantUsers';
 import { useI18n } from '@/i18n';
@@ -15,6 +17,11 @@ export type CreateUserFormValues = {
     lastName?: string;
     role: string;
     isOwner: boolean;
+    tenantId?: string;
+};
+
+export type CreateUserQuickFormValues = {
+    role: string;
     tenantId?: string;
 };
 
@@ -34,6 +41,9 @@ export type CreateUserModalProps = {
     showOwnerToggle?: boolean;
     variant?: 'tenantDetail' | 'usersPage';
     initialValues?: Partial<CreateUserFormValues>;
+    quickMode?: {
+        onSubmit: (values: CreateUserQuickFormValues) => Promise<CreateQuickUserResult>;
+    };
 };
 
 const ROLE_I18N_KEYS: Record<string, string> = {
@@ -57,17 +67,31 @@ export function CreateUserModal({
     showOwnerToggle = false,
     variant = 'usersPage',
     initialValues,
+    quickMode,
 }: CreateUserModalProps) {
     const { t } = useI18n();
     const [form] = Form.useForm<CreateUserFormValues>();
+    const [quickForm] = Form.useForm<CreateUserQuickFormValues>();
     const [passwordResult, setPasswordResult] = useState<CreateUserResult | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [quickResult, setQuickResult] = useState<CreateQuickUserResult | null>(null);
+    const [quickSubmitting, setQuickSubmitting] = useState(false);
+    const [activeTab, setActiveTab] = useState<'normal' | 'quick'>('normal');
 
     const showTenantPicker = isSuperAdmin && !fixedTenantId;
 
     const roleOptions = useMemo(
         () =>
             TENANT_CREATE_ROLES.map((role) => ({
+                value: role,
+                label: t(ROLE_I18N_KEYS[role] ?? role, { defaultValue: role }),
+            })),
+        [t],
+    );
+
+    const quickRoleOptions = useMemo(
+        () =>
+            QUICK_USER_ROLES.map((role) => ({
                 value: role,
                 label: t(ROLE_I18N_KEYS[role] ?? role, { defaultValue: role }),
             })),
@@ -83,9 +107,11 @@ export function CreateUserModal({
         [tenantRows, t],
     );
 
+    const tenantById = useMemo(() => new Map(tenantRows.map((row) => [row.id, row])), [tenantRows]);
+
     const modalTitle = useMemo(() => {
         if (fixedTenantId) {
-            const tenant = tenantRows.find((row) => row.id === fixedTenantId);
+            const tenant = tenantById.get(fixedTenantId);
             if (tenant) {
                 return variant === 'tenantDetail'
                     ? t('users.create.titleAddForTenant', { name: tenant.name, slug: tenant.slug })
@@ -93,11 +119,13 @@ export function CreateUserModal({
             }
         }
         return t('users.create.title');
-    }, [fixedTenantId, tenantRows, variant, t]);
+    }, [fixedTenantId, tenantById, variant, t]);
 
     useEffect(() => {
         if (!open) {
             form.resetFields();
+            quickForm.resetFields();
+            setActiveTab('normal');
             return;
         }
         form.setFieldsValue({
@@ -106,10 +134,27 @@ export function CreateUserModal({
             tenantId: fixedTenantId,
             ...initialValues,
         });
-    }, [open, form, fixedTenantId, initialValues]);
+        quickForm.setFieldsValue({
+            role: 'Manager',
+            ...(fixedTenantId ? { tenantId: fixedTenantId } : {}),
+        });
+    }, [open, form, quickForm, fixedTenantId, initialValues]);
+
+    const watchedQuickRole = Form.useWatch('role', quickForm) ?? 'Manager';
+    const watchedQuickTenantId = Form.useWatch('tenantId', quickForm) ?? fixedTenantId;
+    const quickPreviewTenant = watchedQuickTenantId ? tenantById.get(watchedQuickTenantId) : undefined;
+    const quickPreviewSlug = quickPreviewTenant?.slug ?? 'tenant';
+    const quickPreviewName = quickPreviewTenant?.name ?? fixedTenantId ?? '';
+    const infoEmailExample = t('tenants.users.quick.emailPreview', {
+        role: watchedQuickRole.toLowerCase(),
+        random: 'a3f9k2',
+        slug: quickPreviewSlug,
+    });
 
     const handleClose = () => {
         setPasswordResult(null);
+        setQuickResult(null);
+        setActiveTab('normal');
         onClose();
     };
 
@@ -139,6 +184,29 @@ export function CreateUserModal({
         }
     };
 
+    const handleQuickFinish = async (values: CreateUserQuickFormValues) => {
+        if (!quickMode) return;
+        const tenantId = fixedTenantId ?? values.tenantId;
+        if (!tenantId) {
+            quickForm.setFields([{ name: 'tenantId', errors: [t('users.create.tenantRequired')] }]);
+            return;
+        }
+        setQuickSubmitting(true);
+        try {
+            const result = await quickMode.onSubmit({
+                role: values.role,
+                tenantId,
+            });
+            if (result?.success) {
+                setQuickResult(result);
+            }
+        } catch {
+            /* parent shows error toast */
+        } finally {
+            setQuickSubmitting(false);
+        }
+    };
+
     const copyPassword = async () => {
         if (!passwordResult?.generatedPassword) return;
         try {
@@ -155,13 +223,114 @@ export function CreateUserModal({
         onClose();
     };
 
-    const loading = confirmLoading || submitting;
+    const closeQuickResult = () => {
+        setQuickResult(null);
+        onComplete?.();
+        onClose();
+    };
+
+    const handleGenerateAnotherQuickUser = () => {
+        setQuickResult(null);
+        setActiveTab('quick');
+        quickForm.setFieldsValue({
+            role: 'Manager',
+            ...(fixedTenantId ? { tenantId: fixedTenantId } : {}),
+        });
+    };
+
+    const loading = activeTab === 'quick' ? quickSubmitting : confirmLoading || submitting;
+
+    const normalForm = (
+        <Form form={form} layout="vertical" onFinish={handleFinish}>
+            <Form.Item
+                name="email"
+                label={t('users.create.email')}
+                rules={[
+                    { required: true, message: t('users.create.emailRequired') },
+                    { type: 'email', message: t('users.create.emailInvalid') },
+                ]}
+            >
+                <Input type="email" placeholder="benutzer@firma.at" />
+            </Form.Item>
+
+            <Form.Item name="firstName" label={t('users.create.firstName')}>
+                <Input placeholder="Max" maxLength={50} />
+            </Form.Item>
+
+            <Form.Item name="lastName" label={t('users.create.lastName')}>
+                <Input placeholder="Mustermann" maxLength={50} />
+            </Form.Item>
+
+            <Form.Item name="role" label={t('users.create.role')} rules={[{ required: true }]}>
+                <Select options={roleOptions} />
+            </Form.Item>
+
+            {showTenantPicker ? (
+                <Form.Item
+                    name="tenantId"
+                    label={t('users.create.tenant')}
+                    rules={[{ required: true, message: t('users.create.tenantRequired') }]}
+                >
+                    <Select
+                        showSearch
+                        optionFilterProp="label"
+                        placeholder={t('users.create.tenantPlaceholder')}
+                        loading={tenantsLoading}
+                        options={tenantOptions}
+                    />
+                </Form.Item>
+            ) : null}
+
+            {showOwnerToggle ? (
+                <Form.Item name="isOwner" label={t('users.create.isOwner')} valuePropName="checked">
+                    <Switch />
+                </Form.Item>
+            ) : null}
+        </Form>
+    );
+
+    const quickFormContent = quickMode ? (
+        <Form form={quickForm} layout="vertical" onFinish={handleQuickFinish}>
+            {showTenantPicker ? (
+                <Form.Item
+                    name="tenantId"
+                    label={t('users.create.tenant')}
+                    rules={[{ required: true, message: t('users.create.tenantRequired') }]}
+                >
+                    <Select
+                        showSearch
+                        optionFilterProp="label"
+                        placeholder={t('users.create.tenantPlaceholder')}
+                        loading={tenantsLoading}
+                        options={tenantOptions}
+                    />
+                </Form.Item>
+            ) : null}
+
+            <Form.Item name="role" label={t('tenants.users.quick.role')} rules={[{ required: true }]}>
+                <Select options={quickRoleOptions} />
+            </Form.Item>
+
+            <Alert
+                type="info"
+                showIcon
+                message={t('tenants.users.quick.autoTitle')}
+                description={
+                    <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
+                        <li>{infoEmailExample}</li>
+                        <li>{t('tenants.users.quick.autoPassword')}</li>
+                        <li>{t('tenants.users.quick.autoForceChange')}</li>
+                    </ul>
+                }
+            />
+        </Form>
+    ) : null;
 
     return (
         <>
             <Modal
                 title={modalTitle}
-                open={open && !passwordResult}
+                open={open && !passwordResult && !quickResult}
                 onCancel={handleClose}
                 width={600}
                 destroyOnClose
@@ -169,57 +338,42 @@ export function CreateUserModal({
                     <Button key="cancel" onClick={handleClose}>
                         {t('common.buttons.cancel')}
                     </Button>,
-                    <Button key="submit" type="primary" loading={loading} onClick={() => form.submit()}>
-                        {t('users.create.submit')}
+                    <Button
+                        key="submit"
+                        type="primary"
+                        loading={loading}
+                        onClick={() => {
+                            if (activeTab === 'quick' && quickMode) {
+                                quickForm.submit();
+                                return;
+                            }
+                            form.submit();
+                        }}
+                    >
+                        {activeTab === 'quick' && quickMode ? t('tenants.users.quick.generate') : t('users.create.submit')}
                     </Button>,
                 ]}
             >
-                <Form form={form} layout="vertical" onFinish={handleFinish}>
-                    <Form.Item
-                        name="email"
-                        label={t('users.create.email')}
-                        rules={[
-                            { required: true, message: t('users.create.emailRequired') },
-                            { type: 'email', message: t('users.create.emailInvalid') },
+                {quickMode ? (
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={(key) => setActiveTab(key as 'normal' | 'quick')}
+                        items={[
+                            {
+                                key: 'normal',
+                                label: t('users.create.tabs.normal'),
+                                children: normalForm,
+                            },
+                            {
+                                key: 'quick',
+                                label: t('users.create.tabs.quick'),
+                                children: quickFormContent,
+                            },
                         ]}
-                    >
-                        <Input type="email" placeholder="benutzer@firma.at" />
-                    </Form.Item>
-
-                    <Form.Item name="firstName" label={t('users.create.firstName')}>
-                        <Input placeholder="Max" maxLength={50} />
-                    </Form.Item>
-
-                    <Form.Item name="lastName" label={t('users.create.lastName')}>
-                        <Input placeholder="Mustermann" maxLength={50} />
-                    </Form.Item>
-
-                    <Form.Item name="role" label={t('users.create.role')} rules={[{ required: true }]}>
-                        <Select options={roleOptions} />
-                    </Form.Item>
-
-                    {showTenantPicker ? (
-                        <Form.Item
-                            name="tenantId"
-                            label={t('users.create.tenant')}
-                            rules={[{ required: true, message: t('users.create.tenantRequired') }]}
-                        >
-                            <Select
-                                showSearch
-                                optionFilterProp="label"
-                                placeholder={t('users.create.tenantPlaceholder')}
-                                loading={tenantsLoading}
-                                options={tenantOptions}
-                            />
-                        </Form.Item>
-                    ) : null}
-
-                    {showOwnerToggle ? (
-                        <Form.Item name="isOwner" label={t('users.create.isOwner')} valuePropName="checked">
-                            <Switch />
-                        </Form.Item>
-                    ) : null}
-                </Form>
+                    />
+                ) : (
+                    normalForm
+                )}
             </Modal>
 
             <Modal
@@ -247,6 +401,18 @@ export function CreateUserModal({
                     <Input.Password value={passwordResult?.generatedPassword ?? ''} readOnly />
                 </Space>
             </Modal>
+
+            {quickMode ? (
+                <QuickUserSuccessModal
+                    open={!!quickResult}
+                    result={quickResult}
+                    role={watchedQuickRole}
+                    tenantName={quickPreviewName}
+                    tenantSlug={quickPreviewSlug}
+                    onClose={closeQuickResult}
+                    onGenerateAnother={handleGenerateAnotherQuickUser}
+                />
+            ) : null}
         </>
     );
 }

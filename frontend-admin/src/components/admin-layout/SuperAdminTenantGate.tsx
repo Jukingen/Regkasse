@@ -17,7 +17,7 @@ type SuperAdminTenantGateProps = {
 
 /**
  * Blocks mandant-scoped pages until Super Admin selects a tenant (impersonation / dev slug).
- * Platform routes under `/admin/tenants`, `/admin/license`, `/admin/system` stay available.
+ * Platform routes under `/admin/tenants`, `/admin/licenses`, `/admin/license`, `/admin/system` stay available.
  */
 export function SuperAdminTenantGate({ children }: SuperAdminTenantGateProps) {
     const pathname = usePathname();

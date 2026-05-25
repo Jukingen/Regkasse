@@ -14,6 +14,7 @@ export type UnifiedAdminUserRow = {
     isActive: boolean;
     isPending?: boolean;
     lastLoginAt?: string | null;
+    twoFactorEnabled?: boolean;
     tenantId?: string;
     tenantSlug: string;
     tenantName: string;

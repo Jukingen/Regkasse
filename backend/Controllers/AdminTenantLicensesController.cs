@@ -78,6 +78,26 @@ public sealed class AdminTenantLicensesController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("reminder")]
+    [ProducesResponseType(typeof(TenantLicenseReminderResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<TenantLicenseReminderResultDto>> SendReminder(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var (result, error) = await _licenseService.SendReminderEmailAsync(tenantId, ActorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (error != null && error.Contains("SMTP", StringComparison.OrdinalIgnoreCase))
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = error });
+        if (error != null)
+            return BadRequest(new { message = error });
+        return Ok(result);
+    }
+
     [HttpPost("tier")]
     [ProducesResponseType(typeof(TenantLicenseOverviewDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

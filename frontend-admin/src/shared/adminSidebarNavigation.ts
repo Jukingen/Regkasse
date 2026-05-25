@@ -130,7 +130,7 @@ export function resolveAdminMenuSelectedKeys(
     if (p === RKSV_HUB_PATH) return [RKSV_HUB_MENU_LEAF_KEY];
 
     if (p === '/rksv/sonderbelege' && search && search.length > 0) {
-        const sp = new URLSearchParams(search);
+        const sp = new globalThis.URLSearchParams(search);
         const focus = sp.get('focus')?.trim();
         const keys = selectableLeafKeys as string[];
         if (focus === 'startbeleg' && keys.includes('/rksv/sb/startbeleg')) {
@@ -208,7 +208,11 @@ export function filterSidebarMenuItems(
         }
         if (key === '/users' || key === '/admin/users') return ctx.canViewUsers(ctx.userRole);
         if (key === '/rksv') return ctx.canShowRksvMenu(ctx.userRole);
-        if (key === '/admin/tenants' || key === '/admin/cash-registers') {
+        if (
+            key === '/admin/tenants' ||
+            key === '/admin/licenses' ||
+            key === '/admin/cash-registers'
+        ) {
             return ctx.canShowPlatformAdminMenu(ctx.userRole);
         }
         return true;

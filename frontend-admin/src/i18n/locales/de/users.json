@@ -291,6 +291,23 @@
       "pending": "Ausstehend",
       "platform": "Plattform",
       "tenant": "Mandant"
+    },
+    "lastLogin": {
+      "never": "Nie",
+      "today": "Heute",
+      "dayAgo": "1 Tag her",
+      "daysAgo": "{{count}} Tage her"
+    },
+    "export": {
+      "button": "Exportieren",
+      "csv": "CSV exportieren",
+      "pdf": "PDF exportieren",
+      "messages": {
+        "csvSuccess": "CSV exportiert.",
+        "csvFailed": "CSV-Export fehlgeschlagen.",
+        "pdfReady": "Druckansicht für PDF geöffnet.",
+        "pdfBlocked": "Pop-up blockiert. Bitte Pop-ups zulassen."
+      }
     }
   },
   "tabs": {
@@ -338,6 +355,10 @@
     "passwordWarningTitle": "Wichtiger Hinweis",
     "close": "Schließen",
     "action": "Benutzer anlegen",
+    "tabs": {
+      "normal": "Normal",
+      "quick": "Schnell anlegen"
+    },
     "tenantRequired": "Bitte einen Mandanten wählen.",
     "tenantPlaceholder": "Mandant wählen …",
     "tenantOption": "{{name}} ({{slug}})",

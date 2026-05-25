@@ -43,6 +43,7 @@
   "developmentMode": "Entwicklungsmodus",
   "timeSync": "Zeitsynchronisation",
   "licenseManagement": "Lizenz",
+  "superAdminLicenses": "Mandantenlizenzen",
   "superAdminTenants": "Mandanten",
   "superAdminCashRegisters": "Kassen (Mandant)",
   "platformAdminHub": "Plattform-Verwaltung",

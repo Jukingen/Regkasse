@@ -25,6 +25,7 @@ export type AdminUserDto = {
     isActive: boolean;
     createdAt?: string;
     lastLoginAt?: string | null;
+    twoFactorEnabled?: boolean;
     tenantId?: string | null;
     tenantName?: string | null;
     tenantSlug?: string | null;
@@ -44,6 +45,7 @@ export type TenantUserRowDto = {
     tenantName: string;
     joinedAtUtc: string;
     lastLoginAt?: string | null;
+    twoFactorEnabled?: boolean;
 };
 
 export type ListAdminUsersParams = {
@@ -260,6 +262,7 @@ export function tenantRowToTenantUser(row: TenantUserRowDto) {
         tenantName: row.tenantName,
         isActive: row.isActive,
         lastLoginAt: row.lastLoginAt ?? undefined,
+        twoFactorEnabled: row.twoFactorEnabled,
     };
 }
 

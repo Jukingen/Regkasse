@@ -79,7 +79,7 @@ import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
-import { adminUsersQueryKeys, createPlatformUser } from '@/features/users/api/users';
+import { createPlatformUser } from '@/features/users/api/users';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
@@ -365,6 +365,11 @@ export default function UsersPage() {
 
     const [createPlatformMode, setCreatePlatformMode] = useState(false);
 
+    const invalidateAllUserLists = () => {
+        void queryClient.invalidateQueries({ queryKey: listQueryKey });
+        void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    };
+
     const createMutation = useMutation({
         mutationFn: (payload: { platform: boolean; data: CreateUserRequest }) =>
             payload.platform
@@ -378,9 +383,9 @@ export default function UsersPage() {
         onSuccess: (_data, { platform }) => {
             message.success(usersCopy.successCreate);
             if (platform) {
-                void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.platform() });
+                invalidateAllUserLists();
             } else {
-                queryClient.invalidateQueries({ queryKey: listQueryKey });
+                invalidateAllUserLists();
             }
             setCreateOpen(false);
             setCreatePlatformMode(false);
@@ -394,7 +399,7 @@ export default function UsersPage() {
         onSuccess: (_data, { id }) => {
             message.success(usersCopy.successUpdate);
             queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(id) });
-            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setEditUserId(null);
         },
@@ -406,7 +411,7 @@ export default function UsersPage() {
         mutationFn: ({ id, data }: { id: string; data: { newPassword: string } }) => gatewayResetPassword(id, data),
         onSuccess: (_data, { id }) => {
             message.success(usersCopy.successResetPassword);
-            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setResetPasswordUser(null);
             resetPasswordForm.resetFields();
@@ -442,7 +447,7 @@ export default function UsersPage() {
         mutationFn: ({ id, reason }: { id: string; reason: string }) => gatewayDeactivateUser(id, { reason }),
         onSuccess: (_data, { id }) => {
             message.success(usersCopy.successDeactivate);
-            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setDeactivateUserRecord(null);
             deactivateForm.resetFields();
@@ -455,7 +460,7 @@ export default function UsersPage() {
         mutationFn: (id: string) => gatewayReactivateUser(id),
         onSuccess: (_data, id) => {
             message.success(usersCopy.successReactivate);
-            queryClient.invalidateQueries({ queryKey: listQueryKey });
+            invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setReactivateUserRecord(null);
         },

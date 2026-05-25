@@ -1007,6 +1007,8 @@ export default function AdminLicensePage() {
     const resolvedStatus = useMemo(() => (s ? resolveDeploymentLicenseStatus(s) : null), [s]);
 
     const machineHash = s?.machineHash?.trim() ?? '';
+    const showDeploymentActivation = false;
+    const showIssuedLicenses = false;
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1173,45 +1175,47 @@ export default function AdminLicensePage() {
                                 />
                             ) : null}
                         </Col>
-                        <Col xs={24} lg={10}>
-                            <Card type="inner" title={t('license.activation.title')}>
-                                {!canActivate ? (
-                                    <Alert type="info" showIcon message={t('license.activation.noPermission')} />
-                                ) : (
-                                    <Form
-                                        form={form}
-                                        layout="vertical"
-                                        onFinish={(values) => {
-                                            const licenseKey = values.licenseKey?.trim() ?? '';
-                                            if (!licenseKey) {
-                                                message.warning(t('license.activation.licenseKey'));
-                                                return;
-                                            }
-                                            activateMutation.mutate({ licenseKey });
-                                        }}
-                                    >
-                                        <Form.Item
-                                            name="licenseKey"
-                                            label={t('license.activation.licenseKey')}
-                                            rules={[
-                                                { required: true, message: t('common.validation.fieldRequired') },
-                                            ]}
+                        {showDeploymentActivation ? (
+                            <Col xs={24} lg={10}>
+                                <Card type="inner" title={t('license.activation.title')}>
+                                    {!canActivate ? (
+                                        <Alert type="info" showIcon message={t('license.activation.noPermission')} />
+                                    ) : (
+                                        <Form
+                                            form={form}
+                                            layout="vertical"
+                                            onFinish={(values) => {
+                                                const licenseKey = values.licenseKey?.trim() ?? '';
+                                                if (!licenseKey) {
+                                                    message.warning(t('license.activation.licenseKey'));
+                                                    return;
+                                                }
+                                                activateMutation.mutate({ licenseKey });
+                                            }}
                                         >
-                                            <Input placeholder="REGK-XXXXX-XXXXX-XXXXX" autoComplete="off" />
-                                        </Form.Item>
-                                        <Form.Item>
-                                            <Button
-                                                type="primary"
-                                                htmlType="submit"
-                                                loading={activateMutation.isPending}
+                                            <Form.Item
+                                                name="licenseKey"
+                                                label={t('license.activation.licenseKey')}
+                                                rules={[
+                                                    { required: true, message: t('common.validation.fieldRequired') },
+                                                ]}
                                             >
-                                                {t('license.activation.activate')}
-                                            </Button>
-                                        </Form.Item>
-                                    </Form>
-                                )}
-                            </Card>
-                        </Col>
+                                                <Input placeholder="REGK-XXXXX-XXXXX-XXXXX" autoComplete="off" />
+                                            </Form.Item>
+                                            <Form.Item>
+                                                <Button
+                                                    type="primary"
+                                                    htmlType="submit"
+                                                    loading={activateMutation.isPending}
+                                                >
+                                                    {t('license.activation.activate')}
+                                                </Button>
+                                            </Form.Item>
+                                        </Form>
+                                    )}
+                                </Card>
+                            </Col>
+                        ) : null}
                     </Row>
                 )}
             </Card>
@@ -1230,7 +1234,7 @@ export default function AdminLicensePage() {
                                         machineFingerprint={machineHash}
                                         enabledLicenseFeatures={enabledPublicLicenseFeatures}
                                     />
-                                    <IssuedLicensesTableCard />
+                                    {showIssuedLicenses ? <IssuedLicensesTableCard /> : null}
                                 </>
                             ),
                         },

@@ -214,6 +214,7 @@ namespace KasseAPI_Final.Models
         public const string USER_PASSWORD_RESET = "USER_PASSWORD_RESET";
         public const string CHANGE_OWN_PASSWORD = "CHANGE_OWN_PASSWORD";
         public const string FORCE_RESET_PASSWORD = "FORCE_RESET_PASSWORD";
+        public const string SUPER_ADMIN_VIEWED_PASSWORD = "SUPER_ADMIN_VIEWED_PASSWORD";
 
         /// <summary>Super-admin one-click tenant user (auto email/password).</summary>
         public const string TENANT_QUICK_USER_CREATED = "TENANT_QUICK_USER_CREATED";

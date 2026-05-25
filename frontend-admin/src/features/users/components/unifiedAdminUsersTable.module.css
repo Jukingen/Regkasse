@@ -11,3 +11,42 @@
     background: #fafafa;
     font-weight: 600;
 }
+
+.filtersBar {
+    width: 100%;
+}
+
+.groupCollapse {
+    width: 100%;
+}
+
+.groupCollapse :global(.ant-collapse-item) {
+    margin-bottom: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.groupCollapse :global(.ant-collapse-header) {
+    align-items: center !important;
+}
+
+.groupCollapse :global(.ant-collapse-content-box) {
+    padding: 8px 12px 12px !important;
+}
+
+.groupHeader {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.groupHeaderMain {
+    min-width: 0;
+}
+
+.groupHeaderTitle {
+    max-width: 100%;
+}

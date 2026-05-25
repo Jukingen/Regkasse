@@ -347,6 +347,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.superAdminTenants',
         icon: 'ApartmentOutlined',
     },
+    superAdminLicenses: {
+        id: 'superAdminLicenses',
+        menuKey: '/admin/licenses',
+        href: '/admin/licenses',
+        labelKey: 'nav.superAdminLicenses',
+        icon: 'SafetyOutlined',
+        permission: AppPermissions.LicenseView,
+    },
     superAdminCashRegisters: {
         id: 'superAdminCashRegisters',
         menuKey: '/admin/cash-registers',
@@ -422,7 +430,13 @@ export type SidebarLayoutRow =
 export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     {
         kind: 'leaves',
-        catalogIds: ['reportingDashboard', 'users', 'superAdminTenants', 'superAdminCashRegisters'],
+        catalogIds: [
+            'reportingDashboard',
+            'users',
+            'superAdminTenants',
+            'superAdminLicenses',
+            'superAdminCashRegisters',
+        ],
     },
     { kind: 'divider', key: 'nav-divider-platform-hub' },
     {

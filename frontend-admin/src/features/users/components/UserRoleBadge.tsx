@@ -2,6 +2,13 @@
 
 import React from 'react';
 import { Tag } from 'antd';
+import {
+    CalculatorOutlined,
+    CoffeeOutlined,
+    CrownOutlined,
+    ShoppingOutlined,
+    UserOutlined,
+} from '@ant-design/icons';
 
 import { useI18n } from '@/i18n';
 
@@ -20,9 +27,19 @@ const ROLE_COLORS: Record<string, string> = {
     Manager: 'blue',
     Cashier: 'green',
     Accountant: 'orange',
-    Waiter: 'default',
+    Waiter: 'cyan',
     Kitchen: 'default',
     ReportViewer: 'default',
+};
+
+const ROLE_ICONS: Record<string, React.ReactNode> = {
+    SuperAdmin: <CrownOutlined />,
+    Manager: <UserOutlined />,
+    Cashier: <ShoppingOutlined />,
+    Accountant: <CalculatorOutlined />,
+    Waiter: <CoffeeOutlined />,
+    Kitchen: <UserOutlined />,
+    ReportViewer: <UserOutlined />,
 };
 
 export type UserRoleBadgeProps = {
@@ -53,10 +70,11 @@ export function UserRoleBadge({ role, isOwner }: UserRoleBadgeProps) {
               ? t(`users.roles.displayNames.${role}` as 'users.roles.displayNames.SuperAdmin')
               : role;
     const color = ROLE_COLORS[role] ?? 'default';
+    const icon = ROLE_ICONS[role] ?? <UserOutlined />;
 
     return (
         <>
-            <Tag color={color}>{label}</Tag>
+            <Tag color={color} icon={icon}>{label}</Tag>
             {isOwner ? <Tag color="geekblue">{t('users.tabs.tenant.ownerBadge')}</Tag> : null}
         </>
     );

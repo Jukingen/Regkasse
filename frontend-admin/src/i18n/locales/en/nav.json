@@ -43,6 +43,7 @@
   "developmentMode": "Development mode",
   "timeSync": "Time sync",
   "licenseManagement": "License",
+  "superAdminLicenses": "Tenant licenses",
   "superAdminTenants": "Companies / tenants",
   "superAdminCashRegisters": "Cash registers (tenant)",
   "platformAdminHub": "Platform administration",

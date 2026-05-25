@@ -4,9 +4,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
     Alert,
     Avatar,
+    Badge,
     Button,
     Card,
     Collapse,
+    Dropdown,
     Empty,
     Flex,
     Input,
@@ -19,15 +21,21 @@ import {
     Typography,
     message,
 } from 'antd';
-import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
+import type { MenuProps } from 'antd';
+import dayjs from 'dayjs';
 import {
+    SafetyOutlined,
     CheckCircleOutlined,
+    DownloadOutlined,
     EditOutlined,
     EyeOutlined,
+    FileExcelOutlined,
+    FilePdfOutlined,
+    GlobalOutlined,
     ReloadOutlined,
-    SearchOutlined,
+    ShopOutlined,
     StopOutlined,
-    ThunderboltOutlined,
     UserAddOutlined,
     UserDeleteOutlined,
     UserOutlined,
@@ -36,15 +44,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { CreateUserModal } from '@/features/users/components/CreateUserModal';
-import type { CreateUserFormValues } from '@/features/users/components/CreateUserModal';
-import { QuickUserModal } from '@/features/super-admin/components/QuickUserModal';
-import type { QuickUserFormValues } from '@/features/super-admin/components/QuickUserModal';
-import { QuickUserSuccessModal } from '@/features/super-admin/components/QuickUserSuccessModal';
+import type { CreateUserQuickFormValues } from '@/features/users/components/CreateUserModal';
 import { createQuickUser, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
 import { useCreateUser } from '@/features/users/hooks/useCreateUser';
-import { UserTenantCreatePanel } from '@/features/users/components/UserTenantCreatePanel';
 import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
 import { ResetPasswordModal } from '@/features/super-admin/components/ResetPasswordModal';
+import { PasswordViewModal } from '@/features/users/components/PasswordViewModal';
 import {
     adminUserToUserInfo,
     adminUsersQueryKeys,
@@ -52,8 +57,8 @@ import {
     listPlatformUsers,
     listTenantUsers,
     removeUserFromTenant,
-    tenantRowToTenantUser,
     type AdminUserDto,
+    tenantRowToTenantUser,
     type TenantUserRow,
 } from '@/features/users/api/users';
 import type { UserInfo } from '@/features/users/api/usersGateway';
@@ -71,8 +76,9 @@ import {
 import { useDebounce } from '@/hooks/useDebounce';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
-import { getColorFromName } from '@/features/users/utils/avatarColor';
+import { getColorFromEmail } from '@/features/users/utils/avatarColor';
 import type { UnifiedAdminUserRow, UnifiedAdminUserType } from '@/features/users/types/unifiedAdminUserRow';
+import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
 import styles from '@/features/users/components/unifiedAdminUsersTable.module.css';
 
@@ -81,10 +87,12 @@ export type { UnifiedAdminUserRow } from '@/features/users/types/unifiedAdminUse
 const TENANT_ROLE_FILTER_VALUES = ['SuperAdmin', 'Manager', 'Cashier', 'Accountant', 'Waiter', 'Kitchen'] as const;
 const FILTER_ALL = ADMIN_USERS_FILTER_ALL;
 const FILTER_PLATFORM = ADMIN_USERS_FILTER_PLATFORM;
-const TABLE_SCROLL_X = 1200;
+const TABLE_SCROLL_X = 1400;
 const TABLE_SCROLL_Y = 'calc(100vh - 250px)';
-const DEFAULT_PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 300;
+const TEMP_PASSWORD_MASK = '***';
+const PASSWORD_SHOW_TITLE = 'Temporäres Passwort erzeugen und anzeigen';
+const PLATFORM_GROUP_KEY = '__platform__';
 
 function platformDisplayName(user: UserInfo): string {
     const first = user.firstName ?? '';
@@ -93,11 +101,33 @@ function platformDisplayName(user: UserInfo): string {
     return name || user.userName || user.id || '—';
 }
 
-function avatarInitials(name: string): string {
-    const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) return '?';
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase();
+function avatarLabel(row: UnifiedAdminUserRow): string {
+    return row.name?.trim() || '—';
+}
+
+function avatarCharacter(row: UnifiedAdminUserRow): string {
+    const displayName = avatarLabel(row);
+    if (displayName !== '—') {
+        return displayName.charAt(0).toUpperCase();
+    }
+    const email = row.email?.trim();
+    if (email) {
+        return email.charAt(0).toUpperCase();
+    }
+    return '?';
+}
+
+function escapeCsvValue(value: string): string {
+    return `"${value.replace(/"/g, '""')}"`;
+}
+
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }
 
 function resolveUserType(dto: AdminUserDto): UnifiedAdminUserType {
@@ -124,6 +154,7 @@ function rowFromAdminDto(dto: AdminUserDto): UnifiedAdminUserRow {
         role: dto.role ?? '—',
         isActive: dto.isActive,
         lastLoginAt: dto.lastLoginAt ?? null,
+        twoFactorEnabled: dto.twoFactorEnabled,
         tenantId,
         tenantSlug,
         tenantName,
@@ -185,24 +216,15 @@ export function UnifiedAdminUsersView({
     const [searchInput, setSearchInput] = useState('');
     const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_MS);
     const searchParam = debouncedSearch.trim() || undefined;
-    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-    const [currentPage, setCurrentPage] = useState(1);
     const [createOpen, setCreateOpen] = useState(false);
-    const [quickOpen, setQuickOpen] = useState(false);
-    const [quickResult, setQuickResult] = useState<CreateQuickUserResult | null>(null);
-    const [quickRole, setQuickRole] = useState('Manager');
-    const [quickTenantCtx, setQuickTenantCtx] = useState<{ name: string; slug: string } | null>(null);
     const [resetRow, setResetRow] = useState<TenantUserRow | null>(null);
+    const [passwordRow, setPasswordRow] = useState<UnifiedAdminUserRow | null>(null);
 
     useEffect(() => {
         setSelectedTenant(
             tenantFilterToUiValue(resolveAdminUsersTenantFilterFromSearchParams(searchParams)),
         );
     }, [searchParams]);
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [tenantFilter, roleFilter, statusFilter, debouncedSearch]);
 
     const createFixedTenantId =
         tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM ? tenantFilter : undefined;
@@ -221,15 +243,18 @@ export function UnifiedAdminUsersView({
         router.replace(buildAdminUsersPageHref(filter), { scroll: false });
     };
 
-    const { tenants: createTenants, isLoading: createTenantsLoading } = useTenantList();
+    const handleSearch = (value: string) => {
+        setSearchInput(value);
+    };
 
-    const quickFixedTenant = useMemo(
-        () =>
-            createFixedTenantId
-                ? createTenants.find((row) => row.id === createFixedTenantId)
-                : undefined,
-        [createFixedTenantId, createTenants],
-    );
+    const handleResetFilters = () => {
+        setSearchInput('');
+        setRoleFilter(undefined);
+        setStatusFilter(true);
+        handleTenantFilterChange(tenantFilterToUiValue(FILTER_ALL));
+    };
+
+    const { tenants: createTenants, isLoading: createTenantsLoading } = useTenantList();
 
     const allUsersQuery = useQuery({
         queryKey: adminUsersQueryKeys.all(statusFilter, roleFilter, searchParam),
@@ -286,6 +311,7 @@ export function UnifiedAdminUsersView({
                     isActive: row.isActive,
                     isOwner: row.isOwner,
                     lastLoginAt: row.lastLoginAt ?? null,
+                    twoFactorEnabled: row.twoFactorEnabled,
                     row: tenantUser,
                     user: {
                         id: row.userId,
@@ -327,6 +353,44 @@ export function UnifiedAdminUsersView({
         return rows;
     }, [unifiedRows, roleFilter, tenantFilter, tenantApiTenantId]);
 
+    const hasCustomFilters =
+        tenantFilter !== FILTER_ALL || Boolean(roleFilter) || statusFilter !== true || searchInput.trim().length > 0;
+
+    const groupedRows = useMemo(() => {
+        const groups = new Map<
+            string,
+            {
+                key: string;
+                kind: 'platform' | 'tenant';
+                title: string;
+                rows: UnifiedAdminUserRow[];
+            }
+        >();
+
+        filteredRows.forEach((row) => {
+            const isPlatform = row.userType === 'Platform';
+            const groupKey = isPlatform ? PLATFORM_GROUP_KEY : row.tenantId || row.tenantSlug || row.tenantName || 'unknown';
+
+            if (!groups.has(groupKey)) {
+                groups.set(groupKey, {
+                    key: groupKey,
+                    kind: isPlatform ? 'platform' : 'tenant',
+                    title: isPlatform
+                        ? t('users.tabs.labelPlatform')
+                        : row.tenantName?.trim() || row.tenantSlug?.trim() || '—',
+                    rows: [],
+                });
+            }
+
+            groups.get(groupKey)?.rows.push(row);
+        });
+
+        return Array.from(groups.values()).sort((a, b) => {
+            if (a.kind !== b.kind) return a.kind === 'platform' ? -1 : 1;
+            return a.title.localeCompare(b.title);
+        });
+    }, [filteredRows, t]);
+
     const invalidateUserLists = () => {
         void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     };
@@ -340,21 +404,12 @@ export function UnifiedAdminUsersView({
     });
 
     const quickMutation = useMutation({
-        mutationFn: (values: QuickUserFormValues) => {
+        mutationFn: (values: CreateUserQuickFormValues) => {
             const tenantId = values.tenantId ?? createFixedTenantId;
             if (!tenantId) throw new Error('tenantId required');
             return createQuickUser(tenantId, { role: values.role });
         },
-        onSuccess: (res, values) => {
-            const tenantId = values.tenantId ?? createFixedTenantId;
-            const tenant = createTenants.find((row) => row.id === tenantId);
-            setQuickTenantCtx({
-                name: tenant?.name ?? tenantId ?? '',
-                slug: tenant?.slug ?? 'tenant',
-            });
-            setQuickOpen(false);
-            setQuickRole(values.role);
-            setQuickResult(res);
+        onSuccess: (_res: CreateQuickUserResult) => {
             invalidateUserLists();
             message.success(t('tenants.users.quick.messages.created'));
         },
@@ -396,12 +451,24 @@ export function UnifiedAdminUsersView({
 
     const renderTenantCell = (row: UnifiedAdminUserRow) => {
         if (row.userType === 'Platform') {
-            return <Tag color="purple">Plattform</Tag>;
+            return (
+                <Tag icon={<GlobalOutlined />} color="purple">
+                    Plattform
+                </Tag>
+            );
         }
-        if (!row.tenantName) {
+        const tenantLabel = row.tenantName?.trim() || row.tenantSlug?.trim();
+        if (!tenantLabel) {
             return <Tag color="default">—</Tag>;
         }
-        return <span>{row.tenantName}</span>;
+        return (
+            <Space size={[4, 4]} wrap>
+                <Tag icon={<ShopOutlined />} color="blue">
+                    {tenantLabel}
+                </Tag>
+                {row.isOwner ? <Tag color="gold">{t('users.tabs.tenant.ownerBadge')}</Tag> : null}
+            </Space>
+        );
     };
 
     const renderStatusBadge = (row: UnifiedAdminUserRow) => {
@@ -415,105 +482,329 @@ export function UnifiedAdminUsersView({
         );
     };
 
-    const renderTwoFactorBadge = () => (
-        <Tag color="default">{t('users.unified.twoFactorNo')}</Tag>
+    const renderLastLoginCell = (value: string | null | undefined) => {
+        if (!value) {
+            return <Tag color="default">{t('users.unified.lastLogin.never')}</Tag>;
+        }
+
+        const lastLogin = dayjs(value);
+        if (!lastLogin.isValid()) {
+            return '—';
+        }
+
+        const now = dayjs();
+        if (now.isSame(lastLogin, 'day')) {
+            return <Tag color="green">{t('users.unified.lastLogin.today')}</Tag>;
+        }
+
+        const daysDiff = Math.max(0, now.startOf('day').diff(lastLogin.startOf('day'), 'day'));
+
+        if (daysDiff < 7) {
+            return (
+                <Tag color="blue">
+                    {t(
+                        daysDiff === 1
+                            ? 'users.unified.lastLogin.dayAgo'
+                            : 'users.unified.lastLogin.daysAgo',
+                        { count: daysDiff },
+                    )}
+                </Tag>
+            );
+        }
+
+        if (daysDiff < 30) {
+            return (
+                <Tag color="orange">
+                    {t(
+                        daysDiff === 1
+                            ? 'users.unified.lastLogin.dayAgo'
+                            : 'users.unified.lastLogin.daysAgo',
+                        { count: daysDiff },
+                    )}
+                </Tag>
+            );
+        }
+
+        return formatDateTime(value, formatLocale);
+    };
+
+    const renderTwoFactorBadge = (enabled?: boolean) => (
+        <Tag color={enabled ? 'green' : 'default'} icon={<SafetyOutlined />}>
+            {t(enabled ? 'users.unified.twoFactorYes' : 'users.unified.twoFactorNo')}
+        </Tag>
     );
 
-    const renderActions = (row: UnifiedAdminUserRow) => {
-        const record = row.user;
-        const isPlatformRow = row.userType === 'Platform';
+    const renderPasswordCell = (row: UnifiedAdminUserRow) => {
+        const canRevealPassword =
+            policy.canProvisionTenantCredentials && policy.canResetPassword(row.role) && row.userId !== currentUserId;
 
         return (
-            <Space size={4} wrap>
-                {policy.canEdit && isPlatformRow ? (
-                    <Tooltip title={t('users.list.view')}>
+            <Space size="small">
+                <Typography.Text type="secondary">{TEMP_PASSWORD_MASK}</Typography.Text>
+                {canRevealPassword ? (
+                    <Tooltip title={PASSWORD_SHOW_TITLE}>
                         <Button
                             type="text"
                             size="small"
                             icon={<EyeOutlined />}
-                            aria-label={t('users.list.view')}
-                            onClick={() => onView(record)}
+                            aria-label={PASSWORD_SHOW_TITLE}
+                            onClick={() => setPasswordRow(row)}
                         />
                     </Tooltip>
-                ) : null}
-                {policy.canEdit ? (
-                    <Tooltip title={t('users.list.edit')}>
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<EditOutlined />}
-                            aria-label={t('users.list.edit')}
-                            onClick={() => onEdit(row.userId)}
-                        />
-                    </Tooltip>
-                ) : null}
-                {policy.canResetPassword(row.role) && record.id !== currentUserId ? (
-                    <Tooltip title={t('users.list.resetPassword')}>
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<ReloadOutlined />}
-                            aria-label={t('users.list.resetPassword')}
-                            onClick={() => {
-                                if (row.row) {
-                                    setResetRow(row.row);
-                                    return;
-                                }
-                                onResetPassword(record);
-                            }}
-                        />
-                    </Tooltip>
-                ) : null}
-                {policy.canDeactivate && record.isActive && isPlatformRow ? (
-                    <Tooltip title={t('users.tabs.platform.deactivateAccount')}>
-                        <Button
-                            type="text"
-                            size="small"
-                            danger
-                            icon={<StopOutlined />}
-                            aria-label={t('users.tabs.platform.deactivateAccount')}
-                            onClick={() => onDeactivate(record)}
-                        />
-                    </Tooltip>
-                ) : null}
-                {policy.canReactivate && !record.isActive && isPlatformRow ? (
-                    <Tooltip title={t('users.list.reactivate')}>
-                        <Button
-                            type="text"
-                            size="small"
-                            icon={<CheckCircleOutlined />}
-                            aria-label={t('users.list.reactivate')}
-                            onClick={() => onReactivate(record)}
-                        />
-                    </Tooltip>
-                ) : null}
-                {row.kind === 'tenant' && row.tenantId && policy.canEdit ? (
-                    <Popconfirm
-                        title={t('users.tabs.tenant.confirmRemove.title')}
-                        description={t('users.tabs.tenant.confirmRemove.body', {
-                            tenant: row.tenantSlug || row.tenantName,
-                        })}
-                        onConfirm={() =>
-                            removeMutation.mutate({
-                                tenantId: row.tenantId!,
-                                userId: row.userId,
-                            })
-                        }
-                    >
-                        <Tooltip title={t('users.tabs.tenant.removeFromTenant')}>
-                            <Button
-                                type="text"
-                                size="small"
-                                danger
-                                icon={<UserDeleteOutlined />}
-                                loading={removeMutation.isPending}
-                                aria-label={t('users.tabs.tenant.removeFromTenant')}
-                            />
-                        </Tooltip>
-                    </Popconfirm>
                 ) : null}
             </Space>
         );
+    };
+
+    const renderActions = (row: UnifiedAdminUserRow) => {
+        const record = row.user;
+        const isPlatformRow = row.userType === 'Platform';
+        const canDeactivateUser = policy.canDeactivate && record.isActive && !isPlatformUserRole(row.role);
+        const canReactivateUser = policy.canReactivate && !record.isActive;
+        const actions: React.ReactNode[] = [];
+
+        if (policy.canEdit && isPlatformRow) {
+            actions.push(
+                <Tooltip key="view" title={t('users.list.view')}>
+                    <Button
+                        size="small"
+                        icon={<EyeOutlined />}
+                        aria-label={t('users.list.view')}
+                        onClick={() => onView(record)}
+                    />
+                </Tooltip>,
+            );
+        }
+
+        if (policy.canEdit) {
+            actions.push(
+                <Tooltip key="edit" title={t('users.list.edit')}>
+                    <Button
+                        size="small"
+                        icon={<EditOutlined />}
+                        aria-label={t('users.list.edit')}
+                        onClick={() => onEdit(row.userId)}
+                    />
+                </Tooltip>,
+            );
+        }
+
+        if (policy.canResetPassword(row.role) && record.id !== currentUserId) {
+            actions.push(
+                <Tooltip key="reset-password" title={t('users.list.resetPassword')}>
+                    <Button
+                        size="small"
+                        icon={<ReloadOutlined />}
+                        aria-label={t('users.list.resetPassword')}
+                        onClick={() => {
+                            if (row.row) {
+                                setResetRow(row.row);
+                                return;
+                            }
+                            onResetPassword(record);
+                        }}
+                    />
+                </Tooltip>,
+            );
+        }
+
+        if (canDeactivateUser) {
+            actions.push(
+                <Tooltip key="deactivate" title={t('users.tabs.platform.deactivateAccount')}>
+                    <Button
+                        size="small"
+                        danger
+                        icon={<StopOutlined />}
+                        aria-label={t('users.tabs.platform.deactivateAccount')}
+                        onClick={() => onDeactivate(record)}
+                    />
+                </Tooltip>,
+            );
+        }
+
+        if (canReactivateUser) {
+            actions.push(
+                <Tooltip key="reactivate" title={t('users.list.reactivate')}>
+                    <Button
+                        size="small"
+                        icon={<CheckCircleOutlined />}
+                        aria-label={t('users.list.reactivate')}
+                        onClick={() => onReactivate(record)}
+                    />
+                </Tooltip>,
+            );
+        }
+
+        if (row.kind === 'tenant' && row.tenantId && policy.canEdit) {
+            actions.push(
+                <Popconfirm
+                    key="remove-from-tenant"
+                    title={t('users.tabs.tenant.confirmRemove.title')}
+                    description={t('users.tabs.tenant.confirmRemove.body', {
+                        tenant: row.tenantSlug || row.tenantName,
+                    })}
+                    onConfirm={() =>
+                        removeMutation.mutate({
+                            tenantId: row.tenantId!,
+                            userId: row.userId,
+                        })
+                    }
+                >
+                    <Tooltip title={t('users.tabs.tenant.removeFromTenant')}>
+                        <Button
+                            size="small"
+                            danger
+                            icon={<UserDeleteOutlined />}
+                            loading={removeMutation.isPending}
+                            aria-label={t('users.tabs.tenant.removeFromTenant')}
+                        />
+                    </Tooltip>
+                </Popconfirm>,
+            );
+        }
+
+        if (actions.length === 0) {
+            return <Typography.Text type="secondary">—</Typography.Text>;
+        }
+
+        return <Space size={4} wrap>{actions}</Space>;
+    };
+
+    const getTenantExportLabel = (row: UnifiedAdminUserRow) =>
+        row.userType === 'Platform'
+            ? t('users.unified.filters.platform')
+            : row.tenantName?.trim() || row.tenantSlug?.trim() || '—';
+
+    const getStatusExportLabel = (row: UnifiedAdminUserRow) => {
+        if (row.isPending) return t('users.unified.badges.pending');
+        return row.isActive ? t('users.unified.badges.active') : t('users.unified.badges.inactive');
+    };
+
+    const getLastLoginExportLabel = (value: string | null | undefined) =>
+        value ? formatDateTime(value, formatLocale) : t('users.unified.lastLogin.never');
+
+    const downloadTextFile = (filename: string, content: string, type: string) => {
+        const blob = new Blob([content], { type });
+        const url = globalThis.URL.createObjectURL(blob);
+        const a = globalThis.document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        globalThis.URL.revokeObjectURL(url);
+    };
+
+    const handleExportCsv = () => {
+        try {
+            const headers = [
+                t('users.unified.columns.user'),
+                t('users.unified.columns.tenant'),
+                t('users.unified.columns.role'),
+                t('users.unified.columns.status'),
+                t('users.unified.columns.lastLogin'),
+                t('users.unified.columns.twoFactor'),
+            ];
+            const rows = filteredRows.map((row) => [
+                avatarLabel(row),
+                getTenantExportLabel(row),
+                row.role,
+                getStatusExportLabel(row),
+                getLastLoginExportLabel(row.lastLoginAt),
+                t(row.twoFactorEnabled ? 'users.unified.twoFactorYes' : 'users.unified.twoFactorNo'),
+            ]);
+            const csv = [headers, ...rows]
+                .map((line) => line.map((value) => escapeCsvValue(String(value ?? ''))).join(';'))
+                .join('\r\n');
+
+            downloadTextFile(
+                `admin-users-${dayjs().format('YYYYMMDD_HHmmss')}.csv`,
+                `\uFEFF${csv}`,
+                'text/csv;charset=utf-8;',
+            );
+            message.success(t('users.unified.export.messages.csvSuccess'));
+        } catch {
+            message.error(t('users.unified.export.messages.csvFailed'));
+        }
+    };
+
+    const handleExportPdf = () => {
+        const popup = globalThis.window.open('', '_blank', 'noopener,noreferrer');
+        if (!popup) {
+            message.error(t('users.unified.export.messages.pdfBlocked'));
+            return;
+        }
+
+        const sections = groupedRows
+            .map((group) => {
+                const tableRows = group.rows
+                    .map(
+                        (row) => `
+                            <tr>
+                                <td>${escapeHtml(avatarLabel(row))}</td>
+                                <td>${escapeHtml(getTenantExportLabel(row))}</td>
+                                <td>${escapeHtml(row.role)}</td>
+                                <td>${escapeHtml(getStatusExportLabel(row))}</td>
+                                <td>${escapeHtml(getLastLoginExportLabel(row.lastLoginAt))}</td>
+                                <td>${escapeHtml(t(row.twoFactorEnabled ? 'users.unified.twoFactorYes' : 'users.unified.twoFactorNo'))}</td>
+                            </tr>
+                        `,
+                    )
+                    .join('');
+
+                return `
+                    <section class="group">
+                        <div class="group-header">
+                            <h2>${escapeHtml(group.title)}</h2>
+                            <span>${group.rows.length}</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>${escapeHtml(t('users.unified.columns.user'))}</th>
+                                    <th>${escapeHtml(t('users.unified.columns.tenant'))}</th>
+                                    <th>${escapeHtml(t('users.unified.columns.role'))}</th>
+                                    <th>${escapeHtml(t('users.unified.columns.status'))}</th>
+                                    <th>${escapeHtml(t('users.unified.columns.lastLogin'))}</th>
+                                    <th>${escapeHtml(t('users.unified.columns.twoFactor'))}</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </section>
+                `;
+            })
+            .join('');
+
+        popup.document.write(`
+            <!doctype html>
+            <html>
+                <head>
+                    <meta charset="utf-8" />
+                    <title>${escapeHtml(t('users.unified.export.button'))}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 24px; color: #111; }
+                        h1 { margin-bottom: 8px; }
+                        p { color: #666; margin-bottom: 24px; }
+                        .group { margin-bottom: 24px; }
+                        .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+                        .group-header h2 { margin: 0; font-size: 18px; }
+                        .group-header span { background: #f0f0f0; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+                        th, td { border: 1px solid #d9d9d9; padding: 8px; text-align: left; font-size: 12px; }
+                        th { background: #fafafa; }
+                        @media print { body { margin: 12px; } .group { page-break-inside: avoid; } }
+                    </style>
+                </head>
+                <body>
+                    <h1>${escapeHtml(t('users.unified.export.button'))}</h1>
+                    <p>${escapeHtml(dayjs().format('DD.MM.YYYY HH:mm:ss'))}</p>
+                    ${sections}
+                </body>
+            </html>
+        `);
+        popup.document.close();
+        popup.focus();
+        popup.print();
+        message.success(t('users.unified.export.messages.pdfReady'));
     };
 
     const columns: ColumnsType<UnifiedAdminUserRow> = useMemo(
@@ -521,15 +812,15 @@ export function UnifiedAdminUsersView({
             {
                 title: t('users.unified.columns.user'),
                 key: 'user',
-                width: '25%',
+                width: 250,
                 render: (_: unknown, row) => (
                     <Flex gap="small" align="center">
-                        <Avatar style={{ backgroundColor: getColorFromName(row.name) }}>
-                            {avatarInitials(row.name)}
+                        <Avatar style={{ backgroundColor: getColorFromEmail(row.email || row.name) }}>
+                            {avatarCharacter(row)}
                         </Avatar>
                         <Flex vertical gap={0} style={{ minWidth: 0, flex: 1 }}>
                             <Typography.Text strong ellipsis>
-                                {row.name}
+                                {avatarLabel(row)}
                             </Typography.Text>
                             <Typography.Text type="secondary" ellipsis style={{ fontSize: 12 }}>
                                 {row.email}
@@ -569,20 +860,25 @@ export function UnifiedAdminUsersView({
                 dataIndex: 'lastLoginAt',
                 key: 'lastLoginAt',
                 width: '12%',
-                render: (v: string | null | undefined) =>
-                    v ? formatDateTime(v, formatLocale) : '—',
+                render: (v: string | null | undefined) => renderLastLoginCell(v),
+            },
+            {
+                title: t('users.create.password'),
+                key: 'password',
+                width: '16%',
+                render: (_: unknown, row) => renderPasswordCell(row),
             },
             {
                 title: t('users.unified.columns.twoFactor'),
                 key: 'twoFactor',
                 width: '8%',
                 align: 'center',
-                render: () => renderTwoFactorBadge(),
+                render: (_: unknown, row) => renderTwoFactorBadge(row.twoFactorEnabled),
             },
             {
                 title: t('users.unified.columns.actions'),
                 key: 'actions',
-                width: '18%',
+                width: 150,
                 fixed: 'right',
                 render: (_: unknown, row) => renderActions(row),
             },
@@ -591,29 +887,58 @@ export function UnifiedAdminUsersView({
             t,
             formatLocale,
             policy,
-            currentUserId,
             onView,
             onEdit,
             onDeactivate,
             onReactivate,
             onResetPassword,
             removeMutation.isPending,
+            currentUserId,
         ],
     );
 
-    const pagination: TablePaginationConfig = {
-        current: currentPage,
-        pageSize,
-        total: filteredRows.length,
-        showSizeChanger: true,
-        pageSizeOptions: [10, 25, 50, 100],
-        showTotal: (total, range) =>
-            t('users.list.paginationRange', { from: range[0], to: range[1], total }),
-        onChange: (page, size) => {
-            setCurrentPage(page);
-            if (size && size !== pageSize) setPageSize(size);
+    const isTableLoading = isLoading || (isFetching && !!searchParam);
+    const exportMenuItems: MenuProps['items'] = [
+        {
+            key: 'csv',
+            label: t('users.unified.export.csv'),
+            icon: <FileExcelOutlined />,
+            disabled: filteredRows.length === 0,
+            onClick: handleExportCsv,
         },
-    };
+        {
+            key: 'pdf',
+            label: t('users.unified.export.pdf'),
+            icon: <FilePdfOutlined />,
+            disabled: filteredRows.length === 0,
+            onClick: handleExportPdf,
+        },
+    ];
+    const groupItems = groupedRows.map((group) => ({
+        key: group.key,
+        label: (
+            <div className={styles.groupHeader}>
+                <Space size="small" className={styles.groupHeaderMain}>
+                    {group.kind === 'platform' ? <GlobalOutlined /> : <ShopOutlined />}
+                    <Typography.Text strong ellipsis className={styles.groupHeaderTitle}>
+                        {group.title}
+                    </Typography.Text>
+                </Space>
+                <Badge count={group.rows.length} />
+            </div>
+        ),
+        children: (
+            <div className={styles.tableWrap}>
+                <Table<UnifiedAdminUserRow>
+                    rowKey="key"
+                    dataSource={group.rows}
+                    columns={columns}
+                    scroll={{ x: TABLE_SCROLL_X }}
+                    pagination={false}
+                />
+            </div>
+        ),
+    }));
 
     return (
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
@@ -622,50 +947,52 @@ export function UnifiedAdminUsersView({
             </Typography.Paragraph>
 
             <Card size="small" styles={{ body: { padding: 16 } }}>
-                <Flex wrap="wrap" gap="middle" align="center">
-                    <Input
-                        allowClear
-                        prefix={<SearchOutlined />}
-                        placeholder={t('users.unified.filters.searchPlaceholder')}
-                        style={{ width: 280, flex: '1 1 220px', maxWidth: 360 }}
-                        value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                    />
-                    <TenantFilter
-                        value={selectedTenant}
-                        onChange={handleTenantFilterChange}
-                        includePlatformOption
-                        style={{ minWidth: 220, flex: '1 1 200px' }}
-                    />
-                    <Select
-                        allowClear
-                        placeholder={t('users.unified.filters.roleFilter')}
-                        style={{ minWidth: 160 }}
-                        value={roleFilter}
-                        onChange={setRoleFilter}
-                        options={TENANT_ROLE_FILTER_VALUES.map((role) => ({
-                            value: role,
-                            label: roleDisplayLabel(role),
-                        }))}
-                    />
-                    <Select
-                        placeholder={t('users.unified.filters.statusFilter')}
-                        allowClear
-                        style={{ width: 140 }}
-                        value={
-                            statusFilter === undefined
-                                ? undefined
-                                : statusFilter
-                                  ? 'active'
-                                  : 'inactive'
-                        }
-                        onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
-                        options={statusFilterOptions}
-                    />
-                    <Button icon={<ReloadOutlined />} onClick={refetchAll} loading={isFetching}>
-                        {t('users.list.actionRefresh')}
-                    </Button>
-                </Flex>
+                <div className={styles.filtersBar}>
+                    <Space wrap size={[12, 12]}>
+                        <Input.Search
+                            allowClear
+                            placeholder={t('users.unified.filters.searchPlaceholder')}
+                            style={{ width: 250 }}
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            onSearch={handleSearch}
+                        />
+                        <TenantFilter
+                            value={selectedTenant}
+                            onChange={handleTenantFilterChange}
+                            includePlatformOption
+                            style={{ width: 180 }}
+                        />
+                        <Select
+                            allowClear
+                            placeholder={t('users.unified.filters.roleFilter')}
+                            style={{ width: 150 }}
+                            value={roleFilter}
+                            onChange={setRoleFilter}
+                            options={TENANT_ROLE_FILTER_VALUES.map((role) => ({
+                                value: role,
+                                label: roleDisplayLabel(role),
+                            }))}
+                        />
+                        <Select
+                            placeholder={t('users.unified.filters.statusFilter')}
+                            allowClear
+                            style={{ width: 130 }}
+                            value={
+                                statusFilter === undefined
+                                    ? undefined
+                                    : statusFilter
+                                      ? 'active'
+                                      : 'inactive'
+                            }
+                            onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
+                            options={statusFilterOptions}
+                        />
+                        <Button icon={<ReloadOutlined />} onClick={handleResetFilters} disabled={!hasCustomFilters}>
+                            {t('users.list.clearAllFilters')}
+                        </Button>
+                    </Space>
+                </div>
             </Card>
 
             {isError ? (
@@ -682,15 +1009,15 @@ export function UnifiedAdminUsersView({
             ) : null}
 
             <Flex wrap="wrap" gap="small">
+                <Dropdown menu={{ items: exportMenuItems }} trigger={['click']}>
+                    <Button icon={<DownloadOutlined />} disabled={filteredRows.length === 0}>
+                        {t('users.unified.export.button')}
+                    </Button>
+                </Dropdown>
                 {policy.canProvisionTenantCredentials && tenantFilter !== FILTER_PLATFORM ? (
-                    <>
-                        <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreateOpen(true)}>
-                            {t('users.create.action')}
-                        </Button>
-                        <Button icon={<ThunderboltOutlined />} onClick={() => setQuickOpen(true)}>
-                            {t('users.unified.quickUserAction')}
-                        </Button>
-                    </>
+                    <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreateOpen(true)}>
+                        {t('users.create.action')}
+                    </Button>
                 ) : null}
                 {policy.canCreate ? (
                     <Button icon={<UserOutlined />} onClick={onCreatePlatformUser}>
@@ -700,36 +1027,33 @@ export function UnifiedAdminUsersView({
             </Flex>
 
             <div className={styles.tableWrap}>
-                <Table<UnifiedAdminUserRow>
-                    rowKey="key"
-                    sticky
-                    loading={isLoading || (isFetching && !!searchParam)}
-                    dataSource={filteredRows}
-                    columns={columns}
-                    scroll={{ x: TABLE_SCROLL_X, y: TABLE_SCROLL_Y }}
-                    pagination={pagination}
-                locale={{
-                    emptyText: (
-                        <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description={t('users.unified.empty')}
-                        />
-                    ),
-                }}
-                />
+                {isTableLoading || groupedRows.length === 0 ? (
+                    <Table<UnifiedAdminUserRow>
+                        rowKey="key"
+                        sticky
+                        loading={isTableLoading}
+                        dataSource={groupedRows.length === 0 ? filteredRows : []}
+                        columns={columns}
+                        scroll={{ x: TABLE_SCROLL_X, y: TABLE_SCROLL_Y }}
+                        pagination={false}
+                        locale={{
+                            emptyText: (
+                                <Empty
+                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                    description={t('users.unified.empty')}
+                                />
+                            ),
+                        }}
+                    />
+                ) : (
+                    <Collapse
+                        accordion
+                        className={styles.groupCollapse}
+                        items={groupItems}
+                        defaultActiveKey={groupItems[0] ? [groupItems[0].key] : undefined}
+                    />
+                )}
             </div>
-
-            {policy.canProvisionTenantCredentials ? (
-                <Collapse
-                    items={[
-                        {
-                            key: 'tenant-create',
-                            label: t('users.unified.tenantCreateSection'),
-                            children: <UserTenantCreatePanel />,
-                        },
-                    ]}
-                />
-            ) : null}
 
             {policy.canProvisionTenantCredentials ? (
                 <>
@@ -744,30 +1068,13 @@ export function UnifiedAdminUsersView({
                         onClose={() => setCreateOpen(false)}
                         onComplete={() => setCreateOpen(false)}
                         onSubmit={(values) => createMutation.mutateAsync(values)}
-                    />
-                    <QuickUserModal
-                        open={quickOpen}
-                        variant="usersPage"
-                        tenantId={createFixedTenantId}
-                        tenantSlug={quickFixedTenant?.slug}
-                        tenantName={quickFixedTenant?.name}
-                        tenantRows={createTenants}
-                        tenantsLoading={createTenantsLoading}
-                        confirmLoading={quickMutation.isPending}
-                        onClose={() => setQuickOpen(false)}
-                        onSubmit={(values) => quickMutation.mutate(values)}
-                    />
-                    <QuickUserSuccessModal
-                        open={!!quickResult}
-                        result={quickResult}
-                        role={quickRole}
-                        tenantName={quickTenantCtx?.name ?? ''}
-                        tenantSlug={quickTenantCtx?.slug ?? 'tenant'}
-                        onClose={() => setQuickResult(null)}
-                        onGenerateAnother={() => {
-                            setQuickResult(null);
-                            setQuickOpen(true);
-                        }}
+                        quickMode={
+                            tenantFilter !== FILTER_PLATFORM
+                                ? {
+                                      onSubmit: (values) => quickMutation.mutateAsync(values),
+                                  }
+                                : undefined
+                        }
                     />
                     <ResetPasswordModal
                         open={!!resetRow}
@@ -786,6 +1093,12 @@ export function UnifiedAdminUsersView({
                         }
                         onClose={() => setResetRow(null)}
                         onCompleted={() => tenantUsersQuery.refetch()}
+                    />
+                    <PasswordViewModal
+                        open={!!passwordRow}
+                        userId={passwordRow?.userId ?? ''}
+                        userEmail={passwordRow?.email ?? ''}
+                        onClose={() => setPasswordRow(null)}
                     />
                 </>
             ) : null}

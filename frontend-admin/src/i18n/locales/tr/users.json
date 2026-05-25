@@ -291,6 +291,23 @@
       "pending": "Beklemede",
       "platform": "Platform",
       "tenant": "Mandant"
+    },
+    "lastLogin": {
+      "never": "Hiç",
+      "today": "Bugün",
+      "dayAgo": "1 gün önce",
+      "daysAgo": "{{count}} gün önce"
+    },
+    "export": {
+      "button": "Dışa aktar",
+      "csv": "CSV dışa aktar",
+      "pdf": "PDF dışa aktar",
+      "messages": {
+        "csvSuccess": "CSV dışa aktarıldı.",
+        "csvFailed": "CSV dışa aktarma başarısız oldu.",
+        "pdfReady": "PDF için yazdırma görünümü açıldı.",
+        "pdfBlocked": "Açılır pencere engellendi. Lütfen pop-up izni verin."
+      }
     }
   },
   "tabs": {
@@ -338,6 +355,10 @@
     "passwordWarningTitle": "Önemli uyarı",
     "close": "Kapat",
     "action": "Kullanıcı oluştur",
+    "tabs": {
+      "normal": "Normal",
+      "quick": "Hızlı oluştur"
+    },
     "tenantRequired": "Lütfen bir mandant seçin.",
     "tenantPlaceholder": "Mandant seçin …",
     "tenantOption": "{{name}} ({{slug}})",

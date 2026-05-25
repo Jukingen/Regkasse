@@ -5,6 +5,41 @@
     "listHelp": "Her kiracının kendi ürünleri, kasaları ve fişleri vardır.",
     "empty": "Kiracı bulunamadı."
   },
+  "licensesPage": {
+    "subtitle": "Super Admin: tum kiracilarin lisans durumlarini filtreleyin, disa aktarın ve dogrudan yonetin.",
+    "searchPlaceholder": "Kiraci, subdomain, e-posta veya lisans anahtarina gore arayin",
+    "tenantStatusPlaceholder": "Kiraci durumu",
+    "licenseStatusPlaceholder": "Lisans durumu",
+    "validFromPlaceholder": "Gecerlilik baslangici",
+    "validUntilPlaceholder": "Gecerlilik bitisi",
+    "allShort": "Tum",
+    "allTenantStatuses": "Tum kiraci durumlari",
+    "allLicenseStatuses": "Tum lisans fazlari",
+    "clearFilters": "Filtreleri sifirla",
+    "export": "CSV disa aktar",
+    "exported": "{{count}} kiraci disa aktarıldi.",
+    "noRowsToExport": "Disa aktarilacak filtrelenmis kiraci yok.",
+    "healthColumn": "Lisans sagligi",
+    "modalTitle": "Lisansi yonet: {{name}} ({{slug}})",
+    "sendReminder": "Hatirlatma e-postasi gonder",
+    "reminderSent": "Hatirlatma {{recipient}} adresine gonderildi",
+    "reminderFailed": "E-posta gonderilirken hata olustu",
+    "daysOverdue": "{{days}} gun gecikmis",
+    "daysUnit": "gun",
+    "extendModal": {
+      "title": "Lisansi uzat - {{name}}",
+      "dateRequired": "Lutfen tarih secin",
+      "licenseKey": "Lisans anahtari (istege bagli)",
+      "licenseKeyTooltip": "Bos birakilirsa sadece tarih guncellenir",
+      "hintTitle": "Bilgi",
+      "hintDescription": "Uzatma sonrasinda kiraci yeniden normal sekilde calisabilecektir.",
+      "success": "{{name}} icin lisans basariyla uzatildi"
+    },
+    "summary": {
+      "total": "Filtrelenmis kiracilar",
+      "expiringSoon": "30 gun icinde sona erecek"
+    }
+  },
   "accessDenied": {
     "title": "Erişim reddedildi",
     "body": "Bu sayfayı yalnızca süper yöneticiler açabilir."

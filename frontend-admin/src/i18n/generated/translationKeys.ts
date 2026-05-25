@@ -4725,6 +4725,8 @@ export const ADMIN_TRANSLATION_KEYS = [
   'users.create.roleOptions.Waiter.label',
   'users.create.submit',
   'users.create.success',
+  'users.create.tabs.normal',
+  'users.create.tabs.quick',
   'users.create.targetTenant.licenseLine',
   'users.create.targetTenant.modalLabel',
   'users.create.targetTenant.title',

@@ -11,6 +11,7 @@ import { normalizeAdminPathname } from '@/shared/adminSidebarNavigation';
 export const SUPER_ADMIN_PLATFORM_ALLOWED_PREFIXES = [
     '/admin/tenants',
     '/admin/users',
+    '/admin/licenses',
     '/admin/license',
     '/admin/system',
 ] as const;
@@ -54,18 +55,5 @@ export function useSuperAdminTenantMode() {
             requiresTenantSelection,
             isSuperAdminPlatformMode,
         };
-    }, [
-        user?.role,
-        ctx.hostSlug,
-        ctx.tenantSlug,
-        ctx.isImpersonating,
-        ctx.isDevTenantOverride,
-        ctx.hasAuthToken,
-        ctx.tenantId,
-        ctx.tenantName,
-        ctx.jwtTenantSlug,
-        ctx.displayLabel,
-        ctx.isPlatformAdminHost,
-        ctx.devSelectedSlug,
-    ]);
+    }, [user?.role, ctx]);
 }

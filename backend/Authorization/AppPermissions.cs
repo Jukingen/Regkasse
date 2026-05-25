@@ -141,6 +141,9 @@ public static class AppPermissions
     /// <summary>Destructive / sensitive issued-license lifecycle (extend in-place, cancel, soft-delete, unregister). SuperAdmin-only via catalog.</summary>
     public const string LicenseLifecycleSuper = "license.super";
 
+    /// <summary>Read-only tenant license inventory across the SaaS platform (SuperAdmin-only by default matrix).</summary>
+    public const string LicenseView = "license.view";
+
     // --- Legacy / convenience (price override, receipt reprint) ---
     public const string PriceOverride = "price.override";
     public const string ReceiptReprint = "receipt.reprint";

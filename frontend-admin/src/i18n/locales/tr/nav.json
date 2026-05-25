@@ -43,6 +43,7 @@
   "developmentMode": "Geliştirici modu",
   "timeSync": "Zaman senkronizasyonu",
   "licenseManagement": "Lisans",
+  "superAdminLicenses": "Kiraci lisanslari",
   "superAdminTenants": "İşletmeler / kiracılar",
   "superAdminCashRegisters": "Kasalar (kiracı)",
   "platformAdminHub": "Platform yönetimi",

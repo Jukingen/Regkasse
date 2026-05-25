@@ -2,6 +2,7 @@
  * Users API Gateway – Tek giriş noktası.
  * Generated + custom çağrıları normalize eder; query key ve hata adaptörü tek yerde.
  */
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   postApiUserManagement,
   putApiUserManagementId,
@@ -10,6 +11,7 @@ import {
   getApiUserManagementRoles,
   postApiUserManagementRoles,
 } from '@/api/generated/user-management/user-management';
+import { customInstance } from '@/lib/axios';
 import { authStorage } from '@/features/auth/services/authStorage';
 import {
   getUsersList as getUsersListFromApi,
@@ -110,6 +112,30 @@ export async function resetPassword(id: string, data: ResetPasswordRequest): Pro
 
 export async function createRole(data: CreateRoleRequest): Promise<void> {
   return postApiUserManagementRoles(data);
+}
+
+export interface TemporaryPasswordResponse {
+  generatedPassword: string;
+  forcePasswordChangeOnNextLogin: boolean;
+}
+
+export async function generateTemporaryPassword(userId: string): Promise<TemporaryPasswordResponse> {
+  return customInstance<TemporaryPasswordResponse>({
+    url: `/api/admin/users/${userId}/generate-temporary-password`,
+    method: 'POST',
+  });
+}
+
+export function useGenerateTemporaryPasswordMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: generateTemporaryPassword,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      void queryClient.invalidateQueries({ queryKey: listQueryKey });
+    },
+  });
 }
 
 // --- Role management (catalog, with-permissions, set permissions, delete) ---

@@ -5,6 +5,41 @@
     "listHelp": "Jeder Mandant hat eigene Produkte, Kassen und Belege.",
     "empty": "Keine Mandanten gefunden."
   },
+  "licensesPage": {
+    "subtitle": "Super-Admin: Lizenzstatus aller Mandanten filtern, exportieren und direkt verwalten.",
+    "searchPlaceholder": "Nach Mandant, Subdomain, E-Mail oder Lizenzschluessel suchen",
+    "tenantStatusPlaceholder": "Mandant Status",
+    "licenseStatusPlaceholder": "Lizenz Status",
+    "validFromPlaceholder": "Gueltig von",
+    "validUntilPlaceholder": "Gueltig bis",
+    "allShort": "Alle",
+    "allTenantStatuses": "Alle Mandantenstatus",
+    "allLicenseStatuses": "Alle Lizenzphasen",
+    "clearFilters": "Filter zuruecksetzen",
+    "export": "CSV exportieren",
+    "exported": "{{count}} Mandanten exportiert.",
+    "noRowsToExport": "Keine gefilterten Mandanten zum Exportieren vorhanden.",
+    "healthColumn": "Lizenzzustand",
+    "modalTitle": "Lizenz verwalten: {{name}} ({{slug}})",
+    "sendReminder": "E-Mail Erinnerung senden",
+    "reminderSent": "Erinnerung an {{recipient}} gesendet",
+    "reminderFailed": "Fehler beim Senden der E-Mail",
+    "daysOverdue": "{{days}} Tage überfällig",
+    "daysUnit": "Tage",
+    "extendModal": {
+      "title": "Lizenz verlängern - {{name}}",
+      "dateRequired": "Bitte Datum auswählen",
+      "licenseKey": "Lizenzschlüssel (optional)",
+      "licenseKeyTooltip": "Bei leerem Feld wird nur das Datum aktualisiert",
+      "hintTitle": "Hinweis",
+      "hintDescription": "Nach der Verlängerung wird der Mandant wieder normal arbeiten können.",
+      "success": "Lizenz für {{name}} erfolgreich verlängert"
+    },
+    "summary": {
+      "total": "Gefilterte Mandanten",
+      "expiringSoon": "Lauft in 30 Tagen aus"
+    }
+  },
   "accessDenied": {
     "title": "Zugriff verweigert",
     "body": "Nur Super-Administratoren dürfen diese Seite öffnen."

@@ -41,8 +41,10 @@ import {
 } from '@/features/super-admin/api/adminTenantLicense';
 import { useI18n, formatDate, formatDateTime } from '@/i18n';
 
+type LicenseManagerTenantRef = Pick<AdminTenantDetail, 'id'>;
+
 export type LicenseManagerProps = {
-    tenant: AdminTenantDetail;
+    tenant: LicenseManagerTenantRef;
     onUpdated: () => void;
 };
 

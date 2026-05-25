@@ -40,6 +40,12 @@ export type TenantLicenseIssueDeploymentResult = {
     overview?: TenantLicenseOverview | null;
 };
 
+export type TenantLicenseReminderResult = {
+    success: boolean;
+    recipientEmail: string;
+    message?: string | null;
+};
+
 export type ExtendTenantLicenseRequest = {
     licenseKey?: string | null;
     validUntilUtc?: string | null;
@@ -100,6 +106,15 @@ export async function issueAdminTenantDeploymentLicense(
 ): Promise<TenantLicenseIssueDeploymentResult> {
     const { data } = await AXIOS_INSTANCE.post<TenantLicenseIssueDeploymentResult>(
         `/api/admin/tenants/${tenantId}/license/sync/issue`,
+    );
+    return data;
+}
+
+export async function sendAdminTenantLicenseReminder(
+    tenantId: string,
+): Promise<TenantLicenseReminderResult> {
+    const { data } = await AXIOS_INSTANCE.post<TenantLicenseReminderResult>(
+        `/api/admin/tenants/${tenantId}/license/reminder`,
     );
     return data;
 }

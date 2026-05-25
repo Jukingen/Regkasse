@@ -291,6 +291,23 @@
       "pending": "Pending",
       "platform": "Platform",
       "tenant": "Tenant"
+    },
+    "lastLogin": {
+      "never": "Never",
+      "today": "Today",
+      "dayAgo": "1 day ago",
+      "daysAgo": "{{count}} days ago"
+    },
+    "export": {
+      "button": "Export",
+      "csv": "Export CSV",
+      "pdf": "Export PDF",
+      "messages": {
+        "csvSuccess": "CSV exported.",
+        "csvFailed": "CSV export failed.",
+        "pdfReady": "Print view for PDF opened.",
+        "pdfBlocked": "Popup blocked. Please allow popups."
+      }
     }
   },
   "tabs": {
@@ -338,6 +355,10 @@
     "passwordWarningTitle": "Important",
     "close": "Close",
     "action": "Create user",
+    "tabs": {
+      "normal": "Normal",
+      "quick": "Quick create"
+    },
     "tenantRequired": "Please select a tenant.",
     "tenantPlaceholder": "Select tenant …",
     "tenantOption": "{{name}} ({{slug}})",

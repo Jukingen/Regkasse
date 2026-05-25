@@ -112,6 +112,7 @@ public static class PermissionCatalog
         AppPermissions.SystemCritical,
         AppPermissions.TenantManage,
         AppPermissions.LicenseLifecycleSuper,
+        AppPermissions.LicenseView,
         // Legacy / convenience
         AppPermissions.PriceOverride,
         AppPermissions.ReceiptReprint,

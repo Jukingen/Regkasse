@@ -40,17 +40,20 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
     private readonly AppDbContext _db;
     private readonly ILicenseSyncService _licenseSync;
     private readonly ILicenseIssuanceService _licenseIssuance;
+    private readonly ILicenseReminderEmailSender _licenseReminderEmailSender;
     private readonly ILogger<AdminTenantLicenseService> _logger;
 
     public AdminTenantLicenseService(
         AppDbContext db,
         ILicenseSyncService licenseSync,
         ILicenseIssuanceService licenseIssuance,
+        ILicenseReminderEmailSender licenseReminderEmailSender,
         ILogger<AdminTenantLicenseService> logger)
     {
         _db = db;
         _licenseSync = licenseSync;
         _licenseIssuance = licenseIssuance;
+        _licenseReminderEmailSender = licenseReminderEmailSender;
         _logger = logger;
     }
 
@@ -317,6 +320,48 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             overview), null);
     }
 
+    public async Task<(TenantLicenseReminderResultDto? Result, string? Error)> SendReminderEmailAsync(
+        Guid tenantId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _db.Tenants.AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant == null)
+            return (null, "Tenant not found.");
+        if (tenant.Status == TenantStatuses.Deleted)
+            return (null, "Deleted tenants cannot receive license reminders.");
+
+        var recipientEmail = await ResolveReminderRecipientEmailAsync(tenantId, tenant.Email, cancellationToken)
+            .ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(recipientEmail))
+            return (null, "Tenant has no owner or contact email for reminders.");
+
+        var (daysRemaining, kind) = TenantLicenseStatusMapper.ComputeKindAndDays(
+            tenant.LicenseValidUntilUtc,
+            tenant.LicenseKey);
+
+        var subject = $"Regkasse Lizenz-Erinnerung - {tenant.Name}";
+        var body = BuildReminderEmailBody(tenant, daysRemaining, kind);
+        var sent = await _licenseReminderEmailSender
+            .TrySendTenantLicenseReminderAsync(recipientEmail, subject, body, cancellationToken)
+            .ConfigureAwait(false);
+        if (!sent)
+            return (null, "SMTP is not configured or the reminder email could not be delivered.");
+
+        _logger.LogInformation(
+            "Tenant license reminder email sent for tenant {TenantId} to {RecipientEmail} by {ActorUserId}",
+            tenantId,
+            recipientEmail,
+            actorUserId ?? "(unknown)");
+
+        return (new TenantLicenseReminderResultDto(
+            true,
+            recipientEmail,
+            "Reminder email sent successfully."), null);
+    }
+
     private async Task<List<IssuedLicense>> FindLinkedIssuedLicensesAsync(
         Tenant tenant,
         CancellationToken cancellationToken)
@@ -352,6 +397,59 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
 
     private static string MaskKey(string key) =>
         key.Length <= 16 ? key : key[..16] + "…";
+
+    private async Task<string?> ResolveReminderRecipientEmailAsync(
+        Guid tenantId,
+        string? fallbackTenantEmail,
+        CancellationToken cancellationToken)
+    {
+        var ownerEmail = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(m => m.TenantId == tenantId && m.IsActive && m.IsOwner)
+            .Join(
+                _db.Users.AsNoTracking(),
+                m => m.UserId,
+                u => u.Id,
+                (_, u) => u.Email ?? u.UserName)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!string.IsNullOrWhiteSpace(ownerEmail))
+            return ownerEmail;
+
+        return string.IsNullOrWhiteSpace(fallbackTenantEmail) ? null : fallbackTenantEmail.Trim();
+    }
+
+    private static string BuildReminderEmailBody(Tenant tenant, int? daysRemaining, string kind)
+    {
+        var validUntilLabel = tenant.LicenseValidUntilUtc?.ToString("dd.MM.yyyy") ?? "—";
+        var statusLabel = kind switch
+        {
+            "active" => "Aktiv",
+            "grace_write" => "Grace Write",
+            "grace_read_only" => "Grace ReadOnly",
+            "lockdown" => "Lockdown",
+            "no_license" => "Keine Lizenz",
+            _ => kind,
+        };
+        var remainingLabel = daysRemaining.HasValue ? daysRemaining.Value.ToString() : "—";
+
+        return string.Join(Environment.NewLine,
+        [
+            "Guten Tag,",
+            string.Empty,
+            $"für den Mandanten \"{tenant.Name}\" wurde eine Lizenz-Erinnerung ausgelöst.",
+            string.Empty,
+            $"Mandant: {tenant.Name}",
+            $"Subdomain: {tenant.Slug}",
+            $"Lizenzstatus: {statusLabel}",
+            $"Gültig bis: {validUntilLabel}",
+            $"Verbleibende Tage: {remainingLabel}",
+            string.Empty,
+            "Bitte prüfen Sie die Lizenzverlängerung im Regkasse Adminbereich.",
+        ]);
+    }
 
     private async Task<Tenant?> LoadMutableTenantAsync(Guid tenantId, CancellationToken cancellationToken) =>
         await _db.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken).ConfigureAwait(false);

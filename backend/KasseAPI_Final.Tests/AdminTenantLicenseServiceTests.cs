@@ -43,6 +43,7 @@ public sealed class AdminTenantLicenseServiceTests
             db,
             Mock.Of<ILicenseSyncService>(),
             Mock.Of<ILicenseIssuanceService>(),
+            Mock.Of<ILicenseReminderEmailSender>(),
             Mock.Of<ILogger<AdminTenantLicenseService>>());
         var (result, error) = await service.ActivateTrialAsync(tenantId, "actor");
 
@@ -75,6 +76,7 @@ public sealed class AdminTenantLicenseServiceTests
             db,
             Mock.Of<ILicenseSyncService>(),
             Mock.Of<ILicenseIssuanceService>(),
+            Mock.Of<ILicenseReminderEmailSender>(),
             Mock.Of<ILogger<AdminTenantLicenseService>>());
 
         var (check, error) = await service.CheckDeploymentConsistencyAsync(tenantId);
@@ -122,6 +124,7 @@ public sealed class AdminTenantLicenseServiceTests
             db,
             Mock.Of<ILicenseSyncService>(),
             Mock.Of<ILicenseIssuanceService>(),
+            Mock.Of<ILicenseReminderEmailSender>(),
             Mock.Of<ILogger<AdminTenantLicenseService>>());
 
         var (check, error) = await service.CheckDeploymentConsistencyAsync(tenantId);
@@ -131,5 +134,66 @@ public sealed class AdminTenantLicenseServiceTests
         Assert.True(check!.IsConsistent);
         Assert.Empty(check.Warnings);
         Assert.False(check.CanIssueDeploymentLicense);
+    }
+
+    [Fact]
+    public async Task SendReminderEmailAsync_Sends_To_Owner_Email()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var userId = "owner-1";
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Reminder Co",
+            Slug = "reminder-co",
+            Email = "contact@reminder.test",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            LicenseValidUntilUtc = DateTime.UtcNow.AddDays(12),
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = userId,
+            UserName = "owner@reminder.test",
+            Email = "owner@reminder.test",
+            FirstName = "Owner",
+            LastName = "Test",
+            Role = "Manager",
+            EmployeeNumber = "EMP-1",
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            UserId = userId,
+            IsActive = true,
+            IsOwner = true,
+        });
+        await db.SaveChangesAsync();
+
+        var reminderSender = new Mock<ILicenseReminderEmailSender>();
+        reminderSender
+            .Setup(x => x.TrySendTenantLicenseReminderAsync(
+                "owner@reminder.test",
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var service = new AdminTenantLicenseService(
+            db,
+            Mock.Of<ILicenseSyncService>(),
+            Mock.Of<ILicenseIssuanceService>(),
+            reminderSender.Object,
+            Mock.Of<ILogger<AdminTenantLicenseService>>());
+
+        var (result, error) = await service.SendReminderEmailAsync(tenantId, "actor");
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.True(result!.Success);
+        Assert.Equal("owner@reminder.test", result.RecipientEmail);
     }
 }

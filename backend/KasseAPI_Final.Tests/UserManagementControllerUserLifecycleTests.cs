@@ -282,6 +282,30 @@ public class UserManagementControllerUserLifecycleTests
             Times.Once);
     }
 
+    [Fact]
+    public async Task ReactivateUser_WhenUserWasLockedOut_ClearsLockoutEnd()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u",
+            FirstName = "A",
+            LastName = "B",
+            IsActive = false,
+            LockoutEnd = DateTimeOffset.UtcNow.AddHours(2),
+        };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
+        var auditMock = new Mock<IAuditLogService>();
+        var sessionMock = new Mock<IUserSessionInvalidation>();
+        using var context = CreateContext();
+        var controller = CreateController(context, userManager, roleManager, auditMock.Object, sessionMock.Object);
+
+        var result = await controller.ReactivateUser("u1", null);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Null(user.LockoutEnd);
+    }
+
     /// <summary>DELETE is soft-delete only (RKSV/fiscal: no hard delete of users).</summary>
     [Fact]
     public async Task DeleteUser_SoftDeleteOnly_UserStillExistsWithIsActiveFalse()

@@ -5,6 +5,8 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +26,7 @@ public sealed partial class AdminLicenseController : ControllerBase
     private readonly ILicenseService _licenseService;
     private readonly ILicenseIssuanceService _licenseIssuanceService;
     private readonly AppDbContext _db;
+    private readonly IAdminTenantService _adminTenantService;
     private readonly ILicenseReminderNotificationStore _licenseReminderNotificationStore;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<AdminLicenseController> _logger;
@@ -32,6 +35,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         ILicenseService licenseService,
         ILicenseIssuanceService licenseIssuanceService,
         AppDbContext db,
+        IAdminTenantService adminTenantService,
         ILicenseReminderNotificationStore licenseReminderNotificationStore,
         IAuditLogService auditLogService,
         ILogger<AdminLicenseController> logger)
@@ -39,6 +43,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         _licenseService = licenseService;
         _licenseIssuanceService = licenseIssuanceService;
         _db = db;
+        _adminTenantService = adminTenantService;
         _licenseReminderNotificationStore = licenseReminderNotificationStore;
         _auditLogService = auditLogService;
         _logger = logger;
@@ -62,6 +67,50 @@ public sealed partial class AdminLicenseController : ControllerBase
         var status = await _licenseService.GetCurrentDeploymentStatusAsync(cancellationToken).ConfigureAwait(false);
         var reminders = _licenseReminderNotificationStore.GetReminders();
         return Ok(status with { Reminders = reminders });
+    }
+
+    /// <summary>Super-admin SaaS tenant license inventory for the `/admin/licenses` platform page.</summary>
+    [HttpGet("tenants")]
+    [Authorize(Roles = Roles.SuperAdmin)]
+    [HasPermission(AppPermissions.LicenseView)]
+    [ProducesResponseType(typeof(List<TenantLicenseDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<List<TenantLicenseDto>>> GetAllTenantLicenses(
+        [FromQuery] string? search,
+        [FromQuery] string? status,
+        [FromQuery] string? licenseStatus,
+        CancellationToken cancellationToken = default)
+    {
+        var tenants = await _adminTenantService.ListAsync(includeDeleted: false, cancellationToken).ConfigureAwait(false);
+
+        IEnumerable<AdminTenantListItemDto> filtered = tenants;
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            filtered = filtered.Where(t =>
+                t.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || t.Slug.Contains(term, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status)
+            && !string.Equals(status, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            filtered = filtered.Where(t => string.Equals(t.Status, status, StringComparison.OrdinalIgnoreCase));
+        }
+
+        var result = filtered
+            .Select(MapTenantLicenseDto)
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(licenseStatus)
+            && !string.Equals(licenseStatus, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            result = result
+                .Where(r => string.Equals(r.LicenseStatus, licenseStatus, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -208,6 +257,35 @@ public sealed partial class AdminLicenseController : ControllerBase
     private static string SanitizeSqlLikeFragment(string value)
     {
         return new string(value.Trim().Where(c => c is not '%' and not '_' and not '\\').Take(256).ToArray());
+    }
+
+    private static TenantLicenseDto MapTenantLicenseDto(AdminTenantListItemDto tenant)
+    {
+        var (daysRemaining, kindRaw) = TenantLicenseStatusMapper.ComputeKindAndDays(
+            tenant.LicenseValidUntilUtc,
+            tenant.LicenseKey);
+
+        var normalizedKind = kindRaw switch
+        {
+            "grace_read_only" => "grace_readonly",
+            _ => kindRaw,
+        };
+
+        return new TenantLicenseDto
+        {
+            Id = tenant.Id,
+            Name = tenant.Name,
+            Slug = tenant.Slug,
+            LicenseKey = MaskTenantLicenseKey(tenant.LicenseKey),
+            ValidUntil = tenant.LicenseValidUntilUtc,
+            Status = tenant.Status,
+            IsActive = tenant.IsActive,
+            OwnerEmail = tenant.OwnerAdminEmail,
+            CreatedAt = tenant.CreatedAt,
+            LicenseStatus = normalizedKind,
+            DaysRemaining = daysRemaining,
+            DaysExpired = daysRemaining is < 0 ? Math.Abs(daysRemaining.Value) : 0,
+        };
     }
 
     /// <summary>First 8 + last 8 hex characters for table display (full SHA-256 is 64 chars).</summary>
@@ -641,6 +719,18 @@ public sealed partial class AdminLicenseController : ControllerBase
 
         return "REGK-****-****-*****";
     }
+
+    private static string? MaskTenantLicenseKey(string? licenseKey)
+    {
+        if (string.IsNullOrWhiteSpace(licenseKey))
+            return null;
+
+        var trimmed = licenseKey.Trim();
+        if (trimmed.StartsWith("TIER:", StringComparison.OrdinalIgnoreCase))
+            return trimmed;
+
+        return MaskIssuedLicenseKey(trimmed);
+    }
 }
 
 /// <summary>Request body for <c>POST /api/admin/license/generate</c>.</summary>
@@ -792,4 +882,31 @@ public sealed class IssuedLicenseListItemDto
 
     /// <summary>Enabled license feature ids when stored on the issuance row; null = full bundle / legacy row.</summary>
     public string[]? Features { get; set; }
+}
+
+public sealed class TenantLicenseDto
+{
+    public Guid Id { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public string Slug { get; set; } = string.Empty;
+
+    public string? LicenseKey { get; set; }
+
+    public DateTime? ValidUntil { get; set; }
+
+    public string Status { get; set; } = string.Empty;
+
+    public bool IsActive { get; set; }
+
+    public string? OwnerEmail { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public string LicenseStatus { get; set; } = "no_license";
+
+    public int? DaysRemaining { get; set; }
+
+    public int DaysExpired { get; set; }
 }

@@ -9,3 +9,8 @@ export function getColorFromName(name: string): string {
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 55%, 45%)`;
 }
+
+/** Deterministic avatar background from email (stable per user). */
+export function getColorFromEmail(email: string): string {
+    return getColorFromName(email);
+}

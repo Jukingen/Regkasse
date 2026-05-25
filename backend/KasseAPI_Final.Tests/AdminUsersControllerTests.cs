@@ -80,6 +80,8 @@ public class AdminUsersControllerTests
         var store = new Mock<IUserStore<ApplicationUser>>();
         store.Setup(x => x.FindByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(existingUser);
+        store.Setup(x => x.UpdateAsync(It.IsAny<ApplicationUser>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(IdentityResult.Success);
 
         var options = Options.Create(new IdentityOptions());
         var hasher = new Mock<IPasswordHasher<ApplicationUser>>();
@@ -330,6 +332,32 @@ public class AdminUsersControllerTests
     }
 
     [Fact]
+    public async Task Reactivate_WhenUserWasLockedOut_ClearsLockoutEnd()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "u",
+            FirstName = "A",
+            LastName = "B",
+            IsActive = false,
+            LockoutEnd = DateTimeOffset.UtcNow.AddHours(2),
+            UserTenantMemberships = new List<UserTenantMembership>(),
+        };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
+        var audit = new Mock<IAuditLogService>().Object;
+        var session = new Mock<IUserSessionInvalidation>().Object;
+        var controller = CreateController(userManager, roleManager, audit, session);
+
+        var result = await controller.Reactivate("u1", null);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<AdminUsersController.AdminUserDto>(ok.Value);
+        Assert.True(dto.IsActive);
+        Assert.Null(user.LockoutEnd);
+    }
+
+    [Fact]
     public async Task ForcePasswordReset_WhenPasswordTooShort_ReturnsBadRequest()
     {
         var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", IsActive = true };
@@ -345,6 +373,158 @@ public class AdminUsersControllerTests
         Assert.Equal(400, body.Status);
         Assert.NotNull(body.Errors);
         Assert.True(body.Errors.ContainsKey("newPassword"));
+    }
+
+    [Fact]
+    public async Task GenerateTemporaryPassword_WhenActorIsNotSuperAdmin_ReturnsForbidden()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "operator",
+            Email = "operator@test.com",
+            FirstName = "Op",
+            LastName = "Erator",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorId: "manager-1",
+            actorRole: Roles.Manager);
+
+        var result = await controller.GenerateTemporaryPassword("user-1");
+
+        var forbidden = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(403, forbidden.StatusCode);
+        var body = Assert.IsType<ApiError>(forbidden.Value);
+        Assert.Equal("Forbidden", body.Type);
+    }
+
+    [Fact]
+    public async Task GenerateTemporaryPassword_ReturnsGeneratedPassword_UpdatesFlag_AndInvalidatesSessions()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "operator",
+            Email = "operator@test.com",
+            FirstName = "Op",
+            LastName = "Erator",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            MustChangePasswordOnNextLogin = false,
+        };
+
+        var userStore = new Mock<IUserStore<ApplicationUser>>();
+        var userManager = new Mock<UserManager<ApplicationUser>>(
+            userStore.Object,
+            Options.Create(new IdentityOptions()),
+            new PasswordHasher<ApplicationUser>(),
+            new List<IUserValidator<ApplicationUser>>(),
+            new List<IPasswordValidator<ApplicationUser>>(),
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null!,
+            Mock.Of<ILogger<UserManager<ApplicationUser>>>());
+        userManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        userManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        userManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", It.IsAny<string>()))
+            .Callback<ApplicationUser, string, string>((target, _token, password) =>
+            {
+                target.PasswordHash = $"hashed:{password}";
+            })
+            .ReturnsAsync(IdentityResult.Success);
+
+        var roleStore = new Mock<IRoleStore<IdentityRole>>();
+        var roleManager = new RoleManager<IdentityRole>(
+            roleStore.Object,
+            null!,
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null!);
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(x => x.LogUserLifecycleAsync(
+                AuditEventType.PasswordResetForced,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                "user-1",
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid(), Action = AuditLogActions.FORCE_RESET_PASSWORD });
+        audit.Setup(x => x.LogUserLifecycleAsync(
+                AuditLogActions.SUPER_ADMIN_VIEWED_PASSWORD,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                "user-1",
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<UserCreatedAuditDetails?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid(), Action = AuditLogActions.SUPER_ADMIN_VIEWED_PASSWORD });
+        var session = new Mock<IUserSessionInvalidation>();
+        session.Setup(x => x.InvalidateSessionsForUserAsync("user-1")).Returns(Task.CompletedTask);
+
+        var controller = CreateController(userManager.Object, roleManager, audit.Object, session.Object);
+
+        var result = await controller.GenerateTemporaryPassword("user-1");
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AdminUsersController.AdminTemporaryPasswordResponse>(ok.Value);
+        Assert.False(string.IsNullOrWhiteSpace(body.GeneratedPassword));
+        Assert.True(body.ForcePasswordChangeOnNextLogin);
+        Assert.Equal(12, body.GeneratedPassword.Length);
+        Assert.Matches(@"[A-Z]", body.GeneratedPassword);
+        Assert.Matches(@"[a-z]", body.GeneratedPassword);
+        Assert.Matches(@"\d", body.GeneratedPassword);
+        Assert.Matches(@"[!@#$%^&*()]", body.GeneratedPassword);
+
+        Assert.True(user.MustChangePasswordOnNextLogin);
+        Assert.False(string.IsNullOrWhiteSpace(user.PasswordHash));
+
+        audit.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditEventType.PasswordResetForced,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                "user-1",
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()),
+            Times.Once);
+        audit.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditLogActions.SUPER_ADMIN_VIEWED_PASSWORD,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                "user-1",
+                "Support / Password reset",
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<UserCreatedAuditDetails?>()),
+            Times.Once);
+        session.Verify(x => x.InvalidateSessionsForUserAsync("user-1"), Times.Once);
     }
 
     [Fact]

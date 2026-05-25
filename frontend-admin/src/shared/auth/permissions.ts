@@ -13,6 +13,7 @@ export const AppPermissions = {
   CashRegisterView: 'cash_register.view',
   CashRegisterManage: 'cash_register.manage',
   CashRegisterDecommission: 'cash_register.decommission',
+  LicenseView: 'license.view',
 } as const;
 
 export const PERMISSIONS = {
@@ -42,6 +43,7 @@ export const PERMISSIONS = {
   SALE_CREATE: 'sale.create',
   SETTINGS_VIEW: 'settings.view',
   SETTINGS_MANAGE: 'settings.manage',
+  LICENSE_VIEW: AppPermissions.LicenseView,
   /** Issued-license lifecycle (extend/revoke/cancel/soft-delete/unregister); align with backend `AppPermissions.LicenseLifecycleSuper`. */
   LICENSE_LIFECYCLE_SUPER: 'license.super',
   AUDIT_VIEW: 'audit.view',

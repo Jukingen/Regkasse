@@ -11,6 +11,12 @@ public interface ILicenseReminderEmailSender
 
     Task SendLicenseUrgencyEmailAsync(string subject, string plainBody, CancellationToken cancellationToken = default);
 
+    Task<bool> TrySendTenantLicenseReminderAsync(
+        string toEmail,
+        string subject,
+        string plainBody,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Sends to <see cref="EmailSmtpOptions.LicenseReportRecipients"/> or reminder recipients when SMTP is ready.</summary>
     Task SendLicenseReportEmailAsync(string subject, string plainBody, CancellationToken cancellationToken = default);
 
@@ -104,6 +110,56 @@ public sealed class LicenseReminderEmailSender : ILicenseReminderEmailSender
         {
             _logger.LogWarning(ex, "License reminder email could not be sent.");
             throw;
+        }
+    }
+
+    public async Task<bool> TrySendTenantLicenseReminderAsync(
+        string toEmail,
+        string subject,
+        string plainBody,
+        CancellationToken cancellationToken = default)
+    {
+        var opt = _options.Value;
+        if (!IsSmtpHostReady())
+            return false;
+
+        var recipient = toEmail.Trim();
+        if (recipient.Length == 0)
+            return false;
+
+        using var msg = new MailMessage
+        {
+            From = new MailAddress(opt.From!.Trim()),
+            Subject = subject,
+            Body = plainBody,
+            IsBodyHtml = false,
+        };
+        msg.To.Add(recipient);
+
+#pragma warning disable CA1416
+#pragma warning disable SYSLIB0014
+        using var client = new SmtpClient(opt.Host!.Trim(), opt.Port)
+        {
+            EnableSsl = opt.EnableSsl,
+            DeliveryMethod = SmtpDeliveryMethod.Network,
+            UseDefaultCredentials = false,
+        };
+
+        if (!string.IsNullOrWhiteSpace(opt.User))
+            client.Credentials = new NetworkCredential(opt.User!.Trim(), opt.Password ?? string.Empty);
+#pragma warning restore SYSLIB0014
+#pragma warning restore CA1416
+
+        try
+        {
+            await client.SendMailAsync(msg, cancellationToken).ConfigureAwait(false);
+            _logger.LogInformation("Tenant license reminder email sent to {Email}.", recipient);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Tenant license reminder email could not be sent to {Email}.", recipient);
+            return false;
         }
     }
 
