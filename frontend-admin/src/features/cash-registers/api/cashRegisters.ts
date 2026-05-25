@@ -35,6 +35,61 @@ export type CreateCashRegisterResponse = {
 
 export const cashRegisterListQueryKey = ['cash-registers'] as const;
 
+/** Admin FA projection from `GET /api/admin/cash-registers`. */
+export type AdminCashRegisterListItem = {
+    id: string;
+    tenantId: string;
+    registerNumber: string;
+    location: string;
+    status: number;
+    isActive?: boolean;
+};
+
+export type AdminCashRegisterPagedResult = {
+    items: AdminCashRegisterListItem[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+};
+
+export type ListAdminCashRegistersParams = {
+    tenantId?: string;
+    page?: number;
+    pageSize?: number;
+};
+
+export const adminCashRegisterListQueryKey = (params?: ListAdminCashRegistersParams) =>
+    ['admin', 'cash-registers', 'list', params?.tenantId ?? '__all__', params?.pageSize ?? 100] as const;
+
+export async function listAdminCashRegisters(
+    params?: ListAdminCashRegistersParams,
+): Promise<AdminCashRegisterPagedResult> {
+    const data = await customInstance<{
+        items?: AdminCashRegisterListItem[];
+        totalCount?: number;
+        page?: number;
+        pageSize?: number;
+        totalPages?: number;
+    }>({
+        url: '/api/admin/cash-registers',
+        method: 'GET',
+        params: {
+            tenantId: params?.tenantId,
+            page: params?.page ?? 1,
+            pageSize: params?.pageSize ?? 100,
+        },
+    });
+
+    return {
+        items: data.items ?? [],
+        totalCount: data.totalCount ?? 0,
+        page: data.page ?? 1,
+        pageSize: data.pageSize ?? 100,
+        totalPages: data.totalPages ?? 0,
+    };
+}
+
 export async function createCashRegister(
     body: CreateCashRegisterRequest,
 ): Promise<CreateCashRegisterResponse> {

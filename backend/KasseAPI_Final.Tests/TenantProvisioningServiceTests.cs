@@ -105,6 +105,7 @@ public sealed class TenantProvisioningServiceTests
 
         var membership = await db.UserTenantMemberships.SingleAsync(m => m.TenantId == tenant.Id);
         Assert.True(membership.IsActive);
+        Assert.True(membership.IsOwner);
         Assert.Equal(result.AdminUserId, membership.UserId);
 
         var settings = await db.UserSettings.SingleAsync(s => s.UserId == result.AdminUserId);

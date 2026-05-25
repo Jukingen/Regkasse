@@ -19,7 +19,11 @@
     "languageSelectHint": "Gilt nur für die Bedienoberfläche. Formale Berichtstexte bleiben Deutsch oder Englisch.",
     "languageNameDe": "Deutsch",
     "languageNameEn": "English",
-    "languageNameTr": "Türkçe"
+    "languageNameTr": "Türkçe",
+    "cashRegisterQuickSwitchLabel": "Kasse wechseln",
+    "cashRegisterQuickSwitchAria": "Kasse schnell wechseln",
+    "cashRegisterQuickSwitchHint": "Kasse auswählen und Kassenverwaltung öffnen",
+    "cashRegisterQuickSwitchManage": "Kassenverwaltung öffnen"
   },
   "tenant": {
     "badge": {

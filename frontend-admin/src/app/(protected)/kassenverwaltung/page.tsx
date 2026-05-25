@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Alert, Button, Card, Checkbox, Space, Typography, message } from 'antd';
 import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import Link from 'next/link';
@@ -33,13 +34,20 @@ import {
     rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import {
+    FA_QUICK_CASH_REGISTER_QUERY_PARAM,
+    readQuickCashRegisterId,
+    writeQuickCashRegisterId,
+} from '@/features/cash-registers/constants/quickSwitch';
 import styles from './kassenverwaltung.module.css';
 
 const CAPABILITIES_QUERY_KEY = ['admin', 'cash-registers', 'capabilities'] as const;
 
 export default function KassenverwaltungPage() {
     const { t } = useI18n();
+    const searchParams = useSearchParams();
     const queryClient = useQueryClient();
+    const deepLinkHandledRef = useRef(false);
     const {
         canViewCashRegisters,
         canManageCashRegisters,
@@ -91,6 +99,24 @@ export default function KassenverwaltungPage() {
         () => allRegisters.filter((r) => isDecommissionedRegister(rawRegisterStatus(r))).length,
         [allRegisters],
     );
+
+    useEffect(() => {
+        if (deepLinkHandledRef.current || allRegisters.length === 0) {
+            return;
+        }
+        const fromQuery = searchParams.get(FA_QUICK_CASH_REGISTER_QUERY_PARAM)?.trim();
+        const targetId = fromQuery || readQuickCashRegisterId();
+        if (!targetId) {
+            return;
+        }
+        const register = allRegisters.find((row) => row.id === targetId);
+        if (!register) {
+            return;
+        }
+        deepLinkHandledRef.current = true;
+        writeQuickCashRegisterId(register.id ?? targetId);
+        setDetailRegister(register);
+    }, [allRegisters, searchParams]);
 
     const statusLabel = useCallback(
         (status: number | undefined) => {

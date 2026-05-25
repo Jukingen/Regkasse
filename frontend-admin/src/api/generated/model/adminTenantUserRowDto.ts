@@ -13,6 +13,8 @@ export interface AdminTenantUserRowDto {
   isOwner?: boolean;
   joinedAtUtc?: string;
   /** @nullable */
+  lastLoginAt?: string | null;
+  /** @nullable */
   name?: string | null;
   /** @nullable */
   role?: string | null;

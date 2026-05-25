@@ -88,5 +88,22 @@
   },
   "empty": "Kasa bulunamadı.",
   "emptyCanCreate": "Kayıtlı kasa yok. Oluşturmak için «Yeni kasa» düğmesine tıklayın.",
-  "emptyContactAdmin": "Kayıtlı kasa yok. Lütfen yöneticinizle iletişime geçin."
+  "emptyContactAdmin": "Kayıtlı kasa yok. Lütfen yöneticinizle iletişime geçin.",
+  "adminPage": {
+    "title": "Kasa yönetimi (kiracı)",
+    "intro": "Super Admin: kiracı seçin ve kasalarını yönetin.",
+    "selectTenant": "Kiracı",
+    "selectTenantHint": "Kasa listesi için bir kiracı seçin.",
+    "managerIntro": "Mandant kasa yönetimine geçmek için bir kasa seçin.",
+    "openKassenverwaltung": "Kasa yönetimine git"
+  },
+  "selector": {
+    "placeholder": "Kasa seçin…",
+    "noTenant": "Kiracı seçilmedi",
+    "noLocation": "Konum yok",
+    "loadError": "Yükleme hatası",
+    "loadErrorTooltip": "Kasa listesi yüklenemedi",
+    "empty": "Kasa yok",
+    "mandantHeader": "Kiracı: {{name}} ({{slug}})"
+  }
 }

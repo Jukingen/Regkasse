@@ -1,73 +1,222 @@
 'use client';
 
 /**
- * Soft tenant-license expiry warning for Manager mandant context.
- * Super Admin and deployment/on-premise license are intentionally excluded.
+ * Tenant-first license warning surface for protected admin pages.
+ * Login remains available; the banner explains degraded write access only.
  */
 
-import { Alert } from 'antd';
+import type { ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { Alert, Button, Space } from 'antd';
 
-import { useHeaderTenantLicense } from '@/features/tenant/hooks/useHeaderTenantLicense';
+import {
+    useDeploymentLicenseStatus,
+    useTenantLicenseStatus,
+    type LicenseStatus,
+} from '@/features/license/hooks/useLicenseStatus';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
-import { formatDate, useI18n } from '@/i18n';
-
-const WARNING_THRESHOLD_DAYS = 15;
 
 export function LicenseExpiryBanner() {
-    const { t, formatLocale } = useI18n();
-    const { suppressLicenseWarnings } = useCurrentTenant();
-    const { mode, license, licenseValidUntilUtc } = useHeaderTenantLicense();
+    const router = useRouter();
+    const tenant = useCurrentTenant();
+    const { data: tenantLicense } = useTenantLicenseStatus();
+    const deploymentStatusQuery = useDeploymentLicenseStatus();
+    const deploymentLicense = deploymentStatusQuery.data;
 
-    if (suppressLicenseWarnings || mode !== 'tenant' || !license || license.kind === 'none') {
-        return null;
+    const openTenantLicensePage = () => {
+        if (!tenant.tenantId) {
+            return;
+        }
+        router.push(`/admin/tenants/${tenant.tenantId}?tab=license`);
+    };
+
+    const openDeploymentLicensePage = () => {
+        router.push('/admin/license');
+    };
+
+    const renderTenantRenewAction = () =>
+        tenant.isSuperAdminUser && tenant.tenantId ? (
+            <Button size="small" type="primary" onClick={openTenantLicensePage}>
+                Lizenz jetzt verlaengern
+            </Button>
+        ) : null;
+
+    const renderDeploymentRenewAction = () =>
+        tenant.isSuperAdminUser ? (
+            <Button size="small" type="primary" onClick={openDeploymentLicensePage}>
+                Server-Lizenz oeffnen
+            </Button>
+        ) : null;
+
+    const renderBannerDescription = (content: ReactNode, action?: ReactNode) => (
+        <Space direction="vertical" size="small">
+            <span>{content}</span>
+            {action ?? null}
+        </Space>
+    );
+
+    const renderTenantBanner = (license: LicenseStatus) => {
+        switch (license.kind) {
+            case 'grace_write':
+                return (
+                    <Alert
+                        type="warning"
+                        banner
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message="Mandantenlizenz - Grace-Periode"
+                        description={renderBannerDescription(
+                            <>
+                                Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen. Sie
+                                haben noch <strong>{Math.max(0, 30 - license.daysExpired)}</strong> Tage Zeit, um
+                                die Lizenz zu verlaengern. Danach werden neue Verkaeufe deaktiviert.
+                            </>,
+                            renderTenantRenewAction(),
+                        )}
+                    />
+                );
+            case 'grace_readonly':
+                return (
+                    <Alert
+                        type="error"
+                        banner
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message="Mandantenlizenz abgelaufen - Verkaeufe deaktiviert"
+                        description={renderBannerDescription(
+                            <>
+                                Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen.
+                                <strong> Neue Verkaeufe sind deaktiviert.</strong> Sie koennen weiterhin Berichte
+                                einsehen und Benutzer verwalten. Bitte verlaengern Sie die Lizenz innerhalb der
+                                naechsten <strong>{Math.max(0, 90 - license.daysExpired)}</strong> Tage.
+                            </>,
+                            renderTenantRenewAction(),
+                        )}
+                    />
+                );
+            case 'lockdown':
+                return (
+                    <Alert
+                        type="error"
+                        banner
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message="Mandantenlizenz abgelaufen - System gesperrt"
+                        description={renderBannerDescription(
+                            <>
+                                Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen. Das
+                                System ist jetzt im Lockdown-Modus. Bitte kontaktieren Sie Ihren Administrator.
+                            </>,
+                            renderTenantRenewAction(),
+                        )}
+                    />
+                );
+            case 'no_license':
+                return (
+                    <Alert
+                        type="error"
+                        banner
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message="Mandantenlizenz fehlt"
+                        description={renderBannerDescription(
+                            <>Fuer diesen Mandanten ist keine Lizenz hinterlegt. Bitte hinterlegen Sie eine Lizenz.</>,
+                            renderTenantRenewAction(),
+                        )}
+                    />
+                );
+            default:
+                return null;
+        }
+    };
+
+    const renderDeploymentBanner = (license: LicenseStatus) => {
+        switch (license.kind) {
+            case 'grace_write':
+                return (
+                    <Alert
+                        type="warning"
+                        banner
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message="Deployment-Lizenz - Grace-Periode"
+                        description={renderBannerDescription(
+                            <>
+                                Die Deployment-Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen
+                                abgelaufen. Sie haben noch <strong>{Math.max(0, 15 - license.daysExpired)}</strong>{' '}
+                                Tage Zeit, bevor Schreiboperationen eingeschraenkt werden.
+                            </>,
+                            renderDeploymentRenewAction(),
+                        )}
+                    />
+                );
+            case 'grace_readonly':
+                return (
+                    <Alert
+                        type="error"
+                        banner
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message="Deployment-Lizenz abgelaufen - Nur-Lesen-Modus"
+                        description={renderBannerDescription(
+                            <>
+                                Die Deployment-Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen
+                                abgelaufen. Schreiboperationen sind deaktiviert, lesende Zugriffe bleiben verfuegbar.
+                                Bitte verlaengern Sie die Lizenz innerhalb der naechsten{' '}
+                                <strong>{Math.max(0, 60 - license.daysExpired)}</strong> Tage.
+                            </>,
+                            renderDeploymentRenewAction(),
+                        )}
+                    />
+                );
+            case 'lockdown':
+                return (
+                    <Alert
+                        type="error"
+                        banner
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message="Deployment-Lizenz abgelaufen - System im Lockdown"
+                        description={renderBannerDescription(
+                            <>
+                                Die Deployment-Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen
+                                abgelaufen. Nur Health- und Lizenz-Aktivierungsendpunkte bleiben verfuegbar.
+                            </>,
+                            renderDeploymentRenewAction(),
+                        )}
+                    />
+                );
+            case 'no_license':
+                return (
+                    <Alert
+                        type="error"
+                        banner
+                        showIcon
+                        style={{ marginBottom: 12 }}
+                        message="Deployment-Lizenz fehlt"
+                        description={renderBannerDescription(
+                            <>Fuer dieses Deployment ist keine Lizenz hinterlegt.</>,
+                            renderDeploymentRenewAction(),
+                        )}
+                    />
+                );
+            default:
+                return null;
+        }
+    };
+
+    if (tenantLicense && tenantLicense.kind !== 'active' && tenant.isRealTenantSlug) {
+        const banner = renderTenantBanner(tenantLicense);
+        if (banner) {
+            return banner;
+        }
     }
 
-    const daysRemaining = license.daysRemaining ?? 0;
-    const formattedDate = licenseValidUntilUtc
-        ? formatDate(licenseValidUntilUtc, formatLocale, {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-          })
-        : null;
-
-    if (license.kind === 'expired' || daysRemaining < 0) {
-        return (
-            <Alert
-                type="error"
-                showIcon
-                banner
-                role="alert"
-                style={{ marginBottom: 12 }}
-                message={t('license.banner.expired.title')}
-                description={
-                    formattedDate
-                        ? t('license.banner.expired.messageWithDate', { date: formattedDate })
-                        : t('license.banner.expired.message')
-                }
-            />
-        );
-    }
-
-    if (daysRemaining > 0 && daysRemaining <= WARNING_THRESHOLD_DAYS) {
-        return (
-            <Alert
-                type="warning"
-                showIcon
-                banner
-                role="status"
-                style={{ marginBottom: 12 }}
-                message={t('license.banner.warning.title')}
-                description={
-                    formattedDate
-                        ? t('license.banner.warning.messageWithDate', {
-                              days: daysRemaining,
-                              date: formattedDate,
-                          })
-                        : t('license.banner.warning.message', { days: daysRemaining })
-                }
-            />
-        );
+    if (deploymentLicense && deploymentLicense.kind !== 'active') {
+        const banner = renderDeploymentBanner(deploymentLicense);
+        if (banner) {
+            return banner;
+        }
     }
 
     return null;

@@ -85,6 +85,8 @@ export const ADMIN_NAV_LABEL_KEYS = {
     finanzOnlineOutbox: 'nav.finanzOnlineOutbox',
     /** Dashboard under Reporting & Analytics (distinct from RKSV overview). */
     reportingDashboard: 'nav.reportingDashboard',
+    /** Super Admin: cash registers scoped by tenant. */
+    superAdminCashRegisters: 'nav.superAdminCashRegisters',
     /** Nested formal DEP reports under Reporting. */
     reportingFormalReports: 'nav.reportingFormalReports',
 } as const;

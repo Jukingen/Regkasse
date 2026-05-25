@@ -8,6 +8,41 @@
     "trial": "Testversion",
     "expired": "Abgelaufen"
   },
+  "phase": {
+    "labels": {
+      "active": "Aktiv",
+      "graceWrite": "Grace-Phase: Schreiben erlaubt",
+      "graceReadonly": "Grace-Phase: Nur Lesen",
+      "lockdown": "Lockdown",
+      "expired": "Abgelaufen",
+      "noLicense": "Keine Lizenz"
+    },
+    "daysRemaining": "{{days}} Tage verbleibend",
+    "daysExpired": "Seit {{days}} Tagen abgelaufen",
+    "capabilities": {
+      "write": "Schreiben erlaubt",
+      "manageUsers": "Benutzerverwaltung erlaubt",
+      "access": "Zugriff erlaubt"
+    },
+    "messages": {
+      "tenant": {
+        "active": "Mandantenlizenz ist aktiv. Schreiben, Benutzerverwaltung und Zugriff sind freigegeben.",
+        "graceWrite": "Mandantenlizenz ist seit {{days}} Tagen abgelaufen. Schreiben ist noch erlaubt, eine Verlängerung ist aber zeitnah erforderlich.",
+        "graceReadonly": "Mandantenlizenz ist seit {{days}} Tagen abgelaufen. Schreiboperationen sind gesperrt, Lesen und Benutzerverwaltung bleiben erlaubt.",
+        "lockdown": "Mandantenlizenz ist seit {{days}} Tagen abgelaufen. Der Mandant befindet sich im Lockdown.",
+        "expired": "Mandantenlizenz ist seit {{days}} Tagen abgelaufen.",
+        "noLicense": "Für diesen Mandanten ist keine Lizenz hinterlegt."
+      },
+      "deployment": {
+        "active": "Deployment-Lizenz ist aktiv. Schreiben und Zugriff sind freigegeben.",
+        "graceWrite": "Deployment-Lizenz ist seit {{days}} Tagen abgelaufen. Schreiboperationen sind noch erlaubt, eine Verlängerung ist aber zeitnah erforderlich.",
+        "graceReadonly": "Deployment-Lizenz ist seit {{days}} Tagen abgelaufen. Das Deployment läuft im Nur-Lesen-Modus.",
+        "lockdown": "Deployment-Lizenz ist seit {{days}} Tagen abgelaufen. Das Deployment befindet sich im Lockdown.",
+        "expired": "Deployment-Lizenz ist seit {{days}} Tagen abgelaufen.",
+        "noLicense": "Für dieses Deployment ist keine Lizenz hinterlegt."
+      }
+    }
+  },
   "badge": {
     "loading": "Lizenzstatus…",
     "headerShort": {
@@ -72,15 +107,29 @@
     }
   },
   "banner": {
-    "warning": {
-      "title": "Lizenz läuft bald ab",
-      "message": "Ihre Lizenz läuft in {{days}} Tag(en) ab. Bitte rechtzeitig verlängern, um Zahlungsausfälle zu vermeiden.",
-      "messageWithDate": "Ihre Lizenz läuft in {{days}} Tag(en) ab ({{date}}). Bitte rechtzeitig verlängern."
+    "tenant": {
+      "expired": {
+        "title": "Mandantenlizenz abgelaufen",
+        "message": "Ihre Lizenz ist seit {{days}} Tagen abgelaufen. Neue Verkäufe sind deaktiviert. Sie können weiterhin Berichte einsehen und Daten exportieren."
+      },
+      "grace": {
+        "title": "Mandantenlizenz abgelaufen - Grace-Periode",
+        "message": "Ihre Lizenz ist seit {{days}} Tagen abgelaufen. Bitte verlängern Sie die Lizenz in den nächsten {{remaining}} Tagen, um weiterhin Verkäufe durchführen zu können."
+      }
     },
-    "expired": {
-      "title": "Lizenz abgelaufen",
-      "message": "Die Zahlungserstellung ist gesperrt. Bitte kontaktieren Sie den Support, um die Lizenz zu erneuern.",
-      "messageWithDate": "Abgelaufen am {{date}}. Die Zahlungserstellung ist gesperrt – bitte Support kontaktieren."
+    "deployment": {
+      "expired": {
+        "title": "Server-Lizenz abgelaufen",
+        "message": "Die Server-Lizenz ist seit {{days}} Tagen abgelaufen. Schreiboperationen im Admin-Bereich sind eingeschränkt, Berichte bleiben weiter verfügbar."
+      },
+      "grace": {
+        "title": "Server-Lizenz abgelaufen - Grace-Periode",
+        "message": "Die Server-Lizenz ist seit {{days}} Tagen abgelaufen. Bitte verlängern Sie die Lizenz in den nächsten {{remaining}} Tagen, bevor weitere Schreiboperationen deaktiviert werden."
+      }
+    },
+    "actions": {
+      "renewTenant": "Lizenz jetzt verlängern",
+      "openDeployment": "Server-Lizenz öffnen"
     }
   },
   "trialDays": "Verbleibende Testtage",
@@ -328,7 +377,18 @@
   },
   "dashboard": {
     "sectionTitle": "Lizenzen (Übersicht)",
-    "sectionSubtitle": "Kennzahlen ausgestellter Lizenzen, Aktivierungsverlauf und letzte Ereignisse (Audit + Aktivierungen).",
+    "sectionSubtitle": "Kennzahlen aus Mandanten- und Deployment-Lizenzen, Aktivierungsverlauf und letzte Ereignisse (Audit + Aktivierungen).",
+    "statGroupOwnTenant": "Ihre Mandantenlizenz",
+    "statGroupTenant": "Mandantenlizenz (Tenants)",
+    "statGroupTenantSaas": "Mandantenlizenz (SaaS)",
+    "statGroupDeployment": "Deployment-Lizenzen (issued_licenses)",
+    "statGroupDeploymentOnPrem": "Deployment Lizenzen (On-Premise)",
+    "statTenantActive": "Aktiv",
+    "statTenantExpiring30": "Ablaufend (30 Tage)",
+    "statTenantExpired": "Abgelaufen",
+    "statDeploymentActive": "Aktiv",
+    "statDeploymentExpiring30": "Ablaufend (30 Tage)",
+    "statDeploymentExpired": "Abgelaufen",
     "statActive": "Aktive Lizenzen",
     "statExpiring30": "Ablaufend (30 Tage)",
     "statExpired": "Abgelaufen",

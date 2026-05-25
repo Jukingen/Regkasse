@@ -16,7 +16,6 @@ import {
     Switch,
     Empty,
     Table,
-    Tag,
     Typography,
     message,
 } from 'antd';
@@ -34,6 +33,7 @@ import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 import { useCanManageTenantDeletion } from '@/features/super-admin/hooks/useCanManageTenantDeletion';
 import { CreateTenantWizard } from '@/features/super-admin/components/CreateTenantWizard';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
+import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
 import { TenantStatusBadge } from '@/features/super-admin/components/TenantStatusBadge';
 import { TenantTableActions } from '@/features/super-admin/components/TenantTableActions';
 import {
@@ -46,7 +46,6 @@ import {
     updateAdminTenant,
     type AdminTenantListItem,
 } from '@/features/super-admin/api/adminTenants';
-import { resolveTenantLicenseLabel } from '@/features/super-admin/utils/tenantLicenseLabel';
 import Link from 'next/link';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
@@ -214,23 +213,12 @@ export default function SuperAdminTenantsPage() {
             {
                 title: t('tenants.columns.license'),
                 key: 'license',
-                render: (_, row) => {
-                    const lic = resolveTenantLicenseLabel(
-                        row.licenseValidUntilUtc,
-                        row.licenseKey,
-                        Date.now(),
-                        row.licenseDaysRemaining,
-                    );
-                    const color =
-                        lic.kind === 'expired'
-                            ? 'red'
-                            : lic.kind === 'trial'
-                              ? 'blue'
-                              : lic.kind === 'valid'
-                                ? 'green'
-                                : 'default';
-                    return <Tag color={color}>{lic.label}</Tag>;
-                },
+                render: (_, record) => (
+                    <TenantLicenseBadge
+                        licenseValidUntilUtc={record.licenseValidUntilUtc}
+                        licenseKey={record.licenseKey}
+                    />
+                ),
             },
             {
                 title: t('tenants.columns.created'),

@@ -8,6 +8,41 @@
     "trial": "Deneme",
     "expired": "Süresi doldu"
   },
+  "phase": {
+    "labels": {
+      "active": "Aktif",
+      "graceWrite": "Grace fazı: yazma açık",
+      "graceReadonly": "Grace fazı: salt okunur",
+      "lockdown": "Lockdown",
+      "expired": "Süresi doldu",
+      "noLicense": "Lisans yok"
+    },
+    "daysRemaining": "{{days}} gün kaldı",
+    "daysExpired": "{{days}} gündür süresi dolmuş",
+    "capabilities": {
+      "write": "Yazma izni",
+      "manageUsers": "Kullanıcı yönetimi izni",
+      "access": "Erişim izni"
+    },
+    "messages": {
+      "tenant": {
+        "active": "Kiracı lisansı aktif. Yazma, kullanıcı yönetimi ve genel erişim açık.",
+        "graceWrite": "Kiracı lisansının süresi {{days}} gün önce doldu. Yazma hâlâ açık, ancak yenileme artık gerekli.",
+        "graceReadonly": "Kiracı lisansının süresi {{days}} gün önce doldu. Yazma işlemleri kapalı; okuma ve kullanıcı yönetimi açık kalır.",
+        "lockdown": "Kiracı lisansının süresi {{days}} gün önce doldu. Kiracı artık lockdown modunda.",
+        "expired": "Kiracı lisansının süresi {{days}} gün önce doldu.",
+        "noLicense": "Bu kiracı için kayıtlı bir lisans yok."
+      },
+      "deployment": {
+        "active": "Deployment lisansı aktif. Yazma ve genel erişim açık.",
+        "graceWrite": "Deployment lisansının süresi {{days}} gün önce doldu. Yazma işlemleri hâlâ açık, ancak yenileme artık gerekli.",
+        "graceReadonly": "Deployment lisansının süresi {{days}} gün önce doldu. Deployment artık salt okunur modda.",
+        "lockdown": "Deployment lisansının süresi {{days}} gün önce doldu. Deployment artık lockdown modunda.",
+        "expired": "Deployment lisansının süresi {{days}} gün önce doldu.",
+        "noLicense": "Bu deployment için kayıtlı bir lisans yok."
+      }
+    }
+  },
   "badge": {
     "loading": "Lisans durumu…",
     "headerShort": {
@@ -72,15 +107,29 @@
     }
   },
   "banner": {
-    "warning": {
-      "title": "Lisans süresi yakında doluyor",
-      "message": "Lisansınız {{days}} gün sonra doluyor. Ödeme aksamalarını önlemek için zamanında yenileyin.",
-      "messageWithDate": "Lisansınız {{days}} gün sonra doluyor ({{date}}). Lütfen zamanında yenileyin."
+    "tenant": {
+      "expired": {
+        "title": "Kiracı lisansının süresi doldu",
+        "message": "Lisansınız {{days}} gün önce sona erdi. Yeni satışlar devre dışı. Raporları görüntülemeye ve veri dışa aktarmaya devam edebilirsiniz."
+      },
+      "grace": {
+        "title": "Kiracı lisansı sona erdi - grace dönemi",
+        "message": "Lisansınız {{days}} gün önce sona erdi. Satışların açık kalması için lütfen önümüzdeki {{remaining}} gün içinde lisansı yenileyin."
+      }
     },
-    "expired": {
-      "title": "Lisans süresi doldu",
-      "message": "Ödeme oluşturma engellendi. Lisansı yenilemek için destek ekibiyle iletişime geçin.",
-      "messageWithDate": "{{date}} tarihinde sona erdi. Ödeme oluşturma engellendi — lütfen destek ekibiyle iletişime geçin."
+    "deployment": {
+      "expired": {
+        "title": "Sunucu lisansının süresi doldu",
+        "message": "Sunucu lisansı {{days}} gün önce sona erdi. Yönetim alanındaki yazma işlemleri kısıtlı, ancak raporlar erişilebilir kalır."
+      },
+      "grace": {
+        "title": "Sunucu lisansı sona erdi - grace dönemi",
+        "message": "Sunucu lisansı {{days}} gün önce sona erdi. Daha fazla yazma işlemi kapanmadan önce lütfen önümüzdeki {{remaining}} gün içinde lisansı yenileyin."
+      }
+    },
+    "actions": {
+      "renewTenant": "Kiracı lisansını yenile",
+      "openDeployment": "Sunucu lisansını aç"
     }
   },
   "trialDays": "Kalan deneme günü",
@@ -328,7 +377,18 @@
   },
   "dashboard": {
     "sectionTitle": "Lisanslar (özet)",
-    "sectionSubtitle": "Verilen lisans metrikleri, aktivasyon grafiği ve son olaylar (denetim + aktivasyonlar).",
+    "sectionSubtitle": "Kiracı ve deployment lisans metrikleri, aktivasyon grafiği ve son olaylar (denetim + aktivasyonlar).",
+    "statGroupOwnTenant": "Kiracı lisansınız",
+    "statGroupTenant": "Kiracı lisansı (tenants)",
+    "statGroupTenantSaas": "Kiracı lisansı (SaaS)",
+    "statGroupDeployment": "Deployment lisansları (issued_licenses)",
+    "statGroupDeploymentOnPrem": "Deployment lisansları (on-premise)",
+    "statTenantActive": "Etkin",
+    "statTenantExpiring30": "Süresi doluyor (30 gün)",
+    "statTenantExpired": "Süresi dolmuş",
+    "statDeploymentActive": "Etkin",
+    "statDeploymentExpiring30": "Süresi doluyor (30 gün)",
+    "statDeploymentExpired": "Süresi dolmuş",
     "statActive": "Etkin lisanslar",
     "statExpiring30": "Süresi doluyor (30 gün)",
     "statExpired": "Süresi dolmuş",

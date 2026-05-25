@@ -20,7 +20,7 @@ import type {
 } from '@tanstack/react-query'
 import type {
   CloseCashRegisterModel,
-  CreateCashRegisterModel,
+  CreateCashRegisterRequest,
   GetApiCashRegisterIdTransactionsParams,
   OpenCashRegisterModel
 } from '.././model'
@@ -86,14 +86,14 @@ export const useGetApiCashRegister = <TData = Awaited<ReturnType<typeof getApiCa
 
 
 export const postApiCashRegister = (
-    createCashRegisterModel: CreateCashRegisterModel,
+    createCashRegisterRequest: CreateCashRegisterRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
       {url: `/api/CashRegister`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: createCashRegisterModel
+      data: createCashRegisterRequest
     },
       options);
     }
@@ -101,14 +101,14 @@ export const postApiCashRegister = (
 
 
 export const getPostApiCashRegisterMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegister>>, TError,{data: CreateCashRegisterModel}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegister>>, TError,{data: CreateCashRegisterModel}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegister>>, TError,{data: CreateCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegister>>, TError,{data: CreateCashRegisterRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCashRegister>>, {data: CreateCashRegisterModel}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCashRegister>>, {data: CreateCashRegisterRequest}> = (props) => {
           const {data} = props ?? {};
 
           return  postApiCashRegister(data,requestOptions)
@@ -120,15 +120,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   return  { mutationFn, ...mutationOptions }}
 
     export type PostApiCashRegisterMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCashRegister>>>
-    export type PostApiCashRegisterMutationBody = CreateCashRegisterModel
+    export type PostApiCashRegisterMutationBody = CreateCashRegisterRequest
     export type PostApiCashRegisterMutationError = unknown
 
     export const usePostApiCashRegister = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegister>>, TError,{data: CreateCashRegisterModel}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCashRegister>>, TError,{data: CreateCashRegisterRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiCashRegister>>,
         TError,
-        {data: CreateCashRegisterModel},
+        {data: CreateCashRegisterRequest},
         TContext
       > => {
 

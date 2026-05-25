@@ -32,7 +32,15 @@ export interface AdminUserDto {
   /** @nullable */
   taxNumber?: string | null;
   /** @nullable */
+  tenantId?: string | null;
+  /** @nullable */
+  tenantName?: string | null;
+  /** @nullable */
+  tenantSlug?: string | null;
+  /** @nullable */
   updatedAt?: string | null;
   /** @nullable */
   userName?: string | null;
+  /** @nullable */
+  userType?: string | null;
 }

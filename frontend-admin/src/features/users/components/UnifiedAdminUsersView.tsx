@@ -396,16 +396,12 @@ export function UnifiedAdminUsersView({
 
     const renderTenantCell = (row: UnifiedAdminUserRow) => {
         if (row.userType === 'Platform') {
-            return <Typography.Text type="secondary">—</Typography.Text>;
+            return <Tag color="purple">Plattform</Tag>;
         }
-        const label = row.tenantName || '?';
-        return (
-            <Tooltip title={t('users.unified.tenantTooltip', { tenant: label })}>
-                <Typography.Text ellipsis style={{ maxWidth: 160 }}>
-                    {label}
-                </Typography.Text>
-            </Tooltip>
-        );
+        if (!row.tenantName) {
+            return <Tag color="default">—</Tag>;
+        }
+        return <span>{row.tenantName}</span>;
     };
 
     const renderStatusBadge = (row: UnifiedAdminUserRow) => {

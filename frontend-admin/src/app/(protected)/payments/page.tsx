@@ -53,6 +53,7 @@ import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
+import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import {
   FORMAT_EMPTY_DISPLAY,
@@ -156,6 +157,10 @@ export default function PaymentsPage() {
   const canCancel = hasPermission(PERMISSIONS.PAYMENT_CANCEL);
   const canRefund = hasPermission(PERMISSIONS.REFUND_CREATE);
   const canOpenReceipt = hasPermission(PERMISSIONS.SALE_VIEW);
+  const { data: tenantLicense } = useTenantLicenseStatus();
+  const isPaymentBlockedByLicense =
+    tenantLicense?.kind === 'grace_readonly' ||
+    tenantLicense?.kind === 'lockdown';
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs(DEFAULT_DATE_RANGE.startDate),
     dayjs(DEFAULT_DATE_RANGE.endDate),
@@ -868,6 +873,15 @@ export default function PaymentsPage() {
                 <ReprintButton paymentId={selectedPaymentId} receiptNumber={paymentDetailData?.receiptNumber} />
               </Space>
 
+              {isPaymentBlockedByLicense ? (
+                <Alert
+                  type="error"
+                  showIcon
+                  message={t('payments.detail.licenseBlockedTitle')}
+                  description={t('payments.detail.licenseBlockedDesc')}
+                />
+              ) : null}
+
               {!canCancel && (
                 <Alert
                   type="info"
@@ -887,7 +901,7 @@ export default function PaymentsPage() {
                     <Button
                       danger
                       loading={cancelMutation.isPending}
-                      disabled={!cancelReason.trim()}
+                      disabled={!cancelReason.trim() || isPaymentBlockedByLicense}
                       onClick={() =>
                         Modal.confirm({
                           title: t('payments.detail.cancelModalTitle'),
@@ -931,7 +945,12 @@ export default function PaymentsPage() {
                     />
                     <Button
                       loading={refundMutation.isPending}
-                      disabled={!refundReason.trim() || !refundAmount || refundAmount <= 0}
+                      disabled={
+                        !refundReason.trim() ||
+                        !refundAmount ||
+                        refundAmount <= 0 ||
+                        isPaymentBlockedByLicense
+                      }
                       onClick={() =>
                         Modal.confirm({
                           title: t('payments.detail.refundModalTitle'),

@@ -347,6 +347,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.superAdminTenants',
         icon: 'ApartmentOutlined',
     },
+    superAdminCashRegisters: {
+        id: 'superAdminCashRegisters',
+        menuKey: '/admin/cash-registers',
+        href: '/admin/cash-registers',
+        labelKey: 'nav.superAdminCashRegisters',
+        icon: 'ShopOutlined',
+    },
 };
 
 export const SIDEBAR_DOMAIN_GROUP_META: Record<
@@ -415,7 +422,7 @@ export type SidebarLayoutRow =
 export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     {
         kind: 'leaves',
-        catalogIds: ['reportingDashboard', 'users', 'superAdminTenants'],
+        catalogIds: ['reportingDashboard', 'users', 'superAdminTenants', 'superAdminCashRegisters'],
     },
     { kind: 'divider', key: 'nav-divider-platform-hub' },
     {

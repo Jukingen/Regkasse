@@ -19,7 +19,11 @@
     "languageSelectHint": "Applies to the admin UI only. Formal fiscal report text stays German or English.",
     "languageNameDe": "German",
     "languageNameEn": "English",
-    "languageNameTr": "Turkish"
+    "languageNameTr": "Turkish",
+    "cashRegisterQuickSwitchLabel": "Switch register",
+    "cashRegisterQuickSwitchAria": "Quick cash register switch",
+    "cashRegisterQuickSwitchHint": "Pick a register and open cash register management",
+    "cashRegisterQuickSwitchManage": "Open cash register management"
   },
   "tenant": {
     "badge": {

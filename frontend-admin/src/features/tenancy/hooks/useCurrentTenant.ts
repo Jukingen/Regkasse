@@ -57,6 +57,7 @@ export function useCurrentTenant() {
         const isActive = resolvedRow?.isActive ?? true;
         const licenseValidUntilUtc = resolvedRow?.licenseValidUntilUtc ?? null;
         const licenseKey = resolvedRow?.licenseKey ?? null;
+        const licenseDaysRemaining = resolvedRow?.licenseDaysRemaining ?? null;
         const isTenantSuspended = resolvedRow ? isTenantSuspendedOrInactive(resolvedRow) : false;
 
         const isSuperAdminUser = isSuperAdmin(user?.role);
@@ -83,6 +84,7 @@ export function useCurrentTenant() {
             isTenantSuspended,
             licenseValidUntilUtc,
             licenseKey,
+            licenseDaysRemaining,
             resolvedTenant: resolvedRow,
             displayLabel: tenantName ?? (tenantSlug !== 'admin' ? tenantSlug : null),
             hasAuthToken: ctx.hasAuthToken,

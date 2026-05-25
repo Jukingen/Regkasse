@@ -104,17 +104,12 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var tenantId = await ResolveListTenantIdAsync(tenantIdFilter, actorIsSuperAdmin, cancellationToken)
+        var query = await BuildAuthorizedListQueryAsync(tenantIdFilter, actorIsSuperAdmin, cancellationToken)
             .ConfigureAwait(false);
 
-        var query = _db.CashRegisters
-            .IgnoreQueryFilters()
-            .AsNoTracking()
-            .Where(r => r.TenantId == tenantId)
-            .OrderBy(r => r.RegisterNumber);
-
-        var totalCount = await query.CountAsync(cancellationToken).ConfigureAwait(false);
-        var items = await query
+        var ordered = query.OrderBy(r => r.RegisterNumber);
+        var totalCount = await ordered.CountAsync(cancellationToken).ConfigureAwait(false);
+        var items = await ordered
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken)
@@ -130,6 +125,40 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             TotalCount = totalCount,
             TotalPages = totalPages,
         };
+    }
+
+    public async Task<CashRegisterDto?> GetByIdAsync(
+        Guid cashRegisterId,
+        Guid? tenantIdFilter,
+        bool actorIsSuperAdmin,
+        CancellationToken cancellationToken = default)
+    {
+        if (cashRegisterId == Guid.Empty)
+            return null;
+
+        var query = await BuildAuthorizedListQueryAsync(tenantIdFilter, actorIsSuperAdmin, cancellationToken)
+            .ConfigureAwait(false);
+
+        var register = await query.FirstOrDefaultAsync(r => r.Id == cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return register == null ? null : MapToDto(register);
+    }
+
+    public async Task<int> GetActiveCountForTenantAsync(
+        Guid tenantId,
+        bool actorIsSuperAdmin,
+        CancellationToken cancellationToken = default)
+    {
+        await EnsureCanAccessTenantAsync(tenantId, actorIsSuperAdmin, cancellationToken).ConfigureAwait(false);
+
+        return await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .CountAsync(
+                r => r.TenantId == tenantId && r.Status != RegisterStatus.Decommissioned,
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public async Task<CashRegisterDto> UpdateAsync(
@@ -206,41 +235,80 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         return MapToDto(register);
     }
 
-    private async Task<Guid> ResolveListTenantIdAsync(
+    private async Task<IQueryable<CashRegister>> BuildAuthorizedListQueryAsync(
         Guid? tenantIdFilter,
         bool actorIsSuperAdmin,
         CancellationToken cancellationToken)
     {
-        if (tenantIdFilter is Guid requestedTenantId && requestedTenantId != Guid.Empty)
+        var query = _db.CashRegisters.IgnoreQueryFilters().AsNoTracking();
+
+        if (actorIsSuperAdmin)
         {
-            if (!actorIsSuperAdmin)
+            if (tenantIdFilter is Guid requestedTenantId && requestedTenantId != Guid.Empty)
             {
-                var effectiveTenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                var tenantExists = await _db.Tenants.AsNoTracking()
+                    .AnyAsync(t => t.Id == requestedTenantId && t.DeletedAtUtc == null, cancellationToken)
                     .ConfigureAwait(false);
-                if (effectiveTenantId != requestedTenantId)
-                {
-                    throw new InvalidOperationException("TenantId filter is only allowed for SuperAdmin.");
-                }
+                if (!tenantExists)
+                    throw new InvalidOperationException("Tenant not found.");
+
+                return query.Where(r => r.TenantId == requestedTenantId);
             }
 
-            var tenantExists = await _db.Tenants.AsNoTracking()
-                .AnyAsync(t => t.Id == requestedTenantId && t.DeletedAtUtc == null, cancellationToken)
-                .ConfigureAwait(false);
-            if (!tenantExists)
-                throw new InvalidOperationException("Tenant not found.");
-
-            return requestedTenantId;
+            return query;
         }
 
+        Guid effectiveTenantId;
         try
         {
-            return await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+            effectiveTenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to resolve tenant for cash register list");
             throw new UnauthorizedAccessException("Tenant context required.", ex);
         }
+
+        if (tenantIdFilter is Guid requested && requested != Guid.Empty && requested != effectiveTenantId)
+        {
+            throw new UnauthorizedAccessException("Cannot access cash registers of other tenants.");
+        }
+
+        return query.Where(r => r.TenantId == effectiveTenantId);
+    }
+
+    private async Task EnsureCanAccessTenantAsync(
+        Guid tenantId,
+        bool actorIsSuperAdmin,
+        CancellationToken cancellationToken)
+    {
+        if (tenantId == Guid.Empty)
+            throw new InvalidOperationException("Tenant not found.");
+
+        var tenantExists = await _db.Tenants.AsNoTracking()
+            .AnyAsync(t => t.Id == tenantId && t.DeletedAtUtc == null, cancellationToken)
+            .ConfigureAwait(false);
+        if (!tenantExists)
+            throw new InvalidOperationException("Tenant not found.");
+
+        if (actorIsSuperAdmin)
+            return;
+
+        Guid effectiveTenantId;
+        try
+        {
+            effectiveTenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to resolve tenant for cash register tenant-scoped operation");
+            throw new UnauthorizedAccessException("Tenant context required.", ex);
+        }
+
+        if (effectiveTenantId != tenantId)
+            throw new UnauthorizedAccessException("Cannot access cash registers of other tenants.");
     }
 
     private async Task EnsureTenantAccessAsync(

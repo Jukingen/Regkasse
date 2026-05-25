@@ -9,6 +9,7 @@ import type { ReactNode } from 'react';
 
 import { HeaderTenantSection } from '@/features/auth/components/HeaderTenantSection';
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
+import { CashRegisterQuickSwitch } from '@/components/layout/CashRegisterQuickSwitch';
 import { EnvironmentBadge } from '@/components/EnvironmentBadge';
 import { LicenseStatusIndicator } from '@/components/admin-layout/LicenseStatusIndicator';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
@@ -131,6 +132,7 @@ export function AdminShellHeader({
                         <LicenseStatusIndicator compact={isMobile} />
 
                         <div className="admin-header-utilities">
+                            <CashRegisterQuickSwitch isMobile={isMobile} />
                             <HeaderLanguageQuickSwitch />
                             <MonatsbelegGlobalBadge />
                         </div>

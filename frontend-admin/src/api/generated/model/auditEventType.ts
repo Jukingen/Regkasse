@@ -25,5 +25,6 @@ export const AuditEventType = {
   NUMBER_11: 11,
   NUMBER_12: 12,
   NUMBER_14: 14,
+  NUMBER_15: 15,
   NUMBER_99: 99,
 } as const;

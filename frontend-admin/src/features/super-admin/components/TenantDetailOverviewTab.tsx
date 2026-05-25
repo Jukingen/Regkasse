@@ -4,7 +4,7 @@ import { Button, Card, Descriptions, Popconfirm, Space, Tag, Typography } from '
 import Link from 'next/link';
 
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
-import { resolveTenantLicenseLabel } from '@/features/super-admin/utils/tenantLicenseLabel';
+import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
 import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { useI18n, formatDate, formatDateTime } from '@/i18n';
@@ -23,8 +23,6 @@ export function TenantDetailOverviewTab({
     onReactivate,
 }: TenantDetailOverviewTabProps) {
     const { t, formatLocale } = useI18n();
-    const license = resolveTenantLicenseLabel(tenant.licenseValidUntilUtc, tenant.licenseKey);
-
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Card title={t('tenants.detail.overview.statusCard')}>
@@ -42,19 +40,12 @@ export function TenantDetailOverviewTab({
                         {tenant.ownerAdminEmail ?? '—'}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('tenants.columns.license')}>
-                        <Tag
-                            color={
-                                license.kind === 'expired'
-                                    ? 'red'
-                                    : license.kind === 'trial'
-                                      ? 'blue'
-                                      : license.kind === 'valid'
-                                        ? 'green'
-                                        : 'default'
-                            }
-                        >
-                            {license.label}
-                        </Tag>
+                        <TenantLicenseBadge
+                            tenantId={tenant.id}
+                            licenseValidUntilUtc={tenant.licenseValidUntilUtc}
+                            licenseKey={tenant.licenseKey}
+                            licenseDaysRemaining={tenant.licenseDaysRemaining}
+                        />
                     </Descriptions.Item>
                 </Descriptions>
                 {tenant.status !== 'deleted' ? (

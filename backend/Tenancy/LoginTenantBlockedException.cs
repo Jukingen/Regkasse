@@ -4,6 +4,7 @@ namespace KasseAPI_Final.Tenancy;
 public sealed class LoginTenantBlockedException : Exception
 {
     public const string CodeTenantDisabled = "TENANT_DISABLED";
+    public const string CodeTenantLicenseLockdown = "TENANT_LICENSE_LOCKDOWN";
 
     public string ErrorCode { get; }
 

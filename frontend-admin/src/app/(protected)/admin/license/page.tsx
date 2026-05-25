@@ -51,9 +51,9 @@ import { PERMISSIONS, hasPermission } from '@/shared/auth/permissions';
 import {
     deleteIssuedLicenseSoft,
     deleteRevokeIssuedLicense,
+    getDeploymentLicenseStatus,
     getIssuedLicenseDetail,
     getIssuedLicensesList,
-    getLicenseStatus,
     getPublicLicenseStatus,
     licenseQueryKeys,
     postActivateLicense,
@@ -66,6 +66,13 @@ import {
     type IssuedLicenseActivationDto,
     type IssuedLicenseListItemDto,
 } from '@/api/manual/adminLicense';
+import {
+    getLicenseStatusDayText,
+    getLicenseStatusLabel,
+    getLicenseStatusMessage,
+    getLicenseStatusTagColor,
+    resolveDeploymentLicenseStatus,
+} from '@/features/license/utils/licenseStatus';
 import { LicenseGenerationCard } from './LicenseGenerationCard';
 import { IssuedLicenseUpgradeModal } from './IssuedLicenseUpgradeModal';
 import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
@@ -955,8 +962,8 @@ export default function AdminLicensePage() {
     const canActivate = Boolean(user?.permissions?.includes(PERMISSIONS.SETTINGS_MANAGE));
 
     const statusQuery = useQuery({
-        queryKey: licenseQueryKeys.status,
-        queryFn: () => getLicenseStatus(),
+        queryKey: licenseQueryKeys.deploymentStatus,
+        queryFn: () => getDeploymentLicenseStatus(),
     });
 
     const publicStatusQuery = useQuery({
@@ -978,7 +985,7 @@ export default function AdminLicensePage() {
             });
             message.success(t('license.activation.successSimple'));
             form.resetFields(['licenseKey']);
-            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
+            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.deploymentStatus });
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.activationAttemptsRoot });
             void queryClient.invalidateQueries({ queryKey: ['admin', 'licenses'] });
@@ -997,15 +1004,7 @@ export default function AdminLicensePage() {
 
     const enabledPublicLicenseFeatures = publicStatusQuery.data?.features ?? null;
 
-    const innerSimpleStatus = useMemo(() => {
-        if (!s) return { text: '—', color: 'default' as const };
-        const lt = (publicStatusQuery.data?.licenseType ?? '').trim().toLowerCase();
-        if (lt === 'demo') return { text: t('license.simpleUi.statusDemo'), color: 'blue' as const };
-        if (s.isExpired) return { text: t('license.simpleUi.statusExpired'), color: 'red' as const };
-        if (s.isTrial) return { text: t('license.simpleUi.statusTrial'), color: 'orange' as const };
-        if (s.isValid) return { text: t('license.simpleUi.statusActive'), color: 'green' as const };
-        return { text: t('license.simpleUi.statusExpired'), color: 'red' as const };
-    }, [s, publicStatusQuery.data?.licenseType, t]);
+    const resolvedStatus = useMemo(() => (s ? resolveDeploymentLicenseStatus(s) : null), [s]);
 
     const machineHash = s?.machineHash?.trim() ?? '';
 
@@ -1022,7 +1021,7 @@ export default function AdminLicensePage() {
                     <Button
                         icon={<ReloadOutlined />}
                         onClick={() => {
-                            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.status });
+                            void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.deploymentStatus });
                             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
                             if (canActivate) {
                                 void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.listRoot });
@@ -1102,7 +1101,9 @@ export default function AdminLicensePage() {
                             </Typography.Title>
                             <Descriptions bordered column={1} size="small">
                                 <Descriptions.Item label={t('license.simpleUi.status')}>
-                                    <Tag color={innerSimpleStatus.color}>{innerSimpleStatus.text}</Tag>
+                                    <Tag color={getLicenseStatusTagColor(resolvedStatus?.kind ?? 'no_license')}>
+                                        {getLicenseStatusLabel(resolvedStatus?.kind ?? 'no_license', t)}
+                                    </Tag>
                                 </Descriptions.Item>
                                 <Descriptions.Item label={t('license.simpleUi.validUntil')}>
                                     {s?.expiryDate
@@ -1116,9 +1117,33 @@ export default function AdminLicensePage() {
                                         : '—'}
                                 </Descriptions.Item>
                                 <Descriptions.Item label={t('license.simpleUi.daysRemaining')}>
-                                    {s ? s.daysRemaining : '—'}
+                                    {resolvedStatus ? getLicenseStatusDayText(resolvedStatus, t) ?? '—' : '—'}
+                                </Descriptions.Item>
+                                <Descriptions.Item label={t('license.phase.capabilities.write')}>
+                                    <Tag color={resolvedStatus?.canWrite ? 'green' : 'red'}>
+                                        {t(resolvedStatus?.canWrite ? 'common.buttons.yes' : 'common.buttons.no')}
+                                    </Tag>
+                                </Descriptions.Item>
+                                <Descriptions.Item label={t('license.phase.capabilities.access')}>
+                                    <Tag color={resolvedStatus?.canAccess ? 'green' : 'red'}>
+                                        {t(resolvedStatus?.canAccess ? 'common.buttons.yes' : 'common.buttons.no')}
+                                    </Tag>
                                 </Descriptions.Item>
                             </Descriptions>
+                            {resolvedStatus ? (
+                                <Alert
+                                    style={{ marginTop: 12 }}
+                                    type={
+                                        resolvedStatus.kind === 'active'
+                                            ? 'success'
+                                            : resolvedStatus.kind === 'grace_write'
+                                              ? 'warning'
+                                              : 'error'
+                                    }
+                                    showIcon
+                                    message={getLicenseStatusMessage(resolvedStatus, 'deployment', t)}
+                                />
+                            ) : null}
                             {machineHash ? (
                                 <Collapse
                                     ghost

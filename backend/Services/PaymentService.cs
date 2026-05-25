@@ -31,6 +31,7 @@ using System.Globalization;
 using KasseAPI_Final.Services.Tse;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Hosting;
+using KasseAPI_Final.Services.Tenancy;
 
 namespace KasseAPI_Final.Services
 {
@@ -39,6 +40,8 @@ namespace KasseAPI_Final.Services
     /// </summary>
     public partial class PaymentService : IPaymentService
     {
+        private static readonly TenantLicenseValidator TenantLicenseValidator = new();
+
         private readonly AppDbContext _context;
         private readonly IGenericRepository<PaymentDetails> _paymentRepository;
         private readonly IGenericRepository<Product> _productRepository;
@@ -161,34 +164,61 @@ namespace KasseAPI_Final.Services
             }
         }
 
-        /// <summary>
-        /// Ücretli lisans veya aktif trial yoksa <see cref="LicenseExpiredException"/> fırlatır.
-        /// Tek noktadan ödeme oluşturma akışını korur; GET ve admin panel rotalarına dokunmaz.
-        /// </summary>
-        private void EnsureLicenseNotExpired()
+        private async Task EnsureLicenseAllowsPaymentAsync(CancellationToken cancellationToken)
         {
-            // DI kayıt edilmemişse (ör. eski test kurulumları) sessizce geçer; üretimde her zaman kayıtlıdır.
             if (_licenseService is null)
                 return;
 
-            var status = _licenseService.GetStatus();
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
+            if (tenantId == Guid.Empty)
+                goto CheckDeployment;
 
-            // Geçerli ücretli lisans varsa ya da trial hâlâ aktifse engelleme.
-            var hasValidPaidLicense = status.IsValid;
-            var hasActiveTrial = status.IsTrial && status.DaysRemaining > 0;
-            if (hasValidPaidLicense || hasActiveTrial)
+            var tenantLicenseValidUntilUtc = await _context.Tenants
+                .AsNoTracking()
+                .Where(t => t.Id == tenantId)
+                .Select(t => t.LicenseValidUntilUtc)
+                .FirstOrDefaultAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!tenantLicenseValidUntilUtc.HasValue)
+                goto CheckDeployment;
+
+            var tenantStatus = TenantLicenseValidator.GetStatus(tenantLicenseValidUntilUtc);
+            if (tenantStatus == TenantLicenseStatus.GraceReadOnly
+                || tenantStatus == TenantLicenseStatus.Lockdown)
+            {
+                _logger.LogWarning(
+                    "Payment blocked: tenant license denies payments (TenantId={TenantId}, Status={Status}, ValidUntilUtc={ValidUntilUtc})",
+                    tenantId,
+                    tenantStatus,
+                    tenantLicenseValidUntilUtc);
+                throw new LicenseExpiredException(
+                    "tenant",
+                    "Neue Zahlungen sind aufgrund abgelaufener Mandantenlizenz nicht mehr moeglich. " +
+                    "Bitte verlaengern Sie die Lizenz, um weiterhin Verkaeufe durchfuehren zu koennen.");
+            }
+
+        CheckDeployment:
+            var deploymentStatus = await _licenseService
+                .GetCurrentDeploymentStatusAsync(cancellationToken)
+                .ConfigureAwait(false);
+            if (!deploymentStatus.IsExpired || deploymentStatus.IsTrial)
+                return;
+
+            var daysExpired = deploymentStatus.ExpiryDate.HasValue
+                ? Math.Abs((DateTime.UtcNow - DateTime.SpecifyKind(deploymentStatus.ExpiryDate.Value, DateTimeKind.Utc)).Days)
+                : Math.Abs(deploymentStatus.DaysRemaining);
+            if (daysExpired <= 15)
                 return;
 
             _logger.LogWarning(
-                "Payment blocked: license expired (IsValid={IsValid}, IsTrial={IsTrial}, DaysRemaining={DaysRemaining}, MachineHashPrefix={MachineHashPrefix})",
-                status.IsValid,
-                status.IsTrial,
-                status.DaysRemaining,
-                string.IsNullOrEmpty(status.MachineHash) || status.MachineHash.Length <= 12
-                    ? status.MachineHash
-                    : status.MachineHash[..12]);
-
-            throw new LicenseExpiredException();
+                "Payment blocked: deployment license expired beyond grace period (DaysExpired={DaysExpired}, ExpiryUtc={ExpiryUtc})",
+                daysExpired,
+                deploymentStatus.ExpiryDate);
+            throw new LicenseExpiredException(
+                "deployment",
+                "Die Server-Lizenz ist seit mehr als 15 Tagen abgelaufen. " +
+                "Zahlungen sind deaktiviert. Bitte verlaengern Sie die Lizenz im Admin-Panel.");
         }
 
         private async Task<PaymentResult> CreatePaymentCoreAsync(
@@ -201,7 +231,8 @@ namespace KasseAPI_Final.Services
             // GET istekleri ve admin panel erişimi etkilenmez; yalnızca ödeme akışı bloke edilir.
             // Try bloğundan önce yapılır ki aşağıdaki genel catch (Exception) bloğu exception'ı yutmasın
             // ve LicenseExpiredException controller katmanına kadar yayılabilsin.
-            EnsureLicenseNotExpired();
+            var licenseCheckCancellation = _httpContextAccessor.HttpContext?.RequestAborted ?? CancellationToken.None;
+            await EnsureLicenseAllowsPaymentAsync(licenseCheckCancellation).ConfigureAwait(false);
 
             if (_developmentModeService is { } dm && dm.ShouldSimulateOffline() && !dm.ShouldForceOnline())
             {
@@ -1252,6 +1283,7 @@ namespace KasseAPI_Final.Services
                 };
             }
         }
+
 
         /// <summary>
         /// Read-only eligibility preview: which benefits would apply for this customer and cart. No persistence (no BenefitDailyUsage write, no payment).

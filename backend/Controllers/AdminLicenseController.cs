@@ -54,6 +54,16 @@ public sealed partial class AdminLicenseController : ControllerBase
         return Ok(status with { Reminders = reminders });
     }
 
+    /// <summary>Current deployment/on-premise license snapshot without tenant overlay.</summary>
+    [HttpGet("deployment-status")]
+    [HasPermission(AppPermissions.SettingsView)]
+    public async Task<ActionResult<LicenseStatusResponse>> GetDeploymentStatus(CancellationToken cancellationToken)
+    {
+        var status = await _licenseService.GetCurrentDeploymentStatusAsync(cancellationToken).ConfigureAwait(false);
+        var reminders = _licenseReminderNotificationStore.GetReminders();
+        return Ok(status with { Reminders = reminders });
+    }
+
     /// <summary>
     /// Paged list of issued licenses (<c>issued_licenses</c>). JWT is never returned.
     /// <c>licenseKey</c> is masked as REGK-****-****- plus the real final segment only.

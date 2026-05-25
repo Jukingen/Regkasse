@@ -26,9 +26,11 @@ public interface ILicenseService
     void EvaluateOnStartup();
 
     LicenseStatusResponse GetStatus();
+    LicenseStatusResponse GetDeploymentStatus();
 
     /// <summary>Rebuilds license snapshot from <c>activated_licenses</c> (authoritative paid row) plus on-disk trial/JWT state, then returns the same overlays as <see cref="GetStatus"/>.</summary>
     Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default);
+    Task<LicenseStatusResponse> GetCurrentDeploymentStatusAsync(CancellationToken cancellationToken = default);
 
     /// <summary>True only after <see cref="EvaluateOnStartup"/> has produced a real snapshot (used by header/visibility middleware to distinguish "None" from "Expired").</summary>
     bool IsLicenseSnapshotInitialized { get; }
@@ -269,6 +271,8 @@ public sealed class LicenseService : ILicenseService
         return ApplyDevelopmentLicenseBypassIfNeeded(afterOverlays);
     }
 
+    public LicenseStatusResponse GetDeploymentStatus() => GetStatus();
+
     public async Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default)
     {
         if (OpenApiExportMode.IsEnabled)
@@ -317,6 +321,9 @@ public sealed class LicenseService : ILicenseService
         var afterOverlays = ApplyLicenseComplianceOverlays(snapshot, persistedKeyForOverlays);
         return ApplyDevelopmentLicenseBypassIfNeeded(afterOverlays);
     }
+
+    public Task<LicenseStatusResponse> GetCurrentDeploymentStatusAsync(CancellationToken cancellationToken = default) =>
+        GetCurrentStatusAsync(cancellationToken);
 
     public async Task<LicenseValidationResult> ValidateAsync(CancellationToken cancellationToken = default)
     {

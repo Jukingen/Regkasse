@@ -208,7 +208,7 @@ export function filterSidebarMenuItems(
         }
         if (key === '/users' || key === '/admin/users') return ctx.canViewUsers(ctx.userRole);
         if (key === '/rksv') return ctx.canShowRksvMenu(ctx.userRole);
-        if (key === '/admin/tenants') {
+        if (key === '/admin/tenants' || key === '/admin/cash-registers') {
             return ctx.canShowPlatformAdminMenu(ctx.userRole);
         }
         return true;

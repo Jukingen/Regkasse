@@ -23,29 +23,93 @@ namespace KasseAPI_Final.Middleware
             _next = next;
         }
 
-        public async Task InvokeAsync(HttpContext context, ILicenseService licenseService)
+        public async Task InvokeAsync(
+            HttpContext context,
+            ILicenseService licenseService,
+            DeploymentLicenseValidator deploymentLicenseValidator)
         {
-            if (context.Request.Path.StartsWithSegments("/api/Auth", StringComparison.OrdinalIgnoreCase))
-            {
-                await _next(context);
-                return;
-            }
-
             await licenseService.ValidateAsync(context.RequestAborted).ConfigureAwait(false);
+            var deploymentSnapshot = licenseService.GetDeploymentStatus();
+            var deploymentStatus = deploymentLicenseValidator.GetStatus(deploymentSnapshot);
 
             context.Response.OnStarting(() =>
             {
-                ApplyHeaders(context, licenseService);
+                ApplyHeaders(
+                    context,
+                    deploymentSnapshot,
+                    licenseService.IsLicenseSnapshotInitialized,
+                    deploymentStatus);
                 return Task.CompletedTask;
             });
 
-            if (!await TryEnforceLicensedFeaturesAsync(context, licenseService).ConfigureAwait(false))
+            if (!await TryEnforceDeploymentAccessAsync(
+                    context,
+                    deploymentSnapshot,
+                    deploymentLicenseValidator)
+                .ConfigureAwait(false))
+            {
+                return;
+            }
+
+            if (!await TryEnforceLicensedFeaturesAsync(context, deploymentSnapshot).ConfigureAwait(false))
                 return;
 
             await _next(context);
         }
 
-        private static async Task<bool> TryEnforceLicensedFeaturesAsync(HttpContext context, ILicenseService licenseService)
+        private static async Task<bool> TryEnforceDeploymentAccessAsync(
+            HttpContext context,
+            LicenseStatusResponse deploymentSnapshot,
+            DeploymentLicenseValidator deploymentLicenseValidator)
+        {
+            if (OpenApiExportMode.IsEnabled)
+                return true;
+
+            var deploymentStatus = deploymentLicenseValidator.GetStatus(deploymentSnapshot);
+            var permissions = deploymentLicenseValidator.GetPermissions(deploymentSnapshot);
+            var path = context.Request.Path;
+
+            if (deploymentStatus == DeploymentLicenseStatus.Lockdown)
+            {
+                if (IsDeploymentLockdownAllowedPath(path))
+                    return true;
+
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = MediaTypeNames.Application.Json;
+                await context.Response.WriteAsync(
+                        JsonSerializer.Serialize(
+                            new
+                            {
+                                code = "DEPLOYMENT_LICENSE_LOCKDOWN",
+                                message = "Deployment license is locked down. Only health and license activation remain available.",
+                            }),
+                        context.RequestAborted)
+                    .ConfigureAwait(false);
+                return false;
+            }
+
+            if (!permissions.CanWrite
+                && IsWriteMethod(context.Request.Method)
+                && !IsDeploymentReadOnlyAllowedWrite(path))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = MediaTypeNames.Application.Json;
+                await context.Response.WriteAsync(
+                        JsonSerializer.Serialize(
+                            new
+                            {
+                                code = "DEPLOYMENT_LICENSE_READ_ONLY",
+                                message = "Deployment license is in read-only mode. Write operations are blocked until renewal.",
+                            }),
+                        context.RequestAborted)
+                    .ConfigureAwait(false);
+                return false;
+            }
+
+            return true;
+        }
+
+        private static async Task<bool> TryEnforceLicensedFeaturesAsync(HttpContext context, LicenseStatusResponse deploymentSnapshot)
         {
             if (OpenApiExportMode.IsEnabled)
                 return true;
@@ -56,14 +120,13 @@ namespace KasseAPI_Final.Middleware
             if (required.Count == 0)
                 return true;
 
-            var snapshot = licenseService.GetStatus();
-            var paid = snapshot.IsValid && !snapshot.IsTrial;
-            var trialActive = snapshot.IsTrial && !snapshot.IsExpired;
+            var paid = deploymentSnapshot.IsValid && !deploymentSnapshot.IsTrial;
+            var trialActive = deploymentSnapshot.IsTrial && !deploymentSnapshot.IsExpired;
             var operational = paid || trialActive;
             if (!operational)
                 return true;
 
-            var enabled = snapshot.EnabledFeatures ?? LicenseFeatureIds.All;
+            var enabled = deploymentSnapshot.EnabledFeatures ?? LicenseFeatureIds.All;
             var enabledSet = new HashSet<string>(enabled, StringComparer.OrdinalIgnoreCase);
             var appContext = LicensePathFeatureEvaluator.ReadAppContext(context);
 
@@ -96,24 +159,60 @@ namespace KasseAPI_Final.Middleware
             return true;
         }
 
-        private static void ApplyHeaders(HttpContext context, ILicenseService licenseService)
+        private static void ApplyHeaders(
+            HttpContext context,
+            LicenseStatusResponse deploymentSnapshot,
+            bool snapshotInitialized,
+            DeploymentLicenseStatus deploymentStatus)
         {
             if (context.Response.HasStarted)
                 return;
 
-            var snapshot = licenseService.GetStatus();
-            var initialized = licenseService.IsLicenseSnapshotInitialized;
-            var statusToken = ResolveLicenseHeaderStatus(snapshot, initialized);
+            var statusToken = ResolveLicenseHeaderStatus(deploymentSnapshot, snapshotInitialized);
 
             if (!context.Response.Headers.ContainsKey(LicenseStatusHeaderName))
                 context.Response.Headers.Append(LicenseStatusHeaderName, statusToken);
 
-            if (snapshot.IsTrial && !context.Response.Headers.ContainsKey(LicenseWarningHeaderName))
+            if (context.Response.Headers.ContainsKey(LicenseWarningHeaderName))
+                return;
+
+            var warning = deploymentStatus switch
             {
-                context.Response.Headers.Append(
-                    LicenseWarningHeaderName,
-                    $"Testmodus - noch {snapshot.DaysRemaining} Tage gueltig");
+                DeploymentLicenseStatus.GraceWrite =>
+                    "Deployment-Lizenz abgelaufen; Schreibzugriffe werden bald eingeschraenkt.",
+                DeploymentLicenseStatus.GraceReadOnly =>
+                    "Deployment-Lizenz abgelaufen; System ist schreibgeschuetzt.",
+                DeploymentLicenseStatus.Lockdown or DeploymentLicenseStatus.NoLicense =>
+                    "Deployment-Lizenz abgelaufen; nur Health und Aktivierung sind verfuegbar.",
+                _ when deploymentSnapshot.IsTrial =>
+                    $"Testmodus - noch {deploymentSnapshot.DaysRemaining} Tage gueltig",
+                _ => null,
+            };
+
+            if (!string.IsNullOrWhiteSpace(warning))
+            {
+                context.Response.Headers.Append(LicenseWarningHeaderName, warning);
             }
+        }
+
+        private static bool IsWriteMethod(string method) =>
+            HttpMethods.IsPost(method)
+            || HttpMethods.IsPut(method)
+            || HttpMethods.IsPatch(method)
+            || HttpMethods.IsDelete(method);
+
+        private static bool IsDeploymentReadOnlyAllowedWrite(PathString path)
+        {
+            var value = path.Value ?? string.Empty;
+            return value.StartsWith("/api/auth/", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsDeploymentLockdownAllowedPath(PathString path)
+        {
+            var value = path.Value ?? string.Empty;
+            return value.StartsWith("/api/health", StringComparison.OrdinalIgnoreCase)
+                || value.Equals("/api/license/activate", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>Maps snapshot to the public header token (Valid / Trial / Expired / None).</summary>

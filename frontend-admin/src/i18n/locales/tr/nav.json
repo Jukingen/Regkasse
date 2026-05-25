@@ -44,6 +44,7 @@
   "timeSync": "Zaman senkronizasyonu",
   "licenseManagement": "Lisans",
   "superAdminTenants": "İşletmeler / kiracılar",
+  "superAdminCashRegisters": "Kasalar (kiracı)",
   "platformAdminHub": "Platform yönetimi",
   "myProfile": "Profilim",
   "logout": "Çıkış yap",

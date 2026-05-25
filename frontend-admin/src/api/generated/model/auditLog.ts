@@ -73,6 +73,13 @@ export interface AuditLog {
   httpStatusCode?: number | null;
   id?: string;
   /**
+   * @maxLength 450
+   * @nullable
+   */
+  impersonatedBy?: string | null;
+  /** @nullable */
+  impersonatedTenantId?: string | null;
+  /**
    * @maxLength 45
    * @nullable
    */

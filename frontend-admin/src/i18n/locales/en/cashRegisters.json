@@ -88,5 +88,22 @@
   },
   "empty": "No cash registers found.",
   "emptyCanCreate": "No cash registers yet. Click «New register» to create one.",
-  "emptyContactAdmin": "No cash registers yet. Please contact your administrator."
+  "emptyContactAdmin": "No cash registers yet. Please contact your administrator.",
+  "adminPage": {
+    "title": "Cash registers (tenant)",
+    "intro": "Super Admin: pick a tenant and manage its cash registers.",
+    "selectTenant": "Tenant",
+    "selectTenantHint": "Select a tenant to load the cash register list.",
+    "managerIntro": "Pick a register to open cash register management for your tenant.",
+    "openKassenverwaltung": "Open cash register management"
+  },
+  "selector": {
+    "placeholder": "Select register…",
+    "noTenant": "No tenant selected",
+    "noLocation": "No location",
+    "loadError": "Load failed",
+    "loadErrorTooltip": "Could not load cash registers",
+    "empty": "No registers available",
+    "mandantHeader": "Tenant: {{name}} ({{slug}})"
+  }
 }

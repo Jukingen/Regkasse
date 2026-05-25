@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,8 +8,11 @@ namespace KasseAPI_Final.Services.Auth;
 
 public sealed class AuthService : IAuthService
 {
+    private static readonly TenantLicenseValidator TenantLicenseValidator = new();
+
     /// <summary>Shown in API responses when login is blocked due to a deleted tenant (UI: de-DE).</summary>
     public const string TenantDisabledMessageDe = "Dieser Mandant wurde deaktiviert.";
+    public const string TenantLicenseLockdownMessageDe = "Dieser Mandant ist wegen abgelaufener Lizenz gesperrt.";
 
     private readonly AppDbContext _db;
     private readonly ILoginTenantResolver _loginTenantResolver;
@@ -21,9 +25,10 @@ public sealed class AuthService : IAuthService
 
     public async Task<LoginTenantAccessResult> ResolveLoginTenantAccessAsync(
         string userId,
+        bool isSuperAdmin,
         CancellationToken cancellationToken = default)
     {
-        if (await IsLoginBlockedByDeletedMembershipAsync(userId, cancellationToken).ConfigureAwait(false))
+        if (!isSuperAdmin && await IsLoginBlockedByDeletedMembershipAsync(userId, cancellationToken).ConfigureAwait(false))
         {
             return LoginTenantAccessResult.Blocked(
                 TenantDisabledMessageDe,
@@ -44,17 +49,34 @@ public sealed class AuthService : IAuthService
 
         if (Guid.TryParse(snapshot.TenantId, out var tenantId))
         {
-            var status = await _db.Tenants.AsNoTracking()
+            var tenant = await _db.Tenants.AsNoTracking()
                 .Where(t => t.Id == tenantId)
-                .Select(t => t.Status)
+                .Select(t => new
+                {
+                    t.Status,
+                    t.Name,
+                    t.LicenseValidUntilUtc,
+                })
                 .FirstOrDefaultAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            if (string.Equals(status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+            if (tenant != null
+                && string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
             {
                 return LoginTenantAccessResult.Blocked(
                     TenantDisabledMessageDe,
                     LoginTenantBlockedException.CodeTenantDisabled);
+            }
+
+            if (!isSuperAdmin && tenant != null)
+            {
+                var permissions = TenantLicenseValidator.GetPermissions(tenant.LicenseValidUntilUtc, isSuperAdmin: false);
+                if (!permissions.CanAccess)
+                {
+                    return LoginTenantAccessResult.Blocked(
+                        TenantLicenseLockdownMessageDe,
+                        LoginTenantBlockedException.CodeTenantLicenseLockdown);
+                }
             }
         }
 

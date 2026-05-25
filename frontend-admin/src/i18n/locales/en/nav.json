@@ -44,6 +44,7 @@
   "timeSync": "Time sync",
   "licenseManagement": "License",
   "superAdminTenants": "Companies / tenants",
+  "superAdminCashRegisters": "Cash registers (tenant)",
   "platformAdminHub": "Platform administration",
   "myProfile": "My profile",
   "logout": "Log out",

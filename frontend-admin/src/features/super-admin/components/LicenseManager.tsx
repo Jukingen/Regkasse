@@ -21,6 +21,13 @@ import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import {
+    getLicenseStatusDayText,
+    getLicenseStatusLabel,
+    getLicenseStatusMessage,
+    getLicenseStatusTagColor,
+    resolveTenantLicenseStatus,
+} from '@/features/license/utils/licenseStatus';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
 import {
     activateAdminTenantTrial,
@@ -122,6 +129,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
 
     const status = licenseQuery.data?.status;
     const history = licenseQuery.data?.history ?? [];
+    const resolvedStatus = status ? resolveTenantLicenseStatus(status) : null;
 
     const historyColumns: ColumnsType<TenantLicenseHistoryItem> = [
         {
@@ -146,22 +154,15 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
         },
     ];
 
-    const kindColor =
-        status?.kind === 'expired'
-            ? 'red'
-            : status?.kind === 'trial'
-              ? 'blue'
-              : status?.kind === 'active'
-                ? 'green'
-                : 'default';
-
     return (
         <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Card title={t('tenants.detail.license.currentTitle')} loading={licenseQuery.isLoading}>
                 {status ? (
                     <Descriptions column={{ xs: 1, sm: 2 }} size="small">
                         <Descriptions.Item label={t('tenants.columns.status')}>
-                            <Tag color={kindColor}>{status.kind}</Tag>
+                            <Tag color={getLicenseStatusTagColor(resolvedStatus?.kind ?? 'no_license')}>
+                                {getLicenseStatusLabel(resolvedStatus?.kind ?? 'no_license', t)}
+                            </Tag>
                         </Descriptions.Item>
                         <Descriptions.Item label={t('tenants.detail.license.type')}>
                             {status.tier
@@ -173,17 +174,38 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                         <Descriptions.Item label={t('tenants.detail.license.validUntil')}>
                             {status.validUntilUtc ? formatDate(status.validUntilUtc, formatLocale) : '—'}
                         </Descriptions.Item>
-                        {status.daysRemaining != null ? (
+                        {resolvedStatus ? (
                             <Descriptions.Item label={t('tenants.detail.license.remaining')}>
-                                {t('tenants.detail.license.remainingDays', {
-                                    count: status.daysRemaining,
-                                })}
+                                {getLicenseStatusDayText(resolvedStatus, t) ?? '—'}
                             </Descriptions.Item>
                         ) : null}
+                        <Descriptions.Item label={t('license.phase.capabilities.write')}>
+                            <Tag color={resolvedStatus?.canWrite ? 'green' : 'red'}>
+                                {t(resolvedStatus?.canWrite ? 'common.buttons.yes' : 'common.buttons.no')}
+                            </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.phase.capabilities.manageUsers')}>
+                            <Tag color={resolvedStatus?.canManageUsers ? 'green' : 'red'}>
+                                {t(resolvedStatus?.canManageUsers ? 'common.buttons.yes' : 'common.buttons.no')}
+                            </Tag>
+                        </Descriptions.Item>
+                        <Descriptions.Item label={t('license.phase.capabilities.access')}>
+                            <Tag color={resolvedStatus?.canAccess ? 'green' : 'red'}>
+                                {t(resolvedStatus?.canAccess ? 'common.buttons.yes' : 'common.buttons.no')}
+                            </Tag>
+                        </Descriptions.Item>
                         <Descriptions.Item label={t('tenants.detail.license.key')}>
                             <Typography.Text code>{status.licenseKey ?? '—'}</Typography.Text>
                         </Descriptions.Item>
                     </Descriptions>
+                ) : null}
+                {resolvedStatus ? (
+                    <Alert
+                        style={{ marginTop: 16 }}
+                        type={resolvedStatus.kind === 'grace_write' ? 'warning' : resolvedStatus.kind === 'active' ? 'success' : 'error'}
+                        showIcon
+                        message={getLicenseStatusMessage(resolvedStatus, 'tenant', t)}
+                    />
                 ) : null}
                 {consistency && !consistency.isConsistent ? (
                     <Alert

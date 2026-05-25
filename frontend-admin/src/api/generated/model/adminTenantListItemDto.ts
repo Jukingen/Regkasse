@@ -14,6 +14,8 @@ export interface AdminTenantListItemDto {
   isActive?: boolean;
   isDemoPreset?: boolean;
   /** @nullable */
+  licenseDaysRemaining?: number | null;
+  /** @nullable */
   licenseKey?: string | null;
   /** @nullable */
   licenseValidUntilUtc?: string | null;

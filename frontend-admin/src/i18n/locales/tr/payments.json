@@ -101,6 +101,8 @@
     "labelFoRetries": "Yeniden deneme",
     "buttonOpenReceipt": "Fisi ac",
     "buttonReprintPdf": "Yeniden yazdir (PDF)",
+    "licenseBlockedTitle": "Odemeler devre disi",
+    "licenseBlockedDesc": "Lisansin suresi doldu. Yeni odemeler mumkun degil.",
     "reprintPdfLoading": "PDF olusturuluyor …",
     "reprintPdfSuccess": "PDF indirildi",
     "reprintPdfError": "Yeniden yazdirma PDF'i olusturulamadi",

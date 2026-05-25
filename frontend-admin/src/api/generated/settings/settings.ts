@@ -19,6 +19,7 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  CashRegisterSettings,
   GetApiSettingsTaxRates200One,
   GetApiSettingsTaxRates200Three,
   GetApiSettingsTaxRates200Two,
@@ -27,6 +28,7 @@ import type {
   PutApiSettingsTaxRatesBodyThree,
   PutApiSettingsTaxRatesBodyTwo,
   SystemSettings,
+  UpdateCashRegisterSettingsRequest,
   UpdateNotificationSettingsRequest,
   UpdateSettingsRequest
 } from '.././model'
@@ -512,3 +514,110 @@ export const useGetApiSettingsExport = <TData = Awaited<ReturnType<typeof getApi
 
 
 
+export const getApiSettingsCashRegister = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<CashRegisterSettings>(
+      {url: `/api/Settings/cash-register`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiSettingsCashRegisterQueryKey = () => {
+    return [`/api/Settings/cash-register`] as const;
+    }
+
+    
+export const getGetApiSettingsCashRegisterQueryOptions = <TData = Awaited<ReturnType<typeof getApiSettingsCashRegister>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsCashRegister>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSettingsCashRegisterQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSettingsCashRegister>>> = ({ signal }) => getApiSettingsCashRegister(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsCashRegister>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiSettingsCashRegisterQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSettingsCashRegister>>>
+export type GetApiSettingsCashRegisterQueryError = unknown
+
+export const useGetApiSettingsCashRegister = <TData = Awaited<ReturnType<typeof getApiSettingsCashRegister>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsCashRegister>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiSettingsCashRegisterQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiSettingsCashRegister = (
+    updateCashRegisterSettingsRequest: UpdateCashRegisterSettingsRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Settings/cash-register`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: updateCashRegisterSettingsRequest
+    },
+      options);
+    }
+  
+
+
+export const getPutApiSettingsCashRegisterMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsCashRegister>>, TError,{data: UpdateCashRegisterSettingsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsCashRegister>>, TError,{data: UpdateCashRegisterSettingsRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiSettingsCashRegister>>, {data: UpdateCashRegisterSettingsRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiSettingsCashRegister(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiSettingsCashRegisterMutationResult = NonNullable<Awaited<ReturnType<typeof putApiSettingsCashRegister>>>
+    export type PutApiSettingsCashRegisterMutationBody = UpdateCashRegisterSettingsRequest
+    export type PutApiSettingsCashRegisterMutationError = unknown
+
+    export const usePutApiSettingsCashRegister = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsCashRegister>>, TError,{data: UpdateCashRegisterSettingsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiSettingsCashRegister>>,
+        TError,
+        {data: UpdateCashRegisterSettingsRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiSettingsCashRegisterMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    

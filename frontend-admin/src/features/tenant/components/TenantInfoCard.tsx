@@ -3,6 +3,13 @@
 import { Card, Descriptions, Flex, Tag, Tooltip, Typography } from 'antd';
 import type { CSSProperties } from 'react';
 
+import type { ResolvedLicenseStatus } from '@/features/license/utils/licenseStatus';
+import {
+    getLicenseStatusDayText,
+    getLicenseStatusLabel,
+    getLicenseStatusMessage,
+    getLicenseStatusTagColor,
+} from '@/features/license/utils/licenseStatus';
 import { useTenantInfo } from '@/features/tenant/hooks/useTenantInfo';
 import { useTenantContext } from '@/features/tenancy/hooks/useTenantContext';
 import { useSuperAdminTenantMode } from '@/features/tenancy/hooks/useSuperAdminTenantMode';
@@ -14,24 +21,24 @@ export type TenantInfoCardProps = {
 };
 
 function LicenseStatusTag({
-    licenseDisplay,
-    daysRemaining,
+    licenseStatus,
 }: {
-    licenseDisplay: 'active' | 'expired' | 'days' | 'unknown';
-    daysRemaining: number | null;
+    licenseStatus: ResolvedLicenseStatus;
 }) {
     const { t } = useI18n();
+    const tooltip = getLicenseStatusDayText(licenseStatus, t);
+    const message = getLicenseStatusMessage(licenseStatus, 'tenant', t);
+    const content = (
+        <Tag color={getLicenseStatusTagColor(licenseStatus.kind)}>
+            {getLicenseStatusLabel(licenseStatus.kind, t)}
+        </Tag>
+    );
 
-    if (licenseDisplay === 'expired') {
-        return <Tag color="red">{t('adminShell.tenant.info.expired')}</Tag>;
-    }
-    if (licenseDisplay === 'days' && daysRemaining != null) {
-        return <Tag color="blue">{t('adminShell.tenant.info.daysRemaining', { days: daysRemaining })}</Tag>;
-    }
-    if (licenseDisplay === 'active') {
-        return <Tag color="green">{t('adminShell.tenant.info.active')}</Tag>;
-    }
-    return <Typography.Text type="secondary">—</Typography.Text>;
+    return (
+        <Tooltip title={tooltip ? `${message} ${tooltip}` : message}>
+            {content}
+        </Tooltip>
+    );
 }
 
 function TenantModeTags({
@@ -74,8 +81,7 @@ export function TenantInfoCard({ className, style }: TenantInfoCardProps) {
         tenantId,
         tenantName,
         registeredAt,
-        licenseDisplay,
-        daysRemaining,
+        licenseStatus,
         hasAuthToken,
         isLoading,
     } = useTenantInfo();
@@ -162,7 +168,7 @@ export function TenantInfoCard({ className, style }: TenantInfoCardProps) {
                     )}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('adminShell.tenant.info.license')}>
-                    <LicenseStatusTag licenseDisplay={licenseDisplay} daysRemaining={daysRemaining} />
+                    <LicenseStatusTag licenseStatus={licenseStatus} />
                 </Descriptions.Item>
                 <Descriptions.Item label={t('adminShell.tenant.info.registeredAt')}>
                     {registeredLabel}

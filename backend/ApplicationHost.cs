@@ -171,6 +171,7 @@ builder.Services.AddHttpClient("LicenseRemote", client =>
 });
 builder.Services.AddSingleton<ILicenseStorageService, LicenseStorageService>();
 builder.Services.AddLicenseServices(builder.Environment);
+builder.Services.AddScoped<DeploymentLicenseValidator>();
 // Scoped: holds AppDbContext per request for the issuance audit row.
 builder.Services.AddScoped<ILicenseSyncService, LicenseSyncService>();
 builder.Services.AddScoped<ILicenseIssuanceService, LicenseIssuanceService>();
@@ -383,6 +384,7 @@ builder.Services.AddScoped<IUserTenantMembershipProvisioner, UserTenantMembershi
 builder.Services.AddScoped<ISettingsTenantResolver, SettingsTenantResolver>();
 builder.Services.AddScoped<ICurrentTenantAccessor, CurrentTenantAccessor>();
 builder.Services.AddScoped<ITenantProvider, SubdomainTenantProvider>();
+builder.Services.AddScoped<TenantLicenseValidator>();
 builder.Services.AddScoped<CurrentTenantService>();
 
 // CORS politikası

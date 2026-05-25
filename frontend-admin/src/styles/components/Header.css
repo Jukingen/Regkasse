@@ -86,6 +86,19 @@
   flex-shrink: 0;
 }
 
+.cash-register-quick-switch-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 11rem;
+}
+
+.cash-register-quick-switch-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-header-nav-toggle {
   flex-shrink: 0;
   width: 48px !important;

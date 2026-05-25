@@ -1,7 +1,10 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Security;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,48 +13,37 @@ namespace KasseAPI_Final.Controllers;
 /// <summary>Aggregated license metrics and activity for the admin dashboard.</summary>
 public sealed partial class AdminLicenseController
 {
+    private sealed record TenantLicenseStatRow(DateTime? LicenseValidUntilUtc, bool IsActive, string Status);
+
+    private sealed record DeploymentLicenseStatRow(DateTime ExpiryAtUtc, bool IsRevoked, bool IsCancelled, Guid? SupersededByLicenseId, Guid? TransferredToLicenseId);
+
+    private bool IsActorSuperAdmin() => User.IsInRole(Roles.SuperAdmin);
+
+    private string? ActorUserId => User.GetActorUserId();
+
+    /// <summary>
+    /// Mandantenlizenz + deployment license KPIs. Super Admin: all tenants; Manager: membership-scoped tenants only.
+    /// </summary>
+    [HttpGet("dashboard-stats")]
+    [HasPermission(AppPermissions.SettingsManage)]
+    [ProducesResponseType(typeof(LicenseDashboardStatsDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<LicenseDashboardStatsDto>> GetDashboardStats(CancellationToken cancellationToken)
+    {
+        return Ok(await BuildDashboardStatsAsync(recentActivityTake: 5, cancellationToken).ConfigureAwait(false));
+    }
+
     /// <summary>Issued-license counts and activated device cardinality (no JWT).</summary>
     [HttpGet("dashboard/summary")]
     [HasPermission(AppPermissions.SettingsManage)]
     [ProducesResponseType(typeof(LicenseDashboardSummaryResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<LicenseDashboardSummaryResponse>> GetDashboardSummary(CancellationToken cancellationToken)
     {
-        var now = DateTime.UtcNow;
-        var in30 = now.AddDays(30);
-
-        var baseIssued = _db.IssuedLicenses.AsNoTracking().Where(il => !il.IsDeleted);
-
-        var activeQuery = baseIssued.Where(il =>
-            !il.IsCancelled
-            && !il.IsRevoked
-            && il.SupersededByLicenseId == null
-            && il.TransferredToLicenseId == null
-            && il.ExpiryAtUtc >= now);
-
-        var activeLicenses = await activeQuery.CountAsync(cancellationToken).ConfigureAwait(false);
-
-        var expiringWithin30Days = await activeQuery
-            .Where(il => il.ExpiryAtUtc <= in30)
-            .CountAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var expiredLicenses = await baseIssued
-            .Where(il => il.ExpiryAtUtc < now)
-            .CountAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var uniqueActivatedDevices = await _db.ActivatedLicenses.AsNoTracking()
-            .Where(a => a.IsActive && a.ValidUntilUtc >= now && a.MachineFingerprint != null)
-            .Select(a => a.MachineFingerprint)
-            .Distinct()
-            .CountAsync(cancellationToken)
-            .ConfigureAwait(false);
-
+        var stats = await BuildDashboardStatsAsync(recentActivityTake: 0, cancellationToken).ConfigureAwait(false);
         return Ok(new LicenseDashboardSummaryResponse(
-            activeLicenses,
-            expiringWithin30Days,
-            expiredLicenses,
-            uniqueActivatedDevices));
+            stats.ActiveDeploymentLicenses,
+            stats.ExpiringDeploymentLicenses,
+            stats.ExpiredDeploymentLicenses,
+            stats.ActivatedDevices));
     }
 
     /// <summary>Activation counts grouped by calendar day or ISO week (UTC).</summary>
@@ -103,68 +95,8 @@ public sealed partial class AdminLicenseController
         CancellationToken cancellationToken = default)
     {
         take = Math.Clamp(take, 5, 100);
-        var entityType = nameof(IssuedLicense);
-        var fetch = Math.Min(80, take * 3);
-
-        var audits = await _db.AuditLogs.AsNoTracking()
-            .Where(a =>
-                (a.EntityType == entityType && a.EntityId != null)
-                || EF.Functions.Like(a.Action, "LIC_%"))
-            .OrderByDescending(a => a.Timestamp)
-            .Take(fetch)
-            .Select(a => new { a.Timestamp, a.Action, a.EntityId })
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var entityIds = audits
-            .Select(a => a.EntityId)
-            .Where(id => id.HasValue && id.Value != Guid.Empty)
-            .Select(id => id!.Value)
-            .Distinct()
-            .ToList();
-
-        var keyByIssuedId = await _db.IssuedLicenses.AsNoTracking()
-            .Where(il => entityIds.Contains(il.Id))
-            .Select(il => new { il.Id, il.LicenseKey })
-            .ToDictionaryAsync(x => x.Id, x => x.LicenseKey, cancellationToken)
-            .ConfigureAwait(false);
-
-        var auditDtos = new List<LicenseDashboardActivityRowDto>(audits.Count);
-        foreach (var a in audits)
-        {
-            var masked = "REGK-****-****-*****";
-            if (a.EntityId.HasValue && keyByIssuedId.TryGetValue(a.EntityId.Value, out var fullKey))
-                masked = MaskIssuedLicenseKey(fullKey);
-
-            auditDtos.Add(new LicenseDashboardActivityRowDto(
-                a.Timestamp,
-                masked,
-                null,
-                MapAuditActionToDashboardAction(a.Action),
-                a.Action));
-        }
-
-        var activations = await _db.ActivatedLicenses.AsNoTracking()
-            .OrderByDescending(x => x.ActivatedAtUtc)
-            .Take(fetch)
-            .Select(a => new { a.ActivatedAtUtc, a.LicenseKey, a.MachineFingerprint })
-            .ToListAsync(cancellationToken)
-            .ConfigureAwait(false);
-
-        var activationDtos = activations.Select(a => new LicenseDashboardActivityRowDto(
-            DateTime.SpecifyKind(a.ActivatedAtUtc, DateTimeKind.Utc),
-            MaskIssuedLicenseKey(a.LicenseKey),
-            FormatShortMachineFingerprint(a.MachineFingerprint),
-            "activate",
-            "ACTIVATION")).ToList();
-
-        var merged = auditDtos
-            .Concat(activationDtos)
-            .OrderByDescending(r => r.TimestampUtc)
-            .Take(take)
-            .ToList();
-
-        return Ok(new LicenseDashboardRecentActivityResponse(merged));
+        var items = await BuildRecentLicenseActivitiesAsync(take, cancellationToken).ConfigureAwait(false);
+        return Ok(new LicenseDashboardRecentActivityResponse(items));
     }
 
     /// <summary>CSV export of non-deleted issued licenses (masked keys, no JWT).</summary>
@@ -207,19 +139,373 @@ public sealed partial class AdminLicenseController
         return File(bytes, "text/csv; charset=utf-8", fileName);
     }
 
-    private static string MapAuditActionToDashboardAction(string action)
+    private async Task<LicenseDashboardStatsDto> BuildDashboardStatsAsync(
+        int recentActivityTake,
+        CancellationToken cancellationToken)
     {
-        return action switch
+        var now = DateTime.UtcNow;
+        var thirtyDaysLater = now.AddDays(30);
+
+        var tenantLicenseStats = await LoadVisibleTenantLicenseStatsAsync(cancellationToken).ConfigureAwait(false);
+        var deploymentLicenseStats = await LoadDeploymentLicenseStatsAsync(cancellationToken).ConfigureAwait(false);
+
+        var activatedDevices = await _db.ActivatedLicenses.AsNoTracking()
+            .Where(a => a.IsActive && a.ValidUntilUtc >= now && a.MachineFingerprint != null)
+            .Select(a => a.MachineFingerprint)
+            .Distinct()
+            .CountAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return new LicenseDashboardStatsDto
         {
-            "LIC_EXTEND" => "extend",
-            "LIC_REVOKE" => "revoke",
-            "LIC_CANCEL" => "cancel",
-            "LIC_SOFT_DELETE" => "delete",
-            "LIC_UNREGISTER_MACHINE" => "unregister",
-            "LIC_DETAILS_VIEW" => "details",
-            _ => "other",
+            ActiveTenantLicenses = tenantLicenseStats.Count(t =>
+                t.LicenseValidUntilUtc.HasValue
+                && t.LicenseValidUntilUtc.Value > now
+                && t.IsActive
+                && string.Equals(t.Status, TenantStatuses.Active, StringComparison.OrdinalIgnoreCase)),
+            ExpiringTenantLicenses = tenantLicenseStats.Count(t =>
+                t.LicenseValidUntilUtc.HasValue
+                && t.LicenseValidUntilUtc.Value > now
+                && t.LicenseValidUntilUtc.Value <= thirtyDaysLater
+                && t.IsActive),
+            ExpiredTenantLicenses = tenantLicenseStats.Count(t =>
+                t.LicenseValidUntilUtc.HasValue
+                && t.LicenseValidUntilUtc.Value <= now),
+            ActiveDeploymentLicenses = deploymentLicenseStats.Count(l =>
+                IsActiveDeploymentLicense(l, now)),
+            ExpiringDeploymentLicenses = deploymentLicenseStats.Count(l =>
+                IsActiveDeploymentLicense(l, now)
+                && l.ExpiryAtUtc <= thirtyDaysLater),
+            ExpiredDeploymentLicenses = deploymentLicenseStats.Count(l =>
+                !l.IsRevoked
+                && !l.IsCancelled
+                && l.ExpiryAtUtc < now),
+            ActivatedDevices = activatedDevices,
+            RecentActivities = recentActivityTake > 0
+                ? await GetRecentLicenseActivities(recentActivityTake, cancellationToken).ConfigureAwait(false)
+                : [],
         };
     }
+
+    private async Task<List<TenantLicenseStatRow>> LoadVisibleTenantLicenseStatsAsync(CancellationToken cancellationToken)
+    {
+        var tenantsQuery = _db.Tenants.AsNoTracking()
+            .Where(t => t.Status != TenantStatuses.Deleted);
+
+        if (!IsActorSuperAdmin())
+        {
+            var actorUserId = ActorUserId;
+            if (string.IsNullOrWhiteSpace(actorUserId))
+                return [];
+
+            var userTenantIds = await _db.UserTenantMemberships.AsNoTracking()
+                .Where(m => m.UserId == actorUserId && m.IsActive)
+                .Select(m => m.TenantId)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (userTenantIds.Count == 0)
+                return [];
+
+            tenantsQuery = tenantsQuery.Where(t => userTenantIds.Contains(t.Id));
+        }
+
+        return await tenantsQuery
+            .Select(t => new TenantLicenseStatRow(t.LicenseValidUntilUtc, t.IsActive, t.Status))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<List<DeploymentLicenseStatRow>> LoadDeploymentLicenseStatsAsync(CancellationToken cancellationToken)
+    {
+        return await _db.IssuedLicenses.AsNoTracking()
+            .Where(l => !l.IsDeleted)
+            .Select(l => new DeploymentLicenseStatRow(
+                l.ExpiryAtUtc,
+                l.IsRevoked,
+                l.IsCancelled,
+                l.SupersededByLicenseId,
+                l.TransferredToLicenseId))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private static bool IsActiveDeploymentLicense(DeploymentLicenseStatRow license, DateTime nowUtc) =>
+        !license.IsRevoked
+        && !license.IsCancelled
+        && license.SupersededByLicenseId == null
+        && license.TransferredToLicenseId == null
+        && license.ExpiryAtUtc >= nowUtc;
+
+    /// <summary>Recent license events from audit log (primary) plus issuance/activation rows not yet audited.</summary>
+    private async Task<List<LicenseActivityDto>> GetRecentLicenseActivities(
+        int count,
+        CancellationToken cancellationToken)
+    {
+        var fetch = Math.Min(80, count * 3);
+        var entityType = nameof(IssuedLicense);
+
+        var auditRows = await _db.AuditLogs.AsNoTracking()
+            .Where(a =>
+                EF.Functions.Like(a.Action, "LIC_%")
+                || a.Action == "ACTIVATED"
+                || a.Action == "GENERATED"
+                || (a.EntityType == entityType && a.EntityId != null))
+            .OrderByDescending(a => a.Timestamp)
+            .Take(fetch)
+            .Select(a => new
+            {
+                a.Timestamp,
+                a.Action,
+                a.EntityId,
+                a.UserId,
+                a.NewValues,
+                a.Metadata,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var entityIds = auditRows
+            .Select(a => a.EntityId)
+            .Where(id => id.HasValue && id.Value != Guid.Empty)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        var issuedById = entityIds.Count == 0
+            ? new Dictionary<Guid, (string LicenseKey, string? MachineHashHex)>()
+            : await _db.IssuedLicenses.AsNoTracking()
+                .Where(il => entityIds.Contains(il.Id))
+                .Select(il => new { il.Id, il.LicenseKey, il.MachineHashHex })
+                .ToDictionaryAsync(
+                    x => x.Id,
+                    x => (x.LicenseKey, x.MachineHashHex),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+        var userIds = auditRows
+            .Select(a => a.UserId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToList();
+
+        var emailsByUserId = userIds.Count == 0
+            ? new Dictionary<string, string>()
+            : await _db.Users.AsNoTracking()
+                .Where(u => userIds.Contains(u.Id))
+                .Select(u => new { u.Id, Email = u.Email ?? u.UserName ?? string.Empty })
+                .ToDictionaryAsync(x => x.Id, x => x.Email, cancellationToken)
+                .ConfigureAwait(false);
+
+        var fromAudit = new List<LicenseActivityDto>(auditRows.Count);
+        foreach (var row in auditRows)
+        {
+            var licenseKey = TryReadJsonStringProperty(row.NewValues, "licenseKeyMasked")
+                ?? TryReadJsonStringProperty(row.NewValues, "licenseKey");
+            var machineHash = FormatShortMachineFingerprint(
+                TryReadJsonStringProperty(row.Metadata, "MachineHash")
+                ?? TryReadJsonStringProperty(row.Metadata, "machineHash"));
+
+            if (row.EntityId.HasValue && issuedById.TryGetValue(row.EntityId.Value, out var issued))
+            {
+                licenseKey ??= MaskIssuedLicenseKey(issued.LicenseKey);
+                machineHash ??= FormatShortMachineFingerprint(issued.MachineHashHex);
+            }
+
+            fromAudit.Add(new LicenseActivityDto
+            {
+                Timestamp = DateTime.SpecifyKind(row.Timestamp, DateTimeKind.Utc),
+                LicenseKey = licenseKey ?? "REGK-****-****-*****",
+                MachineHash = machineHash ?? string.Empty,
+                Action = MapAuditRowToActivityCode(row.Action),
+                UserEmail = ResolveUserEmail(row.UserId, emailsByUserId),
+            });
+        }
+
+        // Issuance/activation paths do not write LIC_* audit rows yet — supplement from operational tables.
+        var supplemented = await SupplementUndocumentedLicenseActivitiesAsync(
+            fetch,
+            emailsByUserId,
+            cancellationToken).ConfigureAwait(false);
+
+        return fromAudit
+            .Concat(supplemented)
+            .OrderByDescending(a => a.Timestamp)
+            .Take(count)
+            .ToList();
+    }
+
+    private async Task<List<LicenseActivityDto>> SupplementUndocumentedLicenseActivitiesAsync(
+        int fetch,
+        IReadOnlyDictionary<string, string> emailsByUserId,
+        CancellationToken cancellationToken)
+    {
+        var issuedRows = await _db.IssuedLicenses.AsNoTracking()
+            .Where(il => !il.IsDeleted)
+            .OrderByDescending(il => il.IssuedAtUtc)
+            .Take(fetch)
+            .Select(il => new
+            {
+                il.IssuedAtUtc,
+                il.LicenseKey,
+                il.MachineHashHex,
+                il.IssuedByUserId,
+            })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var activations = await _db.ActivatedLicenses.AsNoTracking()
+            .OrderByDescending(x => x.ActivatedAtUtc)
+            .Take(fetch)
+            .Select(a => new { a.ActivatedAtUtc, a.LicenseKey, a.MachineFingerprint })
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var supplementalUserIds = issuedRows
+            .Select(r => r.IssuedByUserId)
+            .Where(id => !string.IsNullOrWhiteSpace(id) && !emailsByUserId.ContainsKey(id!))
+            .Distinct()
+            .ToList();
+
+        var supplementalEmails = supplementalUserIds.Count == 0
+            ? new Dictionary<string, string>()
+            : await _db.Users.AsNoTracking()
+                .Where(u => supplementalUserIds.Contains(u.Id))
+                .Select(u => new { u.Id, Email = u.Email ?? u.UserName ?? string.Empty })
+                .ToDictionaryAsync(x => x.Id, x => x.Email, cancellationToken)
+                .ConfigureAwait(false);
+
+        var emails = emailsByUserId
+            .Concat(supplementalEmails)
+            .GroupBy(x => x.Key)
+            .ToDictionary(g => g.Key, g => g.First().Value);
+
+        var generated = issuedRows.Select(r => new LicenseActivityDto
+        {
+            Timestamp = DateTime.SpecifyKind(r.IssuedAtUtc, DateTimeKind.Utc),
+            LicenseKey = MaskIssuedLicenseKey(r.LicenseKey),
+            MachineHash = FormatShortMachineFingerprint(r.MachineHashHex) ?? string.Empty,
+            Action = "GENERATED",
+            UserEmail = ResolveUserEmail(r.IssuedByUserId, emails),
+        });
+
+        var activated = activations.Select(a => new LicenseActivityDto
+        {
+            Timestamp = DateTime.SpecifyKind(a.ActivatedAtUtc, DateTimeKind.Utc),
+            LicenseKey = MaskIssuedLicenseKey(a.LicenseKey),
+            MachineHash = FormatShortMachineFingerprint(a.MachineFingerprint) ?? string.Empty,
+            Action = "ACTIVATED",
+            UserEmail = string.Empty,
+        });
+
+        return generated.Concat(activated).ToList();
+    }
+
+    private async Task<IReadOnlyList<LicenseDashboardActivityRowDto>> BuildRecentLicenseActivitiesAsync(
+        int take,
+        CancellationToken cancellationToken)
+    {
+        var items = await GetRecentLicenseActivities(take, cancellationToken).ConfigureAwait(false);
+        return items.Select(MapActivityDtoToDashboardRow).ToList();
+    }
+
+    private static LicenseDashboardActivityRowDto MapActivityDtoToDashboardRow(LicenseActivityDto dto) =>
+        new(
+            dto.Timestamp,
+            dto.LicenseKey,
+            string.IsNullOrEmpty(dto.MachineHash) ? null : dto.MachineHash,
+            MapActivityCodeToDashboardAction(dto.Action),
+            dto.Action);
+
+    private static string ResolveUserEmail(string? userId, IReadOnlyDictionary<string, string> emailsByUserId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return string.Empty;
+        return emailsByUserId.TryGetValue(userId, out var email) ? email : string.Empty;
+    }
+
+    private static string MapAuditRowToActivityCode(string action) =>
+        action switch
+        {
+            "ACTIVATED" => "ACTIVATED",
+            "GENERATED" => "GENERATED",
+            _ => MapAuditActionToActivityCode(action),
+        };
+
+    private static string? TryReadJsonStringProperty(string? json, string propertyName)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (!doc.RootElement.TryGetProperty(propertyName, out var direct) && !TryGetCaseInsensitive(doc.RootElement, propertyName, out direct))
+                return null;
+
+            return direct.ValueKind switch
+            {
+                JsonValueKind.String => direct.GetString(),
+                JsonValueKind.Number => direct.GetRawText(),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                _ => null,
+            };
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static bool TryGetCaseInsensitive(JsonElement root, string propertyName, out JsonElement value)
+    {
+        if (root.ValueKind != JsonValueKind.Object)
+        {
+            value = default;
+            return false;
+        }
+
+        foreach (var property in root.EnumerateObject())
+        {
+            if (string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                value = property.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string MapAuditActionToActivityCode(string action) =>
+        action switch
+        {
+            "LIC_EXTEND" => "EXTENDED",
+            "LIC_REVOKE" => "REVOKED",
+            "LIC_CANCEL" => "CANCELLED",
+            "LIC_SOFT_DELETE" => "DELETED",
+            "LIC_UNREGISTER_MACHINE" => "UNREGISTERED",
+            "LIC_DETAILS_VIEW" => "DETAILS_VIEWED",
+            "LIC_FORCE_DEACTIVATE_ATTEMPT" => "FORCE_DEACTIVATED",
+            _ => "OTHER",
+        };
+
+    private static string MapActivityCodeToDashboardAction(string actionCode) =>
+        actionCode switch
+        {
+            "ACTIVATED" => "activate",
+            "GENERATED" => "generate",
+            "REVOKED" => "revoke",
+            "EXTENDED" => "extend",
+            "CANCELLED" => "cancel",
+            "DELETED" => "delete",
+            "UNREGISTERED" => "unregister",
+            "DETAILS_VIEWED" => "details",
+            "FORCE_DEACTIVATED" => "force_deactivate",
+            _ => "other",
+        };
 
     private static DateTime GetUtcIsoWeekStart(DateTime utcInstant)
     {

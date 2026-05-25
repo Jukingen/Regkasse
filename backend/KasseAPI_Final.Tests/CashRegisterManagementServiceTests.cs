@@ -214,8 +214,154 @@ public sealed class CashRegisterManagementServiceTests
         await using var ctx = CreateContext();
         var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             svc.ListAsync(OtherTenantId, actorIsSuperAdmin: false, page: 1, pageSize: 20));
+    }
+
+    [Fact]
+    public async Task ListAsync_SuperAdminWithoutTenantFilter_SeesAllTenants()
+    {
+        await using var ctx = CreateContext();
+        ctx.CashRegisters.AddRange(
+            new CashRegister
+            {
+                TenantId = PrimaryTenantId,
+                RegisterNumber = "P-1",
+                Location = "Primary",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Closed,
+            },
+            new CashRegister
+            {
+                TenantId = OtherTenantId,
+                RegisterNumber = "O-1",
+                Location = "Other",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Closed,
+            });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
+        var page = await svc.ListAsync(null, actorIsSuperAdmin: true, page: 1, pageSize: 20);
+
+        Assert.Equal(2, page.TotalCount);
+        Assert.Equal(2, page.Items.Count());
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_Manager_CannotReadOtherTenantRegister()
+    {
+        await using var ctx = CreateContext();
+        var otherRegister = new CashRegister
+        {
+            TenantId = OtherTenantId,
+            RegisterNumber = "O-1",
+            Location = "Other",
+            StartingBalance = 0m,
+            CurrentBalance = 0m,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+        };
+        ctx.CashRegisters.Add(otherRegister);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
+        var dto = await svc.GetByIdAsync(otherRegister.Id, null, actorIsSuperAdmin: false);
+
+        Assert.Null(dto);
+    }
+
+    [Fact]
+    public async Task GetActiveCountForTenantAsync_ExcludesDecommissioned()
+    {
+        await using var ctx = CreateContext();
+        ctx.CashRegisters.AddRange(
+            new CashRegister
+            {
+                TenantId = PrimaryTenantId,
+                RegisterNumber = "P-1",
+                Location = "A",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Closed,
+            },
+            new CashRegister
+            {
+                TenantId = PrimaryTenantId,
+                RegisterNumber = "P-2",
+                Location = "B",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Decommissioned,
+            });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
+        var count = await svc.GetActiveCountForTenantAsync(PrimaryTenantId, actorIsSuperAdmin: false);
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task GetActiveCountForTenantAsync_ManagerForeignTenant_Throws()
+    {
+        await using var ctx = CreateContext();
+        var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            svc.GetActiveCountForTenantAsync(OtherTenantId, actorIsSuperAdmin: false));
+    }
+
+    [Fact]
+    public async Task GetActiveCountForTenantAsync_SuperAdmin_CanCountOtherTenant()
+    {
+        await using var ctx = CreateContext();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = OtherTenantId,
+            RegisterNumber = "O-1",
+            Location = "Other",
+            StartingBalance = 0m,
+            CurrentBalance = 0m,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
+        var count = await svc.GetActiveCountForTenantAsync(OtherTenantId, actorIsSuperAdmin: true);
+
+        Assert.Equal(1, count);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_SuperAdmin_ReturnsRegisterAcrossTenants()
+    {
+        await using var ctx = CreateContext();
+        var otherRegister = new CashRegister
+        {
+            TenantId = OtherTenantId,
+            RegisterNumber = "O-1",
+            Location = "Other",
+            StartingBalance = 0m,
+            CurrentBalance = 0m,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+        };
+        ctx.CashRegisters.Add(otherRegister);
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
+        var dto = await svc.GetByIdAsync(otherRegister.Id, null, actorIsSuperAdmin: true);
+
+        Assert.NotNull(dto);
+        Assert.Equal("O-1", dto!.RegisterNumber);
     }
 
     [Fact]

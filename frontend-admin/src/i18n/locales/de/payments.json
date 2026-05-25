@@ -101,6 +101,8 @@
     "labelFoRetries": "Retries",
     "buttonOpenReceipt": "Beleg öffnen",
     "buttonReprintPdf": "Nachdruck (PDF)",
+    "licenseBlockedTitle": "Zahlungen deaktiviert",
+    "licenseBlockedDesc": "Die Lizenz ist abgelaufen. Neue Zahlungen sind nicht möglich.",
     "reprintPdfLoading": "PDF wird erstellt …",
     "reprintPdfSuccess": "PDF wurde heruntergeladen",
     "reprintPdfError": "Nachdruck-PDF konnte nicht erstellt werden",

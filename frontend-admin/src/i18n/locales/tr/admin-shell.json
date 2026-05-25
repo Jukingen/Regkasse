@@ -19,7 +19,11 @@
     "languageSelectHint": "Yalnızca yönetim arayüzü için. Resmi mali rapor metinleri Almanca veya İngilizce kalır.",
     "languageNameDe": "Almanca",
     "languageNameEn": "İngilizce",
-    "languageNameTr": "Türkçe"
+    "languageNameTr": "Türkçe",
+    "cashRegisterQuickSwitchLabel": "Kasa değiştir",
+    "cashRegisterQuickSwitchAria": "Hızlı kasa seçimi",
+    "cashRegisterQuickSwitchHint": "Kasa seçin ve kasa yönetimini açın",
+    "cashRegisterQuickSwitchManage": "Kasa yönetimini aç"
   },
   "tenant": {
     "badge": {

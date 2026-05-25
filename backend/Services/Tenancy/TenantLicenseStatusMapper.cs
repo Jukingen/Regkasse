@@ -8,6 +8,8 @@ namespace KasseAPI_Final.Services.Tenancy;
 /// </summary>
 public static class TenantLicenseStatusMapper
 {
+    private static readonly TenantLicenseValidator Validator = new();
+
     public static (int? DaysRemaining, string Kind) ComputeKindAndDays(
         DateTime? licenseValidUntilUtc,
         string? licenseKey,
@@ -15,14 +17,21 @@ public static class TenantLicenseStatusMapper
     {
         var now = nowUtc ?? DateTime.UtcNow;
         if (!licenseValidUntilUtc.HasValue)
-            return (null, "none");
+            return (null, "no_license");
 
         var until = DateTime.SpecifyKind(licenseValidUntilUtc.Value, DateTimeKind.Utc);
         var days = (int)Math.Ceiling((until - now).TotalDays);
-        if (days < 0)
-            return (days, "expired");
+        var status = Validator.GetStatus(until, now);
 
-        return string.IsNullOrWhiteSpace(licenseKey) ? (days, "trial") : (days, "active");
+        return status switch
+        {
+            TenantLicenseStatus.Active => (days, "active"),
+            TenantLicenseStatus.GraceWrite => (days, "grace_write"),
+            TenantLicenseStatus.GraceReadOnly => (days, "grace_read_only"),
+            TenantLicenseStatus.Lockdown => (days, "lockdown"),
+            TenantLicenseStatus.NoLicense => (null, "no_license"),
+            _ => (days, string.IsNullOrWhiteSpace(licenseKey) ? "active" : "active"),
+        };
     }
 
     /// <summary>
@@ -35,10 +44,13 @@ public static class TenantLicenseStatusMapper
 
         var now = nowUtc ?? DateTime.UtcNow;
         var until = DateTime.SpecifyKind(tenant.LicenseValidUntilUtc.Value, DateTimeKind.Utc);
-        var (daysRaw, kind) = ComputeKindAndDays(until, tenant.LicenseKey, now);
+        var (daysRaw, _) = ComputeKindAndDays(until, tenant.LicenseKey, now);
         var days = daysRaw ?? 0;
+        var status = Validator.GetStatus(until, now);
 
-        if (kind == "expired")
+        if (status == TenantLicenseStatus.GraceReadOnly
+            || status == TenantLicenseStatus.Lockdown
+            || status == TenantLicenseStatus.NoLicense)
         {
             return new LicenseStatusResponse(
                 IsValid: false,
@@ -50,21 +62,10 @@ public static class TenantLicenseStatusMapper
                 EnabledFeatures: Array.Empty<string>());
         }
 
-        if (kind == "trial")
-        {
-            return new LicenseStatusResponse(
-                IsValid: false,
-                IsTrial: true,
-                IsExpired: false,
-                DaysRemaining: Math.Max(0, days),
-                ExpiryDate: until,
-                MachineHash: machineHash,
-                EnabledFeatures: LicenseFeatureIds.All);
-        }
-
+        var isTrialLike = string.IsNullOrWhiteSpace(tenant.LicenseKey);
         return new LicenseStatusResponse(
-            IsValid: true,
-            IsTrial: false,
+            IsValid: !isTrialLike,
+            IsTrial: isTrialLike,
             IsExpired: false,
             DaysRemaining: Math.Max(0, days),
             ExpiryDate: until,

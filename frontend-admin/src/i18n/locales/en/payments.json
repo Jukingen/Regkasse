@@ -101,6 +101,8 @@
     "labelFoRetries": "Retries",
     "buttonOpenReceipt": "Open receipt",
     "buttonReprintPdf": "Reprint (PDF)",
+    "licenseBlockedTitle": "Payments disabled",
+    "licenseBlockedDesc": "The license has expired. New payments are not possible.",
     "reprintPdfLoading": "Creating PDF …",
     "reprintPdfSuccess": "PDF downloaded",
     "reprintPdfError": "Could not generate reprint PDF",

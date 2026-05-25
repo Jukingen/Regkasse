@@ -41,6 +41,10 @@ export interface AuditLogEntryDto {
   httpStatusCode?: number | null;
   id?: string;
   /** @nullable */
+  impersonatedBy?: string | null;
+  /** @nullable */
+  impersonatedTenantId?: string | null;
+  /** @nullable */
   ipAddress?: string | null;
   isActive?: boolean;
   /** @nullable */

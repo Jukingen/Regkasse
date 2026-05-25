@@ -88,5 +88,22 @@
   },
   "empty": "Keine Kassen gefunden.",
   "emptyCanCreate": "Keine Kassen vorhanden. Klicken Sie auf «Neue Kasse», um eine anzulegen.",
-  "emptyContactAdmin": "Keine Kassen vorhanden. Bitte kontaktieren Sie Ihren Administrator."
+  "emptyContactAdmin": "Keine Kassen vorhanden. Bitte kontaktieren Sie Ihren Administrator.",
+  "adminPage": {
+    "title": "Kassenverwaltung (Mandant)",
+    "intro": "Super Admin: Mandant wählen und zugehörige Kassen verwalten.",
+    "selectTenant": "Mandant",
+    "selectTenantHint": "Bitte einen Mandanten auswählen, um die Kassenliste anzuzeigen.",
+    "managerIntro": "Wählen Sie eine Kasse, um zur Kassenverwaltung Ihres Mandanten zu wechseln.",
+    "openKassenverwaltung": "Zur Kassenverwaltung"
+  },
+  "selector": {
+    "placeholder": "Kasse auswählen…",
+    "noTenant": "Kein Mandant ausgewählt",
+    "noLocation": "Kein Standort",
+    "loadError": "Fehler beim Laden",
+    "loadErrorTooltip": "Kassenliste konnte nicht geladen werden",
+    "empty": "Keine Kassen vorhanden",
+    "mandantHeader": "Mandant: {{name}} ({{slug}})"
+  }
 }

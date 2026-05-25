@@ -165,6 +165,7 @@ export type LicenseReportSummaryDto = {
 
 export const licenseQueryKeys = {
     status: ['admin', 'license', 'status'] as const,
+    deploymentStatus: ['admin', 'license', 'deploymentStatus'] as const,
     /** GET /api/license/status (anonymous, POS contract). */
     publicStatus: ['admin', 'license', 'publicStatus'] as const,
     listRoot: ['admin', 'license', 'list'] as const,
@@ -182,6 +183,11 @@ export async function getPublicLicenseStatus(): Promise<LicensePublicStatusDto> 
 
 export async function getLicenseStatus(): Promise<LicenseStatusResponse> {
     const { data } = await AXIOS_INSTANCE.get<LicenseStatusResponse>('/api/admin/license/status');
+    return data;
+}
+
+export async function getDeploymentLicenseStatus(): Promise<LicenseStatusResponse> {
+    const { data } = await AXIOS_INSTANCE.get<LicenseStatusResponse>('/api/admin/license/deployment-status');
     return data;
 }
 
@@ -417,6 +423,25 @@ export type LicenseDashboardSummaryDto = {
     uniqueActivatedDevices: number;
 };
 
+export type LicenseDashboardStatsDto = {
+    activeTenantLicenses: number;
+    expiringTenantLicenses: number;
+    expiredTenantLicenses: number;
+    activeDeploymentLicenses: number;
+    expiringDeploymentLicenses: number;
+    expiredDeploymentLicenses: number;
+    activatedDevices: number;
+    recentActivities: LicenseActivityDto[];
+};
+
+export type LicenseActivityDto = {
+    timestamp: string;
+    licenseKey: string;
+    machineHash: string;
+    action: string;
+    userEmail: string;
+};
+
 export type LicenseActivationSeriesPointDto = {
     periodStartUtc: string;
     count: number;
@@ -441,6 +466,7 @@ export type LicenseDashboardRecentActivityDto = {
 
 export const licenseDashboardQueryKeys = {
     summary: ['admin', 'license', 'dashboard', 'summary'] as const,
+    stats: ['admin', 'license', 'dashboard', 'stats'] as const,
     series: (granularity: string, lookbackDays: number) =>
         ['admin', 'license', 'dashboard', 'series', granularity, lookbackDays] as const,
     activity: (take: number) => ['admin', 'license', 'dashboard', 'activity', take] as const,
@@ -448,6 +474,11 @@ export const licenseDashboardQueryKeys = {
 
 export async function getLicenseDashboardSummary(): Promise<LicenseDashboardSummaryDto> {
     const { data } = await AXIOS_INSTANCE.get<LicenseDashboardSummaryDto>('/api/admin/license/dashboard/summary');
+    return data;
+}
+
+export async function getLicenseDashboardStats(): Promise<LicenseDashboardStatsDto> {
+    const { data } = await AXIOS_INSTANCE.get<LicenseDashboardStatsDto>('/api/admin/license/dashboard-stats');
     return data;
 }
 

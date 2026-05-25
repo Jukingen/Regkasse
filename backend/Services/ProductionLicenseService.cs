@@ -1,7 +1,10 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Auth;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +29,8 @@ namespace KasseAPI_Final.Services;
 /// </remarks>
 public sealed class ProductionLicenseService : ILicenseService
 {
+    private static readonly TenantLicenseValidator TenantLicenseValidator = new();
+
     private readonly LicenseService _inner;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -49,11 +54,18 @@ public sealed class ProductionLicenseService : ILicenseService
         ApplyTenantMandantOverlayIfPresent(_inner.GetStatus());
 
     /// <inheritdoc />
+    public LicenseStatusResponse GetDeploymentStatus() => _inner.GetStatus();
+
+    /// <inheritdoc />
     public async Task<LicenseStatusResponse> GetCurrentStatusAsync(CancellationToken cancellationToken = default)
     {
         var deployment = await _inner.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
         return ApplyTenantMandantOverlayIfPresent(deployment);
     }
+
+    /// <inheritdoc />
+    public Task<LicenseStatusResponse> GetCurrentDeploymentStatusAsync(CancellationToken cancellationToken = default) =>
+        _inner.GetCurrentStatusAsync(cancellationToken);
 
     /// <inheritdoc />
     public bool IsLicenseSnapshotInitialized => _inner.IsLicenseSnapshotInitialized;
@@ -65,12 +77,18 @@ public sealed class ProductionLicenseService : ILicenseService
             && await TenantHasMandantLicenseExpiryAsync(tenantId, cancellationToken).ConfigureAwait(false))
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var tenant = await GetTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
+            if (tenant == null)
+                return await _inner.ValidateAsync(cancellationToken).ConfigureAwait(false);
+
+            var isSuperAdmin = IsSuperAdminRequest();
+            var permissions = TenantLicenseValidator.GetPermissions(tenant.LicenseValidUntilUtc, isSuperAdmin);
             var s = await GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
             var paid = s.IsValid && !s.IsTrial;
             var trialActive = s.IsTrial && !s.IsExpired;
             return new LicenseValidationResult
             {
-                IsLicenseOperational = paid || trialActive,
+                IsLicenseOperational = permissions.CanAccess,
                 IsTrial = s.IsTrial,
                 IsExpired = s.IsExpired,
                 IsPaidValid = paid,
@@ -141,12 +159,18 @@ public sealed class ProductionLicenseService : ILicenseService
 
     private async Task<bool> TenantHasMandantLicenseExpiryAsync(Guid tenantId, CancellationToken cancellationToken)
     {
+        var tenant = await GetTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        return tenant?.LicenseValidUntilUtc != null;
+    }
+
+    private async Task<Tenant?> GetTenantAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         return await db.Tenants
             .AsNoTracking()
             .IgnoreQueryFilters()
-            .AnyAsync(t => t.Id == tenantId && t.LicenseValidUntilUtc != null, cancellationToken)
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -158,5 +182,17 @@ public sealed class ProductionLicenseService : ILicenseService
 
         var accessor = http.RequestServices.GetService<ICurrentTenantAccessor>();
         return accessor?.TenantId;
+    }
+
+    private bool IsSuperAdminRequest()
+    {
+        var principal = _httpContextAccessor.HttpContext?.User;
+        if (principal?.Identity?.IsAuthenticated != true)
+            return false;
+
+        return principal.Claims
+            .Where(c => c.Type == ClaimTypes.Role || c.Type == "role")
+            .Select(c => RoleCanonicalization.GetCanonicalRole(c.Value))
+            .Any(r => string.Equals(r, Roles.SuperAdmin, StringComparison.Ordinal));
     }
 }

@@ -194,8 +194,8 @@ public class AuthControllerTests
     private static Mock<IAuthService> CreateAuthServiceMock(Mock<ILoginTenantResolver> loginTenantResolver)
     {
         var mock = new Mock<IAuthService>();
-        mock.Setup(s => s.ResolveLoginTenantAccessAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .Returns(async (string userId, CancellationToken ct) =>
+        mock.Setup(s => s.ResolveLoginTenantAccessAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
+            .Returns(async (string userId, bool _, CancellationToken ct) =>
             {
                 var snapshot = await loginTenantResolver.Object.ResolveSnapshotForLoginAsync(userId, ct);
                 return LoginTenantAccessResult.Ok(snapshot);

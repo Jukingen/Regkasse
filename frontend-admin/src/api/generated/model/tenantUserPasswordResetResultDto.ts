@@ -11,11 +11,9 @@ export interface TenantUserPasswordResetResultDto {
   deliveryNote?: string | null;
   /** @nullable */
   email?: string | null;
-  emailSent?: boolean;
   forcePasswordChangeOnNextLogin?: boolean;
   /** @nullable */
   generatedPassword?: string | null;
-  smtpConfigured?: boolean;
   /** @nullable */
   userId?: string | null;
 }

@@ -168,7 +168,10 @@ namespace KasseAPI_Final.Controllers
                         user.Id, string.Join("; ", updateResult.Errors.Select(e => e.Description)));
                 }
 
-                var tenantAccess = await _authService.ResolveLoginTenantAccessAsync(user.Id, authCt);
+                var tenantAccess = await _authService.ResolveLoginTenantAccessAsync(
+                    user.Id,
+                    string.Equals(canonicalRole, Roles.SuperAdmin, StringComparison.Ordinal),
+                    authCt);
                 if (!tenantAccess.Allowed)
                 {
                     return BadRequest(new

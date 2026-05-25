@@ -12,4 +12,5 @@ isActive?: boolean;
 type?: string;
 scope?: string;
 tenantId?: string;
+search?: string;
 };

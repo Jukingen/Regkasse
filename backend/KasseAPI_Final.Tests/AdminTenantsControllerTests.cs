@@ -18,13 +18,13 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class AdminTenantsControllerTests
 {
-    private static AppDbContext CreateDb()
+    private static AppDbContext CreateDb(ICurrentTenantAccessor? tenantAccessor = null)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"AdminTenants_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        return new AppDbContext(options, tenantAccessor ?? NullCurrentTenantAccessor.Instance);
     }
 
     private static UserManager<ApplicationUser> CreateUserManagerStub()
@@ -298,6 +298,89 @@ public sealed class AdminTenantsControllerTests
     }
 
     [Fact]
+    public async Task ListAsync_Ignores_Ambient_Tenant_Filter_For_Owner_Admin_Email()
+    {
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = DemoTenantIds.Dev };
+        await using var db = CreateDb(tenantAccessor);
+        var barId = Guid.NewGuid();
+        var cafeId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = barId,
+            Name = "Test Bar",
+            Slug = "bar",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = cafeId,
+            Name = "Test Cafe",
+            Slug = "cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Dev,
+            Name = "Development",
+            Slug = "dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.AddRange(
+            new ApplicationUser
+            {
+                Id = "owner-bar",
+                UserName = "admin@bar.regkasse.at",
+                Email = "admin@bar.regkasse.at",
+                FirstName = "Bar",
+                LastName = "Owner",
+                Role = Roles.Manager,
+                IsActive = true,
+                EmailConfirmed = true,
+            },
+            new ApplicationUser
+            {
+                Id = "owner-cafe",
+                UserName = "admin@cafe.regkasse.at",
+                Email = "admin@cafe.regkasse.at",
+                FirstName = "Cafe",
+                LastName = "Owner",
+                Role = Roles.Manager,
+                IsActive = true,
+                EmailConfirmed = true,
+            });
+        db.UserTenantMemberships.AddRange(
+            new UserTenantMembership
+            {
+                UserId = "owner-bar",
+                TenantId = barId,
+                IsActive = true,
+                IsOwner = true,
+                CreatedAtUtc = DateTime.UtcNow,
+            },
+            new UserTenantMembership
+            {
+                UserId = "owner-cafe",
+                TenantId = cafeId,
+                IsActive = true,
+                IsOwner = true,
+                CreatedAtUtc = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var list = await service.ListAsync(false);
+
+        Assert.Equal("admin@bar.regkasse.at", list.Single(x => x.Slug == "bar").OwnerAdminEmail);
+        Assert.Equal("admin@cafe.regkasse.at", list.Single(x => x.Slug == "cafe").OwnerAdminEmail);
+    }
+
+    [Fact]
     public async Task ListForSwitcherAsync_Filters_To_Active_Memberships_For_Non_SuperAdmin()
     {
         await using var db = CreateDb();
@@ -486,6 +569,49 @@ public sealed class AdminTenantsControllerTests
         Assert.Equal(1, detail!.ActiveUserCount);
         Assert.Equal(1, detail.CashRegisterCount);
         Assert.NotNull(detail.LastActivityAtUtc);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_Ignores_Ambient_Tenant_Filter_For_Owner_Admin_Email()
+    {
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = DemoTenantIds.Dev };
+        await using var db = CreateDb(tenantAccessor);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "owner-1",
+            UserName = "admin@cafe.regkasse.at",
+            Email = "admin@cafe.regkasse.at",
+            FirstName = "Cafe",
+            LastName = "Owner",
+            Role = Roles.Manager,
+            IsActive = true,
+            EmailConfirmed = true,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = "owner-1",
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var detail = await service.GetByIdAsync(tenantId);
+
+        Assert.NotNull(detail);
+        Assert.Equal("admin@cafe.regkasse.at", detail!.OwnerAdminEmail);
     }
 
     [Fact]

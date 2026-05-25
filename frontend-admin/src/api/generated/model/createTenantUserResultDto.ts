@@ -12,6 +12,8 @@ export interface CreateTenantUserResultDto {
   forcePasswordChangeOnNextLogin?: boolean;
   /** @nullable */
   generatedPassword?: string | null;
+  /** @nullable */
+  role?: string | null;
   success?: boolean;
   /** @nullable */
   tenantPortalUrl?: string | null;

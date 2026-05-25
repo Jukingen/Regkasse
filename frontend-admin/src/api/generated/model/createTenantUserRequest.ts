@@ -12,7 +12,17 @@ export interface CreateTenantUserRequest {
    * @maxLength 256
    */
   email: string;
+  /**
+   * @maxLength 50
+   * @nullable
+   */
+  firstName?: string | null;
   isOwner?: boolean;
+  /**
+   * @maxLength 50
+   * @nullable
+   */
+  lastName?: string | null;
   /**
    * @minLength 1
    * @maxLength 64

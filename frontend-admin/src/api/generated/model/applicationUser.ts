@@ -10,6 +10,7 @@ import type { CashRegister } from './cashRegister';
 import type { InventoryTransaction } from './inventoryTransaction';
 import type { Order } from './order';
 import type { CashRegisterTransaction } from './cashRegisterTransaction';
+import type { UserTenantMembership } from './userTenantMembership';
 
 export interface ApplicationUser {
   accessFailedCount?: number;
@@ -109,4 +110,6 @@ export interface ApplicationUser {
   updatedAt?: string | null;
   /** @nullable */
   userName?: string | null;
+  /** @nullable */
+  userTenantMemberships?: UserTenantMembership[] | null;
 }

@@ -8,6 +8,41 @@
     "trial": "Trial",
     "expired": "Expired"
   },
+  "phase": {
+    "labels": {
+      "active": "Active",
+      "graceWrite": "Grace phase: write allowed",
+      "graceReadonly": "Grace phase: read-only",
+      "lockdown": "Lockdown",
+      "expired": "Expired",
+      "noLicense": "No license"
+    },
+    "daysRemaining": "{{days}} days remaining",
+    "daysExpired": "Expired for {{days}} day(s)",
+    "capabilities": {
+      "write": "Write allowed",
+      "manageUsers": "User management allowed",
+      "access": "Access allowed"
+    },
+    "messages": {
+      "tenant": {
+        "active": "The tenant license is active. Write access, user management, and general access are enabled.",
+        "graceWrite": "The tenant license expired {{days}} day(s) ago. Writing is still allowed, but renewal is now due.",
+        "graceReadonly": "The tenant license expired {{days}} day(s) ago. Write operations are blocked, while read access and user management remain available.",
+        "lockdown": "The tenant license expired {{days}} day(s) ago. The tenant is now in lockdown.",
+        "expired": "The tenant license expired {{days}} day(s) ago.",
+        "noLicense": "No license is stored for this tenant."
+      },
+      "deployment": {
+        "active": "The deployment license is active. Write access and general access are enabled.",
+        "graceWrite": "The deployment license expired {{days}} day(s) ago. Write operations are still allowed, but renewal is now due.",
+        "graceReadonly": "The deployment license expired {{days}} day(s) ago. The deployment is now in read-only mode.",
+        "lockdown": "The deployment license expired {{days}} day(s) ago. The deployment is now in lockdown.",
+        "expired": "The deployment license expired {{days}} day(s) ago.",
+        "noLicense": "No license is stored for this deployment."
+      }
+    }
+  },
   "badge": {
     "loading": "License status…",
     "headerShort": {
@@ -72,15 +107,29 @@
     }
   },
   "banner": {
-    "warning": {
-      "title": "License expiring soon",
-      "message": "Your license expires in {{days}} day(s). Please renew in time to avoid payment outages.",
-      "messageWithDate": "Your license expires in {{days}} day(s) ({{date}}). Please renew in time."
+    "tenant": {
+      "expired": {
+        "title": "Tenant license expired",
+        "message": "Your license expired {{days}} day(s) ago. New sales are disabled. You can still review reports and export data."
+      },
+      "grace": {
+        "title": "Tenant license expired - grace period",
+        "message": "Your license expired {{days}} day(s) ago. Please renew it within the next {{remaining}} day(s) to keep sales enabled."
+      }
     },
-    "expired": {
-      "title": "License expired",
-      "message": "Payment creation is blocked. Please contact support to renew the license.",
-      "messageWithDate": "Expired on {{date}}. Payment creation is blocked — please contact support."
+    "deployment": {
+      "expired": {
+        "title": "Server license expired",
+        "message": "The server license expired {{days}} day(s) ago. Admin write operations are restricted, but reports remain available."
+      },
+      "grace": {
+        "title": "Server license expired - grace period",
+        "message": "The server license expired {{days}} day(s) ago. Please renew it within the next {{remaining}} day(s) before more write operations are disabled."
+      }
+    },
+    "actions": {
+      "renewTenant": "Renew tenant license",
+      "openDeployment": "Open server license"
     }
   },
   "trialDays": "Trial days remaining",
@@ -328,7 +377,18 @@
   },
   "dashboard": {
     "sectionTitle": "Licenses (overview)",
-    "sectionSubtitle": "Issued-license metrics, activation trend, and latest events (audit + activations).",
+    "sectionSubtitle": "Tenant and deployment license metrics, activation trend, and latest events (audit + activations).",
+    "statGroupOwnTenant": "Your tenant license",
+    "statGroupTenant": "Tenant license (tenants)",
+    "statGroupTenantSaas": "Tenant license (SaaS)",
+    "statGroupDeployment": "Deployment licenses (issued_licenses)",
+    "statGroupDeploymentOnPrem": "Deployment licenses (on-premise)",
+    "statTenantActive": "Active",
+    "statTenantExpiring30": "Expiring (30 days)",
+    "statTenantExpired": "Expired",
+    "statDeploymentActive": "Active",
+    "statDeploymentExpiring30": "Expiring (30 days)",
+    "statDeploymentExpired": "Expired",
     "statActive": "Active licenses",
     "statExpiring30": "Expiring (30 days)",
     "statExpired": "Expired",

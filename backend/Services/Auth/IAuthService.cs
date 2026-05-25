@@ -11,6 +11,7 @@ public interface IAuthService
     /// </summary>
     Task<LoginTenantAccessResult> ResolveLoginTenantAccessAsync(
         string userId,
+        bool isSuperAdmin,
         CancellationToken cancellationToken = default);
 }
 

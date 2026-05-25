@@ -24,6 +24,7 @@ export function useCreateCashRegister(options: UseCreateCashRegisterOptions = {}
         mutationFn: (body: CreateCashRegisterRequest) => createCashRegister(body),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: cashRegisterListQueryKey });
+            void queryClient.invalidateQueries({ queryKey: ['admin', 'cash-registers', 'list'] });
             void queryClient.invalidateQueries({ queryKey: getGetApiCashRegisterQueryKey() });
             message.success(t('cashRegisters.create.success'));
             onSuccess?.();

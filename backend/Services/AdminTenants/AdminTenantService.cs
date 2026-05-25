@@ -66,6 +66,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
 
         var tenantIds = tenants.Select(t => t.Id).ToList();
         var ownerRows = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(m => tenantIds.Contains(m.TenantId) && m.IsActive && m.IsOwner)
             .Join(
@@ -167,6 +168,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .ConfigureAwait(false);
 
         var ownerEmail = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(m => m.TenantId == tenantId && m.IsActive && m.IsOwner)
             .Join(

@@ -8,35 +8,40 @@
 
 export interface AdminCreateUserRequest {
   /**
+   * @minLength 1
    * @maxLength 256
-   * @nullable
    */
-  email?: string | null;
+  email: string;
   /**
    * @maxLength 20
    * @nullable
    */
   employeeNumber?: string | null;
   /**
-   * @minLength 1
    * @maxLength 50
+   * @nullable
    */
-  firstName: string;
+  firstName?: string | null;
+  isOwner?: boolean;
   /**
-   * @minLength 1
    * @maxLength 50
+   * @nullable
    */
-  lastName: string;
+  lastName?: string | null;
   /**
    * @maxLength 500
    * @nullable
    */
   notes?: string | null;
-  /** @minLength 8 */
-  password: string;
+  /**
+   * @minLength 8
+   * @maxLength 128
+   * @nullable
+   */
+  password?: string | null;
   /**
    * @minLength 1
-   * @maxLength 20
+   * @maxLength 64
    */
   role: string;
   /**
@@ -44,9 +49,11 @@ export interface AdminCreateUserRequest {
    * @nullable
    */
   taxNumber?: string | null;
+  /** @nullable */
+  tenantId?: string | null;
   /**
-   * @minLength 1
    * @maxLength 50
+   * @nullable
    */
-  userName: string;
+  userName?: string | null;
 }
