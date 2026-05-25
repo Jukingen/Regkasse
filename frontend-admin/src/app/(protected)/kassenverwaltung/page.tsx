@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Alert, Button, Card, Checkbox, Space, Typography, message } from 'antd';
+import { Alert, Button, Card, Checkbox, Empty, Space, Tag, Typography, message } from 'antd';
 import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,21 +18,25 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { normalizeCashRegisterList } from '@/features/cash-registers/normalizers';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
+import { CashRegisterTenantSelector } from '@/features/cash-registers/components/CashRegisterTenantSelector';
 import { CreateCashRegisterModal } from '@/features/cash-registers/components/CreateCashRegisterModal';
 import { DecommissionModal } from '@/features/cash-registers/components/DecommissionModal';
 import { CashRegisterDetailDrawer } from '@/features/cash-registers/components/CashRegisterDetailDrawer';
 import { CashRegisterHardDeleteModal } from '@/features/cash-registers/components/CashRegisterHardDeleteModal';
 import {
+    type AdminCashRegisterListItem,
     cashRegisterListQueryKey,
     decommissionCashRegister,
     getCashRegisterCapabilities,
     hardDeleteCashRegister,
 } from '@/features/cash-registers/api/cashRegisters';
+import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import {
     canDecommissionRegister,
     isDecommissionedRegister,
     rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
+import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
     FA_QUICK_CASH_REGISTER_QUERY_PARAM,
@@ -42,6 +46,14 @@ import {
 import styles from './kassenverwaltung.module.css';
 
 const CAPABILITIES_QUERY_KEY = ['admin', 'cash-registers', 'capabilities'] as const;
+
+type CashRegisterViewItem = CashRegister & {
+    tenantId?: string | null;
+};
+
+function toCashRegisterViewItem(row: AdminCashRegisterListItem): CashRegisterViewItem {
+    return row as unknown as CashRegisterViewItem;
+}
 
 export default function KassenverwaltungPage() {
     const { t } = useI18n();
@@ -61,6 +73,7 @@ export default function KassenverwaltungPage() {
     const canDecommission = canDecommissionCashRegisters;
     const canHardDelete = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
+    const [selectedTenantId, setSelectedTenantId] = useState<string>();
     const [showDecommissioned, setShowDecommissioned] = useState(false);
     const [detailRegister, setDetailRegister] = useState<CashRegister | null>(null);
     const [decommissionRegister, setDecommissionRegister] = useState<CashRegister | null>(null);
@@ -68,6 +81,15 @@ export default function KassenverwaltungPage() {
     const [decommissionReason, setDecommissionReason] = useState('');
     const [hardDeleteConfirm, setHardDeleteConfirm] = useState('');
     const [createOpen, setCreateOpen] = useState(false);
+
+    const { tenants, isLoading: tenantsLoading } = useTenantList({
+        enabled: canView && isSuperAdminUser,
+    });
+
+    const selectedTenant = useMemo(
+        () => tenants.find((row) => row.id === selectedTenantId) ?? null,
+        [selectedTenantId, tenants],
+    );
 
     const capabilitiesQuery = useQuery({
         queryKey: CAPABILITIES_QUERY_KEY,
@@ -79,15 +101,25 @@ export default function KassenverwaltungPage() {
     const allowHardDeleteUi =
         canHardDelete && (capabilitiesQuery.data?.allowHardDelete ?? false);
 
-    const registersQuery = useQuery({
+    const tenantRegistersQuery = useQuery({
         queryKey: cashRegisterListQueryKey,
         queryFn: () => getApiCashRegister(),
-        enabled: canView,
+        enabled: canView && !isSuperAdminUser,
+    });
+
+    const adminRegistersQuery = useAdminCashRegisterList({
+        tenantId: selectedTenantId,
+        allowAllTenants: isSuperAdminUser && !selectedTenantId,
+        enabled: canView && isSuperAdminUser,
+        excludeDecommissioned: false,
     });
 
     const allRegisters = useMemo(
-        () => normalizeCashRegisterList(registersQuery.data),
-        [registersQuery.data],
+        (): CashRegisterViewItem[] =>
+            isSuperAdminUser
+                ? adminRegistersQuery.registers.map(toCashRegisterViewItem)
+                : (normalizeCashRegisterList(tenantRegistersQuery.data) as CashRegisterViewItem[]),
+        [adminRegistersQuery.registers, isSuperAdminUser, tenantRegistersQuery.data],
     );
 
     const visibleRegisters = useMemo(() => {
@@ -99,6 +131,52 @@ export default function KassenverwaltungPage() {
         () => allRegisters.filter((r) => isDecommissionedRegister(rawRegisterStatus(r))).length,
         [allRegisters],
     );
+
+    const groupedRegisters = useMemo(() => {
+        if (!isSuperAdminUser || selectedTenantId || visibleRegisters.length === 0) {
+            return [];
+        }
+
+        const groups = new Map<string, CashRegisterViewItem[]>();
+        for (const register of visibleRegisters) {
+            const tenantKey = register.tenantId?.trim() || '__unknown__';
+            const existing = groups.get(tenantKey);
+            if (existing) {
+                existing.push(register);
+            } else {
+                groups.set(tenantKey, [register]);
+            }
+        }
+
+        return Array.from(groups.entries())
+            .map(([tenantKey, registers]) => ({
+                tenantId: tenantKey === '__unknown__' ? null : tenantKey,
+                tenant:
+                    tenantKey === '__unknown__'
+                        ? null
+                        : tenants.find((row) => row.id === tenantKey) ?? null,
+                tenantName: registers[0]?.tenantName?.trim() || null,
+                tenantSlug: registers[0]?.tenantSlug?.trim() || null,
+                registers,
+            }))
+            .sort((a, b) =>
+                (a.tenant?.name ?? a.tenantId ?? '').localeCompare(
+                    b.tenant?.name ?? b.tenantId ?? '',
+                    'de',
+                ),
+            );
+    }, [isSuperAdminUser, selectedTenantId, tenants, visibleRegisters]);
+
+    const registersLoading = isSuperAdminUser
+        ? adminRegistersQuery.isLoading
+        : tenantRegistersQuery.isLoading;
+    const registersFetching = isSuperAdminUser
+        ? adminRegistersQuery.isFetching
+        : tenantRegistersQuery.isFetching;
+    const registersError = isSuperAdminUser
+        ? adminRegistersQuery.error != null
+        : tenantRegistersQuery.isError;
+    const showGroupedTenantView = isSuperAdminUser && !selectedTenantId;
 
     useEffect(() => {
         if (deepLinkHandledRef.current || allRegisters.length === 0) {
@@ -141,7 +219,10 @@ export default function KassenverwaltungPage() {
     );
 
     const invalidateRegisters = useCallback(async () => {
-        await queryClient.invalidateQueries({ queryKey: cashRegisterListQueryKey });
+        await Promise.all([
+            queryClient.invalidateQueries({ queryKey: cashRegisterListQueryKey }),
+            queryClient.invalidateQueries({ queryKey: ['admin', 'cash-registers', 'list'] }),
+        ]);
     }, [queryClient]);
 
     const decommissionMutation = useMutation({
@@ -183,7 +264,7 @@ export default function KassenverwaltungPage() {
         },
     });
 
-    const submitDecommission = useCallback(() => {
+    const submitDecommission = useCallback((nextReason?: string) => {
         const reg = decommissionRegister;
         const id = reg?.id?.trim();
         if (!id) return;
@@ -193,7 +274,7 @@ export default function KassenverwaltungPage() {
         }
         decommissionMutation.mutate({
             id,
-            reason: decommissionReason.trim() || 'Kassenverwaltung Stilllegung',
+            reason: nextReason?.trim() || decommissionReason.trim() || 'Kassenverwaltung Stilllegung',
         });
     }, [decommissionRegister, decommissionReason, decommissionMutation, t]);
 
@@ -235,8 +316,12 @@ export default function KassenverwaltungPage() {
                 <Space style={{ marginBottom: 16 }} wrap align="center">
                     <Button
                         icon={<ReloadOutlined />}
-                        onClick={() => registersQuery.refetch()}
-                        loading={registersQuery.isFetching}
+                        onClick={() =>
+                            void (isSuperAdminUser
+                                ? adminRegistersQuery.refetch()
+                                : tenantRegistersQuery.refetch())
+                        }
+                        loading={registersFetching}
                     >
                         {t('cashRegisters.actions.refresh')}
                     </Button>
@@ -265,7 +350,22 @@ export default function KassenverwaltungPage() {
                     ) : null}
                 </Space>
 
-                {registersQuery.isError ? (
+                {isSuperAdminUser ? (
+                    <Space style={{ marginBottom: 16 }} wrap align="center">
+                        <Typography.Text>{t('cashRegisters.adminPage.selectTenant')}:</Typography.Text>
+                        <CashRegisterTenantSelector
+                            value={selectedTenantId}
+                            onChange={setSelectedTenantId}
+                            tenants={tenants}
+                            loading={tenantsLoading}
+                        />
+                        <Tag color={selectedTenant ? 'default' : 'blue'}>
+                            {selectedTenant?.slug ?? 'Super Admin'}
+                        </Tag>
+                    </Space>
+                ) : null}
+
+                {registersError ? (
                     <Alert
                         type="error"
                         showIcon
@@ -274,25 +374,77 @@ export default function KassenverwaltungPage() {
                     />
                 ) : null}
 
-                <CashRegisterTable
-                    registers={visibleRegisters}
-                    loading={registersQuery.isLoading}
-                    canCreate={canCreate}
-                    canManage={canCreate}
-                    totalRegisterCount={allRegisters.length}
-                    canDecommission={canDecommission}
-                    statusLabel={statusLabel}
-                    rowClassName={(record) =>
-                        isDecommissionedRegister(rawRegisterStatus(record))
-                            ? styles.decommissionedRow
-                            : ''
-                    }
-                    onEdit={setDetailRegister}
-                    onDecommission={(record) => {
-                        setDecommissionReason('');
-                        setDecommissionRegister(record);
-                    }}
-                />
+                {!registersError && showGroupedTenantView ? (
+                    visibleRegisters.length === 0 ? (
+                        <Empty
+                            description={
+                                allRegisters.length === 0
+                                    ? canCreate
+                                        ? t('cashRegisters.emptyCanCreate')
+                                        : t('cashRegisters.emptyContactAdmin')
+                                    : t('cashRegisters.empty')
+                            }
+                        />
+                    ) : (
+                        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                            {groupedRegisters.map((group) => (
+                                <div key={group.tenantId ?? 'unknown-tenant'}>
+                                    <Space
+                                        wrap
+                                        align="center"
+                                        style={{ marginBottom: 12, width: '100%' }}
+                                    >
+                                        <Typography.Title level={5} style={{ margin: 0 }}>
+                                            {group.tenant?.name ?? group.tenantName ?? group.tenantId ?? '—'}
+                                        </Typography.Title>
+                                        {group.tenant?.slug || group.tenantSlug ? (
+                                            <Tag>{group.tenant?.slug ?? group.tenantSlug}</Tag>
+                                        ) : null}
+                                    </Space>
+                                    <CashRegisterTable
+                                        registers={group.registers}
+                                        loading={registersLoading}
+                                        canCreate={canCreate}
+                                        canManage={canCreate}
+                                        totalRegisterCount={group.registers.length}
+                                        canDecommission={canDecommission}
+                                        statusLabel={statusLabel}
+                                        rowClassName={(record) =>
+                                            isDecommissionedRegister(rawRegisterStatus(record))
+                                                ? styles.decommissionedRow
+                                                : ''
+                                        }
+                                        onEdit={setDetailRegister}
+                                        onDecommission={(record) => {
+                                            setDecommissionReason('');
+                                            setDecommissionRegister(record);
+                                        }}
+                                    />
+                                </div>
+                            ))}
+                        </Space>
+                    )
+                ) : !registersError ? (
+                    <CashRegisterTable
+                        registers={visibleRegisters}
+                        loading={registersLoading}
+                        canCreate={canCreate}
+                        canManage={canCreate}
+                        totalRegisterCount={allRegisters.length}
+                        canDecommission={canDecommission}
+                        statusLabel={statusLabel}
+                        rowClassName={(record) =>
+                            isDecommissionedRegister(rawRegisterStatus(record))
+                                ? styles.decommissionedRow
+                                : ''
+                        }
+                        onEdit={setDetailRegister}
+                        onDecommission={(record) => {
+                            setDecommissionReason('');
+                            setDecommissionRegister(record);
+                        }}
+                    />
+                ) : null}
             </Card>
 
             <CashRegisterDetailDrawer
@@ -313,7 +465,7 @@ export default function KassenverwaltungPage() {
 
             <CreateCashRegisterModal
                 visible={createOpen}
-                tenantId={!isSuperAdminUser ? (tenantId ?? undefined) : undefined}
+                tenantId={isSuperAdminUser ? selectedTenantId : (tenantId ?? undefined)}
                 onClose={closeCreateModal}
             />
 

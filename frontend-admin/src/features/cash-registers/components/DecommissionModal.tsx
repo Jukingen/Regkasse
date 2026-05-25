@@ -1,7 +1,9 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { Alert, Input, Modal, Typography } from 'antd';
+import { Alert, Button, Checkbox, Form, Input, Modal, Space, Typography } from 'antd';
+import { StopOutlined } from '@ant-design/icons';
 import type { CashRegister } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
 import { canDecommissionRegister, rawRegisterStatus } from '@/features/cash-registers/utils/registerStatus';
@@ -12,7 +14,7 @@ export type DecommissionModalProps = {
     reason: string;
     onReasonChange: (value: string) => void;
     onCancel: () => void;
-    onConfirm: () => void;
+    onConfirm: (reason?: string) => void;
     confirmLoading?: boolean;
 };
 
@@ -26,22 +28,61 @@ export function DecommissionModal({
     confirmLoading,
 }: DecommissionModalProps) {
     const { t } = useI18n();
+    const [form] = Form.useForm<{ reason?: string; confirm?: boolean }>();
     const status = register ? rawRegisterStatus(register) : undefined;
     const canProceed = canDecommissionRegister(status);
     const name = register?.location?.trim() || '—';
     const number = register?.registerNumber?.trim() || '—';
 
+    React.useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        form.setFieldsValue({
+            reason,
+            confirm: false,
+        });
+    }, [form, open, reason]);
+
+    const handleCancel = () => {
+        form.resetFields();
+        onCancel();
+    };
+
+    const handleSubmit = (values: { reason?: string; confirm?: boolean }) => {
+        const nextReason = values.reason?.trim() ?? '';
+        onReasonChange(nextReason);
+        onConfirm(nextReason);
+    };
+
     return (
         <Modal
-            title={t('cashRegisters.decommission.modalTitle')}
+            title={
+                <Space>
+                    <StopOutlined style={{ color: '#ff4d4f' }} />
+                    <span>{t('cashRegisters.decommission.modalTitleWithNumber', { number })}</span>
+                </Space>
+            }
             open={open}
-            onCancel={onCancel}
-            onOk={onConfirm}
-            okText={t('cashRegisters.decommission.confirm')}
-            cancelText={t('cashRegisters.decommission.cancel')}
-            okButtonProps={{ danger: true, loading: confirmLoading, disabled: !canProceed }}
+            onCancel={handleCancel}
+            footer={[
+                <Button key="cancel" onClick={handleCancel}>
+                    {t('cashRegisters.decommission.cancel')}
+                </Button>,
+                <Button
+                    key="submit"
+                    type="primary"
+                    danger
+                    loading={confirmLoading}
+                    disabled={!canProceed}
+                    onClick={() => form.submit()}
+                >
+                    {t('cashRegisters.decommission.confirm')}
+                </Button>,
+            ]}
             destroyOnClose
-            width={560}
+            width={500}
         >
             <Typography.Paragraph strong style={{ marginBottom: 16 }}>
                 {t('cashRegisters.decommission.registerLine', { name, number })}
@@ -56,18 +97,19 @@ export function DecommissionModal({
                 />
             ) : null}
 
-            <Typography.Text strong>{t('cashRegisters.decommission.warningTitle')}</Typography.Text>
-            <ul style={{ marginTop: 8, marginBottom: 16, paddingLeft: 20 }}>
-                <li>{t('cashRegisters.decommission.warningNoPayments')}</li>
-                <li>{t('cashRegisters.decommission.warningRetention')}</li>
-                <li>{t('cashRegisters.decommission.warningNoRestore')}</li>
-            </ul>
-
             <Alert
-                type="info"
+                type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={t('cashRegisters.decommission.schlussbelegFlow')}
+                message={t('cashRegisters.decommission.irreversibleWarning')}
+                description={
+                    <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                        <li>{t('cashRegisters.decommission.warningNoPayments')}</li>
+                        <li>{t('cashRegisters.decommission.warningAutoReceipt')}</li>
+                        <li>{t('cashRegisters.decommission.warningNoRestore')}</li>
+                        <li>{t('cashRegisters.decommission.warningRetention')}</li>
+                    </ul>
+                }
             />
             <Alert
                 type="info"
@@ -83,16 +125,48 @@ export function DecommissionModal({
                 }
             />
 
-            <Typography.Text>{t('cashRegisters.decommission.reasonLabel')}</Typography.Text>
-            <Input.TextArea
-                rows={3}
-                value={reason}
-                onChange={(e) => onReasonChange(e.target.value)}
-                placeholder={t('cashRegisters.decommission.reasonPlaceholder')}
-                maxLength={450}
-                style={{ marginTop: 8 }}
-                disabled={!canProceed}
-            />
+            <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSubmit}
+                onValuesChange={(changedValues) => {
+                    if (typeof changedValues.reason === 'string') {
+                        onReasonChange(changedValues.reason);
+                    }
+                }}
+            >
+                <Form.Item
+                    name="reason"
+                    label={t('cashRegisters.decommission.reasonLabel')}
+                    tooltip={t('cashRegisters.decommission.reasonTooltip')}
+                >
+                    <Input.TextArea
+                        rows={3}
+                        placeholder={t('cashRegisters.decommission.reasonPlaceholder')}
+                        maxLength={450}
+                        disabled={!canProceed}
+                    />
+                </Form.Item>
+
+                <Form.Item
+                    name="confirm"
+                    valuePropName="checked"
+                    rules={[
+                        {
+                            validator: async (_, value) => {
+                                if (value) {
+                                    return;
+                                }
+                                throw new Error(t('cashRegisters.decommission.confirmRequired'));
+                            },
+                        },
+                    ]}
+                >
+                    <Checkbox disabled={!canProceed}>
+                        {t('cashRegisters.decommission.confirmCheckbox')}
+                    </Checkbox>
+                </Form.Item>
+            </Form>
         </Modal>
     );
 }

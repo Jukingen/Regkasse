@@ -96,6 +96,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
 
     public async Task<PagedResult<CashRegisterDto>> ListAsync(
         Guid? tenantIdFilter,
+        string? excludeStatus,
         bool actorIsSuperAdmin,
         int page,
         int pageSize,
@@ -106,8 +107,11 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
 
         var query = await BuildAuthorizedListQueryAsync(tenantIdFilter, actorIsSuperAdmin, cancellationToken)
             .ConfigureAwait(false);
+        query = ApplyExcludeStatusFilter(query, excludeStatus);
 
-        var ordered = query.OrderBy(r => r.RegisterNumber);
+        var ordered = query
+            .OrderBy(r => r.Tenant != null ? r.Tenant.Name : string.Empty)
+            .ThenBy(r => r.RegisterNumber);
         var totalCount = await ordered.CountAsync(cancellationToken).ConfigureAwait(false);
         var items = await ordered
             .Skip((page - 1) * pageSize)
@@ -240,7 +244,10 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         bool actorIsSuperAdmin,
         CancellationToken cancellationToken)
     {
-        var query = _db.CashRegisters.IgnoreQueryFilters().AsNoTracking();
+        var query = _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Include(r => r.Tenant);
 
         if (actorIsSuperAdmin)
         {
@@ -276,6 +283,30 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         }
 
         return query.Where(r => r.TenantId == effectiveTenantId);
+    }
+
+    private static IQueryable<CashRegister> ApplyExcludeStatusFilter(
+        IQueryable<CashRegister> query,
+        string? excludeStatus)
+    {
+        if (string.IsNullOrWhiteSpace(excludeStatus))
+            return query;
+
+        var normalized = excludeStatus.Trim();
+
+        if (Enum.TryParse<RegisterStatus>(normalized, ignoreCase: true, out var parsedStatus))
+        {
+            return query.Where(r => r.Status != parsedStatus);
+        }
+
+        if (int.TryParse(normalized, out var numericStatus)
+            && Enum.IsDefined(typeof(RegisterStatus), numericStatus))
+        {
+            var parsedNumericStatus = (RegisterStatus)numericStatus;
+            return query.Where(r => r.Status != parsedNumericStatus);
+        }
+
+        throw new ArgumentException($"Unknown register status '{excludeStatus}'.", nameof(excludeStatus));
     }
 
     private async Task EnsureCanAccessTenantAsync(
@@ -416,6 +447,8 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         {
             Id = register.Id,
             TenantId = register.TenantId,
+            TenantName = register.Tenant?.Name,
+            TenantSlug = register.Tenant?.Slug,
             RegisterNumber = register.RegisterNumber,
             Location = register.Location,
             Status = register.Status,

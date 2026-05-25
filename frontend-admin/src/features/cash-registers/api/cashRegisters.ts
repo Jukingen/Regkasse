@@ -39,10 +39,22 @@ export const cashRegisterListQueryKey = ['cash-registers'] as const;
 export type AdminCashRegisterListItem = {
     id: string;
     tenantId: string;
+    tenantName?: string | null;
+    tenantSlug?: string | null;
     registerNumber: string;
     location: string;
     status: number;
+    startingBalance?: number;
+    currentBalance?: number;
+    lastBalanceUpdate?: string;
+    currentUserId?: string | null;
     isActive?: boolean;
+    decommissionedAtUtc?: string | null;
+    decommissionReason?: string | null;
+    createdAt?: string;
+    createdBy?: string | null;
+    updatedAt?: string | null;
+    updatedBy?: string | null;
 };
 
 export type AdminCashRegisterPagedResult = {
@@ -55,12 +67,20 @@ export type AdminCashRegisterPagedResult = {
 
 export type ListAdminCashRegistersParams = {
     tenantId?: string;
+    excludeStatus?: string;
     page?: number;
     pageSize?: number;
 };
 
 export const adminCashRegisterListQueryKey = (params?: ListAdminCashRegistersParams) =>
-    ['admin', 'cash-registers', 'list', params?.tenantId ?? '__all__', params?.pageSize ?? 100] as const;
+    [
+        'admin',
+        'cash-registers',
+        'list',
+        params?.tenantId ?? '__all__',
+        params?.excludeStatus ?? '__none__',
+        params?.pageSize ?? 100,
+    ] as const;
 
 export async function listAdminCashRegisters(
     params?: ListAdminCashRegistersParams,
@@ -76,6 +96,7 @@ export async function listAdminCashRegisters(
         method: 'GET',
         params: {
             tenantId: params?.tenantId,
+            excludeStatus: params?.excludeStatus,
             page: params?.page ?? 1,
             pageSize: params?.pageSize ?? 100,
         },

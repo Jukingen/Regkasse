@@ -5,14 +5,30 @@ import {
     Alert,
     Button,
     Card,
-    Checkbox,
+    Col,
     Empty,
+    Input,
+    Row,
     Select,
+    Segmented,
     Space,
+    Statistic,
+    Switch,
     Typography,
     message,
 } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+    AppstoreOutlined,
+    BarsOutlined,
+    CheckCircleOutlined,
+    ExportOutlined,
+    LockOutlined,
+    PlusOutlined,
+    ReloadOutlined,
+    ShopOutlined,
+    StopOutlined,
+    ToolOutlined,
+} from '@ant-design/icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +44,7 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { CashRegisterSelector } from '@/features/cash-registers/components/CashRegisterSelector';
+import { CashRegisterGrid } from '@/features/cash-registers/components/CashRegisterGrid';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import { CreateCashRegisterModal } from '@/features/cash-registers/components/CreateCashRegisterModal';
 import { DecommissionModal } from '@/features/cash-registers/components/DecommissionModal';
@@ -46,13 +63,54 @@ import {
     canDecommissionRegister,
     isDecommissionedRegister,
     rawRegisterStatus,
+    REGISTER_STATUS,
 } from '@/features/cash-registers/utils/registerStatus';
+import { filterCashRegisters } from '@/features/cash-registers/utils/filterRegisters';
 import styles from '@/app/(protected)/kassenverwaltung/kassenverwaltung.module.css';
+import pageStyles from './cash-registers.module.css';
 
 const CAPABILITIES_QUERY_KEY = ['admin', 'cash-registers', 'capabilities'] as const;
 
+const STATS_CARD_BASE_STYLE: React.CSSProperties = {
+    height: '100%',
+    textAlign: 'center',
+};
+
+function statsAccentCardStyle(color?: string): React.CSSProperties {
+    if (!color) {
+        return STATS_CARD_BASE_STYLE;
+    }
+
+    return {
+        ...STATS_CARD_BASE_STYLE,
+        borderInlineStart: `4px solid ${color}`,
+    };
+}
+
 function toCashRegister(row: AdminCashRegisterListItem): CashRegister {
     return row as unknown as CashRegister;
+}
+
+function toCsvCell(value: string): string {
+    return `"${value.replace(/"/g, '""')}"`;
+}
+
+function downloadCsv(filename: string, content: string): void {
+    if (typeof globalThis.window === 'undefined') {
+        return;
+    }
+
+    const blob = new globalThis.Blob([`\uFEFF${content}`], {
+        type: 'text/csv;charset=utf-8;',
+    });
+    const url = globalThis.URL.createObjectURL(blob);
+    const link = globalThis.document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    globalThis.document.body.appendChild(link);
+    link.click();
+    link.remove();
+    globalThis.URL.revokeObjectURL(url);
 }
 
 export default function AdminCashRegistersPage() {
@@ -75,6 +133,9 @@ export default function AdminCashRegistersPage() {
     const canHardDelete = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
 
     const [selectedTenantId, setSelectedTenantId] = useState<string>();
+    const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+    const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState<number | undefined>();
     const [showDecommissioned, setShowDecommissioned] = useState(false);
     const [detailRegister, setDetailRegister] = useState<CashRegister | null>(null);
     const [decommissionRegister, setDecommissionRegister] = useState<CashRegister | null>(null);
@@ -96,6 +157,11 @@ export default function AdminCashRegistersPage() {
         [tenants, t],
     );
 
+    const selectedTenant = useMemo(
+        () => tenants.find((row) => row.id === selectedTenantId) ?? null,
+        [selectedTenantId, tenants],
+    );
+
     const {
         registers: tenantRegisters,
         isLoading: registersLoading,
@@ -112,17 +178,54 @@ export default function AdminCashRegistersPage() {
         [tenantRegisters],
     );
 
-    const visibleRegisters = useMemo(() => {
-        if (showDecommissioned) {
-            return allRegisters;
-        }
-        return allRegisters.filter((r) => !isDecommissionedRegister(rawRegisterStatus(r)));
-    }, [allRegisters, showDecommissioned]);
+    const visibleRegisters = useMemo(
+        () =>
+            filterCashRegisters(allRegisters, {
+                search: searchTerm,
+                status: statusFilter,
+                showDecommissioned,
+            }),
+        [allRegisters, searchTerm, showDecommissioned, statusFilter],
+    );
 
     const hiddenDecommissionedCount = useMemo(
-        () => allRegisters.filter((r) => isDecommissionedRegister(rawRegisterStatus(r))).length,
-        [allRegisters],
+        () =>
+            filterCashRegisters(allRegisters, {
+                search: searchTerm,
+                status: statusFilter,
+                showDecommissioned: true,
+            }).filter((r) => isDecommissionedRegister(rawRegisterStatus(r))).length,
+        [allRegisters, searchTerm, statusFilter],
     );
+
+    const registerSummary = useMemo(() => {
+        return allRegisters.reduce(
+            (acc, register) => {
+                const status = rawRegisterStatus(register);
+                if (status === 2) {
+                    acc.open += 1;
+                } else if (status === 1) {
+                    acc.closed += 1;
+                } else if (status === 5) {
+                    acc.decommissioned += 1;
+                }
+
+                if (typeof register.currentBalance === 'number' && Number.isFinite(register.currentBalance)) {
+                    acc.totalBalance += register.currentBalance;
+                    acc.hasBalanceData = true;
+                }
+
+                return acc;
+            },
+            {
+                open: 0,
+                closed: 0,
+                decommissioned: 0,
+                totalBalance: 0,
+                hasBalanceData: false,
+            },
+        );
+    }, [allRegisters]);
 
     const statusLabel = useCallback(
         (status: number | undefined) => {
@@ -202,7 +305,7 @@ export default function AdminCashRegistersPage() {
     const allowHardDeleteUi =
         canHardDelete && (capabilitiesQuery.data?.allowHardDelete ?? false);
 
-    const submitDecommission = useCallback(() => {
+    const submitDecommission = useCallback((nextReason?: string) => {
         const reg = decommissionRegister;
         const id = reg?.id?.trim();
         if (!id) {
@@ -214,7 +317,7 @@ export default function AdminCashRegistersPage() {
         }
         decommissionMutation.mutate({
             id,
-            reason: decommissionReason.trim() || 'Admin tenant cash register decommission',
+            reason: nextReason?.trim() || decommissionReason.trim() || 'Admin tenant cash register decommission',
         });
     }, [decommissionRegister, decommissionReason, decommissionMutation, t]);
 
@@ -225,6 +328,38 @@ export default function AdminCashRegistersPage() {
         }
         hardDeleteMutation.mutate({ id, confirmPhrase: hardDeleteConfirm.trim() });
     }, [hardDeleteRegister, hardDeleteConfirm, hardDeleteMutation]);
+
+    const exportRegisters = useCallback(() => {
+        if (visibleRegisters.length === 0) {
+            return;
+        }
+
+        const header = [
+            t('cashRegisters.columns.name'),
+            t('cashRegisters.columns.status'),
+            t('cashRegisters.detail.currentBalance'),
+            t('cashRegisters.detail.lastBalanceUpdate'),
+            t('cashRegisters.detail.currentUser'),
+        ];
+
+        const lines = visibleRegisters.map((register) =>
+            [
+                register.registerNumber?.trim() || '',
+                statusLabel(rawRegisterStatus(register)),
+                typeof register.currentBalance === 'number' ? String(register.currentBalance) : '',
+                register.lastBalanceUpdate ?? '',
+                register.currentUser?.userName?.trim() || register.currentUserId?.trim() || '',
+            ]
+                .map((value) => toCsvCell(value))
+                .join(';'),
+        );
+
+        downloadCsv(
+            `cash-registers_${new Date().toISOString().slice(0, 10)}.csv`,
+            [header.map((value) => toCsvCell(value)).join(';'), ...lines].join('\n'),
+        );
+        message.success(t('cashRegisters.export.success'));
+    }, [statusLabel, t, visibleRegisters]);
 
     if (!canView) {
         return (
@@ -278,44 +413,218 @@ export default function AdminCashRegistersPage() {
             </AdminPageScopeSummary>
 
             <Card>
-                <Space style={{ marginBottom: 16 }} wrap align="center">
-                    <Typography.Text>{t('cashRegisters.adminPage.selectTenant')}:</Typography.Text>
-                    <Select
-                        style={{ minWidth: 280 }}
-                        placeholder={t('cashRegisters.create.tenantPlaceholder')}
-                        value={selectedTenantId}
-                        onChange={setSelectedTenantId}
-                        options={tenantOptions}
-                        showSearch
-                        optionFilterProp="label"
-                        loading={tenantsLoading}
-                        allowClear
-                    />
-                    <Button
-                        icon={<ReloadOutlined />}
-                        onClick={() => void refetchRegisters()}
-                        loading={registersFetching}
-                        disabled={!selectedTenantId}
-                    >
-                        {t('cashRegisters.actions.refresh')}
-                    </Button>
-                    {canCreate && selectedTenantId ? (
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-                            {t('cashRegisters.actions.create')}
-                        </Button>
+                <Space direction="vertical" size="middle" style={{ width: '100%', marginBottom: 16 }}>
+                    <Space wrap align="center">
+                        <Typography.Text>{t('cashRegisters.adminPage.selectTenant')}:</Typography.Text>
+                        <Select
+                            style={{ minWidth: 280 }}
+                            placeholder={t('cashRegisters.create.tenantPlaceholder')}
+                            value={selectedTenantId}
+                            onChange={setSelectedTenantId}
+                            options={tenantOptions}
+                            showSearch
+                            optionFilterProp="label"
+                            loading={tenantsLoading}
+                            allowClear
+                        />
+                        {selectedTenantId ? (
+                            <Segmented<'table' | 'grid'>
+                                value={viewMode}
+                                onChange={(value) => setViewMode(value)}
+                                options={[
+                                    {
+                                        label: t('cashRegisters.actions.tableView'),
+                                        value: 'table',
+                                        icon: <BarsOutlined />,
+                                    },
+                                    {
+                                        label: t('cashRegisters.actions.gridView'),
+                                        value: 'grid',
+                                        icon: <AppstoreOutlined />,
+                                    },
+                                ]}
+                            />
+                        ) : null}
+                    </Space>
+
+                    {selectedTenant ? (
+                        <Alert
+                            type="info"
+                            showIcon
+                            message={t('cashRegisters.create.tenantOption', {
+                                name: selectedTenant.name,
+                                slug: selectedTenant.slug,
+                            })}
+                            description={
+                                <Space wrap>
+                                    <Button size="small" href="/rksv/status">
+                                        {t('adminShell.hospitalityHub.linkRksvStatus')}
+                                    </Button>
+                                    {canDecommission ? (
+                                        <Button size="small" href="/rksv/sonderbelege?focus=schlussbeleg">
+                                            {t('nav.rksvLeafSonderbelege')}
+                                        </Button>
+                                    ) : null}
+                                </Space>
+                            }
+                        />
                     ) : null}
+
                     {selectedTenantId ? (
-                        <Checkbox
-                            checked={showDecommissioned}
-                            onChange={(e) => setShowDecommissioned(e.target.checked)}
-                        >
-                            {t('cashRegisters.filter.showDecommissioned')}
-                        </Checkbox>
+                        <Row gutter={[16, 16]}>
+                            <Col xs={24} sm={12} lg={6}>
+                                <Card
+                                    size="small"
+                                    loading={registersLoading}
+                                    style={statsAccentCardStyle()}
+                                >
+                                    <Statistic
+                                        title={t('cashRegisters.adminPage.statsTotal')}
+                                        value={allRegisters.length}
+                                        prefix={<ShopOutlined />}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={12} lg={6}>
+                                <Card
+                                    size="small"
+                                    loading={registersLoading}
+                                    style={statsAccentCardStyle('#52c41a')}
+                                >
+                                    <Statistic
+                                        title={t('cashRegisters.status.open')}
+                                        value={registerSummary.open}
+                                        prefix={<CheckCircleOutlined />}
+                                        valueStyle={{ color: '#389e0d' }}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={12} lg={6}>
+                                <Card
+                                    size="small"
+                                    loading={registersLoading}
+                                    style={statsAccentCardStyle('#1677ff')}
+                                >
+                                    <Statistic
+                                        title={t('cashRegisters.status.closed')}
+                                        value={registerSummary.closed}
+                                        prefix={<LockOutlined />}
+                                        valueStyle={{ color: '#1677ff' }}
+                                    />
+                                </Card>
+                            </Col>
+                            <Col xs={24} sm={12} lg={6}>
+                                <Card
+                                    size="small"
+                                    loading={registersLoading}
+                                    style={statsAccentCardStyle('#ff4d4f')}
+                                >
+                                    <Statistic
+                                        title={t('cashRegisters.status.decommissioned')}
+                                        value={registerSummary.decommissioned}
+                                        prefix={<StopOutlined />}
+                                        valueStyle={{ color: '#cf1322' }}
+                                    />
+                                </Card>
+                            </Col>
+                            {registerSummary.hasBalanceData ? (
+                                <Col xs={24}>
+                                    <Card size="small" loading={registersLoading}>
+                                        <Statistic
+                                            title={t('cashRegisters.detail.currentBalance')}
+                                            value={registerSummary.totalBalance}
+                                            precision={2}
+                                            suffix="EUR"
+                                        />
+                                    </Card>
+                                </Col>
+                            ) : null}
+                        </Row>
                     ) : null}
-                    {canDecommission ? (
-                        <Link href="/rksv/sonderbelege?focus=schlussbeleg">
-                            {t('cashRegisters.decommission.hintSchlussbelegLink')}
-                        </Link>
+
+                    {selectedTenantId ? (
+                        <Space
+                            wrap
+                            align="center"
+                            style={{ width: '100%' }}
+                            className={pageStyles.filtersBar}
+                        >
+                            <Input.Search
+                                placeholder={t('cashRegisters.filter.searchPlaceholder')}
+                                style={{ width: 250 }}
+                                value={searchTerm}
+                                onChange={(event) => setSearchTerm(event.target.value)}
+                                onSearch={(value) => setSearchTerm(value)}
+                                allowClear
+                            />
+                            <Select<number>
+                                placeholder={t('cashRegisters.filter.statusPlaceholder')}
+                                style={{ width: 170 }}
+                                value={statusFilter}
+                                onChange={setStatusFilter}
+                                allowClear
+                                options={[
+                                    {
+                                        label: (
+                                            <>
+                                                <CheckCircleOutlined /> {t('cashRegisters.status.open')}
+                                            </>
+                                        ),
+                                        value: REGISTER_STATUS.open,
+                                    },
+                                    {
+                                        label: (
+                                            <>
+                                                <LockOutlined /> {t('cashRegisters.status.closed')}
+                                            </>
+                                        ),
+                                        value: REGISTER_STATUS.closed,
+                                    },
+                                    {
+                                        label: (
+                                            <>
+                                                <StopOutlined /> {t('cashRegisters.status.decommissioned')}
+                                            </>
+                                        ),
+                                        value: REGISTER_STATUS.decommissioned,
+                                    },
+                                    {
+                                        label: (
+                                            <>
+                                                <ToolOutlined /> {t('cashRegisters.status.maintenance')}
+                                            </>
+                                        ),
+                                        value: REGISTER_STATUS.maintenance,
+                                    },
+                                ]}
+                            />
+                            <Switch
+                                checkedChildren={t('cashRegisters.filter.showDecommissionedOn')}
+                                unCheckedChildren={t('cashRegisters.filter.showDecommissionedOff')}
+                                checked={showDecommissioned}
+                                onChange={setShowDecommissioned}
+                            />
+                            {canCreate ? (
+                                <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+                                    {t('cashRegisters.actions.create')}
+                                </Button>
+                            ) : null}
+                            <Button
+                                icon={<ReloadOutlined />}
+                                onClick={() => void refetchRegisters()}
+                                loading={registersFetching}
+                                disabled={!selectedTenantId}
+                            >
+                                {t('cashRegisters.actions.refresh')}
+                            </Button>
+                            <Button
+                                icon={<ExportOutlined />}
+                                onClick={exportRegisters}
+                                disabled={visibleRegisters.length === 0}
+                            >
+                                {t('cashRegisters.actions.export')}
+                            </Button>
+                        </Space>
                     ) : null}
                 </Space>
 
@@ -337,25 +646,42 @@ export default function AdminCashRegistersPage() {
                                 })}
                             </Typography.Text>
                         ) : null}
-                        <CashRegisterTable
-                            registers={visibleRegisters}
-                            loading={registersLoading}
-                            canCreate={canCreate}
-                            canManage={canCreate}
-                            totalRegisterCount={allRegisters.length}
-                            canDecommission={canDecommission}
-                            statusLabel={statusLabel}
-                            rowClassName={(record) =>
-                                isDecommissionedRegister(rawRegisterStatus(record))
-                                    ? styles.decommissionedRow
-                                    : ''
-                            }
-                            onEdit={setDetailRegister}
-                            onDecommission={(record) => {
-                                setDecommissionReason('');
-                                setDecommissionRegister(record);
-                            }}
-                        />
+                        {viewMode === 'grid' ? (
+                            <CashRegisterGrid
+                                registers={visibleRegisters}
+                                loading={registersLoading}
+                                canCreate={canCreate}
+                                canManage={canCreate}
+                                totalRegisterCount={allRegisters.length}
+                                canDecommission={canDecommission}
+                                statusLabel={statusLabel}
+                                onEdit={setDetailRegister}
+                                onDecommission={(record) => {
+                                    setDecommissionReason('');
+                                    setDecommissionRegister(record);
+                                }}
+                            />
+                        ) : (
+                            <CashRegisterTable
+                                registers={visibleRegisters}
+                                loading={registersLoading}
+                                canCreate={canCreate}
+                                canManage={canCreate}
+                                totalRegisterCount={allRegisters.length}
+                                canDecommission={canDecommission}
+                                statusLabel={statusLabel}
+                                rowClassName={(record) =>
+                                    isDecommissionedRegister(rawRegisterStatus(record))
+                                        ? styles.decommissionedRow
+                                        : ''
+                                }
+                                onEdit={setDetailRegister}
+                                onDecommission={(record) => {
+                                    setDecommissionReason('');
+                                    setDecommissionRegister(record);
+                                }}
+                            />
+                        )}
                     </>
                 )}
             </Card>

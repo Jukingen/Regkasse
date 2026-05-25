@@ -38,6 +38,8 @@ public sealed class CashRegisterDto
 {
     public Guid Id { get; init; }
     public Guid TenantId { get; init; }
+    public string? TenantName { get; init; }
+    public string? TenantSlug { get; init; }
     public string RegisterNumber { get; init; } = string.Empty;
     public string Location { get; init; } = string.Empty;
     public RegisterStatus Status { get; init; }

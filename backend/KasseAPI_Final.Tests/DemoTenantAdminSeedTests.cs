@@ -108,6 +108,26 @@ public sealed class DemoTenantAdminSeedTests
         Assert.Contains(DemoTenantIds.Cafe.ToString("D"), text, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void CashRegister_Seed_Sql_Script_Exists_And_Targets_Demo_Tenants()
+    {
+        var repoRoot = FindRepoRoot();
+        var path = Path.Combine(repoRoot, "scripts", "seed-demo-cash-registers.sql");
+        Assert.True(File.Exists(path), $"Expected {path}");
+
+        var text = File.ReadAllText(path);
+        Assert.Contains("cash_registers", text, StringComparison.Ordinal);
+        Assert.Contains("'default'", text, StringComparison.Ordinal);
+        Assert.Contains("'cafe'", text, StringComparison.Ordinal);
+        Assert.Contains("'bar'", text, StringComparison.Ordinal);
+        Assert.Contains("'test'", text, StringComparison.Ordinal);
+        Assert.Contains("'dev'", text, StringComparison.Ordinal);
+        Assert.Contains("'KASSE-001'", text, StringComparison.Ordinal);
+        Assert.Contains("'Hauptkasse'", text, StringComparison.Ordinal);
+        Assert.Contains("\"Status\"", text, StringComparison.Ordinal);
+        Assert.Contains("NOT EXISTS", text, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static string FindRepoRoot()
     {
         foreach (var start in new[] { AppContext.BaseDirectory, Directory.GetCurrentDirectory() })

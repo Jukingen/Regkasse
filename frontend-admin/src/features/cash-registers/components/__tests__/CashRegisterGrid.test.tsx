@@ -1,9 +1,9 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { I18nProvider } from '@/i18n';
-import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
+import { CashRegisterGrid } from '@/features/cash-registers/components/CashRegisterGrid';
 import type { CashRegister } from '@/api/generated/model';
 
 const sampleRegister: CashRegister = {
@@ -12,9 +12,10 @@ const sampleRegister: CashRegister = {
     registerNumber: 'KASSE-001',
     location: 'Hauptkasse',
     status: 1,
-    startingBalance: 0,
-    currentBalance: 0,
+    startingBalance: 10,
+    currentBalance: 42,
     lastBalanceUpdate: '2026-01-01T00:00:00Z',
+    currentUserId: 'user-1',
 };
 
 beforeAll(() => {
@@ -33,14 +34,15 @@ beforeAll(() => {
     });
 });
 
-function renderTable(
-    props: Partial<React.ComponentProps<typeof CashRegisterTable>> = {},
+function renderGrid(
+    props: Partial<React.ComponentProps<typeof CashRegisterGrid>> = {},
 ) {
     return render(
         <I18nProvider>
-            <CashRegisterTable
+            <CashRegisterGrid
                 registers={[sampleRegister]}
-                canDecommission={false}
+                canDecommission
+                canManage
                 statusLabel={() => 'Geschlossen'}
                 onEdit={vi.fn()}
                 onDecommission={vi.fn()}
@@ -50,19 +52,21 @@ function renderTable(
     );
 }
 
-describe('CashRegisterTable permissions', () => {
-    it('hides action buttons for view-only users', () => {
-        renderTable({ canManage: false, canDecommission: false });
+describe('CashRegisterGrid', () => {
+    it('renders register content and actions', () => {
+        renderGrid();
 
+        expect(screen.getByText('KASSE-001')).toBeInTheDocument();
         expect(screen.getByText('Hauptkasse')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /Details/i })).not.toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: /Stilllegen/i })).not.toBeInTheDocument();
+        expect(screen.getByText('Geschlossen')).toBeInTheDocument();
+        expect(screen.getByLabelText('Details')).toBeInTheDocument();
+        expect(screen.getByLabelText('Stilllegen')).toBeInTheDocument();
+        expect(screen.getByLabelText('Sonderbelege')).toBeInTheDocument();
     });
 
-    it('shows details and decommission for manager-level permissions', () => {
-        renderTable({ canManage: true, canDecommission: true });
+    it('shows empty state when there are no registers', () => {
+        renderGrid({ registers: [], totalRegisterCount: 0 });
 
-        expect(screen.getByRole('button', { name: /Details/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Stilllegen/i })).toBeInTheDocument();
+        expect(screen.getByText(/Keine Kassen vorhanden/i)).toBeInTheDocument();
     });
 });

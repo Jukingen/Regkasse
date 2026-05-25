@@ -107,13 +107,21 @@ public sealed class AdminCashRegistersListTests
             TenantTestDoubles.SettingsResolverReturning(TenantAId),
             Roles.SuperAdmin);
 
-        var result = await controller.List(null, null, page: 1, pageSize: 20, cancellationToken: CancellationToken.None);
+        var result = await controller.List(
+            tenantId: null,
+            cashRegisterId: null,
+            excludeStatus: null,
+            page: 1,
+            pageSize: 20,
+            cancellationToken: CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var page = Assert.IsType<PagedResult<CashRegisterDto>>(ok.Value);
         Assert.Equal(2, page.TotalCount);
         Assert.Contains(page.Items, r => r.TenantId == TenantAId && r.RegisterNumber == "A-1");
         Assert.Contains(page.Items, r => r.TenantId == TenantBId && r.RegisterNumber == "B-1");
+        Assert.Contains(page.Items, r => r.TenantId == TenantAId && r.TenantName == "Tenant A" && r.TenantSlug == "tenant-a");
+        Assert.Contains(page.Items, r => r.TenantId == TenantBId && r.TenantName == "Tenant B" && r.TenantSlug == "tenant-b");
     }
 
     [Fact]
@@ -128,7 +136,13 @@ public sealed class AdminCashRegistersListTests
             TenantTestDoubles.SettingsResolverReturning(TenantAId),
             Roles.Manager);
 
-        var result = await controller.List(null, null, page: 1, pageSize: 20, cancellationToken: CancellationToken.None);
+        var result = await controller.List(
+            tenantId: null,
+            cashRegisterId: null,
+            excludeStatus: null,
+            page: 1,
+            pageSize: 20,
+            cancellationToken: CancellationToken.None);
 
         var ok = Assert.IsType<OkObjectResult>(result);
         var page = Assert.IsType<PagedResult<CashRegisterDto>>(ok.Value);
@@ -150,12 +164,51 @@ public sealed class AdminCashRegistersListTests
             Roles.Manager);
 
         var result = await controller.List(
-            TenantBId,
-            null,
+            tenantId: TenantBId,
+            cashRegisterId: null,
+            excludeStatus: null,
             page: 1,
             pageSize: 20,
             cancellationToken: CancellationToken.None);
 
         Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task ListCashRegisters_SuperAdmin_ExcludeStatus_RemovesMatchingRows()
+    {
+        await using var db = CreateDb();
+        await SeedTwoTenantsWithRegistersAsync(db);
+
+        db.CashRegisters.Add(new CashRegister
+        {
+            TenantId = TenantAId,
+            RegisterNumber = "A-2",
+            Location = "A2",
+            StartingBalance = 0m,
+            CurrentBalance = 0m,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Decommissioned,
+            DecommissionedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            TenantTestDoubles.SettingsResolverReturning(TenantAId),
+            Roles.SuperAdmin);
+
+        var result = await controller.List(
+            tenantId: null,
+            cashRegisterId: null,
+            excludeStatus: "Decommissioned",
+            page: 1,
+            pageSize: 20,
+            cancellationToken: CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var page = Assert.IsType<PagedResult<CashRegisterDto>>(ok.Value);
+        Assert.Equal(2, page.TotalCount);
+        Assert.DoesNotContain(page.Items, r => r.Status == RegisterStatus.Decommissioned);
     }
 }

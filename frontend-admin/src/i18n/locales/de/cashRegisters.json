@@ -4,16 +4,27 @@
   "columns": {
     "name": "Kasse",
     "status": "Status",
+    "activity": "Aktivität",
+    "balance": "Kassenstand",
     "actions": "Aktionen"
   },
   "filter": {
     "showDecommissioned": "Stillgelegte Kassen anzeigen",
-    "hiddenCount": "{{count}} stillgelegte Kasse(n) ausgeblendet"
+    "hiddenCount": "{{count}} stillgelegte Kasse(n) ausgeblendet",
+    "searchPlaceholder": "Kasse suchen...",
+    "statusPlaceholder": "Status",
+    "showDecommissionedOn": "Stillgelegt anzeigen",
+    "showDecommissionedOff": "Stillgelegt ausblenden"
   },
   "actions": {
     "create": "Neue Kasse",
+    "view": "Details",
     "edit": "Bearbeiten",
     "decommission": "Stilllegen",
+    "specialReceipts": "Sonderbelege",
+    "tableView": "Tabelle",
+    "gridView": "Karten",
+    "export": "Exportieren",
     "restore": "Wiederherstellen",
     "refresh": "Aktualisieren"
   },
@@ -27,16 +38,22 @@
   },
   "decommission": {
     "modalTitle": "Kasse dauerhaft stilllegen",
+    "modalTitleWithNumber": "Kasse stilllegen - {{number}}",
     "registerLine": "Kasse: {{name}} ({{number}})",
     "warningTitle": "ACHTUNG:",
+    "irreversibleWarning": "Achtung! Dieser Vorgang ist endgültig.",
     "warningNoPayments": "Die Kasse kann danach KEINE neuen Zahlungen mehr annehmen",
+    "warningAutoReceipt": "Ein Schlussbeleg (Endbeleg) wird automatisch erstellt",
     "warningRetention": "Alle Belege bleiben für 7 Jahre gespeichert",
     "warningNoRestore": "Die Kasse kann NICHT wiederhergestellt werden",
     "schlussbelegFlow": "Bei Bestätigung wird zuerst ein RKSV-Schlussbeleg (Endbeleg) erstellt; danach wird der Status automatisch auf «Stillgelegt» (Decommissioned) gesetzt.",
     "hintSchlussbeleg": "Alternativ manuell: Schlussbeleg (Endbeleg) unter",
     "hintSchlussbelegLink": "Sonderbelege / Schlussbeleg",
     "reasonLabel": "Grund der Stilllegung (optional)",
+    "reasonTooltip": "Wird im Audit-Log gespeichert",
     "reasonPlaceholder": "Gerät defekt / Ersatz / Filiale geschlossen",
+    "confirmCheckbox": "Ich bestätige, dass diese Kasse dauerhaft stillgelegt wird und kein neuer Betrieb mehr möglich ist.",
+    "confirmRequired": "Bitte bestätigen Sie die Stilllegung.",
     "cancel": "Abbrechen",
     "confirm": "Trotzdem stilllegen",
     "mustCloseFirst": "Die Kasse muss geschlossen sein (keine offene Schicht), bevor ein Endbeleg erstellt werden kann.",
@@ -45,13 +62,21 @@
   },
   "detail": {
     "title": "Kasse",
+    "titleWithNumber": "Kasse: {{number}}",
     "registerNumber": "Kassennummer",
     "location": "Bezeichnung / Standort",
+    "createdAt": "Erstellt am",
     "currentBalance": "Aktueller Kassenstand",
     "startingBalance": "Startsaldo",
     "currentUser": "Geöffnet von",
     "lastBalanceUpdate": "Letzte Standaktualisierung",
+    "startbelegCreatedAt": "Startbeleg erstellt am",
+    "lastMonatsbelegUtc": "Letzter Monatsbeleg",
+    "lastJahresbelegUtc": "Letzter Jahresbeleg",
     "id": "Register-ID (API)",
+    "tseStatus": "TSE Status",
+    "openTseDetails": "TSE Details anzeigen",
+    "specialReceiptsTitle": "Sonderbelege",
     "decommissionedAt": "Stillgelegt am (UTC)",
     "decommissionReason": "Stilllegungsgrund"
   },
@@ -86,12 +111,16 @@
   "errors": {
     "loadFailed": "Kassenliste konnte nicht geladen werden."
   },
+  "export": {
+    "success": "Kassenliste wurde exportiert."
+  },
   "empty": "Keine Kassen gefunden.",
   "emptyCanCreate": "Keine Kassen vorhanden. Klicken Sie auf «Neue Kasse», um eine anzulegen.",
   "emptyContactAdmin": "Keine Kassen vorhanden. Bitte kontaktieren Sie Ihren Administrator.",
   "adminPage": {
     "title": "Kassenverwaltung (Mandant)",
     "intro": "Super Admin: Mandant wählen und zugehörige Kassen verwalten.",
+    "statsTotal": "Kassen gesamt",
     "selectTenant": "Mandant",
     "selectTenantHint": "Bitte einen Mandanten auswählen, um die Kassenliste anzuzeigen.",
     "managerIntro": "Wählen Sie eine Kasse, um zur Kassenverwaltung Ihres Mandanten zu wechseln.",

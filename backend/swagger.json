@@ -537,6 +537,13 @@
             }
           },
           {
+            "name": "excludeStatus",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -23679,6 +23686,14 @@
           "tenantId": {
             "type": "string",
             "format": "uuid"
+          },
+          "tenantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
           },
           "registerNumber": {
             "type": "string",

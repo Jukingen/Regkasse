@@ -45,6 +45,7 @@ public sealed class AdminCashRegistersController : ControllerBase
     public async Task<IActionResult> List(
         [FromQuery] Guid? tenantId,
         [FromQuery] Guid? cashRegisterId,
+        [FromQuery] string? excludeStatus,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
@@ -67,6 +68,7 @@ public sealed class AdminCashRegistersController : ControllerBase
 
             var result = await _cashRegisterManagement.ListAsync(
                 tenantId,
+                excludeStatus,
                 actorIsSuperAdmin,
                 page,
                 pageSize,
@@ -85,6 +87,10 @@ public sealed class AdminCashRegistersController : ControllerBase
         catch (InvalidOperationException ex) when (ex.Message.Contains("Tenant not found", StringComparison.OrdinalIgnoreCase))
         {
             return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 

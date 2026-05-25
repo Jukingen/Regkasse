@@ -29,6 +29,10 @@ export interface CashRegisterDto {
   status?: RegisterStatus;
   tenantId?: string;
   /** @nullable */
+  tenantName?: string | null;
+  /** @nullable */
+  tenantSlug?: string | null;
+  /** @nullable */
   updatedAt?: string | null;
   /** @nullable */
   updatedBy?: string | null;

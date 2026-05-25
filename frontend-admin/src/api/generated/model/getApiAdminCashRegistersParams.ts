@@ -9,6 +9,7 @@
 export type GetApiAdminCashRegistersParams = {
 tenantId?: string;
 cashRegisterId?: string;
+excludeStatus?: string;
 page?: number;
 pageSize?: number;
 };

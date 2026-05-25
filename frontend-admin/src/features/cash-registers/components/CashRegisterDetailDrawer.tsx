@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Descriptions, Drawer, Space, Tag } from 'antd';
+import { Button, Descriptions, Divider, Drawer, Space, Tag, Typography } from 'antd';
+import { SafetyOutlined } from '@ant-design/icons';
 import type { CashRegister } from '@/api/generated/model';
 import { useI18n, formatCurrency, formatDateTime } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
@@ -30,10 +31,11 @@ export function CashRegisterDetailDrawer({
     const { t, formatLocale } = useI18n();
     const status = register ? rawRegisterStatus(register) : undefined;
     const decommissionMeta = register ? readDecommissionMeta(register) : null;
+    const registerNumber = register?.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY;
 
     return (
         <Drawer
-            title={t('cashRegisters.detail.title')}
+            title={t('cashRegisters.detail.titleWithNumber', { number: registerNumber })}
             open={open}
             onClose={onClose}
             width={480}
@@ -52,6 +54,11 @@ export function CashRegisterDetailDrawer({
                             {registerStatusEmoji(status)} {statusLabel(status)}
                         </Tag>
                     </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.createdAt')}>
+                        {register.createdAt
+                            ? formatDateTime(register.createdAt, formatLocale)
+                            : FORMAT_EMPTY_DISPLAY}
+                    </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.currentBalance')}>
                         {formatCurrency(register.currentBalance, formatLocale)}
                     </Descriptions.Item>
@@ -68,8 +75,32 @@ export function CashRegisterDetailDrawer({
                             ? formatDateTime(register.lastBalanceUpdate, formatLocale)
                             : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.startbelegCreatedAt')}>
+                        {register.startbelegCreatedAt
+                            ? formatDateTime(register.startbelegCreatedAt, formatLocale)
+                            : FORMAT_EMPTY_DISPLAY}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.lastMonatsbelegUtc')}>
+                        {register.lastMonatsbelegUtc
+                            ? formatDateTime(register.lastMonatsbelegUtc, formatLocale)
+                            : FORMAT_EMPTY_DISPLAY}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.lastJahresbelegUtc')}>
+                        {register.lastJahresbelegUtc
+                            ? formatDateTime(register.lastJahresbelegUtc, formatLocale)
+                            : FORMAT_EMPTY_DISPLAY}
+                    </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.id')}>
                         {register.id?.trim() || FORMAT_EMPTY_DISPLAY}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.tseStatus')}>
+                        <Button
+                            icon={<SafetyOutlined />}
+                            size="small"
+                            href="/rksv/status"
+                        >
+                            {t('cashRegisters.detail.openTseDetails')}
+                        </Button>
                     </Descriptions.Item>
                     {decommissionMeta?.decommissionedAtUtc ? (
                         <Descriptions.Item label={t('cashRegisters.detail.decommissionedAt')}>
@@ -82,6 +113,26 @@ export function CashRegisterDetailDrawer({
                         </Descriptions.Item>
                     ) : null}
                 </Descriptions>
+            ) : null}
+            {register ? (
+                <>
+                    <Divider />
+                    <Typography.Title level={5}>{t('cashRegisters.detail.specialReceiptsTitle')}</Typography.Title>
+                    <Space wrap>
+                        <Button size="small" href="/rksv/sonderbelege?focus=startbeleg">
+                            {t('receipts.specialKind.startbeleg')}
+                        </Button>
+                        <Button size="small" href="/rksv/sonderbelege?focus=monatsbeleg">
+                            {t('receipts.specialKind.monatsbeleg')}
+                        </Button>
+                        <Button size="small" href="/rksv/sonderbelege?focus=jahresbeleg">
+                            {t('receipts.specialKind.jahresbeleg')}
+                        </Button>
+                        <Button size="small" danger href="/rksv/sonderbelege?focus=schlussbeleg">
+                            {t('receipts.specialKind.schlussbeleg')}
+                        </Button>
+                    </Space>
+                </>
             ) : null}
             {showHardDelete && onHardDelete ? (
                 <Space style={{ marginTop: 16 }}>

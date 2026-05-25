@@ -4,16 +4,27 @@
   "columns": {
     "name": "Kasa",
     "status": "Durum",
+    "activity": "Aktivite",
+    "balance": "Bakiye",
     "actions": "İşlemler"
   },
   "filter": {
     "showDecommissioned": "Kapatılmış kasaları göster",
-    "hiddenCount": "{{count}} kapatılmış kasa gizli"
+    "hiddenCount": "{{count}} kapatılmış kasa gizli",
+    "searchPlaceholder": "Kasa ara...",
+    "statusPlaceholder": "Durum",
+    "showDecommissionedOn": "Kapatılanları göster",
+    "showDecommissionedOff": "Kapatılanları gizle"
   },
   "actions": {
     "create": "Yeni kasa",
+    "view": "Detaylar",
     "edit": "Düzenle",
     "decommission": "Devre dışı bırak",
+    "specialReceipts": "Özel fişler",
+    "tableView": "Tablo",
+    "gridView": "Kartlar",
+    "export": "Dışa aktar",
     "restore": "Geri yükle",
     "refresh": "Yenile"
   },
@@ -27,16 +38,22 @@
   },
   "decommission": {
     "modalTitle": "Kasayı kalıcı olarak kapat",
+    "modalTitleWithNumber": "Kasayı kapat - {{number}}",
     "registerLine": "Kasa: {{name}} ({{number}})",
     "warningTitle": "DİKKAT:",
+    "irreversibleWarning": "Dikkat! Bu işlem kalıcıdır.",
     "warningNoPayments": "Kasa bundan sonra yeni ödeme kabul edemez",
+    "warningAutoReceipt": "Bir Schlussbeleg (Endbeleg) otomatik oluşturulur",
     "warningRetention": "Tüm fişler 7 yıl saklanır",
     "warningNoRestore": "Kasa GERİ yüklenemez",
     "schlussbelegFlow": "Onayda önce RKSV Schlussbeleg (Endbeleg) oluşturulur; ardından durum otomatik olarak Decommissioned olur.",
     "hintSchlussbeleg": "Manuel alternatif:",
     "hintSchlussbelegLink": "Sonderbelege / Schlussbeleg",
     "reasonLabel": "Kapatma nedeni (isteğe bağlı)",
+    "reasonTooltip": "Audit log içinde saklanır",
     "reasonPlaceholder": "Cihaz arızalı / yedek / şube kapandı",
+    "confirmCheckbox": "Bu kasanın kalıcı olarak kapatıldığını ve artık yeni kullanımın mümkün olmadığını onaylıyorum.",
+    "confirmRequired": "Lütfen kapatmayı onaylayın.",
     "cancel": "İptal",
     "confirm": "Yine de kapat",
     "mustCloseFirst": "Endbeleg için kasa kapalı olmalıdır (açık vardiya yok).",
@@ -45,13 +62,21 @@
   },
   "detail": {
     "title": "Kasa",
+    "titleWithNumber": "Kasa: {{number}}",
     "registerNumber": "Kasa numarası",
     "location": "Ad / konum",
+    "createdAt": "Oluşturulma",
     "currentBalance": "Güncel bakiye",
     "startingBalance": "Başlangıç bakiyesi",
     "currentUser": "Açan kullanıcı",
     "lastBalanceUpdate": "Son bakiye güncellemesi",
+    "startbelegCreatedAt": "Startbeleg oluşturulma",
+    "lastMonatsbelegUtc": "Son Monatsbeleg",
+    "lastJahresbelegUtc": "Son Jahresbeleg",
     "id": "Register-ID (API)",
+    "tseStatus": "TSE durumu",
+    "openTseDetails": "TSE detaylarını göster",
+    "specialReceiptsTitle": "Özel fişler",
     "decommissionedAt": "Kapatılma (UTC)",
     "decommissionReason": "Kapatma nedeni"
   },
@@ -86,12 +111,16 @@
   "errors": {
     "loadFailed": "Kasa listesi yüklenemedi."
   },
+  "export": {
+    "success": "Kasa listesi dışa aktarıldı."
+  },
   "empty": "Kasa bulunamadı.",
   "emptyCanCreate": "Kayıtlı kasa yok. Oluşturmak için «Yeni kasa» düğmesine tıklayın.",
   "emptyContactAdmin": "Kayıtlı kasa yok. Lütfen yöneticinizle iletişime geçin.",
   "adminPage": {
     "title": "Kasa yönetimi (kiracı)",
     "intro": "Super Admin: kiracı seçin ve kasalarını yönetin.",
+    "statsTotal": "Toplam kasa",
     "selectTenant": "Kiracı",
     "selectTenantHint": "Kasa listesi için bir kiracı seçin.",
     "managerIntro": "Mandant kasa yönetimine geçmek için bir kasa seçin.",

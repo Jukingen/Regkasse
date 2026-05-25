@@ -4,16 +4,27 @@
   "columns": {
     "name": "Register",
     "status": "Status",
+    "activity": "Activity",
+    "balance": "Balance",
     "actions": "Actions"
   },
   "filter": {
     "showDecommissioned": "Show decommissioned registers",
-    "hiddenCount": "{{count}} decommissioned register(s) hidden"
+    "hiddenCount": "{{count}} decommissioned register(s) hidden",
+    "searchPlaceholder": "Search register...",
+    "statusPlaceholder": "Status",
+    "showDecommissionedOn": "Show decommissioned",
+    "showDecommissionedOff": "Hide decommissioned"
   },
   "actions": {
     "create": "New register",
+    "view": "Details",
     "edit": "Edit",
     "decommission": "Decommission",
+    "specialReceipts": "Special receipts",
+    "tableView": "Table",
+    "gridView": "Cards",
+    "export": "Export",
     "restore": "Restore",
     "refresh": "Refresh"
   },
@@ -27,16 +38,22 @@
   },
   "decommission": {
     "modalTitle": "Permanently decommission register",
+    "modalTitleWithNumber": "Decommission register - {{number}}",
     "registerLine": "Register: {{name}} ({{number}})",
     "warningTitle": "WARNING:",
+    "irreversibleWarning": "Warning! This action is permanent.",
     "warningNoPayments": "The register cannot accept new payments afterwards",
+    "warningAutoReceipt": "A Schlussbeleg (Endbeleg) is created automatically",
     "warningRetention": "All receipts remain stored for 7 years",
     "warningNoRestore": "The register CANNOT be restored",
     "schlussbelegFlow": "On confirm, an RKSV Schlussbeleg (Endbeleg) is created first; status is then set to Decommissioned automatically.",
     "hintSchlussbeleg": "Or manually under",
     "hintSchlussbelegLink": "Special receipts / Schlussbeleg",
     "reasonLabel": "Reason for decommissioning (optional)",
+    "reasonTooltip": "Stored in the audit log",
     "reasonPlaceholder": "Device defective / replacement / branch closed",
+    "confirmCheckbox": "I confirm that this register is being permanently decommissioned and can no longer be used for operation.",
+    "confirmRequired": "Please confirm the decommissioning.",
     "cancel": "Cancel",
     "confirm": "Decommission anyway",
     "mustCloseFirst": "The register must be closed (no open shift) before an Endbeleg can be created.",
@@ -45,13 +62,21 @@
   },
   "detail": {
     "title": "Register",
+    "titleWithNumber": "Register: {{number}}",
     "registerNumber": "Register number",
     "location": "Name / location",
+    "createdAt": "Created at",
     "currentBalance": "Current balance",
     "startingBalance": "Starting balance",
     "currentUser": "Opened by",
     "lastBalanceUpdate": "Last balance update",
+    "startbelegCreatedAt": "Startbeleg created at",
+    "lastMonatsbelegUtc": "Last Monatsbeleg",
+    "lastJahresbelegUtc": "Last Jahresbeleg",
     "id": "Register ID (API)",
+    "tseStatus": "TSE status",
+    "openTseDetails": "Show TSE details",
+    "specialReceiptsTitle": "Special receipts",
     "decommissionedAt": "Decommissioned at (UTC)",
     "decommissionReason": "Decommission reason"
   },
@@ -86,12 +111,16 @@
   "errors": {
     "loadFailed": "Could not load cash registers."
   },
+  "export": {
+    "success": "Cash register list exported."
+  },
   "empty": "No cash registers found.",
   "emptyCanCreate": "No cash registers yet. Click «New register» to create one.",
   "emptyContactAdmin": "No cash registers yet. Please contact your administrator.",
   "adminPage": {
     "title": "Cash registers (tenant)",
     "intro": "Super Admin: pick a tenant and manage its cash registers.",
+    "statsTotal": "Total registers",
     "selectTenant": "Tenant",
     "selectTenantHint": "Select a tenant to load the cash register list.",
     "managerIntro": "Pick a register to open cash register management for your tenant.",

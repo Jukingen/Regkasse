@@ -12,6 +12,7 @@ public interface ICashRegisterManagementService
     /// </summary>
     Task<PagedResult<CashRegisterDto>> ListAsync(
         Guid? tenantIdFilter,
+        string? excludeStatus,
         bool actorIsSuperAdmin,
         int page,
         int pageSize,

@@ -15,7 +15,7 @@ namespace KasseAPI_Final
     /// <summary>
     /// Orchestrates all startup bootstrap responsibilities: database migration,
     /// pending migration gate, role/user seeding, demo data, product seed, guest customer seed,
-    /// and (Development only) a minimal POS cash register when <c>cash_registers</c> is empty.
+        /// and (Development only) default cash registers for active tenants that do not yet have one.
     /// </summary>
     public static class StartupBootstrapRunner
     {

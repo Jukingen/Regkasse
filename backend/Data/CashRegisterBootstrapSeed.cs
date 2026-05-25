@@ -7,22 +7,48 @@ using Microsoft.Extensions.Logging;
 namespace KasseAPI_Final.Data;
 
 /// <summary>
-/// Ensures a fresh dev database can run the POS picker: <see cref="CashRegisterPosOperationalCardinality"/> requires at least one
-/// active Open or Closed row. Inserts only when <c>cash_registers</c> has <strong>no rows at all</strong> (avoids clashing with existing data).
+/// Ensures active development tenants have at least one default cash register so FA/POS flows can operate without
+/// manual bootstrap on a fresh dev database.
 /// </summary>
 public static class CashRegisterBootstrapSeed
 {
     /// <summary>
-    /// When the table already has rows but none count as operational, logs a warning (admin must fix status / IsActive).
-    /// When the table is empty, inserts one open register with no shift owner so POS selectable can return it.
+    /// Inserts a closed default register for each active, non-deleted tenant that currently has no register rows.
+    /// Existing tenant registers are preserved.
     /// </summary>
     public static async Task EnsureMinimalOperationalCashRegisterWhenTableEmptyAsync(
         AppDbContext context,
         ILogger logger,
         CancellationToken cancellationToken = default)
     {
-        var anyRow = await context.CashRegisters.AsNoTracking().AnyAsync(cancellationToken);
-        if (anyRow)
+        var activeTenants = await context.Tenants
+            .AsNoTracking()
+            .Where(t =>
+                t.DeletedAtUtc == null
+                && t.IsActive
+                && t.Status == TenantStatuses.Active)
+            .OrderBy(t => t.Name)
+            .ToListAsync(cancellationToken);
+
+        if (activeTenants.Count == 0)
+            return;
+
+        var now = DateTime.UtcNow;
+        var activeTenantIds = activeTenants.Select(t => t.Id).ToList();
+
+        var tenantIdsWithRegisters = await context.CashRegisters
+            .AsNoTracking()
+            .Where(r => activeTenantIds.Contains(r.TenantId))
+            .Select(r => r.TenantId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var missingTenantIds = activeTenants
+            .Where(t => !tenantIdsWithRegisters.Contains(t.Id))
+            .Select(t => t.Id)
+            .ToHashSet();
+
+        if (missingTenantIds.Count == 0)
         {
             var operational = await context.CashRegisters.AsNoTracking()
                 .WhereCountsTowardPosOperationalCardinality()
@@ -34,6 +60,7 @@ public static class CashRegisterBootstrapSeed
                     .Select(r => new
                     {
                         r.Id,
+                        r.TenantId,
                         r.RegisterNumber,
                         StatusCode = (int)r.Status,
                         r.IsActive
@@ -48,25 +75,30 @@ public static class CashRegisterBootstrapSeed
             return;
         }
 
-        var now = DateTime.UtcNow;
-        await context.CashRegisters.AddAsync(new CashRegister
-        {
-            Id = Guid.NewGuid(),
-            TenantId = LegacyDefaultTenantIds.Primary,
-            RegisterNumber = "K01",
-            Location = "Default",
-            StartingBalance = 0,
-            CurrentBalance = 0,
-            LastBalanceUpdate = now,
-            Status = RegisterStatus.Open,
-            CurrentUserId = null,
-            IsActive = true,
-            CreatedAt = now,
-            UpdatedAt = now
-        }, cancellationToken);
+        var newRegisters = activeTenants
+            .Where(t => missingTenantIds.Contains(t.Id))
+            .Select(t => new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = t.Id,
+                RegisterNumber = "KASSE-001",
+                Location = "Hauptkasse",
+                StartingBalance = 0,
+                CurrentBalance = 0,
+                LastBalanceUpdate = now,
+                Status = RegisterStatus.Closed,
+                CurrentUserId = null,
+                IsActive = true,
+                CreatedAt = now,
+                UpdatedAt = now
+            })
+            .ToList();
+
+        await context.CashRegisters.AddRangeAsync(newRegisters, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+
         logger.LogInformation(
-            "Bootstrap: inserted default POS cash register {RegisterNumber} into empty cash_registers (Development bootstrap only).",
-            "K01");
+            "Bootstrap: inserted {Count} default development cash register(s) for tenants without registers.",
+            newRegisters.Count);
     }
 }

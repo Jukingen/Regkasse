@@ -167,7 +167,7 @@ public sealed class CashRegisterManagementServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
-        var page = await svc.ListAsync(null, actorIsSuperAdmin: false, page: 1, pageSize: 20);
+        var page = await svc.ListAsync(null, excludeStatus: null, actorIsSuperAdmin: false, page: 1, pageSize: 20);
 
         Assert.Equal(1, page.TotalCount);
         Assert.Single(page.Items);
@@ -202,7 +202,7 @@ public sealed class CashRegisterManagementServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
-        var page = await svc.ListAsync(OtherTenantId, actorIsSuperAdmin: true, page: 1, pageSize: 20);
+        var page = await svc.ListAsync(OtherTenantId, excludeStatus: null, actorIsSuperAdmin: true, page: 1, pageSize: 20);
 
         Assert.Equal(1, page.TotalCount);
         Assert.Equal("O-1", page.Items.First().RegisterNumber);
@@ -215,7 +215,7 @@ public sealed class CashRegisterManagementServiceTests
         var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            svc.ListAsync(OtherTenantId, actorIsSuperAdmin: false, page: 1, pageSize: 20));
+            svc.ListAsync(OtherTenantId, excludeStatus: null, actorIsSuperAdmin: false, page: 1, pageSize: 20));
     }
 
     [Fact]
@@ -246,7 +246,7 @@ public sealed class CashRegisterManagementServiceTests
         await ctx.SaveChangesAsync();
 
         var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
-        var page = await svc.ListAsync(null, actorIsSuperAdmin: true, page: 1, pageSize: 20);
+        var page = await svc.ListAsync(null, excludeStatus: null, actorIsSuperAdmin: true, page: 1, pageSize: 20);
 
         Assert.Equal(2, page.TotalCount);
         Assert.Equal(2, page.Items.Count());
