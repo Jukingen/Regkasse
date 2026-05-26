@@ -152,7 +152,7 @@ public sealed class RksvReminderService : IRksvReminderService
     {
         var tenantId = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
         var registerIds = await _db.CashRegisters.AsNoTracking()
-            .Where(r => r.TenantId == tenantId)
+            .Where(r => r.TenantId == tenantId && r.Status != RegisterStatus.Decommissioned)
             .OrderBy(r => r.RegisterNumber)
             .Select(r => r.Id)
             .ToListAsync(cancellationToken)

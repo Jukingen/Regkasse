@@ -6,7 +6,6 @@ import { Card, Col, Row, Statistic, DatePicker, Table, Typography } from 'antd';
 import { DollarOutlined, ShoppingOutlined, UserOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { DashboardMonatsbelegSection } from '@/features/dashboard/components/DashboardMonatsbelegSection';
-import { DashboardRksvReminderSection } from '@/features/dashboard/components/DashboardRksvReminderSection';
 import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
 import { useDashboardBusinessReports } from '@/features/dashboard/hooks/useDashboardBusinessReports';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -17,6 +16,7 @@ import { HospitalityQuickLinksCard } from '@/features/dashboard/components/Hospi
 import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSyncDriftAlertCard';
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
 import { LicenseDashboardSection } from '@/features/dashboard/components/LicenseDashboardSection';
+import { RksvReminderCard } from '@/features/dashboard/components/RksvReminderCard';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -70,7 +70,7 @@ export default function DashboardPage() {
 
             {tseHealthCardEnabled ? <TseHealthCard /> : null}
 
-            {monatsbelegOverviewEnabled ? <DashboardRksvReminderSection enabled={monatsbelegOverviewEnabled} /> : null}
+            {monatsbelegOverviewEnabled ? <RksvReminderCard /> : null}
 
             {monatsbelegOverviewEnabled ? <DashboardMonatsbelegSection enabled={monatsbelegOverviewEnabled} /> : null}
 

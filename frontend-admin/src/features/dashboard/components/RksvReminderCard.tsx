@@ -1,0 +1,153 @@
+'use client';
+
+import { Alert, Button, Card, Empty, Skeleton, Space, Tag } from 'antd';
+import {
+    CheckCircleOutlined,
+    ReloadOutlined,
+    WarningOutlined,
+} from '@ant-design/icons';
+import { useRksvReminderOverview } from '@/features/rksv-operations/hooks/useRksvReminderOverview';
+
+export function RksvReminderCard() {
+    const { data, isLoading, error, refetch, isError, isFetching } = useRksvReminderOverview();
+
+    if (isLoading) {
+        return (
+            <Card
+                title="RKSV Sonderbelege (Erinnerungen)"
+                extra={<Button icon={<ReloadOutlined />} onClick={() => void refetch()} />}
+                bordered={false}
+                style={{ marginBottom: 24 }}
+            >
+                <Space direction="vertical" style={{ width: '100%' }}>
+                    <Skeleton active paragraph={{ rows: 3 }} />
+                </Space>
+            </Card>
+        );
+    }
+
+    const hasLoadError = isError || Boolean(error) || data === null;
+    if (hasLoadError) {
+        return (
+            <Card
+                title="RKSV Sonderbelege (Erinnerungen)"
+                extra={
+                    <Button icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()}>
+                        Erneut laden
+                    </Button>
+                }
+                bordered={false}
+                style={{ marginBottom: 24 }}
+            >
+                <Alert
+                    type="error"
+                    message="Fehler beim Laden der RKSV-Daten"
+                    description="Die RKSV-Erinnerungen konnten nicht geladen werden. Bitte versuchen Sie es später erneut."
+                    showIcon
+                />
+            </Card>
+        );
+    }
+
+    if (!data || data.totalRegisters === 0) {
+        return (
+            <Card
+                title="RKSV Sonderbelege (Erinnerungen)"
+                extra={<Button icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()} />}
+                bordered={false}
+                style={{ marginBottom: 24 }}
+            >
+                <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Keine Kassen vorhanden oder keine RKSV-Daten verfügbar"
+                />
+            </Card>
+        );
+    }
+
+    const hasIssues =
+        data.missingStartbeleg > 0 ||
+        data.missingMonatsbeleg > 0 ||
+        data.overdueMonatsbeleg > 0 ||
+        data.missingJahresbeleg > 0;
+
+    return (
+        <Card
+            title={
+                <Space>
+                    <span>RKSV Sonderbelege (Erinnerungen)</span>
+                    {hasIssues ? (
+                        <Tag color="red" icon={<WarningOutlined />}>
+                            Aktion erforderlich
+                        </Tag>
+                    ) : (
+                        <Tag color="green" icon={<CheckCircleOutlined />}>
+                            Alles in Ordnung
+                        </Tag>
+                    )}
+                </Space>
+            }
+            extra={
+                <Space>
+                    <Button size="small" icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()} />
+                    <Button size="small" type="link" href="/rksv/sonderbelege">
+                        Verwalten
+                    </Button>
+                </Space>
+            }
+            bordered={false}
+            style={{ marginBottom: 24 }}
+        >
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                {data.missingStartbeleg > 0 ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message="Startbeleg fehlt"
+                        description={`${data.missingStartbeleg} von ${data.totalRegisters} Kassen haben noch keinen Startbeleg.`}
+                    />
+                ) : null}
+
+                {data.overdueMonatsbeleg > 0 ? (
+                    <Alert
+                        type="error"
+                        showIcon
+                        message="Monatsbeleg überfällig"
+                        description={`${data.overdueMonatsbeleg} Kassen haben den Monatsbeleg nicht rechtzeitig erstellt.`}
+                    />
+                ) : null}
+
+                {data.missingMonatsbeleg > 0 && data.overdueMonatsbeleg === 0 ? (
+                    <Alert
+                        type="info"
+                        showIcon
+                        message="Monatsbeleg ausstehend"
+                        description={`${data.missingMonatsbeleg} Kassen benötigen einen Monatsbeleg.`}
+                    />
+                ) : null}
+
+                {data.missingJahresbeleg > 0 ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message="Jahresbeleg ausstehend"
+                        description={`${data.missingJahresbeleg} Kassen benötigen einen Jahresbeleg.`}
+                    />
+                ) : null}
+
+                {!hasIssues ? (
+                    <Alert
+                        type="success"
+                        showIcon
+                        message="Alle RKSV-Sonderbelege sind aktuell"
+                        description="Alle Kassen haben die erforderlichen Startbelege, Monatsbelege und Jahresbelege."
+                    />
+                ) : null}
+
+                <div style={{ fontSize: 12, color: '#8c8c8c', textAlign: 'right' }}>
+                    Letzte Aktualisierung: {data.lastUpdated ? new Date(data.lastUpdated).toLocaleString('de-DE') : 'unbekannt'}
+                </div>
+            </Space>
+        </Card>
+    );
+}

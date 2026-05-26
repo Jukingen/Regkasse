@@ -72,7 +72,7 @@ export type RksvReminderStatusCardProps = {
 
 export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCardProps) {
     const { t } = useI18n();
-    const { rows, summary, registersLoading, statusPending, hasRegisters } = useRksvReminderOverview(enabled);
+    const { rows, summary, registersLoading, statusPending, hasRegisters, loadError } = useRksvReminderOverview(enabled);
     const [selectedRegisterId, setSelectedRegisterId] = useState<string | undefined>(undefined);
 
     useEffect(() => {
@@ -109,7 +109,11 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                 {t('dashboard.rksvReminder.card_intro')}
             </Typography.Paragraph>
 
-            {!hasRegisters && !loading ? (
+            {loadError ? (
+                <Alert type="error" showIcon message={t('dashboard.rksvReminder.status_load_failed')} style={{ marginBottom: 12 }} />
+            ) : null}
+
+            {!loadError && !hasRegisters && !loading ? (
                 <Typography.Text type="secondary">{t('dashboard.rksvReminder.no_registers')}</Typography.Text>
             ) : null}
 
@@ -142,11 +146,11 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                 </Space>
             ) : null}
 
-            {selectedRow?.statusError ? (
+            {!loadError && selectedRow?.statusError ? (
                 <Alert type="error" showIcon message={t('dashboard.rksvReminder.status_load_failed')} />
             ) : null}
 
-            {selectedRow && !selectedRow.statusError && status ? (
+            {selectedRow && !selectedRow.statusError && !loadError && status ? (
                 <>
                     {isStartbelegMissing(status) ? (
                         <Alert

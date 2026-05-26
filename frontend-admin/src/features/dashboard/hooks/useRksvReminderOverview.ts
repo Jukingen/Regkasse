@@ -63,7 +63,10 @@ export function useRksvReminderOverview(enabled = true) {
         },
     });
 
-    const registers = useMemo(() => normalizeRegisterRows(registersRaw), [registersRaw]);
+    const registers = useMemo(
+        () => normalizeRegisterRows(registersRaw).filter((register) => register.status !== 5),
+        [registersRaw],
+    );
 
     const registerIds = useMemo(
         () =>
@@ -83,6 +86,9 @@ export function useRksvReminderOverview(enabled = true) {
         refetchOnWindowFocus: false,
     });
 
+    const statusPending = overviewQuery.fetchStatus === 'fetching';
+    const loadError = registersError || overviewQuery.isError;
+
     const statusByRegisterId = useMemo(() => {
         const map = new Map<string, RksvReminderStatusDto>();
         for (const item of overviewQuery.data ?? []) {
@@ -101,12 +107,12 @@ export function useRksvReminderOverview(enabled = true) {
                 register,
                 registerId: id,
                 status: statusByRegisterId.get(id),
-                statusError: overviewQuery.isError,
-                statusLoading: overviewQuery.isPending || overviewQuery.isLoading,
+                statusError: loadError,
+                statusLoading: statusPending,
             });
         }
         return out;
-    }, [registerIds, registers, statusByRegisterId, overviewQuery.isError, overviewQuery.isPending, overviewQuery.isLoading]);
+    }, [loadError, registerIds, registers, statusByRegisterId, statusPending]);
 
     const summary = useMemo(() => {
         let startbelegMissingCount = 0;
@@ -123,11 +129,10 @@ export function useRksvReminderOverview(enabled = true) {
         return { startbelegMissingCount, jahresbelegAttentionCount, monatsbelegAttentionCount };
     }, [rows]);
 
-    const statusPending = overviewQuery.isPending || overviewQuery.isLoading;
-
     return {
         registersLoading,
         registersError,
+        loadError,
         rows,
         summary,
         statusPending,
