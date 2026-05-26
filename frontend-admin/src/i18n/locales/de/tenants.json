@@ -245,6 +245,7 @@
   "actions": {
     "create": "Mandant anlegen",
     "edit": "Bearbeiten",
+    "decommission": "Mandant decommission",
     "delete": "Löschen",
     "restore": "Wiederherstellen",
     "hardDelete": "Endgültig löschen",
@@ -338,6 +339,8 @@
     "settings": {
       "save": "Einstellungen speichern",
       "danger": {
+        "decommissionWizardButton": "Stilllegung starten",
+        "decommissionWizardHint": "Der Assistent legt zuerst alle zugehörigen Kassen still und archiviert danach den Mandanten sicher.",
         "softDeleteButton": "Mandant archivieren / löschen",
         "softDeleteHint": "Wenn Sie diesen Mandanten löschen, können sich Benutzer nicht mehr anmelden. Daten bleiben erhalten und können wiederhergestellt werden.",
         "softDeleteModalTitle": "Mandant löschen?",
@@ -357,6 +360,130 @@
         "hardDeleteConfirm": "Endgültig löschen",
         "auditLink": "Vorgänge zu diesem Mandanten in den Audit-Protokollen anzeigen →"
       }
+    }
+  },
+  "decommission": {
+    "pageTitle": "Mandant sicher stilllegen",
+    "pageTitleWithTenant": "Mandant stilllegen: {{name}}",
+    "criticalTitle": "Achtung! Diese Aktion ist kritisch",
+    "criticalBody": "Der Assistent legt alle zugehörigen Kassen dauerhaft still und archiviert anschließend den Mandanten aus dem aktiven System.",
+    "alreadyArchivedTitle": "Mandant ist bereits archiviert",
+    "alreadyArchivedBody": "Für diesen Mandanten wurde bereits ein Soft-Delete ausgeführt. Eine erneute Archivierung ist nicht nötig.",
+    "summaryTitle": "Vorbereitende Prüfungen",
+    "steps": {
+      "preflight": "Vorprüfungen",
+      "registers": "Kassen stilllegen",
+      "export": "Fiscal Export",
+      "archive": "Mandant archivieren",
+      "result": "Ergebnis"
+    },
+    "summary": {
+      "activeUsers": "Aktive Benutzer",
+      "registersTotal": "Kassen gesamt",
+      "registersReady": "Bereit zur Stilllegung",
+      "registersBlocked": "Noch blockiert",
+      "registersDecommissioned": "Bereits stillgelegt",
+      "registersRemaining": "Verbleibende aktive Kassen"
+    },
+    "preflight": {
+      "manualConfirm": "Ich habe diesen Punkt geprüft und bestätigt.",
+      "openFiscalExport": "Fiscal-Export-Audit öffnen",
+      "items": {
+        "noOpenPayments": {
+          "label": "Keine offenen Zahlungen",
+          "description": "Dieser Punkt wird bewusst manuell bestätigt, damit keine unverbuchten Vorgänge übersehen werden."
+        },
+        "dailyClosingDone": {
+          "label": "Tagesabschluss durchgeführt",
+          "description": "Vor der Mandanten-Stilllegung sollte der letzte operative Tagesabschluss vollständig abgeschlossen sein."
+        },
+        "registersPrepared": {
+          "label": "Alle Kassen sind für die Stilllegung vorbereitet",
+          "readyDescription": "Alle verbleibenden Kassen sind geschlossen oder bereits stillgelegt.",
+          "openDescription": "{{count}} offene Kasse(n) müssen zuerst geschlossen werden.",
+          "blockedDescription": "Kassen im Wartungs- oder deaktivierten Status müssen vor der Stilllegung geprüft werden."
+        },
+        "fiscalExport": {
+          "label": "Fiscal Export empfohlen",
+          "description": "Vor dem Archivieren sollte ein aktueller Export für Audit- und Compliance-Zwecke erstellt oder geprüft werden."
+        }
+      }
+    },
+    "registers": {
+      "title": "Kassen stilllegen",
+      "description": "Alle Kassen dieses Mandanten werden stillgelegt. Ein Schlussbeleg wird automatisch erstellt.",
+      "loadFailed": "Kassen konnten für diesen Mandanten nicht geladen werden.",
+      "permissionDenied": "Ihr Konto darf Kassen nicht stilllegen. Bitten Sie einen berechtigten Super-Admin, diesen Schritt auszuführen.",
+      "blockedTitle": "{{count}} Kasse(n) sind noch nicht bereit",
+      "blockedBody": "Offene, deaktivierte oder Wartungs-Kassen müssen zuerst in einen stilllegbaren Zustand gebracht werden.",
+      "readyForArchive": "Alle Kassen sind bereits stillgelegt. Sie können mit der Mandanten-Archivierung fortfahren.",
+      "reasonPlaceholder": "Grund der Stilllegung für alle verbleibenden Kassen",
+      "defaultReason": "Mandanten-Stilllegung über Decommission-Wizard",
+      "decommissionAll": "Alle vorbereiteten Kassen stilllegen",
+      "progress": "%{{percent}} abgeschlossen",
+      "columns": {
+        "registerNumber": "Kasse",
+        "location": "Standort",
+        "status": "Status",
+        "lastActivity": "Letzte Aktivität",
+        "readiness": "Bereitschaft"
+      },
+      "readiness": {
+        "decommissioned": "Bereits stillgelegt",
+        "ready": "Bereit",
+        "blocked": "Blockiert"
+      }
+    },
+    "export": {
+      "title": "Fiscal Export",
+      "description": "Vor dem Decommission wird ein vollständiger Export aller steuerrelevanten Daten empfohlen. Dieser Export ist 7 Jahre aufzubewahren.",
+      "retentionTitle": "Aufbewahrungspflicht",
+      "retentionBody": "Die Daten müssen für 7 Jahre aufbewahrt werden. Laden Sie den Export herunter und speichern Sie ihn sicher.",
+      "permissionTitle": "Fiscal Export nicht verfügbar",
+      "permissionBody": "Für diesen Export fehlt Ihrem Konto aktuell die Berechtigung report.export.",
+      "scopeLabel": "Exportumfang",
+      "scopeValue": "{{count}} Kasse(n) dieses Mandanten",
+      "profileLabel": "Exportprofil",
+      "periodLabel": "Zeitraum",
+      "progress": "%{{percent}} abgeschlossen",
+      "readyTitle": "Export bereit",
+      "downloadZip": "Fiscal Export herunterladen (ZIP)",
+      "readyAt": "Erstellt am: {{value}}",
+      "generate": "Fiscal Export generieren",
+      "continue": "Weiter",
+      "messages": {
+        "generated": "Fiscal Export wurde erstellt."
+      }
+    },
+    "archive": {
+      "warningTitle": "Mandant soft-delete",
+      "warningBody": "Der Mandant wird aus dem aktiven System entfernt, aber die Daten bleiben erhalten. In dieser Zeit kann der Mandant wiederhergestellt werden.",
+      "confirmLabel": "Geben Sie den Mandantennamen „{{name}}“ ein, um zu bestätigen.",
+      "submit": "Mandant soft-delete"
+    },
+    "result": {
+      "title": "Mandant erfolgreich archiviert",
+      "subtitle": "{{name}} wurde aus dem aktiven System entfernt.",
+      "archivedAt": "Archiviert am: {{value}}",
+      "registersDecommissioned": "{{count}} Kasse(n) wurden im Rahmen dieses Vorgangs stillgelegt.",
+      "nextStepsTitle": "Nächste Schritte",
+      "nextSteps": {
+        "restoreWindow": "Der Mandant bleibt per Soft-Delete wiederherstellbar, bis ein separater Hard-Delete durchgeführt wird.",
+        "hardDelete": "Eine endgültige Löschung ist weiterhin ein separater manueller Schritt in der Gefahrenzone.",
+        "fiscalExportRetention": "Bewahren Sie den Fiscal Export und andere steuerrelevante Unterlagen gemäß Ihren Aufbewahrungspflichten sicher auf."
+      }
+    },
+    "actions": {
+      "back": "Zurück",
+      "continue": "Weiter",
+      "backToTenant": "Zurück zum Mandanten",
+      "backToList": "Zurück zur Mandantenliste",
+      "openDeletedTenants": "Gelöschte Mandanten anzeigen",
+      "openAuditLogs": "Audit-Protokolle öffnen"
+    },
+    "messages": {
+      "registersDecommissioned": "{{count}} Kasse(n) wurden stillgelegt.",
+      "archived": "Mandant wurde archiviert."
     }
   },
   "edit": {
@@ -494,6 +621,8 @@
       "action": "Schnell-Benutzer generieren",
       "title": "Schnell-Benutzer generieren",
       "role": "Rolle",
+      "tenantPlaceholderOptional": "Mandant auswählen (optional)",
+      "assignmentRequiredAfterCreate": "Nach der Erstellung müssen Sie den Benutzer einem Mandanten zuordnen.",
       "generate": "Generieren",
       "autoTitle": "Es wird automatisch:",
       "emailPreview": "E-Mail: {{role}}_{{random}}@{{slug}}.regkasse.at (6 Zeichen Zufall)",

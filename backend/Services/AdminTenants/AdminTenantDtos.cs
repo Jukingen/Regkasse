@@ -46,6 +46,14 @@ public sealed record AdminTenantCashRegisterDto(
     bool IsActive,
     DateTime? LastUsedAtUtc);
 
+public sealed record TenantDecommissionChecksDto(
+    bool HasOpenPayments,
+    bool HasOpenShifts,
+    int ActiveRegistersCount,
+    int ReadyRegistersCount,
+    int BlockedRegistersCount,
+    bool CanDecommission);
+
 public sealed class CreateAdminTenantRequest
 {
     [Required]

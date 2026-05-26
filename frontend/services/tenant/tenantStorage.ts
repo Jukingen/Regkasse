@@ -67,3 +67,7 @@ export const tenantStorage = {
     ]);
   },
 };
+
+export async function getCurrentTenantSlug(): Promise<string | null> {
+  return tenantStorage.getTenantSlug();
+}

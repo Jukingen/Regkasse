@@ -3,6 +3,10 @@ import { Linking } from 'react-native';
 
 import { isWeb, safeWindow } from './platformUtils';
 
+export type OpenHttpOrHttpsUrlOptions = {
+  forceWebBrowser?: boolean;
+};
+
 function isHttpOrHttps(url: string): boolean {
   try {
     const u = new URL(url);
@@ -15,7 +19,10 @@ function isHttpOrHttps(url: string): boolean {
 /**
  * Opens http(s) URLs: in-app browser on native, new tab on web; falls back to Linking.
  */
-export async function openHttpOrHttpsUrl(url: string): Promise<boolean> {
+export async function openHttpOrHttpsUrl(
+  url: string,
+  _options?: OpenHttpOrHttpsUrlOptions,
+): Promise<boolean> {
   if (!isHttpOrHttps(url)) {
     return false;
   }

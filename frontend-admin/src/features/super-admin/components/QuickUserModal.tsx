@@ -71,7 +71,7 @@ export function QuickUserModal({
     const watchedRole = Form.useWatch('role', form) ?? 'Manager';
     const watchedTenantId = Form.useWatch('tenantId', form) ?? fixedTenantId;
     const previewTenant = watchedTenantId ? tenantById.get(watchedTenantId) : undefined;
-    const previewSlug = previewTenant?.slug ?? fixedTenantSlug ?? 'mandant';
+    const previewSlug = previewTenant?.slug ?? fixedTenantSlug ?? 'platform';
 
     const infoEmailExample = t('tenants.users.quick.emailPreview', {
         role: watchedRole.toLowerCase(),
@@ -107,12 +107,11 @@ export function QuickUserModal({
                     <Form.Item
                         name="tenantId"
                         label={t('users.create.tenant')}
-                        rules={[{ required: true, message: t('users.create.tenantRequired') }]}
                     >
                         <TenantSelector
                             tenants={tenantRows}
                             loading={tenantsLoading}
-                            placeholder={t('users.create.tenantPlaceholder')}
+                            placeholder={t('tenants.users.quick.tenantPlaceholderOptional')}
                         />
                     </Form.Item>
                 ) : fixedTenantName && fixedTenantSlug ? (
@@ -135,6 +134,14 @@ export function QuickUserModal({
                         </ul>
                     }
                 />
+                {showTenantSelector && !watchedTenantId ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message={t('tenants.users.quick.assignmentRequiredAfterCreate')}
+                        style={{ marginTop: 16 }}
+                    />
+                ) : null}
             </Form>
         </Modal>
     );

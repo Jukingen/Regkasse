@@ -5,7 +5,7 @@
  * surfaces key + JWT in a success modal and inline summary with copy actions.
  */
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
@@ -32,6 +32,11 @@ import {
     type GenerateLicenseRequest,
     type GenerateLicenseResponse,
 } from '@/api/manual/adminLicense';
+import {
+    ADMIN_LICENSE_PAGE_INTENT_EXTEND,
+    buildAdminLicensePageHref,
+    type AdminLicensePagePrefill,
+} from '@/features/license/utils/adminLicenseRoute';
 
 type Props = {
     /** True when the current user has settings.manage permission. */
@@ -40,6 +45,8 @@ type Props = {
     machineFingerprint: string;
     /** From GET /api/license/status: enabled license feature ids for this deployment. */
     enabledLicenseFeatures?: readonly string[] | null;
+    /** Optional query-driven prefill from POS/admin deep links. */
+    prefill?: AdminLicensePagePrefill | null;
 };
 
 type FormValues = {
@@ -83,6 +90,7 @@ export function LicenseGenerationCard({
     canGenerate,
     machineFingerprint,
     enabledLicenseFeatures,
+    prefill,
 }: Props) {
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
@@ -93,6 +101,30 @@ export function LicenseGenerationCard({
     const [resultModalOpen, setResultModalOpen] = useState(false);
 
     const tomorrow = useMemo(() => dayjs().add(1, 'day').startOf('day'), []);
+
+    useEffect(() => {
+        const nextMachineHash = prefill?.machineHashHex?.trim().toLowerCase();
+        if (!nextMachineHash) {
+            return;
+        }
+
+        const currentMachineHash = String(form.getFieldValue('machineHashHex') ?? '')
+            .trim()
+            .toLowerCase();
+        const currentRequireFingerprint = Boolean(form.getFieldValue('requireFingerprint'));
+
+        if (
+            currentMachineHash === nextMachineHash &&
+            currentRequireFingerprint === prefill.requireFingerprint
+        ) {
+            return;
+        }
+
+        form.setFieldsValue({
+            requireFingerprint: prefill.requireFingerprint,
+            machineHashHex: nextMachineHash,
+        });
+    }, [form, prefill]);
 
     const mutation = useMutation({
         mutationFn: (body: GenerateLicenseRequest) => postGenerateLicense(body),
@@ -350,7 +382,10 @@ function buildAdminLicenseDeepLink(machineFingerprint: string): string {
         return '';
     }
     const origin = window.location.origin;
-    return `${origin}/admin/license?machineHash=${encodeURIComponent(machineFingerprint)}`;
+    return `${origin}${buildAdminLicensePageHref({
+        machineHash: machineFingerprint,
+        intent: ADMIN_LICENSE_PAGE_INTENT_EXTEND,
+    })}`;
 }
 
 function IssuedLicenseResult({

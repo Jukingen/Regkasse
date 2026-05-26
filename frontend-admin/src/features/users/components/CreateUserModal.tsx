@@ -9,6 +9,8 @@ import { QuickUserSuccessModal } from '@/features/super-admin/components/QuickUs
 import { QUICK_USER_ROLES, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
 import type { CreateUserResult } from '@/features/users/api/users';
 import { TENANT_CREATE_ROLES } from '@/features/super-admin/api/tenantUsers';
+import { UserTenantAssignmentModal } from '@/features/users/components/UserTenantAssignmentModal';
+import { useTenantAssignmentModal } from '@/features/users/hooks/useTenantAssignmentModal';
 import { useI18n } from '@/i18n';
 
 export type CreateUserFormValues = {
@@ -41,8 +43,11 @@ export type CreateUserModalProps = {
     showOwnerToggle?: boolean;
     variant?: 'tenantDetail' | 'usersPage';
     initialValues?: Partial<CreateUserFormValues>;
+    allowDeferredTenantAssignment?: boolean;
+    onAssignTenants?: (userId: string, tenantIds: string[]) => Promise<void>;
     quickMode?: {
         onSubmit: (values: CreateUserQuickFormValues) => Promise<CreateQuickUserResult>;
+        onSubmitWithoutTenant?: (values: CreateUserQuickFormValues) => Promise<CreateUserResult>;
     };
 };
 
@@ -67,18 +72,26 @@ export function CreateUserModal({
     showOwnerToggle = false,
     variant = 'usersPage',
     initialValues,
+    allowDeferredTenantAssignment = false,
+    onAssignTenants,
     quickMode,
 }: CreateUserModalProps) {
     const { t } = useI18n();
     const [form] = Form.useForm<CreateUserFormValues>();
     const [quickForm] = Form.useForm<CreateUserQuickFormValues>();
     const [passwordResult, setPasswordResult] = useState<CreateUserResult | null>(null);
+    const [tenantAssignmentResult, setTenantAssignmentResult] = useState<CreateUserResult | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [assignmentSubmitting, setAssignmentSubmitting] = useState(false);
     const [quickResult, setQuickResult] = useState<CreateQuickUserResult | null>(null);
     const [quickSubmitting, setQuickSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState<'normal' | 'quick'>('normal');
+    const tenantAssignmentModal = useTenantAssignmentModal();
 
     const showTenantPicker = isSuperAdmin && !fixedTenantId;
+    const canDeferTenantAssignment = showTenantPicker && !fixedTenantId && allowDeferredTenantAssignment && !!onAssignTenants;
+    const canDeferQuickTenantAssignment =
+        showTenantPicker && !fixedTenantId && allowDeferredTenantAssignment && !!onAssignTenants && !!quickMode?.onSubmitWithoutTenant;
 
     const roleOptions = useMemo(
         () =>
@@ -126,6 +139,8 @@ export function CreateUserModal({
             form.resetFields();
             quickForm.resetFields();
             setActiveTab('normal');
+            setTenantAssignmentResult(null);
+            tenantAssignmentModal.closeModal();
             return;
         }
         form.setFieldsValue({
@@ -143,7 +158,7 @@ export function CreateUserModal({
     const watchedQuickRole = Form.useWatch('role', quickForm) ?? 'Manager';
     const watchedQuickTenantId = Form.useWatch('tenantId', quickForm) ?? fixedTenantId;
     const quickPreviewTenant = watchedQuickTenantId ? tenantById.get(watchedQuickTenantId) : undefined;
-    const quickPreviewSlug = quickPreviewTenant?.slug ?? 'tenant';
+    const quickPreviewSlug = quickPreviewTenant?.slug ?? (canDeferQuickTenantAssignment ? 'platform' : 'tenant');
     const quickPreviewName = quickPreviewTenant?.name ?? fixedTenantId ?? '';
     const infoEmailExample = t('tenants.users.quick.emailPreview', {
         role: watchedQuickRole.toLowerCase(),
@@ -153,6 +168,8 @@ export function CreateUserModal({
 
     const handleClose = () => {
         setPasswordResult(null);
+        setTenantAssignmentResult(null);
+        tenantAssignmentModal.closeModal();
         setQuickResult(null);
         setActiveTab('normal');
         onClose();
@@ -160,21 +177,45 @@ export function CreateUserModal({
 
     const handleFinish = async (values: CreateUserFormValues) => {
         const tenantId = fixedTenantId ?? values.tenantId;
-        if (!tenantId) {
+        const { tenantId: _tenantId, ...restValues } = values;
+        if (!tenantId && !canDeferTenantAssignment) {
             form.setFields([{ name: 'tenantId', errors: [t('users.create.tenantRequired')] }]);
             return;
         }
         setSubmitting(true);
         try {
             const result = await onSubmit({
-                ...values,
+                ...restValues,
                 email: values.email.trim(),
                 firstName: values.firstName?.trim() || undefined,
                 lastName: values.lastName?.trim() || undefined,
-                tenantId,
+                ...(canDeferTenantAssignment ? {} : { tenantId }),
                 isOwner: showOwnerToggle ? Boolean(values.isOwner) : false,
             });
             if (result?.success && result.generatedPassword) {
+                if (canDeferTenantAssignment && onAssignTenants) {
+                    if (tenantId) {
+                        try {
+                            await onAssignTenants(result.userId, [tenantId]);
+                            setPasswordResult(result);
+                        } catch {
+                            setTenantAssignmentResult(result);
+                            tenantAssignmentModal.openModal({
+                                userId: result.userId,
+                                userEmail: values.email.trim(),
+                                initialSelectedTenantIds: [tenantId],
+                            });
+                        }
+                        return;
+                    }
+                    setTenantAssignmentResult(result);
+                    tenantAssignmentModal.openModal({
+                        userId: result.userId,
+                        userEmail: values.email.trim(),
+                        initialSelectedTenantIds: [],
+                    });
+                    return;
+                }
                 setPasswordResult(result);
             }
         } catch {
@@ -184,21 +225,52 @@ export function CreateUserModal({
         }
     };
 
+    const handleTenantAssignmentSave = async (selectedTenantIds: string[]) => {
+        if (!tenantAssignmentModal.userId || !tenantAssignmentResult || !onAssignTenants) return;
+        setAssignmentSubmitting(true);
+        try {
+            await onAssignTenants(tenantAssignmentModal.userId, selectedTenantIds);
+            setPasswordResult(tenantAssignmentResult);
+            setTenantAssignmentResult(null);
+            tenantAssignmentModal.closeModal();
+        } catch {
+            /* parent shows error toast */
+        } finally {
+            setAssignmentSubmitting(false);
+        }
+    };
+
     const handleQuickFinish = async (values: CreateUserQuickFormValues) => {
         if (!quickMode) return;
         const tenantId = fixedTenantId ?? values.tenantId;
-        if (!tenantId) {
+        if (!tenantId && !canDeferQuickTenantAssignment) {
             quickForm.setFields([{ name: 'tenantId', errors: [t('users.create.tenantRequired')] }]);
             return;
         }
         setQuickSubmitting(true);
         try {
-            const result = await quickMode.onSubmit({
-                role: values.role,
-                tenantId,
-            });
-            if (result?.success) {
-                setQuickResult(result);
+            if (tenantId) {
+                const result = await quickMode.onSubmit({
+                    role: values.role,
+                    tenantId,
+                });
+                if (result?.success) {
+                    setQuickResult(result);
+                }
+                return;
+            }
+            if (quickMode.onSubmitWithoutTenant) {
+                const result = await quickMode.onSubmitWithoutTenant({
+                    role: values.role,
+                });
+                if (result?.success && result.generatedPassword) {
+                    setTenantAssignmentResult(result);
+                    tenantAssignmentModal.openModal({
+                        userId: result.userId,
+                        userEmail: result.email,
+                        initialSelectedTenantIds: [],
+                    });
+                }
             }
         } catch {
             /* parent shows error toast */
@@ -219,6 +291,8 @@ export function CreateUserModal({
 
     const closePasswordModal = () => {
         setPasswordResult(null);
+        setTenantAssignmentResult(null);
+        tenantAssignmentModal.closeModal();
         onComplete?.();
         onClose();
     };
@@ -238,7 +312,7 @@ export function CreateUserModal({
         });
     };
 
-    const loading = activeTab === 'quick' ? quickSubmitting : confirmLoading || submitting;
+    const loading = activeTab === 'quick' ? quickSubmitting : confirmLoading || submitting || assignmentSubmitting;
 
     const normalForm = (
         <Form form={form} layout="vertical" onFinish={handleFinish}>
@@ -269,7 +343,7 @@ export function CreateUserModal({
                 <Form.Item
                     name="tenantId"
                     label={t('users.create.tenant')}
-                    rules={[{ required: true, message: t('users.create.tenantRequired') }]}
+                    rules={canDeferTenantAssignment ? [] : [{ required: true, message: t('users.create.tenantRequired') }]}
                 >
                     <Select
                         showSearch
@@ -295,12 +369,16 @@ export function CreateUserModal({
                 <Form.Item
                     name="tenantId"
                     label={t('users.create.tenant')}
-                    rules={[{ required: true, message: t('users.create.tenantRequired') }]}
+                    rules={canDeferQuickTenantAssignment ? [] : [{ required: true, message: t('users.create.tenantRequired') }]}
                 >
                     <Select
                         showSearch
                         optionFilterProp="label"
-                        placeholder={t('users.create.tenantPlaceholder')}
+                        placeholder={
+                            canDeferQuickTenantAssignment
+                                ? t('tenants.users.quick.tenantPlaceholderOptional')
+                                : t('users.create.tenantPlaceholder')
+                        }
                         loading={tenantsLoading}
                         options={tenantOptions}
                     />
@@ -323,6 +401,14 @@ export function CreateUserModal({
                     </ul>
                 }
             />
+            {showTenantPicker && canDeferQuickTenantAssignment && !watchedQuickTenantId ? (
+                <Alert
+                    type="warning"
+                    showIcon
+                    message={t('tenants.users.quick.assignmentRequiredAfterCreate')}
+                    style={{ marginTop: 16 }}
+                />
+            ) : null}
         </Form>
     ) : null;
 
@@ -330,10 +416,10 @@ export function CreateUserModal({
         <>
             <Modal
                 title={modalTitle}
-                open={open && !passwordResult && !quickResult}
+                open={open && !passwordResult && !quickResult && !tenantAssignmentModal.visible}
                 onCancel={handleClose}
                 width={600}
-                destroyOnClose
+                destroyOnHidden
                 footer={[
                     <Button key="cancel" onClick={handleClose}>
                         {t('common.buttons.cancel')}
@@ -376,11 +462,29 @@ export function CreateUserModal({
                 )}
             </Modal>
 
+            {tenantAssignmentModal.visible && tenantAssignmentResult ? (
+                <UserTenantAssignmentModal
+                    open
+                    userEmail={tenantAssignmentModal.userEmail}
+                    currentTenants={tenantAssignmentModal.userTenants}
+                    allTenants={tenantRows}
+                    confirmLoading={assignmentSubmitting}
+                    cancelText={t('common.buttons.close')}
+                    onClose={() => {
+                        setPasswordResult(tenantAssignmentResult);
+                        setTenantAssignmentResult(null);
+                        tenantAssignmentModal.closeModal();
+                    }}
+                    onSave={handleTenantAssignmentSave}
+                    initialSelectedTenantIds={tenantAssignmentModal.initialSelectedTenantIds}
+                />
+            ) : null}
+
             <Modal
                 title={t('users.create.success')}
                 open={!!passwordResult}
                 onCancel={closePasswordModal}
-                destroyOnClose
+                destroyOnHidden
                 footer={[
                     <Button key="copy" type="primary" icon={<CopyOutlined />} onClick={() => void copyPassword()}>
                         {t('users.create.copyPassword')}

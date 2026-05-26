@@ -71,7 +71,7 @@ import {
     type UpdateUserRequest,
 } from '@/features/users/api/usersGateway';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
-import { UserFormDrawer } from '@/features/users/components/UserFormDrawer';
+import { UserFormDrawer, type UserFormSubmitValues } from '@/features/users/components/UserFormDrawer';
 import { RoleManagementDrawer } from '@/features/users/components/RoleManagementDrawer';
 import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
 import { createUsersFormRules } from '@/features/users/constants/validation';
@@ -79,7 +79,7 @@ import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
-import { createPlatformUser } from '@/features/users/api/users';
+import { createPlatformUser, updateUserTenants } from '@/features/users/api/users';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
@@ -396,16 +396,9 @@ export default function UsersPage() {
     });
     const updateMutation = useMutation({
         mutationFn: ({ id, data }: { id: string; data: UpdateUserRequest }) => gatewayUpdateUser(id, data),
-        onSuccess: (_data, { id }) => {
-            message.success(usersCopy.successUpdate);
-            queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(id) });
-            invalidateAllUserLists();
-            queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
-            setEditUserId(null);
-        },
-        onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorGeneric).message);
-        },
+    });
+    const updateUserTenantsMutation = useMutation({
+        mutationFn: ({ id, tenantIds }: { id: string; tenantIds: string[] }) => updateUserTenants(id, tenantIds),
     });
     const resetPasswordMutation = useMutation({
         mutationFn: ({ id, data }: { id: string; data: { newPassword: string } }) => gatewayResetPassword(id, data),
@@ -524,17 +517,33 @@ export default function UsersPage() {
         };
         createMutation.mutate({ platform: createPlatformMode, data: createPayload });
     };
-    const handleEdit = (values: UpdateUserRequest) => {
+    const handleEdit = async (values: UserFormSubmitValues) => {
         if (!editUserId) return;
         if (!policy.canEdit) {
             message.error(usersCopy.noPermission);
             return;
         }
+        const { tenantIds, ...restValues } = values as UpdateUserRequest & { tenantIds?: string[] };
         const updatePayload: UpdateUserRequest = {
-            ...values,
-            employeeNumber: (values.employeeNumber ?? '').trim(),
+            ...restValues,
+            employeeNumber: (restValues.employeeNumber ?? '').trim(),
         };
-        updateMutation.mutate({ id: editUserId, data: updatePayload });
+        try {
+            await updateMutation.mutateAsync({ id: editUserId, data: updatePayload });
+            if (isSuperAdminLayout && Array.isArray(tenantIds)) {
+                await updateUserTenantsMutation.mutateAsync({ id: editUserId, tenantIds });
+                await queryClient.invalidateQueries({ queryKey: ['admin', 'users', editUserId, 'tenants'] });
+                message.success(t('users.tenants.manageSaved'));
+            } else {
+                message.success(usersCopy.successUpdate);
+            }
+            await queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(editUserId) });
+            invalidateAllUserLists();
+            await queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${editUserId}`] });
+            setEditUserId(null);
+        } catch (e: unknown) {
+            message.error(normalizeError(e, usersCopy.errorGeneric).message);
+        }
     };
     const handleDeactivate = () => {
         if (!deactivateUserRecord?.id) return;
@@ -986,7 +995,7 @@ export default function UsersPage() {
                 roleOptions={roleOptions}
                 rolesLoading={rolesLoading}
                 onSubmit={handleEdit}
-                loading={updateMutation.isPending}
+                loading={updateMutation.isPending || updateUserTenantsMutation.isPending}
                 canManageTenants={isSuperAdminLayout}
             />
 

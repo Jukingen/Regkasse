@@ -46,17 +46,19 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CreateUserModal } from '@/features/users/components/CreateUserModal';
 import type { CreateUserQuickFormValues } from '@/features/users/components/CreateUserModal';
 import { createQuickUser, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
-import { useCreateUser } from '@/features/users/hooks/useCreateUser';
 import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
 import { ResetPasswordModal } from '@/features/super-admin/components/ResetPasswordModal';
 import { PasswordViewModal } from '@/features/users/components/PasswordViewModal';
 import {
     adminUserToUserInfo,
     adminUsersQueryKeys,
+    createUser as createAdminUser,
+    createPlatformUser,
     listAllAdminUsers,
     listPlatformUsers,
     listTenantUsers,
     removeUserFromTenant,
+    updateUserTenants,
     type AdminUserDto,
     tenantRowToTenantUser,
     type TenantUserRow,
@@ -93,6 +95,12 @@ const SEARCH_DEBOUNCE_MS = 300;
 const TEMP_PASSWORD_MASK = '***';
 const PASSWORD_SHOW_TITLE = 'Temporäres Passwort erzeugen und anzeigen';
 const PLATFORM_GROUP_KEY = '__platform__';
+
+function generateQuickPlatformEmail(role: string): string {
+    const normalizedRole = role.trim().toLowerCase().replace(/[^a-z0-9]+/g, '') || 'user';
+    const random = Math.random().toString(36).slice(2, 8);
+    return `${normalizedRole}_${random}@platform.regkasse.at`;
+}
 
 function platformDisplayName(user: UserInfo): string {
     const first = user.firstName ?? '';
@@ -173,6 +181,7 @@ function rowFromAdminDto(dto: AdminUserDto): UnifiedAdminUserRow {
             tenantName,
             isActive: dto.isActive,
             lastLoginAt: dto.lastLoginAt ?? undefined,
+            twoFactorEnabled: dto.twoFactorEnabled,
         };
     }
     return base;
@@ -395,11 +404,42 @@ export function UnifiedAdminUsersView({
         void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     };
 
-    const createMutation = useCreateUser({
-        fixedTenantId: createFixedTenantId,
+    const createMutation = useMutation({
+        mutationFn: (values: {
+            email: string;
+            firstName?: string;
+            lastName?: string;
+            role: string;
+        }) =>
+            createFixedTenantId
+                ? createAdminUser({
+                      email: values.email.trim(),
+                      firstName: values.firstName?.trim(),
+                      lastName: values.lastName?.trim(),
+                      role: values.role,
+                      tenantId: createFixedTenantId,
+                  })
+                : createPlatformUser({
+                      email: values.email.trim(),
+                      firstName: values.firstName?.trim(),
+                      lastName: values.lastName?.trim(),
+                      role: values.role,
+                  }),
         onSuccess: () => {
-            setCreateOpen(false);
             invalidateUserLists();
+        },
+        onError: () => {
+            message.error(t('tenants.users.create.messages.failed'));
+        },
+    });
+    const assignTenantsMutation = useMutation({
+        mutationFn: ({ userId, tenantIds }: { userId: string; tenantIds: string[] }) =>
+            updateUserTenants(userId, tenantIds),
+        onSuccess: () => {
+            invalidateUserLists();
+        },
+        onError: () => {
+            message.error(t('users.tenants.manageFailed'));
         },
     });
 
@@ -419,6 +459,19 @@ export function UnifiedAdminUsersView({
                 message.error(t('tenants.users.quick.messages.rateLimited'));
                 return;
             }
+            message.error(t('tenants.users.quick.messages.failed'));
+        },
+    });
+    const quickPlatformMutation = useMutation({
+        mutationFn: (values: CreateUserQuickFormValues) =>
+            createPlatformUser({
+                email: generateQuickPlatformEmail(values.role),
+                role: values.role,
+            }),
+        onSuccess: () => {
+            invalidateUserLists();
+        },
+        onError: () => {
             message.error(t('tenants.users.quick.messages.failed'));
         },
     });
@@ -1064,14 +1117,26 @@ export function UnifiedAdminUsersView({
                         tenantId={createFixedTenantId}
                         tenantRows={createTenants}
                         tenantsLoading={createTenantsLoading}
-                        confirmLoading={createMutation.isPending}
+                        confirmLoading={createMutation.isPending || quickPlatformMutation.isPending}
                         onClose={() => setCreateOpen(false)}
                         onComplete={() => setCreateOpen(false)}
-                        onSubmit={(values) => createMutation.mutateAsync(values)}
+                        allowDeferredTenantAssignment
+                        onAssignTenants={(userId, tenantIds) =>
+                            assignTenantsMutation.mutateAsync({ userId, tenantIds })
+                        }
+                        onSubmit={(values) =>
+                            createMutation.mutateAsync({
+                                email: values.email,
+                                firstName: values.firstName,
+                                lastName: values.lastName,
+                                role: values.role,
+                            })
+                        }
                         quickMode={
                             tenantFilter !== FILTER_PLATFORM
                                 ? {
                                       onSubmit: (values) => quickMutation.mutateAsync(values),
+                                      onSubmitWithoutTenant: (values) => quickPlatformMutation.mutateAsync(values),
                                   }
                                 : undefined
                         }

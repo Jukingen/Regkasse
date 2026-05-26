@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -14,17 +15,15 @@ import {
   View,
 } from 'react-native';
 
-import { useRouter } from 'expo-router';
-
 import { licenseApi } from '../../../api/license';
+import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../../constants/SoftTheme';
 import {
   buildLicenseRenewalMailtoUrl,
-  getLicenseExtensionHttpUrl,
   LICENSE_SUPPORT_EMAIL,
 } from '../../../constants/licenseRenewal';
-import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../../constants/SoftTheme';
 import { type LicenseStatus } from '../../../hooks/useLicenseStatus';
-import { openHttpOrHttpsUrl, openMailtoUrl } from '../../../utils/openLink';
+import { openAdmin, openLicenseExtension } from '@/src/features/admin-navigation/openAdmin';
+import { openMailtoUrl } from '../../../utils/openLink';
 
 const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
 
@@ -103,40 +102,25 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
     null,
   );
 
-  const hasConfiguredExtensionUrl = useMemo(() => Boolean(getLicenseExtensionHttpUrl()), []);
+  const hasConfiguredExtensionUrl = useMemo(() => true, []);
 
   /** Active paid license (not trial, not expired) — hide key entry per product rules. */
   const isLicensedActive = Boolean(
     status && status.isValid && !status.isTrial && !status.isExpired,
   );
 
-  const openRenewPrimary = useCallback(async () => {
-    let httpUrl = getLicenseExtensionHttpUrl();
-    if (httpUrl) {
-      if (status?.machineHash) {
-        const sep = httpUrl.includes('?') ? '&' : '?';
-        httpUrl = `${httpUrl}${sep}machineHash=${encodeURIComponent(status.machineHash)}`;
-      }
-      const ok = await openHttpOrHttpsUrl(httpUrl);
-      if (!ok) {
-        Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedBody'));
-      }
-      return;
-    }
+  const handleExtendLicense = useCallback(async () => {
+    const machineHash = status?.machineHash?.trim();
 
-    const mailto = buildLicenseRenewalMailtoUrl(
-      status
-        ? {
-            machineHash: status.machineHash,
-            daysRemaining: status.daysRemaining,
-            isTrial: status.isTrial,
-            isExpired: status.isExpired,
-          }
-        : null,
-    );
-    const ok = await openMailtoUrl(mailto);
+    const ok = machineHash
+      ? await openLicenseExtension(machineHash)
+      : await openAdmin('licenseOverview', undefined, {
+          fallbackToMail: true,
+          mailtoSubject: 'Lizenzinformationen anfordern',
+        });
+
     if (!ok) {
-      Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedMailBody'));
+      Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedBody'));
     }
   }, [t, status]);
 
@@ -374,7 +358,7 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
 
                       <Pressable
                         style={({ pressed }) => [styles.ctaPrimary, pressed && { opacity: 0.88 }]}
-                        onPress={() => void openRenewPrimary()}
+                        onPress={() => void handleExtendLicense()}
                       >
                         <Ionicons
                           name={hasConfiguredExtensionUrl ? 'open-outline' : 'mail-outline'}
@@ -384,7 +368,7 @@ export function LicenseModal({ visible, onClose, status, loading, unlimitedPaid,
                         <Text style={styles.ctaPrimaryText}>{t('license:renewCta')}</Text>
                       </Pressable>
                       <Pressable
-                        onPress={() => void openRenewPrimary()}
+                        onPress={() => void handleExtendLicense()}
                         hitSlop={12}
                         style={({ pressed }) => [styles.ctaHintPressable, pressed && { opacity: 0.7 }]}
                       >

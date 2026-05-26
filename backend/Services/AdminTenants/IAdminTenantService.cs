@@ -19,6 +19,10 @@ public interface IAdminTenantService
         Guid tenantId,
         CancellationToken cancellationToken = default);
 
+    Task<TenantDecommissionChecksDto?> GetDecommissionChecksAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
     Task<TenantSlugAvailabilityDto> CheckSlugAvailabilityAsync(
         string slug,
         CancellationToken cancellationToken = default);
@@ -59,6 +63,12 @@ public interface IAdminTenantService
         Guid tenantId,
         HardDeleteAdminTenantRequest request,
         string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<(bool Success, string? Error, TenantDecommissionChecksDto? Checks)> DecommissionAsync(
+        Guid tenantId,
+        string actorUserId,
+        string actorRole,
         CancellationToken cancellationToken = default);
 
     Task<(TenantImpersonationResponseDto? Result, string? Error)> ImpersonateAsync(

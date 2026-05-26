@@ -1,13 +1,14 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import LanguageSelector from '../../components/LanguageSelector';
+import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { AppUpdateChecker } from '../../components/AppUpdateChecker';
 import { CashRegisterAssignmentSection } from '../../components/CashRegisterAssignmentSection';
+import LanguageSelector from '../../components/LanguageSelector';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { LicenseTransferHelpSection } from '../../components/LicenseTransferHelpSection';
-import { AppUpdateChecker } from '../../components/AppUpdateChecker';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTranslation } from 'react-i18next';
 import { useTimeSyncStatus } from '../../hooks/useTimeSyncStatus';
 
 function formatDeDateTime(iso: string | null | undefined): string {
@@ -75,6 +76,19 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Admin-Menü</Text>
+        <Text style={styles.description}>
+          Öffnet Verwaltungsfunktionen wie Lizenz, RKSV und Berichte im Admin-Bereich.
+        </Text>
+        <TouchableOpacity
+          style={styles.queueLinkButton}
+          onPress={() => router.push('/(screens)/admin-menu' as any)}
+        >
+          <Text style={styles.queueLinkText}>Admin-Menü öffnen</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Systemzeit (NTP)</Text>
         <Text style={styles.description}>
           Letzter Abgleich (Server): {formatDeDateTime(status?.lastSyncAt)}
@@ -89,7 +103,12 @@ export default function SettingsScreen() {
         ) : error ? (
           <Text style={styles.syncError}>Status konnte nicht geladen werden.</Text>
         ) : null}
-        <TouchableOpacity style={styles.queueLinkButton} onPress={() => void refetch()}>
+        <TouchableOpacity
+          style={styles.queueLinkButton}
+          onPress={() => {
+            refetch().catch(() => undefined);
+          }}
+        >
           <Text style={styles.queueLinkText}>Zeitstatus aktualisieren</Text>
         </TouchableOpacity>
       </View>

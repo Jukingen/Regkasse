@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Checkbox, Modal, Space, Typography, message } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Button, message } from 'antd';
 import { TeamOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -12,16 +12,22 @@ import {
 } from '@/features/users/api/users';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useI18n } from '@/i18n';
+import {
+    UserTenantAssignmentModal,
+    type UserTenantAssignmentRow,
+} from '@/features/users/components/UserTenantAssignmentModal';
 
 export type TenantMembershipManagerProps = {
     userId: string;
-    currentTenants: Array<{ id: string; name: string; role: string }>;
+    userEmail?: string;
+    currentTenants: UserTenantAssignmentRow[];
     onSuccess: () => void;
 };
 
 /** Super Admin: assign or remove business-tenant memberships for a user. */
 export function TenantMembershipManager({
     userId,
+    userEmail = '',
     currentTenants,
     onSuccess,
 }: TenantMembershipManagerProps) {
@@ -29,17 +35,12 @@ export function TenantMembershipManager({
     const queryClient = useQueryClient();
     const { tenants, isLoading: tenantsLoading } = useTenantList();
     const [open, setOpen] = useState(false);
-    const [selected, setSelected] = useState<string[]>([]);
-
-    const activeIds = useMemo(
-        () => new Set(currentTenants.map((row) => row.id)),
-        [currentTenants],
+    const hasExistingTenants = currentTenants.length > 0;
+    const activeTenants = useMemo(
+        () => tenants.filter((tenant) => tenant.isActive && tenant.status === 'active'),
+        [tenants],
     );
-
-    useEffect(() => {
-        if (!open) return;
-        setSelected(currentTenants.map((row) => row.id));
-    }, [open, currentTenants]);
+    const canOpenModal = tenantsLoading || hasExistingTenants || activeTenants.length > 0;
 
     const saveMutation = useMutation({
         mutationFn: (tenantIds: string[]) => updateUserTenants(userId, tenantIds),
@@ -53,63 +54,43 @@ export function TenantMembershipManager({
         onError: () => message.error(t('users.tenants.manageFailed')),
     });
 
-    const toggle = (tenantId: string, checked: boolean) => {
-        setSelected((prev) =>
-            checked ? [...new Set([...prev, tenantId])] : prev.filter((id) => id !== tenantId),
-        );
+    const handleOpen = () => {
+        if (!canOpenModal) return;
+        setOpen(true);
     };
 
     return (
         <>
-            <Button icon={<TeamOutlined />} onClick={() => setOpen(true)}>
+            <Button
+                icon={<TeamOutlined />}
+                onClick={handleOpen}
+                disabled={!canOpenModal && !tenantsLoading}
+            >
                 {t('users.tenants.manageAction')}
             </Button>
-            <Modal
-                title={t('users.tenants.manageTitle')}
-                open={open}
-                onCancel={() => setOpen(false)}
-                onOk={() => saveMutation.mutate(selected)}
-                confirmLoading={saveMutation.isPending}
-                okText={t('users.tenants.manageSave')}
-                cancelText={t('users.tenants.manageCancel')}
-                width={520}
-                destroyOnHidden
-            >
-                <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-                    {t('users.tenants.manageHint')}
-                </Typography.Paragraph>
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    {tenantsLoading ? (
-                        <Typography.Text type="secondary">{t('users.tenants.loading')}</Typography.Text>
-                    ) : (
-                        tenants.map((tenant) => (
-                            <Checkbox
-                                key={tenant.id}
-                                checked={selected.includes(tenant.id)}
-                                onChange={(e) => toggle(tenant.id, e.target.checked)}
-                            >
-                                {tenant.name}{' '}
-                                <Typography.Text type="secondary">({tenant.slug})</Typography.Text>
-                                {activeIds.has(tenant.id) ? (
-                                    <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
-                                        — {currentTenants.find((c) => c.id === tenant.id)?.role}
-                                    </Typography.Text>
-                                ) : null}
-                            </Checkbox>
-                        ))
-                    )}
-                </Space>
-            </Modal>
+            {!tenantsLoading ? (
+                <UserTenantAssignmentModal
+                    open={open}
+                    userEmail={userEmail}
+                    currentTenants={currentTenants}
+                    allTenants={activeTenants}
+                    confirmLoading={saveMutation.isPending}
+                    onClose={() => setOpen(false)}
+                    onSave={(tenantIds) => saveMutation.mutate(tenantIds)}
+                />
+            ) : null}
         </>
     );
 }
 
 export function membershipsToManagerRows(
     memberships: AdminUserTenantMembership[],
-): Array<{ id: string; name: string; role: string }> {
+): Array<{ id: string; name: string; slug: string; role: string; isOwner: boolean }> {
     return memberships.map((m) => ({
         id: m.tenantId,
         name: m.tenantName,
+        slug: m.tenantSlug,
         role: m.role,
+        isOwner: m.isOwner,
     }));
 }

@@ -245,6 +245,7 @@
   "actions": {
     "create": "Kiracı oluştur",
     "edit": "Düzenle",
+    "decommission": "Kiracıyı decommission et",
     "delete": "Sil",
     "restore": "Geri yükle",
     "hardDelete": "Kalıcı olarak sil",
@@ -338,6 +339,8 @@
     "settings": {
       "save": "Ayarları kaydet",
       "danger": {
+        "decommissionWizardButton": "Stilllegung sihirbazını başlat",
+        "decommissionWizardHint": "Bu akış önce ilgili tüm kasaları stilllegen eder, ardından kiracıyı güvenli şekilde arşivler.",
         "softDeleteButton": "Mandantı arşivle / sil",
         "softDeleteHint": "Bu mandantı silerseniz kullanıcılar erişemez. Veriler saklanır ve geri yüklenebilir.",
         "softDeleteModalTitle": "Mandant silinsin mi?",
@@ -357,6 +360,130 @@
         "hardDeleteConfirm": "Kalıcı olarak sil",
         "auditLink": "Bu mandant için yapılan işlemleri denetim kayıtlarında görüntüle →"
       }
+    }
+  },
+  "decommission": {
+    "pageTitle": "Kiracıyı güvenli şekilde stilllegen et",
+    "pageTitleWithTenant": "Kiracıyı stilllegen et: {{name}}",
+    "criticalTitle": "Dikkat! Bu işlem kritiktir",
+    "criticalBody": "Bu sihirbaz ilgili tüm kasaları kalıcı olarak stilllegen eder ve ardından kiracıyı aktif sistemden arşivler.",
+    "alreadyArchivedTitle": "Kiracı zaten arşivlenmiş",
+    "alreadyArchivedBody": "Bu kiracı için soft-delete zaten uygulanmış. Arşivleme adımını tekrar çalıştırmak gerekmez.",
+    "summaryTitle": "Ön kontroller",
+    "steps": {
+      "preflight": "Ön kontrol",
+      "registers": "Kasaları stilllegen et",
+      "export": "Fiscal export",
+      "archive": "Kiracıyı arşivle",
+      "result": "Sonuç"
+    },
+    "summary": {
+      "activeUsers": "Aktif kullanıcılar",
+      "registersTotal": "Toplam kasa",
+      "registersReady": "Stilllegung için hazır",
+      "registersBlocked": "Hâlâ engelli",
+      "registersDecommissioned": "Zaten stillgelegt",
+      "registersRemaining": "Kalan aktif kasalar"
+    },
+    "preflight": {
+      "manualConfirm": "Bu maddeyi kontrol edip onayladım.",
+      "openFiscalExport": "Fiscal export audit ekranını aç",
+      "items": {
+        "noOpenPayments": {
+          "label": "Açık ödeme yok",
+          "description": "Çözülmemiş işlemler gözden kaçmasın diye bu madde bilerek manuel onaylanır."
+        },
+        "dailyClosingDone": {
+          "label": "Gün sonu kapatma tamamlandı",
+          "description": "Kiracı stilllegung işleminden önce son operasyonel gün sonu kapatması tamamlanmış olmalıdır."
+        },
+        "registersPrepared": {
+          "label": "Tüm kasalar stilllegung için hazır",
+          "readyDescription": "Kalan tüm kasalar kapalı veya zaten stillgelegt durumda.",
+          "openDescription": "{{count}} açık kasa önce kapatılmalıdır.",
+          "blockedDescription": "Bakımda veya devre dışı durumdaki kasalar stilllegung öncesi ayrıca kontrol edilmelidir."
+        },
+        "fiscalExport": {
+          "label": "Fiscal export önerilir",
+          "description": "Arşivlemeden önce denetim ve uyumluluk amacıyla güncel bir export oluşturulmalı veya doğrulanmalıdır."
+        }
+      }
+    },
+    "registers": {
+      "title": "Kasaları stilllegen et",
+      "description": "Bu kiracıya ait tüm kasalar stilllegen edilecek. Schlussbeleg otomatik oluşturulur.",
+      "loadFailed": "Bu kiracı için kasalar yüklenemedi.",
+      "permissionDenied": "Hesabınız kasaları stilllegen edemez. Bu adım için yetkili bir super admin gereklidir.",
+      "blockedTitle": "{{count}} kasa henüz hazır değil",
+      "blockedBody": "Açık, devre dışı veya bakım durumundaki kasalar önce stilllegbar duruma getirilmelidir.",
+      "readyForArchive": "Tüm kasalar zaten stillgelegt. Kiracıyı arşivleme adımına geçebilirsiniz.",
+      "reasonPlaceholder": "Kalan tüm kasalar için stilllegung nedeni",
+      "defaultReason": "Decommission wizard ile kiracı stilllegung",
+      "decommissionAll": "Hazır olan tüm kasaları stilllegen et",
+      "progress": "%{{percent}} tamamlandı",
+      "columns": {
+        "registerNumber": "Kasa",
+        "location": "Konum",
+        "status": "Durum",
+        "lastActivity": "Son aktivite",
+        "readiness": "Hazırlık"
+      },
+      "readiness": {
+        "decommissioned": "Zaten stillgelegt",
+        "ready": "Hazır",
+        "blocked": "Engelli"
+      }
+    },
+    "export": {
+      "title": "Fiscal export",
+      "description": "Decommission öncesinde vergiyle ilgili tüm verilerin tam export'unun alınması önerilir. Bu export 7 yıl saklanmalıdır.",
+      "retentionTitle": "Saklama yükümlülüğü",
+      "retentionBody": "Veriler 7 yıl boyunca saklanmalıdır. Export'u indirip güvenli biçimde koruyun.",
+      "permissionTitle": "Fiscal export kullanılamıyor",
+      "permissionBody": "Bu export için gerekli report.export izni hesabınızda bulunmuyor.",
+      "scopeLabel": "Export kapsamı",
+      "scopeValue": "Bu kiracının {{count}} kasası",
+      "profileLabel": "Export profili",
+      "periodLabel": "Dönem",
+      "progress": "%{{percent}} tamamlandı",
+      "readyTitle": "Export hazır",
+      "downloadZip": "Fiscal export'u indir (ZIP)",
+      "readyAt": "Oluşturulma zamanı: {{value}}",
+      "generate": "Fiscal export oluştur",
+      "continue": "Devam",
+      "messages": {
+        "generated": "Fiscal export oluşturuldu."
+      }
+    },
+    "archive": {
+      "warningTitle": "Kiracıyı soft-delete et",
+      "warningBody": "Kiracı aktif sistemden kaldırılır, ancak veriler saklanmaya devam eder. Bu süre boyunca kiracı geri yüklenebilir.",
+      "confirmLabel": "Onaylamak için kiracı adını “{{name}}” olarak yazın.",
+      "submit": "Kiracıyı soft-delete et"
+    },
+    "result": {
+      "title": "Kiracı başarıyla arşivlendi",
+      "subtitle": "{{name}} aktif sistemden kaldırıldı.",
+      "archivedAt": "Arşivleme zamanı: {{value}}",
+      "registersDecommissioned": "Bu işlem sırasında {{count}} kasa stillgelegt edildi.",
+      "nextStepsTitle": "Sonraki adımlar",
+      "nextSteps": {
+        "restoreWindow": "Kiracı, ayrı bir hard-delete yapılana kadar soft-delete üzerinden geri yüklenebilir durumda kalır.",
+        "hardDelete": "Kalıcı silme, danger zone içindeki ayrı bir manuel adımdır.",
+        "fiscalExportRetention": "Fiscal export ve vergiyle ilgili diğer kayıtları saklama yükümlülüklerinize uygun şekilde güvenli biçimde koruyun."
+      }
+    },
+    "actions": {
+      "back": "Geri",
+      "continue": "Devam",
+      "backToTenant": "Kiracıya dön",
+      "backToList": "Kiracı listesine dön",
+      "openDeletedTenants": "Silinmiş kiracıları göster",
+      "openAuditLogs": "Denetim kayıtlarını aç"
+    },
+    "messages": {
+      "registersDecommissioned": "{{count}} kasa stillgelegt edildi.",
+      "archived": "Kiracı arşivlendi."
     }
   },
   "edit": {
@@ -494,6 +621,8 @@
       "action": "Hızlı kullanıcı",
       "title": "Hızlı kullanıcı oluştur",
       "role": "Rol",
+      "tenantPlaceholderOptional": "Kiracı seç (isteğe bağlı)",
+      "assignmentRequiredAfterCreate": "Oluşturma sonrası kullanıcıyı bir kiracıya atamalısınız.",
       "generate": "Oluştur",
       "autoTitle": "Otomatik oluşturulur:",
       "emailPreview": "E-posta: {{role}}_{{random}}@{{slug}}.regkasse.at",

@@ -96,6 +96,21 @@ public sealed class AdminTenantsController : ControllerBase
         return Ok(items);
     }
 
+    /// <summary>Return tenant decommission preflight checks for the super-admin wizard.</summary>
+    [HttpGet("{tenantId:guid}/decommission-checks")]
+    [ProducesResponseType(typeof(TenantDecommissionChecksDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TenantDecommissionChecksDto>> GetDecommissionChecks(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var checks = await _tenantService.GetDecommissionChecksAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (checks == null)
+            return NotFound(new { message = "Tenant not found." });
+
+        return Ok(checks);
+    }
+
     /// <summary>Create a new tenant (generates id, unique slug).</summary>
     [HttpPost]
     [ProducesResponseType(typeof(AdminTenantDetailDto), StatusCodes.Status201Created)]
@@ -192,6 +207,31 @@ public sealed class AdminTenantsController : ControllerBase
         if (!success)
             return BadRequest(new { message = error });
         return NoContent();
+    }
+
+    /// <summary>Decommission all tenant cash registers and then soft-delete the tenant.</summary>
+    [HttpPost("{tenantId:guid}/decommission")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Decommission(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var actorUserId = ActorUserId;
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            return Unauthorized(new { message = "User not authenticated." });
+
+        var actorRole = User.GetActorRole() ?? Roles.FallbackUnknown;
+        var (success, error, checks) = await _tenantService
+            .DecommissionAsync(tenantId, actorUserId, actorRole, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (error == "Tenant not found.")
+            return NotFound(new { message = error });
+        if (!success)
+            return BadRequest(new { message = error, checks });
+
+        return Ok();
     }
 
     /// <summary>Issue a short-lived admin JWT scoped to the target tenant (support impersonation).</summary>

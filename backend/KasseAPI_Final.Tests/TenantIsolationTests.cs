@@ -7,6 +7,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Pricing;
@@ -365,6 +366,9 @@ public sealed class TenantIsolationTests
             Options.Create(new AuthOptions()),
             Mock.Of<ITenantOnboardingService>(),
             new TenantService(db, Mock.Of<IAuditLogService>(), Mock.Of<ILogger<TenantService>>()),
+            Mock.Of<ICashRegisterDecommissionService>(),
+            new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+            NullCurrentTenantAccessor.Instance,
             Mock.Of<ILogger<AdminTenantService>>());
 
         var list = await service.ListAsync(includeDeleted: false);

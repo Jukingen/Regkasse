@@ -12,17 +12,22 @@
  * - User switch: form key edit-${user.id} resets component; sync effect sets values from new user (no stale selection).
  */
 import React, { useEffect, useMemo } from 'react';
-import { Drawer, Form, Input, Radio, Button, Space, Spin, Alert, Typography, Divider } from 'antd';
+import { Drawer, Form, Input, Radio, Button, Space, Spin, Alert, Typography, Divider, Select } from 'antd';
 import type { UserInfo } from '@/api/generated/model';
 import type { CreateUserRequest, UpdateUserRequest } from '@/api/generated/model';
-import { TenantMembershipManager, membershipsToManagerRows } from '@/features/users/components/TenantMembershipManager';
 import { UserTenantSummary } from '@/features/users/components/UserTenantSummary';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
+import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useI18n } from '@/i18n';
 import { usersCopy } from '../constants/copy';
 import { createUsersFormRules, NAME_MAX_LENGTH, EMAIL_MAX_LENGTH, SHORT_FIELD_MAX_LENGTH, NOTES_MAX_LENGTH } from '../constants/validation';
 
 type Mode = 'create' | 'edit';
+type UserFormTenantValues = {
+  tenantIds?: string[];
+};
+
+export type UserFormSubmitValues = (CreateUserRequest | UpdateUserRequest) & UserFormTenantValues;
 
 /** Platform admins are SuperAdmin only and are not assigned to tenants. */
 export type UserFormCreateVariant = 'default' | 'platform';
@@ -43,9 +48,9 @@ type Props = {
   roleOptions: { value: string; label: string }[];
   /** When true and roleOptions empty, role field shows loading (catalog-driven; never show subset). */
   rolesLoading?: boolean;
-  onSubmit: (values: CreateUserRequest | UpdateUserRequest) => void;
+  onSubmit: (values: UserFormSubmitValues) => void;
   loading?: boolean;
-  /** Super Admin: open tenant membership manager (edit mode only). */
+  /** Super Admin: edit tenant memberships (edit mode only). */
   canManageTenants?: boolean;
 };
 
@@ -106,13 +111,26 @@ export function UserFormDrawer({
   const {
     data: memberships = [],
     isLoading: tenantsLoading,
-    refetch: refetchTenants,
   } = useAdminUserTenants(editUserId, open && mode === 'edit' && !!editUserId);
+  const {
+    tenants: editableTenants,
+    isLoading: editableTenantsLoading,
+  } = useTenantList({
+    enabled: canManageTenants && open && mode === 'edit' && user?.role !== 'SuperAdmin',
+  });
 
   const isPlatformCreate = mode === 'create' && createVariant === 'platform';
   const effectiveRoleOptions = isPlatformCreate
     ? [{ value: 'SuperAdmin', label: usersCopy.roleDisplayName('SuperAdmin') }]
     : roleOptions;
+  const editableTenantOptions = useMemo(
+    () =>
+      editableTenants.map((tenant) => ({
+        value: tenant.id,
+        label: `${tenant.name} (${tenant.slug})`,
+      })),
+    [editableTenants],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -130,23 +148,35 @@ export function UserFormDrawer({
   const formValues = mode === 'edit' && user != null ? userToFormValues(user) : null;
   useEffect(() => {
     if (!open || mode !== 'edit' || user == null) return;
-    const values = userToFormValues(user);
+    const values = {
+      ...userToFormValues(user),
+      ...(canManageTenants && user.role !== 'SuperAdmin'
+        ? { tenantIds: memberships.map((membership) => membership.tenantId) }
+        : {}),
+    };
     const id = setTimeout(() => {
       form.resetFields();
       form.setFieldsValue(values);
     }, 0);
     return () => clearTimeout(id);
-  }, [open, mode, user, form]);
+  }, [open, mode, user, form, canManageTenants, memberships]);
 
   const handleSubmit = () => {
-    form.validateFields().then((values) => {
-      const raw = values as Record<string, unknown>;
-      const normalized = {
-        ...raw,
-        employeeNumber: typeof raw.employeeNumber === 'string' ? raw.employeeNumber.trim() : '',
-      };
-      onSubmit(normalized as CreateUserRequest & UpdateUserRequest);
-    });
+    form.validateFields()
+      .then((values) => {
+        const raw = values as Record<string, unknown>;
+        const normalized = {
+          ...raw,
+          employeeNumber: typeof raw.employeeNumber === 'string' ? raw.employeeNumber.trim() : '',
+          tenantIds: Array.isArray(raw.tenantIds)
+            ? raw.tenantIds.filter((tenantId): tenantId is string => typeof tenantId === 'string')
+            : undefined,
+        };
+        onSubmit(normalized as UserFormSubmitValues);
+      })
+      .catch(() => {
+        // Validation errors are already rendered inline by Ant Form.
+      });
   };
 
   const title =
@@ -257,7 +287,7 @@ export function UserFormDrawer({
               <Alert
                 type="info"
                 showIcon
-                message={t('users.tenants.editReadOnlyHint')}
+                message={t('users.tenants.manageHint')}
                 style={{ marginBottom: 12 }}
               />
               <UserTenantSummary
@@ -267,11 +297,20 @@ export function UserFormDrawer({
               />
               {canManageTenants && user.role !== 'SuperAdmin' ? (
                 <div style={{ marginTop: 16 }}>
-                  <TenantMembershipManager
-                    userId={user.id}
-                    currentTenants={membershipsToManagerRows(memberships)}
-                    onSuccess={() => void refetchTenants()}
-                  />
+                  <Form.Item
+                    name="tenantIds"
+                    label={t('users.tenants.manageTitle')}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Select
+                      mode="multiple"
+                      allowClear
+                      optionFilterProp="label"
+                      placeholder={t('users.tenants.manageTitle')}
+                      loading={editableTenantsLoading || tenantsLoading}
+                      options={editableTenantOptions}
+                    />
+                  </Form.Item>
                 </div>
               ) : null}
             </>

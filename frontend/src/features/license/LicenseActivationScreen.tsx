@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -11,17 +12,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
 
+import { licenseApi } from '../../../api/license';
+import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../../constants/SoftTheme';
 import {
-  buildLicenseRenewalMailtoUrl,
-  getLicenseExtensionHttpUrl,
+  handleLicenseRenewal,
   LICENSE_SUPPORT_EMAIL,
 } from '../../../constants/licenseRenewal';
-import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../../constants/SoftTheme';
 import { useLicenseStatus } from '../../../hooks/useLicenseStatus';
-import { licenseApi } from '../../../api/license';
-import { openHttpOrHttpsUrl, openMailtoUrl } from '../../../utils/openLink';
+import { adminRedirector } from '@/src/features/admin-navigation/openAdmin';
 
 const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
 
@@ -93,35 +92,12 @@ export default function LicenseActivationScreen() {
     return t('license:daysRemainingValue', { count: status.daysRemaining });
   }, [status, unlimitedPaid, t]);
 
-  const hasConfiguredExtensionUrl = useMemo(() => Boolean(getLicenseExtensionHttpUrl()), []);
+  const hasConfiguredExtensionUrl = useMemo(() => adminRedirector.isAvailable('licenseExtend'), []);
 
   const openRenewPrimary = useCallback(async () => {
-    let httpUrl = getLicenseExtensionHttpUrl();
-    if (httpUrl) {
-      if (status?.machineHash) {
-        const sep = httpUrl.includes('?') ? '&' : '?';
-        httpUrl = `${httpUrl}${sep}machineHash=${encodeURIComponent(status.machineHash)}`;
-      }
-      const ok = await openHttpOrHttpsUrl(httpUrl);
-      if (!ok) {
-        Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedBody'));
-      }
-      return;
-    }
-
-    const mailto = buildLicenseRenewalMailtoUrl(
-      status
-        ? {
-            machineHash: status.machineHash,
-            daysRemaining: status.daysRemaining,
-            isTrial: status.isTrial,
-            isExpired: status.isExpired,
-          }
-        : null,
-    );
-    const ok = await openMailtoUrl(mailto);
+    const ok = await handleLicenseRenewal(status);
     if (!ok) {
-      Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedMailBody'));
+      Alert.alert(t('license:renewOpenFailedTitle'), t('license:renewOpenFailedBody'));
     }
   }, [t, status]);
 

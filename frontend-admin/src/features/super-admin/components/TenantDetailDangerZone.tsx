@@ -11,7 +11,7 @@ import {
     Space,
     Typography,
 } from 'antd';
-import { DeleteOutlined, UndoOutlined, WarningOutlined } from '@ant-design/icons';
+import { DeleteOutlined, StopOutlined, UndoOutlined, WarningOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
@@ -105,9 +105,19 @@ export function TenantDetailDangerZone({
                     <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                         {t('tenants.detail.settings.danger.softDeleteHint')}
                     </Typography.Paragraph>
-                    <Button danger onClick={() => setSoftDeleteOpen(true)}>
-                        {t('tenants.detail.settings.danger.softDeleteButton')}
-                    </Button>
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                        {t('tenants.detail.settings.danger.decommissionWizardHint')}
+                    </Typography.Paragraph>
+                    <Space wrap>
+                        <Link href={`/admin/tenants/${tenant.id}/decommission`}>
+                            <Button icon={<StopOutlined />}>
+                                {t('tenants.detail.settings.danger.decommissionWizardButton')}
+                            </Button>
+                        </Link>
+                        <Button danger onClick={() => setSoftDeleteOpen(true)}>
+                            {t('tenants.detail.settings.danger.softDeleteButton')}
+                        </Button>
+                    </Space>
                 </Space>
             )}
 

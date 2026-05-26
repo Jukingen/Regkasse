@@ -245,6 +245,7 @@
   "actions": {
     "create": "Create tenant",
     "edit": "Edit",
+    "decommission": "Decommission tenant",
     "delete": "Delete",
     "restore": "Restore",
     "hardDelete": "Delete permanently",
@@ -338,6 +339,8 @@
     "settings": {
       "save": "Save settings",
       "danger": {
+        "decommissionWizardButton": "Start decommission wizard",
+        "decommissionWizardHint": "The wizard decommissions all related registers first and archives the tenant safely afterwards.",
         "softDeleteButton": "Archive / delete tenant",
         "softDeleteHint": "If you delete this tenant, users cannot sign in. Data is kept and can be restored.",
         "softDeleteModalTitle": "Delete tenant?",
@@ -357,6 +360,130 @@
         "hardDeleteConfirm": "Delete permanently",
         "auditLink": "View operations for this tenant in audit logs →"
       }
+    }
+  },
+  "decommission": {
+    "pageTitle": "Safely decommission tenant",
+    "pageTitleWithTenant": "Decommission tenant: {{name}}",
+    "criticalTitle": "Warning! This action is critical",
+    "criticalBody": "The wizard permanently decommissions all related registers and then archives the tenant from the active system.",
+    "alreadyArchivedTitle": "Tenant already archived",
+    "alreadyArchivedBody": "This tenant has already been soft-deleted. Running the archive step again is not necessary.",
+    "summaryTitle": "Preflight checks",
+    "steps": {
+      "preflight": "Preflight",
+      "registers": "Decommission registers",
+      "export": "Fiscal export",
+      "archive": "Archive tenant",
+      "result": "Result"
+    },
+    "summary": {
+      "activeUsers": "Active users",
+      "registersTotal": "Total registers",
+      "registersReady": "Ready for decommission",
+      "registersBlocked": "Still blocked",
+      "registersDecommissioned": "Already decommissioned",
+      "registersRemaining": "Remaining active registers"
+    },
+    "preflight": {
+      "manualConfirm": "I have reviewed and confirmed this item.",
+      "openFiscalExport": "Open fiscal export audit",
+      "items": {
+        "noOpenPayments": {
+          "label": "No open payments",
+          "description": "This item is deliberately confirmed manually so unresolved transactions are not missed."
+        },
+        "dailyClosingDone": {
+          "label": "Daily closing completed",
+          "description": "The last operational daily closing should be completed before tenant decommissioning."
+        },
+        "registersPrepared": {
+          "label": "All registers are prepared for decommissioning",
+          "readyDescription": "All remaining registers are closed or already decommissioned.",
+          "openDescription": "{{count}} open register(s) must be closed first.",
+          "blockedDescription": "Registers in maintenance or disabled status must be reviewed before decommissioning."
+        },
+        "fiscalExport": {
+          "label": "Fiscal export recommended",
+          "description": "Before archiving, generate or verify a current export for audit and compliance purposes."
+        }
+      }
+    },
+    "registers": {
+      "title": "Decommission registers",
+      "description": "All registers for this tenant will be decommissioned. A closing receipt is created automatically.",
+      "loadFailed": "Could not load registers for this tenant.",
+      "permissionDenied": "Your account cannot decommission registers. Ask an authorized super admin to perform this step.",
+      "blockedTitle": "{{count}} register(s) are not ready yet",
+      "blockedBody": "Open, disabled, or maintenance registers must be brought into a decommissionable state first.",
+      "readyForArchive": "All registers are already decommissioned. You can continue with tenant archiving.",
+      "reasonPlaceholder": "Reason for decommissioning all remaining registers",
+      "defaultReason": "Tenant decommission via decommission wizard",
+      "decommissionAll": "Decommission all prepared registers",
+      "progress": "{{percent}}% completed",
+      "columns": {
+        "registerNumber": "Register",
+        "location": "Location",
+        "status": "Status",
+        "lastActivity": "Last activity",
+        "readiness": "Readiness"
+      },
+      "readiness": {
+        "decommissioned": "Already decommissioned",
+        "ready": "Ready",
+        "blocked": "Blocked"
+      }
+    },
+    "export": {
+      "title": "Fiscal export",
+      "description": "Before decommissioning, a complete export of tax-relevant data is recommended. This export must be retained for 7 years.",
+      "retentionTitle": "Retention requirement",
+      "retentionBody": "The data must be retained for 7 years. Download the export and store it securely.",
+      "permissionTitle": "Fiscal export unavailable",
+      "permissionBody": "Your account currently lacks the report.export permission required for this export.",
+      "scopeLabel": "Export scope",
+      "scopeValue": "{{count}} register(s) for this tenant",
+      "profileLabel": "Export profile",
+      "periodLabel": "Period",
+      "progress": "{{percent}}% completed",
+      "readyTitle": "Export ready",
+      "downloadZip": "Download fiscal export (ZIP)",
+      "readyAt": "Created at: {{value}}",
+      "generate": "Generate fiscal export",
+      "continue": "Continue",
+      "messages": {
+        "generated": "Fiscal export was created."
+      }
+    },
+    "archive": {
+      "warningTitle": "Soft-delete tenant",
+      "warningBody": "The tenant is removed from the active system, but the data remains retained. During that time, the tenant can be restored.",
+      "confirmLabel": "Type the tenant name “{{name}}” to confirm.",
+      "submit": "Soft-delete tenant"
+    },
+    "result": {
+      "title": "Tenant archived successfully",
+      "subtitle": "{{name}} was removed from the active system.",
+      "archivedAt": "Archived at: {{value}}",
+      "registersDecommissioned": "{{count}} register(s) were decommissioned during this run.",
+      "nextStepsTitle": "Next steps",
+      "nextSteps": {
+        "restoreWindow": "The tenant remains restorable via soft-delete until a separate hard-delete is performed.",
+        "hardDelete": "Permanent deletion remains a separate manual step in the danger zone.",
+        "fiscalExportRetention": "Store the fiscal export and other tax-relevant records securely according to your retention obligations."
+      }
+    },
+    "actions": {
+      "back": "Back",
+      "continue": "Continue",
+      "backToTenant": "Back to tenant",
+      "backToList": "Back to tenant list",
+      "openDeletedTenants": "Show deleted tenants",
+      "openAuditLogs": "Open audit logs"
+    },
+    "messages": {
+      "registersDecommissioned": "{{count}} register(s) were decommissioned.",
+      "archived": "Tenant archived."
     }
   },
   "edit": {
@@ -494,6 +621,8 @@
       "action": "Quick user",
       "title": "Generate quick user",
       "role": "Role",
+      "tenantPlaceholderOptional": "Select tenant (optional)",
+      "assignmentRequiredAfterCreate": "After creation, you must assign the user to a tenant.",
       "generate": "Generate",
       "autoTitle": "Generated automatically:",
       "emailPreview": "Email: {{role}}_{{random}}@{{slug}}.regkasse.at",

@@ -29,6 +29,8 @@
   "renewPrimaryHintBrowser": "Yönetim lisans sayfasını tarayıcıda aç",
   "renewPrimaryHintMail": "Konu satırı önceden doldurulmuş e-posta uygulamasını aç (Lizenzverlängerung)",
   "renewOpenMail": "Destek e-postası",
+  "openRksvSonderbelege": "RKSV özel fişleri",
+  "openCashRegisters": "Kasa yönetimi",
   "renewOpenFailedTitle": "Bilgi",
   "renewOpenFailedBody": "Sayfa açılamadı.",
   "renewOpenFailedMailBody": "E-posta uygulaması açılamadı.",

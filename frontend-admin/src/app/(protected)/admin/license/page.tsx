@@ -6,6 +6,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { useSearchParams } from 'next/navigation';
 import {
     Alert,
     Button,
@@ -73,6 +74,7 @@ import {
     getLicenseStatusTagColor,
     resolveDeploymentLicenseStatus,
 } from '@/features/license/utils/licenseStatus';
+import { readAdminLicensePagePrefill } from '@/features/license/utils/adminLicenseRoute';
 import { LicenseGenerationCard } from './LicenseGenerationCard';
 import { IssuedLicenseUpgradeModal } from './IssuedLicenseUpgradeModal';
 import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
@@ -958,6 +960,7 @@ export default function AdminLicensePage() {
     const queryClient = useQueryClient();
     const { user } = useAuth();
     const [form] = Form.useForm<LicenseFormValues>();
+    const searchParams = useSearchParams();
 
     const canActivate = Boolean(user?.permissions?.includes(PERMISSIONS.SETTINGS_MANAGE));
 
@@ -1005,6 +1008,7 @@ export default function AdminLicensePage() {
     const enabledPublicLicenseFeatures = publicStatusQuery.data?.features ?? null;
 
     const resolvedStatus = useMemo(() => (s ? resolveDeploymentLicenseStatus(s) : null), [s]);
+    const licensePagePrefill = useMemo(() => readAdminLicensePagePrefill(searchParams), [searchParams]);
 
     const machineHash = s?.machineHash?.trim() ?? '';
     const showDeploymentActivation = false;
@@ -1233,6 +1237,7 @@ export default function AdminLicensePage() {
                                         canGenerate={canActivate}
                                         machineFingerprint={machineHash}
                                         enabledLicenseFeatures={enabledPublicLicenseFeatures}
+                                        prefill={licensePagePrefill}
                                     />
                                     {showIssuedLicenses ? <IssuedLicensesTableCard /> : null}
                                 </>
@@ -1255,6 +1260,7 @@ export default function AdminLicensePage() {
                     canGenerate={canActivate}
                     machineFingerprint={machineHash}
                     enabledLicenseFeatures={enabledPublicLicenseFeatures}
+                    prefill={licensePagePrefill}
                 />
             )}
         </div>

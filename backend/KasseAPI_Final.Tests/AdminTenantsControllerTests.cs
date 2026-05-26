@@ -1,17 +1,22 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Security.Claims;
+using System.Text.Json;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -58,10 +63,15 @@ public sealed class AdminTenantsControllerTests
     private static AdminTenantService CreateService(
         AppDbContext db,
         ITenantProvisioningService? provisioning = null,
-        IAuditLogService? auditLog = null)
+        IAuditLogService? auditLog = null,
+        ICashRegisterDecommissionService? decommissionService = null,
+        IHttpContextAccessor? httpContextAccessor = null,
+        ICurrentTenantAccessor? tenantAccessor = null)
     {
         var audit = auditLog ?? Mock.Of<IAuditLogService>();
         var tenantLifecycle = new TenantService(db, audit, Mock.Of<ILogger<TenantService>>());
+        var tenantScopeAccessor = tenantAccessor ?? NullCurrentTenantAccessor.Instance;
+        var accessor = httpContextAccessor ?? CreateHttpContextAccessor();
         return new AdminTenantService(
             db,
             CreateUserManagerStub(),
@@ -71,7 +81,30 @@ public sealed class AdminTenantsControllerTests
             Options.Create(new AuthOptions()),
             CreateOnboardingService(db, provisioning),
             tenantLifecycle,
+            decommissionService ?? Mock.Of<ICashRegisterDecommissionService>(),
+            accessor,
+            tenantScopeAccessor,
             Mock.Of<ILogger<AdminTenantService>>());
+    }
+
+    private static IHttpContextAccessor CreateHttpContextAccessor(ClaimsPrincipal? user = null)
+    {
+        var accessor = new HttpContextAccessor
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = user ?? new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        new[]
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, "super-admin"),
+                            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+                        },
+                        authenticationType: "TestAuth"))
+            }
+        };
+
+        return accessor;
     }
 
     private static ITenantProvisioningService CreateSuccessfulProvisioningMock()
@@ -226,6 +259,171 @@ public sealed class AdminTenantsControllerTests
         var row = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
         Assert.Equal(TenantStatuses.Deleted, row.Status);
         Assert.False(row.IsActive);
+    }
+
+    [Fact]
+    public async Task GetDecommissionChecksAsync_ReturnsExpectedFlagsAndCounts()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Temp",
+            Slug = "temp_tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var closedRegisterId = Guid.NewGuid();
+        db.CashRegisters.AddRange(
+            new CashRegister
+            {
+                Id = closedRegisterId,
+                TenantId = tenantId,
+                RegisterNumber = "KASSE-001",
+                Location = "Front",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Closed,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                RegisterNumber = "KASSE-002",
+                Location = "Back",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Open,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new CashRegister
+            {
+                Id = Guid.NewGuid(),
+                TenantId = tenantId,
+                RegisterNumber = "KASSE-003",
+                Location = "Archive",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Decommissioned,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+
+        db.PaymentDetails.Add(CreatePendingPayment(closedRegisterId));
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var checks = await service.GetDecommissionChecksAsync(tenantId);
+
+        Assert.NotNull(checks);
+        Assert.True(checks!.HasOpenPayments);
+        Assert.True(checks.HasOpenShifts);
+        Assert.Equal(2, checks.ActiveRegistersCount);
+        Assert.Equal(1, checks.ReadyRegistersCount);
+        Assert.Equal(1, checks.BlockedRegistersCount);
+        Assert.False(checks.CanDecommission);
+    }
+
+    [Fact]
+    public async Task DecommissionAsync_UsesTenantScopeForRegisters_AndSoftDeletesTenant()
+    {
+        var tenantAccessor = new CurrentTenantAccessor { TenantId = LegacyDefaultTenantIds.Primary };
+        await using var db = CreateDb(tenantAccessor);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Temp",
+            Slug = "temp_tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var registerIds = new[] { Guid.NewGuid(), Guid.NewGuid() };
+        foreach (var (registerId, index) in registerIds.Select((value, idx) => (value, idx)))
+        {
+            db.CashRegisters.Add(new CashRegister
+            {
+                Id = registerId,
+                TenantId = tenantId,
+                RegisterNumber = $"KASSE-00{index + 1}",
+                Location = "Front",
+                StartingBalance = 0m,
+                CurrentBalance = 0m,
+                LastBalanceUpdate = DateTime.UtcNow,
+                Status = RegisterStatus.Closed,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync();
+
+        var httpContextAccessor = CreateHttpContextAccessor();
+        var decommissionMock = new Mock<ICashRegisterDecommissionService>();
+        decommissionMock
+            .Setup(s => s.DecommissionAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Returns<Guid, string?, string, string, CancellationToken>((registerId, _, _, _, _) =>
+            {
+                Assert.Equal(tenantId, tenantAccessor.TenantId);
+                Assert.Equal(
+                    tenantId.ToString("D"),
+                    httpContextAccessor.HttpContext!.User.FindFirst(ScopeCheckService.TenantIdClaim)?.Value);
+
+                return Task.FromResult(new DecommissionCashRegisterResponse
+                {
+                    CashRegisterId = registerId,
+                    PaymentId = Guid.NewGuid(),
+                    ReceiptId = Guid.NewGuid(),
+                    ReceiptNumber = $"R-{registerId:N}",
+                    Message = "ok",
+                });
+            });
+
+        var service = CreateService(
+            db,
+            decommissionService: decommissionMock.Object,
+            httpContextAccessor: httpContextAccessor,
+            tenantAccessor: tenantAccessor);
+
+        var (success, error, checks) = await service.DecommissionAsync(
+            tenantId,
+            "actor-1",
+            Roles.SuperAdmin);
+
+        Assert.True(success);
+        Assert.Null(error);
+        Assert.NotNull(checks);
+        Assert.True(checks!.CanDecommission);
+        decommissionMock.Verify(
+            s => s.DecommissionAsync(
+                It.IsAny<Guid>(),
+                "Tenant decommission",
+                "actor-1",
+                Roles.SuperAdmin,
+                It.IsAny<CancellationToken>()),
+            Times.Exactly(2));
+        Assert.Equal(LegacyDefaultTenantIds.Primary, tenantAccessor.TenantId);
+        Assert.Null(httpContextAccessor.HttpContext!.User.FindFirst(ScopeCheckService.TenantIdClaim));
+
+        var tenantRow = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenantId);
+        Assert.Equal(TenantStatuses.Deleted, tenantRow.Status);
+        Assert.False(tenantRow.IsActive);
     }
 
     [Fact]
@@ -1017,5 +1215,32 @@ public sealed class AdminTenantsControllerTests
                 null,
                 null),
             Times.Once);
+    }
+
+    private static PaymentDetails CreatePendingPayment(Guid cashRegisterId)
+    {
+        var now = DateTime.UtcNow;
+        return new PaymentDetails
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = Guid.NewGuid(),
+            CustomerName = "Test Customer",
+            TableNumber = 1,
+            CashierId = "cashier-1",
+            TotalAmount = 10m,
+            TaxAmount = 2m,
+            PaymentMethodRaw = "0",
+            Steuernummer = "ATU12345678",
+            CashRegisterId = cashRegisterId,
+            TseSignature = "pending-signature",
+            TseTimestamp = now,
+            TaxDetails = JsonDocument.Parse("{\"standard\":20}"),
+            PaymentItems = JsonDocument.Parse("[]"),
+            ReceiptNumber = "AT-TSE-20260526-0001",
+            FinanzOnlineStatus = "Pending",
+            CreatedAt = now,
+            UpdatedAt = now,
+            IsActive = true,
+        };
     }
 }

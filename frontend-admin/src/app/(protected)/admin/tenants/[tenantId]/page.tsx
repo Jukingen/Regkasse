@@ -18,6 +18,7 @@ import {
 } from 'antd';
 import {
     ArrowLeftOutlined,
+    DeleteOutlined,
     EditOutlined,
     LoginOutlined,
     ReloadOutlined,
@@ -254,6 +255,13 @@ export default function SuperAdminTenantDetailPage() {
                                 <Link href={`/admin/tenants/${tenantId}?tab=settings`}>
                                     <Button icon={<EditOutlined />}>{t('tenants.actions.edit')}</Button>
                                 </Link>
+                                <Button
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    onClick={() => router.push(`/admin/tenants/${tenant.id}/decommission`)}
+                                >
+                                    {t('tenants.actions.decommission')}
+                                </Button>
                                 <Button
                                     icon={<LoginOutlined />}
                                     loading={impersonateMutation.isPending}

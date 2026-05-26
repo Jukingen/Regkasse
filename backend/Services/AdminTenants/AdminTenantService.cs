@@ -2,10 +2,12 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -24,6 +26,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
     private readonly AuthOptions _authOptions;
     private readonly ITenantOnboardingService _onboardingService;
     private readonly ITenantService _tenantService;
+    private readonly ICashRegisterDecommissionService _cashRegisterDecommissionService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<AdminTenantService> _logger;
 
     public AdminTenantService(
@@ -35,6 +40,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
         IOptions<AuthOptions> authOptions,
         ITenantOnboardingService onboardingService,
         ITenantService tenantService,
+        ICashRegisterDecommissionService cashRegisterDecommissionService,
+        IHttpContextAccessor httpContextAccessor,
+        ICurrentTenantAccessor tenantAccessor,
         ILogger<AdminTenantService> logger)
     {
         _db = db;
@@ -45,6 +53,9 @@ public sealed partial class AdminTenantService : IAdminTenantService
         _authOptions = authOptions.Value;
         _onboardingService = onboardingService;
         _tenantService = tenantService;
+        _cashRegisterDecommissionService = cashRegisterDecommissionService;
+        _httpContextAccessor = httpContextAccessor;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
     }
 
@@ -215,6 +226,67 @@ public sealed partial class AdminTenantService : IAdminTenantService
             .ConfigureAwait(false);
     }
 
+    public async Task<TenantDecommissionChecksDto?> GetDecommissionChecksAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantExists = await _db.Tenants
+            .AsNoTracking()
+            .AnyAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (!tenantExists)
+            return null;
+
+        var registerStats = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(cr => cr.TenantId == tenantId)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                ActiveRegistersCount = g.Count(cr => cr.Status != RegisterStatus.Decommissioned),
+                ReadyRegistersCount = g.Count(cr => cr.Status == RegisterStatus.Closed),
+                BlockedRegistersCount = g.Count(cr =>
+                    cr.Status != RegisterStatus.Closed && cr.Status != RegisterStatus.Decommissioned),
+                HasOpenShifts = g.Any(cr => cr.Status == RegisterStatus.Open),
+            })
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var hasOpenPayments = await _db.PaymentDetails
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Join(
+                _db.CashRegisters.IgnoreQueryFilters().AsNoTracking(),
+                p => p.CashRegisterId,
+                cr => cr.Id,
+                (p, cr) => new { Payment = p, Register = cr })
+            .AnyAsync(
+                x =>
+                    x.Register.TenantId == tenantId
+                    && x.Payment.IsActive
+                    && !x.Payment.IsRefund
+                    && !x.Payment.IsStorno
+                    && x.Payment.FinanzOnlineStatus != null
+                    && (x.Payment.FinanzOnlineStatus == "Pending"
+                        || x.Payment.FinanzOnlineStatus == "NeedsReconciliation"),
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        var activeRegistersCount = registerStats?.ActiveRegistersCount ?? 0;
+        var readyRegistersCount = registerStats?.ReadyRegistersCount ?? 0;
+        var blockedRegistersCount = registerStats?.BlockedRegistersCount ?? 0;
+        var hasOpenShifts = registerStats?.HasOpenShifts ?? false;
+
+        return new TenantDecommissionChecksDto(
+            HasOpenPayments: hasOpenPayments,
+            HasOpenShifts: hasOpenShifts,
+            ActiveRegistersCount: activeRegistersCount,
+            ReadyRegistersCount: readyRegistersCount,
+            BlockedRegistersCount: blockedRegistersCount,
+            CanDecommission: !hasOpenPayments && !hasOpenShifts && blockedRegistersCount == 0);
+    }
+
     public Task<IReadOnlyList<string>> GetSlugSuggestionsAsync(
         string? companyName,
         string? preferredSlug,
@@ -324,6 +396,64 @@ public sealed partial class AdminTenantService : IAdminTenantService
         CancellationToken cancellationToken = default) =>
         _tenantService.RestoreAsync(tenantId, actorUserId, cancellationToken);
 
+    public async Task<(bool Success, string? Error, TenantDecommissionChecksDto? Checks)> DecommissionAsync(
+        Guid tenantId,
+        string actorUserId,
+        string actorRole,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            return (false, "Actor user is required.", null);
+
+        var tenant = await _db.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
+            .ConfigureAwait(false);
+        if (tenant == null)
+            return (false, "Tenant not found.", null);
+
+        if (tenant.Status == TenantStatuses.Deleted)
+            return (false, "Tenant is already deleted.", null);
+
+        var checks = await GetDecommissionChecksAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (checks == null)
+            return (false, "Tenant not found.", null);
+        if (!checks.CanDecommission)
+            return (false, "Tenant decommission preflight checks are not satisfied.", checks);
+
+        var registerIds = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(cr => cr.TenantId == tenantId && cr.Status != RegisterStatus.Decommissioned)
+            .OrderBy(cr => cr.RegisterNumber)
+            .Select(cr => cr.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        foreach (var registerId in registerIds)
+        {
+            await RunInTenantScopeAsync(
+                tenantId,
+                async () =>
+                {
+                    await _cashRegisterDecommissionService
+                        .DecommissionAsync(
+                            registerId,
+                            "Tenant decommission",
+                            actorUserId,
+                            actorRole,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                }).ConfigureAwait(false);
+        }
+
+        var (success, error) = await _tenantService
+            .SoftDeleteAsync(tenantId, actorUserId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return (success, error, checks);
+    }
+
     public async Task<(TenantImpersonationResponseDto? Result, string? Error)> ImpersonateAsync(
         Guid tenantId,
         string actorUserId,
@@ -385,6 +515,52 @@ public sealed partial class AdminTenantService : IAdminTenantService
             tenant.Slug,
             tenant.Name,
             true), null);
+    }
+
+    private async Task RunInTenantScopeAsync(Guid tenantId, Func<Task> action)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+
+        var httpContext = _httpContextAccessor.HttpContext
+            ?? throw new InvalidOperationException("Tenant-scoped admin decommission requires an active HTTP context.");
+        var originalUser = httpContext.User;
+        var originalTenantId = _tenantAccessor.TenantId;
+
+        httpContext.User = CreateTenantScopedPrincipal(originalUser, tenantId);
+        _tenantAccessor.TenantId = tenantId;
+
+        try
+        {
+            await action().ConfigureAwait(false);
+        }
+        finally
+        {
+            httpContext.User = originalUser;
+            _tenantAccessor.TenantId = originalTenantId;
+        }
+    }
+
+    private static ClaimsPrincipal CreateTenantScopedPrincipal(ClaimsPrincipal principal, Guid tenantId)
+    {
+        var clone = new ClaimsPrincipal(principal.Identities.Select(identity => new ClaimsIdentity(identity)));
+        foreach (var identity in clone.Identities)
+        {
+            var existingTenantClaims = identity.FindAll(ScopeCheckService.TenantIdClaim).ToList();
+            foreach (var claim in existingTenantClaims)
+                identity.RemoveClaim(claim);
+        }
+
+        var targetIdentity = clone.Identities.FirstOrDefault(identity => identity.IsAuthenticated)
+            ?? clone.Identities.FirstOrDefault();
+
+        if (targetIdentity == null)
+        {
+            targetIdentity = new ClaimsIdentity(authenticationType: "AdminTenantDecommission");
+            clone.AddIdentity(targetIdentity);
+        }
+
+        targetIdentity.AddClaim(new Claim(ScopeCheckService.TenantIdClaim, tenantId.ToString("D")));
+        return clone;
     }
 
     private static string NormalizeSlug(string raw) =>

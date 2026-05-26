@@ -8,6 +8,18 @@
       "@/*": [
         "./*"
       ],
+      "@/src/*": [
+        "./src/*"
+      ],
+      "@/utils/*": [
+        "./utils/*"
+      ],
+      "@/services/*": [
+        "./services/*"
+      ],
+      "@/constants/*": [
+        "./constants/*"
+      ],
       "@/shared/*": [
         "./shared/*"
       ],

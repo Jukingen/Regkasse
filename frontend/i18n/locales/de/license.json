@@ -29,6 +29,8 @@
   "renewPrimaryHintBrowser": "Verwaltung im Browser öffnen",
   "renewPrimaryHintMail": "E-Mail-Programm mit Betreff „Lizenzverlängerung“ öffnen",
   "renewOpenMail": "Support per E-Mail",
+  "openRksvSonderbelege": "RKSV Sonderbelege",
+  "openCashRegisters": "Kassenverwaltung",
   "renewOpenFailedTitle": "Hinweis",
   "renewOpenFailedBody": "Die Seite konnte nicht geöffnet werden.",
   "renewOpenFailedMailBody": "Das E-Mail-Programm konnte nicht geöffnet werden.",

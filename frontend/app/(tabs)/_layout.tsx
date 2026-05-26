@@ -27,6 +27,7 @@ import { TseHealthProvider } from '../../contexts/TseHealthContext';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals, getCartLineTotal } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAdminPermissions } from '../../utils/adminPermissions';
 import { isPosAllowedRole } from '../../utils/posRoleGuard';
 import {
   isReadinessRegisterDecommissioned,
@@ -37,6 +38,7 @@ import {
 type PosTabsInnerProps = {
   t: (key: string, options?: Record<string, string | number>) => string;
   insets: ReturnType<typeof useSafeAreaInsets>;
+  canAccessAdmin: boolean;
   cartCount: number;
   isPaymentModalVisible: boolean;
   setIsPaymentModalVisible: (visible: boolean) => void;
@@ -51,6 +53,7 @@ type PosTabsInnerProps = {
 function PosTabsInner({
   t,
   insets,
+  canAccessAdmin,
   cartCount,
   isPaymentModalVisible,
   setIsPaymentModalVisible,
@@ -187,6 +190,15 @@ function PosTabsInner({
             tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
           }}
         />
+
+        <Tabs.Screen
+          name="admin-menu"
+          options={{
+            href: canAccessAdmin ? undefined : null,
+            title: 'Admin',
+            tabBarIcon: ({ color }) => <Ionicons name="shield-checkmark-outline" size={24} color={color} />,
+          }}
+        />
       </Tabs>
 
       <PaymentModal
@@ -217,6 +229,7 @@ export default function TabLayout() {
     const { t } = useTranslation(['navigation', 'checkout']);
     const insets = useSafeAreaInsets();
     const { isAuthenticated, isLoading, isAuthReady, user, checkAuthStatus, logout } = useAuth();
+    const adminPermissions = useAdminPermissions();
     const { settings: developmentModeSettings } = useDevelopmentModeContext();
     const checkAuthStatusRef = useRef(checkAuthStatus);
     checkAuthStatusRef.current = checkAuthStatus;
@@ -299,12 +312,21 @@ export default function TabLayout() {
         return <Redirect href="/(auth)/login" />;
     }
 
+    const canAccessAdmin =
+        adminPermissions.canViewLicense ||
+        adminPermissions.canManageCashRegisters ||
+        adminPermissions.canManageUsers ||
+        adminPermissions.canViewReports ||
+        adminPermissions.canManageRksv ||
+        adminPermissions.canManageTenants;
+
     return (
         <PosRegisterReadinessProvider>
             <TimeSyncStatusProvider enabled>
                 <PosTabsInner
                     t={t}
                     insets={insets}
+                    canAccessAdmin={canAccessAdmin}
                     cartCount={cartCount}
                     isPaymentModalVisible={isPaymentModalVisible}
                     setIsPaymentModalVisible={setIsPaymentModalVisible}

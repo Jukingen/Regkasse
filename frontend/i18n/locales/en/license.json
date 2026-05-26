@@ -29,6 +29,8 @@
   "renewPrimaryHintBrowser": "Open admin license page in browser",
   "renewPrimaryHintMail": "Open email app with subject “Lizenzverlängerung”",
   "renewOpenMail": "Email support",
+  "openRksvSonderbelege": "RKSV special receipts",
+  "openCashRegisters": "Cash registers",
   "renewOpenFailedTitle": "Notice",
   "renewOpenFailedBody": "Could not open the page.",
   "renewOpenFailedMailBody": "Could not open the email app.",
