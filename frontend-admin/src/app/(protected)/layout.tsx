@@ -8,7 +8,7 @@
 import React, { Suspense, useState, useEffect, useMemo, useLayoutEffect, ReactNode } from 'react';
 import { Layout, Menu, theme, Drawer, Grid, MenuProps } from 'antd';
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AuthGate } from '@/shared/auth/AuthGate';
 import { PermissionRouteGuard } from '@/shared/auth/PermissionRouteGuard';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -21,6 +21,7 @@ import {
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
+import { usePersonalization } from '@/lib/personalization/PersonalizationProvider';
 import {
     collectSelectableRouteKeysFromMenuItems,
     computeSidebarOpenKeysMerge,
@@ -35,7 +36,9 @@ import { SuperAdminModeBanner } from '@/components/admin-layout/SuperAdminModeBa
 import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenantGate';
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
 import { AdminShellHeader } from '@/components/layout/Header';
+import { CommandPaletteShell } from '@/components/CommandPalette';
 import { PasswordChangeRequiredRedirect } from '@/features/auth/components/PasswordChangeRequiredRedirect';
+import { IdleTimeoutProvider } from '@/features/auth/components/IdleTimeoutProvider';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
@@ -62,8 +65,8 @@ type ProtectedShellMenuProps = {
     setDrawerVisible: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-function ProtectedShellMenuFallback(props: ProtectedShellMenuProps) {
-    const { menuInlineCollapsed, openKeys, setOpenKeys, menuItems, pathname, selectableRouteKeys, isMobile, setDrawerVisible } =
+function ProtectedShellMenuFallback(props: ProtectedShellMenuProps & { menuTheme: 'light' | 'dark' }) {
+    const { menuInlineCollapsed, openKeys, setOpenKeys, menuItems, pathname, selectableRouteKeys, isMobile, setDrawerVisible, menuTheme } =
         props;
     const selectedKeys = useMemo(
         () => resolveAdminMenuSelectedKeys(pathname, selectableRouteKeys),
@@ -71,7 +74,7 @@ function ProtectedShellMenuFallback(props: ProtectedShellMenuProps) {
     );
     return (
         <Menu
-            theme="light"
+            theme={menuTheme}
             mode="inline"
             className={sidebarStyles.siderMenu}
             selectedKeys={selectedKeys}
@@ -85,10 +88,10 @@ function ProtectedShellMenuFallback(props: ProtectedShellMenuProps) {
     );
 }
 
-function ProtectedShellMenuWithSearch(props: ProtectedShellMenuProps) {
+function ProtectedShellMenuWithSearch(props: ProtectedShellMenuProps & { menuTheme: 'light' | 'dark' }) {
     const searchParams = useSearchParams();
     const search = searchParams.toString();
-    const { menuInlineCollapsed, openKeys, setOpenKeys, menuItems, pathname, selectableRouteKeys, isMobile, setDrawerVisible } =
+    const { menuInlineCollapsed, openKeys, setOpenKeys, menuItems, pathname, selectableRouteKeys, isMobile, setDrawerVisible, menuTheme } =
         props;
     const selectedKeys = useMemo(
         () => resolveAdminMenuSelectedKeys(pathname, selectableRouteKeys, search),
@@ -96,7 +99,7 @@ function ProtectedShellMenuWithSearch(props: ProtectedShellMenuProps) {
     );
     return (
         <Menu
-            theme="light"
+            theme={menuTheme}
             mode="inline"
             className={sidebarStyles.siderMenu}
             selectedKeys={selectedKeys}
@@ -119,8 +122,11 @@ export default function DashboardLayout({
     const [drawerVisible, setDrawerVisible] = useState(false);
     const screens = useBreakpoint();
     const pathname = usePathname();
+    const router = useRouter();
     const { user, logout } = useAuth();
     const { t } = useI18n();
+    const { effectiveTheme } = usePersonalization();
+    const menuTheme = effectiveTheme;
     const permissions = user?.permissions ?? EMPTY_PERMISSIONS;
     const usePermissionFirst = permissions.length > 0;
     const { width: sidebarWidth, setWidth: setSidebarWidth } = usePersistedAdminSiderWidth();
@@ -193,6 +199,7 @@ export default function DashboardLayout({
                 key: 'profile',
                 label: t(ADMIN_NAV_LABEL_KEYS.myProfile),
                 icon: <UserOutlined />,
+                onClick: () => router.push('/profile'),
             },
             {
                 type: 'divider',
@@ -229,6 +236,7 @@ export default function DashboardLayout({
             <Suspense
                 fallback={
                     <ProtectedShellMenuFallback
+                        menuTheme={menuTheme}
                         menuInlineCollapsed={menuInlineCollapsed}
                         openKeys={openKeys}
                         setOpenKeys={setOpenKeys}
@@ -241,6 +249,7 @@ export default function DashboardLayout({
                 }
             >
                 <ProtectedShellMenuWithSearch
+                    menuTheme={menuTheme}
                     menuInlineCollapsed={menuInlineCollapsed}
                     openKeys={openKeys}
                     setOpenKeys={setOpenKeys}
@@ -257,6 +266,8 @@ export default function DashboardLayout({
     // AuthGate: wait for /me (see useAuth.isAuthInitializing). PermissionRouteGuard: ROUTE_PERMISSIONS vs user.permissions.
     return (
         <AuthGate mode="protected">
+            <IdleTimeoutProvider>
+            <CommandPaletteShell />
             <PermissionRouteGuard>
                 <Suspense fallback={null}>
                     <PageLoader />
@@ -267,11 +278,10 @@ export default function DashboardLayout({
                             trigger={null}
                             collapsible
                             collapsed={collapsed}
-                            theme="light"
+                            theme={menuTheme}
                             width={clampAdminSiderWidth(sidebarWidth)}
                             collapsedWidth={80}
                             className={sidebarStyles.siderRoot}
-                            style={{ borderRight: '1px solid #f0f0f0' }}
                         >
                             {!collapsed && (
                                 <AdminDesktopSiderResizeHandle
@@ -315,7 +325,7 @@ export default function DashboardLayout({
                         <Content
                             style={{
                                 margin: '24px 16px',
-                                padding: 24,
+                                padding: 'var(--admin-density-padding, 24px)',
                                 minHeight: 280,
                                 background: colorBgContainer,
                                 borderRadius: borderRadiusLG,
@@ -334,6 +344,7 @@ export default function DashboardLayout({
                     </Layout>
                 </Layout>
             </PermissionRouteGuard>
+            </IdleTimeoutProvider>
         </AuthGate>
     );
 }

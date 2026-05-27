@@ -31,11 +31,13 @@ import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLab
 import { useI18n } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { isDevelopment } from '@/features/auth/services/devTenant';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 import {
     applyTenantImpersonationSession,
     getAdminTenantById,
     hardDeleteAdminTenant,
+    hardDeleteAdminTenantDevelopment,
     impersonateAdminTenant,
     restoreAdminTenant,
     softDeleteAdminTenant,
@@ -125,6 +127,21 @@ export default function SuperAdminTenantDetailPage() {
         },
     });
 
+    const developmentHardDeleteMutation = useMutation({
+        mutationFn: () => hardDeleteAdminTenantDevelopment(tenantId),
+        onSuccess: () => {
+            message.success(t('tenants.messages.hardDeleted'));
+            router.push('/admin/tenants');
+        },
+        onError: (err: unknown) => {
+            const msg =
+                err && typeof err === 'object' && 'response' in err
+                    ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
+                    : null;
+            message.error(msg ?? t('tenants.messages.hardDeleteFailed'));
+        },
+    });
+
     const impersonateMutation = useMutation({
         mutationFn: () => impersonateAdminTenant(tenantId),
         onSuccess: (res) => {
@@ -190,9 +207,11 @@ export default function SuperAdminTenantDetailPage() {
                         softDeletePending={softDeleteMutation.isPending}
                         restorePending={restoreMutation.isPending}
                         hardDeletePending={hardDeleteMutation.isPending}
+                        developmentHardDeletePending={developmentHardDeleteMutation.isPending}
                         onSoftDelete={() => softDeleteMutation.mutateAsync()}
                         onRestore={() => restoreMutation.mutateAsync()}
                         onHardDelete={(confirmSlug) => hardDeleteMutation.mutateAsync(confirmSlug)}
+                        onDevelopmentHardDelete={() => developmentHardDeleteMutation.mutateAsync()}
                     />
                 ),
             },
@@ -205,6 +224,7 @@ export default function SuperAdminTenantDetailPage() {
         softDeleteMutation,
         restoreMutation,
         hardDeleteMutation,
+        developmentHardDeleteMutation,
         impersonateMutation.isPending,
         invalidateTenant,
     ]);
@@ -227,6 +247,7 @@ export default function SuperAdminTenantDetailPage() {
 
     const tenant = tenantQuery.data;
     const title = tenant ? `${tenant.name} (${tenant.slug})` : tenantId;
+    const showDevelopmentHardDeleteEntry = isDevelopment() && tenant?.status !== 'deleted';
 
     return (
         <AdminPageShell>
@@ -255,6 +276,13 @@ export default function SuperAdminTenantDetailPage() {
                                 <Link href={`/admin/tenants/${tenantId}?tab=settings`}>
                                     <Button icon={<EditOutlined />}>{t('tenants.actions.edit')}</Button>
                                 </Link>
+                                {showDevelopmentHardDeleteEntry ? (
+                                    <Link href={`/admin/tenants/${tenantId}?tab=settings#danger-zone`}>
+                                        <Button danger size="small" icon={<DeleteOutlined />}>
+                                            {t('tenants.actions.developmentHardDelete')}
+                                        </Button>
+                                    </Link>
+                                ) : null}
                                 <Button
                                     danger
                                     icon={<DeleteOutlined />}

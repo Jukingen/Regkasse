@@ -1,8 +1,10 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Data;
 
@@ -56,8 +58,12 @@ public static class DemoTenantAdminSeed
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
         IUserTenantMembershipProvisioner membershipProvisioner,
+        IHostEnvironment hostEnvironment,
         CancellationToken cancellationToken = default)
     {
+        if (!hostEnvironment.IsDevelopment())
+            return;
+
         var now = DateTime.UtcNow;
 
         foreach (var spec in Specs)
@@ -65,8 +71,16 @@ public static class DemoTenantAdminSeed
             cancellationToken.ThrowIfCancellationRequested();
 
             var tenant = await db.Tenants
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(t => t.Slug == spec.Slug, cancellationToken)
                 .ConfigureAwait(false);
+
+            if (!ShouldProvisionDemoTenant(tenant, spec.Slug))
+            {
+                if (tenant != null)
+                    Console.WriteLine("Demo tenant seed skipped (inactive or deleted): {0}", spec.Slug);
+                continue;
+            }
 
             if (tenant == null)
             {
@@ -164,5 +178,19 @@ public static class DemoTenantAdminSeed
                 .ProvisionActiveMembershipAsync(user.Id, tenant.Id, isOwner: true, cancellationToken)
                 .ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Seeds only operational tenants. Missing bar/cafe/test rows are not recreated after soft-delete.
+    /// </summary>
+    private static bool ShouldProvisionDemoTenant(Tenant? tenant, string slug)
+    {
+        if (tenant != null)
+        {
+            return tenant.IsActive
+                   && string.Equals(tenant.Status, TenantStatuses.Active, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return string.Equals(slug, "dev", StringComparison.OrdinalIgnoreCase);
     }
 }

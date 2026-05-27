@@ -56,6 +56,7 @@ export type SidebarIconToken =
     | 'SafetyOutlined'
     | 'SettingOutlined'
     | 'ShopOutlined'
+    | 'BgColorsOutlined'
     | 'CloudServerOutlined'
     | 'ExperimentOutlined'
     | 'WalletOutlined'
@@ -249,6 +250,20 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.dailyClosingSummary',
         icon: 'SnippetsOutlined',
     },
+    complianceReports: {
+        id: 'complianceReports',
+        menuKey: '/reporting/compliance',
+        href: '/reporting/compliance',
+        labelKey: 'nav.complianceReports',
+        icon: 'SafetyCertificateOutlined',
+    },
+    userActivityReport: {
+        id: 'userActivityReport',
+        menuKey: '/admin/reports/user-activity',
+        href: '/admin/reports/user-activity',
+        labelKey: 'nav.userActivityReport',
+        icon: 'TeamOutlined',
+    },
     tagesbericht: {
         id: 'tagesbericht',
         menuKey: '/reporting/tagesbericht',
@@ -305,6 +320,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.companySettings',
         icon: 'ShopOutlined',
     },
+    personalization: {
+        id: 'personalization',
+        menuKey: '/settings/personalization',
+        href: '/settings/personalization',
+        labelKey: 'nav.personalization',
+        icon: 'BgColorsOutlined',
+    },
     paymentMethods: {
         id: 'paymentMethods',
         menuKey: '/settings/payment-methods',
@@ -318,6 +340,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/settings/backup-dr',
         labelKey: 'nav.backupDr',
         icon: 'CloudServerOutlined',
+    },
+    backupMonitoring: {
+        id: 'backupMonitoring',
+        menuKey: '/admin/backup',
+        href: '/admin/backup',
+        labelKey: 'nav.backupMonitoring',
+        icon: 'AreaChartOutlined',
     },
     developmentMode: {
         id: 'developmentMode',
@@ -481,7 +510,14 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['reportingOverview', 'reportCenter', 'staffPerformance', 'dailyClosingSummary'],
+                catalogIds: [
+                    'reportingOverview',
+                    'reportCenter',
+                    'complianceReports',
+                    'userActivityReport',
+                    'staffPerformance',
+                    'dailyClosingSummary',
+                ],
             },
         ],
     },
@@ -515,7 +551,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
                 labelKey: 'nav.settingsHub',
                 icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'paymentMethods', 'backupDr', 'developmentMode', 'timeSync', 'licenseManagement'],
+                catalogIds: ['companySettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync', 'licenseManagement'],
             },
         ],
     },

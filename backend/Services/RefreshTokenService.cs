@@ -29,14 +29,20 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
         string clientApp,
         Func<string, string, Guid, DateTime, string, string?, Task<string>> buildAccessToken,
         Guid? sessionTenantId = null,
+        SessionClientMetadata? clientMetadata = null,
         CancellationToken cancellationToken = default)
     {
+        var now = DateTime.UtcNow;
         var session = new AuthSession
         {
             UserId = userId,
             ClientApp = clientApp,
-            CreatedAtUtc = DateTime.UtcNow,
-            TenantId = sessionTenantId
+            CreatedAtUtc = now,
+            LastActivityAtUtc = now,
+            TenantId = sessionTenantId,
+            DeviceId = Truncate(clientMetadata?.DeviceId, 200),
+            IpAddress = Truncate(clientMetadata?.IpAddress, 45),
+            UserAgent = Truncate(clientMetadata?.UserAgent, 500),
         };
 
         var accessJti = Guid.NewGuid().ToString("N");
@@ -180,6 +186,9 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
         var bytes = RandomNumberGenerator.GetBytes(64);
         return Convert.ToBase64String(bytes);
     }
+
+    private static string? Truncate(string? value, int max) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Length <= max ? value.Trim() : value.Trim()[..max];
 
     private static string HashToken(string token)
     {

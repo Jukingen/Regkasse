@@ -80,6 +80,16 @@ export function PlatformUsersTab({
                 ),
             },
             {
+                title: t('users.list.columnUserName'),
+                dataIndex: 'userName',
+                key: 'userName',
+                width: 140,
+                ellipsis: true,
+                render: (v: string | null | undefined) => v?.trim() || '—',
+                sorter: (a, b) =>
+                    (a.userName ?? '').localeCompare(b.userName ?? '', undefined, { sensitivity: 'base' }),
+            },
+            {
                 title: t('users.list.columnEmail'),
                 dataIndex: 'email',
                 key: 'email',

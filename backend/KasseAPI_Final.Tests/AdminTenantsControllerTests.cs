@@ -1,4 +1,5 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
@@ -10,8 +11,10 @@ using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -105,6 +108,35 @@ public sealed class AdminTenantsControllerTests
         };
 
         return accessor;
+    }
+
+    private static AdminTenantsController CreateController(
+        IAdminTenantService? tenantService = null,
+        IHostEnvironment? environment = null,
+        ClaimsPrincipal? user = null)
+    {
+        var controller = new AdminTenantsController(
+            tenantService ?? Mock.Of<IAdminTenantService>(),
+            Mock.Of<IAuditLogService>(),
+            environment ?? Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            Mock.Of<ILogger<AdminTenantsController>>());
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = user ?? new ClaimsPrincipal(
+                    new ClaimsIdentity(
+                        new[]
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, "super-admin"),
+                            new Claim(ClaimTypes.Role, Roles.SuperAdmin),
+                        },
+                        authenticationType: "TestAuth"))
+            }
+        };
+
+        return controller;
     }
 
     private static ITenantProvisioningService CreateSuccessfulProvisioningMock()
@@ -259,6 +291,62 @@ public sealed class AdminTenantsControllerTests
         var row = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
         Assert.Equal(TenantStatuses.Deleted, row.Status);
         Assert.False(row.IsActive);
+    }
+
+    [Fact]
+    public async Task HardDeleteDevelopment_WhenNotDevelopment_ReturnsBadRequest()
+    {
+        var service = new Mock<IAdminTenantService>(MockBehavior.Strict);
+        var environment = Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production);
+        var controller = CreateController(service.Object, environment);
+
+        var result = await controller.HardDeleteDevelopment(Guid.NewGuid());
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.NotNull(badRequest.Value);
+    }
+
+    [Fact]
+    public async Task HardDeleteDevelopment_WhenDevelopment_SoftDeletesThenHardDeletes()
+    {
+        var tenantId = Guid.NewGuid();
+        var tenant = new AdminTenantDetailDto(
+            tenantId,
+            "Dev Tenant",
+            "dev-tenant",
+            null,
+            null,
+            null,
+            TenantStatuses.Active,
+            true,
+            null,
+            null,
+            DateTime.UtcNow,
+            null,
+            null);
+
+        var sequence = new MockSequence();
+        var service = new Mock<IAdminTenantService>(MockBehavior.Strict);
+        service.InSequence(sequence)
+            .Setup(s => s.GetByIdAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tenant);
+        service.InSequence(sequence)
+            .Setup(s => s.SoftDeleteAsync(tenantId, "super-admin", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, (string?)null));
+        service.InSequence(sequence)
+            .Setup(s => s.HardDeleteAsync(
+                tenantId,
+                It.Is<HardDeleteAdminTenantRequest>(r => r.ConfirmSlug == "dev-tenant"),
+                "super-admin",
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((true, (string?)null));
+
+        var controller = CreateController(service.Object);
+
+        var result = await controller.HardDeleteDevelopment(tenantId);
+
+        Assert.IsType<NoContentResult>(result);
+        service.VerifyAll();
     }
 
     [Fact]
@@ -1215,6 +1303,43 @@ public sealed class AdminTenantsControllerTests
                 null,
                 null),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_RemovesTenantMemberships()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Membership Cleanup",
+            Slug = "membership-cleanup",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+            DeletedAtUtc = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u-cleanup",
+            TenantId = tenantId,
+            IsActive = false,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var (success, error) = await service.HardDeleteAsync(
+            tenantId,
+            new HardDeleteAdminTenantRequest { ConfirmSlug = "membership-cleanup" },
+            "actor-1");
+
+        Assert.True(success);
+        Assert.Null(error);
+        Assert.False(await db.Tenants.AnyAsync(t => t.Id == tenantId));
+        Assert.False(await db.UserTenantMemberships.AnyAsync(m => m.TenantId == tenantId));
     }
 
     private static PaymentDetails CreatePendingPayment(Guid cashRegisterId)

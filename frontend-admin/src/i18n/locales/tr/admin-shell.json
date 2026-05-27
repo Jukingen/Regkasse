@@ -434,5 +434,44 @@
     "colNumber": "No",
     "colStatus": "Durum",
     "colCapacity": "Kapasite"
+  },
+  "commandPalette": {
+    "placeholder": "Sayfa, islem veya kullanici ara…",
+    "keyboardHint": "↑↓ gezin · Enter calistir · Esc kapat",
+    "footer": {
+      "select": "secmek icin",
+      "close": "kapatmak icin"
+    },
+    "resultsAria": "Arama sonuclari",
+    "empty": "Sonuc yok",
+    "group": {
+      "navigation": "Gezinti",
+      "actions": "Islemler",
+      "users": "Kullanicilar",
+      "receipts": "Fisler",
+      "registers": "Kasalar",
+      "recent": "Son"
+    },
+    "emptyHint": "Sayfa ve islemleri filtrelemek icin yazin.",
+    "action": {
+      "createUser": "Kullanici olustur",
+      "createPlatformUser": "Platform yoneticisi olustur",
+      "createRegister": "Yeni kasa olustur",
+      "generateReport": "Rapor olustur",
+      "openReportCenter": "Rapor merkezini ac",
+      "openBackup": "Yedekleme ve DR ac",
+      "triggerBackup": "Yedeklemeyi simdi baslat",
+      "triggerBackupHint": "Manuel yedeklemeyi kuyruga al"
+    },
+    "dynamic": {
+      "searchUsers": "Kullanici ara (en az 2 karakter)…",
+      "searchReceipts": "Fis numarasi girin (en az 3 karakter)…",
+      "searchRegisters": "Kasa ara (en az 2 karakter)…"
+    },
+    "receiptSearch": "Fis ara: {number}",
+    "backupConfirmTitle": "Yedekleme baslatilsin mi?",
+    "backupConfirmBody": "Manuel yedekleme kuyruga alinir. Ilerlemeyi Yedekleme ve DR altinda izleyin.",
+    "backupConfirmOk": "Yedeklemeyi baslat",
+    "backupConfirmCancel": "Iptal"
   }
 }

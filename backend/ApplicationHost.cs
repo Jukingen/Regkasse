@@ -18,6 +18,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Services.AdminCashRegisters;
@@ -41,6 +42,7 @@ using KasseAPI_Final.Services.RestoreVerification;
 using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
 using Microsoft.Extensions.Configuration;
@@ -165,6 +167,20 @@ builder.Services.Configure<LicenseSettingsOptions>(builder.Configuration.GetSect
 builder.Services.AddSingleton<IPostConfigureOptions<LicenseOptions>, LicenseOptionsFromFilesPostConfigure>();
 builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
 builder.Services.Configure<EmailSmtpOptions>(builder.Configuration.GetSection(EmailSmtpOptions.SectionName));
+builder.Services.Configure<ActivityNotificationOptions>(
+    builder.Configuration.GetSection(ActivityNotificationOptions.SectionName));
+builder.Services.AddSingleton<IActivityStreamHub, ActivityStreamHub>();
+builder.Services.AddScoped<INotificationConfigService, NotificationConfigService>();
+builder.Services.AddScoped<IActivityEventService, ActivityEventService>();
+builder.Services.AddScoped<ActivityEventRecorder>();
+builder.Services.AddScoped<IActivityEventPublisher>(sp => sp.GetRequiredService<ActivityEventRecorder>());
+builder.Services.AddScoped<IActivityEventEmailNotifier, ActivityEventEmailNotifier>();
+builder.Services.AddScoped<IActivityEventWebhookNotifier, ActivityEventWebhookNotifier>();
+builder.Services
+    .AddHttpClient(ActivityEventWebhookNotifier.HttpClientName)
+    .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHostedService<ActivityMonitoringHostedService>();
+builder.Services.AddHostedService<ActivityEventCleanupHostedService>();
 builder.Services.AddHttpClient("LicenseRemote", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
@@ -373,9 +389,15 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
 builder.Services.AddScoped<IQuickUserGeneratorService, QuickUserGeneratorService>();
 builder.Services.AddScoped<ITenantUserService, TenantUserService>();
+builder.Services.AddSingleton<IBulkUserImportResultStore, BulkUserImportResultStore>();
+builder.Services.AddSingleton<IBulkUserImportJobManager, BulkUserImportJobManager>();
+builder.Services.AddScoped<IBulkUserImportService, BulkUserImportService>();
 builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
 builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
 builder.Services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
+builder.Services.AddScoped<IUsernameChangeEmailService, UsernameChangeEmailService>();
+builder.Services.AddScoped<IForgotUsernameEmailService, ForgotUsernameEmailService>();
+builder.Services.AddScoped<IUserUsernameHistoryService, UserUsernameHistoryService>();
 builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
 // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
 builder.Services.AddScoped<IAuthTenantSnapshotProvider, AuthTenantSnapshotProvider>();
@@ -556,6 +578,12 @@ builder.Services.AddScoped<IFinanzOnlineAdminConnectivityService, FinanzOnlineAd
 builder.Services.AddScoped<ITagesabschlussService, TagesabschlussService>();
 builder.Services.AddScoped<IDailyClosingService, DailyClosingService>();
 builder.Services.AddScoped<IOperationalReportingService, OperationalReportingService>();
+builder.Services.AddScoped<IComplianceOperationalReportingService, ComplianceOperationalReportingService>();
+builder.Services.AddScoped<IPeakHoursAnalysisService, PeakHoursAnalysisService>();
+builder.Services.AddScoped<IProductMovementAnalysisService, ProductMovementAnalysisService>();
+builder.Services.AddScoped<IAdminOperationalReportExportService, AdminOperationalReportExportService>();
+builder.Services.AddScoped<IOperationalReportScheduler, OperationalReportScheduler>();
+builder.Services.AddHostedService<OperationalReportSchedulerHostedService>();
 builder.Services.AddScoped<ITagesberichtService, TagesberichtService>();
 builder.Services.AddScoped<IMonatsberichtService, MonatsberichtService>();
 builder.Services.AddScoped<IJahresberichtService, JahresberichtService>();
@@ -573,6 +601,8 @@ builder.Services.AddScoped<ICashRegisterResolutionService, CashRegisterResolutio
 builder.Services.AddScoped<ICashRegisterShiftService, CashRegisterShiftService>();
 builder.Services.AddScoped<ICashRegisterDecommissionService, CashRegisterDecommissionService>();
 builder.Services.AddScoped<ICashRegisterManagementService, CashRegisterManagementService>();
+builder.Services.AddScoped<ICashRegisterHealthService, CashRegisterHealthService>();
+builder.Services.AddScoped<ICashRegisterListEnrichmentService, CashRegisterListEnrichmentService>();
 builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
 builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
 builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
@@ -619,7 +649,16 @@ builder.Services.AddHostedService<CartLifecycleService>();
 builder.Services.AddScoped<CartLifecycleService>();
 
 // Audit log service
+builder.Services.AddScoped<ITenantSessionPolicyService, TenantSessionPolicyService>();
+builder.Services.AddScoped<IUserSessionService, UserSessionService>();
+builder.Services.AddScoped<ISessionService, SessionService>();
+builder.Services.AddScoped<IUserActivityReportService, UserActivityReportService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IAuditExportService, AuditExportService>();
+builder.Services.AddSingleton<IAuditExportJobManager, AuditExportJobManager>();
+builder.Services.AddScoped<IAuditReportScheduler, AuditReportScheduler>();
+builder.Services.AddScoped<IAuditReportEmailService, AuditReportEmailService>();
+builder.Services.AddHostedService<AuditReportSchedulerHostedService>();
 builder.Services.AddScoped<IFiscalExportAuditLogReader, FiscalExportAuditLogReader>();
 builder.Services.AddScoped<IPosCriticalActionAuditService, PosCriticalActionAuditService>();
 
@@ -646,8 +685,10 @@ builder.Services.AddSingleton<IBackupAlertPublisher>(sp =>
         new IBackupAlertPublisher[]
         {
             sp.GetRequiredService<LoggingBackupAlertPublisher>(),
-            sp.GetRequiredService<WebhookBackupAlertPublisher>()
+            sp.GetRequiredService<WebhookBackupAlertPublisher>(),
+            sp.GetRequiredService<ActivityBackupAlertPublisher>(),
         }));
+builder.Services.AddSingleton<ActivityBackupAlertPublisher>();
 builder.Services.AddSingleton<IDrOperationalObservabilityMetrics, PrometheusDrOperationalObservabilityMetrics>();
 builder.Services.AddSingleton<DrStaleRunRecoveryAlertingObserver>();
 builder.Services.AddSingleton<IDrStaleRunRecoveryObserver>(sp =>
@@ -658,6 +699,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
 builder.Services.AddScoped<IBackupArtifactDownloadService, BackupArtifactDownloadService>();
 builder.Services.AddScoped<IBackupRecoverabilitySummaryService, BackupRecoverabilitySummaryService>();
+builder.Services.AddScoped<IBackupDashboardStatsService, BackupDashboardStatsService>();
 builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();
 builder.Services.AddSingleton<IRestoreOrchestrationBoundary, DeferredRestoreOrchestrationBoundary>();
 builder.Services.AddSingleton<IBackupPostgresClientToolingProbeState, BackupPostgresClientToolingProbeState>();
@@ -665,7 +707,8 @@ builder.Services.AddSingleton<IBackupOperationalReadiness, BackupOperationalRead
 builder.Services.AddSingleton<IBackupScheduledEnqueueService, BackupScheduledEnqueueService>();
 builder.Services.AddSingleton<IBackupOrchestratorMetrics, PrometheusBackupOrchestratorMetrics>();
 builder.Services.AddSingleton<IBackupOrchestratorDistributedLock, BackupOrchestratorPostgreSqlAdvisoryLock>();
-builder.Services.AddScoped<IBackupPostSuccessOrchestrationHook, BackupPostSuccessOrchestrationHook>();
+builder.Services.AddScoped<BackupPostSuccessOrchestrationHook>();
+builder.Services.AddScoped<IBackupPostSuccessOrchestrationHook, BackupPostSuccessActivityHook>();
 builder.Services.AddScoped<IBackupSettingsAdminService, BackupSettingsAdminService>();
 builder.Services.AddHostedService<BackupOrchestratorHostedService>();
 builder.Services.AddHostedService<BackupSchedulerService>();
@@ -686,6 +729,13 @@ builder.Services.AddSingleton<IRestoreVerificationOrchestratorMetrics, Prometheu
 builder.Services.AddSingleton<IRestoreVerificationOrchestratorDistributedLock, RestoreVerificationOrchestratorPostgreSqlAdvisoryLock>();
 builder.Services.AddSingleton<IRestoreVerificationOperationalReadiness, RestoreVerificationOperationalReadinessService>();
 builder.Services.AddScoped<IRestoreVerificationManualTriggerService, RestoreVerificationManualTriggerService>();
+builder.Services.Configure<ManualRestoreApprovalOptions>(
+    builder.Configuration.GetSection(ManualRestoreApprovalOptions.SectionName));
+builder.Services.AddSingleton<ManualRestoreTargetDatabaseGuard>();
+builder.Services.AddScoped<IManualRestoreApprovalEmailService, ManualRestoreApprovalEmailService>();
+builder.Services.AddScoped<IManualRestoreApprovalNotificationService, ManualRestoreApprovalNotificationService>();
+builder.Services.AddScoped<IManualRestoreTriggerService, ManualRestoreTriggerService>();
+builder.Services.AddScoped<IValidationRestoreExecutionService, ValidationRestoreExecutionService>();
         builder.Services.AddScoped<IRestoreVerificationSchedulingQueryService, RestoreVerificationSchedulingQueryService>();
         builder.Services.AddScoped<IRestoreVerificationRunQueryService, RestoreVerificationRunQueryService>();
         builder.Services.AddScoped<IRestoreProofMilestonesQueryService, RestoreProofMilestonesQueryService>();
@@ -719,6 +769,7 @@ builder.Services.AddScoped<IFiscalExportService, FiscalExportService>();
 builder.Services.AddScoped<ILegalExportCompletenessService, LegalExportCompletenessService>();
 builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();
 builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();
+builder.Services.AddScoped<IUserCreationService, UserCreationService>();
 
 // HttpContext accessor for audit logging
 builder.Services.AddHttpContextAccessor();
@@ -852,6 +903,7 @@ app.UseStaticFiles(new StaticFileOptions
 // Authentication ve Authorization middleware
 app.UseAuthentication();
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantContextMiddleware>();
+app.UseMiddleware<KasseAPI_Final.Middleware.SessionActivityMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantOperationalGateMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
 app.UseAuthorization();

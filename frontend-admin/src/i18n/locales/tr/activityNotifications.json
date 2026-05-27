@@ -1,0 +1,47 @@
+{
+  "title": "Aktivite",
+  "bellAria": "Bildirimler ve aktivite akışı",
+  "markAllRead": "Tümünü okundu işaretle",
+  "markRead": "Okundu işaretle",
+  "empty": "Güncel bildirim yok.",
+  "emptyUnread": "Okunmamış bildirim yok.",
+  "byActor": "{{name}} tarafından",
+  "settingsLoadError": "Bildirim ayarları yüklenemedi.",
+  "settingsSaved": "Ayarlar kaydedildi.",
+  "settingsSaveError": "Kaydetme başarısız.",
+  "tabs": {
+    "all": "Tümü",
+    "unread": "Okunmamış ({{count}})",
+    "settings": "Ayarlar"
+  },
+  "settings": {
+    "inApp": "Uygulama içi bildirimler",
+    "emailSection": "E-posta",
+    "emailEnabled": "E-posta bildirimleri",
+    "emailRecipients": "Alıcılar (satır başına bir adres)",
+    "webhookSection": "Webhook (Slack / Discord)",
+    "webhookEnabled": "Webhook etkin",
+    "webhookUrl": "Webhook URL",
+    "webhookSecret": "Webhook gizli anahtarı",
+    "eventsSection": "Olay türleri",
+    "enabledEvents": "Etkin olaylar",
+    "severityThreshold": "Olay başına minimum önem",
+    "severityDefault": "Varsayılan (ek filtre yok)"
+  },
+  "eventTypes": {
+    "UserCreated": "Kullanıcı oluşturuldu",
+    "UserUpdated": "Kullanıcı güncellendi",
+    "UserDeleted": "Kullanıcı silindi",
+    "CashRegisterOpened": "Kasa açıldı",
+    "CashRegisterClosed": "Kasa kapatıldı",
+    "CashRegisterDecommissioned": "Kasa devre dışı",
+    "LicenseExpiringSoon": "Lisans süresi doluyor",
+    "LicenseExpired": "Lisans süresi doldu",
+    "OfflineQueueGrowing": "Çevrimdışı kuyruk büyüyor",
+    "FinanzOnlineSubmissionFailed": "FinanzOnline gönderim hatası",
+    "BackupFailed": "Yedekleme başarısız",
+    "BackupSucceeded": "Yedekleme başarılı",
+    "RestoreDrillFailed": "Geri yükleme tatbikatı başarısız",
+    "RestoreDrillSucceeded": "Geri yükleme tatbikatı başarılı"
+  }
+}

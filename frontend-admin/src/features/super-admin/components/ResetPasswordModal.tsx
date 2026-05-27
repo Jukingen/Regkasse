@@ -10,6 +10,7 @@ import {
     type TenantUserPasswordResetResult,
 } from '@/features/super-admin/api/tenantUsers';
 import { useI18n } from '@/i18n';
+import { copyTextToClipboard } from '@/lib/clipboard';
 
 export type ResetPasswordModalProps = {
     open: boolean;
@@ -29,10 +30,25 @@ export function ResetPasswordModal({
     const { t } = useI18n();
     const [confirming, setConfirming] = useState(false);
     const [result, setResult] = useState<TenantUserPasswordResetResult | null>(null);
+    const [password, setPassword] = useState('');
 
     useEffect(() => {
-        if (open) setResult(null);
+        if (open) {
+            setResult(null);
+            setPassword('');
+        }
     }, [open]);
+
+    useEffect(() => {
+        if (open && result?.generatedPassword) {
+            setPassword(result.generatedPassword);
+            return;
+        }
+
+        if (!result?.generatedPassword) {
+            setPassword('');
+        }
+    }, [open, result]);
 
     const handleConfirm = async () => {
         if (!user) return;
@@ -50,11 +66,15 @@ export function ResetPasswordModal({
     };
 
     const copyPassword = async () => {
-        if (!result?.generatedPassword) return;
-        try {
-            await navigator.clipboard.writeText(result.generatedPassword);
+        if (!password) {
+            message.error('Kein Passwort zum Kopieren vorhanden');
+            return;
+        }
+
+        const copied = await copyTextToClipboard(password);
+        if (copied) {
             message.success(t('tenants.provisioning.copySuccess'));
-        } catch {
+        } else {
             message.error(t('tenants.provisioning.copyFailed'));
         }
     };
@@ -100,7 +120,7 @@ export function ResetPasswordModal({
                             message={t('users.create.generatedPasswordInfo')}
                             description={
                                 <Space>
-                                    <Typography.Text code>{result.generatedPassword}</Typography.Text>
+                                    <Typography.Text code>{password}</Typography.Text>
                                     <Button size="small" icon={<CopyOutlined />} onClick={() => void copyPassword()}>
                                         {t('tenants.provisioning.copyPassword')}
                                     </Button>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Authorization;
@@ -18,15 +19,18 @@ namespace KasseAPI_Final.Controllers
     public class AuditLogController : ControllerBase
     {
         private readonly IAuditLogService _auditLogService;
+        private readonly IAuditExportService _auditExportService;
         private readonly IActorDisplayNameResolver _actorDisplayNameResolver;
         private readonly ILogger<AuditLogController> _logger;
 
         public AuditLogController(
             IAuditLogService auditLogService,
+            IAuditExportService auditExportService,
             IActorDisplayNameResolver actorDisplayNameResolver,
             ILogger<AuditLogController> logger)
         {
             _auditLogService = auditLogService;
+            _auditExportService = auditExportService;
             _actorDisplayNameResolver = actorDisplayNameResolver;
             _logger = logger;
         }
@@ -40,11 +44,15 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
             [FromQuery] string? userId = null,
+            [FromQuery] string? targetUserId = null,
             [FromQuery] string? userRole = null,
             [FromQuery] string? action = null,
             [FromQuery] string? entityType = null,
             [FromQuery] Guid? entityId = null,
+            [FromQuery] string? ipAddress = null,
             [FromQuery] AuditLogStatus? status = null,
+            [FromQuery] string? statusOutcome = null,
+            [FromQuery] bool? hasChanges = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
@@ -54,11 +62,13 @@ namespace KasseAPI_Final.Controllers
                 if (pageSize < 1 || pageSize > 100) pageSize = 50;
 
                 var auditLogs = await _auditLogService.GetAuditLogsAsync(
-                    startDate, endDate, userId, userRole, action, entityType, entityId, status, page, pageSize);
+                    startDate, endDate, userId, userRole, action, entityType, entityId, status, page, pageSize,
+                    targetUserId, ipAddress, statusOutcome, hasChanges);
                 var list = auditLogs.ToList();
 
                 var totalCount = await _auditLogService.GetAuditLogsCountAsync(
-                    startDate, endDate, userId, userRole, action, entityType, entityId, status);
+                    startDate, endDate, userId, userRole, action, entityType, entityId, status,
+                    targetUserId, ipAddress, statusOutcome, hasChanges);
 
                 var response = new AuditLogsResponse
                 {
@@ -405,65 +415,51 @@ namespace KasseAPI_Final.Controllers
         /// </summary>
         [HttpGet("export")]
         [HasPermission(AppPermissions.AuditExport)]
-        public async Task<ActionResult> ExportAuditLogs(
+        public async Task ExportAuditLogs(
             [FromQuery] string format = "json",
             [FromQuery] DateTime? startDate = null,
             [FromQuery] DateTime? endDate = null,
             [FromQuery] string? userId = null,
+            [FromQuery] string? targetUserId = null,
             [FromQuery] string? userRole = null,
             [FromQuery] string? action = null,
             [FromQuery] string? entityType = null,
             [FromQuery] Guid? entityId = null,
-            [FromQuery] AuditLogStatus? status = null)
+            [FromQuery] string? ipAddress = null,
+            [FromQuery] AuditLogStatus? status = null,
+            [FromQuery] string? statusOutcome = null,
+            [FromQuery] bool? hasChanges = null,
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                // Get all audit logs without pagination for export
-                var auditLogs = await _auditLogService.GetAuditLogsAsync(
-                    startDate, endDate, userId, userRole, action, entityType, entityId, status, 1, int.MaxValue);
+                var filters = AuditLogQueryExtensions.ToFilters(
+                    startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
+                    ipAddress, status, statusOutcome, hasChanges);
 
-                if (format.ToLower() == "csv")
-                {
-                    var csvContent = GenerateCsvContent(auditLogs);
-                    var fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv";
-                    
-                    return File(System.Text.Encoding.UTF8.GetBytes(csvContent), "text/csv", fileName);
-                }
-                else
-                {
-                    var jsonContent = System.Text.Json.JsonSerializer.Serialize(auditLogs, new System.Text.Json.JsonSerializerOptions 
-                    { 
-                        WriteIndented = true 
-                    });
-                    var fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
-                    
-                    return File(System.Text.Encoding.UTF8.GetBytes(jsonContent), "application/json", fileName);
-                }
+                var normalized = (format ?? "csv").Trim().ToLowerInvariant();
+                var ext = normalized == "json" ? "json" : "csv";
+                var contentType = normalized == "json" ? "application/json" : "text/csv";
+                var fileName = $"audit_logs_{DateTime.UtcNow:yyyyMMdd_HHmmss}.{ext}";
+
+                Response.ContentType = contentType;
+                Response.Headers.ContentDisposition = $"attachment; filename=\"{fileName}\"";
+                await _auditExportService.StreamExportAsync(filters, format, Response.Body, cancellationToken).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Response.StatusCode = 400;
+                await Response.WriteAsJsonAsync(new { message = ex.Message, code = "EXPORT_TOO_LARGE" }, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error exporting audit logs");
-                return StatusCode(500, new { message = "Internal server error while exporting audit logs.", code = "AUDIT_LOG_EXPORT_ERROR" });
+                if (!Response.HasStarted)
+                {
+                    Response.StatusCode = 500;
+                    await Response.WriteAsJsonAsync(new { message = "Internal server error while exporting audit logs.", code = "AUDIT_LOG_EXPORT_ERROR" }, cancellationToken).ConfigureAwait(false);
+                }
             }
-        }
-
-        /// <summary>
-        /// Generate CSV content for audit logs export
-        /// </summary>
-        private string GenerateCsvContent(IEnumerable<AuditLog> auditLogs)
-        {
-            var csvBuilder = new System.Text.StringBuilder();
-            
-            // CSV header
-            csvBuilder.AppendLine("ID,SessionId,UserId,UserRole,Action,EntityType,EntityId,EntityName,Status,Timestamp,Description,Notes,IpAddress,UserAgent,Endpoint,HttpMethod,HttpStatusCode,ProcessingTimeMs,ErrorDetails,CorrelationId,TransactionId,Amount,PaymentMethod,TseSignature");
-            
-            // CSV data rows
-            foreach (var log in auditLogs)
-            {
-                csvBuilder.AppendLine($"\"{log.Id}\",\"{log.SessionId}\",\"{log.UserId}\",\"{log.UserRole}\",\"{log.Action}\",\"{log.EntityType}\",\"{log.EntityId}\",\"{log.EntityName}\",\"{log.Status}\",\"{log.Timestamp:yyyy-MM-dd HH:mm:ss}\",\"{log.Description}\",\"{log.Notes}\",\"{log.IpAddress}\",\"{log.UserAgent}\",\"{log.Endpoint}\",\"{log.HttpMethod}\",\"{log.HttpStatusCode}\",\"{log.ProcessingTimeMs}\",\"{log.ErrorDetails}\",\"{log.CorrelationId}\",\"{log.TransactionId}\",\"{log.Amount}\",\"{log.PaymentMethod}\",\"{log.TseSignature}\"");
-            }
-            
-            return csvBuilder.ToString();
         }
     }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Alert, Button, Card, Checkbox, Empty, Space, Tag, Typography, message } from 'antd';
 import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import Link from 'next/link';
@@ -58,6 +58,7 @@ function toCashRegisterViewItem(row: AdminCashRegisterListItem): CashRegisterVie
 export default function KassenverwaltungPage() {
     const { t } = useI18n();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const queryClient = useQueryClient();
     const deepLinkHandledRef = useRef(false);
     const {
@@ -177,6 +178,12 @@ export default function KassenverwaltungPage() {
         ? adminRegistersQuery.error != null
         : tenantRegistersQuery.isError;
     const showGroupedTenantView = isSuperAdminUser && !selectedTenantId;
+
+    useEffect(() => {
+        if (searchParams.get('create') !== '1' || !canCreate) return;
+        setCreateOpen(true);
+        router.replace('/kassenverwaltung');
+    }, [searchParams, canCreate, router]);
 
     useEffect(() => {
         if (deepLinkHandledRef.current || allRegisters.length === 0) {

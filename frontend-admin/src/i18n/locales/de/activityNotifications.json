@@ -1,0 +1,47 @@
+{
+  "title": "Aktivitäten",
+  "bellAria": "Benachrichtigungen und Aktivitätsfeed",
+  "markAllRead": "Alle gelesen",
+  "markRead": "Als gelesen markieren",
+  "empty": "Keine aktuellen Meldungen.",
+  "emptyUnread": "Keine ungelesenen Meldungen.",
+  "byActor": "von {{name}}",
+  "settingsLoadError": "Benachrichtigungseinstellungen konnten nicht geladen werden.",
+  "settingsSaved": "Einstellungen gespeichert.",
+  "settingsSaveError": "Speichern fehlgeschlagen.",
+  "tabs": {
+    "all": "Alle",
+    "unread": "Ungelesen ({{count}})",
+    "settings": "Einstellungen"
+  },
+  "settings": {
+    "inApp": "In-App-Benachrichtigungen",
+    "emailSection": "E-Mail",
+    "emailEnabled": "E-Mail-Benachrichtigungen aktiv",
+    "emailRecipients": "Empfänger (eine Adresse pro Zeile)",
+    "webhookSection": "Webhook (Slack / Discord)",
+    "webhookEnabled": "Webhook aktiv",
+    "webhookUrl": "Webhook-URL",
+    "webhookSecret": "Webhook-Geheimnis",
+    "eventsSection": "Ereignistypen",
+    "enabledEvents": "Ereignisse aktivieren",
+    "severityThreshold": "Mindest-Schweregrad pro Ereignis",
+    "severityDefault": "Standard (kein zusätzlicher Filter)"
+  },
+  "eventTypes": {
+    "UserCreated": "Benutzer erstellt",
+    "UserUpdated": "Benutzer aktualisiert",
+    "UserDeleted": "Benutzer gelöscht",
+    "CashRegisterOpened": "Kasse geöffnet",
+    "CashRegisterClosed": "Kasse geschlossen",
+    "CashRegisterDecommissioned": "Kasse stillgelegt",
+    "LicenseExpiringSoon": "Lizenz läuft ab",
+    "LicenseExpired": "Lizenz abgelaufen",
+    "OfflineQueueGrowing": "Offline-Warteschlange wächst",
+    "FinanzOnlineSubmissionFailed": "FinanzOnline-Fehler",
+    "BackupFailed": "Backup fehlgeschlagen",
+    "BackupSucceeded": "Backup erfolgreich",
+    "RestoreDrillFailed": "Restore-Übung fehlgeschlagen",
+    "RestoreDrillSucceeded": "Restore-Übung erfolgreich"
+  }
+}

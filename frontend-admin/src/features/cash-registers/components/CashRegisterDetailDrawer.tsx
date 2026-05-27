@@ -1,10 +1,14 @@
 'use client';
 
 import { Button, Descriptions, Divider, Drawer, Space, Tag, Typography } from 'antd';
-import { SafetyOutlined } from '@ant-design/icons';
+import { CloudSyncOutlined, SafetyOutlined } from '@ant-design/icons';
+import { useQuery } from '@tanstack/react-query';
 import type { CashRegister } from '@/api/generated/model';
 import { useI18n, formatCurrency, formatDateTime } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
+import { getCashRegisterTseHealth } from '@/features/cash-registers/api/cashRegisters';
+import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
+import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import {
     rawRegisterStatus,
     readDecommissionMeta,
@@ -32,6 +36,25 @@ export function CashRegisterDetailDrawer({
     const status = register ? rawRegisterStatus(register) : undefined;
     const decommissionMeta = register ? readDecommissionMeta(register) : null;
     const registerNumber = register?.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY;
+    const enhanced = register as EnhancedCashRegister | null;
+    const registerId = register?.id?.trim();
+
+    const tseHealthQuery = useQuery({
+        queryKey: ['admin', 'cash-registers', registerId, 'tse-health'],
+        queryFn: () => getCashRegisterTseHealth(registerId!),
+        enabled: open && Boolean(registerId),
+        staleTime: 15_000,
+    });
+
+    const cashierName =
+        enhanced?.currentCashierName?.trim() ||
+        register?.currentUser?.userName?.trim() ||
+        register?.currentUserId?.trim() ||
+        null;
+
+    const offlineHref = registerId
+        ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
+        : '/admin/tse/offline-transactions';
 
     return (
         <Drawer
@@ -65,10 +88,18 @@ export function CashRegisterDetailDrawer({
                     <Descriptions.Item label={t('cashRegisters.detail.startingBalance')}>
                         {formatCurrency(register.startingBalance, formatLocale)}
                     </Descriptions.Item>
-                    <Descriptions.Item label={t('cashRegisters.detail.currentUser')}>
-                        {register.currentUser?.userName?.trim() ||
-                            register.currentUserId?.trim() ||
-                            FORMAT_EMPTY_DISPLAY}
+                    <Descriptions.Item label={t('cashRegisters.detail.currentCashier')}>
+                        {cashierName ?? FORMAT_EMPTY_DISPLAY}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.lastSyncAtUtc')}>
+                        {enhanced?.lastSyncAtUtc
+                            ? formatDateTime(enhanced.lastSyncAtUtc, formatLocale)
+                            : FORMAT_EMPTY_DISPLAY}
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.offlineQueueCount')}>
+                        {typeof enhanced?.offlineQueueCount === 'number'
+                            ? enhanced.offlineQueueCount
+                            : FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.lastBalanceUpdate')}>
                         {register.lastBalanceUpdate
@@ -94,13 +125,64 @@ export function CashRegisterDetailDrawer({
                         {register.id?.trim() || FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.tseStatus')}>
-                        <Button
-                            icon={<SafetyOutlined />}
-                            size="small"
-                            href="/rksv/status"
-                        >
-                            {t('cashRegisters.detail.openTseDetails')}
-                        </Button>
+                        <Space direction="vertical" size={4}>
+                            <TseHealthBadge
+                                status={
+                                    tseHealthQuery.data?.status ?? enhanced?.tseHealthStatus
+                                }
+                            />
+                            {tseHealthQuery.data?.message ? (
+                                <Typography.Text type="secondary">
+                                    {tseHealthQuery.data.message}
+                                </Typography.Text>
+                            ) : null}
+                            <Space wrap>
+                                <Button
+                                    icon={<SafetyOutlined />}
+                                    size="small"
+                                    href="/rksv/status"
+                                >
+                                    {t('cashRegisters.detail.openTseDetails')}
+                                </Button>
+                                {(enhanced?.offlineQueueCount ?? 0) > 0 ? (
+                                    <Button
+                                        icon={<CloudSyncOutlined />}
+                                        size="small"
+                                        href={offlineHref}
+                                    >
+                                        {t('cashRegisters.actions.offlineQueue')}
+                                    </Button>
+                                ) : null}
+                            </Space>
+                        </Space>
+                    </Descriptions.Item>
+                    <Descriptions.Item label={t('cashRegisters.detail.deviceInfoTitle')}>
+                        {enhanced?.deviceInfo?.model ||
+                        enhanced?.deviceInfo?.osVersion ||
+                        enhanced?.deviceInfo?.appVersion ? (
+                            <Space direction="vertical" size={0}>
+                                {enhanced.deviceInfo?.model ? (
+                                    <Typography.Text>
+                                        {t('cashRegisters.detail.deviceModel')}:{' '}
+                                        {enhanced.deviceInfo.model}
+                                    </Typography.Text>
+                                ) : null}
+                                {enhanced.deviceInfo?.osVersion ? (
+                                    <Typography.Text>
+                                        {t('cashRegisters.detail.deviceOs')}:{' '}
+                                        {enhanced.deviceInfo.osVersion}
+                                    </Typography.Text>
+                                ) : null}
+                                {enhanced.deviceInfo?.appVersion ? (
+                                    <Typography.Text>
+                                        {t('cashRegisters.detail.deviceApp')}:{' '}
+                                        {enhanced.deviceInfo.appVersion}
+                                    </Typography.Text>
+                                ) : null}
+                            </Space>
+                        ) : (
+                            FORMAT_EMPTY_DISPLAY
+                        )}
                     </Descriptions.Item>
                     {decommissionMeta?.decommissionedAtUtc ? (
                         <Descriptions.Item label={t('cashRegisters.detail.decommissionedAt')}>

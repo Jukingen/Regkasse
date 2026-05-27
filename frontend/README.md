@@ -8,6 +8,66 @@ Historical dev notes: `DEVELOPMENT.md` (pointer) and `archive/DEVELOPMENT.md`.
 
 See `package.json` scripts and repo root `REGKASSE_AI_ONBOARDING.md` for stack and fiscal constraints.
 
+## Authentication
+
+### POS Login Credentials
+
+Users can log in using either:
+
+- **Username** (short identifier like `cashier1`, `manager2`)
+- **Email address** (full email)
+
+The login field accepts both formats. Usernames are generated automatically when users are created via **Schnell anlegen** in the admin panel.
+
+### POS Login (technical)
+
+**Login flow:**
+
+1. Cashier enters email **or** username in the login field (`frontend/app/(auth)/login.tsx`).
+2. App calls `POST /api/Auth/login` with `loginIdentifier` (and legacy `email` for compatibility) plus `clientApp: "pos"` (`frontend/services/api/authService.ts`, `contexts/AuthContext.tsx`).
+3. Backend resolves the user by email, then by username, validates password and POS role policy.
+4. On success, JWT (+ optional refresh token) is returned; session stores token, user, and tenant bootstrap.
+
+**Examples:**
+
+- Username: `cashier1` + password
+- Email: `cashier@cafe.regkasse.at` + password
+
+**Username generation (Admin only):**
+
+- When operators create users via FA **Schnell anlegen**, usernames are auto-generated (`manager1`, `cashier2`, …).
+- Pattern: `{rolePrefix}{incrementalNumber}` — see `REGKASSE_AI_ONBOARDING.md` § Authentication.
+- Custom usernames can be set on manual admin user create (`userName` on `POST /api/admin/tenants/{tenantId}/users`).
+
+**Case-insensitive usernames:** `Mustafa`, `mustafa`, and `MUSTAFA` are the same account at login (backend `NormalizedUserName`). See `REGKASSE_AI_ONBOARDING.md` (Authentication).
+
+**Persistence:** last login identifier saved as `lastUsername` and `savedLoginIdentifier` in device storage (legacy `savedUsername` still read once). On next open, the password field is focused when a saved identifier exists.
+
+**Verified in code (no POS change required):**
+
+| Layer | Behavior |
+|-------|----------|
+| UI | `login.tsx` — single field `loginIdentifier` (email or username) |
+| Context | `AuthContext.login()` → `buildLoginPayload(..., 'pos')` |
+| API client | `POST /api/Auth/login` body: `loginIdentifier`, mirrored `email`, `clientApp: "pos"` |
+| Backend | `FindByEmailAsync` then `FindByNameAsync` on `LoginModel.ResolveLoginIdentifier()` |
+
+**Automated tests:**
+
+- POS payload: `frontend/__tests__/authService.buildLoginPayload.test.ts` (`services/api/loginPayload.ts`)
+- Backend username: `AuthControllerTests.Login_WithLoginIdentifierUsername_Succeeds`, `Login_WithLoginIdentifierUsername_ClientAppPos_Succeeds`
+
+**Manual smoke test (dev):**
+
+1. In FA, create or quick-create a tenant user with username `cashier1` (Cashier role, active).
+2. Set `EXPO_PUBLIC_DEV_TENANT_ID` / API base URL so POS hits the same tenant as the user.
+3. Open POS login, enter `cashier1` + password (not the full email).
+4. Expect successful login and cashier home; wrong password → German error via `auth` i18n.
+
+Contract detail: [`docs/API_CONTRACTS.md`](../docs/API_CONTRACTS.md) § `POST /api/Auth/login`.
+
+Repo-wide auth detail: `REGKASSE_AI_ONBOARDING.md` (Authentication).
+
 ## Multi-Tenant Architecture
 
 Regkasse uses a multi-tenant architecture where a single backend instance serves multiple tenants (companies/customers).

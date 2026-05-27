@@ -6,11 +6,13 @@ export type QuickUserRole = (typeof QUICK_USER_ROLES)[number];
 
 export type CreateQuickUserRequest = {
     role: QuickUserRole | string;
+    userName?: string;
 };
 
 export type CreateQuickUserResult = {
     userId: string;
     email: string;
+    userName: string;
     generatedPassword: string;
     forcePasswordChangeOnNextLogin: boolean;
     success: boolean;

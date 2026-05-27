@@ -2,14 +2,19 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using KasseAPI_Final;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Validators;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
@@ -25,7 +30,7 @@ namespace KasseAPI_Final.Controllers;
 [ApiController]
 [Route("api/admin/users")]
 [Produces("application/json")]
-public class AdminUsersController : ControllerBase
+public partial class AdminUsersController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
@@ -36,7 +41,11 @@ public class AdminUsersController : ControllerBase
     private readonly ILogger<AdminUsersController> _logger;
     private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
     private readonly ITenantUserService _tenantUserService;
+    private readonly IUserCreationService _userCreation;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IUsernameChangeEmailService _usernameChangeEmail;
+    private readonly IUserUsernameHistoryService _usernameHistory;
+    private readonly ActivityEventRecorder _activityEvents;
 
     public AdminUsersController(
         AppDbContext context,
@@ -45,10 +54,14 @@ public class AdminUsersController : ControllerBase
         IAuditLogService auditLogService,
         IUserSessionInvalidation sessionInvalidation,
         IUserUniquenessValidationService uniquenessValidation,
+        IUserCreationService userCreation,
         ILogger<AdminUsersController> logger,
         IUserTenantMembershipProvisioner tenantMembershipProvisioner,
         ITenantUserService tenantUserService,
-        ICurrentTenantAccessor tenantAccessor)
+        ICurrentTenantAccessor tenantAccessor,
+        IUsernameChangeEmailService usernameChangeEmail,
+        IUserUsernameHistoryService usernameHistory,
+        ActivityEventRecorder activityEvents)
     {
         _context = context;
         _userManager = userManager;
@@ -59,7 +72,11 @@ public class AdminUsersController : ControllerBase
         _logger = logger;
         _tenantMembershipProvisioner = tenantMembershipProvisioner;
         _tenantUserService = tenantUserService;
+        _userCreation = userCreation;
         _tenantAccessor = tenantAccessor;
+        _usernameChangeEmail = usernameChangeEmail;
+        _usernameHistory = usernameHistory;
+        _activityEvents = activityEvents;
     }
 
     private bool IsActorSuperAdmin() =>
@@ -81,6 +98,7 @@ public class AdminUsersController : ControllerBase
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+    /// <summary>Case-insensitive match on login name, email, display name, and employee number.</summary>
     private static IQueryable<ApplicationUser> ApplyUserSearchFilter(IQueryable<ApplicationUser> query, string? search)
     {
         if (string.IsNullOrWhiteSpace(search))
@@ -88,19 +106,26 @@ public class AdminUsersController : ControllerBase
 
         var term = search.Trim().ToLowerInvariant();
         return query.Where(u =>
-            (u.FirstName + " " + u.LastName).ToLower().Contains(term)
+            (u.UserName != null && u.UserName.ToLower().Contains(term))
             || (u.Email != null && u.Email.ToLower().Contains(term))
-            || (u.UserName != null && u.UserName.ToLower().Contains(term))
+            || (u.FirstName + " " + u.LastName).ToLower().Contains(term)
             || (u.EmployeeNumber != null && u.EmployeeNumber.ToLower().Contains(term)));
     }
 
-    private static bool MatchesTenantUserSearch(string? search, string name, string email, string tenantName, string tenantSlug)
+    private static bool MatchesTenantUserSearch(
+        string? search,
+        string name,
+        string userName,
+        string email,
+        string tenantName,
+        string tenantSlug)
     {
         if (string.IsNullOrWhiteSpace(search))
             return true;
 
         var term = search.Trim().ToLowerInvariant();
         return name.ToLowerInvariant().Contains(term)
+            || userName.ToLowerInvariant().Contains(term)
             || email.ToLowerInvariant().Contains(term)
             || tenantName.ToLowerInvariant().Contains(term)
             || tenantSlug.ToLowerInvariant().Contains(term);
@@ -184,7 +209,7 @@ public class AdminUsersController : ControllerBase
                         return false;
                     if (!string.IsNullOrWhiteSpace(role) && user.Role != role)
                         return false;
-                    return MatchesTenantUserSearch(search, dto.Name, dto.Email, tenant.Name, tenant.Slug);
+                    return MatchesTenantUserSearch(search, dto.Name, dto.UserName, dto.Email, tenant.Name, tenant.Slug);
                 })
                 .Select(dto =>
                 {
@@ -192,6 +217,7 @@ public class AdminUsersController : ControllerBase
                     return new AdminTenantUserRowDto
                     {
                         UserId = dto.UserId,
+                        UserName = !string.IsNullOrEmpty(dto.UserName) ? dto.UserName : user?.UserName ?? string.Empty,
                         Email = dto.Email,
                         Name = dto.Name,
                         Role = dto.Role,
@@ -232,6 +258,7 @@ public class AdminUsersController : ControllerBase
                 MatchesTenantUserSearch(
                     search,
                     FormatTenantUserName(x.User),
+                    x.User.UserName ?? string.Empty,
                     x.User.Email ?? x.User.UserName ?? string.Empty,
                     x.Tenant.Name,
                     x.Tenant.Slug));
@@ -245,6 +272,7 @@ public class AdminUsersController : ControllerBase
             .Select(x => new AdminTenantUserRowDto
             {
                 UserId = x.User.Id,
+                UserName = x.User.UserName ?? string.Empty,
                 Email = x.User.Email ?? x.User.UserName ?? string.Empty,
                 Name = FormatTenantUserName(x.User),
                 Role = x.User.Role ?? Roles.FallbackUnknown,
@@ -303,7 +331,7 @@ public class AdminUsersController : ControllerBase
         var dto = new AdminUserDto
         {
             Id = u.Id,
-            UserName = u.UserName,
+            UserName = u.UserName ?? string.Empty,
             Email = u.Email,
             FirstName = u.FirstName,
             LastName = u.LastName,
@@ -337,6 +365,23 @@ public class AdminUsersController : ControllerBase
         dto.TenantName = primary.Tenant.Name;
         dto.TenantSlug = primary.Tenant.Slug;
         return dto;
+    }
+
+    private async Task<Guid?> ResolvePrimaryTenantIdForUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        return await _context.UserTenantMemberships
+            .AsNoTracking()
+            .Where(m => m.UserId == userId
+                && m.IsActive
+                && m.Tenant != null
+                && m.Tenant.IsActive
+                && !string.Equals(m.Tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(m => m.IsOwner)
+            .ThenBy(m => m.CreatedAtUtc)
+            .ThenBy(m => m.Id)
+            .Select(m => (Guid?)m.TenantId)
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -378,6 +423,40 @@ public class AdminUsersController : ControllerBase
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
         return Ok(users.Select(u => ToDto(u, businessTenantIdSet)));
+    }
+
+    /// <summary>Preview next auto-generated username for Quick Create (role-based prefix + number).</summary>
+    [HttpGet("username-suggestions")]
+    [ProducesResponseType(typeof(UsernameSuggestionResponse), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    public async Task<ActionResult<UsernameSuggestionResponse>> GetUsernameSuggestions(
+        [FromQuery] string? role,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(role))
+        {
+            return BadRequest(ApiError.Validation(
+                "Validation failed",
+                new Dictionary<string, string[]> { ["role"] = new[] { "Role is required." } }));
+        }
+
+        var normalizedRole = role.Trim();
+        if (await _roleManager.FindByNameAsync(normalizedRole).ConfigureAwait(false) == null)
+        {
+            return BadRequest(ApiError.Validation(
+                "Role not found",
+                new Dictionary<string, string[]> { ["role"] = new[] { "The specified role does not exist." } }));
+        }
+
+        var (suggestedUsername, availableNumbers) = await UniqueUsernameGenerator
+            .GetSuggestionAsync(_context, normalizedRole, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Ok(new UsernameSuggestionResponse
+        {
+            SuggestedUsername = suggestedUsername,
+            AvailableNumbers = availableNumbers,
+        });
     }
 
     /// <summary>Get user by id. Returns 404 if not found.</summary>
@@ -567,10 +646,32 @@ public class AdminUsersController : ControllerBase
         if (await _roleManager.FindByNameAsync(roleName).ConfigureAwait(false) == null)
             return BadRequest(ApiError.Validation("Role not found", new Dictionary<string, string[]> { ["role"] = new[] { "The specified role does not exist." } }));
 
-        var userName = string.IsNullOrWhiteSpace(request.UserName) ? email : request.UserName.Trim();
-        var existing = await _userManager.FindByNameAsync(userName).ConfigureAwait(false);
-        if (existing != null)
-            return BadRequest(ApiError.Conflict("Username already exists", $"Username '{userName}' is already in use."));
+        if (!string.IsNullOrWhiteSpace(request.UserName))
+        {
+            var requestedUsername = request.UserName.Trim();
+            if (await _uniquenessValidation.IsUserNameTakenByOtherUserAsync(requestedUsername, excludeUserId: null)
+                    .ConfigureAwait(false))
+            {
+                return BadRequest(ApiError.Conflict(
+                    UsernameConflictMessages.Title,
+                    UsernameConflictMessages.Detail(requestedUsername)));
+            }
+        }
+
+        var (userName, userNameError) = await _userCreation
+            .ResolveUsernameAsync(request.UserName, roleName, cancellationToken)
+            .ConfigureAwait(false);
+        if (userNameError != null)
+        {
+            if (!string.IsNullOrWhiteSpace(request.UserName) && ReservedUsernames.IsReserved(request.UserName))
+            {
+                return BadRequest(ApiError.Validation(
+                    "Validation failed",
+                    new Dictionary<string, string[]> { ["userName"] = new[] { userNameError } }));
+            }
+
+            return BadRequest(ApiError.Conflict(UsernameConflictMessages.Title, userNameError));
+        }
 
         if (await _uniquenessValidation.IsEmailTakenByOtherUserAsync(email, excludeUserId: null).ConfigureAwait(false))
             return BadRequest(ApiError.Conflict("Email already exists", $"Email '{email}' is already in use."));
@@ -653,6 +754,19 @@ public class AdminUsersController : ControllerBase
                     PasswordReturned: true)).ConfigureAwait(false);
         }
 
+        await _activityEvents.TryPublishAsync(
+            LegacyDefaultTenantIds.Primary,
+            ActivityEventType.UserCreated,
+            new
+            {
+                UserId = user.Id,
+                UserEmail = user.Email,
+                Role = roleName,
+                ActorId,
+            },
+            ActorId,
+            cancellationToken: createCt).ConfigureAwait(false);
+
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, ToCreateResponse(ToDto(user), generatedPassword));
     }
 
@@ -676,6 +790,7 @@ public class AdminUsersController : ControllerBase
                 new CreateTenantUserRequest
                 {
                     Email = request.Email.Trim(),
+                    UserName = request.UserName,
                     FirstName = request.FirstName,
                     LastName = request.LastName,
                     Role = request.Role.Trim(),
@@ -876,6 +991,187 @@ public class AdminUsersController : ControllerBase
         return Ok(ToDto(user));
     }
 
+    /// <summary>Username change history for compliance and support (newest first).</summary>
+    [HttpGet("{id}/username-history")]
+    [ProducesResponseType(typeof(IReadOnlyList<UserUsernameHistoryDto>), 200)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    public async Task<ActionResult<IReadOnlyList<UserUsernameHistoryDto>>> GetUsernameHistory(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(id).ConfigureAwait(false);
+        if (user == null)
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
+        var rows = await _usernameHistory.ListForUserAsync(id, cancellationToken).ConfigureAwait(false);
+        return Ok(rows);
+    }
+
+    /// <summary>Change login username. Audited; invalidates active sessions.</summary>
+    [HttpPatch("{id}/username")]
+    [ProducesResponseType(typeof(AdminUpdateUsernameResponse), 200)]
+    [ProducesResponseType(typeof(ApiError), 400)]
+    [ProducesResponseType(typeof(ApiError), 404)]
+    [ProducesResponseType(typeof(ApiError), 409)]
+    public async Task<ActionResult<AdminUpdateUsernameResponse>> UpdateUsername(
+        string id,
+        [FromBody] UpdateUsernameRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request == null)
+            return BadRequest(ApiError.Validation("Invalid body", new Dictionary<string, string[]> { ["body"] = new[] { "Request body is required." } }));
+
+        var newUsername = request.NewUsername.Trim();
+        var validationErrors = UsernameValidation.ValidateNewUsername(newUsername);
+        if (validationErrors != null)
+            return BadRequest(ApiError.Validation("Validation failed", validationErrors));
+
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null)
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
+        var oldUsername = user.UserName;
+        if (string.Equals(oldUsername, newUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            return Ok(new AdminUpdateUsernameResponse
+            {
+                OldUsername = oldUsername,
+                NewUsername = user.UserName ?? newUsername,
+            });
+        }
+
+        var rateLimitError = await UsernameChangeRateLimit
+            .GetRateLimitErrorAsync(_userManager, user, cancellationToken)
+            .ConfigureAwait(false);
+        if (rateLimitError != null)
+            return BadRequest(ApiError.BusinessRule("Username change rate limit", rateLimitError));
+
+        var newAccountError = UsernameChangePolicy.GetNewAccountRestrictionError(user);
+        if (newAccountError != null)
+            return BadRequest(ApiError.BusinessRule("Username change not allowed", newAccountError));
+
+        if (await _uniquenessValidation.IsUserNameTakenByOtherUserAsync(newUsername, user.Id).ConfigureAwait(false))
+            return Conflict(ApiError.Conflict(UsernameConflictMessages.Title, UsernameConflictMessages.Detail(newUsername)));
+
+        var setNameResult = await _userManager.SetUserNameAsync(user, newUsername).ConfigureAwait(false);
+        if (!setNameResult.Succeeded)
+        {
+            return BadRequest(ApiError.Validation(
+                "Username update failed",
+                setNameResult.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray())));
+        }
+
+        user.UpdatedAt = DateTime.UtcNow;
+        var updateResult = await _userManager.UpdateAsync(user).ConfigureAwait(false);
+        if (!updateResult.Succeeded)
+        {
+            return BadRequest(ApiError.Validation(
+                "Username update failed",
+                updateResult.Errors.GroupBy(e => e.Code).ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray())));
+        }
+
+        var targetTenantId = await ResolvePrimaryTenantIdForUserAsync(id, cancellationToken).ConfigureAwait(false);
+        var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
+
+        if (ActorId != null)
+        {
+            await _auditLogService.LogUserLifecycleAsync(
+                AuditEventType.UserNameChanged,
+                ActorId,
+                ActorRole,
+                id,
+                targetTenantId,
+                reason,
+                null,
+                AuditLogStatus.Success,
+                description: $"Username changed from '{oldUsername}' to '{newUsername}'",
+                oldValues: new { UserName = oldUsername },
+                newValues: new { UserName = newUsername }).ConfigureAwait(false);
+        }
+
+        await InvalidateUserSessionsAfterUsernameChangeAsync(id, user, cancellationToken).ConfigureAwait(false);
+
+        await _usernameHistory.RecordChangeAsync(
+            id,
+            oldUsername,
+            newUsername,
+            ActorId,
+            reason,
+            cancellationToken).ConfigureAwait(false);
+
+        await UsernameChangeRateLimit.RecordChangeAsync(_userManager, user, cancellationToken).ConfigureAwait(false);
+
+        await TryNotifyUsernameChangedAsync(user, oldUsername, newUsername).ConfigureAwait(false);
+
+        return Ok(new AdminUpdateUsernameResponse
+        {
+            OldUsername = oldUsername,
+            NewUsername = user.UserName ?? newUsername,
+        });
+    }
+
+    private async Task InvalidateUserSessionsAfterUsernameChangeAsync(
+        string userId,
+        ApplicationUser user,
+        CancellationToken cancellationToken)
+    {
+        var activeSessionCount = await _context.AuthSessions
+            .Where(s => s.UserId == userId && s.RevokedAtUtc == null)
+            .CountAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var stampResult = await _userManager.UpdateSecurityStampAsync(user).ConfigureAwait(false);
+        if (!stampResult.Succeeded)
+        {
+            _logger.LogWarning(
+                "Security stamp update failed after username change for user {UserId}: {Errors}",
+                userId,
+                string.Join("; ", stampResult.Errors.Select(e => e.Description)));
+        }
+
+        await _sessionInvalidation.InvalidateSessionsForUserAsync(userId, cancellationToken).ConfigureAwait(false);
+
+        if (activeSessionCount > 0)
+        {
+            _logger.LogInformation(
+                "Username change for user {UserId}: invalidated {SessionCount} active session(s).",
+                userId,
+                activeSessionCount);
+        }
+    }
+
+    private async Task TryNotifyUsernameChangedAsync(
+        ApplicationUser user,
+        string? oldUsername,
+        string newUsername)
+    {
+        if (string.IsNullOrWhiteSpace(user.Email))
+            return;
+
+        var actorEmail = "unknown";
+        if (!string.IsNullOrEmpty(ActorId))
+        {
+            var actor = await _userManager.FindByIdAsync(ActorId).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(actor?.Email))
+                actorEmail = actor.Email.Trim();
+        }
+
+        var sent = await _usernameChangeEmail.TrySendUsernameChangedAsync(
+            new UsernameChangedEmailRequest(
+                user.Email.Trim(),
+                oldUsername ?? string.Empty,
+                newUsername,
+                actorEmail,
+                DateTime.UtcNow)).ConfigureAwait(false);
+
+        if (!sent)
+        {
+            _logger.LogInformation(
+                "Username change email skipped or failed for user {UserId} (SMTP not configured or send error).",
+                user.Id);
+        }
+    }
+
     /// <summary>Force password reset (admin). User must change password at next login can be set. Invalidates sessions.</summary>
     [HttpPost("{id}/force-password-reset")]
     [ProducesResponseType(204)]
@@ -923,6 +1219,7 @@ public class AdminUsersController : ControllerBase
         if (user == null)
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
+        var targetTenantId = await ResolvePrimaryTenantIdForUserAsync(id, HttpContext.RequestAborted).ConfigureAwait(false);
         var generatedPassword = PasswordGenerator.GenerateSecurePassword(12);
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         user.MustChangePasswordOnNextLogin = true;
@@ -943,6 +1240,7 @@ public class AdminUsersController : ControllerBase
                 ActorId,
                 ActorRole,
                 id,
+                targetTenantId,
                 "Temporary password generated by Super Admin.",
                 null,
                 AuditLogStatus.Success,
@@ -955,6 +1253,7 @@ public class AdminUsersController : ControllerBase
                 ActorId,
                 ActorRole,
                 id,
+                targetTenantId,
                 "Support / Password reset",
                 null,
                 AuditLogStatus.Success,
@@ -1018,6 +1317,7 @@ public class AdminUsersController : ControllerBase
     public class AdminTenantUserRowDto
     {
         public string UserId { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Role { get; set; } = string.Empty;
@@ -1042,31 +1342,6 @@ public class AdminUsersController : ControllerBase
     public class UpdateUserTenantsRequest
     {
         public List<Guid> TenantIds { get; set; } = new();
-    }
-
-    public class AdminUserDto
-    {
-        public string Id { get; set; } = string.Empty;
-        public string? UserName { get; set; }
-        public string? Email { get; set; }
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
-        public string? EmployeeNumber { get; set; }
-        public string? Role { get; set; }
-        public string? TaxNumber { get; set; }
-        public string? Notes { get; set; }
-        public bool IsActive { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime? LastLoginAt { get; set; }
-        public DateTime? UpdatedAt { get; set; }
-        public DateTime? DeactivatedAt { get; set; }
-        /// <summary>Concurrency stamp for If-Match (optimistic concurrency).</summary>
-        public string? Etag { get; set; }
-        public string? TenantId { get; set; }
-        public string? TenantName { get; set; }
-        public string? TenantSlug { get; set; }
-        /// <summary><c>Platform</c> or <c>Tenant</c>.</summary>
-        public string? UserType { get; set; }
     }
 
     public class AdminPatchUserRequest
@@ -1111,6 +1386,12 @@ public class AdminUsersController : ControllerBase
     {
         public string GeneratedPassword { get; set; } = string.Empty;
         public bool ForcePasswordChangeOnNextLogin { get; set; }
+    }
+
+    public class AdminUpdateUsernameResponse
+    {
+        public string? OldUsername { get; set; }
+        public string NewUsername { get; set; } = string.Empty;
     }
 
     public class AdminUserActivityResponse

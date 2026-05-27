@@ -56,9 +56,18 @@ public sealed partial class RestoreVerificationOrchestratorHostedService
 
         var fallbackDepth = restoreOpts.DumpFallbackDepth;
         var backupRunQuery = sp.GetRequiredService<IBackupRunQueryService>();
-        var candidateRunIds = restoreOpts.AllowNonPgDumpBackupSource
-            ? await backupRunQuery.GetRecentSucceededRunIdsAsync(fallbackDepth, ct)
-            : await backupRunQuery.GetRecentSucceededPgDumpRunIdsAsync(fallbackDepth, ct);
+        IReadOnlyList<Guid> candidateRunIds;
+        if (run.SourceBackupRunId is Guid pinnedBackupRunId)
+        {
+            candidateRunIds = new[] { pinnedBackupRunId };
+            details["pinnedBackupRunId"] = pinnedBackupRunId.ToString();
+        }
+        else
+        {
+            candidateRunIds = restoreOpts.AllowNonPgDumpBackupSource
+                ? await backupRunQuery.GetRecentSucceededRunIdsAsync(fallbackDepth, ct)
+                : await backupRunQuery.GetRecentSucceededPgDumpRunIdsAsync(fallbackDepth, ct);
+        }
 
         details["candidateBackupSelection"] = JsonSerializer.SerializeToNode(new
         {
@@ -213,8 +222,20 @@ public sealed partial class RestoreVerificationOrchestratorHostedService
                 return;
             }
 
-            var dbName = $"rv_v_{run.Id:N}";
+            if (await TryExecuteManualValidationRestoreAsync(
+                    sp, db, run, adminCs, dump.Value, evidenceBuilder, details, restoreAttemptNode, ct))
+                return;
+
+            var manualTargetDb = ManualRestoreRunDetailsJson.TryGetTargetDatabaseName(run.DetailsJson);
+            var dbName = !string.IsNullOrEmpty(manualTargetDb)
+                ? manualTargetDb
+                : $"rv_v_{run.Id:N}";
             run.RestoreTargetDbRedacted = dbName;
+            if (!string.IsNullOrEmpty(manualTargetDb))
+            {
+                restoreAttemptNode["manualRestoreTargetDatabase"] = dbName;
+                restoreAttemptNode["validationOnly"] = true;
+            }
             var timeoutSec = restoreOpts.IsolatedPgRestoreTimeoutSeconds <= 0
                 ? 3600
                 : restoreOpts.IsolatedPgRestoreTimeoutSeconds;

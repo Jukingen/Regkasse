@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
@@ -35,7 +36,8 @@ namespace KasseAPI_Final.Services
             string userRole, string? description = null, string? notes = null, 
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
             object? requestData = null, object? responseData = null, string? correlationIdOverride = null,
-            ImpersonationAuditContext.Snapshot? impersonationSnapshot = null);
+            ImpersonationAuditContext.Snapshot? impersonationSnapshot = null,
+            AuditEventType? actionType = null, Guid? entityId = null, Guid? tenantId = null);
 
         Task<AuditLog> LogUserActivityAsync(string action, string userId, string userRole, 
             string? description = null, string? notes = null, AuditLogStatus status = AuditLogStatus.Success,
@@ -51,6 +53,12 @@ namespace KasseAPI_Final.Services
             object? oldValues = null, object? newValues = null,
             UserCreatedAuditDetails? userCreatedDetails = null);
 
+        Task<AuditLog> LogUserLifecycleAsync(AuditEventType actionType, string actorUserId, string actorRole,
+            string targetUserId, Guid? tenantId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null,
+            UserCreatedAuditDetails? userCreatedDetails = null);
+
         /// <summary>Legacy overload: maps action string to AuditEventType and delegates. Prefer LogUserLifecycleAsync(AuditEventType, ...).</summary>
         Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
             string targetUserId, string? reason = null, string? correlationId = null,
@@ -58,9 +66,16 @@ namespace KasseAPI_Final.Services
             object? oldValues = null, object? newValues = null,
             UserCreatedAuditDetails? userCreatedDetails = null);
 
+        Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
+            string targetUserId, Guid? tenantId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null,
+            UserCreatedAuditDetails? userCreatedDetails = null);
+
         Task<IEnumerable<AuditLog>> GetAuditLogsAsync(DateTime? startDate = null, DateTime? endDate = null,
             string? userId = null, string? userRole = null, string? action = null, string? entityType = null,
-            Guid? entityId = null, AuditLogStatus? status = null, int page = 1, int pageSize = 50);
+            Guid? entityId = null, AuditLogStatus? status = null, int page = 1, int pageSize = 50,
+            string? targetUserId = null, string? ipAddress = null, string? statusOutcome = null, bool? hasChanges = null);
 
         Task<IEnumerable<AuditLog>> GetPaymentAuditLogsAsync(Guid paymentId, DateTime? startDate = null, 
             DateTime? endDate = null, int page = 1, int pageSize = 50);
@@ -75,7 +90,8 @@ namespace KasseAPI_Final.Services
 
         Task<int> GetAuditLogsCountAsync(DateTime? startDate = null, DateTime? endDate = null,
             string? userId = null, string? userRole = null, string? action = null, string? entityType = null,
-            Guid? entityId = null, AuditLogStatus? status = null);
+            Guid? entityId = null, AuditLogStatus? status = null,
+            string? targetUserId = null, string? ipAddress = null, string? statusOutcome = null, bool? hasChanges = null);
 
         Task<IEnumerable<AuditLog>> GetAuditLogsByCorrelationIdAsync(string correlationId);
 
@@ -110,6 +126,8 @@ namespace KasseAPI_Final.Services
 
     public class AuditLogService : IAuditLogService
     {
+        private static readonly Guid SystemTenantId = LegacyDefaultTenantIds.Primary;
+
         private readonly AppDbContext _context;
         private readonly ILogger<AuditLogService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -271,7 +289,8 @@ namespace KasseAPI_Final.Services
             string userRole, string? description = null, string? notes = null,
             AuditLogStatus status = AuditLogStatus.Success, string? errorDetails = null,
             object? requestData = null, object? responseData = null, string? correlationIdOverride = null,
-            ImpersonationAuditContext.Snapshot? impersonationSnapshot = null)
+            ImpersonationAuditContext.Snapshot? impersonationSnapshot = null,
+            AuditEventType? actionType = null, Guid? entityId = null, Guid? tenantId = null)
         {
             try
             {
@@ -281,6 +300,7 @@ namespace KasseAPI_Final.Services
                 var actionCol = AuditLogPersistenceSanitizer.TruncateForAction(action);
                 var entityTypeCol = AuditLogPersistenceSanitizer.TruncateForEntityType(entityType);
                 var userRoleCol = AuditLogPersistenceSanitizer.TruncateForUserRole(userRole);
+                var resolvedActionType = actionType ?? MapActionToEventType(actionCol);
                 var auditLog = new AuditLog
                 {
                     Id = Guid.NewGuid(),
@@ -289,7 +309,9 @@ namespace KasseAPI_Final.Services
                     UserRole = userRoleCol,
                     Action = actionCol,
                     EntityType = entityTypeCol,
-                    EntityId = null,
+                    EntityId = entityId,
+                    ActionType = resolvedActionType == AuditEventType.Other ? null : resolvedActionType,
+                    TenantId = ResolveAuditTenantId(tenantId),
                     OldValues = null,
                     NewValues = null,
                     RequestData = AuditLogPersistenceSanitizer.SerializeObjectToJsonColumn(requestData),
@@ -409,7 +431,17 @@ namespace KasseAPI_Final.Services
             UserCreatedAuditDetails? userCreatedDetails = null)
         {
             var action = GetActionString(actionType);
-            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues, userCreatedDetails);
+            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, null, reason, correlationId, status, description, oldValues, newValues, userCreatedDetails);
+        }
+
+        public async Task<AuditLog> LogUserLifecycleAsync(AuditEventType actionType, string actorUserId, string actorRole,
+            string targetUserId, Guid? tenantId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null,
+            UserCreatedAuditDetails? userCreatedDetails = null)
+        {
+            var action = GetActionString(actionType);
+            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, tenantId, reason, correlationId, status, description, oldValues, newValues, userCreatedDetails);
         }
 
         /// <summary>Legacy overload: maps action string to AuditEventType and delegates.</summary>
@@ -420,11 +452,21 @@ namespace KasseAPI_Final.Services
             UserCreatedAuditDetails? userCreatedDetails = null)
         {
             var actionType = MapActionToEventType(action);
-            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, reason, correlationId, status, description, oldValues, newValues, userCreatedDetails);
+            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, null, reason, correlationId, status, description, oldValues, newValues, userCreatedDetails);
+        }
+
+        public async Task<AuditLog> LogUserLifecycleAsync(string action, string actorUserId, string actorRole,
+            string targetUserId, Guid? tenantId, string? reason = null, string? correlationId = null,
+            AuditLogStatus status = AuditLogStatus.Success, string? description = null,
+            object? oldValues = null, object? newValues = null,
+            UserCreatedAuditDetails? userCreatedDetails = null)
+        {
+            var actionType = MapActionToEventType(action);
+            return await LogUserLifecycleAsyncCore(actionType, action, actorUserId, actorRole, targetUserId, tenantId, reason, correlationId, status, description, oldValues, newValues, userCreatedDetails);
         }
 
         private async Task<AuditLog> LogUserLifecycleAsyncCore(AuditEventType actionType, string action,
-            string actorUserId, string actorRole, string targetUserId, string? reason, string? correlationId,
+            string actorUserId, string actorRole, string targetUserId, Guid? tenantId, string? reason, string? correlationId,
             AuditLogStatus status, string? description, object? oldValues, object? newValues,
             UserCreatedAuditDetails? userCreatedDetails)
         {
@@ -470,6 +512,7 @@ namespace KasseAPI_Final.Services
             var auditLog = new AuditLog
             {
                 Id = Guid.NewGuid(),
+                TenantId = ResolveAuditTenantId(tenantId),
                 SessionId = sessionId,
                 UserId = AuditLogPersistenceSanitizer.TruncateUserId(actorUserId),
                 UserRole = AuditLogPersistenceSanitizer.TruncateForUserRole(actorRole),
@@ -554,6 +597,12 @@ namespace KasseAPI_Final.Services
                 AuditEventType.UserLogout => AuditLogActions.USER_LOGOUT,
                 AuditEventType.UserDeleted => AuditLogActions.USER_DELETE,
                 AuditEventType.UserTenantMembershipChanged => AuditLogActions.USER_TENANT_MEMBERSHIP_CHANGED,
+                AuditEventType.UserNameChanged => AuditLogActions.USER_NAME_CHANGE,
+                AuditEventType.RestoreRequested => AuditLogActions.RESTORE_REQUESTED,
+                AuditEventType.RestoreApproved => AuditLogActions.RESTORE_APPROVED,
+                AuditEventType.RestoreRejected => AuditLogActions.RESTORE_REJECTED,
+                AuditEventType.RestoreCompleted => AuditLogActions.RESTORE_COMPLETED,
+                AuditEventType.RestoreFailed => AuditLogActions.RESTORE_FAILED,
                 _ => AuditLogActions.USER_UPDATE
             };
         }
@@ -579,6 +628,15 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.USER_LOGOUT => AuditEventType.UserLogout,
                 AuditLogActions.USER_DELETE => AuditEventType.UserDeleted,
                 AuditLogActions.USER_TENANT_MEMBERSHIP_CHANGED => AuditEventType.UserTenantMembershipChanged,
+                AuditLogActions.USER_NAME_CHANGE => AuditEventType.UserNameChanged,
+                AuditLogActions.RESTORE_REQUESTED => AuditEventType.RestoreRequested,
+                AuditLogActions.RESTORE_APPROVED => AuditEventType.RestoreApproved,
+                AuditLogActions.RESTORE_REJECTED => AuditEventType.RestoreRejected,
+                AuditLogActions.RESTORE_COMPLETED => AuditEventType.RestoreCompleted,
+                AuditLogActions.RESTORE_FAILED => AuditEventType.RestoreFailed,
+                AuditLogActions.MANUAL_RESTORE_REQUEST_CREATED => AuditEventType.RestoreRequested,
+                AuditLogActions.MANUAL_RESTORE_REQUEST_APPROVED => AuditEventType.RestoreApproved,
+                AuditLogActions.MANUAL_RESTORE_REQUEST_REJECTED => AuditEventType.RestoreRejected,
                 _ => AuditEventType.Other
             };
         }
@@ -588,36 +646,15 @@ namespace KasseAPI_Final.Services
         /// </summary>
         public async Task<IEnumerable<AuditLog>> GetAuditLogsAsync(DateTime? startDate = null, DateTime? endDate = null,
             string? userId = null, string? userRole = null, string? action = null, string? entityType = null,
-            Guid? entityId = null, AuditLogStatus? status = null, int page = 1, int pageSize = 50)
+            Guid? entityId = null, AuditLogStatus? status = null, int page = 1, int pageSize = 50,
+            string? targetUserId = null, string? ipAddress = null, string? statusOutcome = null, bool? hasChanges = null)
         {
             try
             {
-                var query = _context.AuditLogs.AsQueryable();
-
-                // Austria calendar-day half-open bounds on audit instants (see PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds).
-                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
-                if (lo.HasValue)
-                    query = query.Where(a => a.Timestamp >= lo.Value);
-                if (hi.HasValue)
-                    query = query.Where(a => a.Timestamp < hi.Value);
-
-                if (!string.IsNullOrEmpty(userId))
-                    query = query.Where(a => a.UserId == userId);
-
-                if (!string.IsNullOrEmpty(userRole))
-                    query = query.Where(a => a.UserRole == userRole);
-
-                if (!string.IsNullOrEmpty(action))
-                    query = query.Where(a => a.Action == action);
-
-                if (!string.IsNullOrEmpty(entityType))
-                    query = query.Where(a => a.EntityType == entityType);
-
-                if (entityId.HasValue)
-                    query = query.Where(a => a.EntityId == entityId.Value);
-
-                if (status.HasValue)
-                    query = query.Where(a => a.Status == status.Value);
+                var filters = AuditLogQueryExtensions.ToFilters(
+                    startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
+                    ipAddress, status, statusOutcome, hasChanges);
+                var query = _context.AuditLogs.AsQueryable().ApplyFilters(filters);
 
                 // Order by timestamp descending (newest first)
                 query = query.OrderByDescending(a => a.Timestamp);
@@ -750,37 +787,15 @@ namespace KasseAPI_Final.Services
         /// </summary>
         public async Task<int> GetAuditLogsCountAsync(DateTime? startDate = null, DateTime? endDate = null,
             string? userId = null, string? userRole = null, string? action = null, string? entityType = null,
-            Guid? entityId = null, AuditLogStatus? status = null)
+            Guid? entityId = null, AuditLogStatus? status = null,
+            string? targetUserId = null, string? ipAddress = null, string? statusOutcome = null, bool? hasChanges = null)
         {
             try
             {
-                var query = _context.AuditLogs.AsQueryable();
-
-                var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
-                if (lo.HasValue)
-                    query = query.Where(a => a.Timestamp >= lo.Value);
-                if (hi.HasValue)
-                    query = query.Where(a => a.Timestamp < hi.Value);
-
-                if (!string.IsNullOrEmpty(userId))
-                    query = query.Where(a => a.UserId == userId);
-
-                if (!string.IsNullOrEmpty(userRole))
-                    query = query.Where(a => a.UserRole == userRole);
-
-                if (!string.IsNullOrEmpty(action))
-                    query = query.Where(a => a.Action == action);
-
-                if (!string.IsNullOrEmpty(entityType))
-                    query = query.Where(a => a.EntityType == entityType);
-
-                if (entityId.HasValue)
-                    query = query.Where(a => a.EntityId == entityId.Value);
-
-                if (status.HasValue)
-                    query = query.Where(a => a.Status == status.Value);
-
-                var count = await query.CountAsync();
+                var filters = AuditLogQueryExtensions.ToFilters(
+                    startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
+                    ipAddress, status, statusOutcome, hasChanges);
+                var count = await _context.AuditLogs.AsQueryable().ApplyFilters(filters).CountAsync();
 
                 _logger.LogInformation("Retrieved audit log count: {Count}", count);
 
@@ -1074,6 +1089,16 @@ namespace KasseAPI_Final.Services
             var snapshot = explicitSnapshot
                 ?? ImpersonationAuditContext.FromHttpContext(_httpContextAccessor.HttpContext, _tenantAccessor);
             ImpersonationAuditContext.ApplyTo(auditLog, snapshot);
+        }
+
+        private Guid ResolveAuditTenantId(Guid? explicitTenantId)
+        {
+            if (explicitTenantId is Guid tenantId && tenantId != Guid.Empty)
+                return tenantId;
+
+            return _tenantAccessor.TenantId is Guid ambientTenantId && ambientTenantId != Guid.Empty
+                ? ambientTenantId
+                : SystemTenantId;
         }
     }
 }

@@ -14,7 +14,14 @@ type MeResponseCamelExtensions = {
     branchDisplayName?: string | null;
 };
 
+export type SessionPolicyResponse = {
+    sessionTimeoutMinutes?: number;
+    warningBeforeTimeoutMinutes?: number;
+    keepCartAfterTimeout?: boolean;
+};
+
 export type MeResponse = UserInfo & MeResponseCamelExtensions & {
+    sessionPolicy?: SessionPolicyResponse;
     permissions?: string[];
     Permissions?: string[];
     roles?: string[];

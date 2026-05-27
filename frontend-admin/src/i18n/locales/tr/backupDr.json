@@ -35,7 +35,77 @@
     "pipelineNoticesCollapse": "Pipeline ve ortam",
     "configurationCollapse": "Pipeline, worker ve kilitler"
   },
+  "monitoring": {
+    "pageTitle": "Yedek izleme",
+    "pageSubtitle": "Metrikler, geçmiş ve kurtarılabilirlik — 30 saniyede bir yenilenir.",
+    "dashboardStatsLoadFailed": "Pano istatistikleri yüklenemedi.",
+    "dashboardRefreshHint": "Veriler her {{seconds}} saniyede yenilenir.",
+    "header": {
+      "title": "Son yedek çalıştırması",
+      "simulatedHint": "Simüle adaptör — başarı üretim artefaktları anlamına gelmez.",
+      "activeHint": "Yedek çalışıyor veya doğrulama bekliyor — metrikler değişebilir."
+    },
+    "metrics": {
+      "lastBackup": "Son yedek",
+      "backupSize": "Yedek boyutu",
+      "duration": "Süre",
+      "successRate30d": "Başarı oranı (30 gün)",
+      "trendVsPriorMonth": "önceki aya göre",
+      "lastRestoreDrill": "Son restore tatbikatı"
+    },
+    "charts": {
+      "history30d": "Yedek geçmişi (30 gün)",
+      "durationSuffix": "sn",
+      "legendSuccess": "Başarılı",
+      "legendFailed": "Başarısız",
+      "legendDuration": "Süre (saniye)"
+    },
+    "configHealth": {
+      "title": "Yedek yapılandırması",
+      "adapterKind": "Adaptör türü",
+      "workerEnabled": "Worker etkin",
+      "externalArchive": "Harici arşiv",
+      "verification": "Doğrulama",
+      "yes": "Evet",
+      "no": "Hayır",
+      "externalArchiveConfigured": "✅ Yapılandırılmış",
+      "externalArchiveNotConfigured": "❌ Yapılandırılmamış",
+      "verificationEnabled": "✅ Etkin",
+      "verificationDisabled": "⚠️ Devre dışı",
+      "issuesTitle": "Yapılandırma sorunları",
+      "editSettings": "Ayarları düzenle →"
+    },
+    "restoreReadiness": {
+      "title": "Kurtarılabilirlik",
+      "rpoTitle": "RPO (veri kaybı penceresi)",
+      "rtoTitle": "RTO (kurtarma süresi)",
+      "hoursSuffix": "saat",
+      "minutesSuffix": "dakika",
+      "lastSuccessfulDrill": "Son başarılı restore tatbikatı:",
+      "drillStatus": "Tatbikat durumu:",
+      "lastVerifiedBackup": "Doğrulanmış yedek:",
+      "triggerDrill": "Restore tatbikatı başlat"
+    },
+    "rpoRto": {
+      "rpoEstimate": "RPO (tahmini)",
+      "rpoHint": "Son kanıtlanmış başarılı yedekten bu yana geçen süre.",
+      "rtoEstimate": "RTO (tahmini)",
+      "rtoHint": "Başarılı yedeklerin ortalama süresine dayanır (tam DR testi değil).",
+      "ageSeconds": "{{s}} sn",
+      "ageMinutes": "{{m}} dk",
+      "ageHours": "{{h}} sa",
+      "ageDays": "{{d}} gün"
+    },
+    "recentTable": {
+      "title": "Son yedekler",
+      "requested": "İstek zamanı",
+      "status": "Durum",
+      "adapter": "Adaptör"
+    }
+  },
   "dashboardSections": {
+    "monitoring": "İzleme",
+    "monitoringDesc": "API verilerinden metrikler, geçmiş ve RPO/RTO tahminleri.",
     "intro": "Kontroller ve kapsam",
     "introDesc": "Yenileme veriyi tazeler. Kapsam bildirimi bu sayfanın neyi kanıtlayıp kanıtlamayacağını söyler.",
     "summary": "Tek bakışta özet",
@@ -589,6 +659,82 @@
     "confirmRestoreCancel": "Vazgeç",
     "cardAlertRequestedRealEffectiveSimulated": "Uyumsuzluk: kayıtlı {{requested}}, etkin {{effective}} (simüle). Çözülene kadar gerçek döküm varsaymayın.",
     "cardAlertRequestedRealBlocked": "Real (PgDump) seçili, profil çalıştırılamıyor — önkoşullar düzelene kadar yedek çalıştırmaları başarısız olabilir."
+  },
+  "manualRestore": {
+    "title": "Manuel geri yükleme iste",
+    "alert": {
+      "title": "Yüksek riskli işlem",
+      "description": "İkinci bir yönetici onayı gerekir. Geri yükleme YALNIZCA izole bir doğrulama veritabanında çalışır (validationOnly)."
+    },
+    "tokenHint": "İstekten sonra ikinci bir Super Admin, e-posta ile gönderilen 6 haneli kodu girmelidir.",
+    "fields": {
+      "backup": "Yedek çalıştırması",
+      "targetDatabase": "Hedef veritabanı",
+      "targetDatabaseHelp": "Geçici doğrulama veritabanı (restore_validation_ öneki)",
+      "reason": "Gerekçe",
+      "reasonPlaceholder": "ör. yedek bütünlüğünü doğrulama",
+      "status": "Durum",
+      "result": "Sonuç",
+      "approvalToken": "Onay kodu (6 hane)",
+      "action": "İşlem",
+      "rejectReason": "Red gerekçesi",
+      "approvalNote": "Not (isteğe bağlı)",
+      "approvalNotePlaceholder": "Denetim kaydı için isteğe bağlı"
+    },
+    "approval": {
+      "waitingTitle": "Onay bekleniyor",
+      "waitingDescription": "İstek kimliği: {{requestId}}. Kod diğer Super Admin'lere e-posta ile gönderildi."
+    },
+    "actions": {
+      "close": "Kapat",
+      "submitRequest": "Geri yüklemeyi iste",
+      "confirmApproval": "Onayla ve doğrulamayı başlat",
+      "confirmReject": "Reddet",
+      "approve": "Onayla",
+      "reject": "Reddet"
+    },
+    "messages": {
+      "requestCreated": "Geri yükleme isteği oluşturuldu — ikinci yönetici onayı gerekli.",
+      "approvalSubmitted": "Onay gönderildi — doğrulama arka planda çalışıyor.",
+      "rejected": "İstek reddedildi."
+    },
+    "errors": {
+      "generic": "Manuel geri yükleme başarısız.",
+      "badRequest": "Geçersiz giriş veya süresi dolmuş kod.",
+      "disabled": "Manuel geri yükleme bu sistemde kapalı.",
+      "invalidTargetDb": "Hedef veritabanı restore_validation_ ile başlamalı ve geçerli bir PostgreSQL adı olmalı.",
+      "invalidToken": "Kod tam 6 rakam olmalı.",
+      "rejectReasonRequired": "Red gerekçesi zorunlu.",
+      "missingRunId": "Yedek çalıştırma kimliği eksik."
+    },
+    "status": {
+      "pendingApproval": "Onay bekliyor",
+      "approved": "Onaylandı",
+      "rejected": "Reddedildi",
+      "executing": "Doğrulanıyor",
+      "completed": "Tamamlandı",
+      "failed": "Başarısız"
+    },
+    "approvalModal": {
+      "title": "Restore onayı",
+      "requestedBy": "Talep eden",
+      "reject": "Reddet",
+      "approveExecute": "Onayla ve çalıştır",
+      "tokenExtra": "Token e-postanıza gönderildi. 15 dakika geçerlidir.",
+      "executing": "Restore çalışıyor…",
+      "completedTitle": "Restore başarılı",
+      "failedTitle": "Restore başarısız veya reddedildi",
+      "rejectTitle": "Restore talebini reddet",
+      "openApprove": "Onayla"
+    },
+    "history": {
+      "title": "Manuel restore talepleri",
+      "requestedAt": "Talep zamanı"
+    },
+    "table": {
+      "actions": "İşlemler",
+      "requestRestore": "Doğrulama restore"
+    }
   },
   "progress": {
     "titleQueued": "Yedek kuyrukta — henüz bitmedi",

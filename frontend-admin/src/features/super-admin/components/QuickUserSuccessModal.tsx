@@ -1,11 +1,14 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Alert, Button, Descriptions, Modal, Space, Typography, message } from 'antd';
-import { CheckCircleOutlined, CopyOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined } from '@ant-design/icons';
 
+import { CredentialCopyRow } from '@/features/super-admin/components/CredentialCopyRow';
 import type { CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
 import { useSuperAdminPlatformPolicy } from '@/features/super-admin/auth/superAdminPlatformPolicy';
 import { useI18n } from '@/i18n';
+import { copyTextToClipboard } from '@/lib/clipboard';
 
 export type QuickUserSuccessModalProps = {
     open: boolean;
@@ -28,22 +31,37 @@ export function QuickUserSuccessModal({
 }: QuickUserSuccessModalProps) {
     const { t } = useI18n();
     const { canProvisionTenantCredentials } = useSuperAdminPlatformPolicy();
+    const [password, setPassword] = useState('');
+
+    useEffect(() => {
+        if (open && result?.generatedPassword) {
+            setPassword(result.generatedPassword);
+            return;
+        }
+
+        setPassword('');
+    }, [open, result]);
 
     if (!canProvisionTenantCredentials || !result?.success) {
         return null;
     }
 
     const portalUrl = result.tenantPortalUrl ?? `https://${tenantSlug}.regkasse.at`;
+    const userName = result.userName?.trim() || result.email;
     const displayRole = result.role ?? role;
     const roleLabelKey = `users.create.roleOptions.${displayRole}.label` as const;
     const roleLabel = t(roleLabelKey) !== roleLabelKey ? t(roleLabelKey) : displayRole;
 
-    const copyPassword = async () => {
-        if (!result.generatedPassword) return;
-        try {
-            await navigator.clipboard.writeText(result.generatedPassword);
+    const copyAllCredentials = async () => {
+        const block = [
+            `${t('tenants.users.quick.result.usernameLabel')} ${userName}`,
+            `${t('tenants.users.quick.result.emailLabel')} ${result.email}`,
+            `${t('tenants.users.quick.result.passwordLabel')} ${password}`,
+        ].join('\n');
+        const copied = await copyTextToClipboard(block);
+        if (copied) {
             message.success(t('tenants.provisioning.copySuccess'));
-        } catch {
+        } else {
             message.error(t('tenants.provisioning.copyFailed'));
         }
     };
@@ -60,6 +78,9 @@ export function QuickUserSuccessModal({
             onCancel={onClose}
             destroyOnClose
             footer={[
+                <Button key="copy-all" onClick={() => void copyAllCredentials()}>
+                    {t('tenants.users.quick.result.copyAll')}
+                </Button>,
                 <Button key="another" onClick={onGenerateAnother}>
                     {t('tenants.users.quick.result.generateAnother')}
                 </Button>,
@@ -67,28 +88,12 @@ export function QuickUserSuccessModal({
                     {t('tenants.users.quick.result.done')}
                 </Button>,
             ]}
-            width={520}
+            width={560}
         >
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Typography.Text>
-                    <Typography.Text strong>{t('tenants.users.quick.result.userLabel')} </Typography.Text>
-                    {result.email}
-                </Typography.Text>
-
-                <Alert
-                    type="info"
-                    message={
-                        <Space wrap align="center">
-                            <Typography.Text strong>{t('tenants.users.quick.result.passwordLabel')}</Typography.Text>
-                            <Typography.Text code style={{ fontSize: 14 }}>
-                                {result.generatedPassword}
-                            </Typography.Text>
-                            <Button size="small" icon={<CopyOutlined />} onClick={() => void copyPassword()}>
-                                {t('tenants.provisioning.copyPassword')}
-                            </Button>
-                        </Space>
-                    }
-                />
+                <CredentialCopyRow label={t('tenants.users.quick.result.usernameLabel')} value={userName} />
+                <CredentialCopyRow label={t('tenants.users.quick.result.emailLabel')} value={result.email} />
+                <CredentialCopyRow label={t('tenants.users.quick.result.passwordLabel')} value={password} />
 
                 <Alert type="warning" showIcon message={t('tenants.users.quick.result.passwordOnceWarning')} />
 

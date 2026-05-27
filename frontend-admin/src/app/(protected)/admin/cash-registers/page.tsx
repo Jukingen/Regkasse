@@ -48,7 +48,9 @@ import { CashRegisterGrid } from '@/features/cash-registers/components/CashRegis
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import { CreateCashRegisterModal } from '@/features/cash-registers/components/CreateCashRegisterModal';
 import { DecommissionModal } from '@/features/cash-registers/components/DecommissionModal';
-import { CashRegisterDetailDrawer } from '@/features/cash-registers/components/CashRegisterDetailDrawer';
+import { BulkDecommissionBar } from '@/features/cash-registers/components/BulkDecommissionBar';
+import { BulkDecommissionModal } from '@/features/cash-registers/components/BulkDecommissionModal';
+import { RegisterDetailModal } from '@/features/cash-registers/components/RegisterDetailModal';
 import { CashRegisterHardDeleteModal } from '@/features/cash-registers/components/CashRegisterHardDeleteModal';
 import {
     cashRegisterListQueryKey,
@@ -66,6 +68,7 @@ import {
     REGISTER_STATUS,
 } from '@/features/cash-registers/utils/registerStatus';
 import { filterCashRegisters } from '@/features/cash-registers/utils/filterRegisters';
+import type { TseHealthStatus } from '@/features/cash-registers/types/enhancedCashRegister';
 import styles from '@/app/(protected)/kassenverwaltung/kassenverwaltung.module.css';
 import pageStyles from './cash-registers.module.css';
 
@@ -136,7 +139,11 @@ export default function AdminCashRegistersPage() {
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<number | undefined>();
+    const [tseHealthFilter, setTseHealthFilter] = useState<TseHealthStatus | undefined>();
     const [showDecommissioned, setShowDecommissioned] = useState(false);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+    const [selectedRows, setSelectedRows] = useState<CashRegister[]>([]);
+    const [bulkDecommissionOpen, setBulkDecommissionOpen] = useState(false);
     const [detailRegister, setDetailRegister] = useState<CashRegister | null>(null);
     const [decommissionRegister, setDecommissionRegister] = useState<CashRegister | null>(null);
     const [hardDeleteRegister, setHardDeleteRegister] = useState<CashRegister | null>(null);
@@ -171,6 +178,7 @@ export default function AdminCashRegistersPage() {
     } = useAdminCashRegisterList({
         tenantId: selectedTenantId,
         enabled: isSuperAdminUser && Boolean(selectedTenantId) && canView,
+        pollIntervalMs: 30_000,
     });
 
     const allRegisters = useMemo(
@@ -183,9 +191,10 @@ export default function AdminCashRegistersPage() {
             filterCashRegisters(allRegisters, {
                 search: searchTerm,
                 status: statusFilter,
+                tseHealth: tseHealthFilter,
                 showDecommissioned,
             }),
-        [allRegisters, searchTerm, showDecommissioned, statusFilter],
+        [allRegisters, searchTerm, showDecommissioned, statusFilter, tseHealthFilter],
     );
 
     const hiddenDecommissionedCount = useMemo(
@@ -320,6 +329,43 @@ export default function AdminCashRegistersPage() {
             reason: nextReason?.trim() || decommissionReason.trim() || 'Admin tenant cash register decommission',
         });
     }, [decommissionRegister, decommissionReason, decommissionMutation, t]);
+
+    const bulkDecommissionMutation = useMutation({
+        mutationFn: async ({ registers, reason }: { registers: CashRegister[]; reason: string }) => {
+            const eligible = registers.filter((r) => canDecommissionRegister(rawRegisterStatus(r)));
+            const results = await Promise.allSettled(
+                eligible.map((r) =>
+                    decommissionCashRegister(r.id!, {
+                        reason: reason || 'Bulk admin decommission',
+                    }),
+                ),
+            );
+            const success = results.filter((r) => r.status === 'fulfilled').length;
+            const failed = results.length - success;
+            return { success, failed, total: eligible.length };
+        },
+        onSuccess: async ({ success, failed }) => {
+            if (failed === 0) {
+                message.success(t('cashRegisters.bulk.success', { count: success }));
+            } else {
+                message.warning(
+                    t('cashRegisters.bulk.partialSuccess', { success, failed }),
+                );
+            }
+            setBulkDecommissionOpen(false);
+            setSelectedRowKeys([]);
+            setSelectedRows([]);
+            await invalidateRegisterQueries();
+        },
+        onError: (err) => {
+            message.error(
+                getUserFacingApiErrorMessage(t, err, {
+                    logContext: 'AdminCashRegisters.bulkDecommission',
+                    fallbackKey: 'common.messages.unknownError',
+                }),
+            );
+        },
+    });
 
     const submitHardDelete = useCallback(() => {
         const id = hardDeleteRegister?.id?.trim();
@@ -557,6 +603,22 @@ export default function AdminCashRegistersPage() {
                                 onSearch={(value) => setSearchTerm(value)}
                                 allowClear
                             />
+                            <Select<TseHealthStatus>
+                                placeholder={t('cashRegisters.tseHealthFilter.placeholder')}
+                                style={{ width: 190 }}
+                                value={tseHealthFilter}
+                                onChange={setTseHealthFilter}
+                                allowClear
+                                options={[
+                                    { label: t('cashRegisters.tseHealthFilter.healthy'), value: 'healthy' },
+                                    { label: t('cashRegisters.tseHealthFilter.degraded'), value: 'degraded' },
+                                    { label: t('cashRegisters.tseHealthFilter.offline'), value: 'offline' },
+                                    {
+                                        label: t('cashRegisters.tseHealthFilter.notConfigured'),
+                                        value: 'notConfigured',
+                                    },
+                                ]}
+                            />
                             <Select<number>
                                 placeholder={t('cashRegisters.filter.statusPlaceholder')}
                                 style={{ width: 170 }}
@@ -662,31 +724,49 @@ export default function AdminCashRegistersPage() {
                                 }}
                             />
                         ) : (
-                            <CashRegisterTable
-                                registers={visibleRegisters}
-                                loading={registersLoading}
-                                canCreate={canCreate}
-                                canManage={canCreate}
-                                totalRegisterCount={allRegisters.length}
-                                canDecommission={canDecommission}
-                                statusLabel={statusLabel}
-                                rowClassName={(record) =>
-                                    isDecommissionedRegister(rawRegisterStatus(record))
-                                        ? styles.decommissionedRow
-                                        : ''
-                                }
-                                onEdit={setDetailRegister}
-                                onDecommission={(record) => {
-                                    setDecommissionReason('');
-                                    setDecommissionRegister(record);
-                                }}
-                            />
+                            <>
+                                {canDecommission ? (
+                                    <BulkDecommissionBar
+                                        selectedCount={selectedRows.length}
+                                        disabled={bulkDecommissionMutation.isPending}
+                                        onDecommission={() => setBulkDecommissionOpen(true)}
+                                    />
+                                ) : null}
+                                <CashRegisterTable
+                                    registers={visibleRegisters}
+                                    loading={registersLoading}
+                                    canCreate={canCreate}
+                                    canManage={canCreate}
+                                    totalRegisterCount={allRegisters.length}
+                                    canDecommission={canDecommission}
+                                    statusLabel={statusLabel}
+                                    selectedRowKeys={canDecommission ? selectedRowKeys : undefined}
+                                    onSelectionChange={
+                                        canDecommission
+                                            ? (keys, rows) => {
+                                                  setSelectedRowKeys(keys);
+                                                  setSelectedRows(rows);
+                                              }
+                                            : undefined
+                                    }
+                                    rowClassName={(record) =>
+                                        isDecommissionedRegister(rawRegisterStatus(record))
+                                            ? styles.decommissionedRow
+                                            : ''
+                                    }
+                                    onEdit={setDetailRegister}
+                                    onDecommission={(record) => {
+                                        setDecommissionReason('');
+                                        setDecommissionRegister(record);
+                                    }}
+                                />
+                            </>
                         )}
                     </>
                 )}
             </Card>
 
-            <CashRegisterDetailDrawer
+            <RegisterDetailModal
                 open={detailRegister != null}
                 register={detailRegister}
                 onClose={() => setDetailRegister(null)}
@@ -700,6 +780,16 @@ export default function AdminCashRegistersPage() {
                           }
                         : undefined
                 }
+            />
+
+            <BulkDecommissionModal
+                open={bulkDecommissionOpen}
+                registers={selectedRows}
+                onCancel={() => setBulkDecommissionOpen(false)}
+                onConfirm={(reason) =>
+                    bulkDecommissionMutation.mutate({ registers: selectedRows, reason })
+                }
+                confirmLoading={bulkDecommissionMutation.isPending}
             />
 
             <CreateCashRegisterModal

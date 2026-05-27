@@ -1,0 +1,62 @@
+using KasseAPI_Final.Models;
+
+namespace KasseAPI_Final.Services.Activity;
+
+/// <summary>Convenience publisher used by controllers and background workers.</summary>
+public interface IActivityEventPublisher
+{
+    Task TryPublishAsync(
+        Guid tenantId,
+        ActivityEventType type,
+        object? metadata = null,
+        string? actorUserId = null,
+        string? dedupKey = null,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>Fire-and-forget wrapper so primary flows never fail on activity feed errors.</summary>
+public sealed class ActivityEventRecorder : IActivityEventPublisher{
+    private readonly IActivityEventService _activity;
+    private readonly ILogger<ActivityEventRecorder> _logger;
+
+    public ActivityEventRecorder(IActivityEventService activity, ILogger<ActivityEventRecorder> logger)
+    {
+        _activity = activity;
+        _logger = logger;
+    }
+
+    public Task TryPublishAsync(
+        Guid tenantId,
+        ActivityEventType type,
+        object? metadata = null,
+        string? actorUserId = null,
+        string? dedupKey = null,
+        CancellationToken cancellationToken = default)
+    {
+        var request = ActivityEventPublishBuilder.FromMetadata(
+            tenantId,
+            type,
+            metadata,
+            actorUserId,
+            dedupKey);
+        return TryPublishAsync(request, cancellationToken);
+    }
+
+    public async Task TryPublishAsync(
+        ActivityEventPublishRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _activity.PublishAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Activity event publish failed Type={Type} TenantId={TenantId}",
+                request.Type,
+                request.TenantId);
+        }
+    }
+}

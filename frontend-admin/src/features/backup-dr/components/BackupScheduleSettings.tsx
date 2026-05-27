@@ -160,7 +160,11 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
 
   if (settingsQuery.isError) {
     return (
-      <Card size="small" title={t("backupDr.scheduleSettings.cardTitle")}>
+      <Card
+        id="backup-dr-schedule-settings"
+        size="small"
+        title={t("backupDr.scheduleSettings.cardTitle")}
+      >
         <Alert type="error" showIcon message={t("backupDr.scheduleSettings.loadError")} />
       </Card>
     );
@@ -168,6 +172,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
 
   return (
     <Card
+      id="backup-dr-schedule-settings"
       size="small"
       title={t("backupDr.scheduleSettings.cardTitle")}
       extra={

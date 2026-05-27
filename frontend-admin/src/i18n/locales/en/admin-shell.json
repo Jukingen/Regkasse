@@ -434,5 +434,44 @@
     "colNumber": "No.",
     "colStatus": "Status",
     "colCapacity": "Covers"
+  },
+  "commandPalette": {
+    "placeholder": "Search pages, actions, or users…",
+    "keyboardHint": "↑↓ navigate · Enter run · Esc close",
+    "footer": {
+      "select": "to select",
+      "close": "to close"
+    },
+    "resultsAria": "Search results",
+    "empty": "No matches",
+    "group": {
+      "navigation": "Navigation",
+      "actions": "Actions",
+      "users": "Users",
+      "receipts": "Receipts",
+      "registers": "Registers",
+      "recent": "Recent"
+    },
+    "emptyHint": "Type to filter pages and actions.",
+    "action": {
+      "createUser": "Create user",
+      "createPlatformUser": "Create platform admin",
+      "createRegister": "Create cash register",
+      "generateReport": "Generate report",
+      "openReportCenter": "Open report center",
+      "openBackup": "Open backup & DR",
+      "triggerBackup": "Run backup now",
+      "triggerBackupHint": "Enqueue a manual backup job"
+    },
+    "dynamic": {
+      "searchUsers": "Search users (min. 2 characters)…",
+      "searchReceipts": "Enter receipt number (min. 3 characters)…",
+      "searchRegisters": "Search registers (min. 2 characters)…"
+    },
+    "receiptSearch": "Search receipt {number}",
+    "backupConfirmTitle": "Start backup?",
+    "backupConfirmBody": "A manual backup will be queued. Track progress under Backup & DR.",
+    "backupConfirmOk": "Start backup",
+    "backupConfirmCancel": "Cancel"
   }
 }

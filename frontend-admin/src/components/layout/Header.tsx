@@ -9,9 +9,11 @@ import type { ReactNode } from 'react';
 
 import { HeaderTenantSection } from '@/features/auth/components/HeaderTenantSection';
 import { HeaderLanguageQuickSwitch } from '@/components/admin-layout/HeaderLanguageQuickSwitch';
+import { HeaderThemeQuickSwitch } from '@/components/admin-layout/HeaderThemeQuickSwitch';
 import { CashRegisterQuickSwitch } from '@/components/layout/CashRegisterQuickSwitch';
 import { EnvironmentBadge } from '@/components/EnvironmentBadge';
 import { LicenseStatusIndicator } from '@/components/admin-layout/LicenseStatusIndicator';
+import { ActivityNotificationsBell } from '@/features/activity-notifications/components/ActivityNotificationsBell';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 import { useI18n } from '@/i18n';
 import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
@@ -133,7 +135,9 @@ export function AdminShellHeader({
 
                         <div className="admin-header-utilities">
                             <CashRegisterQuickSwitch isMobile={isMobile} />
+                            <HeaderThemeQuickSwitch />
                             <HeaderLanguageQuickSwitch />
+                            <ActivityNotificationsBell />
                             <MonatsbelegGlobalBadge />
                         </div>
                     </div>

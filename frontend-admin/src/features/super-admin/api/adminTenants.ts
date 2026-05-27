@@ -183,6 +183,11 @@ export async function hardDeleteAdminTenant(tenantId: string, confirmSlug: strin
     });
 }
 
+/** Development-only shortcut: immediately soft-deletes and permanently deletes the tenant server-side. */
+export async function hardDeleteAdminTenantDevelopment(tenantId: string): Promise<void> {
+    await AXIOS_INSTANCE.delete(`/api/admin/tenants/${tenantId}/hard`);
+}
+
 export async function impersonateAdminTenant(tenantId: string): Promise<TenantImpersonationResponse> {
     const { data } = await AXIOS_INSTANCE.post<TenantImpersonationResponse>(
         `/api/admin/tenants/${tenantId}/impersonate`,

@@ -2,6 +2,7 @@ import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export type TenantUser = {
     userId: string;
+    userName: string;
     email: string;
     name: string;
     role: string;
@@ -17,6 +18,7 @@ export type AssignTenantUserRequest = {
 
 export type CreateTenantUserRequest = {
     email: string;
+    userName?: string;
     firstName?: string;
     lastName?: string;
     role: string;
@@ -26,6 +28,7 @@ export type CreateTenantUserRequest = {
 export type CreateTenantUserResult = {
     userId: string;
     email: string;
+    userName: string;
     generatedPassword: string;
     forcePasswordChangeOnNextLogin: boolean;
     success: boolean;

@@ -35,7 +35,77 @@
     "pipelineNoticesCollapse": "Pipeline & Umgebung",
     "configurationCollapse": "Pipeline, Worker & Sperren"
   },
+  "monitoring": {
+    "pageTitle": "Backup Monitoring",
+    "pageSubtitle": "Metriken, Verlauf und Wiederherstellbarkeit — Aktualisierung alle 30 Sekunden.",
+    "dashboardStatsLoadFailed": "Dashboard-Statistiken konnten nicht geladen werden.",
+    "dashboardRefreshHint": "Daten werden alle {{seconds}} Sekunden aktualisiert.",
+    "header": {
+      "title": "Letzter Backup-Lauf",
+      "simulatedHint": "Simulierter Adapter — Erfolg bedeutet keine Produktions-Artefakte.",
+      "activeHint": "Backup läuft oder wartet auf Verifikation — Metriken können sich ändern."
+    },
+    "metrics": {
+      "lastBackup": "Letztes Backup",
+      "backupSize": "Backup-Größe",
+      "duration": "Dauer",
+      "successRate30d": "Erfolgsrate (30 Tage)",
+      "trendVsPriorMonth": "vs. Vormonat",
+      "lastRestoreDrill": "Letzte Restore-Übung"
+    },
+    "charts": {
+      "history30d": "Backup-Verlauf (30 Tage)",
+      "durationSuffix": "s",
+      "legendSuccess": "Erfolgreich",
+      "legendFailed": "Fehlgeschlagen",
+      "legendDuration": "Dauer (Sekunden)"
+    },
+    "configHealth": {
+      "title": "Backup Konfiguration",
+      "adapterKind": "Adapter Kind",
+      "workerEnabled": "Worker Enabled",
+      "externalArchive": "External Archive",
+      "verification": "Verification",
+      "yes": "Ja",
+      "no": "Nein",
+      "externalArchiveConfigured": "✅ Konfiguriert",
+      "externalArchiveNotConfigured": "❌ Nicht konfiguriert",
+      "verificationEnabled": "✅ Aktiviert",
+      "verificationDisabled": "⚠️ Deaktiviert",
+      "issuesTitle": "Konfigurationsprobleme",
+      "editSettings": "Einstellungen bearbeiten →"
+    },
+    "restoreReadiness": {
+      "title": "Wiederherstellbarkeit",
+      "rpoTitle": "RPO (Datenverlustfenster)",
+      "rtoTitle": "RTO (Wiederherstellungszeit)",
+      "hoursSuffix": "Stunden",
+      "minutesSuffix": "Minuten",
+      "lastSuccessfulDrill": "Letzter erfolgreicher Restore Drill:",
+      "drillStatus": "Drill Status:",
+      "lastVerifiedBackup": "Geprüftes Backup:",
+      "triggerDrill": "Restore Drill starten"
+    },
+    "rpoRto": {
+      "rpoEstimate": "RPO (geschätzt)",
+      "rpoHint": "Zeit seit letztem nachgewiesen erfolgreichen Backup.",
+      "rtoEstimate": "RTO (geschätzt)",
+      "rtoHint": "Basierend auf durchschnittlicher Dauer erfolgreicher Backups (kein vollständiger DR-Test).",
+      "ageSeconds": "{{s}} s",
+      "ageMinutes": "{{m}} min",
+      "ageHours": "{{h}} h",
+      "ageDays": "{{d}} Tage"
+    },
+    "recentTable": {
+      "title": "Letzte Backups",
+      "requested": "Angefordert",
+      "status": "Status",
+      "adapter": "Adapter"
+    }
+  },
   "dashboardSections": {
+    "monitoring": "Monitoring",
+    "monitoringDesc": "Metriken, Verlauf und RPO/RTO-Schätzungen aus API-Daten.",
     "intro": "Steuerung & Geltungsbereich",
     "introDesc": "Aktualisieren lädt Daten neu. Der Geltungsbereich-Hinweis sagt, was diese Seite belegen kann — und was nicht.",
     "summary": "Kurzüberblick",
@@ -589,6 +659,82 @@
     "confirmRestoreCancel": "Abbrechen",
     "cardAlertRequestedRealEffectiveSimulated": "Konflikt: gespeichert {{requested}}, effektiv {{effective}} (simuliert). Keinen echten Dump annehmen, bis der Konflikt behoben ist.",
     "cardAlertRequestedRealBlocked": "Real (PgDump) gewählt, Profil nicht lauffähig — Backup-Läufe können fehlschlagen, bis die Voraussetzungen healthy sind."
+  },
+  "manualRestore": {
+    "title": "Manuellen Restore anfordern",
+    "alert": {
+      "title": "Hochriskante Operation",
+      "description": "Dieser Vorgang benötigt eine zweite Administrator-Freigabe. Der Restore wird NUR in einer isolierten Testumgebung ausgeführt (validationOnly)."
+    },
+    "tokenHint": "Nach der Anforderung muss ein zweiter Super-Administrator den per E-Mail erhaltenen 6-stelligen Token eingeben.",
+    "fields": {
+      "backup": "Backup-Lauf",
+      "targetDatabase": "Zieldatenbank",
+      "targetDatabaseHelp": "Temporäre Datenbank für Validierung (Präfix restore_validation_)",
+      "reason": "Grund",
+      "reasonPlaceholder": "z. B. Überprüfung der Backup-Integrität",
+      "status": "Status",
+      "result": "Ergebnis",
+      "approvalToken": "Freigabe-Token (6 Ziffern)",
+      "action": "Aktion",
+      "rejectReason": "Ablehnungsgrund",
+      "approvalNote": "Anmerkung (optional)",
+      "approvalNotePlaceholder": "Optional für die Audit-Protokollierung"
+    },
+    "approval": {
+      "waitingTitle": "Freigabe ausstehend",
+      "waitingDescription": "Anfrage-ID: {{requestId}}. Der Token wurde an andere Super-Admins per E-Mail gesendet."
+    },
+    "actions": {
+      "close": "Schließen",
+      "submitRequest": "Restore anfordern",
+      "confirmApproval": "Freigeben und Validierung starten",
+      "confirmReject": "Ablehnen",
+      "approve": "Freigeben",
+      "reject": "Ablehnen"
+    },
+    "messages": {
+      "requestCreated": "Restore-Anfrage erstellt — Freigabe durch zweiten Administrator erforderlich.",
+      "approvalSubmitted": "Freigabe übermittelt — Validierung läuft im Hintergrund.",
+      "rejected": "Anfrage abgelehnt."
+    },
+    "errors": {
+      "generic": "Manueller Restore fehlgeschlagen.",
+      "badRequest": "Ungültige Eingabe oder abgelaufenes Token.",
+      "disabled": "Manueller Restore ist auf diesem System deaktiviert.",
+      "invalidTargetDb": "Zieldatenbank muss mit restore_validation_ beginnen und ein gültiger PostgreSQL-Name sein.",
+      "invalidToken": "Token muss genau 6 Ziffern haben.",
+      "rejectReasonRequired": "Ablehnungsgrund ist erforderlich.",
+      "missingRunId": "Backup-Lauf-ID fehlt."
+    },
+    "status": {
+      "pendingApproval": "Freigabe ausstehend",
+      "approved": "Freigegeben",
+      "rejected": "Abgelehnt",
+      "executing": "Validierung läuft",
+      "completed": "Abgeschlossen",
+      "failed": "Fehlgeschlagen"
+    },
+    "approvalModal": {
+      "title": "Restore freigeben",
+      "requestedBy": "Angefordert von",
+      "reject": "Ablehnen",
+      "approveExecute": "Freigeben & Ausführen",
+      "tokenExtra": "Token wurde an Ihre E-Mail gesendet. Gültig für 15 Minuten.",
+      "executing": "Restore wird ausgeführt…",
+      "completedTitle": "Restore erfolgreich",
+      "failedTitle": "Restore fehlgeschlagen oder abgelehnt",
+      "rejectTitle": "Restore-Anfrage ablehnen",
+      "openApprove": "Freigeben"
+    },
+    "history": {
+      "title": "Manuelle Restore-Anfragen",
+      "requestedAt": "Angefordert am"
+    },
+    "table": {
+      "actions": "Aktionen",
+      "requestRestore": "Validierungs-Restore"
+    }
   },
   "progress": {
     "titleQueued": "Backup eingereiht — läuft noch nicht",

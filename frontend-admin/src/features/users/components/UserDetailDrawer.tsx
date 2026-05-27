@@ -4,14 +4,19 @@
  * User detail drawer – Details + Activity; bilgi hiyerarşisi: Status/Rolle → Identität → Mandant → Sonstiges.
  */
 import React, { useState } from 'react';
-import { Drawer, Tabs, Descriptions, Tag, Typography } from 'antd';
+import { Drawer, Tabs, Descriptions, Tag, Typography, Button, Space } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
 import type { UserInfo } from '@/api/generated/model';
+import { EditUsernameModal } from './EditUsernameModal';
 import { UserActivityTimeline } from './UserActivityTimeline';
+import Link from 'next/link';
+import { UserActivityReportPanel } from './UserActivityReportPanel';
 import { UserTenantSummary } from './UserTenantSummary';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
 import { usersCopy } from '../constants/copy';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatDateTime } from '@/i18n/formatting';
+import type { UpdateAdminUsernameResponse } from '@/features/users/api/users';
 
 const { Text } = Typography;
 const NA = usersCopy.branchNotAvailable;
@@ -27,10 +32,19 @@ type Props = {
   open: boolean;
   onClose: () => void;
   user: UserInfo | null;
+  canEditUsername?: boolean;
+  onUsernameUpdated?: (userId: string, result: UpdateAdminUsernameResponse) => void;
 };
 
-export function UserDetailDrawer({ open, onClose, user }: Props) {
-  const [activeTab, setActiveTab] = useState('activity');
+export function UserDetailDrawer({
+  open,
+  onClose,
+  user,
+  canEditUsername = false,
+  onUsernameUpdated,
+}: Props) {
+  const [activeTab, setActiveTab] = useState('report');
+  const [usernameModalOpen, setUsernameModalOpen] = useState(false);
   const { t, formatLocale } = useI18n();
   const userId = user?.id ?? null;
   const { data: memberships = [], isLoading: tenantsLoading } = useAdminUserTenants(userId, open && !!userId);
@@ -50,6 +64,28 @@ export function UserDetailDrawer({ open, onClose, user }: Props) {
         activeKey={activeTab}
         onChange={setActiveTab}
         items={[
+          {
+            key: 'report',
+            label: usersCopy.activityReport,
+            children: (
+              <>
+                {user.id && (
+                  <Link
+                    href={`/admin/reports/user-activity?userId=${encodeURIComponent(user.id)}`}
+                    style={{ marginBottom: 12, display: 'inline-block' }}
+                  >
+                    <Button type="link" size="small">
+                      {usersCopy.openFullActivityReport}
+                    </Button>
+                  </Link>
+                )}
+                <UserActivityReportPanel
+                  userId={user.id ?? ''}
+                  userName={fullName(user)}
+                />
+              </>
+            ),
+          },
           {
             key: 'activity',
             label: usersCopy.activity,
@@ -81,7 +117,21 @@ export function UserDetailDrawer({ open, onClose, user }: Props) {
                       loading={tenantsLoading}
                     />
                   </Descriptions.Item>
-                  <Descriptions.Item label={usersCopy.userName}>{user.userName ?? NA}</Descriptions.Item>
+                  <Descriptions.Item label={usersCopy.userName}>
+                    <Space wrap>
+                      <span>{user.userName?.trim() || NA}</span>
+                      {canEditUsername && user.id ? (
+                        <Button
+                          type="link"
+                          size="small"
+                          icon={<EditOutlined />}
+                          onClick={() => setUsernameModalOpen(true)}
+                        >
+                          {t('users.username.changeAction')}
+                        </Button>
+                      ) : null}
+                    </Space>
+                  </Descriptions.Item>
                   <Descriptions.Item label={usersCopy.email}>{user.email ?? NA}</Descriptions.Item>
                 </Descriptions>
                 <Descriptions column={1} size="small" bordered>
@@ -101,6 +151,15 @@ export function UserDetailDrawer({ open, onClose, user }: Props) {
           },
         ]}
       />
+      {user.id ? (
+        <EditUsernameModal
+          open={usernameModalOpen}
+          userId={user.id}
+          currentUsername={user.userName ?? ''}
+          onClose={() => setUsernameModalOpen(false)}
+          onSuccess={(result) => onUsernameUpdated?.(user.id!, result)}
+        />
+      ) : null}
     </Drawer>
   );
 }

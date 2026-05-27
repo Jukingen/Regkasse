@@ -1,17 +1,21 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Form, Input, Modal, Select, Space, Switch, Tabs, Typography, message } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
+import { CredentialCopyRow } from '@/features/super-admin/components/CredentialCopyRow';
 import { QuickUserSuccessModal } from '@/features/super-admin/components/QuickUserSuccessModal';
 import { QUICK_USER_ROLES, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
-import type { CreateUserResult } from '@/features/users/api/users';
+import { getQuickUsernamePattern } from '@/features/super-admin/lib/quickUserPreview';
+import { fetchUsernameSuggestion, type CreateUserResult } from '@/features/users/api/users';
 import { TENANT_CREATE_ROLES } from '@/features/super-admin/api/tenantUsers';
 import { UserTenantAssignmentModal } from '@/features/users/components/UserTenantAssignmentModal';
 import { useTenantAssignmentModal } from '@/features/users/hooks/useTenantAssignmentModal';
 import { useI18n } from '@/i18n';
+import { copyTextToClipboard } from '@/lib/clipboard';
 
 export type CreateUserFormValues = {
     email: string;
@@ -80,6 +84,7 @@ export function CreateUserModal({
     const [form] = Form.useForm<CreateUserFormValues>();
     const [quickForm] = Form.useForm<CreateUserQuickFormValues>();
     const [passwordResult, setPasswordResult] = useState<CreateUserResult | null>(null);
+    const [password, setPassword] = useState('');
     const [tenantAssignmentResult, setTenantAssignmentResult] = useState<CreateUserResult | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [assignmentSubmitting, setAssignmentSubmitting] = useState(false);
@@ -139,6 +144,7 @@ export function CreateUserModal({
             form.resetFields();
             quickForm.resetFields();
             setActiveTab('normal');
+            setPassword('');
             setTenantAssignmentResult(null);
             tenantAssignmentModal.closeModal();
             return;
@@ -155,12 +161,33 @@ export function CreateUserModal({
         });
     }, [open, form, quickForm, fixedTenantId, initialValues]);
 
+    useEffect(() => {
+        if (passwordResult?.generatedPassword) {
+            setPassword(passwordResult.generatedPassword);
+            return;
+        }
+
+        setPassword('');
+    }, [passwordResult]);
+
     const watchedQuickRole = Form.useWatch('role', quickForm) ?? 'Manager';
     const watchedQuickTenantId = Form.useWatch('tenantId', quickForm) ?? fixedTenantId;
     const quickPreviewTenant = watchedQuickTenantId ? tenantById.get(watchedQuickTenantId) : undefined;
     const quickPreviewSlug = quickPreviewTenant?.slug ?? (canDeferQuickTenantAssignment ? 'platform' : 'tenant');
     const quickPreviewName = quickPreviewTenant?.name ?? fixedTenantId ?? '';
-    const infoEmailExample = t('tenants.users.quick.emailPreview', {
+    const quickUsernamePattern = getQuickUsernamePattern(watchedQuickRole);
+    const { data: usernameSuggestion } = useQuery({
+        queryKey: ['admin', 'username-suggestion', watchedQuickRole],
+        queryFn: () => fetchUsernameSuggestion(watchedQuickRole),
+        enabled: open && activeTab === 'quick' && Boolean(watchedQuickRole),
+        staleTime: 30_000,
+    });
+    const quickUsernameAlternates = useMemo(() => {
+        if (!usernameSuggestion?.availableNumbers?.length) return null;
+        const prefix = usernameSuggestion.suggestedUsername.replace(/\d+$/, '');
+        return usernameSuggestion.availableNumbers.map((n) => `${prefix}${n}`).join(', ');
+    }, [usernameSuggestion]);
+    const quickEmailPreview = t('tenants.users.quick.emailPreview', {
         role: watchedQuickRole.toLowerCase(),
         random: 'a3f9k2',
         slug: quickPreviewSlug,
@@ -280,11 +307,15 @@ export function CreateUserModal({
     };
 
     const copyPassword = async () => {
-        if (!passwordResult?.generatedPassword) return;
-        try {
-            await navigator.clipboard.writeText(passwordResult.generatedPassword);
+        if (!password) {
+            message.error('Kein Passwort zum Kopieren vorhanden');
+            return;
+        }
+
+        const copied = await copyTextToClipboard(password);
+        if (copied) {
             message.success(t('tenants.provisioning.copySuccess'));
-        } catch {
+        } else {
             message.error(t('tenants.provisioning.copyFailed'));
         }
     };
@@ -389,17 +420,42 @@ export function CreateUserModal({
                 <Select options={quickRoleOptions} />
             </Form.Item>
 
+            <div
+                style={{
+                    marginTop: 16,
+                    padding: 12,
+                    background: '#fafafa',
+                    borderRadius: 8,
+                    border: '1px solid #f0f0f0',
+                }}
+            >
+                <Typography.Paragraph style={{ marginBottom: 8 }}>
+                    <Typography.Text strong>{t('tenants.users.quick.preview.usernameLabel')}</Typography.Text>{' '}
+                    <Typography.Text code>
+                        {usernameSuggestion?.suggestedUsername ?? quickUsernamePattern}
+                    </Typography.Text>
+                </Typography.Paragraph>
+                {quickUsernameAlternates ? (
+                    <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
+                        {t('tenants.users.quick.preview.usernameAvailable', { list: quickUsernameAlternates })}
+                    </Typography.Paragraph>
+                ) : null}
+                <Typography.Paragraph style={{ marginBottom: 8 }}>
+                    <Typography.Text strong>{t('tenants.users.quick.preview.emailLabel')}</Typography.Text>{' '}
+                    {quickEmailPreview}
+                </Typography.Paragraph>
+                <Typography.Paragraph style={{ marginBottom: 0 }}>
+                    <Typography.Text strong>{t('tenants.users.quick.preview.passwordLabel')}</Typography.Text>{' '}
+                    {t('tenants.users.quick.autoPassword')}
+                </Typography.Paragraph>
+            </div>
+
             <Alert
                 type="info"
                 showIcon
+                style={{ marginTop: 16 }}
                 message={t('tenants.users.quick.autoTitle')}
-                description={
-                    <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
-                        <li>{infoEmailExample}</li>
-                        <li>{t('tenants.users.quick.autoPassword')}</li>
-                        <li>{t('tenants.users.quick.autoForceChange')}</li>
-                    </ul>
-                }
+                description={t('tenants.users.quick.autoForceChange')}
             />
             {showTenantPicker && canDeferQuickTenantAssignment && !watchedQuickTenantId ? (
                 <Alert
@@ -495,14 +551,25 @@ export function CreateUserModal({
                 ]}
             >
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    <Typography.Text>{passwordResult?.email}</Typography.Text>
+                    {passwordResult?.userName ? (
+                        <CredentialCopyRow
+                            label={t('tenants.users.quick.result.usernameLabel')}
+                            value={passwordResult.userName}
+                        />
+                    ) : null}
+                    {passwordResult?.email ? (
+                        <CredentialCopyRow
+                            label={t('tenants.users.quick.result.emailLabel')}
+                            value={passwordResult.email}
+                        />
+                    ) : null}
+                    <CredentialCopyRow label={t('users.create.password')} value={password} />
                     <Alert
                         type="warning"
                         showIcon
                         message={t('users.create.passwordWarningTitle')}
                         description={t('users.create.generatedPasswordInfo')}
                     />
-                    <Input.Password value={passwordResult?.generatedPassword ?? ''} readOnly />
                 </Space>
             </Modal>
 

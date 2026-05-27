@@ -38,18 +38,22 @@ Base path: `/api/admin/tenants`. Auth: `Bearer` JWT with `SuperAdmin` role.
 **OpenAPI:** `backend/swagger.json` (tags: admin tenants). Full architecture: `docs/MULTI_TENANT.md`.
 
 ## Auth
-- **Login**: `POST /api/Auth/login`
+- **Login**: `POST /api/Auth/login` — body: **`loginIdentifier`** (email or username) + `password` + `clientApp` (`admin` \| `pos`). Legacy `email` field still accepted when `loginIdentifier` is empty.
 - **Logout**: `POST /api/Auth/logout`
+- **User create (platform):** `POST /api/admin/users` — optional `userName`; response includes `userName` + `generatedPassword`.
+- **Bulk import (tenant users):** `POST /api/admin/users/bulk-import/preview` (multipart, first N rows); `POST /api/admin/users/bulk-import` → `202` + `{ jobId, totalRows }` (background job); `GET /api/admin/users/bulk-import/jobs/{jobId}` (progress); `DELETE .../jobs/{jobId}` (cancel); `GET .../template`; `GET .../results/{id}.csv`. Columns: `email`, `role`, `tenantSlug` (+ optional `username`, `firstName`, `lastName`). Max upload 20 MB.
+- **Quick Create (tenant):** `POST /api/admin/tenants/{tenantId}/users/quick` — role only; auto `userName`, email, password.
+- Full request/response tables: [`../../docs/API_CONTRACTS.md`](../../docs/API_CONTRACTS.md).
 
 ## Modules
 
 ### Dashboard (`/dashboard`)
-- **Live reports integration**:
-  - `GET /api/Reports/sales`
-  - `GET /api/Reports/products`
-  - `GET /api/Reports/payments`
-  - `GET /api/Reports/customers`
-- **Date range filter**: dashboard queries all report endpoints with `startDate` and `endDate`.
+- **Widget layout (per user + tenant)**:
+  - `GET /api/admin/dashboard/widgets` — catalog (permission-filtered)
+  - `GET /api/admin/dashboard/preferences` — saved layout or defaults
+  - `POST /api/admin/dashboard/preferences` — persist order, visibility, settings
+- **Widget data** (client-side, existing APIs): `GET /api/Reports/sales|products`, `GET /api/admin/cash-registers`, `GET /api/Inventory`, `GET /api/admin/users`, tenant license via switcher, `GET /api/admin/finanzonline-reconciliation`
+- **UI**: drag-and-drop (`@dnd-kit`), auto-refresh 30s, manual refresh per widget — `frontend-admin/src/features/dashboard/`
 - **Current source of truth**: `frontend-admin/src/app/(protected)/dashboard/page.tsx`.
 
 ### Invoices (`/invoices`)

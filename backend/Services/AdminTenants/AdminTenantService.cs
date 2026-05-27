@@ -498,6 +498,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
                 return _jwtIssuer.IssueToken(claimList, jti, sessionId, expiresAtUtc);
             },
             sessionTenantId: tenant.Id,
+            clientMetadata: null,
             cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation(

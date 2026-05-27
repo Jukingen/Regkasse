@@ -14,6 +14,7 @@ import {
 import { DeleteOutlined, StopOutlined, UndoOutlined, WarningOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
+import { isDevelopment } from '@/features/auth/services/devTenant';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
 import { useI18n } from '@/i18n';
 
@@ -22,9 +23,11 @@ export type TenantDetailDangerZoneProps = {
     softDeletePending?: boolean;
     restorePending?: boolean;
     hardDeletePending?: boolean;
+    developmentHardDeletePending?: boolean;
     onSoftDelete: () => void | Promise<void>;
     onRestore: () => void | Promise<void>;
     onHardDelete: (confirmSlug: string) => void | Promise<void>;
+    onDevelopmentHardDelete?: () => void | Promise<void>;
 };
 
 function buildTenantAuditLogsHref(tenantId: string): string {
@@ -37,23 +40,28 @@ export function TenantDetailDangerZone({
     softDeletePending,
     restorePending,
     hardDeletePending,
+    developmentHardDeletePending,
     onSoftDelete,
     onRestore,
     onHardDelete,
+    onDevelopmentHardDelete,
 }: TenantDetailDangerZoneProps) {
     const { t } = useI18n();
     const [softDeleteOpen, setSoftDeleteOpen] = useState(false);
     const [restoreOpen, setRestoreOpen] = useState(false);
     const [hardDeleteOpen, setHardDeleteOpen] = useState(false);
+    const [hardDeleteMode, setHardDeleteMode] = useState<'permanent' | 'development' | null>(null);
     const [confirmSlug, setConfirmSlug] = useState('');
     const [irreversibleAck, setIrreversibleAck] = useState(false);
 
     const slugMatches =
         confirmSlug.trim().toLowerCase() === tenant.slug.trim().toLowerCase();
     const hardDeleteReady = slugMatches && irreversibleAck;
+    const showDevelopmentHardDelete = isDevelopment() && typeof onDevelopmentHardDelete === 'function';
 
     const closeHardDelete = useCallback(() => {
         setHardDeleteOpen(false);
+        setHardDeleteMode(null);
         setConfirmSlug('');
         setIrreversibleAck(false);
     }, []);
@@ -62,6 +70,7 @@ export function TenantDetailDangerZone({
 
     return (
         <Card
+            id="danger-zone"
             title={
                 <Space>
                     <WarningOutlined style={{ color: '#cf1322' }} />
@@ -91,6 +100,7 @@ export function TenantDetailDangerZone({
                             icon={<DeleteOutlined />}
                             loading={hardDeletePending}
                             onClick={() => {
+                                setHardDeleteMode('permanent');
                                 setConfirmSlug('');
                                 setIrreversibleAck(false);
                                 setHardDeleteOpen(true);
@@ -108,6 +118,13 @@ export function TenantDetailDangerZone({
                     <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                         {t('tenants.detail.settings.danger.decommissionWizardHint')}
                     </Typography.Paragraph>
+                    {showDevelopmentHardDelete ? (
+                        <Alert
+                            type="warning"
+                            showIcon
+                            message={t('tenants.detail.settings.danger.developmentHardDeleteHint')}
+                        />
+                    ) : null}
                     <Space wrap>
                         <Link href={`/admin/tenants/${tenant.id}/decommission`}>
                             <Button icon={<StopOutlined />}>
@@ -117,6 +134,22 @@ export function TenantDetailDangerZone({
                         <Button danger onClick={() => setSoftDeleteOpen(true)}>
                             {t('tenants.detail.settings.danger.softDeleteButton')}
                         </Button>
+                        {showDevelopmentHardDelete ? (
+                            <Button
+                                danger
+                                type="primary"
+                                icon={<DeleteOutlined />}
+                                loading={developmentHardDeletePending}
+                                onClick={() => {
+                                    setHardDeleteMode('development');
+                                    setConfirmSlug('');
+                                    setIrreversibleAck(false);
+                                    setHardDeleteOpen(true);
+                                }}
+                            >
+                                {t('tenants.detail.settings.danger.developmentHardDeleteButton')}
+                            </Button>
+                        ) : null}
                     </Space>
                 </Space>
             )}
@@ -183,12 +216,24 @@ export function TenantDetailDangerZone({
                 }
                 open={hardDeleteOpen}
                 onCancel={closeHardDelete}
-                okText={t('tenants.detail.settings.danger.hardDeleteConfirm')}
-                okButtonProps={{ danger: true, disabled: !hardDeleteReady, loading: hardDeletePending }}
+                okText={
+                    hardDeleteMode === 'development'
+                        ? t('tenants.detail.settings.danger.developmentHardDeleteButton')
+                        : t('tenants.detail.settings.danger.hardDeleteConfirm')
+                }
+                okButtonProps={{
+                    danger: true,
+                    disabled: !hardDeleteReady,
+                    loading: hardDeleteMode === 'development' ? developmentHardDeletePending : hardDeletePending,
+                }}
                 cancelText={t('common.cancel', { defaultValue: 'Abbrechen' })}
                 onOk={async () => {
                     try {
-                        await onHardDelete(confirmSlug.trim());
+                        if (hardDeleteMode === 'development') {
+                            await onDevelopmentHardDelete?.();
+                        } else {
+                            await onHardDelete(confirmSlug.trim());
+                        }
                         closeHardDelete();
                     } catch {
                         /* keep open */
@@ -197,6 +242,13 @@ export function TenantDetailDangerZone({
                 destroyOnClose
             >
                 <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    {hardDeleteMode === 'development' ? (
+                        <Alert
+                            type="warning"
+                            showIcon
+                            message={t('tenants.detail.settings.danger.developmentHardDeleteHint')}
+                        />
+                    ) : null}
                     <Alert type="error" showIcon message={t('tenants.confirmHardDelete.irreversible')} />
                     <Typography.Paragraph style={{ marginBottom: 0 }}>
                         {t('tenants.detail.settings.danger.hardDeleteDataLoss', { name: tenant.name })}

@@ -125,31 +125,6 @@ namespace KasseAPI_Final.Models
         // Use EntityId and EntityType for entity identification instead
     }
 
-    /// <summary>
-    /// Standardized audit event types. Every event includes: actor, target, timestamp, actionType.
-    /// USER_UPDATED must include structured changes; USER_ROLE_CHANGED must include role diff in changes.
-    /// Backing values preserved for existing logs (safe migration).
-    /// </summary>
-    public enum AuditEventType
-    {
-        UserCreated = 0,
-        UserUpdated = 1,
-        UserRoleChanged = 2,
-        UserDeactivated = 3,
-        UserReactivated = 4,
-        PasswordResetForced = 5,
-        ChangeOwnPassword = 6,
-        UserPasswordReset = 7,
-        RolePermissionsUpdated = 8,
-        RoleDeleted = 9,
-        LoginSuccess = 10,
-        UserLogout = 11,
-        UserDeleted = 12,
-        LoginFailed = 14,  // New; 11–12 preserved for existing logs
-        UserTenantMembershipChanged = 15,
-        Other = 99
-    }
-
     // Audit log statuses
     public enum AuditLogStatus
     {
@@ -219,6 +194,7 @@ namespace KasseAPI_Final.Models
         /// <summary>Super-admin one-click tenant user (auto email/password).</summary>
         public const string TENANT_QUICK_USER_CREATED = "TENANT_QUICK_USER_CREATED";
         public const string USER_TENANT_MEMBERSHIP_CHANGED = "USER_TENANT_MEMBERSHIP_CHANGED";
+        public const string USER_NAME_CHANGE = "USER_NAME_CHANGE";
 
         // System operations
         public const string SYSTEM_CONFIG_UPDATE = "SYSTEM_CONFIG_UPDATE";
@@ -271,6 +247,26 @@ namespace KasseAPI_Final.Models
 
         /// <summary>Cash register stammdaten updated (PUT /api/admin/cash-registers/{id}).</summary>
         public const string CASH_REGISTER_UPDATED = "CASH_REGISTER_UPDATED";
+
+        /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
+        public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
+
+        /// <summary>Second Super Admin approved manual validation restore.</summary>
+        public const string RESTORE_APPROVED = "RESTORE_APPROVED";
+
+        /// <summary>Second Super Admin rejected manual validation restore.</summary>
+        public const string RESTORE_REJECTED = "RESTORE_REJECTED";
+
+        /// <summary>Validation-only manual restore finished successfully.</summary>
+        public const string RESTORE_COMPLETED = "RESTORE_COMPLETED";
+
+        /// <summary>Validation-only manual restore failed.</summary>
+        public const string RESTORE_FAILED = "RESTORE_FAILED";
+
+        // Legacy aliases (pre–AuditEventType restore events)
+        public const string MANUAL_RESTORE_REQUEST_CREATED = "MANUAL_RESTORE_REQUEST_CREATED";
+        public const string MANUAL_RESTORE_REQUEST_APPROVED = "MANUAL_RESTORE_REQUEST_APPROVED";
+        public const string MANUAL_RESTORE_REQUEST_REJECTED = "MANUAL_RESTORE_REQUEST_REJECTED";
     }
 
             // Entity types for audit logging
@@ -297,5 +293,7 @@ namespace KasseAPI_Final.Models
             public const string FISCAL_EXPORT = "FiscalExport";
 
             public const string CASH_REGISTER = "CashRegister";
+
+            public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
         }
 }

@@ -306,10 +306,22 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 
 - **No email invitations** for mandant or platform users (removed 2026-05-22).
 - FA: `CreateUserModal` + `useCreateUser` / `createUser` in `frontend-admin`.
-- Backend: `TenantUserService.CreateAsync`, `AdminUsersController.Create` → `PasswordGenerator.GenerateSecurePassword`.
+- Backend: `TenantUserService.CreateAsync`, `TenantUserService.CreateQuickAsync`, `AdminUsersController.Create` → `PasswordGenerator.GenerateSecurePassword`, `UserCreationService` / `UniqueUsernameGenerator` for login names.
 - **Add existing user:** `AddExistingUserModal` — assign membership only.
 - Audit: `USER_CREATED` with `createdByUserId`, `tenantId`, `role`; password **not** in audit metadata.
 - Optional `Email:Smtp` is for **onboarding welcome** only — see `docs/CUSTOMER_ONBOARDING.md`, `backend/CONFIGURATION.md`.
+
+##### Creating users with username
+
+When creating a user via Admin API or FA:
+
+- If **`userName`** is provided, it must be unique across all users **case-insensitively** (`IUserUniquenessValidationService.IsUserNameTakenByOtherUserAsync` → `IdentityLoginLookup` / `NormalizedUserName`).
+- If **`userName`** is omitted, the system generates one automatically (`{rolePrefix}{n}`, e.g. `manager1`, `cashier2`).
+- **`email`** remains the contact/login email field and may differ from `userName` (especially Quick Create: auto email like `cashier_a3f9k2@cafe.regkasse.at`).
+- API responses include **`userName`** and **`email`** for operator handoff (`CreateTenantUserResultDto`, `AdminCreateUserResponseDto`).
+- FA success modals show username, email, and one-time password with copy actions (`QuickUserSuccessModal`, Schnell anlegen tab).
+
+Request DTOs: `CreateTenantUserRequest`, `CreateQuickTenantUserRequest`, `AdminCreateUserRequest` (`userName` optional).
 
 Full guide: **`docs/USER_MANAGEMENT.md`**.
 
@@ -821,6 +833,70 @@ Rules:
 - Do not log voucher codes.
 - Do not log secrets or raw credentials.
 - Prefer error codes and masked references.
+
+---
+
+## Authentication
+
+### Login with Username or Email
+
+Users can sign in with either:
+
+- **Email address** (e.g. `manager@cafe.regkasse.at`)
+- **Username** (e.g. `manager1`, `cashier2`, `user3`)
+
+**Username generation (Quick Create / admin user create):**
+
+- FA **Schnell anlegen** and admin user APIs generate a unique login name when `userName` is omitted.
+- Pattern: `{rolePrefix}{incrementalNumber}` (collision retry adds a random suffix).
+- Role prefixes: `admin` (SuperAdmin), `manager`, `cashier`, default `user` (includes Accountant and other roles).
+
+**Login API:** `POST /api/Auth/login`
+
+- Preferred body field: **`loginIdentifier`** (email or username).
+- Legacy field **`email`** is still accepted with the same value for older clients.
+- **`clientApp`:** `pos` (POS) or `admin` (Frontend Admin); required when `AllowLegacyLoginWithoutClientApp` is false.
+
+```json
+// Old (still supported):
+{ "email": "user@example.com", "password": "...", "clientApp": "pos" }
+
+// New:
+{ "loginIdentifier": "manager1", "password": "...", "clientApp": "pos" }
+```
+
+```json
+{ "loginIdentifier": "user@example.com", "password": "...", "clientApp": "admin" }
+```
+
+Backend resolves the user with `IdentityLoginLookup.FindByLoginIdentifierAsync`: `FindByEmailAsync` first, then case-insensitive username match on `NormalizedUserName` (`backend/Helpers/IdentityLoginLookup.cs`, `AuthController`).
+
+**Clients:**
+
+- **Frontend Admin:** `LoginForm` sends `loginIdentifier` (+ legacy `email`) — `frontend-admin/src/features/auth/components/LoginForm.tsx`
+- **POS:** `authService.buildLoginPayload` — `frontend/services/api/loginPayload.ts`, `frontend/app/(auth)/login.tsx`
+
+### Username case-insensitive login
+
+Usernames are **case-insensitive** for login and uniqueness:
+
+- `Manager1`, `manager1`, and `MANAGER1` refer to the same user at sign-in.
+- Email addresses remain case-insensitive (standard ASP.NET Identity behavior).
+
+**Technical implementation:**
+
+- `UserName` is stored as entered; `NormalizedUserName` is **UPPER** invariant (Identity).
+- Login and duplicate checks use `NormalizedUserName` (`IdentityLoginLookup`).
+- Creating or renaming a user rejects names that collide case-insensitively (`[UsernameUnique]` on `UpdateUsernameRequest`, `UserUniquenessValidationService`).
+- Legacy DB rows: migration `NormalizeUsernamesCaseInsensitive` renames case-insensitive duplicates and backfills `NormalizedUserName`.
+
+**Example:**
+
+- User created with username `Mustafa`
+- Can log in as: `mustafa`, `MUSTAFA`, `MuStAfA`
+- Cannot create another user with username `mustafa` (or `MUSTAFA`)
+
+Contract supplements: `docs/API_CONTRACTS.md` (Authentication).
 
 ---
 

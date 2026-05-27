@@ -10,6 +10,8 @@ using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Activity;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -204,10 +206,7 @@ public sealed class LicenseService : ILicenseService
         ActivatedLicense? dbActivation = null;
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-            using var db = dbContextFactory.CreateDbContext();
-            dbActivation = QueryPrimaryActiveActivation(db);
+            dbActivation = WithDbContext(QueryPrimaryActiveActivation);
         }
         catch (Exception ex)
         {
@@ -244,6 +243,58 @@ public sealed class LicenseService : ILicenseService
                 _logger.LogWarning(
                     "License: trial expired and no valid license — payment creation will be blocked. Machine hash prefix {Prefix}.",
                     SafePrefix(_storage.MachineHashHex));
+        }
+
+        TryPublishLicenseActivityFireAndForget(_snapshot);
+    }
+
+    private void TryPublishLicenseActivityFireAndForget(LicenseStatusResponse snapshot)
+    {
+        if (OpenApiExportMode.IsEnabled || snapshot.IsDevelopmentBypass)
+            return;
+
+        _ = PublishLicenseActivityAsync(snapshot);
+    }
+
+    private async Task PublishLicenseActivityAsync(LicenseStatusResponse snapshot)
+    {
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var publisher = scope.ServiceProvider.GetRequiredService<IActivityEventPublisher>();
+
+            if (snapshot.IsExpired)
+            {
+                await publisher.TryPublishAsync(
+                    LegacyDefaultTenantIds.Primary,
+                    ActivityEventType.LicenseExpired,
+                    new
+                    {
+                        DaysRemaining = 0,
+                        ExpiryDate = snapshot.ExpiryDate,
+                        TenantId = LegacyDefaultTenantIds.Primary,
+                    },
+                    dedupKey: "deployment_license_expired").ConfigureAwait(false);
+                return;
+            }
+
+            if (snapshot.ExpiryDate == null || snapshot.DaysRemaining > 30)
+                return;
+
+            await publisher.TryPublishAsync(
+                LegacyDefaultTenantIds.Primary,
+                ActivityEventType.LicenseExpiringSoon,
+                new
+                {
+                    DaysRemaining = snapshot.DaysRemaining,
+                    ExpiryDate = snapshot.ExpiryDate,
+                    TenantId = LegacyDefaultTenantIds.Primary,
+                },
+                dedupKey: $"deployment_license_expiry_{snapshot.DaysRemaining}d").ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Deployment license activity notification publish skipped");
         }
     }
 
@@ -291,10 +342,9 @@ public sealed class LicenseService : ILicenseService
         ActivatedLicense? dbActivation = null;
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-            await using var db = await dbContextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
-            dbActivation = await QueryPrimaryActiveActivationAsync(db, cancellationToken).ConfigureAwait(false);
+            dbActivation = await WithDbContextAsync(
+                QueryPrimaryActiveActivationAsync,
+                cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -980,15 +1030,12 @@ public sealed class LicenseService : ILicenseService
         try
         {
             var machine = _storage.MachineHashHex;
-            using var scope = _scopeFactory.CreateScope();
-            var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-            using var db = dbContextFactory.CreateDbContext();
-            return db.ActivatedLicenses.AsNoTracking()
+            return WithDbContext(db => db.ActivatedLicenses.AsNoTracking()
                 .Where(a => a.IsActive && a.ValidUntilUtc > DateTime.UtcNow)
                 .Where(a => a.MachineFingerprint == null || a.MachineFingerprint == machine)
                 .OrderByDescending(a => a.ActivatedAtUtc)
                 .Select(a => a.LicenseKey)
-                .FirstOrDefault();
+                .FirstOrDefault());
         }
         catch (Exception ex)
         {

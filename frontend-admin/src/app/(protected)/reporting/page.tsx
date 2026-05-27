@@ -299,6 +299,7 @@ export default function ReportingPage() {
         actions={
           <Space wrap>
             <Button href="/reporting/report-center">{t('nav.reportCenter')}</Button>
+            <Button href="/reporting/compliance">{t('nav.complianceReports')}</Button>
             {canExport ? (
               <Button type="primary" loading={exporting} onClick={() => void onExportCsv()}>
                 {t('adminShell.reporting.exportCsv')}

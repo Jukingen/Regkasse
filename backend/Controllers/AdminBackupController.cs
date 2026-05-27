@@ -39,6 +39,7 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IHostEnvironment _hostEnvironment;
     private readonly AppDbContext _db;
     private readonly IBackupSettingsAdminService _backupSettings;
+    private readonly IBackupDashboardStatsService _dashboardStats;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -52,7 +53,8 @@ public sealed class AdminBackupController : ControllerBase
         ILogger<AdminBackupController> logger,
         IHostEnvironment hostEnvironment,
         AppDbContext db,
-        IBackupSettingsAdminService backupSettings)
+        IBackupSettingsAdminService backupSettings,
+        IBackupDashboardStatsService dashboardStats)
     {
         _trigger = trigger;
         _query = query;
@@ -66,6 +68,7 @@ public sealed class AdminBackupController : ControllerBase
         _hostEnvironment = hostEnvironment;
         _db = db;
         _backupSettings = backupSettings;
+        _dashboardStats = dashboardStats;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -134,6 +137,14 @@ public sealed class AdminBackupController : ControllerBase
     [ProducesResponseType(typeof(BackupScheduleStatusResponseDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<BackupScheduleStatusResponseDto>> GetScheduleStatus(CancellationToken cancellationToken)
         => Ok(await _backupSettings.GetScheduleStatusAsync(cancellationToken));
+
+    /// <summary>Monitoring dashboard aggregates (30-day success rate, RPO/RTO, history series).</summary>
+    [HttpGet("dashboard/stats")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupDashboardStatsResponseDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<BackupDashboardStatsResponseDto>> GetDashboardStats(
+        CancellationToken cancellationToken)
+        => Ok(await _dashboardStats.GetAsync(cancellationToken));
 
     [HttpGet("status/latest")]
     [HasPermission(AppPermissions.SettingsView)]

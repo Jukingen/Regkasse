@@ -1,9 +1,7 @@
 import React, { ReactNode } from 'react';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { ConfigProvider } from 'antd';
-import theme from '@/theme/themeConfig';
-import QueryProvider from '@/app/providers';
+import { AppProviders } from '@/providers/AppProviders';
 import StyledComponentsRegistry from '@/lib/AntdRegistry';
+import { THEME_BOOTSTRAP_SCRIPT } from '@/lib/personalization/themeBootstrapScript';
 
 import './globals.css';
 
@@ -19,14 +17,13 @@ export default function RootLayout({
 }) {
     return (
         <html lang="de" suppressHydrationWarning>
+            <head>
+                <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
+            </head>
             <body style={{ margin: 0, padding: 0 }}>
-                <QueryProvider>
-                    <StyledComponentsRegistry>
-                        <ConfigProvider theme={theme}>
-                            {children}
-                        </ConfigProvider>
-                    </StyledComponentsRegistry>
-                </QueryProvider>
+                <AppProviders>
+                    <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
+                </AppProviders>
             </body>
         </html>
     );

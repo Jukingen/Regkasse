@@ -4,9 +4,43 @@
   "columns": {
     "name": "Register",
     "status": "Status",
+    "operations": "Operations",
+    "compliance": "RKSV",
     "activity": "Activity",
     "balance": "Balance",
     "actions": "Actions"
+  },
+  "tseHealth": {
+    "healthy": "TSE OK",
+    "degraded": "TSE degraded",
+    "offline": "TSE offline",
+    "notConfigured": "TSE not configured",
+    "lastCheck": "Last check"
+  },
+  "offlineQueue": {
+    "label": "{{count}} offline",
+    "tooltip": "{{count}} pending offline transaction(s)"
+  },
+  "tseHealthFilter": {
+    "placeholder": "TSE status",
+    "healthy": "TSE OK",
+    "degraded": "TSE degraded",
+    "offline": "TSE offline",
+    "notConfigured": "Not configured"
+  },
+  "bulk": {
+    "selectedCount": "{{count}} register(s) selected",
+    "decommissionAction": "Decommission selected registers",
+    "decommissionTitle": "Decommission multiple registers",
+    "decommissionSummary": "{{eligible}} of {{total}} registers can be decommissioned.",
+    "skippedCount": "{{count}} register(s) skipped (open shift or already decommissioned).",
+    "decommissionConfirm": "Confirm decommission",
+    "success": "{{count}} register(s) decommissioned.",
+    "partialSuccess": "{{success}} decommissioned, {{failed}} failed."
+  },
+  "shift": {
+    "openSuccess": "Register opened.",
+    "closeSuccess": "Register closed."
   },
   "filter": {
     "showDecommissioned": "Show decommissioned registers",
@@ -22,11 +56,17 @@
     "edit": "Edit",
     "decommission": "Decommission",
     "specialReceipts": "Special receipts",
+    "offlineQueue": "Offline queue",
+    "tseHealth": "TSE status",
     "tableView": "Table",
     "gridView": "Cards",
     "export": "Export",
     "restore": "Restore",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "quickActions": "Actions",
+    "openRegister": "Open register",
+    "closeRegister": "Close register",
+    "viewReceipts": "View receipts"
   },
   "status": {
     "closed": "Closed",
@@ -78,7 +118,17 @@
     "openTseDetails": "Show TSE details",
     "specialReceiptsTitle": "Special receipts",
     "decommissionedAt": "Decommissioned at (UTC)",
-    "decommissionReason": "Decommission reason"
+    "decommissionReason": "Decommission reason",
+    "lastSyncAtUtc": "Last sync",
+    "offlineQueueCount": "Offline queue",
+    "currentCashier": "Current cashier",
+    "deviceInfoTitle": "Device",
+    "deviceModel": "Model",
+    "deviceOs": "OS",
+    "deviceApp": "App version",
+    "offlineQueueTransactions": "{{count}} transaction(s)",
+    "noCashier": "Nobody",
+    "deviceUnknown": "Unknown"
   },
   "hardDelete": {
     "action": "Hard delete (test)",

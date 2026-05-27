@@ -3,6 +3,7 @@
 ## Source of truth
 - Contract kaynağı: `backend/swagger.json`.
 - Backend implementation ve frontend tüketimi bu dosyayla hizalı olmalıdır.
+- **Supplement (auth / username deltas):** [`docs/API_CONTRACTS.md`](../docs/API_CONTRACTS.md) — `loginIdentifier`, `userName`, Quick Create (`/users/quick`).
 
 ## API Headers
 

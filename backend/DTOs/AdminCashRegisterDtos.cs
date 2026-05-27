@@ -33,6 +33,27 @@ public sealed class HardDeleteCashRegisterRequest
     public string ConfirmPhrase { get; set; } = string.Empty;
 }
 
+/// <summary>POS device metadata last observed for a register (nullable until POS reports it).</summary>
+public sealed class CashRegisterDeviceInfoDto
+{
+    public string? Model { get; set; }
+    public string? OsVersion { get; set; }
+    public string? AppVersion { get; set; }
+}
+
+/// <summary>Per-register TSE health snapshot for admin FA.</summary>
+public sealed class CashRegisterTseHealthDto
+{
+    /// <summary>healthy | degraded | offline | notConfigured</summary>
+    public string Status { get; set; } = "notConfigured";
+
+    public DateTime? LastCheckUtc { get; set; }
+
+    public string? Message { get; set; }
+
+    public int OfflineQueueCount { get; set; }
+}
+
 /// <summary>Admin FA list/detail projection for cash register inventory rows.</summary>
 public sealed class CashRegisterDto
 {
@@ -54,4 +75,19 @@ public sealed class CashRegisterDto
     public string? CreatedBy { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public string? UpdatedBy { get; init; }
+
+    public DateTime? LastMonatsbelegUtc { get; set; }
+    public DateTime? LastJahresbelegUtc { get; set; }
+
+    /// <summary>healthy | degraded | offline | notConfigured</summary>
+    public string TseHealthStatus { get; set; } = "notConfigured";
+
+    public int OfflineQueueCount { get; set; }
+
+    /// <summary>Last successful fiscal payment or TSE health ping (UTC).</summary>
+    public DateTime? LastSyncAtUtc { get; set; }
+
+    public string? CurrentCashierName { get; set; }
+
+    public CashRegisterDeviceInfoDto DeviceInfo { get; set; } = new();
 }

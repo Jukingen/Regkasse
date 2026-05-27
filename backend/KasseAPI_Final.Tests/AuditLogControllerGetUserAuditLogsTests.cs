@@ -22,7 +22,8 @@ public class AuditLogControllerGetUserAuditLogsTests
     {
         var logger = new Mock<ILogger<AuditLogController>>().Object;
         var resolver = actorDisplayNameResolver ?? CreateDefaultResolver();
-        var controller = new AuditLogController(auditLogService, resolver, logger);
+        var export = new Mock<IAuditExportService>();
+        var controller = new AuditLogController(auditLogService, export.Object, resolver, logger);
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, userId ?? ""),

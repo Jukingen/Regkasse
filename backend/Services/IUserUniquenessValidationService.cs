@@ -10,6 +10,9 @@ public interface IUserUniquenessValidationService
     /// <summary>True if another user (or any user when excludeUserId is null) has this email.</summary>
     Task<bool> IsEmailTakenByOtherUserAsync(string? email, string? excludeUserId);
 
+    /// <summary>True if another user (or any user when excludeUserId is null) has this login username.</summary>
+    Task<bool> IsUserNameTakenByOtherUserAsync(string? userName, string? excludeUserId);
+
     /// <summary>True if another user (or any user when excludeUserId is null) has this employee number. Values are trimmed.</summary>
     Task<bool> IsEmployeeNumberTakenByOtherUserAsync(string? employeeNumber, string? excludeUserId);
 

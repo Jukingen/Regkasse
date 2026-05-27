@@ -99,3 +99,40 @@ public sealed class StaffPerformanceAnomalyDto
     public decimal? MetricValue { get; set; }
     public decimal? Threshold { get; set; }
 }
+
+/// <summary>Extended user performance report (payment_details, per cashier user id).</summary>
+public sealed class UserPerformanceReportDto
+{
+    public DateTime PeriodStartLocal { get; set; }
+    public DateTime PeriodEndLocal { get; set; }
+    public OperationalReportMetaDto Meta { get; set; } = new();
+    public StaffPerformanceReliabilityDto Reliability { get; set; } = new();
+    public IReadOnlyList<UserPerformanceRowDto> PerUser { get; set; } = Array.Empty<UserPerformanceRowDto>();
+    public IReadOnlyList<string> TopPerformers { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<string> HighStornoRateWarning { get; set; } = Array.Empty<string>();
+    public const decimal DefaultHighStornoRateThreshold = 0.05m;
+    public decimal HighStornoRateThreshold { get; set; } = DefaultHighStornoRateThreshold;
+}
+
+public sealed class UserPerformanceRowDto
+{
+    public string UserId { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+
+    public int TransactionCount { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal AverageTransactionValue { get; set; }
+
+    public int StornoCount { get; set; }
+    public decimal StornoRate { get; set; }
+    public int RefundCount { get; set; }
+    public decimal RefundRate { get; set; }
+
+    public decimal TransactionsPerHour { get; set; }
+    public double AverageProcessingSeconds { get; set; }
+
+    public DateTime? FirstTransactionAtUtc { get; set; }
+    public DateTime? LastTransactionAtUtc { get; set; }
+    public double ActiveHours { get; set; }
+}

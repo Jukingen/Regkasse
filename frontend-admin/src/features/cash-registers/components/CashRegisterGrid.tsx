@@ -2,12 +2,14 @@
 import type { ReactNode } from 'react';
 import {
     CheckCircleOutlined,
+    CloudSyncOutlined,
     ClockCircleOutlined,
     EnvironmentOutlined,
     EyeOutlined,
     FileProtectOutlined,
     LockOutlined,
     MinusCircleOutlined,
+    SafetyOutlined,
     ShopOutlined,
     StopOutlined,
     ToolOutlined,
@@ -17,6 +19,8 @@ import {
 import { Button, Card, Col, Empty, Row, Tag, Tooltip, Typography } from 'antd';
 import type { CashRegister } from '@/api/generated/model';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
+import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
+import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import {
     canDecommissionRegister,
     isDecommissionedRegister,
@@ -39,6 +43,18 @@ export type CashRegisterGridProps = {
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
+}
+
+function asEnhanced(record: CashRegister): EnhancedCashRegister {
+    return record as EnhancedCashRegister;
+}
+
+function resolveCashierName(record: EnhancedCashRegister): string | null {
+    const fromApi = record.currentCashierName?.trim();
+    if (fromApi) {
+        return fromApi;
+    }
+    return record.currentUser?.userName?.trim() || record.currentUserId?.trim() || null;
 }
 
 function renderLoadingCards() {
@@ -112,8 +128,13 @@ export function CashRegisterGrid({
     return (
         <Row gutter={[16, 16]}>
             {registers.map((register) => {
+                const enhanced = asEnhanced(register);
                 const status = rawRegisterStatus(register);
                 const decommissioned = isDecommissionedRegister(status);
+                const registerId = register.id?.trim();
+                const offlineHref = registerId
+                    ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
+                    : '/admin/tse/offline-transactions';
                 const canStilllegen =
                     canDecommission &&
                     !decommissioned &&
@@ -168,6 +189,35 @@ export function CashRegisterGrid({
                 }
 
                 actions.push(
+                    <Tooltip title={t('cashRegisters.actions.tseHealth')} key="tse">
+                        <Button
+                            type="text"
+                            icon={<SafetyOutlined />}
+                            aria-label={t('cashRegisters.actions.tseHealth')}
+                            href="/rksv/status"
+                        />
+                    </Tooltip>,
+                );
+
+                if ((enhanced.offlineQueueCount ?? 0) > 0) {
+                    actions.push(
+                        <Tooltip
+                            title={t('cashRegisters.offlineQueue.tooltip', {
+                                count: enhanced.offlineQueueCount ?? 0,
+                            })}
+                            key="offline"
+                        >
+                            <Button
+                                type="text"
+                                icon={<CloudSyncOutlined />}
+                                aria-label={t('cashRegisters.actions.offlineQueue')}
+                                href={offlineHref}
+                            />
+                        </Tooltip>,
+                    );
+                }
+
+                actions.push(
                     <Tooltip title={t('cashRegisters.actions.specialReceipts')} key="special">
                         <Button
                             type="text"
@@ -204,6 +254,17 @@ export function CashRegisterGrid({
                                 <Tag>{register.isActive === false ? t('common.categories.table.inactive') : t('common.categories.table.active')}</Tag>
                             </div>
 
+                            <div className={styles.statusRow}>
+                                <TseHealthBadge status={enhanced.tseHealthStatus} />
+                                {(enhanced.offlineQueueCount ?? 0) > 0 ? (
+                                    <Tag color="orange">
+                                        {t('cashRegisters.offlineQueue.label', {
+                                            count: enhanced.offlineQueueCount ?? 0,
+                                        })}
+                                    </Tag>
+                                ) : null}
+                            </div>
+
                             <div className={styles.details}>
                                 <div>
                                     <Typography.Text className={styles.detailLabel}>
@@ -233,12 +294,43 @@ export function CashRegisterGrid({
 
                                 <div>
                                     <Typography.Text className={styles.detailLabel}>
-                                        <UserOutlined /> {t('cashRegisters.detail.currentUser')}
+                                        <UserOutlined /> {t('cashRegisters.detail.currentCashier')}
                                     </Typography.Text>
                                     <Typography.Text className={styles.detailValue}>
-                                        {register.currentUser?.userName?.trim() ||
-                                            register.currentUserId?.trim() ||
-                                            FORMAT_EMPTY_DISPLAY}
+                                        {resolveCashierName(enhanced) ?? FORMAT_EMPTY_DISPLAY}
+                                    </Typography.Text>
+                                </div>
+
+                                <div>
+                                    <Typography.Text className={styles.detailLabel}>
+                                        <ClockCircleOutlined /> {t('cashRegisters.detail.lastSyncAtUtc')}
+                                    </Typography.Text>
+                                    <Typography.Text className={styles.detailValue}>
+                                        {enhanced.lastSyncAtUtc
+                                            ? formatDateTime(enhanced.lastSyncAtUtc, formatLocale)
+                                            : FORMAT_EMPTY_DISPLAY}
+                                    </Typography.Text>
+                                </div>
+
+                                <div>
+                                    <Typography.Text className={styles.detailLabel}>
+                                        {t('cashRegisters.detail.lastMonatsbelegUtc')}
+                                    </Typography.Text>
+                                    <Typography.Text className={styles.detailValue}>
+                                        {enhanced.lastMonatsbelegUtc
+                                            ? formatDateTime(enhanced.lastMonatsbelegUtc, formatLocale)
+                                            : FORMAT_EMPTY_DISPLAY}
+                                    </Typography.Text>
+                                </div>
+
+                                <div>
+                                    <Typography.Text className={styles.detailLabel}>
+                                        {t('cashRegisters.detail.lastJahresbelegUtc')}
+                                    </Typography.Text>
+                                    <Typography.Text className={styles.detailValue}>
+                                        {enhanced.lastJahresbelegUtc
+                                            ? formatDateTime(enhanced.lastJahresbelegUtc, formatLocale)
+                                            : FORMAT_EMPTY_DISPLAY}
                                     </Typography.Text>
                                 </div>
                             </div>

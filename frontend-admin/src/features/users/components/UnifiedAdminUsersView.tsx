@@ -31,6 +31,7 @@ import {
     EditOutlined,
     EyeOutlined,
     FileExcelOutlined,
+    ImportOutlined,
     FilePdfOutlined,
     GlobalOutlined,
     ReloadOutlined,
@@ -43,6 +44,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+import { BulkImportModal } from '@/features/users/components/BulkImportModal';
 import { CreateUserModal } from '@/features/users/components/CreateUserModal';
 import type { CreateUserQuickFormValues } from '@/features/users/components/CreateUserModal';
 import { createQuickUser, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
@@ -89,7 +91,7 @@ export type { UnifiedAdminUserRow } from '@/features/users/types/unifiedAdminUse
 const TENANT_ROLE_FILTER_VALUES = ['SuperAdmin', 'Manager', 'Cashier', 'Accountant', 'Waiter', 'Kitchen'] as const;
 const FILTER_ALL = ADMIN_USERS_FILTER_ALL;
 const FILTER_PLATFORM = ADMIN_USERS_FILTER_PLATFORM;
-const TABLE_SCROLL_X = 1400;
+const TABLE_SCROLL_X = 1520;
 const TABLE_SCROLL_Y = 'calc(100vh - 250px)';
 const SEARCH_DEBOUNCE_MS = 300;
 const TEMP_PASSWORD_MASK = '***';
@@ -226,6 +228,7 @@ export function UnifiedAdminUsersView({
     const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_MS);
     const searchParam = debouncedSearch.trim() || undefined;
     const [createOpen, setCreateOpen] = useState(false);
+    const [bulkImportOpen, setBulkImportOpen] = useState(false);
     const [resetRow, setResetRow] = useState<TenantUserRow | null>(null);
     const [passwordRow, setPasswordRow] = useState<UnifiedAdminUserRow | null>(null);
 
@@ -324,6 +327,7 @@ export function UnifiedAdminUsersView({
                     row: tenantUser,
                     user: {
                         id: row.userId,
+                        userName: row.userName || undefined,
                         email: row.email,
                         firstName: row.name.split(' ')[0] ?? '',
                         lastName: row.name.split(' ').slice(1).join(' '),
@@ -750,6 +754,7 @@ export function UnifiedAdminUsersView({
         try {
             const headers = [
                 t('users.unified.columns.user'),
+                t('users.unified.columns.userName'),
                 t('users.unified.columns.tenant'),
                 t('users.unified.columns.role'),
                 t('users.unified.columns.status'),
@@ -758,6 +763,7 @@ export function UnifiedAdminUsersView({
             ];
             const rows = filteredRows.map((row) => [
                 avatarLabel(row),
+                row.user.userName?.trim() || '—',
                 getTenantExportLabel(row),
                 row.role,
                 getStatusExportLabel(row),
@@ -793,6 +799,7 @@ export function UnifiedAdminUsersView({
                         (row) => `
                             <tr>
                                 <td>${escapeHtml(avatarLabel(row))}</td>
+                                <td>${escapeHtml(row.user.userName?.trim() || '—')}</td>
                                 <td>${escapeHtml(getTenantExportLabel(row))}</td>
                                 <td>${escapeHtml(row.role)}</td>
                                 <td>${escapeHtml(getStatusExportLabel(row))}</td>
@@ -813,6 +820,7 @@ export function UnifiedAdminUsersView({
                             <thead>
                                 <tr>
                                     <th>${escapeHtml(t('users.unified.columns.user'))}</th>
+                                    <th>${escapeHtml(t('users.unified.columns.userName'))}</th>
                                     <th>${escapeHtml(t('users.unified.columns.tenant'))}</th>
                                     <th>${escapeHtml(t('users.unified.columns.role'))}</th>
                                     <th>${escapeHtml(t('users.unified.columns.status'))}</th>
@@ -881,6 +889,17 @@ export function UnifiedAdminUsersView({
                         </Flex>
                     </Flex>
                 ),
+            },
+            {
+                title: t('users.unified.columns.userName'),
+                key: 'userName',
+                width: 140,
+                ellipsis: true,
+                render: (_: unknown, row) => row.user.userName?.trim() || '—',
+                sorter: (a, b) =>
+                    (a.user.userName ?? '').localeCompare(b.user.userName ?? '', undefined, {
+                        sensitivity: 'base',
+                    }),
             },
             {
                 title: t('users.unified.columns.tenant'),
@@ -1068,9 +1087,16 @@ export function UnifiedAdminUsersView({
                     </Button>
                 </Dropdown>
                 {policy.canProvisionTenantCredentials && tenantFilter !== FILTER_PLATFORM ? (
-                    <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreateOpen(true)}>
-                        {t('users.create.action')}
-                    </Button>
+                    <>
+                        <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreateOpen(true)}>
+                            {t('users.create.action')}
+                        </Button>
+                        {policy.canCreate ? (
+                            <Button icon={<ImportOutlined />} onClick={() => setBulkImportOpen(true)}>
+                                Massenimport
+                            </Button>
+                        ) : null}
+                    </>
                 ) : null}
                 {policy.canCreate ? (
                     <Button icon={<UserOutlined />} onClick={onCreatePlatformUser}>
@@ -1140,6 +1166,13 @@ export function UnifiedAdminUsersView({
                                   }
                                 : undefined
                         }
+                    />
+                    <BulkImportModal
+                        open={bulkImportOpen}
+                        onClose={() => setBulkImportOpen(false)}
+                        onSuccess={() => {
+                            void refetchAll();
+                        }}
                     />
                     <ResetPasswordModal
                         open={!!resetRow}

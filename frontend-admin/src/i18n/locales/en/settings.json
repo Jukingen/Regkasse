@@ -221,5 +221,71 @@
       "cashRegisterId": "Cash register (UUID, optional)",
       "placeholderOptional": "optional"
     }
+  },
+  "personalization": {
+    "pageTitle": "Appearance & language",
+    "appearance": {
+      "cardTitle": "Appearance",
+      "theme": "Theme",
+      "density": "Density",
+      "defaultPage": "Home page after sign-in",
+      "dateFormatLabel": "Date format",
+      "timeFormat": "Time format",
+      "reducedMotion": "Reduce animations",
+      "reducedMotionHint": "For better performance",
+      "dateFormatOptions": {
+        "DD_MM_YYYY": "DD.MM.YYYY (31.12.2024)",
+        "YYYY_MM_DD": "YYYY-MM-DD (2024-12-31)",
+        "MM_DD_YYYY": "MM/DD/YYYY (12/31/2024)"
+      }
+    },
+    "theme": {
+      "cardTitle": "Color theme",
+      "description": "Light, dark, or follow the operating system.",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "quickSwitchAria": "Change color theme"
+    },
+    "density": {
+      "cardTitle": "Display density",
+      "description": "Compact shows more on screen; standard is the default; comfortable adds spacing.",
+      "comfortable": "Comfortable",
+      "standard": "Standard",
+      "compact": "Compact"
+    },
+    "language": {
+      "description": "Admin UI language (stored per browser)."
+    },
+    "dateTimeFormat": {
+      "cardTitle": "Date & time format",
+      "description": "Overrides formatting in tables and detail views. Auto follows the selected language.",
+      "dateLabel": "Date format",
+      "auto": "Automatic (language)",
+      "deAt": "German (Austria)",
+      "enUs": "English (US)",
+      "trTr": "Turkish"
+    },
+    "timeFormat": {
+      "label": "Time format",
+      "h24": "24-hour",
+      "h12": "12-hour (AM/PM)",
+      "h24Example": "24-hour (14:30)",
+      "h12Example": "12-hour (02:30 PM)"
+    },
+    "accessibility": {
+      "cardTitle": "Accessibility",
+      "reducedMotion": "Reduce animations",
+      "reducedMotionDescription": "Shorter transitions and less motion in the UI."
+    },
+    "syncing": "Saving preferences…",
+    "landing": {
+      "cardTitle": "Home after sign-in",
+      "description": "Destination after a successful login (password change takes priority).",
+      "dashboard": "Dashboard",
+      "admin_users": "Users",
+      "kassenverwaltung": "Cash registers",
+      "reporting": "Reports"
+    }
   }
 }

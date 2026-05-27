@@ -64,6 +64,16 @@ public interface IOperationalReportingService
         bool includePerStaffPerDay,
         CancellationToken cancellationToken = default);
 
+    Task<UserPerformanceReportDto> GetUserPerformanceAsync(
+        DateTime? startDate,
+        DateTime? endDate,
+        Guid? cashRegisterId,
+        string? cashierId,
+        int? paymentMethod,
+        bool activeOnly,
+        decimal highStornoRateThreshold = UserPerformanceReportDto.DefaultHighStornoRateThreshold,
+        CancellationToken cancellationToken = default);
+
     Task<PeriodenberichtRunDto> FreezePeriodicAsync(
         FreezePeriodenberichtRequest request,
         string actorUserId,
@@ -454,6 +464,104 @@ public sealed class OperationalReportingService : IOperationalReportingService
         };
     }
 
+    /// <inheritdoc />
+    public async Task<UserPerformanceReportDto> GetUserPerformanceAsync(
+        DateTime? startDate,
+        DateTime? endDate,
+        Guid? cashRegisterId,
+        string? cashierId,
+        int? paymentMethod,
+        bool activeOnly,
+        decimal highStornoRateThreshold = UserPerformanceReportDto.DefaultHighStornoRateThreshold,
+        CancellationToken cancellationToken = default)
+    {
+        var (fromUtc, endBoundUtc, endExclusive, repStart, repEnd) = ResolveRange(startDate, endDate);
+
+        IQueryable<PaymentDetails> q = _db.PaymentDetails.AsNoTracking();
+        if (endExclusive)
+            q = q.Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < endBoundUtc);
+        else
+            q = q.Where(p => p.CreatedAt >= fromUtc && p.CreatedAt <= endBoundUtc);
+
+        if (cashRegisterId.HasValue)
+            q = q.Where(p => p.CashRegisterId == cashRegisterId.Value);
+        if (!string.IsNullOrWhiteSpace(cashierId))
+            q = q.Where(p => p.CashierId == cashierId);
+        if (paymentMethod.HasValue)
+            q = q.Where(p => p.PaymentMethodRaw == paymentMethod.Value.ToString(CultureInfo.InvariantCulture));
+        if (activeOnly)
+            q = q.Where(p => p.IsActive);
+        q = q.Where(p => p.RksvSpecialReceiptKind == null);
+
+        var rawRows = await q
+            .Select(p => new
+            {
+                p.CashierId,
+                p.CreatedAt,
+                p.TseTimestamp,
+                p.IsRefund,
+                p.IsStorno,
+                p.TotalAmount,
+            })
+            .ToListAsync(cancellationToken);
+
+        var projected = rawRows
+            .Select(p => new PaymentUserProjection(
+                p.CashierId,
+                p.CreatedAt,
+                p.TseTimestamp,
+                p.IsRefund,
+                p.IsStorno,
+                p.TotalAmount))
+            .ToList();
+
+        var cashierIds = projected.Select(p => p.CashierId).Distinct().ToList();
+        var names = await ResolveCashierDisplayNamesAsync(cashierIds, cancellationToken);
+        var roles = await ResolvePrimaryRolesAsync(cashierIds, cancellationToken);
+
+        var perUser = projected
+            .GroupBy(p => p.CashierId)
+            .Select(g => BuildUserPerformanceRow(g.Key, g.ToList(), names, roles))
+            .OrderByDescending(r => r.TransactionCount)
+            .ToList();
+
+        var topPerformers = perUser
+            .OrderByDescending(u => u.TransactionCount)
+            .Take(5)
+            .Select(u => u.UserId)
+            .ToList();
+
+        var stornoWarn = perUser
+            .Where(u => u.StornoRate > highStornoRateThreshold && u.StornoCount > 0)
+            .Select(u => u.UserId)
+            .ToList();
+
+        return new UserPerformanceReportDto
+        {
+            PeriodStartLocal = repStart,
+            PeriodEndLocal = repEnd,
+            Meta = new OperationalReportMetaDto
+            {
+                SchemaVersion = "1.0-user-performance",
+                ReportGeneratedAtUtc = DateTime.UtcNow,
+                PeriodStartUtc = fromUtc,
+                PeriodEndUtc = endBoundUtc,
+                PeriodStartLocalDate = repStart,
+                PeriodEndLocalDate = repEnd,
+                PeriodPreset = "user_performance",
+                CashRegisterId = cashRegisterId,
+                CashierId = cashierId,
+                PaymentMethodFilter = paymentMethod,
+                ActiveOnly = activeOnly,
+            },
+            Reliability = new StaffPerformanceReliabilityDto(),
+            PerUser = perUser,
+            TopPerformers = topPerformers,
+            HighStornoRateWarning = stornoWarn,
+            HighStornoRateThreshold = highStornoRateThreshold,
+        };
+    }
+
     public async Task<PeriodenberichtRunDto> FreezePeriodicAsync(
         FreezePeriodenberichtRequest request,
         string actorUserId,
@@ -806,6 +914,85 @@ public sealed class OperationalReportingService : IOperationalReportingService
         bool IsStorno,
         decimal TotalAmount,
         string PaymentMethodRaw);
+
+    private sealed record PaymentUserProjection(
+        string CashierId,
+        DateTime CreatedAt,
+        DateTime TseTimestamp,
+        bool IsRefund,
+        bool IsStorno,
+        decimal TotalAmount);
+
+    private async Task<IReadOnlyDictionary<string, string>> ResolvePrimaryRolesAsync(
+        IReadOnlyList<string> userIds,
+        CancellationToken cancellationToken)
+    {
+        if (userIds.Count == 0)
+            return new Dictionary<string, string>(StringComparer.Ordinal);
+
+        var rows = await (
+            from ur in _db.UserRoles.AsNoTracking()
+            join r in _db.Roles.AsNoTracking() on ur.RoleId equals r.Id
+            where userIds.Contains(ur.UserId)
+            select new { ur.UserId, RoleName = r.Name ?? string.Empty }
+        ).ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(x => x.UserId, StringComparer.Ordinal)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => x.RoleName).FirstOrDefault(n => !string.IsNullOrEmpty(n)) ?? string.Empty,
+                StringComparer.Ordinal);
+    }
+
+    private static UserPerformanceRowDto BuildUserPerformanceRow(
+        string userId,
+        List<PaymentUserProjection> rows,
+        IReadOnlyDictionary<string, (string? UserName, string? Email)> names,
+        IReadOnlyDictionary<string, string> roles)
+    {
+        var sales = rows.Where(p => !p.IsRefund && !p.IsStorno).ToList();
+        var refunds = rows.Where(p => p.IsRefund).ToList();
+        var stornos = rows.Where(p => p.IsStorno).ToList();
+
+        var saleCount = sales.Count;
+        var gross = sales.Sum(p => p.TotalAmount);
+        var totalDenom = saleCount + stornos.Count;
+
+        names.TryGetValue(userId, out var name);
+        roles.TryGetValue(userId, out var role);
+
+        var ordered = rows.OrderBy(p => p.CreatedAt).ToList();
+        var firstAt = ordered.FirstOrDefault()?.CreatedAt;
+        var lastAt = ordered.LastOrDefault()?.CreatedAt;
+        var activeHours = firstAt.HasValue && lastAt.HasValue
+            ? Math.Max((lastAt.Value - firstAt.Value).TotalHours, 0.25)
+            : 0;
+
+        var processingSamples = sales
+            .Select(p => (p.TseTimestamp - p.CreatedAt).TotalSeconds)
+            .Where(s => s > 0 && s < 600)
+            .ToList();
+
+        return new UserPerformanceRowDto
+        {
+            UserId = userId,
+            UserName = name.UserName ?? userId,
+            Role = role ?? string.Empty,
+            TransactionCount = saleCount,
+            TotalAmount = gross,
+            AverageTransactionValue = saleCount == 0 ? 0 : gross / saleCount,
+            StornoCount = stornos.Count,
+            StornoRate = totalDenom == 0 ? 0 : (decimal)stornos.Count / totalDenom,
+            RefundCount = refunds.Count,
+            RefundRate = saleCount == 0 ? 0 : (decimal)refunds.Count / saleCount,
+            TransactionsPerHour = activeHours > 0 ? (decimal)(saleCount / activeHours) : 0,
+            AverageProcessingSeconds = processingSamples.Count > 0 ? processingSamples.Average() : 0,
+            FirstTransactionAtUtc = firstAt,
+            LastTransactionAtUtc = lastAt,
+            ActiveHours = activeHours,
+        };
+    }
 
     private static string ViennaDayKey(DateTime createdAtUtc)
     {

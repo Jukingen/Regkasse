@@ -17,12 +17,28 @@ export type AuditLogListParams = {
     endDate?: string;
     action?: string;
     userId?: string;
+    targetUserId?: string;
     entityType?: AuditLogEntityTypeFilter;
     entityId?: string;
+    ipAddress?: string;
     status?: AuditLogStatusFilter;
+    statusOutcome?: 'success' | 'failure';
+    hasChanges?: boolean;
 };
 
-const FILTER_KEYS = ['startDate', 'endDate', 'action', 'userId', 'entityType', 'entityId', 'status'] as const;
+const FILTER_KEYS = [
+    'startDate',
+    'endDate',
+    'action',
+    'userId',
+    'targetUserId',
+    'entityType',
+    'entityId',
+    'ipAddress',
+    'status',
+    'statusOutcome',
+    'hasChanges',
+] as const;
 
 function parsePositiveInt(raw: string | null, fallback: number): number {
     if (!raw) return fallback;
@@ -45,9 +61,17 @@ export function useAuditLogSearchParams() {
             endDate: raw.endDate?.trim() || undefined,
             action: raw.action?.trim() || undefined,
             userId: raw.userId?.trim() || undefined,
+            targetUserId: raw.targetUserId?.trim() || undefined,
             entityType: (raw.entityType?.trim() || undefined) as AuditLogEntityTypeFilter | undefined,
             entityId: raw.entityId?.trim() || undefined,
+            ipAddress: raw.ipAddress?.trim() || undefined,
             status: parseAuditLogStatusFromUrl(raw.status),
+            statusOutcome:
+                raw.statusOutcome === 'success' || raw.statusOutcome === 'failure'
+                    ? raw.statusOutcome
+                    : undefined,
+            hasChanges:
+                raw.hasChanges === 'true' ? true : raw.hasChanges === 'false' ? false : undefined,
         };
     }, [searchParams]);
 
@@ -70,9 +94,14 @@ export function useAuditLogSearchParams() {
             if (merged.endDate) qp.set('endDate', merged.endDate);
             if (merged.action) qp.set('action', merged.action);
             if (merged.userId) qp.set('userId', merged.userId);
+            if (merged.targetUserId) qp.set('targetUserId', merged.targetUserId);
             if (merged.entityType) qp.set('entityType', merged.entityType);
             if (merged.entityId) qp.set('entityId', merged.entityId);
+            if (merged.ipAddress) qp.set('ipAddress', merged.ipAddress);
             if (merged.status) qp.set('status', toAuditLogStatusUrlParam(merged.status));
+            if (merged.statusOutcome) qp.set('statusOutcome', merged.statusOutcome);
+            if (merged.hasChanges === true) qp.set('hasChanges', 'true');
+            if (merged.hasChanges === false) qp.set('hasChanges', 'false');
 
             const qs = qp.toString();
             // App Router: scroll:false avoids full navigation; URL updates without reload.

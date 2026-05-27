@@ -30,7 +30,8 @@ public sealed class AdminCreateUserRequest
     [MaxLength(128)]
     public string? Password { get; set; }
 
-    [MaxLength(50)]
+    /// <summary>Optional login name; generated from role when omitted (e.g. admin1, manager2).</summary>
+    [MaxLength(256)]
     public string? UserName { get; set; }
 
     [MaxLength(20)]

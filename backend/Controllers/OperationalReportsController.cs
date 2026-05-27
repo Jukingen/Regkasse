@@ -18,15 +18,46 @@ namespace KasseAPI_Final.Controllers;
 public class OperationalReportsController : ControllerBase
 {
     private readonly IOperationalReportingService _reporting;
+    private readonly IComplianceOperationalReportingService _compliance;
 
-    public OperationalReportsController(IOperationalReportingService reporting)
+    public OperationalReportsController(
+        IOperationalReportingService reporting,
+        IComplianceOperationalReportingService compliance)
     {
         _reporting = reporting;
+        _compliance = compliance;
     }
 
     /// <summary>
     /// Kasiyer-Leistung: Zählungen und Beträge aus <c>payment_details</c> (kein Audit-Mix; siehe <see cref="StaffPerformanceReliabilityDto"/>).
     /// </summary>
+    /// <summary>
+    /// User performance: activity, quality (storno/refund rates), efficiency, and rankings.
+    /// </summary>
+    [HttpGet("user-performance")]
+    [ProducesResponseType(typeof(UserPerformanceReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<UserPerformanceReportDto>> GetUserPerformance(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] Guid? cashRegisterId,
+        [FromQuery] string? cashierId,
+        [FromQuery] int? paymentMethod,
+        [FromQuery] bool activeOnly = true,
+        [FromQuery] decimal highStornoRateThreshold = UserPerformanceReportDto.DefaultHighStornoRateThreshold,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _reporting.GetUserPerformanceAsync(
+            startDate,
+            endDate,
+            cashRegisterId,
+            cashierId,
+            paymentMethod,
+            activeOnly,
+            highStornoRateThreshold,
+            cancellationToken);
+        return Ok(data);
+    }
+
     [HttpGet("staff-performance")]
     [ProducesResponseType(typeof(StaffPerformanceReportDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<StaffPerformanceReportDto>> GetStaffPerformance(
@@ -205,5 +236,79 @@ public class OperationalReportsController : ControllerBase
     {
         if (string.IsNullOrEmpty(s)) return "\"\"";
         return "\"" + s.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
+    }
+
+    [HttpGet("daily-reconciliation")]
+    [ProducesResponseType(typeof(DailyReconciliationReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DailyReconciliationReportDto>> GetDailyReconciliation(
+        [FromQuery] DateTime? businessDate,
+        [FromQuery] Guid? cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _compliance.GetDailyReconciliationAsync(businessDate, cashRegisterId, cancellationToken);
+        return Ok(data);
+    }
+
+    [HttpGet("tse-chain-continuity")]
+    [ProducesResponseType(typeof(TseChainContinuityReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<TseChainContinuityReportDto>> GetTseChainContinuity(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] Guid? cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _compliance.GetTseChainContinuityAsync(startDate, endDate, cashRegisterId, cancellationToken);
+        return Ok(data);
+    }
+
+    [HasPermission(AppPermissions.ReportExport)]
+    [HttpGet("tse-chain-continuity/export")]
+    public async Task<IActionResult> ExportTseChainContinuity(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] Guid? cashRegisterId,
+        [FromQuery] string format = "csv",
+        CancellationToken cancellationToken = default)
+    {
+        var (content, contentType, fileName) = await _compliance.ExportTseChainContinuityAsync(
+            startDate, endDate, cashRegisterId, format, cancellationToken);
+        return File(content, contentType, fileName);
+    }
+
+    [HttpGet("offline-recovery")]
+    [ProducesResponseType(typeof(OfflineRecoveryReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<OfflineRecoveryReportDto>> GetOfflineRecovery(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] Guid? cashRegisterId,
+        [FromQuery] int recentLimit = 50,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _compliance.GetOfflineRecoveryAsync(
+            startDate, endDate, cashRegisterId, recentLimit, cancellationToken);
+        return Ok(data);
+    }
+
+    [HttpGet("peak-hours")]
+    [ProducesResponseType(typeof(PeakHourHeatmapReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PeakHourHeatmapReportDto>> GetPeakHours(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        [FromQuery] Guid? cashRegisterId,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _compliance.GetPeakHourHeatmapAsync(startDate, endDate, cashRegisterId, cancellationToken);
+        return Ok(data);
+    }
+
+    [HttpGet("product-movement")]
+    [ProducesResponseType(typeof(ProductMovementReportDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ProductMovementReportDto>> GetProductMovement(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate,
+        CancellationToken cancellationToken = default)
+    {
+        var data = await _compliance.GetProductMovementAsync(startDate, endDate, cancellationToken);
+        return Ok(data);
     }
 }

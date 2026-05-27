@@ -11,6 +11,34 @@
   "messages": {
     "roleCreated": "Role created."
   },
+  "username": {
+    "editTitle": "Change username",
+    "newLabel": "New username",
+    "reasonLabel": "Reason for change (optional)",
+    "reasonHelp": "Recorded in the audit log",
+    "reasonPlaceholder": "e.g. rename after team change",
+    "auditHint": "This change is recorded in the audit log.",
+    "changeAction": "Change",
+    "updateSuccess": "Username updated.",
+    "updateFailed": "Could not update username.",
+    "conflict": "This username is already taken.",
+    "placeholder": "e.g. manager1",
+    "validation": {
+      "required": "Please enter a username",
+      "min": "At least 3 characters",
+      "max": "At most 50 characters",
+      "pattern": "Only letters, digits, underscore and hyphen allowed"
+    }
+  },
+  "dev": {
+    "cleanupButton": "Dev: clean up test users",
+    "cleanupConfirmTitle": "Delete test users?",
+    "cleanupConfirmContent": "Permanently removes development test users (bar, cafe, test) and their tenant memberships. Development environment only.",
+    "cleanupConfirmOk": "Delete",
+    "cleanupConfirmCancel": "Cancel",
+    "cleanupSuccess": "Test users cleaned up ({users} users, {memberships} memberships).",
+    "cleanupError": "Could not clean up test users."
+  },
   "roles": {
     "displayNames": {
       "SuperAdmin": "Super administrator",
@@ -205,6 +233,7 @@
     "scopeSummaryRolePart": "{{prefix}} = {{role}}",
     "scopeStatusLine": "{{prefix}}: {{status}}",
     "columnName": "Name",
+    "columnUserName": "Username",
     "columnEmail": "Email",
     "columnRole": "Role",
     "columnBranch": "Location",
@@ -270,6 +299,7 @@
     "typeBadgeTenant": "Tenant",
     "columns": {
       "user": "User",
+      "userName": "Username",
       "tenant": "Tenant",
       "role": "Role",
       "status": "Status",

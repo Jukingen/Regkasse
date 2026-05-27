@@ -1,6 +1,7 @@
+using KasseAPI_Final.Helpers;
+using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Services;
 
@@ -27,6 +28,18 @@ public class UserUniquenessValidationService : IUserUniquenessValidationService
             return false;
         // Exclude current user: use ordinal-ignore-case so route vs DB Id casing does not cause false conflict.
         return !string.Equals(existing.Id, excludeUserId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> IsUserNameTakenByOtherUserAsync(string? userName, string? excludeUserId)
+    {
+        if (string.IsNullOrWhiteSpace(userName))
+            return false;
+
+        return await IdentityLoginLookup.IsUserNameTakenByOtherUserAsync(
+            _userManager,
+            userName,
+            excludeUserId).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

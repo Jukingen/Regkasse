@@ -1,4 +1,5 @@
 import type { AuditLogEntryDto } from '@/api/generated/model';
+import { parseAuditJsonField, parseAuditReason } from '@/features/audit-logs/utils/parseAuditJsonField';
 
 type QuickUserAuditDetails = {
     email?: string;
@@ -27,6 +28,28 @@ function extractTenantSlug(record: AuditLogEntryDto, details: QuickUserAuditDeta
     return null;
 }
 
+function formatUserNameChangeDescription(
+    record: AuditLogEntryDto,
+    translate: (key: string, params?: Record<string, string>) => string,
+): string | null {
+    const oldName =
+        parseAuditJsonField(record.oldValues, 'UserName') ??
+        parseAuditJsonField(record.oldValues, 'userName');
+    const newName =
+        parseAuditJsonField(record.newValues, 'UserName') ??
+        parseAuditJsonField(record.newValues, 'userName');
+
+    if (oldName || newName) {
+        return translate('common.auditLogs.userNameChangedDescription', {
+            old: oldName ?? '—',
+            new: newName ?? '—',
+        });
+    }
+
+    const description = record.description?.trim();
+    return description || null;
+}
+
 /**
  * Operator-facing description for audit log table (German for quick-user rows).
  */
@@ -35,6 +58,10 @@ export function formatAuditLogDescription(
     translate: (key: string, params?: Record<string, string>) => string,
 ): string {
     const action = record.action?.trim();
+    if (action === 'USER_NAME_CHANGE') {
+        return formatUserNameChangeDescription(record, translate) ?? '';
+    }
+
     if (action === 'TENANT_QUICK_USER_CREATED') {
         const fromDescription = record.description?.trim();
         if (fromDescription) return fromDescription;
@@ -50,4 +77,9 @@ export function formatAuditLogDescription(
     }
 
     return record.description?.trim() ?? '';
+}
+
+/** Optional operator reason from metadata/notes (e.g. username change justification). */
+export function formatAuditLogReason(record: AuditLogEntryDto): string | null {
+    return parseAuditReason(record);
 }

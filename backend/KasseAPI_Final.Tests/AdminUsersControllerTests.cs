@@ -3,9 +3,11 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -55,7 +57,9 @@ public class AdminUsersControllerTests
         IUserSessionInvalidation sessionInvalidation,
         IUserUniquenessValidationService? uniquenessValidation = null,
         string? actorId = "admin-id",
-        string actorRole = Roles.SuperAdmin)
+        string actorRole = Roles.SuperAdmin,
+        IUsernameChangeEmailService? usernameChangeEmail = null,
+        IUserUsernameHistoryService? usernameHistory = null)
     {
         var userManager = CreateUserManager(context);
         var roleManager = new RoleManager<IdentityRole>(
@@ -72,7 +76,9 @@ public class AdminUsersControllerTests
             uniquenessValidation,
             actorId,
             actorRole,
-            context);
+            context,
+            usernameChangeEmail,
+            usernameHistory);
     }
 
     private static (UserManager<ApplicationUser> UserManager, RoleManager<IdentityRole> RoleManager) CreateMockUserAndRoleManagers(ApplicationUser? existingUser = null)
@@ -109,7 +115,36 @@ public class AdminUsersControllerTests
         m.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
         m.Setup(x => x.IsEmployeeNumberTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
         m.Setup(x => x.IsTaxNumberTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
+        m.Setup(x => x.IsUserNameTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
         return m.Object;
+    }
+
+    private static IUserCreationService CreateUserCreationService(AppDbContext db, UserManager<ApplicationUser> userManager) =>
+        new UserCreationService(db, userManager, CreateUniquenessValidationMock());
+
+    private static IUserUsernameHistoryService CreateUsernameHistoryMock(Mock<IUserUsernameHistoryService>? mock = null)
+    {
+        mock ??= new Mock<IUserUsernameHistoryService>();
+        mock.Setup(x => x.RecordChangeAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        mock.Setup(x => x.ListForUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<UserUsernameHistoryDto>());
+        return mock.Object;
+    }
+
+    private static IUsernameChangeEmailService CreateUsernameChangeEmailMock(Mock<IUsernameChangeEmailService>? mock = null)
+    {
+        mock ??= new Mock<IUsernameChangeEmailService>();
+        mock.Setup(x => x.IsConfigured).Returns(true);
+        mock.Setup(x => x.TrySendUsernameChangedAsync(It.IsAny<UsernameChangedEmailRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        return mock.Object;
     }
 
     private static AdminUsersController CreateController(
@@ -120,21 +155,27 @@ public class AdminUsersControllerTests
         IUserUniquenessValidationService? uniquenessValidation = null,
         string? actorId = "admin-id",
         string actorRole = "SuperAdmin",
-        AppDbContext? context = null)
+        AppDbContext? context = null,
+        IUsernameChangeEmailService? usernameChangeEmail = null,
+        IUserUsernameHistoryService? usernameHistory = null)
     {
         var logger = new Mock<ILogger<AdminUsersController>>().Object;
         var tenantUserService = new Mock<ITenantUserService>().Object;
+        var db = context ?? CreateEphemeralContext();
         var controller = new AdminUsersController(
-            context ?? CreateEphemeralContext(),
+            db,
             userManager,
             roleManager,
             auditLogService,
             sessionInvalidation,
             uniquenessValidation ?? CreateUniquenessValidationMock(),
+            CreateUserCreationService(db, userManager),
             logger,
             TenantTestDoubles.NoOpProvisioner(),
             tenantUserService,
-            NullCurrentTenantAccessor.Instance);
+            NullCurrentTenantAccessor.Instance,
+            usernameChangeEmail ?? CreateUsernameChangeEmailMock(),
+            usernameHistory ?? CreateUsernameHistoryMock());
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),
@@ -213,7 +254,7 @@ public class AdminUsersControllerTests
         var result = await controller.GetById("user-1");
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var dto = Assert.IsType<AdminUsersController.AdminUserDto>(ok.Value);
+        var dto = Assert.IsType<AdminUserDto>(ok.Value);
         Assert.Equal("user-1", dto.Id);
         Assert.Equal("jane", dto.UserName);
         Assert.Equal("Jane", dto.FirstName);
@@ -352,7 +393,7 @@ public class AdminUsersControllerTests
         var result = await controller.Reactivate("u1", null);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var dto = Assert.IsType<AdminUsersController.AdminUserDto>(ok.Value);
+        var dto = Assert.IsType<AdminUserDto>(ok.Value);
         Assert.True(dto.IsActive);
         Assert.Null(user.LockoutEnd);
     }
@@ -410,6 +451,28 @@ public class AdminUsersControllerTests
     [Fact]
     public async Task GenerateTemporaryPassword_ReturnsGeneratedPassword_UpdatesFlag_AndInvalidatesSessions()
     {
+        await using var db = CreateEphemeralContext();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe-audit",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = "user-1",
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
         var user = new ApplicationUser
         {
             Id = "user-1",
@@ -457,6 +520,7 @@ public class AdminUsersControllerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 "user-1",
+                tenantId,
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 AuditLogStatus.Success,
@@ -469,6 +533,7 @@ public class AdminUsersControllerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 "user-1",
+                tenantId,
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 AuditLogStatus.Success,
@@ -480,7 +545,7 @@ public class AdminUsersControllerTests
         var session = new Mock<IUserSessionInvalidation>();
         session.Setup(x => x.InvalidateSessionsForUserAsync("user-1")).Returns(Task.CompletedTask);
 
-        var controller = CreateController(userManager.Object, roleManager, audit.Object, session.Object);
+        var controller = CreateController(userManager.Object, roleManager, audit.Object, session.Object, context: db);
 
         var result = await controller.GenerateTemporaryPassword("user-1");
 
@@ -503,6 +568,7 @@ public class AdminUsersControllerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 "user-1",
+                tenantId,
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 AuditLogStatus.Success,
@@ -516,6 +582,7 @@ public class AdminUsersControllerTests
                 It.IsAny<string>(),
                 It.IsAny<string>(),
                 "user-1",
+                tenantId,
                 "Support / Password reset",
                 It.IsAny<string?>(),
                 AuditLogStatus.Success,
@@ -618,7 +685,7 @@ public class AdminUsersControllerTests
         var result = await controller.List();
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        var dtos = Assert.IsAssignableFrom<IEnumerable<AdminUsersController.AdminUserDto>>(ok.Value)
+        var dtos = Assert.IsAssignableFrom<IEnumerable<AdminUserDto>>(ok.Value)
             .ToDictionary(d => d.Id);
 
         Assert.Equal("Platform", dtos["super-1"].UserType);
@@ -632,6 +699,116 @@ public class AdminUsersControllerTests
 
         Assert.Equal("Platform", dtos["platform-1"].UserType);
         Assert.Null(dtos["platform-1"].TenantName);
+
+        Assert.Equal("cashier", dtos["cashier-1"].UserName);
+        Assert.Equal("platform", dtos["platform-1"].UserName);
+    }
+
+    [Fact]
+    public async Task List_TypeTenant_ReturnsUserName_OnEachRow()
+    {
+        await using var db = CreateEphemeralContext();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe-list",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "u-tenant",
+            UserName = "cashier42",
+            Email = "cashier@cafe.test",
+            FirstName = "Anna",
+            LastName = "Kassier",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = "u-tenant",
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.List(type: "tenant");
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = Assert.IsAssignableFrom<IEnumerable<AdminUsersController.AdminTenantUserRowDto>>(ok.Value)
+            .Where(r => r.UserId == "u-tenant")
+            .ToList();
+        Assert.Single(rows);
+        Assert.Equal("cashier42", rows[0].UserName);
+        Assert.Equal("u-tenant", rows[0].UserId);
+    }
+
+    [Fact]
+    public async Task List_Search_Matches_UserName_And_Email()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.AddRange(
+            new ApplicationUser
+            {
+                Id = "by-name",
+                UserName = "mustafa",
+                Email = "other@test.com",
+                FirstName = "M",
+                LastName = "User",
+                Role = Roles.Manager,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new ApplicationUser
+            {
+                Id = "by-email",
+                UserName = "cashier9",
+                Email = "mustafa@cafe.test",
+                FirstName = "E",
+                LastName = "Mail",
+                Role = Roles.Cashier,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new ApplicationUser
+            {
+                Id = "no-match",
+                UserName = "other",
+                Email = "nobody@test.com",
+                FirstName = "X",
+                LastName = "Y",
+                Role = Roles.Cashier,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.List(search: "mustafa");
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var ids = Assert.IsAssignableFrom<IEnumerable<AdminUserDto>>(ok.Value)
+            .Select(d => d.Id)
+            .ToHashSet();
+        Assert.Contains("by-name", ids);
+        Assert.Contains("by-email", ids);
+        Assert.DoesNotContain("no-match", ids);
     }
 
     [Fact]
@@ -827,9 +1004,511 @@ public class AdminUsersControllerTests
         Assert.Matches(@"\d", body.GeneratedPassword);
         Assert.Matches(@"[!@#$%^&*()]", body.GeneratedPassword);
 
+        Assert.Matches(@"^admin\d+$", body.UserName);
+        Assert.NotEqual(body.Email, body.UserName);
+
         var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Email == "new.platform@test.com");
+        Assert.Equal(body.UserName, persisted.UserName);
         Assert.True(persisted.MustChangePasswordOnNextLogin);
         Assert.True(PasswordGenerator.GenerateSecurePassword().Length >= 12);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenUserNotFound_ReturnsNotFound()
+    {
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: null);
+        var audit = new Mock<IAuditLogService>().Object;
+        var session = new Mock<IUserSessionInvalidation>().Object;
+        var controller = CreateController(userManager, roleManager, audit, session);
+
+        var result = await controller.UpdateUsername(
+            "nonexistent",
+            new UpdateUsernameRequest { NewUsername = "newname" });
+
+        var notFound = Assert.IsType<NotFoundObjectResult>(result.Result);
+        Assert.IsType<ApiError>(notFound.Value);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenInvalidFormat_ReturnsBadRequest()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "valid1",
+            Email = "u@test.com",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var tooShort = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "ab" });
+        Assert.IsType<BadRequestObjectResult>(tooShort.Result);
+
+        var invalidChars = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "bad name" });
+        Assert.IsType<BadRequestObjectResult>(invalidChars.Result);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenReserved_ReturnsBadRequest()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "cashier1",
+            Email = "u@test.com",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "admin" });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var body = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Equal(400, body.Status);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenAccountTooNew_ReturnsBadRequest()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "oldname",
+            NormalizedUserName = "OLDNAME",
+            Email = "op@test.com",
+            FirstName = "C",
+            LastName = "D",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddHours(-1),
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "newname" });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var body = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Contains("24", body.Detail ?? string.Empty, StringComparison.Ordinal);
+
+        var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
+        Assert.Equal("oldname", persisted.UserName);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenRateLimited_ReturnsBadRequest()
+    {
+        await using var db = CreateEphemeralContext();
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "oldname",
+            NormalizedUserName = "OLDNAME",
+            Email = "u@test.com",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var userManager = CreateUserManager(db);
+        await userManager.AddClaimAsync(
+            user,
+            new System.Security.Claims.Claim(
+                UsernameChangeRateLimit.LastChangeClaimType,
+                DateTime.UtcNow.AddDays(-1).ToString("O")));
+
+        var controller = CreateController(
+            userManager,
+            new RoleManager<IdentityRole>(
+                new RoleStore<IdentityRole>(db),
+                null!,
+                new UpperInvariantLookupNormalizer(),
+                new IdentityErrorDescriber(),
+                null!),
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            context: db);
+
+        var result = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "newname" });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
+        var body = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Contains("7 days", body.Detail ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+        var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
+        Assert.Equal("oldname", persisted.UserName);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenUsernameTaken_ReturnsConflict()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "taken",
+            Email = "taken@test.com",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-2",
+            UserName = "operator",
+            Email = "op@test.com",
+            FirstName = "C",
+            LastName = "D",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddHours(-25),
+        });
+        await db.SaveChangesAsync();
+
+        var uniqueness = new Mock<IUserUniquenessValidationService>();
+        uniqueness.Setup(x => x.IsUserNameTakenByOtherUserAsync("taken", "user-2")).ReturnsAsync(true);
+        uniqueness.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
+        uniqueness.Setup(x => x.IsEmployeeNumberTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
+        uniqueness.Setup(x => x.IsTaxNumberTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(false);
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            uniqueness.Object);
+
+        var result = await controller.UpdateUsername(
+            "user-2",
+            new UpdateUsernameRequest { NewUsername = "taken" });
+
+        Assert.IsType<ConflictObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_Success_UpdatesUser_LogsAudit_AndInvalidatesSessions()
+    {
+        await using var db = CreateEphemeralContext();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe-upd",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "oldname",
+            NormalizedUserName = "OLDNAME",
+            Email = "op@test.com",
+            FirstName = "C",
+            LastName = "D",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddHours(-25),
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = "user-1",
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var before = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
+        var stampBefore = before.SecurityStamp;
+
+        var audit = new Mock<IAuditLogService>();
+        audit.Setup(x => x.LogUserLifecycleAsync(
+                AuditEventType.UserNameChanged,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                "user-1",
+                tenantId,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()))
+            .ReturnsAsync(new AuditLog { Id = Guid.NewGuid(), Action = AuditLogActions.USER_NAME_CHANGE });
+
+        var session = new Mock<IUserSessionInvalidation>();
+        session.Setup(x => x.InvalidateSessionsForUserAsync("user-1")).Returns(Task.CompletedTask);
+
+        var controller = CreateController(db, audit.Object, session.Object);
+
+        var result = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "newname", Reason = "Support rename" });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<AdminUsersController.AdminUpdateUsernameResponse>(ok.Value);
+        Assert.Equal("oldname", body.OldUsername);
+        Assert.Equal("newname", body.NewUsername);
+
+        var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
+        Assert.Equal("newname", persisted.UserName);
+        Assert.Equal("NEWNAME", persisted.NormalizedUserName);
+        Assert.NotEqual(stampBefore, persisted.SecurityStamp);
+
+        audit.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditEventType.UserNameChanged,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                "user-1",
+                tenantId,
+                "Support rename",
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.Is<string?>(d => d != null && d.Contains("oldname") && d.Contains("newname")),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()),
+            Times.Once);
+        session.Verify(x => x.InvalidateSessionsForUserAsync("user-1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_Success_Records_Username_History()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "oldname",
+            NormalizedUserName = "OLDNAME",
+            Email = "op@test.com",
+            FirstName = "C",
+            LastName = "D",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddHours(-25),
+        });
+        await db.SaveChangesAsync();
+
+        var historyMock = new Mock<IUserUsernameHistoryService>();
+        historyMock.Setup(x => x.RecordChangeAsync(
+                "user-1",
+                "oldname",
+                "newname",
+                It.IsAny<string?>(),
+                "Support",
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            usernameHistory: historyMock.Object);
+
+        await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "newname", Reason = "Support" });
+
+        historyMock.Verify(
+            x => x.RecordChangeAsync(
+                "user-1",
+                "oldname",
+                "newname",
+                It.IsAny<string?>(),
+                "Support",
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUsernameHistory_Returns_Rows_For_User()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "newname",
+            Email = "op@test.com",
+            Role = Roles.Cashier,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var historyMock = new Mock<IUserUsernameHistoryService>();
+        historyMock.Setup(x => x.ListForUserAsync("user-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[]
+            {
+                new UserUsernameHistoryDto
+                {
+                    Id = Guid.NewGuid(),
+                    OldUsername = "oldname",
+                    NewUsername = "newname",
+                    ChangedAtUtc = DateTime.UtcNow,
+                },
+            });
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            usernameHistory: historyMock.Object);
+
+        var result = await controller.GetUsernameHistory("user-1");
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var rows = Assert.IsAssignableFrom<IReadOnlyList<UserUsernameHistoryDto>>(ok.Value);
+        Assert.Single(rows);
+        Assert.Equal("oldname", rows[0].OldUsername);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_Success_Sends_Email_Notification()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "oldname",
+            NormalizedUserName = "OLDNAME",
+            Email = "op@test.com",
+            FirstName = "C",
+            LastName = "D",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddHours(-25),
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "admin-id",
+            UserName = "admin",
+            Email = "admin@regkasse.test",
+            Role = Roles.SuperAdmin,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddHours(-25),
+        });
+        await db.SaveChangesAsync();
+
+        var emailMock = new Mock<IUsernameChangeEmailService>();
+        emailMock.Setup(x => x.IsConfigured).Returns(true);
+        emailMock.Setup(x => x.TrySendUsernameChangedAsync(It.IsAny<UsernameChangedEmailRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            usernameChangeEmail: emailMock.Object);
+
+        await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "newname" });
+
+        emailMock.Verify(
+            x => x.TrySendUsernameChangedAsync(
+                It.Is<UsernameChangedEmailRequest>(r =>
+                    r.ToEmail == "op@test.com"
+                    && r.OldUsername == "oldname"
+                    && r.NewUsername == "newname"
+                    && r.ChangedByAdminEmail == "admin@regkasse.test"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUsernameSuggestions_WhenRoleMissing_ReturnsBadRequest()
+    {
+        await using var db = CreateEphemeralContext();
+        await SeedRolesAsync(db);
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.GetUsernameSuggestions(role: null);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetUsernameSuggestions_Returns_Next_Username_For_Role()
+    {
+        await using var db = CreateEphemeralContext();
+        await SeedRolesAsync(db);
+        db.Users.Add(new ApplicationUser
+        {
+            Id = Guid.NewGuid().ToString("D"),
+            UserName = "manager1",
+            NormalizedUserName = "MANAGER1",
+            Email = "m1@test.com",
+            Role = Roles.Manager,
+            IsActive = true,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = Guid.NewGuid().ToString("D"),
+            UserName = "manager2",
+            NormalizedUserName = "MANAGER2",
+            Email = "m2@test.com",
+            Role = Roles.Manager,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.GetUsernameSuggestions(Roles.Manager);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var body = Assert.IsType<UsernameSuggestionResponse>(ok.Value);
+        Assert.Equal("manager3", body.SuggestedUsername);
+        Assert.Equal(new[] { 3, 4, 5 }, body.AvailableNumbers);
     }
 
     [Fact]

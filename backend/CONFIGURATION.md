@@ -12,6 +12,20 @@ Technical documentation (English). Do not commit real secrets; `appsettings.json
 
 FinanzOnline **user/password** for SOAP are expected from **company settings in the database** (or optional `FinanzOnline:Session` binding in non-tracked config). Do not put production FinanzOnline credentials in tracked files.
 
+### Manual restore approval (Super Admin)
+
+Section `ManualRestoreApproval` (`ManualRestoreApproval__*` env vars):
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `Enabled` | `true` | When `false`, manual restore API returns 503. |
+| `ApprovalTokenTtlMinutes` | `15` | Second-admin 6-digit approval token lifetime (BCrypt-hashed at rest). |
+| `TargetDatabaseNamePrefix` | `restore_validation_` | Required prefix for isolated target DB names. |
+| `AdditionalBlockedDatabaseNames` | `[]` | Extra DB names that must never be restore targets. |
+| `FallbackApproverEmails` | `[]` | Used when no other Super Admin emails exist. |
+
+Requires SMTP (`Email:Smtp`) for approval emails. API: `POST /api/admin/restore/request`, `POST /api/admin/restore/approve/{requestId}`, `GET /api/admin/restore/request/{requestId}`, `GET /api/admin/restore/history`. **Never** restores into `DefaultConnection` database.
+
 Optional **production cutover** token: `FinanzOnline:CutoverGuard:ProdApprovalToken` → `FinanzOnline__CutoverGuard__ProdApprovalToken` (set only when your runbook requires it).
 
 ## Inventory / stock (optional rollout)
@@ -82,7 +96,9 @@ If a password or JWT key was ever stored in a tracked file, shared screenshot, o
 
 **Email is no longer required for day-to-day user management.** Tenant and platform users are created via admin APIs; a one-time generated password is returned in the HTTP response and must be delivered to the operator out of band. Audit logs record `USER_CREATED` with `createdByUserId`, `tenantId`, and `role` — never the password value.
 
-Optional SMTP (`Email:Smtp` in `appsettings`) may still be used for **tenant onboarding welcome mail** (`WelcomeEmailService` in `TenantOnboardingService`). It is **not** used for user invitations (removed) or for tenant user password reset (password returned in API/UI only).
+Optional SMTP (`Email:Smtp` in `appsettings`) may be used for **tenant onboarding welcome mail** (`WelcomeEmailService`), **username change notifications** (`UsernameChangeEmailService`), and **forgot-username recovery** (`ForgotUsernameEmailService` on `POST /api/Auth/forgot-username`). Optional `SupportContact` is shown in transactional user emails (falls back to `From`). It is **not** used for user invitations (removed) or for tenant user password reset (password returned in API/UI only).
+
+Username changes are stored in `user_username_history` for compliance review (`UserUsernameHistoryService`).
 
 Example shape (welcome/onboarding only — do not commit real credentials):
 

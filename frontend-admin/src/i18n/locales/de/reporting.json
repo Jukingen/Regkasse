@@ -273,5 +273,113 @@
         "originalReceipt": "Original-Beleg"
       }
     }
+  },
+  "compliance": {
+    "pageTitle": "Compliance- & Betriebsberichte",
+    "breadcrumb": "Compliance-Berichte",
+    "intro": "Mutabakat, TSE-Kette, Offline-Wiederherstellung, Peak-Hours und Warenbewegung. Verwandte Berichte:",
+    "businessDate": "Geschäftstag (Wien)",
+    "dateRange": "Zeitraum",
+    "register": "Kasse",
+    "allRegisters": "Alle Kassen",
+    "yes": "Ja",
+    "no": "Nein",
+    "peakHint": "Heatmap: Zahlungsanzahl nach Wochentag (Mo–So) und Stunde (Europe/Vienna).",
+    "export": "Export",
+    "exportFailed": "Export fehlgeschlagen.",
+    "groups": {
+      "compliance": "Compliance",
+      "operations": "Betrieb"
+    },
+    "config": {
+      "title": "Bericht konfigurieren",
+      "open": "Filter",
+      "businessDay": "Geschäftstag",
+      "dateRange": "Zeitraum",
+      "register": "Kasse",
+      "allRegisters": "Alle Kassen"
+    },
+    "schedule": {
+      "title": "Bericht planen",
+      "open": "Planen",
+      "cron": "Cron-Zeitplan",
+      "cronHint": "z. B. 0 8 * * * = täglich 08:00 UTC",
+      "recipients": "E-Mail-Empfänger",
+      "format": "Format",
+      "saved": "Zeitplan gespeichert."
+    },
+    "peak": {
+      "busiest": "Stärkste Stunde: Tag {{day}} / {{hour}} Uhr ({{count}} Zahlungen)",
+      "quietest": "Schwächste Stunde: Tag {{day}} / {{hour}} Uhr ({{count}} Zahlungen)"
+    },
+    "movement": {
+      "turnover": "Lagerumschlag",
+      "daysOnHand": "Reichweite (Tage)",
+      "topRevenue": "Top-Umsatz",
+      "slowMovers": "Langsam drehend"
+    },
+    "salesMovement": "Verkaufsbewegung (Order Items)",
+    "offlineAdminLink": "Offline-Transaktionen verwalten",
+    "tabs": {
+      "reconciliation": "Tages-Mutabakat",
+      "tse": "TSE-Kette",
+      "offline": "Offline-Wiederherstellung",
+      "peak": "Peak Hours",
+      "movement": "Warenbewegung",
+      "users": "Benutzerleistung"
+    },
+    "offline": {
+      "pendingStart": "Pending (Periodenstart)",
+      "pendingEnd": "Pending (Periodenende)",
+      "recoveredOk": "Erfolgreich (1. Versuch)",
+      "recoveredRetry": "Mit Wiederholung",
+      "failedPermanent": "Dauerhaft fehlgeschlagen",
+      "avgRecoverySec": "Ø Recovery (s)"
+    },
+    "users": {
+      "stornoWarning": "{{count}} Benutzer mit Storno-Rate über {{pct}} %"
+    },
+    "stats": {
+      "cash": "Bar",
+      "card": "Karte",
+      "expectedCash": "Soll-Bargeld",
+      "actualCash": "Ist-Bargeld (Schichtabschluss)",
+      "difference": "Differenz",
+      "reconciled": "Abgestimmt",
+      "receiptsChecked": "Belege geprüft",
+      "chainBreaks": "Kettenbrüche",
+      "signatures": "Signaturen",
+      "gaps": "Lücken",
+      "duplicates": "Duplikate"
+    },
+    "columns": {
+      "product": "Produkt",
+      "qty": "Menge",
+      "revenue": "Umsatz",
+      "register": "Kasse",
+      "receipts": "Belege",
+      "breaks": "Brüche",
+      "time": "Zeit",
+      "error": "Fehler",
+      "signatures": "Sig.",
+      "gaps": "Lücken",
+      "duplicates": "Dupl.",
+      "firstSig": "Erste Sig.",
+      "lastSig": "Letzte Sig.",
+      "status": "Status",
+      "maxGapSec": "Max. Lücke (s)",
+      "export": "Export",
+      "user": "Benutzer",
+      "txCount": "Transakt.",
+      "stornoRate": "Storno %",
+      "txPerHour": "Tx/h",
+      "avgProcSec": "Ø Bearb. (s)",
+      "activeHours": "Aktive h"
+    },
+    "tags": {
+      "gaps": "Lücken",
+      "duplicates": "Duplikate"
+    },
+    "tseExportFailed": "TSE-Kettenexport fehlgeschlagen."
   }
 }

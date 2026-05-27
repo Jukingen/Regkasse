@@ -12,8 +12,14 @@ export function buildAuditLogExportQuery(params: AuditLogListParams): Record<str
     }
     if (params.action) exportParams.action = params.action;
     if (params.userId) exportParams.userId = params.userId;
+    if (params.targetUserId) exportParams.targetUserId = params.targetUserId;
     if (params.entityType) exportParams.entityType = params.entityType;
+    if (params.entityId) exportParams.entityId = params.entityId;
+    if (params.ipAddress) exportParams.ipAddress = params.ipAddress;
     const status = toAuditLogStatusApiParam(params.status);
     if (status) exportParams.status = status;
+    if (params.statusOutcome) exportParams.statusOutcome = params.statusOutcome;
+    if (params.hasChanges === true) exportParams.hasChanges = 'true';
+    if (params.hasChanges === false) exportParams.hasChanges = 'false';
     return exportParams;
 }

@@ -44,7 +44,7 @@ export function toAuditLogStatusApiParam(status: AuditLogStatusFilter | undefine
     return status;
 }
 
-export const AUDIT_ACTION_FILTER_VALUES = ['Login', 'CreateInvoice', 'Payment'] as const;
+export { AUDIT_ACTION_FILTER_VALUES, type AuditActionFilter } from '@/features/audit-logs/utils/auditActionLabels';
 
 export const AUDIT_LOG_LIST_DEFAULTS = {
     page: 1,

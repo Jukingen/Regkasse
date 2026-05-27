@@ -6,6 +6,7 @@ import { CopyOutlined } from '@ant-design/icons';
 
 import { useGenerateTemporaryPasswordMutation } from '@/features/users/api/usersGateway';
 import { useI18n } from '@/i18n';
+import { copyTextToClipboard } from '@/lib/clipboard';
 
 export type PasswordViewModalProps = {
     open: boolean;
@@ -21,12 +22,12 @@ export function PasswordViewModal({
     onClose,
 }: PasswordViewModalProps) {
     const { t } = useI18n();
-    const [password, setPassword] = useState<string | null>(null);
+    const [password, setPassword] = useState('');
     const generateTemporaryPasswordMutation = useGenerateTemporaryPasswordMutation();
 
     useEffect(() => {
         if (open) {
-            setPassword(null);
+            setPassword('');
         }
     }, [open]);
 
@@ -34,7 +35,7 @@ export function PasswordViewModal({
         if (!userId) return;
         try {
             const result = await generateTemporaryPasswordMutation.mutateAsync(userId);
-            setPassword(result.generatedPassword);
+            setPassword(result.generatedPassword ?? '');
             message.success(t('tenants.users.messages.passwordReset'));
         } catch {
             message.error(t('tenants.users.messages.passwordResetFailed'));
@@ -42,11 +43,15 @@ export function PasswordViewModal({
     };
 
     const handleCopy = async () => {
-        if (!password) return;
-        try {
-            await navigator.clipboard.writeText(password);
+        if (!password) {
+            message.error('Kein Passwort zum Kopieren vorhanden');
+            return;
+        }
+
+        const copied = await copyTextToClipboard(password);
+        if (copied) {
             message.success(t('tenants.provisioning.copySuccess'));
-        } catch {
+        } else {
             message.error(t('tenants.provisioning.copyFailed'));
         }
     };

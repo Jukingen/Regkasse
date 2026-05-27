@@ -83,7 +83,8 @@ public sealed class AdminBackupPutExecutionModeTests
             NullLogger<AdminBackupController>.Instance,
             hostEnvironment,
             db,
-            Mock.Of<IBackupSettingsAdminService>());
+            Mock.Of<IBackupSettingsAdminService>(),
+            Mock.Of<IBackupDashboardStatsService>());
 
         var http = new DefaultHttpContext
         {

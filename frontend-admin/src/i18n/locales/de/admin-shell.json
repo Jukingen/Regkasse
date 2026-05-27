@@ -434,5 +434,44 @@
     "colNumber": "Nr.",
     "colStatus": "Status",
     "colCapacity": "Plätze"
+  },
+  "commandPalette": {
+    "placeholder": "Seiten, Aktionen oder Benutzer suchen…",
+    "keyboardHint": "↑↓ navigieren · Enter ausführen · Esc schließen",
+    "footer": {
+      "select": "zum Auswählen",
+      "close": "zum Schließen"
+    },
+    "resultsAria": "Suchergebnisse",
+    "empty": "Keine Treffer",
+    "group": {
+      "navigation": "Navigation",
+      "actions": "Aktionen",
+      "users": "Benutzer",
+      "receipts": "Belege",
+      "registers": "Kassen",
+      "recent": "Zuletzt"
+    },
+    "emptyHint": "Tippen Sie, um Seiten und Aktionen zu filtern.",
+    "action": {
+      "createUser": "Benutzer anlegen",
+      "createPlatformUser": "Plattform-Admin anlegen",
+      "createRegister": "Neue Kasse erstellen",
+      "generateReport": "Bericht generieren",
+      "openReportCenter": "Berichtszentrum öffnen",
+      "openBackup": "Backup & DR öffnen",
+      "triggerBackup": "Backup jetzt starten",
+      "triggerBackupHint": "Manuelles Backup in die Warteschlange stellen"
+    },
+    "dynamic": {
+      "searchUsers": "Benutzer suchen (mind. 2 Zeichen)…",
+      "searchReceipts": "Belegnummer eingeben (mind. 3 Zeichen)…",
+      "searchRegisters": "Kasse suchen (mind. 2 Zeichen)…"
+    },
+    "receiptSearch": "Beleg {number} suchen",
+    "backupConfirmTitle": "Backup starten?",
+    "backupConfirmBody": "Ein manuelles Backup wird in die Warteschlange gestellt. Fortschritt unter Backup & DR.",
+    "backupConfirmOk": "Backup starten",
+    "backupConfirmCancel": "Abbrechen"
   }
 }

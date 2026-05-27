@@ -4,9 +4,21 @@
   "columns": {
     "name": "Kasa",
     "status": "Durum",
+    "operations": "Operasyon",
+    "compliance": "RKSV",
     "activity": "Aktivite",
     "balance": "Bakiye",
     "actions": "İşlemler"
+  },
+  "tseHealth": {
+    "healthy": "TSE OK",
+    "degraded": "TSE kısıtlı",
+    "offline": "TSE çevrimdışı",
+    "notConfigured": "TSE yapılandırılmamış"
+  },
+  "offlineQueue": {
+    "label": "{{count}} offline",
+    "tooltip": "{{count}} bekleyen çevrimdışı işlem"
   },
   "filter": {
     "showDecommissioned": "Kapatılmış kasaları göster",
@@ -22,6 +34,8 @@
     "edit": "Düzenle",
     "decommission": "Devre dışı bırak",
     "specialReceipts": "Özel fişler",
+    "offlineQueue": "Offline kuyruk",
+    "tseHealth": "TSE durumu",
     "tableView": "Tablo",
     "gridView": "Kartlar",
     "export": "Dışa aktar",
@@ -78,7 +92,14 @@
     "openTseDetails": "TSE detaylarını göster",
     "specialReceiptsTitle": "Özel fişler",
     "decommissionedAt": "Kapatılma (UTC)",
-    "decommissionReason": "Kapatma nedeni"
+    "decommissionReason": "Kapatma nedeni",
+    "lastSyncAtUtc": "Son senkronizasyon",
+    "offlineQueueCount": "Offline kuyruk",
+    "currentCashier": "Aktif kasiyer",
+    "deviceInfoTitle": "Cihaz",
+    "deviceModel": "Model",
+    "deviceOs": "İşletim sistemi",
+    "deviceApp": "Uygulama sürümü"
   },
   "hardDelete": {
     "action": "Hard delete (test)",

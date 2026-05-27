@@ -3,6 +3,10 @@ import { isPosAllowedRole } from '../utils/posRoleGuard';
 import { router } from 'expo-router';
 import { jwtDecode } from 'jwt-decode';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { View } from 'react-native';
+import { SessionTimeoutWarning } from '../components/SessionTimeoutWarning';
+import { useIdleTimeout } from '../hooks/useIdleTimeout';
+import { fetchTenantSessionPolicy, sendSessionHeartbeat, type TenantSessionPolicy } from '../services/api/sessionPolicyService';
 
 import i18n from '../i18n';
 import { changeLanguage as persistAndChangeLanguage } from '../i18n';
@@ -105,7 +109,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     isAuthReady: boolean; // ✅ Added
-    login: (username: string, password: string) => Promise<void>;
+    login: (loginIdentifier: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     checkAuthStatus: () => Promise<void>;
 }
@@ -122,16 +126,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [justLoggedIn, setJustLoggedIn] = useState(false);
     const [, setLastActivity] = useState<number>(Date.now());
 
-    const inactivityTimerRef = React.useRef<NodeJS.Timeout | null>(null); // ✅ FIX: State yerine Ref kullan
+    const inactivityTimerRef = React.useRef<NodeJS.Timeout | null>(null); // legacy timer ref (logout paths)
+    const [sessionPolicy, setSessionPolicy] = useState<TenantSessionPolicy>({
+        sessionTimeoutMinutes: 30,
+        warningBeforeTimeoutMinutes: 1,
+        keepCartAfterTimeout: true,
+    });
+    const [idleWarningVisible, setIdleWarningVisible] = useState(false);
 
     // 🚀 F5 REFRESH FIX: Use refs for auth check status to prevent re-renders
     const isAuthCheckInProgressRef = React.useRef(false);
     const lastAuthCheckTimeRef = React.useRef(0);
     const hasInitialAuthCheckRef = React.useRef(false);
     const AUTH_CHECK_DEBOUNCE_MS = 2000;
-
-    // Inactivity timeout (30 dakika)
-    const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 dakika
 
     // 🧹 Cart cache temizleme fonksiyonu
     const clearCartCache = useCallback(async () => {
@@ -206,28 +213,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLastActivity(Date.now());
     }, []);
 
-    // Inactivity timer'ı başlat
-    const startInactivityTimer = useCallback(() => {
-        if (inactivityTimerRef.current) {
-            clearTimeout(inactivityTimerRef.current);
-        }
-
-        inactivityTimerRef.current = setTimeout(() => {
-            authDevLog('User inactive for 30 minutes, logging out...');
-            // CRITICAL FIX: Circular dependency'yi önlemek için logout'u direkt çağırmıyoruz
-            // Bunun yerine state'i temizliyoruz
-            setUser(null);
-            setIsAuthenticated(false);
-            setJustLoggedIn(false);
-            // AsyncStorage temizliği
-            sessionManager.clearSession();
-        }, INACTIVITY_TIMEOUT);
-
-        // console.log('[AUTH] inactivity timer started'); // Reduced log noise
-    }, [INACTIVITY_TIMEOUT]);
-
     // 🚀 F5 REFRESH FIX: Logout ve login sayfasına yönlendirme
-    const handleLogoutAndRedirect = useCallback(async () => {
+    const handleLogoutAndRedirect = useCallback(async (options?: { skipCartClear?: boolean }) => {
         try {
             // State'leri temizle
             setUser(null);
@@ -236,10 +223,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             await sessionManager.clearSession();
 
-            // Cart cache temizle
-            await clearCartCache();
+            if (!options?.skipCartClear) {
+                await clearCartCache();
+            }
 
-            // Inactivity timer'ı durdur
             stopInactivityTimer();
 
             authDevLog('✅ Logout tamamlandı, login sayfasına yönlendiriliyor...');
@@ -508,43 +495,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Only run once on mount
 
-    // CRITICAL FIX: Inactivity tracking'i optimize et
     useEffect(() => {
-        if (isAuthenticated && user) {
-            // Timer'ı başlat
-            startInactivityTimer();
+        if (!isAuthenticated) return;
+        void fetchTenantSessionPolicy().then(setSessionPolicy);
+    }, [isAuthenticated]);
 
-            // Global event listener'ları ekle
-            const handleActivity = () => {
-                // Optimization: debounce activity updates in logic or just trust simple restart
-                updateActivity();
-                startInactivityTimer(); // Timer'ı yeniden başlat
-            };
-
-            // Touch, scroll, key press event'lerini dinle
-            // Platform-aware event listeners - document only exists in web
-            if (typeof document !== 'undefined') {
-                document?.addEventListener?.('touchstart', handleActivity, { passive: true });
-                document?.addEventListener?.('scroll', handleActivity, { passive: true });
-                document?.addEventListener?.('keydown', handleActivity, { passive: true });
-                document?.addEventListener?.('mousedown', handleActivity, { passive: true });
-            }
-
-            return () => {
-                stopInactivityTimer();
-                // Platform-aware cleanup - document only exists in web
-                if (typeof document !== 'undefined') {
-                    document?.removeEventListener?.('touchstart', handleActivity);
-                    document?.removeEventListener?.('scroll', handleActivity);
-                    document?.removeEventListener?.('keydown', handleActivity);
-                    document?.removeEventListener?.('mousedown', handleActivity);
-                }
-            };
-        } else {
-            stopInactivityTimer();
+    const handleIdleTimeout = useCallback(async () => {
+        setIdleWarningVisible(false);
+        if (!sessionPolicy.keepCartAfterTimeout) {
+            await clearCartCache();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isAuthenticated]); // Removed user from dependency to avoid loop if user object ref changes but id is same
+        await handleLogoutAndRedirect({ skipCartClear: sessionPolicy.keepCartAfterTimeout });
+    }, [sessionPolicy.keepCartAfterTimeout, handleLogoutAndRedirect]);
+
+    const warningSeconds = Math.max(1, sessionPolicy.warningBeforeTimeoutMinutes * 60);
+
+    const { reset: resetIdleTimer, panHandlers } = useIdleTimeout({
+        timeoutMinutes: sessionPolicy.sessionTimeoutMinutes,
+        warningBeforeMinutes: sessionPolicy.warningBeforeTimeoutMinutes,
+        onWarning: () => setIdleWarningVisible(true),
+        onTimeout: () => {
+            void handleIdleTimeout();
+        },
+        enabled: isAuthenticated && !!user,
+    });
+
+    const handleContinueSession = useCallback(() => {
+        setIdleWarningVisible(false);
+        resetIdleTimer();
+        void sendSessionHeartbeat().catch(() => {
+            /* best effort */
+        });
+    }, [resetIdleTimer]);
 
     // CRITICAL FIX: Login sonrası navigation'ı optimize et
     useEffect(() => {
@@ -583,14 +565,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Cart reset will be handled by the component that uses AuthContext
 
-    const login = useCallback(async (username: string, password: string) => {
-        authDevLog('Login function called with username:', username); // Debug log
+    const login = useCallback(async (loginIdentifier: string, password: string) => {
+        authDevLog('Login function called with loginIdentifier:', loginIdentifier); // Debug log
         try {
             setIsLoading(true);
             setJustLoggedIn(true); // Login başladığında flag'i set et
             authDevLog('Making login API request...'); // Debug log
 
-            const response = await authService.login({ email: username, password, clientApp: 'pos' });
+            const response = await authService.login(
+                authService.buildLoginPayload(loginIdentifier, password, 'pos'),
+            );
             if (isDev) {
                 authDevLog('Login API response received'); // Debug log
             }
@@ -837,7 +821,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AuthContext.Provider value={contextValue}>
-            {children}
+            <View style={{ flex: 1 }} {...panHandlers}>
+                {children}
+            </View>
+            <SessionTimeoutWarning
+                visible={idleWarningVisible}
+                warningSeconds={warningSeconds}
+                onContinueSession={handleContinueSession}
+                onCountdownComplete={() => {
+                    void handleIdleTimeout();
+                }}
+            />
         </AuthContext.Provider>
     );
 }

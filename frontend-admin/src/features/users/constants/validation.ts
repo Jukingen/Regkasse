@@ -28,6 +28,11 @@ export const PASSWORD_POLICY = {
 /** Backend: UserName, FirstName, LastName */
 export const NAME_MAX_LENGTH = 50;
 
+/** PATCH /api/admin/users/{id}/username — login name (not email). */
+export const LOGIN_USERNAME_MIN_LENGTH = 3;
+export const LOGIN_USERNAME_MAX_LENGTH = 50;
+export const LOGIN_USERNAME_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
 /** Backend: Email */
 export const EMAIL_MAX_LENGTH = 100;
 
@@ -42,6 +47,13 @@ export const ROLE_NAME_MAX_LENGTH = 50;
 
 /** Basit email regex (backend EmailAddress attribute ile uyumlu) */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type LoginUserNameRuleMessages = {
+  required: string;
+  min: string;
+  max: string;
+  pattern: string;
+};
 
 export type RuleFactoryContext = {
   requiredMessage: string;
@@ -80,6 +92,16 @@ function maxLen(max: number, message: string) {
  * Ant Design Form rule objeleri için factory.
  * copy (messages) dışarıdan verilir; validasyon sabitleri burada.
  */
+/** Ant Design rules for admin username change (aligned with UpdateUsernameRequest). */
+export function createLoginUserNameRules(messages: LoginUserNameRuleMessages) {
+  return [
+    { required: true, message: messages.required },
+    { min: LOGIN_USERNAME_MIN_LENGTH, message: messages.min },
+    { max: LOGIN_USERNAME_MAX_LENGTH, message: messages.max },
+    { pattern: LOGIN_USERNAME_PATTERN, message: messages.pattern },
+  ];
+}
+
 export function createUsersFormRules(copy: RuleFactoryContext) {
   return {
     userName: [

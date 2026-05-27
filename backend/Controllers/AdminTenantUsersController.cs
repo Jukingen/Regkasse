@@ -1,6 +1,7 @@
 using System.Security.Claims;
 
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.AdminTenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

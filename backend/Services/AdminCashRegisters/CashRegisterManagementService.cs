@@ -15,17 +15,20 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
     private readonly AppDbContext _db;
     private readonly ISettingsTenantResolver _tenantResolver;
     private readonly IAuditLogService _auditLog;
+    private readonly ICashRegisterListEnrichmentService _enrichment;
     private readonly ILogger<CashRegisterManagementService> _logger;
 
     public CashRegisterManagementService(
         AppDbContext db,
         ISettingsTenantResolver tenantResolver,
         IAuditLogService auditLog,
+        ICashRegisterListEnrichmentService enrichment,
         ILogger<CashRegisterManagementService> logger)
     {
         _db = db;
         _tenantResolver = tenantResolver;
         _auditLog = auditLog;
+        _enrichment = enrichment;
         _logger = logger;
     }
 
@@ -119,11 +122,14 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        var dtos = items.Select(MapToDto).ToList();
+        await _enrichment.ApplyAsync(dtos, items, cancellationToken).ConfigureAwait(false);
+
         var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
 
         return new PagedResult<CashRegisterDto>
         {
-            Items = items.Select(MapToDto).ToList(),
+            Items = dtos,
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount,
@@ -146,7 +152,12 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         var register = await query.FirstOrDefaultAsync(r => r.Id == cashRegisterId, cancellationToken)
             .ConfigureAwait(false);
 
-        return register == null ? null : MapToDto(register);
+        if (register == null)
+            return null;
+
+        var dto = MapToDto(register);
+        await _enrichment.ApplyAsync([dto], [register], cancellationToken).ConfigureAwait(false);
+        return dto;
     }
 
     public async Task<int> GetActiveCountForTenantAsync(
@@ -236,7 +247,9 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             register.TenantId,
             actorUserId);
 
-        return MapToDto(register);
+        var dto = MapToDto(register);
+        await _enrichment.ApplyAsync([dto], [register], cancellationToken).ConfigureAwait(false);
+        return dto;
     }
 
     private async Task<IQueryable<CashRegister>> BuildAuthorizedListQueryAsync(
@@ -247,7 +260,8 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         var query = _db.CashRegisters
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Include(r => r.Tenant);
+            .Include(r => r.Tenant)
+            .Include(r => r.CurrentUser);
 
         if (actorIsSuperAdmin)
         {

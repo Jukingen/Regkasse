@@ -1,0 +1,47 @@
+{
+  "title": "Activity",
+  "bellAria": "Notifications and activity feed",
+  "markAllRead": "Mark all read",
+  "markRead": "Mark as read",
+  "empty": "No recent notifications.",
+  "emptyUnread": "No unread notifications.",
+  "byActor": "by {{name}}",
+  "settingsLoadError": "Could not load notification settings.",
+  "settingsSaved": "Settings saved.",
+  "settingsSaveError": "Save failed.",
+  "tabs": {
+    "all": "All",
+    "unread": "Unread ({{count}})",
+    "settings": "Settings"
+  },
+  "settings": {
+    "inApp": "In-app notifications",
+    "emailSection": "Email",
+    "emailEnabled": "Enable email notifications",
+    "emailRecipients": "Recipients (one address per line)",
+    "webhookSection": "Webhook (Slack / Discord)",
+    "webhookEnabled": "Enable webhook",
+    "webhookUrl": "Webhook URL",
+    "webhookSecret": "Webhook secret",
+    "eventsSection": "Event types",
+    "enabledEvents": "Enabled events",
+    "severityThreshold": "Minimum severity per event",
+    "severityDefault": "Default (no extra filter)"
+  },
+  "eventTypes": {
+    "UserCreated": "User created",
+    "UserUpdated": "User updated",
+    "UserDeleted": "User deleted",
+    "CashRegisterOpened": "Cash register opened",
+    "CashRegisterClosed": "Cash register closed",
+    "CashRegisterDecommissioned": "Cash register decommissioned",
+    "LicenseExpiringSoon": "License expiring soon",
+    "LicenseExpired": "License expired",
+    "OfflineQueueGrowing": "Offline queue growing",
+    "FinanzOnlineSubmissionFailed": "FinanzOnline submission failed",
+    "BackupFailed": "Backup failed",
+    "BackupSucceeded": "Backup succeeded",
+    "RestoreDrillFailed": "Restore drill failed",
+    "RestoreDrillSucceeded": "Restore drill succeeded"
+  }
+}

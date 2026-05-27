@@ -37,15 +37,19 @@ public sealed class AdminCashRegistersListTests
         ISettingsTenantResolver tenantResolver,
         string actorRole)
     {
+        var enrichment = CashRegisterTestDoubles.NoOpListEnrichment();
+
         var management = new CashRegisterManagementService(
             db,
             tenantResolver,
             Mock.Of<IAuditLogService>(),
+            enrichment,
             NullLogger<CashRegisterManagementService>.Instance);
 
         var controller = new AdminCashRegistersController(
             Mock.Of<ICashRegisterDecommissionService>(),
             management,
+            enrichment,
             NullLogger<AdminCashRegistersController>.Instance);
 
         controller.ControllerContext = new ControllerContext

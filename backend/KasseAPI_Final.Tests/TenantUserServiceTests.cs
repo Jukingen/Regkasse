@@ -3,7 +3,9 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.DataProtection;
@@ -74,10 +76,13 @@ public sealed class TenantUserServiceTests
             quickUserGenerator ?? new QuickUserGeneratorService(
                 db,
                 userManager,
-                uniqueness ?? CreateUniquenessMock().Object),
+                uniqueness ?? CreateUniquenessMock().Object,
+                CreateUserCreationService(db, userManager, uniqueness)),
+            CreateUserCreationService(db, userManager, uniqueness),
             auditLog ?? Mock.Of<IAuditLogService>(),
             Mock.Of<IHttpContextAccessor>(),
             tenantAccessor ?? NullCurrentTenantAccessor.Instance,
+            new ActivityEventRecorder(Mock.Of<IActivityEventService>(), Mock.Of<ILogger<ActivityEventRecorder>>()),
             Mock.Of<ILogger<TenantUserService>>());
 
     private static Mock<IAuditLogService> CreateAuditMock()
@@ -118,8 +123,16 @@ public sealed class TenantUserServiceTests
         var m = new Mock<IUserUniquenessValidationService>();
         m.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync(emailTaken);
+        m.Setup(x => x.IsUserNameTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(false);
         return m;
     }
+
+    private static IUserCreationService CreateUserCreationService(
+        AppDbContext db,
+        UserManager<ApplicationUser> userManager,
+        IUserUniquenessValidationService? uniqueness = null) =>
+        new UserCreationService(db, userManager, uniqueness ?? CreateUniquenessMock().Object);
 
     private static async Task SeedRolesAsync(AppDbContext db)
     {
@@ -142,6 +155,49 @@ public sealed class TenantUserServiceTests
         await using var db = CreateDb();
         var service = CreateService(db, CreateUserManager(db));
         Assert.Null(await service.ListAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task ListAsync_Includes_UserName()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "List Cafe",
+            Slug = "list-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "list-user",
+            UserName = "cashier99",
+            Email = "cashier99@cafe.test",
+            FirstName = "List",
+            LastName = "User",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = "list-user",
+            TenantId = tenantId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db));
+        var rows = await service.ListAsync(tenantId);
+        Assert.NotNull(rows);
+        var row = Assert.Single(rows!);
+        Assert.Equal("cashier99", row.UserName);
+        Assert.Equal("list-user", row.UserId);
     }
 
     [Fact]
@@ -277,6 +333,13 @@ public sealed class TenantUserServiceTests
         Assert.NotNull(result);
         Assert.True(result!.Success);
         Assert.Matches(@"^cashier_[a-z0-9]{6}@cafe\.regkasse\.at$", result.Email);
+        Assert.Matches(@"^cashier\d+$", result.UserName);
+        Assert.NotEqual(result.Email, result.UserName);
+
+        var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == result.UserId);
+        Assert.Equal(result.UserName, persisted.UserName);
+        Assert.Equal(result.Email, persisted.Email);
+
         Assert.Equal(12, result.GeneratedPassword.Length);
         Assert.True(result.ForcePasswordChangeOnNextLogin);
         Assert.Equal(Roles.Cashier, result.Role);
@@ -288,6 +351,88 @@ public sealed class TenantUserServiceTests
         Assert.Contains("Schnell-Benutzer", auditRow.Description);
         Assert.Contains("***HIDDEN***", auditRow.RequestData);
         Assert.Contains("quick_generate", auditRow.RequestData);
+        Assert.Contains("userName", auditRow.RequestData);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Rejects_Duplicate_Explicit_UserName()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Dup Cafe",
+            Slug = "dup-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = Guid.NewGuid().ToString("D"),
+            UserName = "manager1",
+            NormalizedUserName = "MANAGER1",
+            Email = "existing@test.com",
+            Role = Roles.Manager,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var userManager = CreateUserManager(db);
+        var uniqueness = new UserUniquenessValidationService(userManager);
+        var service = CreateService(db, userManager, uniqueness);
+        var (_, error) = await service.CreateAsync(tenantId, new CreateTenantUserRequest
+        {
+            Email = "new@test.com",
+            UserName = "manager1",
+            Role = Roles.Manager,
+        }, Guid.NewGuid().ToString("D"), Roles.SuperAdmin);
+
+        Assert.NotNull(error);
+        Assert.Contains("already taken", error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Rejects_Duplicate_UserName_Case_Insensitive()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Case Cafe",
+            Slug = "case-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = Guid.NewGuid().ToString("D"),
+            UserName = "Mustafa",
+            NormalizedUserName = "MUSTAFA",
+            Email = "existing@test.com",
+            NormalizedEmail = "EXISTING@TEST.COM",
+            Role = Roles.Cashier,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var userManager = CreateUserManager(db);
+        var uniqueness = new UserUniquenessValidationService(userManager);
+        var service = CreateService(db, userManager, uniqueness);
+        var (_, error) = await service.CreateAsync(tenantId, new CreateTenantUserRequest
+        {
+            Email = "new@test.com",
+            UserName = "mustafa",
+            Role = Roles.Cashier,
+        }, Guid.NewGuid().ToString("D"), Roles.SuperAdmin);
+
+        Assert.NotNull(error);
+        Assert.Contains("already taken", error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

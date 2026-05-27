@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -40,6 +41,13 @@ public sealed class DemoTenantAdminSeedTests
             Mock.Of<ILogger<UserManager<ApplicationUser>>>());
     }
 
+    private static IHostEnvironment CreateDevelopmentHostEnvironment()
+    {
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+        return env.Object;
+    }
+
     private static async Task SeedRolesAsync(AppDbContext db)
     {
         foreach (var role in Roles.Canonical)
@@ -55,15 +63,39 @@ public sealed class DemoTenantAdminSeedTests
         await db.SaveChangesAsync();
     }
 
+    private static async Task SeedActiveDemoTenantsAsync(AppDbContext db)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var (id, slug, name) in new[]
+                 {
+                     (DemoTenantIds.Cafe, "cafe", "Test Cafe"),
+                     (DemoTenantIds.Bar, "bar", "Test Bar"),
+                 })
+        {
+            db.Tenants.Add(new Tenant
+            {
+                Id = id,
+                Name = name,
+                Slug = slug,
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = now,
+            });
+        }
+
+        await db.SaveChangesAsync();
+    }
+
     [Fact]
     public async Task SeedAsync_Creates_Tenants_Admins_And_Owner_Memberships()
     {
         await using var db = CreateDb();
         await SeedRolesAsync(db);
+        await SeedActiveDemoTenantsAsync(db);
         var userManager = CreateUserManager(db);
         var provisioner = new UserTenantMembershipProvisioner(db);
 
-        await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner);
+        await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, CreateDevelopmentHostEnvironment());
 
         foreach (var slug in new[] { "dev", "cafe", "bar" })
         {
@@ -84,14 +116,43 @@ public sealed class DemoTenantAdminSeedTests
     {
         await using var db = CreateDb();
         await SeedRolesAsync(db);
+        await SeedActiveDemoTenantsAsync(db);
         var userManager = CreateUserManager(db);
         var provisioner = new UserTenantMembershipProvisioner(db);
 
-        await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner);
-        await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner);
+        var hostEnv = CreateDevelopmentHostEnvironment();
+        await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, hostEnv);
+        await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, hostEnv);
 
-        Assert.Equal(3, await db.Tenants.CountAsync(t => DemoTenantIds.All.Contains(t.Id) || t.Slug == "dev" || t.Slug == "cafe" || t.Slug == "bar"));
+        Assert.Equal(3, await db.Tenants.CountAsync(t => t.Slug == "dev" || t.Slug == "cafe" || t.Slug == "bar"));
         Assert.Equal(3, await db.UserTenantMemberships.CountAsync(m => m.IsActive && m.IsOwner));
+    }
+
+    [Fact]
+    public async Task SeedAsync_Skips_Deleted_Demo_Tenant_And_Does_Not_Recreate_Admin()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var userManager = CreateUserManager(db);
+        var provisioner = new UserTenantMembershipProvisioner(db);
+        var now = DateTime.UtcNow;
+
+        db.Tenants.Add(new Tenant
+        {
+            Id = DemoTenantIds.Bar,
+            Name = "Test Bar",
+            Slug = "bar",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = now,
+            DeletedAtUtc = now,
+        });
+        await db.SaveChangesAsync();
+
+        await DemoTenantAdminSeed.SeedAsync(db, userManager, provisioner, CreateDevelopmentHostEnvironment());
+
+        Assert.Null(await userManager.FindByEmailAsync("admin@bar.regkasse.at"));
+        Assert.Single(await db.Tenants.IgnoreQueryFilters().Where(t => t.Slug == "bar").ToListAsync());
     }
 
     [Fact]

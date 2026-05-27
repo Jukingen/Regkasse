@@ -37,5 +37,20 @@ public sealed class AuthSession
     [MaxLength(200)]
     public string? RevokedReason { get; set; }
 
+    [Column("last_activity_at_utc")]
+    public DateTime? LastActivityAtUtc { get; set; }
+
+    [Column("device_id")]
+    [MaxLength(200)]
+    public string? DeviceId { get; set; }
+
+    [Column("ip_address")]
+    [MaxLength(45)]
+    public string? IpAddress { get; set; }
+
+    [Column("user_agent")]
+    [MaxLength(500)]
+    public string? UserAgent { get; set; }
+
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

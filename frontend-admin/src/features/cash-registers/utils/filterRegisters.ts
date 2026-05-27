@@ -1,13 +1,21 @@
 import type { CashRegister } from '@/api/generated/model';
+import type { EnhancedCashRegister, TseHealthStatus } from '@/features/cash-registers/types/enhancedCashRegister';
+import { normalizeTseHealthStatus } from '@/features/cash-registers/utils/tseHealthStatus';
 import { isDecommissionedRegister, rawRegisterStatus, REGISTER_STATUS } from '@/features/cash-registers/utils/registerStatus';
 
 export type CashRegisterStatusFilter = number | undefined;
+export type TseHealthStatusFilter = TseHealthStatus | undefined;
 
 export type FilterCashRegistersOptions = {
     search?: string;
     status?: CashRegisterStatusFilter;
+    tseHealth?: TseHealthStatusFilter;
     showDecommissioned: boolean;
 };
+
+function asEnhanced(record: CashRegister): EnhancedCashRegister {
+    return record as EnhancedCashRegister;
+}
 
 export function filterCashRegisters(
     registers: CashRegister[],
@@ -18,11 +26,14 @@ export function filterCashRegisters(
     return registers.filter((register) => {
         const status = rawRegisterStatus(register);
         const matchesStatus = options.status == null || status === options.status;
+        const matchesTseHealth =
+            options.tseHealth == null ||
+            normalizeTseHealthStatus(asEnhanced(register).tseHealthStatus) === options.tseHealth;
         const decommissionedAllowed =
             options.showDecommissioned || options.status === REGISTER_STATUS.decommissioned;
         const matchesDecommissioned = decommissionedAllowed || !isDecommissionedRegister(status);
 
-        if (!matchesStatus || !matchesDecommissioned) {
+        if (!matchesStatus || !matchesTseHealth || !matchesDecommissioned) {
             return false;
         }
 

@@ -53,6 +53,16 @@ export function TenantUserTable({
                 </Space>
             ),
         },
+        {
+            title: t('tenants.users.columns.userName'),
+            dataIndex: 'userName',
+            key: 'userName',
+            width: 140,
+            ellipsis: true,
+            render: (userName: string) => userName?.trim() || '—',
+            sorter: (a, b) =>
+                (a.userName ?? '').localeCompare(b.userName ?? '', undefined, { sensitivity: 'base' }),
+        },
         { title: t('tenants.users.columns.email'), dataIndex: 'email', key: 'email' },
         {
             title: t('tenants.users.columns.role'),

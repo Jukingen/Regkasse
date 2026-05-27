@@ -1,4 +1,9 @@
 import type { CashRegister } from '@/api/generated/model';
+import type {
+    CashRegisterDeviceInfo,
+    CashRegisterTseHealthResponse,
+    TseHealthStatus,
+} from '@/features/cash-registers/types/enhancedCashRegister';
 import { customInstance } from '@/lib/axios';
 
 export type CashRegisterCapabilities = {
@@ -48,6 +53,7 @@ export type AdminCashRegisterListItem = {
     currentBalance?: number;
     lastBalanceUpdate?: string;
     currentUserId?: string | null;
+    currentCashierName?: string | null;
     isActive?: boolean;
     decommissionedAtUtc?: string | null;
     decommissionReason?: string | null;
@@ -55,6 +61,12 @@ export type AdminCashRegisterListItem = {
     createdBy?: string | null;
     updatedAt?: string | null;
     updatedBy?: string | null;
+    lastMonatsbelegUtc?: string | null;
+    lastJahresbelegUtc?: string | null;
+    tseHealthStatus?: TseHealthStatus | string | null;
+    offlineQueueCount?: number;
+    lastSyncAtUtc?: string | null;
+    deviceInfo?: CashRegisterDeviceInfo | null;
 };
 
 export type AdminCashRegisterPagedResult = {
@@ -158,5 +170,12 @@ export async function hardDeleteCashRegister(
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         data: body,
+    });
+}
+
+export async function getCashRegisterTseHealth(id: string): Promise<CashRegisterTseHealthResponse> {
+    return customInstance<CashRegisterTseHealthResponse>({
+        url: `/api/admin/cash-registers/${id}/tse-health`,
+        method: 'GET',
     });
 }

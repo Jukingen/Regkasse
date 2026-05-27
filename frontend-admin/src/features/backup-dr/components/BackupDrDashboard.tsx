@@ -42,6 +42,7 @@ import {
   useGetApiAdminRestoreVerificationRunsLatest,
 } from "@/api/generated/admin-restore-verification/admin-restore-verification";
 import {
+  BackupRunResponseDto,
   BackupRunResponseDtoStatus,
 } from "@/api/generated/model";
 import {
@@ -74,10 +75,15 @@ import { BackupRecoverabilityCard } from "@/features/backup-dr/components/Backup
 import { BackupManualActionsPanel } from "@/features/backup-dr/components/BackupManualActionsPanel";
 import { BackupRecentRestoreDrillsTable } from "@/features/backup-dr/components/BackupRecentRestoreDrillsTable";
 import { BackupRecentRunsTable } from "@/features/backup-dr/components/BackupRecentRunsTable";
+import { RestoreRequestModal } from "@/features/backup-dr/components/RestoreRequestModal";
+import { RestoreApprovalModal } from "@/features/backup-dr/components/RestoreApprovalModal";
+import { ManualRestoreRequestsTable } from "@/features/backup-dr/components/ManualRestoreRequestsTable";
+import { isSuperAdmin } from "@/features/auth/constants/roles";
 import { BackupStatusCard } from "@/features/backup-dr/components/BackupStatusCard";
 import { HealthBanner } from "@/features/backup-dr/components/HealthBanner";
 import { RestoreVerificationCard } from "@/features/backup-dr/components/RestoreVerificationCard";
 import { BackupDrPostureSummary } from "@/features/backup-dr/components/BackupDrPostureSummary";
+import { BackupMonitoringSection } from "@/features/backup-dr/components/BackupMonitoringSection";
 import { BackupDrDataFreshnessStrip } from "@/features/backup-dr/components/BackupDrDataFreshnessStrip";
 import { BackupDrEvidenceSurface } from "@/features/backup-dr/components/BackupDrEvidenceSurface";
 import { BackupDrRecentEvidenceGrid } from "@/features/backup-dr/components/BackupDrRecentEvidenceGrid";
@@ -128,6 +134,11 @@ export function BackupDrDashboard() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
+  const canRequestManualRestore = isSuperAdmin(user?.role);
+  const [manualRestoreRun, setManualRestoreRun] =
+    React.useState<BackupRunResponseDto | null>(null);
+  const [manualRestoreApprovalId, setManualRestoreApprovalId] =
+    React.useState<string | null>(null);
   const allowClientPipelineFallback = isBackupPipelineClientFallbackEnabled();
 
   const executionModeQuery = useQuery({
@@ -529,6 +540,27 @@ export function BackupDrDashboard() {
               t={t}
             />
           </Space>
+
+          <BackupMonitoringSection
+            statusPayload={statusQuery.data}
+            latest={latest}
+            latestDetail={detailForPipeline ?? undefined}
+            configurationHealth={health}
+            artifactPipelinePolicy={policy}
+            canManage={canManage}
+            recoverability={recoverabilityQuery.data}
+            restoreLatest={restoreLatestForTruth}
+            restoreReadiness={restoreReady}
+            simulatedOperationalMode={isSimulatedAdapterEnvironment}
+            backupStatusLabel={(s) => operatorTruth.labels.backupStatus(s)}
+            restoreStatusLabel={(s) => operatorTruth.labels.restoreStatus(s)}
+            formatDt={formatDt}
+            formatLocale={formatLocale}
+            metricsPollInterval={pollAlignedWithLatestBackup}
+            loading={loading}
+            t={t}
+          />
+
           <BackupDrSection
             titleKey="backupDr.dashboardSections.proofAndPosture"
             descriptionKey="backupDr.dashboardSections.proofAndPostureDesc"
@@ -1539,7 +1571,39 @@ export function BackupDrDashboard() {
                 formatLocale={formatLocale}
                 t={t}
                 onRetryInvalidate={invalidateAll}
+                canRequestManualRestore={canRequestManualRestore}
+                onRequestManualRestore={setManualRestoreRun}
               />
+
+              {manualRestoreRun ? (
+                <RestoreRequestModal
+                  open
+                  backupRun={manualRestoreRun}
+                  onClose={() => setManualRestoreRun(null)}
+                  t={t}
+                />
+              ) : null}
+
+              <ManualRestoreRequestsTable
+                canApprove={canRequestManualRestore}
+                formatDt={formatDt}
+                formatLocale={formatLocale}
+                onApprove={setManualRestoreApprovalId}
+                t={t}
+              />
+
+              {manualRestoreApprovalId ? (
+                <RestoreApprovalModal
+                  open
+                  requestId={manualRestoreApprovalId}
+                  onApproved={() => {
+                    setManualRestoreApprovalId(null);
+                    void invalidateAll();
+                  }}
+                  onClose={() => setManualRestoreApprovalId(null)}
+                  t={t}
+                />
+              ) : null}
 
               <BackupRecentRestoreDrillsTable
                 formatDt={formatDt}

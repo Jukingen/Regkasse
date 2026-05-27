@@ -61,6 +61,7 @@ import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
 import { useI18n } from '@/i18n';
+import { useDebounce } from '@/hooks/useDebounce';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
 
 const TENANT_ROLE_FILTER_VALUES = ['Manager', 'Cashier', 'Accountant'] as const;
@@ -93,6 +94,8 @@ export function TenantUsersTabCore({
     const [tenantIdFilter, setTenantIdFilter] = useState<string | undefined>();
     const [roleFilter, setRoleFilter] = useState<string | undefined>();
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 300);
+    const searchParam = debouncedSearch.trim() || undefined;
     const [addOpen, setAddOpen] = useState(false);
     const [createOpen, setCreateOpen] = useState(false);
     const [quickOpen, setQuickOpen] = useState(false);
@@ -109,12 +112,13 @@ export function TenantUsersTabCore({
     );
 
     const scopedUsersQuery = useQuery({
-        queryKey: adminUsersQueryKeys.tenant(tenantIdFilter, roleFilter),
+        queryKey: adminUsersQueryKeys.tenant(tenantIdFilter, roleFilter, searchParam),
         queryFn: () =>
             listScopedTenantUsers({
                 tenantId: tenantIdFilter,
                 role: roleFilter || undefined,
                 isActive: true,
+                search: searchParam,
             }),
         enabled: !isFixedTenant,
         select: (data) => data.map(tenantRowToTenantUser),
@@ -231,19 +235,33 @@ export function TenantUsersTabCore({
 
     const scopedRows = scopedUsersQuery.data ?? [];
     const filteredScopedRows = useMemo(() => {
-        const q = search.trim().toLowerCase();
+        const q = searchParam?.toLowerCase();
         if (!q) return scopedRows;
         return scopedRows.filter((row) => {
             if (tenantIdFilter && row.tenantId !== tenantIdFilter) return false;
             if (roleFilter && row.role !== roleFilter) return false;
             return (
                 row.name.toLowerCase().includes(q) ||
+                row.userName.toLowerCase().includes(q) ||
                 row.email.toLowerCase().includes(q) ||
                 row.tenantSlug.toLowerCase().includes(q) ||
                 row.role.toLowerCase().includes(q)
             );
         });
-    }, [scopedRows, search, tenantIdFilter, roleFilter]);
+    }, [scopedRows, searchParam, tenantIdFilter, roleFilter]);
+
+    const filteredFixedTenantUsers = useMemo(() => {
+        const users = fixedTenantUsersQuery.data ?? [];
+        const q = searchParam?.toLowerCase();
+        if (!q) return users;
+        return users.filter(
+            (u) =>
+                u.name.toLowerCase().includes(q) ||
+                u.userName.toLowerCase().includes(q) ||
+                u.email.toLowerCase().includes(q) ||
+                u.role.toLowerCase().includes(q),
+        );
+    }, [fixedTenantUsersQuery.data, searchParam]);
 
     const tenantFilterOptions = useMemo(
         () => [
@@ -304,6 +322,16 @@ export function TenantUsersTabCore({
                         </Typography.Text>
                     </Space>
                 ),
+            },
+            {
+                title: t('users.list.columnUserName'),
+                dataIndex: 'userName',
+                key: 'userName',
+                width: 140,
+                ellipsis: true,
+                render: (userName: string) => userName?.trim() || '—',
+                sorter: (a, b) =>
+                    (a.userName ?? '').localeCompare(b.userName ?? '', undefined, { sensitivity: 'base' }),
             },
             {
                 title: t('users.list.columnRole'),
@@ -422,6 +450,16 @@ export function TenantUsersTabCore({
                         />
                     </>
                 ) : null}
+                {isFixedTenant ? (
+                    <Input.Search
+                        allowClear
+                        placeholder={t('users.tabs.tenant.searchPlaceholder')}
+                        style={{ width: 280 }}
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onSearch={setSearch}
+                    />
+                ) : null}
             </Space>
 
             {isFixedTenant && !canProvision ? <SuperAdminCredentialsGate /> : null}
@@ -441,7 +479,7 @@ export function TenantUsersTabCore({
 
             {isFixedTenant ? (
                 <TenantUserTable
-                    users={fixedTenantUsersQuery.data ?? []}
+                    users={filteredFixedTenantUsers}
                     loading={listLoading}
                     setOwnerPending={setOwnerMutation.isPending}
                     removePending={removeMutation.isPending}

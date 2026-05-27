@@ -21,6 +21,9 @@ public sealed class EmailSmtpOptions
     /// <summary>Envelope-from address.</summary>
     public string? From { get; set; }
 
+    /// <summary>Support line in transactional user emails (e.g. username change). Falls back to <see cref="From"/>.</summary>
+    public string? SupportContact { get; set; }
+
     /// <summary>Recipients for license reminder escalation (comma- or semicolon-separated).</summary>
     public string? LicenseReminderRecipients { get; set; }
 

@@ -114,6 +114,7 @@ vi.mock('@/features/users/api/users', () => ({
     adminUserToUserInfo: vi.fn(),
     tenantRowToTenantUser: (row: {
         userId: string;
+        userName: string;
         email: string;
         name: string;
         role: string;
@@ -126,6 +127,7 @@ vi.mock('@/features/users/api/users', () => ({
         lastLoginAt?: string | null;
     }) => ({
         userId: row.userId,
+        userName: row.userName,
         email: row.email,
         name: row.name,
         role: row.role,

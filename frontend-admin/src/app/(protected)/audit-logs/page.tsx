@@ -1,51 +1,28 @@
 'use client';
 
-import React, { Suspense, useCallback, useMemo } from 'react';
-import {
-    Table,
-    Card,
-    Typography,
-    Tag,
-    Space,
-    Button,
-    Select,
-    DatePicker,
-    message,
-    Alert,
-    Empty,
-    Row,
-    Col,
-    Tooltip,
-    Spin,
-} from 'antd';
-import { ClearOutlined, ReloadOutlined } from '@ant-design/icons';
+import React, { Suspense, useCallback, useMemo, useState } from 'react';
+import { Card, Typography, Tag, Space, Button, message, Alert, Spin, Tooltip } from 'antd';
+import { CalendarOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
+import type { AuditLogEntryDto } from '@/api/generated/model';
 import type { Dayjs } from 'dayjs';
 import Link from 'next/link';
 import { useGetApiAuditLog } from '@/api/generated/audit-log/audit-log';
-import type { AuditLogEntryDto } from '@/api/generated/model';
 import dayjs from 'dayjs';
-import { viewAuditLogStatusPresentation } from '@/shared/verificationsAuditView';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
 import { useAuditLogSearchParams } from '@/features/audit-logs/hooks/useAuditLogSearchParams';
-import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
-import {
-    AUDIT_ACTION_FILTER_VALUES,
-    toAuditLogStatusApiParam,
-    type AuditLogStatusFilter,
-} from '@/features/audit-logs/constants/auditLogFilters';
-import { buildAuditLogExportQuery } from '@/features/audit-logs/utils/buildAuditLogExportQuery';
-import { downloadAuditLogExport } from '@/features/audit-logs/utils/exportAuditLogs';
-import { UserFilterSelect } from '@/features/audit-logs/components/UserFilterSelect';
-import { EntityTypeFilterSelect } from '@/features/audit-logs/components/EntityTypeFilterSelect';
-import { StatusFilterSelect } from '@/features/audit-logs/components/StatusFilterSelect';
+import { toAuditLogStatusApiParam, type AuditLogStatusFilter } from '@/features/audit-logs/constants/auditLogFilters';
+import { AuditFilterBar } from '@/features/audit/components/AuditFilterBar';
+import { AuditDetailModal } from '@/features/audit/components/AuditDetailModal';
+import { AuditExportModal } from '@/features/audit/components/AuditExportModal';
+import { AuditRetentionPanel } from '@/features/audit/components/AuditRetentionPanel';
+import { ScheduleReportModal } from '@/features/audit/components/ScheduleReportModal';
+import { AuditLogTable } from '@/features/audit-logs/components/AuditLogTable';
 import { useAuditLogUserFilterOptions } from '@/features/audit-logs/hooks/useAuditLogUserFilterOptions';
-import { formatAuditLogDescription } from '@/features/audit-logs/utils/formatAuditLogDescription';
-
-const { RangePicker } = DatePicker;
+import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
 
 function getAuditListErrorMessage(error: unknown, translate: (key: string) => string): string {
     if (error instanceof Error) return error.message;
@@ -55,6 +32,9 @@ function getAuditListErrorMessage(error: unknown, translate: (key: string) => st
 function AuditLogsPageContent() {
     const { t, formatLocale } = useI18n();
     const { params, setParams, resetFilters } = useAuditLogSearchParams();
+    const [exportOpen, setExportOpen] = useState(false);
+    const [scheduleOpen, setScheduleOpen] = useState(false);
+    const [detailRecord, setDetailRecord] = useState<AuditLogEntryDto | null>(null);
 
     const dateRange = useMemo((): [Dayjs | null, Dayjs | null] | null => {
         if (!params.startDate && !params.endDate) return null;
@@ -69,9 +49,13 @@ function AuditLogsPageContent() {
             endDate: params.endDate ? dayjs(params.endDate).endOf('day').toISOString() : undefined,
             action: params.action,
             userId: params.userId,
+            targetUserId: params.targetUserId,
             entityType: params.entityType,
             entityId: params.entityId,
+            ipAddress: params.ipAddress,
             status: toAuditLogStatusApiParam(params.status) as never,
+            statusOutcome: params.statusOutcome,
+            hasChanges: params.hasChanges,
         }),
         [params],
     );
@@ -87,23 +71,21 @@ function AuditLogsPageContent() {
     const hasActiveFilters = Boolean(
         params.action ||
             params.userId ||
+            params.targetUserId ||
             params.entityType ||
+            params.entityId ||
+            params.ipAddress ||
             params.status ||
+            params.statusOutcome ||
+            params.hasChanges ||
             (params.startDate && params.endDate),
     );
 
-    const actionFilterOptions = useMemo(
-        () =>
-            AUDIT_ACTION_FILTER_VALUES.map((value) => ({
-                value,
-                label: t(
-                    value === 'Login'
-                        ? 'common.auditLogs.actionLabels.login'
-                        : value === 'CreateInvoice'
-                          ? 'common.auditLogs.actionLabels.createInvoice'
-                          : 'common.auditLogs.actionLabels.payment',
-                ),
-            })),
+    const actionOptionLabel = useCallback(
+        (value: string) => {
+            const labelKey = getAuditActionLabelKey(value);
+            return labelKey ? t(labelKey as 'common.auditLogs.actionLabels.login') : value;
+        },
         [t],
     );
 
@@ -123,7 +105,9 @@ function AuditLogsPageContent() {
                   })
                 : t('common.auditLogs.scopeTotalLoading'),
         ];
-        if (params.action) parts.push(t('common.auditLogs.scopeActionIs', { action: params.action }));
+        if (params.action) {
+            parts.push(t('common.auditLogs.scopeActionIs', { action: actionOptionLabel(params.action) }));
+        }
         if (params.userId) parts.push(t('common.auditLogs.scopeUserIs'));
         if (params.entityType) {
             parts.push(t('common.auditLogs.scopeEntityTypeIs', { entityType: params.entityType }));
@@ -138,139 +122,9 @@ function AuditLogsPageContent() {
         }
         parts.push(t('common.auditLogs.scopeApiPageNote'));
         return parts.join(' · ');
-    }, [params, data?.totalCount, formatLocale, t, statusLabel]);
-
-    const actionOptionLabel = useCallback(
-        (value: string) => {
-            const opt = actionFilterOptions.find((o) => o.value === value);
-            return opt?.label ?? value;
-        },
-        [actionFilterOptions],
-    );
-
-    const handleExport = useCallback(
-        async (format: 'json' | 'csv') => {
-            try {
-                await downloadAuditLogExport(format, buildAuditLogExportQuery(params), {
-                    exportFailedMessage: t('common.auditLogs.exportFailed'),
-                });
-                message.success(t('common.auditLogs.exportStarted'));
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : t('common.auditLogs.exportFailed');
-                message.error(msg);
-            }
-        },
-        [params, t],
-    );
-
-    const columns = useMemo(
-        () => [
-            {
-                title: t('common.auditLogs.table.time'),
-                dataIndex: 'timestamp',
-                key: 'timestamp',
-                width: 168,
-                render: (ts: string | undefined) => (
-                    <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-                        {ts ? dayjs(ts).format('DD.MM.YYYY HH:mm:ss') : '—'}
-                    </Typography.Text>
-                ),
-            },
-            {
-                title: t('common.auditLogs.table.correlation'),
-                key: 'correlationId',
-                width: 112,
-                ellipsis: true,
-                render: (_: unknown, record: AuditLogEntryDto) => {
-                    const c = record.correlationId?.trim();
-                    if (!c) return <Typography.Text type="secondary">—</Typography.Text>;
-                    return (
-                        <Typography.Text code copyable={{ text: c }} ellipsis style={{ fontSize: 11, maxWidth: 104 }}>
-                            {c.length > 14 ? `${c.slice(0, 12)}…` : c}
-                        </Typography.Text>
-                    );
-                },
-            },
-            {
-                title: t('common.auditLogs.table.user'),
-                key: 'userName',
-                width: 140,
-                ellipsis: true,
-                render: (_: unknown, record: AuditLogEntryDto) => (
-                    <Typography.Text type="secondary" ellipsis={{ tooltip: true }}>
-                        {record.actorDisplayName ?? record.createdBy ?? record.userId ?? '—'}
-                    </Typography.Text>
-                ),
-            },
-            {
-                title: t('common.auditLogs.table.action'),
-                dataIndex: 'action',
-                key: 'action',
-                width: 200,
-                ellipsis: true,
-                render: (action: string | null | undefined) => <Tag color="blue">{action ?? '—'}</Tag>,
-            },
-            {
-                title: t('common.auditLogs.table.entity'),
-                key: 'entity',
-                width: 200,
-                render: (_: unknown, record: AuditLogEntryDto) => {
-                    const type = record.entityType?.trim() || '—';
-                    const id = record.entityId?.trim();
-                    if (!id) {
-                        return <Typography.Text strong>{type}</Typography.Text>;
-                    }
-                    return (
-                        <Space direction="vertical" size={0} style={{ maxWidth: 220 }}>
-                            <Typography.Text strong ellipsis style={{ display: 'block' }}>
-                                {type}
-                            </Typography.Text>
-                            <Typography.Text
-                                type="secondary"
-                                ellipsis={{ tooltip: true }}
-                                copyable={{ text: id }}
-                                style={{ display: 'block', fontSize: 12, fontFamily: 'monospace' }}
-                            >
-                                {id}
-                            </Typography.Text>
-                        </Space>
-                    );
-                },
-            },
-            {
-                title: t('common.auditLogs.table.details'),
-                dataIndex: 'description',
-                key: 'description',
-                ellipsis: true,
-                render: (text: string | null | undefined, record: AuditLogEntryDto) => {
-                    const detailText = formatAuditLogDescription(record, t) || text?.trim();
-                    if (!detailText) return <Typography.Text type="secondary">—</Typography.Text>;
-                    return (
-                        <Tooltip title={detailText}>
-                            <Typography.Text ellipsis style={{ maxWidth: 320, display: 'block' }}>
-                                {detailText}
-                            </Typography.Text>
-                        </Tooltip>
-                    );
-                },
-            },
-            {
-                title: t('common.auditLogs.table.status'),
-                dataIndex: 'status',
-                key: 'status',
-                width: 120,
-                align: 'center' as const,
-                render: (_: unknown, record: AuditLogEntryDto) => {
-                    const p = viewAuditLogStatusPresentation(record.status);
-                    return <Tag color={p.antColor}>{p.label}</Tag>;
-                },
-            },
-        ],
-        [t],
-    );
+    }, [params, data?.totalCount, formatLocale, t, statusLabel, actionOptionLabel]);
 
     const rows = data?.auditLogs ?? [];
-    const emptyList = !isLoading && !isError && rows.length === 0;
 
     return (
         <AdminPageShell>
@@ -284,11 +138,11 @@ function AuditLogsPageContent() {
                                 {t('common.buttons.refresh')}
                             </Button>
                         </Tooltip>
-                        <Button onClick={() => handleExport('json')} disabled={isLoading}>
-                            {t('common.auditLogs.exportJson')}
+                        <Button icon={<DownloadOutlined />} onClick={() => setExportOpen(true)} disabled={isLoading}>
+                            {t('common.auditLogs.exportButton')}
                         </Button>
-                        <Button onClick={() => handleExport('csv')} disabled={isLoading}>
-                            {t('common.auditLogs.exportCsv')}
+                        <Button icon={<CalendarOutlined />} onClick={() => setScheduleOpen(true)}>
+                            {t('common.auditLogs.scheduleButton')}
                         </Button>
                     </Space>
                 }
@@ -304,54 +158,31 @@ function AuditLogsPageContent() {
             </AdminPageHeader>
 
             <Card size="small" title={t('common.auditLogs.filterCardTitle')}>
-                <Row gutter={[12, 12]} align="middle">
-                    <Col xs={24} sm={12} md={6} lg={5}>
-                        <UserFilterSelect
-                            value={params.userId}
-                            onChange={(userId) => setParams({ userId })}
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} md={6} lg={5}>
-                        <EntityTypeFilterSelect
-                            value={params.entityType}
-                            onChange={(entityType) => setParams({ entityType })}
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} md={6} lg={4}>
-                        <StatusFilterSelect
-                            value={params.status}
-                            onChange={(status) => setParams({ status })}
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} md={6} lg={5}>
-                        <Select
-                            placeholder={t('common.auditLogs.actionPlaceholder')}
-                            style={{ width: '100%' }}
-                            allowClear
-                            value={params.action}
-                            onChange={(value) => setParams({ action: value ?? undefined })}
-                            options={actionFilterOptions}
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} md={8} lg={5}>
-                        <RangePicker
-                            style={{ width: '100%' }}
-                            value={dateRange ?? undefined}
-                            onChange={(dates) =>
-                                setParams({
-                                    startDate: dates?.[0]?.format('YYYY-MM-DD'),
-                                    endDate: dates?.[1]?.format('YYYY-MM-DD'),
-                                })
-                            }
-                            format="DD.MM.YYYY"
-                        />
-                    </Col>
-                    <Col xs={24} sm={12} md={4} lg={24} style={{ textAlign: 'right' }}>
-                        <Button icon={<ClearOutlined />} onClick={resetFilters}>
-                            {t('common.auditLogs.clearFilters')}
-                        </Button>
-                    </Col>
-                </Row>
+                <AuditFilterBar
+                    action={params.action}
+                    userId={params.userId}
+                    targetUserId={params.targetUserId}
+                    entityType={params.entityType}
+                    entityId={params.entityId}
+                    ipAddress={params.ipAddress}
+                    status={params.status}
+                    statusOutcome={params.statusOutcome}
+                    hasChanges={params.hasChanges}
+                    dateRange={dateRange}
+                    onActionChange={(action) => setParams({ action })}
+                    onUserIdChange={(userId) => setParams({ userId })}
+                    onTargetUserIdChange={(targetUserId) => setParams({ targetUserId })}
+                    onEntityTypeChange={(entityType) => setParams({ entityType })}
+                    onEntityIdChange={(entityId) => setParams({ entityId })}
+                    onIpAddressChange={(ipAddress) => setParams({ ipAddress })}
+                    onStatusChange={(status) => setParams({ status, statusOutcome: undefined })}
+                    onStatusOutcomeChange={(statusOutcome) =>
+                        setParams({ statusOutcome, status: undefined })
+                    }
+                    onHasChangesChange={(hasChanges) => setParams({ hasChanges })}
+                    onDateRangeChange={(startDate, endDate) => setParams({ startDate, endDate })}
+                    onClearFilters={resetFilters}
+                />
             </Card>
 
             {dateRangeIncomplete ? (
@@ -437,52 +268,29 @@ function AuditLogsPageContent() {
             ) : null}
 
             {!isError ? (
-                <Table<AuditLogEntryDto>
-                    columns={columns}
-                    dataSource={rows}
+                <AuditLogTable
+                    rows={rows}
                     loading={isLoading}
-                    virtual={shouldUseAdminTableVirtual(rows.length)}
-                    rowKey={(r) => r.id ?? `${r.timestamp ?? ''}-${r.action ?? ''}`}
-                    size="middle"
-                    scroll={adminTableScrollXy(1240, rows.length)}
-                    pagination={{
-                        current: params.page,
-                        pageSize: params.pageSize,
-                        total: data?.totalCount ?? 0,
-                        showSizeChanger: true,
-                        pageSizeOptions: ['10', '25', '50', '100'],
-                        showTotal: (total, range) => {
-                            if (total <= 0) return t('common.auditLogs.paginationZero');
-                            return t('common.auditLogs.paginationRangeOfTotal', {
-                                from: String(range[0] ?? 0),
-                                to: String(range[1] ?? 0),
-                                total: formatNumber(total, formatLocale, { maximumFractionDigits: 0 }),
-                            });
-                        },
-                        hideOnSinglePage: false,
-                        onChange: (p, s) => {
-                            setParams({ page: p, pageSize: s ?? params.pageSize });
-                        },
-                    }}
-                    locale={{
-                        emptyText: emptyList ? (
-                            <Empty
-                                description={
-                                    hasActiveFilters
-                                        ? t('common.auditLogs.emptyFiltered')
-                                        : t('common.auditLogs.emptyNoRows')
-                                }
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            />
-                        ) : (
-                            <Empty
-                                description={t('common.auditLogs.emptyNoRows')}
-                                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            />
-                        ),
-                    }}
+                    page={params.page}
+                    pageSize={params.pageSize}
+                    total={data?.totalCount ?? 0}
+                    hasActiveFilters={hasActiveFilters}
+                    onPageChange={(p, s) => setParams({ page: p, pageSize: s })}
+                    onRowClick={setDetailRecord}
                 />
             ) : null}
+
+            <div style={{ marginTop: 16 }}>
+                <AuditRetentionPanel />
+            </div>
+
+            <AuditExportModal open={exportOpen} params={params} onClose={() => setExportOpen(false)} />
+            <ScheduleReportModal open={scheduleOpen} params={params} onClose={() => setScheduleOpen(false)} />
+            <AuditDetailModal
+                open={!!detailRecord}
+                record={detailRecord}
+                onClose={() => setDetailRecord(null)}
+            />
         </AdminPageShell>
     );
 }

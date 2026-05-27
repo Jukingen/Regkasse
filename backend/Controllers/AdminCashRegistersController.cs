@@ -18,15 +18,18 @@ public sealed class AdminCashRegistersController : ControllerBase
 {
     private readonly ICashRegisterDecommissionService _decommission;
     private readonly ICashRegisterManagementService _cashRegisterManagement;
+    private readonly ICashRegisterListEnrichmentService _enrichment;
     private readonly ILogger<AdminCashRegistersController> _logger;
 
     public AdminCashRegistersController(
         ICashRegisterDecommissionService decommission,
         ICashRegisterManagementService cashRegisterManagement,
+        ICashRegisterListEnrichmentService enrichment,
         ILogger<AdminCashRegistersController> logger)
     {
         _decommission = decommission;
         _cashRegisterManagement = cashRegisterManagement;
+        _enrichment = enrichment;
         _logger = logger;
     }
 
@@ -130,6 +133,22 @@ public sealed class AdminCashRegistersController : ControllerBase
         }
     }
 
+    /// <summary>TSE health snapshot for a single cash register (includes offline queue count).</summary>
+    [HttpGet("{id:guid}/tse-health")]
+    [HasPermission(AppPermissions.CashRegisterView)]
+    [ProducesResponseType(typeof(CashRegisterTseHealthDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CashRegisterTseHealthDto>> GetTseHealth(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var health = await _enrichment.GetTseHealthAsync(id, cancellationToken).ConfigureAwait(false);
+        if (health == null)
+            return NotFound();
+
+        return Ok(health);
+    }
+
     /// <summary>Feature flags for FA (hard delete visible only in Development + AllowHardDelete).</summary>
     [HttpGet("capabilities")]
     [HasPermission(AppPermissions.CashRegisterView)]
@@ -177,6 +196,7 @@ public sealed class AdminCashRegistersController : ControllerBase
                 cancellationToken).ConfigureAwait(false);
 
             var dto = MapToDto(register);
+            await _enrichment.ApplyAsync([dto], [register], cancellationToken).ConfigureAwait(false);
             return CreatedAtAction(nameof(List), new { id = register.Id }, dto);
         }
         catch (UnauthorizedAccessException ex)

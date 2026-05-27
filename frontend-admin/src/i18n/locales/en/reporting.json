@@ -273,5 +273,113 @@
         "originalReceipt": "Original receipt"
       }
     }
+  },
+  "compliance": {
+    "pageTitle": "Compliance & operational reports",
+    "breadcrumb": "Compliance reports",
+    "intro": "Reconciliation, TSE chain, offline recovery, peak hours, and product movement. Related:",
+    "businessDate": "Business day (Vienna)",
+    "dateRange": "Date range",
+    "register": "Register",
+    "allRegisters": "All registers",
+    "yes": "Yes",
+    "no": "No",
+    "peakHint": "Heatmap: payment count by weekday (Mon–Sun) and hour (Europe/Vienna).",
+    "export": "Export",
+    "exportFailed": "Export failed.",
+    "groups": {
+      "compliance": "Compliance",
+      "operations": "Operations"
+    },
+    "config": {
+      "title": "Configure report",
+      "open": "Filters",
+      "businessDay": "Business day",
+      "dateRange": "Date range",
+      "register": "Register",
+      "allRegisters": "All registers"
+    },
+    "schedule": {
+      "title": "Schedule report",
+      "open": "Schedule",
+      "cron": "Cron schedule",
+      "cronHint": "e.g. 0 8 * * * = daily at 08:00 UTC",
+      "recipients": "Email recipients",
+      "format": "Format",
+      "saved": "Schedule saved."
+    },
+    "peak": {
+      "busiest": "Busiest: day {{day}} / hour {{hour}} ({{count}} payments)",
+      "quietest": "Quietest: day {{day}} / hour {{hour}} ({{count}} payments)"
+    },
+    "movement": {
+      "turnover": "Stock turnover",
+      "daysOnHand": "Days on hand",
+      "topRevenue": "Top revenue",
+      "slowMovers": "Slow movers"
+    },
+    "salesMovement": "Sales movement (order items)",
+    "offlineAdminLink": "Manage offline transactions",
+    "tabs": {
+      "reconciliation": "Daily reconciliation",
+      "tse": "TSE chain",
+      "offline": "Offline recovery",
+      "peak": "Peak hours",
+      "movement": "Product movement",
+      "users": "User performance"
+    },
+    "offline": {
+      "pendingStart": "Pending (period start)",
+      "pendingEnd": "Pending (period end)",
+      "recoveredOk": "Recovered (first try)",
+      "recoveredRetry": "Recovered with retry",
+      "failedPermanent": "Permanently failed",
+      "avgRecoverySec": "Avg recovery (s)"
+    },
+    "users": {
+      "stornoWarning": "{{count}} users with storno rate above {{pct}}%"
+    },
+    "stats": {
+      "cash": "Cash",
+      "card": "Card",
+      "expectedCash": "Expected cash",
+      "actualCash": "Actual cash (shift close)",
+      "difference": "Difference",
+      "reconciled": "Reconciled",
+      "receiptsChecked": "Receipts checked",
+      "chainBreaks": "Chain breaks",
+      "signatures": "Signatures",
+      "gaps": "Gaps",
+      "duplicates": "Duplicates"
+    },
+    "columns": {
+      "product": "Product",
+      "qty": "Qty",
+      "revenue": "Revenue",
+      "register": "Register",
+      "receipts": "Receipts",
+      "breaks": "Breaks",
+      "time": "Time",
+      "error": "Error",
+      "signatures": "Sigs",
+      "gaps": "Gaps",
+      "duplicates": "Dups",
+      "firstSig": "First sig.",
+      "lastSig": "Last sig.",
+      "status": "Status",
+      "maxGapSec": "Max gap (s)",
+      "export": "Export",
+      "user": "User",
+      "txCount": "Tx",
+      "stornoRate": "Storno %",
+      "txPerHour": "Tx/h",
+      "avgProcSec": "Avg proc. (s)",
+      "activeHours": "Active h"
+    },
+    "tags": {
+      "gaps": "Gaps",
+      "duplicates": "Duplicates"
+    },
+    "tseExportFailed": "TSE chain export failed."
   }
 }

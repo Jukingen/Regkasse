@@ -3,6 +3,7 @@
 import React, { FC } from 'react';
 import { Form, Input, Button, Card, Typography, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePostApiAuthLogin } from '@/api/generated/auth/auth';
 import { useQueryClient } from '@tanstack/react-query';
@@ -11,10 +12,17 @@ import { authStorage } from '@/features/auth/services/authStorage';
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import { AUTH_KEYS, fetchAuthUser } from '../hooks/useAuth';
 import { useI18n } from '@/i18n';
+import { getDefaultLandingPathFromStorage } from '@/lib/personalization/PersonalizationProvider';
+import { userPreferencesQueryKey } from '@/lib/personalization/userPreferencesApi';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
 const { Title, Text } = Typography;
+
+type LoginFormValues = {
+    loginIdentifier: string;
+    password: string;
+};
 
 export const LoginForm: FC = () => {
     const router = useRouter();
@@ -47,8 +55,6 @@ export const LoginForm: FC = () => {
 
                 message.success(t('common.auth.loginSuccess'));
 
-                // No AuthContext: session user lives in TanStack Query (AUTH_KEYS.user). fetchQuery always runs /me
-                // after token is stored so cache is populated before navigation (avoids stale error state).
                 try {
                     await queryClient.fetchQuery({
                         queryKey: AUTH_KEYS.user,
@@ -68,14 +74,16 @@ export const LoginForm: FC = () => {
                     (loginResponse?.user as { mustChangePasswordOnNextLogin?: boolean } | undefined)
                         ?.mustChangePasswordOnNextLogin === true;
 
+                await queryClient.invalidateQueries({ queryKey: userPreferencesQueryKey });
+                const landingPath = getDefaultLandingPathFromStorage();
                 if (process.env.NODE_ENV === 'development') {
                     technicalConsole.devLog(
                         '[LoginForm] user cache set; redirecting to',
-                        mustChange ? '/settings (password)' : '/dashboard',
+                        mustChange ? '/settings (password)' : landingPath,
                     );
                 }
                 queueMicrotask(() => {
-                    router.push(mustChange ? '/settings?mustChangePassword=1' : '/dashboard');
+                    router.push(mustChange ? '/settings?mustChangePassword=1' : landingPath);
                 });
             },
             onError: (error: unknown) => {
@@ -87,12 +95,14 @@ export const LoginForm: FC = () => {
                     }),
                 );
             },
-        }
+        },
     });
 
-    const onFinish = (values: any) => {
+    const onFinish = (values: LoginFormValues) => {
+        const loginIdentifier = values.loginIdentifier.trim();
         const payload: LoginModel = {
-            email: values.username,
+            loginIdentifier,
+            email: loginIdentifier,
             password: values.password,
             clientApp: 'admin',
         };
@@ -111,7 +121,7 @@ export const LoginForm: FC = () => {
                     <Text type="secondary">{t('common.auth.subtitle')}</Text>
                 </div>
 
-                <Form
+                <Form<LoginFormValues>
                     name="login"
                     initialValues={{ remember: true }}
                     onFinish={onFinish}
@@ -119,17 +129,33 @@ export const LoginForm: FC = () => {
                     size="large"
                 >
                     <Form.Item
-                        name="username"
-                        rules={[{ required: true, message: t('common.auth.validation.usernameRequired') }]}
+                        name="loginIdentifier"
+                        label={t('common.auth.loginIdentifierLabel')}
+                        tooltip={t('common.auth.loginIdentifierTooltip')}
+                        extra={
+                            <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                                {t('common.auth.loginIdentifierCaseHint')}
+                            </Text>
+                        }
+                        rules={[{ required: true, message: t('common.auth.validation.loginIdentifierRequired') }]}
                     >
-                        <Input prefix={<UserOutlined />} placeholder={t('common.auth.username')} />
+                        <Input
+                            prefix={<UserOutlined />}
+                            placeholder={t('common.auth.loginIdentifierPlaceholder')}
+                            autoComplete="username"
+                        />
                     </Form.Item>
 
                     <Form.Item
                         name="password"
+                        label={t('common.auth.password')}
                         rules={[{ required: true, message: t('common.auth.validation.passwordRequired') }]}
                     >
-                        <Input.Password prefix={<LockOutlined />} placeholder={t('common.auth.password')} />
+                        <Input.Password
+                            prefix={<LockOutlined />}
+                            placeholder={t('common.auth.password')}
+                            autoComplete="current-password"
+                        />
                     </Form.Item>
 
                     <Form.Item>
@@ -137,6 +163,10 @@ export const LoginForm: FC = () => {
                             {isPending ? t('common.auth.loginSubmitLoading') : t('common.auth.login')}
                         </Button>
                     </Form.Item>
+
+                    <div style={{ textAlign: 'center' }}>
+                        <Link href="/login/forgot-username">{t('common.auth.forgotUsernameLink')}</Link>
+                    </div>
                 </Form>
             </Card>
         </div>

@@ -17,9 +17,11 @@ export type TenantDetailSettingsTabProps = {
     softDeletePending?: boolean;
     restorePending?: boolean;
     hardDeletePending?: boolean;
+    developmentHardDeletePending?: boolean;
     onSoftDelete?: () => void | Promise<void>;
     onRestore?: () => void | Promise<void>;
     onHardDelete?: (confirmSlug: string) => void | Promise<void>;
+    onDevelopmentHardDelete?: () => void | Promise<void>;
 };
 
 type SettingsFormValues = {
@@ -36,9 +38,11 @@ export function TenantDetailSettingsTab({
     softDeletePending,
     restorePending,
     hardDeletePending,
+    developmentHardDeletePending,
     onSoftDelete,
     onRestore,
     onHardDelete,
+    onDevelopmentHardDelete,
 }: TenantDetailSettingsTabProps) {
     const { t } = useI18n();
     const canManageDeletion = useCanManageTenantDeletion();
@@ -115,9 +119,11 @@ export function TenantDetailSettingsTab({
                     softDeletePending={softDeletePending}
                     restorePending={restorePending}
                     hardDeletePending={hardDeletePending}
+                    developmentHardDeletePending={developmentHardDeletePending}
                     onSoftDelete={onSoftDelete}
                     onRestore={onRestore}
                     onHardDelete={onHardDelete}
+                    onDevelopmentHardDelete={onDevelopmentHardDelete}
                 />
             ) : null}
         </Space>

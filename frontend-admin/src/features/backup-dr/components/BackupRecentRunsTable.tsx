@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useMemo, useState } from "react";
-import { Tag } from "antd";
+import { Button, Tag } from "antd";
+import { SafetyCertificateOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import {
   useGetApiAdminBackupRuns,
@@ -16,6 +17,7 @@ import {
 } from "@/features/backup-dr/logic/backupDashboardQueryTiming";
 import { mapBackupRunStatusAntdColor } from "@/features/backup-dr/logic/backupDrMappers";
 import { apiNullableToUndefined } from "@/features/backup-dr/logic/backupDrDtoNormalize";
+import { isBackupRunEligibleForManualRestore } from "@/features/backup-dr/logic/manualRestorePresentation";
 
 export interface BackupRecentRunsTableProps {
   backupStatusLabel: (status: number | undefined, t: (k: string) => string) => string;
@@ -23,6 +25,9 @@ export interface BackupRecentRunsTableProps {
   formatLocale: string;
   t: (k: string) => string;
   onRetryInvalidate: () => Promise<void>;
+  /** Super Admin: validation-only restore with second-admin approval. */
+  canRequestManualRestore?: boolean;
+  onRequestManualRestore?: (run: BackupRunResponseDto) => void;
 }
 
 /** Recent backup jobs with server-backed pagination (`GET /api/admin/backup/runs`). */
@@ -32,6 +37,8 @@ export function BackupRecentRunsTable({
   formatLocale,
   t,
   onRetryInvalidate,
+  canRequestManualRestore = false,
+  onRequestManualRestore,
 }: BackupRecentRunsTableProps) {
   const [page, setPage] = useState(1);
 
@@ -88,8 +95,28 @@ export function BackupRecentRunsTable({
         key: "failureCode",
         render: (c: string | null) => c ?? "—",
       },
+      ...(canRequestManualRestore && onRequestManualRestore
+        ? [
+            {
+              title: t("backupDr.manualRestore.table.actions"),
+              key: "manualRestore",
+              render: (_: unknown, row: BackupRunResponseDto) =>
+                isBackupRunEligibleForManualRestore(row.status) ? (
+                  <Button
+                    size="small"
+                    icon={<SafetyCertificateOutlined />}
+                    onClick={() => onRequestManualRestore(row)}
+                  >
+                    {t("backupDr.manualRestore.table.requestRestore")}
+                  </Button>
+                ) : (
+                  "—"
+                ),
+            } satisfies ColumnsType<BackupRunResponseDto>[number],
+          ]
+        : []),
     ],
-    [backupStatusLabel, formatDt, formatLocale, t],
+    [backupStatusLabel, canRequestManualRestore, formatDt, formatLocale, onRequestManualRestore, t],
   );
 
   const totalCount = runsQuery.data?.totalCount ?? 0;

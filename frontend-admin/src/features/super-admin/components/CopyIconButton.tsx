@@ -5,6 +5,7 @@ import { Button, message } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import { useI18n } from '@/i18n';
+import { copyTextToClipboard } from '@/lib/clipboard';
 
 export type CopyIconButtonProps = {
     text: string;
@@ -16,11 +17,11 @@ export function CopyIconButton({ text, ariaLabel, onCopied }: CopyIconButtonProp
     const { t } = useI18n();
 
     const copy = useCallback(async () => {
-        try {
-            await navigator.clipboard.writeText(text);
+        const copied = await copyTextToClipboard(text);
+        if (copied) {
             message.success(t('tenants.provisioning.copySuccess'));
             onCopied?.();
-        } catch {
+        } else {
             message.error(t('tenants.provisioning.copyFailed'));
         }
     }, [text, t, onCopied]);

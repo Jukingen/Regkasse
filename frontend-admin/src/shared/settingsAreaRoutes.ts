@@ -9,6 +9,7 @@
  */
 export const SETTINGS_AREA_ROUTE_PATHS = [
     '/settings',
+    '/settings/personalization',
     '/settings/payment-methods',
     '/settings/backup-dr',
     '/settings/development-mode',

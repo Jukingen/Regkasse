@@ -52,10 +52,19 @@ public sealed class CashRegisterManagementServiceTests
                 It.IsAny<string?>()))
             .ReturnsAsync(new AuditLog { Id = Guid.NewGuid() });
 
+        var enrichment = new Mock<ICashRegisterListEnrichmentService>();
+        enrichment
+            .Setup(e => e.ApplyAsync(
+                It.IsAny<IReadOnlyList<CashRegisterDto>>(),
+                It.IsAny<IReadOnlyList<CashRegister>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
         return new CashRegisterManagementService(
             ctx,
             tenantResolver,
             audit.Object,
+            enrichment.Object,
             NullLogger<CashRegisterManagementService>.Instance);
     }
 

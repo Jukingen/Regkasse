@@ -27,6 +27,7 @@ import deTenants from './locales/de/tenants.json';
 import deSuperadmin from './locales/de/superadmin.json';
 import deDashboard from './locales/de/dashboard.json';
 import deCashRegisters from './locales/de/cashRegisters.json';
+import deActivityNotifications from './locales/de/activityNotifications.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -56,6 +57,7 @@ import enTenants from './locales/en/tenants.json';
 import enSuperadmin from './locales/en/superadmin.json';
 import enDashboard from './locales/en/dashboard.json';
 import enCashRegisters from './locales/en/cashRegisters.json';
+import enActivityNotifications from './locales/en/activityNotifications.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
@@ -85,6 +87,7 @@ import trTenants from './locales/tr/tenants.json';
 import trSuperadmin from './locales/tr/superadmin.json';
 import trDashboard from './locales/tr/dashboard.json';
 import trCashRegisters from './locales/tr/cashRegisters.json';
+import trActivityNotifications from './locales/tr/activityNotifications.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -128,6 +131,7 @@ const catalogs = {
     superadmin: deSuperadmin,
     dashboard: deDashboard,
     cashRegisters: deCashRegisters,
+    activityNotifications: deActivityNotifications,
   },
   en: {
     adminShell: enAdminShell,
@@ -159,6 +163,7 @@ const catalogs = {
     superadmin: enSuperadmin,
     dashboard: enDashboard,
     cashRegisters: enCashRegisters,
+    activityNotifications: enActivityNotifications,
   },
   tr: {
     adminShell: trAdminShell,
@@ -190,6 +195,7 @@ const catalogs = {
     superadmin: trSuperadmin,
     dashboard: trDashboard,
     cashRegisters: trCashRegisters,
+    activityNotifications: trActivityNotifications,
   },
 } as const;
 

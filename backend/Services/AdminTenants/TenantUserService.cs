@@ -3,7 +3,9 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -40,9 +42,11 @@ public sealed class TenantUserService : ITenantUserService
     private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly IUserSessionInvalidation _sessionInvalidation;
     private readonly IQuickUserGeneratorService _quickUserGenerator;
+    private readonly IUserCreationService _userCreation;
     private readonly IAuditLogService _auditLog;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly ActivityEventRecorder _activityEvents;
     private readonly ILogger<TenantUserService> _logger;
 
     public TenantUserService(
@@ -52,9 +56,11 @@ public sealed class TenantUserService : ITenantUserService
         IUserUniquenessValidationService uniquenessValidation,
         IUserSessionInvalidation sessionInvalidation,
         IQuickUserGeneratorService quickUserGenerator,
+        IUserCreationService userCreation,
         IAuditLogService auditLog,
         IHttpContextAccessor httpContextAccessor,
         ICurrentTenantAccessor tenantAccessor,
+        ActivityEventRecorder activityEvents,
         ILogger<TenantUserService> logger)
     {
         _db = db;
@@ -63,9 +69,11 @@ public sealed class TenantUserService : ITenantUserService
         _uniquenessValidation = uniquenessValidation;
         _sessionInvalidation = sessionInvalidation;
         _quickUserGenerator = quickUserGenerator;
+        _userCreation = userCreation;
         _auditLog = auditLog;
         _httpContextAccessor = httpContextAccessor;
         _tenantAccessor = tenantAccessor;
+        _activityEvents = activityEvents;
         _logger = logger;
     }
 
@@ -74,24 +82,31 @@ public sealed class TenantUserService : ITenantUserService
         if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
             return null;
 
-        return await MembershipsUnfiltered()
+        var rows = await MembershipsUnfiltered()
             .AsNoTracking()
             .Where(m => m.TenantId == tenantId && m.IsActive)
             .Join(
                 _db.Users.AsNoTracking(),
                 m => m.UserId,
                 u => u.Id,
-                (m, u) => new TenantUserDto(
-                    u.Id,
-                    u.Email ?? u.UserName ?? string.Empty,
-                    FormatName(u),
-                    u.Role ?? Roles.FallbackUnknown,
-                    m.IsOwner,
-                    m.CreatedAtUtc))
-            .OrderByDescending(d => d.IsOwner)
-            .ThenBy(d => d.Name)
+                (m, u) => new { Membership = m, User = u })
+            .OrderByDescending(x => x.Membership.IsOwner)
+            .ThenBy(x => x.User.LastName)
+            .ThenBy(x => x.User.FirstName)
+            .Select(x => new TenantUserDto(
+                x.User.Id,
+                x.User.UserName ?? string.Empty,
+                x.User.Email ?? x.User.UserName ?? string.Empty,
+                (x.User.FirstName + " " + x.User.LastName).Trim() == string.Empty
+                    ? x.User.UserName ?? x.User.Id
+                    : (x.User.FirstName + " " + x.User.LastName).Trim(),
+                x.User.Role ?? Roles.FallbackUnknown,
+                x.Membership.IsOwner,
+                x.Membership.CreatedAtUtc))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        return rows;
     }
 
     public Task<(TenantUserDto? Result, string? Error)> AssignExistingAsync(
@@ -152,6 +167,7 @@ public sealed class TenantUserService : ITenantUserService
             notesSuffix: "manual create",
             preGeneratedPassword: null,
             passwordLength: 12,
+            explicitUserName: request.UserName,
             cancellationToken: cancellationToken);
 
     public async Task<(CreateTenantUserResultDto? Result, string? Error)> CreateQuickAsync(
@@ -161,7 +177,7 @@ public sealed class TenantUserService : ITenantUserService
         CancellationToken cancellationToken = default)
     {
         var (plan, error) = await _quickUserGenerator
-            .PrepareAsync(tenantId, request.Role, cancellationToken)
+            .PrepareAsync(tenantId, request.Role, request.UserName, cancellationToken)
             .ConfigureAwait(false);
         if (error != null)
             return (null, error);
@@ -179,6 +195,7 @@ public sealed class TenantUserService : ITenantUserService
             notesSuffix: "quick user",
             preGeneratedPassword: plan.Password,
             passwordLength: 12,
+            explicitUserName: plan.UserName,
             cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
@@ -195,7 +212,8 @@ public sealed class TenantUserService : ITenantUserService
         string notesSuffix,
         string? preGeneratedPassword,
         int passwordLength,
-        CancellationToken cancellationToken)
+        string? explicitUserName = null,
+        CancellationToken cancellationToken = default)
     {
         var tenant = await _db.Tenants.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == tenantId, cancellationToken)
@@ -222,12 +240,17 @@ public sealed class TenantUserService : ITenantUserService
             : PasswordGenerator.GenerateSecurePassword(passwordLength);
         var now = DateTime.UtcNow;
         var normalizedRole = role.Trim();
+        var (userName, userNameError) = await _userCreation
+            .ResolveUsernameAsync(explicitUserName, normalizedRole, cancellationToken)
+            .ConfigureAwait(false);
+        if (userNameError != null)
+            return (null, userNameError);
         var resolvedLastName = string.IsNullOrWhiteSpace(lastName)
             ? tenant.Name
             : lastName.Trim();
         var user = new ApplicationUser
         {
-            UserName = email,
+            UserName = userName,
             Email = email,
             FirstName = firstName.Length > 50 ? firstName[..50] : firstName,
             LastName = resolvedLastName.Length > 50 ? resolvedLastName[..50] : resolvedLastName,
@@ -266,6 +289,7 @@ public sealed class TenantUserService : ITenantUserService
                     tenantId,
                     user.Id,
                     email,
+                    userName,
                     normalizedRole,
                     tenant.Slug,
                     cancellationToken)
@@ -292,9 +316,21 @@ public sealed class TenantUserService : ITenantUserService
             actorId,
             auditAction);
 
+        await _activityEvents.TryPublishAsync(
+            new ActivityEventPublishRequest(
+                tenantId,
+                ActivityEventType.UserCreated,
+                "User created",
+                Description: $"User {userName} ({email}) was created.",
+                ActorUserId: actorId,
+                EntityType: "user",
+                EntityId: user.Id),
+            cancellationToken).ConfigureAwait(false);
+
         return (new CreateTenantUserResultDto(
             user.Id,
             email,
+            userName,
             generatedPassword,
             ForcePasswordChangeOnNextLogin: true,
             Success: true,
@@ -345,6 +381,7 @@ public sealed class TenantUserService : ITenantUserService
         Guid tenantId,
         string targetUserId,
         string email,
+        string userName,
         string role,
         string tenantSlug,
         CancellationToken cancellationToken)
@@ -354,6 +391,7 @@ public sealed class TenantUserService : ITenantUserService
             var details = new
             {
                 email,
+                userName,
                 role,
                 generatedPassword = "***HIDDEN***",
                 method = "quick_generate",
@@ -362,7 +400,7 @@ public sealed class TenantUserService : ITenantUserService
             };
 
             var description =
-                $"Super Admin erstellte Schnell-Benutzer '{email}' ({role}) für Mandant '{tenantSlug}'";
+                $"Super Admin erstellte Schnell-Benutzer '{userName}' ({role}) für Mandant '{tenantSlug}'";
 
             Guid? entityId = Guid.TryParse(targetUserId, out var parsedUserId) ? parsedUserId : null;
             var now = DateTime.UtcNow;
@@ -671,6 +709,7 @@ public sealed class TenantUserService : ITenantUserService
     private static TenantUserDto ToDto(ApplicationUser user, UserTenantMembership membership) =>
         new(
             user.Id,
+            user.UserName ?? string.Empty,
             user.Email ?? user.UserName ?? string.Empty,
             FormatName(user),
             user.Role ?? Roles.FallbackUnknown,

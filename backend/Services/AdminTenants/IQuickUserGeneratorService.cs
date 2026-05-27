@@ -7,6 +7,7 @@ public interface IQuickUserGeneratorService
     Task<(QuickUserGenerationPlan? Plan, string? Error)> PrepareAsync(
         Guid tenantId,
         string role,
+        string? requestedUserName = null,
         CancellationToken cancellationToken = default);
 }
 
@@ -14,4 +15,5 @@ public sealed record QuickUserGenerationPlan(
     string Email,
     string Password,
     string Role,
-    string TenantSlug);
+    string TenantSlug,
+    string UserName);

@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 
@@ -95,6 +96,14 @@ namespace KasseAPI_Final.Data
         public DbSet<AuthSession> AuthSessions { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<UserTenantMembership> UserTenantMemberships { get; set; }
+        public DbSet<UserUsernameHistory> UserUsernameHistories { get; set; }
+        public DbSet<DashboardPreferences> DashboardPreferences { get; set; }
+        public DbSet<UserPreferences> UserPreferences { get; set; }
+        public DbSet<AuditReportSchedule> AuditReportSchedules { get; set; }
+        public DbSet<OperationalReportSchedule> OperationalReportSchedules { get; set; }
+        public DbSet<ActivityEvent> ActivityEvents { get; set; }
+        public DbSet<ActivityEventRead> ActivityEventReads { get; set; }
+        public DbSet<TenantNotificationConfig> TenantNotificationConfigs { get; set; }
 
         /// <summary>Tenant-scoped vouchers (Gutscheine); codes stored hashed only.</summary>
         public DbSet<Voucher> Vouchers { get; set; }
@@ -141,6 +150,9 @@ namespace KasseAPI_Final.Data
 
         /// <summary>Restore drill metadata (pg_restore --list + optional fiscal SQL + integrity); not artifact verification.</summary>
         public DbSet<RestoreVerificationRun> RestoreVerificationRuns { get; set; }
+
+        /// <summary>Super-admin manual restore approval requests (validation-only).</summary>
+        public DbSet<ManualRestoreRequest> ManualRestoreRequests { get; set; }
 
         // Extra Zutaten (Add-on groups and assignments; add-on products in addon_group_products)
         public DbSet<ProductModifierGroup> ProductModifierGroups { get; set; }
@@ -194,6 +206,10 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
                 entity.Property(e => e.RevokedAtUtc).HasColumnName("revoked_at_utc");
                 entity.Property(e => e.RevokedReason).HasColumnName("revoked_reason").HasMaxLength(200);
+                entity.Property(e => e.LastActivityAtUtc).HasColumnName("last_activity_at_utc");
+                entity.Property(e => e.DeviceId).HasColumnName("device_id").HasMaxLength(200);
+                entity.Property(e => e.IpAddress).HasColumnName("ip_address").HasMaxLength(45);
+                entity.Property(e => e.UserAgent).HasColumnName("user_agent").HasMaxLength(500);
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
@@ -250,7 +266,33 @@ namespace KasseAPI_Final.Data
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<UserUsernameHistory>(entity =>
+            {
+                entity.ToTable("user_username_history");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.OldUsername).HasColumnName("old_username").HasMaxLength(50);
+                entity.Property(e => e.NewUsername).HasColumnName("new_username").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.ChangedByUserId).HasColumnName("changed_by_user_id").HasMaxLength(450);
+                entity.Property(e => e.ChangedAtUtc).HasColumnName("changed_at_utc").IsRequired();
+                entity.Property(e => e.Reason).HasColumnName("reason").HasMaxLength(500);
+
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.ChangedAtUtc);
+                entity.HasIndex(e => new { e.UserId, e.ChangedAtUtc });
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.ChangedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.ChangedByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // Product configuration - RKSV uyumlu güncellenmiş yapı
@@ -963,6 +1005,9 @@ namespace KasseAPI_Final.Data
                     .HasConversion(
                         v => v == null ? "{}" : JsonSerializer.Serialize(v),
                         v => string.IsNullOrEmpty(v) ? null : JsonSerializer.Deserialize<Dictionary<string, string>>(v));
+                entity.Property(e => e.SessionTimeoutMinutes).HasColumnName("session_timeout_minutes").IsRequired();
+                entity.Property(e => e.SessionWarningBeforeTimeoutMinutes).HasColumnName("session_warning_before_timeout_minutes").IsRequired();
+                entity.Property(e => e.KeepCartAfterTimeout).HasColumnName("keep_cart_after_timeout").IsRequired();
                 
                 entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
             });
@@ -1215,6 +1260,82 @@ namespace KasseAPI_Final.Data
                       .WithMany()
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<DashboardPreferences>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.Property(e => e.Widgets)
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        v => JsonSerializer.Serialize(v),
+                        v => string.IsNullOrEmpty(v)
+                            ? new List<DashboardWidget>()
+                            : JsonSerializer.Deserialize<List<DashboardWidget>>(v) ?? new List<DashboardWidget>());
+                entity.HasIndex(e => new { e.UserId, e.TenantId }).IsUnique();
+                entity.HasOne<ApplicationUser>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<UserPreferences>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ThemeMode).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.DensityMode).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.DefaultPage).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.DateFormat).HasMaxLength(20);
+                entity.Property(e => e.TimeFormat).HasMaxLength(10);
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.HasIndex(e => e.UserId).IsUnique();
+                entity.HasOne<ApplicationUser>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<ActivityEvent>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(2000);
+                entity.Property(e => e.Severity).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.DedupKey).HasMaxLength(120);
+                entity.Property(e => e.ActorUserId).HasMaxLength(450);
+                entity.Property(e => e.ActorName).HasMaxLength(200);
+                entity.Property(e => e.EntityType).HasMaxLength(100);
+                entity.Property(e => e.EntityId).HasMaxLength(100);
+                entity.HasIndex(e => new { e.TenantId, e.CreatedAtUtc });
+                entity.HasIndex(e => new { e.TenantId, e.Severity });
+                entity.HasIndex(e => new { e.TenantId, e.DedupKey })
+                    .IsUnique()
+                    .HasFilter("\"dedup_key\" IS NOT NULL");
+            });
+
+            builder.Entity<ActivityEventRead>(entity =>
+            {
+                entity.HasKey(e => new { e.ActivityEventId, e.UserId });
+                entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+                entity.HasOne(e => e.ActivityEvent)
+                    .WithMany()
+                    .HasForeignKey(e => e.ActivityEventId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<TenantNotificationConfig>(entity =>
+            {
+                entity.HasKey(e => e.TenantId);
+                entity.Property(e => e.UpdatedAtUtc).IsRequired();
+                entity.Property(e => e.Config)
+                    .HasColumnType("jsonb")
+                    .HasConversion(
+                        v => NotificationConfigJson.Serialize(v),
+                        v => NotificationConfigJson.Deserialize(v));
             });
 
             // GeneratedReceipt configuration
@@ -1824,6 +1945,36 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CreatedAt).IsRequired();
             });
 
+            builder.Entity<AuditReportSchedule>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.CreatedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.FiltersJson).IsRequired().HasColumnType("jsonb");
+                entity.Property(e => e.ScheduleCron).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.RecipientsJson).IsRequired().HasColumnType("jsonb");
+                entity.Property(e => e.Format).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.IsActive).IsRequired();
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.HasIndex(e => new { e.TenantId, e.IsActive, e.NextRunUtc });
+            });
+
+            builder.Entity<OperationalReportSchedule>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.CreatedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ReportType).IsRequired().HasMaxLength(80);
+                entity.Property(e => e.FiltersJson).IsRequired().HasColumnType("jsonb");
+                entity.Property(e => e.ScheduleCron).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.RecipientsJson).IsRequired().HasColumnType("jsonb");
+                entity.Property(e => e.Format).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.IsActive).IsRequired();
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.HasIndex(e => new { e.TenantId, e.IsActive, e.NextRunUtc });
+            });
+
             builder.Entity<BackupRuntimeExecutionPreference>(entity =>
             {
                 entity.ToTable("backup_runtime_execution_preferences");
@@ -1941,6 +2092,23 @@ namespace KasseAPI_Final.Data
                     .HasDatabaseName("ux_restore_verification_runs_idempotency_key")
                     .HasFilter("idempotency_key IS NOT NULL");
                 entity.Property(e => e.PostRestoreL4ContinuityProofState).HasConversion<int>();
+            });
+
+            builder.Entity<ManualRestoreRequest>(entity =>
+            {
+                entity.ToTable("manual_restore_requests");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.RequestedAt);
+                entity.HasIndex(e => e.BackupRunId);
+                entity.HasOne(e => e.BackupRun)
+                    .WithMany()
+                    .HasForeignKey(e => e.BackupRunId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.RestoreVerificationRun)
+                    .WithMany()
+                    .HasForeignKey(e => e.RestoreVerificationRunId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // Vouchers (Gutscheine): configured last so FK delete behaviors are not overridden by model conventions.

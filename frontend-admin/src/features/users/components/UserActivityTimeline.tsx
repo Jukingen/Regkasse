@@ -13,6 +13,9 @@ import { useGetApiAuditLogUserUserId } from '@/api/generated/audit-log/audit-log
 import type { AuditLog as AuditLogType } from '@/api/generated/model/auditLog';
 import dayjs from 'dayjs';
 import { usersCopy } from '../constants/copy';
+import { formatAuditLogDescription } from '@/features/audit-logs/utils/formatAuditLogDescription';
+import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
+import { useI18n } from '@/i18n';
 import { getDiffRowsFromEntry, EMPTY_PLACEHOLDER } from '../utils/auditDiffUtils';
 import { AuditDiffViewerModal } from './AuditDiffViewerModal';
 
@@ -47,7 +50,7 @@ function matchesActionFilter(action: string | null | undefined, filter: ActionFi
     const a = (action ?? '').trim();
     if (filter === 'all') return true;
     if (filter === 'role') return a === 'USER_ROLE_CHANGE';
-    if (filter === 'updates') return a === 'USER_UPDATE';
+    if (filter === 'updates') return a === 'USER_UPDATE' || a === 'USER_NAME_CHANGE';
     if (filter === 'security') return SECURITY_ACTIONS.has(a);
     return true;
 }
@@ -106,6 +109,7 @@ function getActorDisplay(record: AuditEntry): string {
 }
 
 export function UserActivityTimeline({ userId, userName }: Props) {
+    const { t } = useI18n();
     const [page, setPage] = useState(1);
     const [diffModalEntry, setDiffModalEntry] = useState<AuditEntry | null>(null);
     const [actionFilter, setActionFilter] = useState<ActionFilter>('all');
@@ -183,9 +187,13 @@ export function UserActivityTimeline({ userId, userName }: Props) {
             key: 'action',
             width: 150,
             ellipsis: true,
-            render: (action: string | null | undefined) => (
-                <Tag color="blue">{action != null && String(action).trim() ? String(action) : EMPTY_PLACEHOLDER}</Tag>
-            ),
+            render: (action: string | null | undefined) => {
+                const raw = action != null && String(action).trim() ? String(action).trim() : '';
+                if (!raw) return <Tag color="blue">{EMPTY_PLACEHOLDER}</Tag>;
+                const labelKey = getAuditActionLabelKey(raw);
+                const label = labelKey ? t(labelKey as 'common.auditLogs.actionLabels.login') : raw;
+                return <Tag color="blue">{label}</Tag>;
+            },
         },
         {
             title: usersCopy.description,
@@ -193,8 +201,14 @@ export function UserActivityTimeline({ userId, userName }: Props) {
             key: 'description',
             width: 240,
             ellipsis: true,
-            render: (desc: string | null | undefined) =>
-                desc != null && String(desc).trim() ? String(desc).trim() : EMPTY_PLACEHOLDER,
+            render: (_: unknown, record: AuditEntry) => {
+                const text =
+                    formatAuditLogDescription(record, t) ||
+                    (record.description != null && String(record.description).trim()
+                        ? String(record.description).trim()
+                        : '');
+                return text || EMPTY_PLACEHOLDER;
+            },
         },
         {
             title: usersCopy.status,

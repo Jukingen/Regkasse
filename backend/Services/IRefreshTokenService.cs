@@ -1,5 +1,7 @@
 namespace KasseAPI_Final.Services;
 
+public sealed record SessionClientMetadata(string? DeviceId, string? IpAddress, string? UserAgent);
+
 public sealed record IssuedTokenPair(
     string AccessToken,
     DateTime AccessTokenExpiresAtUtc,
@@ -23,6 +25,7 @@ public interface IRefreshTokenService
         string clientApp,
         Func<string, string, Guid, DateTime, string, string?, Task<string>> buildAccessToken,
         Guid? sessionTenantId = null,
+        SessionClientMetadata? clientMetadata = null,
         CancellationToken cancellationToken = default);
 
     Task<RefreshResult> RotateAsync(

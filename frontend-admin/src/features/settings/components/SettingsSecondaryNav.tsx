@@ -10,7 +10,13 @@ import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShopOutlined, CreditCardOutlined, CloudServerOutlined, ExperimentOutlined } from '@ant-design/icons';
+import {
+    ShopOutlined,
+    BgColorsOutlined,
+    CreditCardOutlined,
+    CloudServerOutlined,
+    ExperimentOutlined,
+} from '@ant-design/icons';
 import { useI18n } from '@/i18n/I18nProvider';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import {
@@ -23,6 +29,7 @@ const SETTINGS_TAB_META: Record<
     { labelKey: string; Icon: ComponentType }
 > = {
     '/settings': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
+    '/settings/personalization': { labelKey: ADMIN_NAV_LABEL_KEYS.personalization, Icon: BgColorsOutlined },
     '/settings/payment-methods': { labelKey: ADMIN_NAV_LABEL_KEYS.paymentMethods, Icon: CreditCardOutlined },
     '/settings/backup-dr': { labelKey: ADMIN_NAV_LABEL_KEYS.backupDr, Icon: CloudServerOutlined },
     '/settings/development-mode': { labelKey: ADMIN_NAV_LABEL_KEYS.developmentMode, Icon: ExperimentOutlined },

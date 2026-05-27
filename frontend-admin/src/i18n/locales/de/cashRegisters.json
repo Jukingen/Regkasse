@@ -4,9 +4,43 @@
   "columns": {
     "name": "Kasse",
     "status": "Status",
+    "operations": "Betrieb",
+    "compliance": "RKSV",
     "activity": "Aktivität",
     "balance": "Kassenstand",
     "actions": "Aktionen"
+  },
+  "tseHealth": {
+    "healthy": "TSE OK",
+    "degraded": "TSE eingeschränkt",
+    "offline": "TSE offline",
+    "notConfigured": "TSE nicht konfiguriert",
+    "lastCheck": "Letzte Prüfung"
+  },
+  "offlineQueue": {
+    "label": "{{count}} offline",
+    "tooltip": "{{count}} ausstehende Offline-Transaktion(en)"
+  },
+  "tseHealthFilter": {
+    "placeholder": "TSE-Status",
+    "healthy": "TSE OK",
+    "degraded": "TSE eingeschränkt",
+    "offline": "TSE offline",
+    "notConfigured": "Nicht konfiguriert"
+  },
+  "bulk": {
+    "selectedCount": "{{count}} Kasse(n) ausgewählt",
+    "decommissionAction": "Ausgewählte Kassen außer Betrieb nehmen",
+    "decommissionTitle": "Mehrere Kassen stilllegen",
+    "decommissionSummary": "{{eligible}} von {{total}} Kassen können stillgelegt werden.",
+    "skippedCount": "{{count}} Kasse(n) übersprungen (offene Schicht oder bereits stillgelegt).",
+    "decommissionConfirm": "Stilllegen bestätigen",
+    "success": "{{count}} Kasse(n) erfolgreich stillgelegt.",
+    "partialSuccess": "{{success}} stillgelegt, {{failed}} fehlgeschlagen."
+  },
+  "shift": {
+    "openSuccess": "Kasse wurde geöffnet.",
+    "closeSuccess": "Kasse wurde geschlossen."
   },
   "filter": {
     "showDecommissioned": "Stillgelegte Kassen anzeigen",
@@ -22,11 +56,17 @@
     "edit": "Bearbeiten",
     "decommission": "Stilllegen",
     "specialReceipts": "Sonderbelege",
+    "offlineQueue": "Offline-Warteschlange",
+    "tseHealth": "TSE-Status",
     "tableView": "Tabelle",
     "gridView": "Karten",
     "export": "Exportieren",
     "restore": "Wiederherstellen",
-    "refresh": "Aktualisieren"
+    "refresh": "Aktualisieren",
+    "quickActions": "Aktionen",
+    "openRegister": "Kasse öffnen",
+    "closeRegister": "Kasse schließen",
+    "viewReceipts": "Belege anzeigen"
   },
   "status": {
     "closed": "Geschlossen",
@@ -78,7 +118,17 @@
     "openTseDetails": "TSE Details anzeigen",
     "specialReceiptsTitle": "Sonderbelege",
     "decommissionedAt": "Stillgelegt am (UTC)",
-    "decommissionReason": "Stilllegungsgrund"
+    "decommissionReason": "Stilllegungsgrund",
+    "lastSyncAtUtc": "Letzte Synchronisation",
+    "offlineQueueCount": "Offline-Warteschlange",
+    "currentCashier": "Aktueller Kassierer",
+    "deviceInfoTitle": "Gerät",
+    "deviceModel": "Modell",
+    "deviceOs": "Betriebssystem",
+    "deviceApp": "App-Version",
+    "offlineQueueTransactions": "{{count}} Transaktion(en)",
+    "noCashier": "Niemand",
+    "deviceUnknown": "Unbekannt"
   },
   "hardDelete": {
     "action": "Hard Delete (Test)",

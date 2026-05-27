@@ -11,6 +11,34 @@
   "messages": {
     "roleCreated": "Rol oluşturuldu."
   },
+  "username": {
+    "editTitle": "Kullanıcı adını değiştir",
+    "newLabel": "Yeni kullanıcı adı",
+    "reasonLabel": "Değişiklik nedeni (isteğe bağlı)",
+    "reasonHelp": "Denetim günlüğüne kaydedilir",
+    "reasonPlaceholder": "ör. ekip değişikliği sonrası yeniden adlandırma",
+    "auditHint": "Bu değişiklik denetim günlüğüne kaydedilir.",
+    "changeAction": "Değiştir",
+    "updateSuccess": "Kullanıcı adı güncellendi.",
+    "updateFailed": "Kullanıcı adı güncellenemedi.",
+    "conflict": "Bu kullanıcı adı zaten kullanılıyor.",
+    "placeholder": "ör. manager1",
+    "validation": {
+      "required": "Lütfen kullanıcı adı girin",
+      "min": "En az 3 karakter",
+      "max": "En fazla 50 karakter",
+      "pattern": "Yalnızca harf, rakam, alt çizgi ve tire kullanılabilir"
+    }
+  },
+  "dev": {
+    "cleanupButton": "Dev: test kullanıcılarını temizle",
+    "cleanupConfirmTitle": "Test kullanıcıları silinsin mi?",
+    "cleanupConfirmContent": "Geliştirme test kullanıcıları (bar, cafe, test) ve tenant üyelikleri kalıcı olarak silinir. Yalnızca development ortamı.",
+    "cleanupConfirmOk": "Sil",
+    "cleanupConfirmCancel": "İptal",
+    "cleanupSuccess": "Test kullanıcıları temizlendi ({users} kullanıcı, {memberships} üyelik).",
+    "cleanupError": "Test kullanıcıları temizlenemedi."
+  },
   "roles": {
     "displayNames": {
       "SuperAdmin": "Süper yönetici",
@@ -205,6 +233,7 @@
     "scopeSummaryRolePart": "{{prefix}} = {{role}}",
     "scopeStatusLine": "{{prefix}}: {{status}}",
     "columnName": "Ad",
+    "columnUserName": "Kullanıcı adı",
     "columnEmail": "E-posta",
     "columnRole": "Rol",
     "columnBranch": "Şube",
@@ -270,6 +299,7 @@
     "typeBadgeTenant": "Mandant",
     "columns": {
       "user": "Kullanıcı",
+      "userName": "Kullanıcı adı",
       "tenant": "Mandant",
       "role": "Rol",
       "status": "Durum",

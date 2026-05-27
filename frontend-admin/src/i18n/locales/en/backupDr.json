@@ -35,7 +35,77 @@
     "pipelineNoticesCollapse": "Pipeline & environment",
     "configurationCollapse": "Pipeline, worker & locks"
   },
+  "monitoring": {
+    "pageTitle": "Backup monitoring",
+    "pageSubtitle": "Metrics, history, and recoverability — refreshes every 30 seconds.",
+    "dashboardStatsLoadFailed": "Could not load dashboard statistics.",
+    "dashboardRefreshHint": "Data refreshes every {{seconds}} seconds.",
+    "header": {
+      "title": "Latest backup run",
+      "simulatedHint": "Simulated adapter — success does not mean production artifacts.",
+      "activeHint": "Backup is running or awaiting verification — metrics may change."
+    },
+    "metrics": {
+      "lastBackup": "Last backup",
+      "backupSize": "Backup size",
+      "duration": "Duration",
+      "successRate30d": "Success rate (30 days)",
+      "trendVsPriorMonth": "vs prior month",
+      "lastRestoreDrill": "Last restore drill"
+    },
+    "charts": {
+      "history30d": "Backup history (30 days)",
+      "durationSuffix": "s",
+      "legendSuccess": "Succeeded",
+      "legendFailed": "Failed",
+      "legendDuration": "Duration (seconds)"
+    },
+    "configHealth": {
+      "title": "Backup configuration",
+      "adapterKind": "Adapter kind",
+      "workerEnabled": "Worker enabled",
+      "externalArchive": "External archive",
+      "verification": "Verification",
+      "yes": "Yes",
+      "no": "No",
+      "externalArchiveConfigured": "✅ Configured",
+      "externalArchiveNotConfigured": "❌ Not configured",
+      "verificationEnabled": "✅ Enabled",
+      "verificationDisabled": "⚠️ Disabled",
+      "issuesTitle": "Configuration issues",
+      "editSettings": "Edit settings →"
+    },
+    "restoreReadiness": {
+      "title": "Recoverability",
+      "rpoTitle": "RPO (data loss window)",
+      "rtoTitle": "RTO (recovery time)",
+      "hoursSuffix": "hours",
+      "minutesSuffix": "minutes",
+      "lastSuccessfulDrill": "Last successful restore drill:",
+      "drillStatus": "Drill status:",
+      "lastVerifiedBackup": "Verified backup:",
+      "triggerDrill": "Start restore drill"
+    },
+    "rpoRto": {
+      "rpoEstimate": "RPO (estimated)",
+      "rpoHint": "Time since last proven successful backup.",
+      "rtoEstimate": "RTO (estimated)",
+      "rtoHint": "Based on average duration of successful backups (not a full DR test).",
+      "ageSeconds": "{{s}} s",
+      "ageMinutes": "{{m}} min",
+      "ageHours": "{{h}} h",
+      "ageDays": "{{d}} days"
+    },
+    "recentTable": {
+      "title": "Recent backups",
+      "requested": "Requested",
+      "status": "Status",
+      "adapter": "Adapter"
+    }
+  },
   "dashboardSections": {
+    "monitoring": "Monitoring",
+    "monitoringDesc": "Metrics, history, and RPO/RTO estimates from API data.",
     "intro": "Controls & scope",
     "introDesc": "Refresh updates data. The scope banner states what this page can and cannot prove.",
     "summary": "At-a-glance summary",
@@ -589,6 +659,82 @@
     "confirmRestoreCancel": "Cancel",
     "cardAlertRequestedRealEffectiveSimulated": "Mismatch: you saved {{requested}} but the effective worker profile is {{effective}} (simulated). Do not assume this page will enqueue a real dump until the mismatch is resolved.",
     "cardAlertRequestedRealBlocked": "Real (PgDump) is selected but the profile is not runnable — backup runs may fail until prerequisites are healthy."
+  },
+  "manualRestore": {
+    "title": "Request manual restore",
+    "alert": {
+      "title": "High-risk operation",
+      "description": "This requires a second administrator approval. Restore runs ONLY in an isolated validation database (validationOnly)."
+    },
+    "tokenHint": "After submitting, a second Super Admin must enter the 6-digit token sent by email.",
+    "fields": {
+      "backup": "Backup run",
+      "targetDatabase": "Target database",
+      "targetDatabaseHelp": "Temporary validation database (prefix restore_validation_)",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. verify backup integrity",
+      "status": "Status",
+      "result": "Result",
+      "approvalToken": "Approval token (6 digits)",
+      "action": "Action",
+      "rejectReason": "Rejection reason",
+      "approvalNote": "Note (optional)",
+      "approvalNotePlaceholder": "Optional for audit trail"
+    },
+    "approval": {
+      "waitingTitle": "Approval pending",
+      "waitingDescription": "Request ID: {{requestId}}. Token emailed to other Super Admins."
+    },
+    "actions": {
+      "close": "Close",
+      "submitRequest": "Request restore",
+      "confirmApproval": "Approve and start validation",
+      "confirmReject": "Reject",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "messages": {
+      "requestCreated": "Restore request created — second administrator approval required.",
+      "approvalSubmitted": "Approval submitted — validation running in background.",
+      "rejected": "Request rejected."
+    },
+    "errors": {
+      "generic": "Manual restore failed.",
+      "badRequest": "Invalid input or expired token.",
+      "disabled": "Manual restore is disabled on this system.",
+      "invalidTargetDb": "Target database must start with restore_validation_ and be a valid PostgreSQL name.",
+      "invalidToken": "Token must be exactly 6 digits.",
+      "rejectReasonRequired": "Rejection reason is required.",
+      "missingRunId": "Backup run ID is missing."
+    },
+    "status": {
+      "pendingApproval": "Pending approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "executing": "Validating",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "approvalModal": {
+      "title": "Approve restore",
+      "requestedBy": "Requested by",
+      "reject": "Reject",
+      "approveExecute": "Approve & run",
+      "tokenExtra": "Token was sent to your email. Valid for 15 minutes.",
+      "executing": "Restore is running…",
+      "completedTitle": "Restore completed successfully",
+      "failedTitle": "Restore failed or was rejected",
+      "rejectTitle": "Reject restore request",
+      "openApprove": "Approve"
+    },
+    "history": {
+      "title": "Manual restore requests",
+      "requestedAt": "Requested at"
+    },
+    "table": {
+      "actions": "Actions",
+      "requestRestore": "Validation restore"
+    }
   },
   "progress": {
     "titleQueued": "Backup queued — not finished yet",

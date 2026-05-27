@@ -40,7 +40,7 @@ import {
     ClearOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
@@ -79,6 +79,7 @@ import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
+import { DevOrphanedUsersCleanupButton } from '@/features/users/components/DevOrphanedUsersCleanupButton';
 import { createPlatformUser, updateUserTenants } from '@/features/users/api/users';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
@@ -205,6 +206,7 @@ export default function UsersPage() {
     const { t, formatLocale } = useI18n();
     const pathname = usePathname();
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const roleDisplayLabel = useCallback(
         (roleName: string) =>
@@ -239,6 +241,31 @@ export default function UsersPage() {
             router.replace(`/admin/users${search}`);
         }
     }, [isSuperAdminLayout, pathname, router]);
+
+    /** Deep links from global command palette (`?create=1`, `?userId=`). */
+    useEffect(() => {
+        if (!policy.canView) return;
+        const create = searchParams.get('create');
+        const platform = searchParams.get('platform');
+        const userId = searchParams.get('userId')?.trim();
+        const hasPaletteParams = create === '1' || Boolean(userId);
+        if (!hasPaletteParams) return;
+
+        const basePath = pathname?.startsWith('/admin/users') ? '/admin/users' : '/users';
+
+        if (create === '1' && policy.canCreate) {
+            setCreatePlatformMode(platform === '1' && isSuperAdminLayout);
+            setCreateOpen(true);
+        }
+
+        if (userId) {
+            void getUserById(userId)
+                .then((u) => setDetailUser(u))
+                .catch(() => message.error(usersCopy.errorLoadUser));
+        }
+
+        router.replace(basePath);
+    }, [searchParams, policy.canView, policy.canCreate, isSuperAdminLayout, pathname, router, t]);
 
     const queryClient = useQueryClient();
     const listParams = useMemo(
@@ -619,6 +646,16 @@ export default function UsersPage() {
                 ),
             },
             {
+                title: t('users.list.columnUserName'),
+                dataIndex: 'userName',
+                key: 'userName',
+                width: 140,
+                ellipsis: true,
+                render: (v: string | null | undefined) => v?.trim() || '—',
+                sorter: (a, b) =>
+                    (a.userName ?? '').localeCompare(b.userName ?? '', undefined, { sensitivity: 'base' }),
+            },
+            {
                 title: t('users.list.columnEmail'),
                 dataIndex: 'email',
                 key: 'email',
@@ -763,6 +800,11 @@ export default function UsersPage() {
                             <Button type="default" onClick={() => setRoleManagementDrawerOpen(true)}>
                                 {t('users.page.manageRoles')}
                             </Button>
+                        )}
+                        {isSuperAdminLayout ? (
+                            <DevOrphanedUsersCleanupButton invalidatePlatformUsers />
+                        ) : (
+                            <DevOrphanedUsersCleanupButton onTenantListRefetch={() => void refetch()} />
                         )}
                     </Space>
                 }
@@ -1003,6 +1045,16 @@ export default function UsersPage() {
                 open={!!detailUser}
                 onClose={() => setDetailUser(null)}
                 user={detailUser}
+                canEditUsername={policy.canEdit}
+                onUsernameUpdated={(userId, result) => {
+                    setDetailUser((prev) =>
+                        prev?.id === userId ? { ...prev, userName: result.newUsername } : prev,
+                    );
+                    void refetch();
+                    if (editUserId === userId) {
+                        void refetchEditUser();
+                    }
+                }}
             />
 
             <Modal

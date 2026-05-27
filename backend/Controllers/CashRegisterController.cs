@@ -8,6 +8,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Time;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
@@ -35,6 +36,7 @@ namespace KasseAPI_Final.Controllers
         private readonly ICashRegisterShiftService _cashRegisterShift;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly ICashRegisterManagementService _cashRegisterManagement;
+        private readonly ICashRegisterListEnrichmentService _enrichment;
 
         public CashRegisterController(
             ILogger<CashRegisterController> logger,
@@ -42,7 +44,8 @@ namespace KasseAPI_Final.Controllers
             UserManager<ApplicationUser> userManager,
             ICashRegisterShiftService cashRegisterShift,
             ISettingsTenantResolver settingsTenantResolver,
-            ICashRegisterManagementService cashRegisterManagement)
+            ICashRegisterManagementService cashRegisterManagement,
+            ICashRegisterListEnrichmentService enrichment)
         {
             _logger = logger;
             _context = context;
@@ -50,6 +53,39 @@ namespace KasseAPI_Final.Controllers
             _cashRegisterShift = cashRegisterShift;
             _settingsTenantResolver = settingsTenantResolver;
             _cashRegisterManagement = cashRegisterManagement;
+            _enrichment = enrichment;
+        }
+
+        /// <summary>Tenant register inventory with TSE/offline/sync telemetry (admin FA).</summary>
+        [HasPermission(AppPermissions.CashRegisterView)]
+        [HttpGet("enhanced")]
+        [ProducesResponseType(typeof(IReadOnlyList<EnhancedCashRegisterDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<EnhancedCashRegisterDto>>> GetEnhancedCashRegisters(
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var actorIsSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+                var page = await _cashRegisterManagement.ListAsync(
+                    tenantIdFilter: null,
+                    excludeStatus: null,
+                    actorIsSuperAdmin,
+                    page: 1,
+                    pageSize: 500,
+                    cancellationToken).ConfigureAwait(false);
+
+                var enhanced = page.Items.Select(EnhancedCashRegisterDto.From).ToList();
+                return Ok(enhanced);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Enhanced cash registers list failed");
+                return StatusCode(500, new { message = "Kasalar getirilirken bir hata oluştu", error = ex.Message });
+            }
         }
 
         /// <summary>Full register inventory (open and closed). Not filtered for POS assignment.</summary>

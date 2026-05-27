@@ -74,6 +74,7 @@ public class CashRegisterControllerCreateTests
                 ctx,
                 tenantResolver ?? TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId),
                 Mock.Of<IAuditLogService>(),
+                CashRegisterTestDoubles.NoOpListEnrichment(),
                 NullLogger<CashRegisterManagementService>.Instance));
         c.ControllerContext = new ControllerContext
         {

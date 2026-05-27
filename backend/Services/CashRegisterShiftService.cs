@@ -1,5 +1,6 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Identity;
@@ -15,6 +16,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
     private readonly ISettingsTenantResolver _settingsTenantResolver;
     private readonly IRksvStartbelegPolicy _rksvStartbelegPolicy;
     private readonly IRksvMonatsbelegPolicy _rksvMonatsbelegPolicy;
+    private readonly ActivityEventRecorder? _activityEvents;
 
     public CashRegisterShiftService(
         AppDbContext context,
@@ -22,7 +24,8 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         ILogger<CashRegisterShiftService> logger,
         ISettingsTenantResolver settingsTenantResolver,
         IRksvStartbelegPolicy rksvStartbelegPolicy,
-        IRksvMonatsbelegPolicy rksvMonatsbelegPolicy)
+        IRksvMonatsbelegPolicy rksvMonatsbelegPolicy,
+        ActivityEventRecorder? activityEvents = null)
     {
         _context = context;
         _userManager = userManager;
@@ -30,6 +33,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
         _settingsTenantResolver = settingsTenantResolver;
         _rksvStartbelegPolicy = rksvStartbelegPolicy;
         _rksvMonatsbelegPolicy = rksvMonatsbelegPolicy;
+        _activityEvents = activityEvents;
     }
 
     /// <inheritdoc />
@@ -175,6 +179,20 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                 shiftOperatorUserId,
                 allowIdempotentSameUser);
 
+            if (_activityEvents != null)
+            {
+                await _activityEvents.TryPublishAsync(
+                    new ActivityEventPublishRequest(
+                        tenantId,
+                        ActivityEventType.CashRegisterOpened,
+                        "Cash register opened",
+                        Description: $"Register {register.RegisterNumber} was opened.",
+                        ActorUserId: shiftOperatorUserId,
+                        EntityType: "cash_register",
+                        EntityId: registerId.ToString()),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             return CashRegisterOpenResult.Opened(register.RegisterNumber);
         }
         catch (Exception ex)
@@ -255,6 +273,21 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
             await transaction.CommitAsync(cancellationToken);
 
             _logger.LogInformation("Cash register {RegisterId} closed by user {UserId}", registerId, shiftOperatorUserId);
+
+            if (_activityEvents != null)
+            {
+                await _activityEvents.TryPublishAsync(
+                    new ActivityEventPublishRequest(
+                        tenantId,
+                        ActivityEventType.CashRegisterClosed,
+                        "Cash register closed",
+                        Description: $"Register {register.RegisterNumber} was closed.",
+                        ActorUserId: shiftOperatorUserId,
+                        EntityType: "cash_register",
+                        EntityId: registerId.ToString()),
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             return CashRegisterCloseResult.Success();
         }
         catch (Exception ex)

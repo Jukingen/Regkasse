@@ -86,5 +86,19 @@ namespace KasseAPI_Final.Models
 
         [Column(TypeName = "jsonb")]
         public Dictionary<string, string>? SmsSettings { get; set; }
+
+        /// <summary>Idle auto-logout after this many minutes (POS + Admin).</summary>
+        [Range(5, 480)]
+        [Column("session_timeout_minutes")]
+        public int SessionTimeoutMinutes { get; set; } = 30;
+
+        /// <summary>Warn users this many minutes before idle logout.</summary>
+        [Range(1, 60)]
+        [Column("session_warning_before_timeout_minutes")]
+        public int SessionWarningBeforeTimeoutMinutes { get; set; } = 1;
+
+        /// <summary>When true, POS keeps cart state after idle logout (client-side).</summary>
+        [Column("keep_cart_after_timeout")]
+        public bool KeepCartAfterTimeout { get; set; } = true;
     }
 }

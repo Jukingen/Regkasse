@@ -84,8 +84,85 @@ Users are created directly by administrators (Super Admin or Manager). **No emai
 1. Navigate to **Users** → **Create User** (or tenant detail → **Benutzer** tab → **Benutzer anlegen**).
 2. Fill in **E-Mail**, name, **Rolle**, and **Mandant** (Super Admin only, when not on a fixed tenant).
 3. The system generates a secure password (shown **once** in a follow-up modal).
-4. Copy the password and share it securely with the user (not via the product email channel).
+4. Copy **username**, **email**, and password from the success modal (`UserCreatedSuccessModal`) and share them securely (not via the product email channel).
 5. The user must change the password on first login (`MustChangePasswordOnNextLogin`).
+
+Optional **`userName`** on manual create: must be globally unique; when omitted, the backend auto-generates `{rolePrefix}{n}` (same rules as Quick Create).
+
+### Quick Create User ("Schnell anlegen")
+
+The Quick Create tab in `CreateUserModal` lets administrators create tenant users rapidly with auto-generated credentials.
+
+**How it works:**
+
+1. Open **Users** → **Create User** (or tenant detail → **Benutzer**) and switch to the **Schnell anlegen** tab.
+2. Select **Rolle**: `Manager`, `Cashier`, or `Accountant` (platform `Admin` / `SuperAdmin` are not available on this path).
+3. Select **Mandant** when creating from the global users page (fixed when opened from tenant detail).
+4. The system generates:
+   - **Username:** `{rolePrefix}{nextAvailableNumber}` (e.g. `manager1`, `cashier2`, `user3` for Accountant)
+   - **Email:** `{role}_{random6}@{tenantSlug}.regkasse.at` (e.g. `cashier_a3f9k2@cafe.regkasse.at`)
+   - **Password:** secure 12-character random password
+5. `QuickUserSuccessModal` shows username, email, and password once (per-field copy + **copy all**).
+6. User must change password on first login (`forcePasswordChangeOnNextLogin`).
+
+**Username rules:**
+
+- Minimum 3, maximum 50 characters.
+- Allowed characters: letters (`a-z`), numbers (`0-9`), underscore (`_`), hyphen (`-`).
+- **Case-insensitive:** the system does not distinguish uppercase and lowercase for login or uniqueness (`Manager1` and `manager1` are the same).
+- Must be **globally unique** across all Identity users (not per tenant).
+- Usable for login instead of email (`loginIdentifier` on `POST /api/Auth/login`).
+- Auto-generated names: lowercase role prefix + digits; collision adds `_` + random suffix.
+- Optional custom `userName` in the API body when creating (manual or quick); validation rejects case-insensitive duplicates.
+
+**Login with username (FA):**
+
+- Login form field accepts **email or username** (`LoginForm` → `loginIdentifier`, legacy `email` mirrored for compatibility).
+- UI hint: tooltip and helper text state that username casing does not matter (`common.auth.loginIdentifierTooltip`, `loginIdentifierCaseHint`).
+- POS uses the same backend contract; see `frontend/README.md` (Authentication).
+
+**Rate limit:** up to 10 quick users per tenant per hour (server-side audit check).
+
+**UI / API:**
+
+- Hook: `createQuickUser` in `src/features/super-admin/api/quickUser.ts`
+- Preview pattern: `getQuickUsernamePattern` in `src/features/super-admin/lib/quickUserPreview.ts`
+
+**API example:**
+
+```bash
+# Quick Create (tenant-scoped) — role only; email, username, password generated server-side
+POST /api/admin/tenants/{tenantId}/users/quick
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "role": "Manager"
+}
+
+# Optional custom login name (must be unique)
+{
+  "role": "Cashier",
+  "userName": "cashier_front"
+}
+```
+
+**Response** (`CreateTenantUserResultDto`):
+
+```json
+{
+  "userId": "...",
+  "email": "manager_a3f9k2@cafe.regkasse.at",
+  "userName": "manager1",
+  "generatedPassword": "...",
+  "forcePasswordChangeOnNextLogin": true,
+  "success": true,
+  "tenantPortalUrl": "https://cafe.regkasse.at",
+  "role": "Manager"
+}
+```
+
+Manual tenant user create (non-quick): `POST /api/admin/tenants/{tenantId}/users` with `email`, optional `userName`, `role`, etc. Platform users: `POST /api/admin/users` (no quick endpoint).
 
 ### Add existing user (tenant only)
 

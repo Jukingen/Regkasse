@@ -22,20 +22,24 @@ public sealed class QuickUserGeneratorService : IQuickUserGeneratorService
     private readonly AppDbContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserUniquenessValidationService _uniquenessValidation;
+    private readonly IUserCreationService _userCreation;
 
     public QuickUserGeneratorService(
         AppDbContext db,
         UserManager<ApplicationUser> userManager,
-        IUserUniquenessValidationService uniquenessValidation)
+        IUserUniquenessValidationService uniquenessValidation,
+        IUserCreationService userCreation)
     {
         _db = db;
         _userManager = userManager;
         _uniquenessValidation = uniquenessValidation;
+        _userCreation = userCreation;
     }
 
     public async Task<(QuickUserGenerationPlan? Plan, string? Error)> PrepareAsync(
         Guid tenantId,
         string role,
+        string? requestedUserName = null,
         CancellationToken cancellationToken = default)
     {
         var tenant = await _db.Tenants.AsNoTracking()
@@ -57,8 +61,14 @@ public sealed class QuickUserGeneratorService : IQuickUserGeneratorService
         if (email == null)
             return (null, "Could not allocate a unique email for quick user creation. Try again.");
 
+        var (userName, userNameError) = await _userCreation
+            .ResolveUsernameAsync(requestedUserName, normalizedRole, cancellationToken)
+            .ConfigureAwait(false);
+        if (userNameError != null)
+            return (null, userNameError);
+
         var password = PasswordGenerator.GenerateSecurePassword(12);
-        return (new QuickUserGenerationPlan(email, password, normalizedRole, tenant.Slug), null);
+        return (new QuickUserGenerationPlan(email, password, normalizedRole, tenant.Slug, userName), null);
     }
 
     internal async Task<(bool Allowed, string? Error)> CheckRateLimitAsync(

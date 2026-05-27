@@ -46,15 +46,21 @@ public sealed class QuickUserGeneratorServiceTests
         new(
             db,
             userManager,
-            CreateUniquenessMock().Object);
+            CreateUniquenessMock().Object,
+            CreateUserCreationService(db, userManager));
 
     private static Mock<IUserUniquenessValidationService> CreateUniquenessMock(bool emailTaken = false)
     {
         var m = new Mock<IUserUniquenessValidationService>();
         m.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync(emailTaken);
+        m.Setup(x => x.IsUserNameTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(false);
         return m;
     }
+
+    private static IUserCreationService CreateUserCreationService(AppDbContext db, UserManager<ApplicationUser> userManager) =>
+        new UserCreationService(db, userManager, CreateUniquenessMock().Object);
 
     [Fact]
     public void GenerateSecurePassword_Returns_Requested_Length()
@@ -71,6 +77,30 @@ public sealed class QuickUserGeneratorServiceTests
         Assert.Matches(@"[a-z]", password);
         Assert.Matches(@"\d", password);
         Assert.Matches(@"[!@#$%^&*()]", password);
+    }
+
+    [Fact]
+    public async Task PrepareAsync_Allocates_Unique_Username()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, CreateUserManager(db));
+        var (plan, error) = await service.PrepareAsync(tenantId, Roles.Manager);
+
+        Assert.Null(error);
+        Assert.NotNull(plan);
+        Assert.Matches(@"^manager\d+$", plan!.UserName);
     }
 
     [Fact]

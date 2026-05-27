@@ -13,6 +13,8 @@ export const BACKUP_DASHBOARD_IDLE_POLL_MS = 60_000;
 
 /** Default page sizing for orchestration-loading + backup history UX. */
 export const BACKUP_RECENT_RUNS_PAGE_SIZE = 15;
+/** Metrik / grafik penceresi için daha geniş örneklem (sunucu sayfalı). */
+export const BACKUP_METRICS_RUNS_PAGE_SIZE = 50;
 export const BACKUP_RESTORE_HISTORY_PAGE_SIZE = 10;
 
 export function usePollBackupLatestDashboardInterval(): (

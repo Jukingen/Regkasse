@@ -4,6 +4,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 
 namespace KasseAPI_Final.Controllers;
 
@@ -16,15 +17,18 @@ public sealed class AdminTenantsController : ControllerBase
 {
     private readonly IAdminTenantService _tenantService;
     private readonly IAuditLogService _auditLogService;
+    private readonly IHostEnvironment _environment;
     private readonly ILogger<AdminTenantsController> _logger;
 
     public AdminTenantsController(
         IAdminTenantService tenantService,
         IAuditLogService auditLogService,
+        IHostEnvironment environment,
         ILogger<AdminTenantsController> logger)
     {
         _tenantService = tenantService;
         _auditLogService = auditLogService;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -176,6 +180,50 @@ public sealed class AdminTenantsController : ControllerBase
             return NotFound(new { message = error });
         if (!success)
             return BadRequest(new { message = error });
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Development-only shortcut: soft-delete the tenant when needed, then run the existing permanent delete flow
+    /// using the tenant slug as confirmation.
+    /// </summary>
+    [HttpDelete("{tenantId:guid}/hard")]
+    [HasPermission(AppPermissions.SystemCritical)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> HardDeleteDevelopment(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_environment.IsDevelopment())
+            return BadRequest(new { message = "Hard delete only allowed in development." });
+
+        var tenant = await _tenantService.GetByIdAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (tenant == null)
+            return NotFound(new { message = "Tenant not found." });
+
+        var (softDeleteSuccess, softDeleteError) = await _tenantService
+            .SoftDeleteAsync(tenantId, ActorUserId, cancellationToken)
+            .ConfigureAwait(false);
+        if (softDeleteError == "Tenant not found.")
+            return NotFound(new { message = softDeleteError });
+        if (!softDeleteSuccess)
+            return BadRequest(new { message = softDeleteError });
+
+        var (hardDeleteSuccess, hardDeleteError) = await _tenantService
+            .HardDeleteAsync(
+                tenantId,
+                new HardDeleteAdminTenantRequest { ConfirmSlug = tenant.Slug },
+                ActorUserId,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        if (hardDeleteError == "Tenant not found.")
+            return NotFound(new { message = hardDeleteError });
+        if (!hardDeleteSuccess)
+            return BadRequest(new { message = hardDeleteError });
+
         return NoContent();
     }
 

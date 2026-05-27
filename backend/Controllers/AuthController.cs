@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
@@ -14,7 +15,9 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
+using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -44,6 +47,9 @@ namespace KasseAPI_Final.Controllers
         private readonly ILoginTenantResolver _loginTenantResolver;
         private readonly IAuthService _authService;
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
+        private readonly IUserUsernameHistoryService _usernameHistory;
+        private readonly IForgotUsernameEmailService _forgotUsernameEmail;
+        private readonly ITenantSessionPolicyService _sessionPolicyService;
 
         /// <summary>Throttles diagnostic logs when /me is called without a resolvable user id claim.</summary>
         private static readonly object GetCurrentUserMissingIdLogSync = new();
@@ -61,7 +67,10 @@ namespace KasseAPI_Final.Controllers
             IAuthTenantSnapshotProvider authTenantSnapshotProvider,
             ILoginTenantResolver loginTenantResolver,
             IAuthService authService,
-            IUserTenantMembershipProvisioner tenantMembershipProvisioner)
+            IUserTenantMembershipProvisioner tenantMembershipProvisioner,
+            IUserUsernameHistoryService usernameHistory,
+            IForgotUsernameEmailService forgotUsernameEmail,
+            ITenantSessionPolicyService sessionPolicyService)
         {
             _context = context;
             _userManager = userManager;
@@ -75,6 +84,57 @@ namespace KasseAPI_Final.Controllers
             _loginTenantResolver = loginTenantResolver;
             _authService = authService;
             _tenantMembershipProvisioner = tenantMembershipProvisioner;
+            _usernameHistory = usernameHistory;
+            _forgotUsernameEmail = forgotUsernameEmail;
+            _sessionPolicyService = sessionPolicyService;
+        }
+
+        /// <summary>
+        /// Sends login usernames for the given email (admin app). Always returns success to avoid account enumeration.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("forgot-username")]
+        public async Task<IActionResult> ForgotUsername(
+            [FromBody] ForgotUsernameRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            const string genericMessage =
+                "If an account exists for this email, we sent your login usernames. Check your inbox.";
+
+            if (request == null || string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "Email is required." });
+
+            var clientApp = request.ClientApp?.Trim().ToLowerInvariant();
+            if (!string.Equals(clientApp, ClientAppPolicy.Admin, StringComparison.Ordinal))
+                return BadRequest(new { message = "clientApp must be \"admin\" for this endpoint." });
+
+            var email = request.Email.Trim();
+            var user = await _userManager.FindByEmailAsync(email).ConfigureAwait(false);
+            if (user == null || !user.IsActive)
+            {
+                _logger.LogInformation("Forgot-username: no active user for masked email.");
+                return Ok(new { message = genericMessage });
+            }
+
+            var usernames = await _usernameHistory
+                .GetKnownUsernamesForUserAsync(user.Id, user.UserName, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (usernames.Count > 0)
+            {
+                var sent = await _forgotUsernameEmail.TrySendForgotUsernameAsync(
+                    new ForgotUsernameEmailRequest(email, usernames),
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!sent)
+                {
+                    _logger.LogWarning(
+                        "Forgot-username: SMTP not configured or send failed for user {UserId}.",
+                        user.Id);
+                }
+            }
+
+            return Ok(new { message = genericMessage });
         }
 
         [HttpPost("login")]
@@ -82,9 +142,13 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                _logger.LogInformation("Login attempt for user: {EmailMasked}, clientApp: {ClientApp}", MaskEmail(model.Email), model.ClientApp ?? "(none)");
+                var loginIdentifier = model.ResolveLoginIdentifier();
+                _logger.LogInformation(
+                    "Login attempt for user: {LoginMasked}, clientApp: {ClientApp}",
+                    MaskLoginIdentifier(loginIdentifier),
+                    model.ClientApp ?? "(none)");
 
-                if (string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Password))
+                if (string.IsNullOrWhiteSpace(loginIdentifier) || string.IsNullOrWhiteSpace(model.Password))
                 {
                     return BadRequest(new { message = "Email ve şifre gerekli" });
                 }
@@ -101,7 +165,9 @@ namespace KasseAPI_Final.Controllers
                         return BadRequest(new { message = "clientApp field is required (\"pos\" or \"admin\")." });
                     }
 
-                    _logger.LogWarning("Login without clientApp from {EmailMasked}. AllowLegacyLoginWithoutClientApp is ON — legacy mode.", MaskEmail(model.Email));
+                    _logger.LogWarning(
+                        "Login without clientApp from {LoginMasked}. AllowLegacyLoginWithoutClientApp is ON — legacy mode.",
+                        MaskLoginIdentifier(loginIdentifier));
                     resolvedClientApp = null;
                 }
                 else if (!ClientAppPolicy.IsKnownApp(resolvedClientApp))
@@ -109,7 +175,11 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = $"Unknown clientApp value: \"{model.ClientApp}\". Allowed: pos, admin." });
                 }
 
-                var user = await _userManager.FindByEmailAsync(model.Email);
+                var loginCancellation = HttpContext?.RequestAborted ?? CancellationToken.None;
+                var user = await IdentityLoginLookup.FindByLoginIdentifierAsync(
+                    _userManager,
+                    loginIdentifier,
+                    loginCancellation);
                 if (user == null)
                 {
                     return BadRequest(new { message = "Kullanıcı bulunamadı" });
@@ -136,7 +206,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     _logger.LogWarning(
                         "Login denied: user {EmailMasked} (role {Role}) is not allowed for clientApp {ClientApp}",
-                        MaskEmail(model.Email), canonicalRole, resolvedClientApp);
+                        MaskLoginIdentifier(loginIdentifier), canonicalRole, resolvedClientApp);
 
                     return StatusCode(403, new { message = "Bu kullanıcı bu uygulama için yetkili değil." });
                 }
@@ -208,6 +278,7 @@ namespace KasseAPI_Final.Controllers
                         return GenerateJwtToken(claims, jti, sessionId, expiresAtUtc);
                     },
                     sessionTenantId: sessionTenantKey,
+                    clientMetadata: BuildSessionClientMetadata(),
                     authCt);
                 var permissions = await GetEffectivePermissionsListAsync(roles, authCt);
 
@@ -237,12 +308,15 @@ namespace KasseAPI_Final.Controllers
                     appContext = resolvedClientApp
                 };
 
-                _logger.LogInformation("Login successful for user: {EmailMasked}, clientApp: {ClientApp}", MaskEmail(model.Email), resolvedClientApp ?? "legacy");
+                _logger.LogInformation(
+                    "Login successful for user: {LoginMasked}, clientApp: {ClientApp}",
+                    MaskLoginIdentifier(loginIdentifier),
+                    resolvedClientApp ?? "legacy");
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Login error for user: {EmailMasked}", MaskEmail(model.Email));
+                _logger.LogError(ex, "Login error for user: {LoginMasked}", MaskLoginIdentifier(model.ResolveLoginIdentifier()));
                 return StatusCode(500, new { message = "Giriş işlemi sırasında hata oluştu" });
             }
         }
@@ -347,6 +421,8 @@ namespace KasseAPI_Final.Controllers
                 var appContext = User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value;
 
                 var tenantSnapshot = await _authTenantSnapshotProvider.GetSnapshotAsync(User, meCt);
+                Guid? tenantGuid = Guid.TryParse(tenantSnapshot.TenantId, out var tid) ? tid : null;
+                var sessionPolicy = await _sessionPolicyService.GetPolicyAsync(tenantGuid, meCt);
 
                 var userResponse = new
                 {
@@ -365,6 +441,7 @@ namespace KasseAPI_Final.Controllers
                     branchId = tenantSnapshot.BranchId,
                     branchDisplayName = tenantSnapshot.BranchDisplayName,
                     mustChangePasswordOnNextLogin = user.MustChangePasswordOnNextLogin,
+                    sessionPolicy,
                 };
 
                 _logger.LogInformation("GetCurrentUser: Successfully retrieved user {Email} with role {Role}, appContext {AppContext}", user.Email, user.Role, appContext ?? "none");
@@ -517,6 +594,14 @@ namespace KasseAPI_Final.Controllers
             return Ok(new { message = "Refresh token revoked" });
         }
 
+        private SessionClientMetadata BuildSessionClientMetadata()
+        {
+            var deviceId = Request.Headers["X-Device-Id"].FirstOrDefault();
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = Request.Headers.UserAgent.FirstOrDefault();
+            return new SessionClientMetadata(deviceId, ip, userAgent);
+        }
+
         private string GenerateJwtToken(IReadOnlyList<Claim> baseClaims, string jti, Guid sessionId, DateTime expiresAtUtc)
         {
             var secretKey = _configuration["JwtSettings:SecretKey"]!;
@@ -551,6 +636,18 @@ namespace KasseAPI_Final.Controllers
             return $"{prefix}***{domain}";
         }
 
+        private static string MaskLoginIdentifier(string? loginIdentifier)
+        {
+            if (string.IsNullOrWhiteSpace(loginIdentifier))
+                return "unknown";
+
+            return loginIdentifier.Contains('@', StringComparison.Ordinal)
+                ? MaskEmail(loginIdentifier)
+                : loginIdentifier.Length <= 2
+                    ? "***"
+                    : $"{loginIdentifier[..2]}***";
+        }
+
         /// <summary>
         /// Effective permissions for API JSON: same set as embedded in JWT via <see cref="ITokenClaimsService"/>.
         /// Sorted for stable serialization (JWT claim order is not significant for authorization).
@@ -560,18 +657,6 @@ namespace KasseAPI_Final.Controllers
             var set = await _rolePermissionResolver.GetPermissionsForRolesAsync(roles, cancellationToken);
             return set.OrderBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
         }
-    }
-
-    public class LoginModel
-    {
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Target client application: "pos" or "admin".
-        /// When AllowLegacyLoginWithoutClientApp is false (default), this field is required.
-        /// </summary>
-        public string? ClientApp { get; set; }
     }
 
     public class RegisterModel

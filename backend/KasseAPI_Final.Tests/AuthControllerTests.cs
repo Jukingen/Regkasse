@@ -1,12 +1,17 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
+using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -27,7 +32,8 @@ public class AuthControllerTests
     private static UserManager<ApplicationUser> CreateMockUserManager(
         ApplicationUser? userByEmail,
         bool passwordValid = true,
-        IList<string>? roles = null)
+        IList<string>? roles = null,
+        ApplicationUser? userByName = null)
     {
         var store = new Mock<IUserStore<ApplicationUser>>();
         store.As<IUserEmailStore<ApplicationUser>>()
@@ -40,17 +46,38 @@ public class AuthControllerTests
             .Returns(passwordValid ? PasswordVerificationResult.Success : PasswordVerificationResult.Failed);
         var userValidators = new List<IUserValidator<ApplicationUser>>();
         var passwordValidators = new List<IPasswordValidator<ApplicationUser>>();
-        var keyNormalizer = new Mock<ILookupNormalizer>();
+        var keyNormalizer = new UpperInvariantLookupNormalizer();
         var errors = new IdentityErrorDescriber();
         var services = new Mock<IServiceProvider>().Object;
         var logger = new Mock<ILogger<UserManager<ApplicationUser>>>().Object;
 
         var mgr = new Mock<UserManager<ApplicationUser>>(
             store.Object, options, hasher.Object, userValidators, passwordValidators,
-            keyNormalizer.Object, errors, services, logger);
+            keyNormalizer, errors, services, logger);
 
         mgr.Setup(m => m.FindByEmailAsync(It.IsAny<string>()))
             .ReturnsAsync(userByEmail);
+
+        mgr.Setup(m => m.FindByNameAsync(It.IsAny<string>()))
+            .ReturnsAsync(userByName);
+
+        var loginUsers = new List<ApplicationUser>();
+        void TrackUser(ApplicationUser? u)
+        {
+            if (u == null) return;
+            if (string.IsNullOrEmpty(u.NormalizedUserName) && !string.IsNullOrEmpty(u.UserName))
+                u.NormalizedUserName = keyNormalizer.NormalizeName(u.UserName);
+            if (string.IsNullOrEmpty(u.NormalizedEmail) && !string.IsNullOrEmpty(u.Email))
+                u.NormalizedEmail = keyNormalizer.NormalizeEmail(u.Email);
+            if (!loginUsers.Any(x => x.Id == u.Id))
+                loginUsers.Add(u);
+        }
+
+        TrackUser(userByEmail);
+        TrackUser(userByName);
+        mgr.SetupGet(m => m.Users).Returns(loginUsers.AsQueryable());
+        mgr.Setup(m => m.NormalizeName(It.IsAny<string>()))
+            .Returns((string? name) => name == null ? null : keyNormalizer.NormalizeName(name));
 
         mgr.Setup(m => m.CheckPasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()))
             .ReturnsAsync(passwordValid);
@@ -134,6 +161,82 @@ public class AuthControllerTests
         return m;
     }
 
+    private static UserManager<ApplicationUser> CreateIdentityUserManager(AppDbContext db)
+    {
+        var store = new UserStore<ApplicationUser>(db);
+        var userManager = new UserManager<ApplicationUser>(
+            store,
+            Options.Create(new IdentityOptions()),
+            new PasswordHasher<ApplicationUser>(),
+            new List<IUserValidator<ApplicationUser>>(),
+            new List<IPasswordValidator<ApplicationUser>>(),
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null!,
+            Mock.Of<ILogger<UserManager<ApplicationUser>>>());
+
+        var dataProtection = DataProtectionProvider.Create(
+            new DirectoryInfo(Path.Combine(Path.GetTempPath(), "regkasse-auth-controller-tests")));
+        userManager.RegisterTokenProvider(
+            TokenOptions.DefaultProvider,
+            new DataProtectorTokenProvider<ApplicationUser>(
+                dataProtection,
+                Options.Create(new DataProtectionTokenProviderOptions()),
+                Mock.Of<ILogger<DataProtectorTokenProvider<ApplicationUser>>>()));
+
+        return userManager;
+    }
+
+    private static async Task<AuthController> CreateControllerWithIdentityUserAsync(
+        ApplicationUser user,
+        string password = "pass",
+        IList<string>? roles = null,
+        bool allowLegacy = true)
+    {
+        var dbOptions = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase($"AuthIdentity_{Guid.NewGuid():N}")
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+        var db = new AppDbContext(dbOptions, NullCurrentTenantAccessor.Instance);
+        var userManager = CreateIdentityUserManager(db);
+
+        user.PasswordHash = userManager.PasswordHasher.HashPassword(user, password);
+        user.SecurityStamp ??= Guid.NewGuid().ToString("D");
+        user.ConcurrencyStamp ??= Guid.NewGuid().ToString("D");
+        if (!string.IsNullOrEmpty(user.UserName))
+            user.NormalizedUserName ??= userManager.NormalizeName(user.UserName);
+        if (!string.IsNullOrEmpty(user.Email))
+            user.NormalizedEmail ??= userManager.NormalizeEmail(user.Email);
+
+        db.Users.Add(user);
+        foreach (var roleName in roles ?? new List<string> { user.Role ?? "Cashier" })
+        {
+            var normalizedRole = roleName.ToUpperInvariant();
+            var role = await db.Roles.FirstOrDefaultAsync(r => r.NormalizedName == normalizedRole);
+            if (role == null)
+            {
+                role = new IdentityRole
+                {
+                    Id = Guid.NewGuid().ToString("D"),
+                    Name = roleName,
+                    NormalizedName = normalizedRole,
+                };
+                db.Roles.Add(role);
+            }
+
+            db.UserRoles.Add(new IdentityUserRole<string> { UserId = user.Id, RoleId = role.Id });
+        }
+
+        await db.SaveChangesAsync();
+
+        return CreateController(
+            userByEmail: user,
+            roles: roles ?? new List<string> { user.Role ?? "Cashier" },
+            allowLegacy: allowLegacy,
+            userManagerOverride: userManager,
+            appDbOverride: db);
+    }
+
     private static AuthController CreateController(
         ApplicationUser? userByEmail,
         bool passwordValid = true,
@@ -143,9 +246,13 @@ public class AuthControllerTests
         Mock<IAuthTenantSnapshotProvider>? authTenantSnapshotMock = null,
         Mock<ILoginTenantResolver>? loginTenantResolverMock = null,
         bool requireTenantMembershipForLogin = false,
-        Mock<IUserTenantMembershipProvisioner>? tenantMembershipProvisionerMock = null)
+        Mock<IUserTenantMembershipProvisioner>? tenantMembershipProvisionerMock = null,
+        ApplicationUser? userByName = null,
+        UserManager<ApplicationUser>? userManagerOverride = null,
+        AppDbContext? appDbOverride = null)
     {
-        var userManager = CreateMockUserManager(userByEmail, passwordValid, roles);
+        var userManager = userManagerOverride
+            ?? CreateMockUserManager(userByEmail, passwordValid, roles, userByName);
         var config = CreateConfig(allowLegacy);
         var logger = new Mock<ILogger<AuthController>>().Object;
         var tokenClaims = CreateTokenClaimsMock();
@@ -171,11 +278,26 @@ public class AuthControllerTests
         var loginTenant = loginTenantResolverMock ?? CreateLoginTenantResolverMock();
         var authService = CreateAuthServiceMock(loginTenant);
         var provisioner = tenantMembershipProvisionerMock ?? CreateMembershipProvisionerMock();
-        var dbOptions = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"AuthCtl_{Guid.NewGuid():N}")
-            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
-            .Options;
-        var appDb = new AppDbContext(dbOptions);
+        var appDb = appDbOverride ?? new AppDbContext(
+            new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase($"AuthCtl_{Guid.NewGuid():N}")
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options,
+            NullCurrentTenantAccessor.Instance);
+        var usernameHistory = new Mock<IUserUsernameHistoryService>();
+        usernameHistory.Setup(x => x.GetKnownUsernamesForUserAsync(
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { "cashier1" });
+
+        var forgotUsernameEmail = new Mock<IForgotUsernameEmailService>();
+        forgotUsernameEmail.Setup(x => x.IsConfigured).Returns(true);
+        forgotUsernameEmail.Setup(x => x.TrySendForgotUsernameAsync(
+                It.IsAny<ForgotUsernameEmailRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
         return new AuthController(
             appDb,
             userManager,
@@ -188,7 +310,9 @@ public class AuthControllerTests
             authTenant.Object,
             loginTenant.Object,
             authService.Object,
-            provisioner.Object);
+            provisioner.Object,
+            usernameHistory.Object,
+            forgotUsernameEmail.Object);
     }
 
     private static Mock<IAuthService> CreateAuthServiceMock(Mock<ILoginTenantResolver> loginTenantResolver)
@@ -266,6 +390,81 @@ public class AuthControllerTests
         var result = await controller.Login(new LoginModel { Email = "nobody@test.com", Password = "any" });
 
         Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Login_WithLoginIdentifierUsername_Succeeds()
+    {
+        var user = ActiveUser();
+        user.UserName = "cashier1";
+        user.Email = "cashier_a3f9k2@cafe.regkasse.at";
+        var controller = await CreateControllerWithIdentityUserAsync(user, allowLegacy: true);
+
+        var result = await controller.Login(new LoginModel
+        {
+            LoginIdentifier = "cashier1",
+            Password = "pass",
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Login_WithLoginIdentifierUsername_ClientAppPos_Succeeds()
+    {
+        var user = ActiveUser();
+        user.UserName = "cashier1";
+        user.Email = "cashier_a3f9k2@cafe.regkasse.at";
+        var controller = await CreateControllerWithIdentityUserAsync(
+            user,
+            allowLegacy: false,
+            roles: new List<string> { "Cashier" });
+
+        var result = await controller.Login(new LoginModel
+        {
+            LoginIdentifier = "cashier1",
+            Password = "pass",
+            ClientApp = "pos",
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Login_WithLoginIdentifierUsername_DifferentCasing_Succeeds()
+    {
+        var user = ActiveUser();
+        user.UserName = "Mustafa";
+        user.Email = "mustafa_a3f9k2@cafe.regkasse.at";
+        user.NormalizedUserName = "MUSTAFA";
+        var controller = await CreateControllerWithIdentityUserAsync(
+            user,
+            allowLegacy: false,
+            roles: new List<string> { "Cashier" });
+
+        var result = await controller.Login(new LoginModel
+        {
+            LoginIdentifier = "mustafa",
+            Password = "pass",
+            ClientApp = "pos",
+        });
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Login_WithLegacyEmailField_StillSucceeds()
+    {
+        var user = ActiveUser();
+        var controller = CreateController(user, allowLegacy: true);
+
+        var result = await controller.Login(new LoginModel
+        {
+            Email = user.Email,
+            Password = "pass",
+        });
+
+        Assert.IsType<OkObjectResult>(result);
     }
 
     // -------- clientApp field validation --------
@@ -488,6 +687,92 @@ public class AuthControllerTests
         Assert.Contains("TENANT_MEMBERSHIP_REQUIRED", json, StringComparison.Ordinal);
         Assert.Contains("Kein Zugriff auf diesen Mandanten", json, StringComparison.Ordinal);
         loginMock.Verify(p => p.ResolveSnapshotForLoginAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ForgotUsername_WhenUserExists_Sends_Email_And_Returns_Generic_Message()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            Email = "user@test.com",
+            UserName = "cashier1",
+            IsActive = true,
+        };
+        var forgotEmail = new Mock<IForgotUsernameEmailService>();
+        forgotEmail.Setup(x => x.IsConfigured).Returns(true);
+        forgotEmail.Setup(x => x.TrySendForgotUsernameAsync(
+                It.IsAny<ForgotUsernameEmailRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var history = new Mock<IUserUsernameHistoryService>();
+        history.Setup(x => x.GetKnownUsernamesForUserAsync("u1", "cashier1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { "cashier1", "oldcashier" });
+
+        var controller = CreateForgotUsernameController(user, forgotEmail, history);
+
+        var result = await controller.ForgotUsername(
+            new ForgotUsernameRequest { Email = "user@test.com", ClientApp = "admin" });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        forgotEmail.Verify(
+            x => x.TrySendForgotUsernameAsync(
+                It.Is<ForgotUsernameEmailRequest>(r =>
+                    r.ToEmail == "user@test.com"
+                    && r.Usernames.Count == 2),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.NotNull(ok.Value);
+    }
+
+    [Fact]
+    public async Task ForgotUsername_WhenUserMissing_Still_Returns_Ok()
+    {
+        var controller = CreateController(userByEmail: null);
+
+        var result = await controller.ForgotUsername(
+            new ForgotUsernameRequest { Email = "missing@test.com", ClientApp = "admin" });
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    private static AuthController CreateForgotUsernameController(
+        ApplicationUser user,
+        Mock<IForgotUsernameEmailService>? forgotUsernameEmail = null,
+        Mock<IUserUsernameHistoryService>? usernameHistory = null)
+    {
+        forgotUsernameEmail ??= new Mock<IForgotUsernameEmailService>();
+        if (usernameHistory == null)
+        {
+            usernameHistory = new Mock<IUserUsernameHistoryService>();
+            usernameHistory.Setup(x => x.GetKnownUsernamesForUserAsync(
+                    It.IsAny<string>(),
+                    It.IsAny<string?>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new[] { user.UserName ?? "user" });
+        }
+
+        return new AuthController(
+            new AppDbContext(
+                new DbContextOptionsBuilder<AppDbContext>()
+                    .UseInMemoryDatabase($"AuthForgot_{Guid.NewGuid():N}")
+                    .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                    .Options,
+                NullCurrentTenantAccessor.Instance),
+            CreateMockUserManager(user),
+            CreateConfig(),
+            new Mock<ILogger<AuthController>>().Object,
+            CreateTokenClaimsMock().Object,
+            CreateRolePermissionResolverMock().Object,
+            Options.Create(new AuthOptions()),
+            new Mock<IRefreshTokenService>().Object,
+            CreateAuthTenantSnapshotMock().Object,
+            CreateLoginTenantResolverMock().Object,
+            CreateAuthServiceMock(CreateLoginTenantResolverMock()).Object,
+            CreateMembershipProvisionerMock().Object,
+            usernameHistory.Object,
+            forgotUsernameEmail.Object);
     }
 }
 

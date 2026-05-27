@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,28 +23,39 @@ import { WaveLoader } from '../../src/components/common/WaveLoader';
 const { width, height } = Dimensions.get('window');
 
 interface FormErrors {
-  username?: string;
+  loginIdentifier?: string;
   password?: string;
 }
 
+const LAST_USERNAME_KEY = 'lastUsername';
+const SAVED_LOGIN_IDENTIFIER_KEY = 'savedLoginIdentifier';
+const LEGACY_SAVED_USERNAME_KEY = 'savedUsername';
+
 export default function LoginScreen() {
   const { t } = useTranslation('auth');
-  const [username, setUsername] = useState('');
+  const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const passwordInputRef = useRef<TextInput>(null);
 
   const { login } = useAuth();
 
   useEffect(() => {
-    loadSavedUsername();
+    loadSavedLoginIdentifier();
   }, []);
 
-  const loadSavedUsername = async () => {
+  const loadSavedLoginIdentifier = async () => {
     try {
-      const savedUsername = await storage.getItem('savedUsername');
-      if (savedUsername) setUsername(savedUsername);
+      const saved =
+        (await storage.getItem(LAST_USERNAME_KEY)) ??
+        (await storage.getItem(SAVED_LOGIN_IDENTIFIER_KEY)) ??
+        (await storage.getItem(LEGACY_SAVED_USERNAME_KEY));
+      if (saved) {
+        setLoginIdentifier(saved);
+        requestAnimationFrame(() => passwordInputRef.current?.focus());
+      }
 
       // One-shot cleanup: remove legacy plaintext password from storage
       await storage.removeItem('savedPassword');
@@ -57,8 +68,8 @@ export default function LoginScreen() {
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!username.trim()) {
-      newErrors.username = t('validation.usernameRequired');
+    if (!loginIdentifier.trim()) {
+      newErrors.loginIdentifier = t('validation.loginIdentifierRequired');
     }
 
     if (!password) {
@@ -67,7 +78,7 @@ export default function LoginScreen() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [username, password]);
+  }, [loginIdentifier, password, t]);
 
   // Handle login
   const handleLogin = useCallback(async () => {
@@ -81,9 +92,12 @@ export default function LoginScreen() {
       setIsLoading(true);
       setErrors({});
       setLoginError(null);
-      await login(username, password);
+      await login(loginIdentifier, password);
 
-      await storage.setItem('savedUsername', username);
+      const trimmed = loginIdentifier.trim();
+      await storage.setItem(LAST_USERNAME_KEY, trimmed);
+      await storage.setItem(SAVED_LOGIN_IDENTIFIER_KEY, trimmed);
+      await storage.removeItem(LEGACY_SAVED_USERNAME_KEY);
     } catch (error: unknown) {
       console.error('Login failed:', error);
 
@@ -91,7 +105,7 @@ export default function LoginScreen() {
         const msg = getAuthErrorMessage(error);
 
         if (error.code === 'INVALID_CREDENTIALS') {
-          setErrors({ username: msg });
+          setErrors({ loginIdentifier: msg });
           setLoginError(msg);
         } else {
           setLoginError(msg);
@@ -103,12 +117,12 @@ export default function LoginScreen() {
       } else {
         const msg = error instanceof Error ? error.message : t('loginError');
         setLoginError(msg);
-        setErrors({ username: msg });
+        setErrors({ loginIdentifier: msg });
       }
     } finally {
       setIsLoading(false);
     }
-  }, [username, password, login, validateForm]);
+  }, [loginIdentifier, password, login, validateForm, t]);
 
   // Handle dismissing keyboard only on mobile (not web)
   const handleDismissKeyboard = useCallback(() => {
@@ -148,39 +162,47 @@ export default function LoginScreen() {
                 </View>
               )}
 
-              {/* Username Input */}
+              {/* Email or username */}
               <View style={styles.inputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder={t('usernamePlaceholder')}
+                  placeholder={t('loginIdentifierPlaceholder')}
                   placeholderTextColor="#999"
-                  value={username}
-                  onChangeText={(text) => { setUsername(text); setLoginError(null); setErrors((prev) => ({ ...prev, username: undefined })); }}
+                  value={loginIdentifier}
+                  onChangeText={(text) => {
+                    setLoginIdentifier(text);
+                    setLoginError(null);
+                    setErrors((prev) => ({ ...prev, loginIdentifier: undefined }));
+                  }}
                   autoCapitalize="none"
                   autoCorrect={false}
+                  autoComplete="username"
+                  textContentType="username"
                   editable={!isLoading}
-                  onFocus={() => console.log('📍 Username input focused')}
-                  onBlur={() => console.log('📍 Username input blurred')}
                 />
                 <View style={styles.inputLine} />
-                {errors.username && (
-                  <Text style={styles.errorText}>{errors.username}</Text>
+                {errors.loginIdentifier && (
+                  <Text style={styles.errorText}>{errors.loginIdentifier}</Text>
                 )}
+                <Text style={styles.caseHint}>{t('loginIdentifierCaseHint')}</Text>
               </View>
 
               {/* Password Input */}
               <View style={styles.inputContainer}>
                 <TextInput
+                  ref={passwordInputRef}
                   style={styles.input}
                   placeholder={t('passwordPlaceholder')}
                   placeholderTextColor="#999"
                   value={password}
-                  onChangeText={(text) => { setPassword(text); setLoginError(null); setErrors((prev) => ({ ...prev, username: undefined })); }}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    setLoginError(null);
+                    setErrors((prev) => ({ ...prev, password: undefined }));
+                  }}
                   secureTextEntry
                   editable={!isLoading}
                   onSubmitEditing={handleLogin}
-                  onFocus={() => console.log('📍 Password input focused')}
-                  onBlur={() => console.log('📍 Password input blurred')}
                 />
                 <View style={styles.inputLine} />
                 {errors.password && (
@@ -285,6 +307,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#E74C3C',
     marginTop: 6,
+  },
+  caseHint: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 8,
+    lineHeight: 16,
   },
   loginButton: {
     width: 180,

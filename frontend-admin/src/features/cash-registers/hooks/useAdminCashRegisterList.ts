@@ -21,6 +21,8 @@ export type UseAdminCashRegisterListOptions = {
     pageSize?: number;
     excludeDecommissioned?: boolean;
     enabled?: boolean;
+    /** Poll list for offline queue / sync updates (default 30s when enabled). */
+    pollIntervalMs?: number;
 };
 
 export function useAdminCashRegisterList(options: UseAdminCashRegisterListOptions) {
@@ -30,6 +32,7 @@ export function useAdminCashRegisterList(options: UseAdminCashRegisterListOption
         pageSize = 100,
         excludeDecommissioned = true,
         enabled = true,
+        pollIntervalMs = 30_000,
     } = options;
 
     const listParams = useMemo((): ListAdminCashRegistersParams | null => {
@@ -46,7 +49,8 @@ export function useAdminCashRegisterList(options: UseAdminCashRegisterListOption
         queryKey: adminCashRegisterListQueryKey(listParams ?? undefined),
         queryFn: () => listAdminCashRegisters(listParams!),
         enabled: enabled && listParams != null,
-        staleTime: 30_000,
+        staleTime: 15_000,
+        refetchInterval: enabled && listParams != null ? pollIntervalMs : false,
     });
 
     const registers = useMemo(() => {

@@ -1,19 +1,28 @@
 'use client';
 
+import type { Key } from 'react';
 import {
     CheckCircleOutlined,
+    CloudSyncOutlined,
     EnvironmentOutlined,
     EyeOutlined,
+    FileProtectOutlined,
     LockOutlined,
     MinusCircleOutlined,
+    SafetyOutlined,
     StopOutlined,
     ToolOutlined,
     ShopOutlined,
+    UserOutlined,
 } from '@ant-design/icons';
 import { Button, Empty, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { CashRegister } from '@/api/generated/model';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
+import { CashRegisterQuickActions } from '@/features/cash-registers/components/CashRegisterQuickActions';
+import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
+import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
+import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
 import {
     canDecommissionRegister,
     isDecommissionedRegister,
@@ -21,6 +30,18 @@ import {
     registerStatusTagColor,
 } from '@/features/cash-registers/utils/registerStatus';
 import styles from './CashRegisterTable.module.css';
+
+function asEnhanced(record: CashRegister): EnhancedCashRegister {
+    return record as EnhancedCashRegister;
+}
+
+function resolveCashierName(record: EnhancedCashRegister): string | null {
+    const fromApi = record.currentCashierName?.trim();
+    if (fromApi) {
+        return fromApi;
+    }
+    return record.currentUser?.userName?.trim() || record.currentUserId?.trim() || null;
+}
 
 export type CashRegisterTableProps = {
     registers: CashRegister[];
@@ -32,55 +53,14 @@ export type CashRegisterTableProps = {
     canDecommission: boolean;
     statusLabel: (status: number | undefined) => string;
     rowClassName?: (record: CashRegister) => string;
+    selectedRowKeys?: Key[];
+    onSelectionChange?: (keys: Key[], rows: CashRegister[]) => void;
     onEdit: (register: CashRegister) => void;
     onDecommission: (register: CashRegister) => void;
 };
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
-}
-
-function formatRelativeTime(input: string | null | undefined, formatLocale: string): string {
-    if (!input) {
-        return FORMAT_EMPTY_DISPLAY;
-    }
-
-    const date = new Date(input);
-    if (Number.isNaN(date.getTime())) {
-        return FORMAT_EMPTY_DISPLAY;
-    }
-
-    const diffMs = date.getTime() - Date.now();
-    const diffSeconds = Math.round(diffMs / 1000);
-    const absSeconds = Math.abs(diffSeconds);
-    const rtf = new Intl.RelativeTimeFormat(formatLocale, { numeric: 'auto' });
-
-    if (absSeconds < 60) {
-        return rtf.format(diffSeconds, 'second');
-    }
-
-    const diffMinutes = Math.round(diffSeconds / 60);
-    if (Math.abs(diffMinutes) < 60) {
-        return rtf.format(diffMinutes, 'minute');
-    }
-
-    const diffHours = Math.round(diffMinutes / 60);
-    if (Math.abs(diffHours) < 24) {
-        return rtf.format(diffHours, 'hour');
-    }
-
-    const diffDays = Math.round(diffHours / 24);
-    if (Math.abs(diffDays) < 30) {
-        return rtf.format(diffDays, 'day');
-    }
-
-    const diffMonths = Math.round(diffDays / 30);
-    if (Math.abs(diffMonths) < 12) {
-        return rtf.format(diffMonths, 'month');
-    }
-
-    const diffYears = Math.round(diffDays / 365);
-    return rtf.format(diffYears, 'year');
 }
 
 function getStatusIcon(status: number | undefined) {
@@ -109,6 +89,8 @@ export function CashRegisterTable({
     canDecommission,
     statusLabel,
     rowClassName,
+    selectedRowKeys,
+    onSelectionChange,
     onEdit,
     onDecommission,
 }: CashRegisterTableProps) {
@@ -172,10 +154,63 @@ export function CashRegisterTable({
             },
         },
         {
+            title: t('cashRegisters.columns.operations'),
+            key: 'operations',
+            width: 200,
+            render: (_: unknown, record) => {
+                const enhanced = asEnhanced(record);
+                const offlineCount = enhanced.offlineQueueCount ?? 0;
+
+                return (
+                    <Space direction="vertical" size={4}>
+                        <TseHealthBadge
+                            status={enhanced.tseHealthStatus}
+                            registerId={record.id}
+                            offlineQueueCount={offlineCount}
+                        />
+                        {offlineCount > 0 ? (
+                            <Tag color="orange">
+                                {t('cashRegisters.offlineQueue.label', { count: offlineCount })}
+                            </Tag>
+                        ) : null}
+                        <Typography.Text className={styles.cellSubtle}>
+                            <UserOutlined />{' '}
+                            {resolveCashierName(enhanced) ?? FORMAT_EMPTY_DISPLAY}
+                        </Typography.Text>
+                    </Space>
+                );
+            },
+        },
+        {
+            title: t('cashRegisters.columns.compliance'),
+            key: 'compliance',
+            width: 200,
+            render: (_: unknown, record) => {
+                const enhanced = asEnhanced(record);
+                return (
+                    <Space direction="vertical" size={0}>
+                        <Typography.Text className={styles.cellSubtle}>
+                            {t('cashRegisters.detail.lastMonatsbelegUtc')}:{' '}
+                            {enhanced.lastMonatsbelegUtc
+                                ? formatDateTime(enhanced.lastMonatsbelegUtc, formatLocale)
+                                : FORMAT_EMPTY_DISPLAY}
+                        </Typography.Text>
+                        <Typography.Text className={styles.cellSubtle}>
+                            {t('cashRegisters.detail.lastJahresbelegUtc')}:{' '}
+                            {enhanced.lastJahresbelegUtc
+                                ? formatDateTime(enhanced.lastJahresbelegUtc, formatLocale)
+                                : FORMAT_EMPTY_DISPLAY}
+                        </Typography.Text>
+                    </Space>
+                );
+            },
+        },
+        {
             title: t('cashRegisters.columns.activity'),
             key: 'activity',
             width: 220,
             render: (_: unknown, record) => {
+                const enhanced = asEnhanced(record);
                 const status = rawRegisterStatus(record);
                 const activityAt = isDecommissionedRegister(status)
                     ? record.decommissionedAtUtc
@@ -193,6 +228,12 @@ export function CashRegisterTable({
                             {formatDateTime(activityAt, formatLocale)}
                         </Typography.Text>
                         <Typography.Text className={styles.cellSubtle}>{activityLabel}</Typography.Text>
+                        <Typography.Text className={styles.cellSubtle}>
+                            {t('cashRegisters.detail.lastSyncAtUtc')}:{' '}
+                            {enhanced.lastSyncAtUtc
+                                ? formatRelativeTime(enhanced.lastSyncAtUtc, formatLocale)
+                                : FORMAT_EMPTY_DISPLAY}
+                        </Typography.Text>
                     </Space>
                 );
             },
@@ -226,18 +267,29 @@ export function CashRegisterTable({
                   {
                       title: t('cashRegisters.columns.actions'),
                       key: 'actions',
-                      width: 180,
+                      width: 220,
                       fixed: 'right',
                       render: (_: unknown, record: CashRegister) => {
+                          const enhanced = asEnhanced(record);
                           const status = rawRegisterStatus(record);
                           const decommissioned = isDecommissionedRegister(status);
                           const canStilllegen =
                               canDecommission &&
                               !decommissioned &&
                               canDecommissionRegister(status);
+                          const registerId = record.id?.trim();
+                          const offlineHref = registerId
+                              ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
+                              : '/admin/tse/offline-transactions';
 
                           return (
                               <div className={styles.actions}>
+                                  <CashRegisterQuickActions
+                                      register={record}
+                                      canManage={canManage}
+                                      canDecommission={canDecommission}
+                                      onDecommission={() => onDecommission(record)}
+                                  />
                                   {canManage ? (
                                       <Tooltip title={t('cashRegisters.actions.view')}>
                                           <Button
@@ -248,6 +300,36 @@ export function CashRegisterTable({
                                           />
                                       </Tooltip>
                                   ) : null}
+                                  <Tooltip title={t('cashRegisters.actions.tseHealth')}>
+                                      <Button
+                                          size="small"
+                                          icon={<SafetyOutlined />}
+                                          aria-label={t('cashRegisters.actions.tseHealth')}
+                                          href="/rksv/status"
+                                      />
+                                  </Tooltip>
+                                  {(enhanced.offlineQueueCount ?? 0) > 0 ? (
+                                      <Tooltip
+                                          title={t('cashRegisters.offlineQueue.tooltip', {
+                                              count: enhanced.offlineQueueCount ?? 0,
+                                          })}
+                                      >
+                                          <Button
+                                              size="small"
+                                              icon={<CloudSyncOutlined />}
+                                              aria-label={t('cashRegisters.actions.offlineQueue')}
+                                              href={offlineHref}
+                                          />
+                                      </Tooltip>
+                                  ) : null}
+                                  <Tooltip title={t('cashRegisters.actions.specialReceipts')}>
+                                      <Button
+                                          size="small"
+                                          icon={<FileProtectOutlined />}
+                                          aria-label={t('cashRegisters.actions.specialReceipts')}
+                                          href="/rksv/sonderbelege?focus=schlussbeleg"
+                                      />
+                                  </Tooltip>
                                   {decommissioned ? (
                                       <Tooltip title={t('cashRegisters.decommission.restoreTooltip')}>
                                           <Button
@@ -290,8 +372,16 @@ export function CashRegisterTable({
             columns={columns}
             dataSource={registers}
             rowClassName={rowClassName}
+            rowSelection={
+                onSelectionChange
+                    ? {
+                          selectedRowKeys,
+                          onChange: (keys, rows) => onSelectionChange(keys, rows),
+                      }
+                    : undefined
+            }
             pagination={{ pageSize: 20, showSizeChanger: true }}
-            scroll={{ x: showBalanceColumn ? 1100 : 900 }}
+            scroll={{ x: showBalanceColumn ? 1400 : 1200 }}
             locale={{
                 emptyText: <Empty description={emptyDescription} />,
             }}

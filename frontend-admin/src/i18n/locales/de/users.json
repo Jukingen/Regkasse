@@ -11,6 +11,34 @@
   "messages": {
     "roleCreated": "Rolle angelegt."
   },
+  "username": {
+    "editTitle": "Benutzername ändern",
+    "newLabel": "Neuer Benutzername",
+    "reasonLabel": "Grund für Änderung (optional)",
+    "reasonHelp": "Wird im Audit-Log festgehalten",
+    "reasonPlaceholder": "z.B. Umbenennung nach Teamwechsel",
+    "auditHint": "Die Änderung wird im Audit-Log protokolliert.",
+    "changeAction": "Ändern",
+    "updateSuccess": "Benutzername wurde aktualisiert.",
+    "updateFailed": "Benutzername konnte nicht aktualisiert werden.",
+    "conflict": "Dieser Benutzername ist bereits vergeben.",
+    "placeholder": "z.B. manager1",
+    "validation": {
+      "required": "Bitte Benutzername eingeben",
+      "min": "Mindestens 3 Zeichen",
+      "max": "Maximal 50 Zeichen",
+      "pattern": "Nur Buchstaben, Zahlen, Unterstrich und Bindestrich erlaubt"
+    }
+  },
+  "dev": {
+    "cleanupButton": "Dev: Test-Benutzer bereinigen",
+    "cleanupConfirmTitle": "Test-Benutzer löschen?",
+    "cleanupConfirmContent": "Entwicklungs-Testbenutzer (bar, cafe, test) und zugehörige Mandanten-Zuordnungen werden dauerhaft gelöscht. Nur in der Entwicklungsumgebung.",
+    "cleanupConfirmOk": "Löschen",
+    "cleanupConfirmCancel": "Abbrechen",
+    "cleanupSuccess": "Test-Benutzer bereinigt ({users} Benutzer, {memberships} Zuordnungen).",
+    "cleanupError": "Test-Benutzer konnten nicht bereinigt werden."
+  },
   "roles": {
     "displayNames": {
       "SuperAdmin": "Super-Administrator",
@@ -205,6 +233,7 @@
     "scopeSummaryRolePart": "{{prefix}} = {{role}}",
     "scopeStatusLine": "{{prefix}}: {{status}}",
     "columnName": "Name",
+    "columnUserName": "Benutzername",
     "columnEmail": "E-Mail",
     "columnRole": "Rolle",
     "columnBranch": "Standort",
@@ -270,6 +299,7 @@
     "typeBadgeTenant": "Mandant",
     "columns": {
       "user": "Benutzer",
+      "userName": "Benutzername",
       "tenant": "Mandant",
       "role": "Rolle",
       "status": "Status",

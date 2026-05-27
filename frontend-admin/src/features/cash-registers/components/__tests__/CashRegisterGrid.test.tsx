@@ -2,6 +2,7 @@ import React from 'react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nProvider } from '@/i18n';
 import { CashRegisterGrid } from '@/features/cash-registers/components/CashRegisterGrid';
 import type { CashRegister } from '@/api/generated/model';
@@ -37,8 +38,10 @@ beforeAll(() => {
 function renderGrid(
     props: Partial<React.ComponentProps<typeof CashRegisterGrid>> = {},
 ) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     return render(
-        <I18nProvider>
+        <QueryClientProvider client={queryClient}>
+            <I18nProvider>
             <CashRegisterGrid
                 registers={[sampleRegister]}
                 canDecommission
@@ -48,7 +51,8 @@ function renderGrid(
                 onDecommission={vi.fn()}
                 {...props}
             />
-        </I18nProvider>,
+            </I18nProvider>
+        </QueryClientProvider>,
     );
 }
 

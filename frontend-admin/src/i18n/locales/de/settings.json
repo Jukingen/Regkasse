@@ -221,5 +221,71 @@
       "cashRegisterId": "Kasse (UUID, optional)",
       "placeholderOptional": "optional"
     }
+  },
+  "personalization": {
+    "pageTitle": "Darstellung & Sprache",
+    "appearance": {
+      "cardTitle": "Aussehen",
+      "theme": "Theme",
+      "density": "Dichte",
+      "defaultPage": "Standardseite nach Login",
+      "dateFormatLabel": "Datumsformat",
+      "timeFormat": "Zeitformat",
+      "reducedMotion": "Reduzierte Animationen",
+      "reducedMotionHint": "Für bessere Leistung",
+      "dateFormatOptions": {
+        "DD_MM_YYYY": "DD.MM.YYYY (31.12.2024)",
+        "YYYY_MM_DD": "YYYY-MM-DD (2024-12-31)",
+        "MM_DD_YYYY": "MM/DD/YYYY (12/31/2024)"
+      }
+    },
+    "theme": {
+      "cardTitle": "Farbschema",
+      "description": "Hell, dunkel oder an die Systemeinstellung angepasst.",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System",
+      "quickSwitchAria": "Farbschema wechseln"
+    },
+    "density": {
+      "cardTitle": "Anzeigedichte",
+      "description": "Kompakt zeigt mehr Inhalt; Standard ist die Voreinstellung; Komfortabel bietet mehr Abstand.",
+      "comfortable": "Komfortabel",
+      "standard": "Standard",
+      "compact": "Kompakt"
+    },
+    "language": {
+      "description": "Sprache der Admin-Oberfläche (pro Browser gespeichert)."
+    },
+    "dateTimeFormat": {
+      "cardTitle": "Datums- und Zeitformat",
+      "description": "Überschreibt die Formatierung in Tabellen und Detailansichten. „Automatisch“ folgt der gewählten Sprache.",
+      "dateLabel": "Datumsformat",
+      "auto": "Automatisch (Sprache)",
+      "deAt": "Deutsch (Österreich)",
+      "enUs": "Englisch (US)",
+      "trTr": "Türkisch"
+    },
+    "timeFormat": {
+      "label": "Uhrzeitformat",
+      "h24": "24 Stunden",
+      "h12": "12 Stunden (AM/PM)",
+      "h24Example": "24 Stunden (14:30)",
+      "h12Example": "12 Stunden (02:30 PM)"
+    },
+    "accessibility": {
+      "cardTitle": "Barrierefreiheit",
+      "reducedMotion": "Animationen reduzieren",
+      "reducedMotionDescription": "Kürzere Übergänge und weniger Bewegung in der Oberfläche."
+    },
+    "syncing": "Einstellungen werden gespeichert…",
+    "landing": {
+      "cardTitle": "Startseite nach Anmeldung",
+      "description": "Ziel nach erfolgreichem Login (Passwortänderung hat Vorrang).",
+      "dashboard": "Dashboard",
+      "admin_users": "Benutzer",
+      "kassenverwaltung": "Kassen",
+      "reporting": "Berichte"
+    }
   }
 }

@@ -2,6 +2,9 @@ import axios from 'axios';
 import { apiClient } from './config';
 import { normalizeLoginError } from '../../features/auth/authErrors';
 import { sessionManager } from '../session/sessionManager';
+import { buildLoginPayload, type LoginRequest } from './loginPayload';
+
+export { buildLoginPayload, type LoginRequest } from './loginPayload';
 const isDev = __DEV__;
 
 function getHttpStatusFromError(error: unknown): number | undefined {
@@ -10,13 +13,6 @@ function getHttpStatusFromError(error: unknown): number | undefined {
   }
   const legacy = error as { status?: number; response?: { status?: number } };
   return legacy.response?.status ?? legacy.status;
-}
-
-export interface LoginRequest {
-  email: string;
-  password: string;
-  /** Future-proof: backend policy (e.g. strict mode) may use this; POS sends 'pos'. */
-  clientApp?: 'pos' | 'admin';
 }
 
 export interface LoginResponse {
@@ -212,9 +208,5 @@ export const loginWithDemoUser = async (): Promise<LoginResponse> => {
   if (!isDev) {
     throw new Error('Demo login is disabled outside development.');
   }
-  return await login({
-    email: 'cashier@demo.com',
-    password: 'Cashier123!',
-    clientApp: 'pos'
-  });
+  return await login(buildLoginPayload('cashier@demo.com', 'Cashier123!', 'pos'));
 }; 

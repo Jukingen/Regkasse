@@ -4,6 +4,7 @@
  * @see POST /api/admin/users (tenantId in body for mandant users)
  * @see DELETE /api/admin/tenants/{tenantId}/users/{userId}
  */
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { customInstance } from '@/lib/axios';
 import {
     createTenantUser,
@@ -35,6 +36,7 @@ export type AdminUserDto = {
 
 export type TenantUserRowDto = {
     userId: string;
+    userName: string;
     email: string;
     name: string;
     role: string;
@@ -69,15 +71,31 @@ export type CreateUserRequest = {
 export type CreateUserResult = {
     userId: string;
     email: string;
+    userName?: string;
     generatedPassword: string;
     forcePasswordChangeOnNextLogin: boolean;
     success: boolean;
     tenantPortalUrl?: string | null;
 };
 
+export type UsernameSuggestionResponse = {
+    suggestedUsername: string;
+    availableNumbers: number[];
+};
+
+export async function fetchUsernameSuggestion(role: string): Promise<UsernameSuggestionResponse> {
+    const { data } = await customInstance<UsernameSuggestionResponse>({
+        url: '/api/admin/users/username-suggestions',
+        method: 'GET',
+        params: { role },
+    });
+    return data;
+}
+
 type AdminCreateUserResponseDto = {
     id: string;
     email?: string | null;
+    userName?: string | null;
     generatedPassword: string;
     forcePasswordChangeOnNextLogin?: boolean;
 };
@@ -86,6 +104,7 @@ function mapTenantCreateResult(result: CreateTenantUserResult): CreateUserResult
     return {
         userId: result.userId,
         email: result.email,
+        userName: result.userName,
         generatedPassword: result.generatedPassword,
         forcePasswordChangeOnNextLogin: result.forcePasswordChangeOnNextLogin,
         success: result.success,
@@ -128,6 +147,7 @@ export async function createPlatformUser(
     return {
         userId: created.id,
         email: created.email ?? data.email,
+        userName: created.userName ?? undefined,
         generatedPassword: created.generatedPassword,
         forcePasswordChangeOnNextLogin: true,
         success: true,
@@ -252,6 +272,7 @@ export function adminUserToUserInfo(dto: AdminUserDto): UserInfo {
 export function tenantRowToTenantUser(row: TenantUserRowDto) {
     return {
         userId: row.userId,
+        userName: row.userName,
         email: row.email,
         name: row.name,
         role: row.role,
@@ -267,3 +288,44 @@ export function tenantRowToTenantUser(row: TenantUserRowDto) {
 }
 
 export type TenantUserRow = ReturnType<typeof tenantRowToTenantUser>;
+
+export type UpdateAdminUsernameRequest = {
+    newUsername: string;
+    reason?: string | null;
+};
+
+export type UpdateAdminUsernameResponse = {
+    oldUsername?: string | null;
+    newUsername: string;
+};
+
+export async function updateAdminUsername(
+    userId: string,
+    body: UpdateAdminUsernameRequest,
+): Promise<UpdateAdminUsernameResponse> {
+    return customInstance<UpdateAdminUsernameResponse>({
+        url: `/api/admin/users/${userId}/username`,
+        method: 'PATCH',
+        data: {
+            newUsername: body.newUsername.trim(),
+            reason: body.reason?.trim() || undefined,
+        },
+    });
+}
+
+export function useUpdateAdminUsernameMutation() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (vars: UpdateAdminUsernameRequest & { userId: string }) =>
+            updateAdminUsername(vars.userId, {
+                newUsername: vars.newUsername,
+                reason: vars.reason,
+            }),
+        onSuccess: (_data, variables) => {
+            void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+            void queryClient.invalidateQueries({
+                queryKey: adminUsersQueryKeys.userTenants(variables.userId),
+            });
+        },
+    });
+}

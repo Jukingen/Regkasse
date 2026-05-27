@@ -273,5 +273,113 @@
         "originalReceipt": "Orijinal fis"
       }
     }
+  },
+  "compliance": {
+    "pageTitle": "Uyumluluk ve operasyonel raporlar",
+    "breadcrumb": "Uyumluluk raporlari",
+    "intro": "Mutabakat, TSE zinciri, offline kurtarma, yogun saat ve urun hareketi. Ilgili:",
+    "businessDate": "Is gunu (Viyana)",
+    "dateRange": "Tarih araligi",
+    "register": "Kasa",
+    "allRegisters": "Tum kasalar",
+    "yes": "Evet",
+    "no": "Hayir",
+    "peakHint": "Isi haritasi: odeme adedi, hafta gunu (Pt–Pz) ve saat (Europe/Vienna).",
+    "export": "Disa aktar",
+    "exportFailed": "Disa aktarma basarisiz.",
+    "groups": {
+      "compliance": "Uyumluluk",
+      "operations": "Operasyon"
+    },
+    "config": {
+      "title": "Raporu yapilandir",
+      "open": "Filtreler",
+      "businessDay": "Is gunu",
+      "dateRange": "Tarih araligi",
+      "register": "Kasa",
+      "allRegisters": "Tum kasalar"
+    },
+    "schedule": {
+      "title": "Rapor zamanla",
+      "open": "Zamanla",
+      "cron": "Cron zamanlamasi",
+      "cronHint": "or. 0 8 * * * = her gun 08:00 UTC",
+      "recipients": "E-posta alicilari",
+      "format": "Format",
+      "saved": "Zamanlama kaydedildi."
+    },
+    "peak": {
+      "busiest": "En yogun: gun {{day}} / saat {{hour}} ({{count}} odeme)",
+      "quietest": "En sakin: gun {{day}} / saat {{hour}} ({{count}} odeme)"
+    },
+    "movement": {
+      "turnover": "Stok devir hizi",
+      "daysOnHand": "Stok gun sayisi",
+      "topRevenue": "En yuksek ciro",
+      "slowMovers": "Yavas urunler"
+    },
+    "salesMovement": "Satis hareketi (siparis kalemleri)",
+    "offlineAdminLink": "Offline islemleri yonet",
+    "tabs": {
+      "reconciliation": "Gunluk mutabakat",
+      "tse": "TSE zinciri",
+      "offline": "Offline kurtarma",
+      "peak": "Yogun saat",
+      "movement": "Urun hareketi",
+      "users": "Kullanici performansi"
+    },
+    "offline": {
+      "pendingStart": "Bekleyen (donem basi)",
+      "pendingEnd": "Bekleyen (donem sonu)",
+      "recoveredOk": "Basarili (ilk deneme)",
+      "recoveredRetry": "Yeniden deneme ile",
+      "failedPermanent": "Kalici basarisiz",
+      "avgRecoverySec": "Ort. kurtarma (sn)"
+    },
+    "users": {
+      "stornoWarning": "Storno orani %{{pct}} uzerinde {{count}} kullanici"
+    },
+    "stats": {
+      "cash": "Nakit",
+      "card": "Kart",
+      "expectedCash": "Beklenen nakit",
+      "actualCash": "Gerceklesen nakit (vardiya kapanisi)",
+      "difference": "Fark",
+      "reconciled": "Mutabik",
+      "receiptsChecked": "Kontrol edilen fis",
+      "chainBreaks": "Zincir kirilimlari",
+      "signatures": "Imzalar",
+      "gaps": "Bosluklar",
+      "duplicates": "Tekrarlar"
+    },
+    "columns": {
+      "product": "Urun",
+      "qty": "Adet",
+      "revenue": "Ciro",
+      "register": "Kasa",
+      "receipts": "Fis",
+      "breaks": "Kirilim",
+      "time": "Zaman",
+      "error": "Hata",
+      "signatures": "Imza",
+      "gaps": "Bosluk",
+      "duplicates": "Tekrar",
+      "firstSig": "Ilk imza",
+      "lastSig": "Son imza",
+      "status": "Durum",
+      "maxGapSec": "Maks. bosluk (sn)",
+      "export": "Disa aktar",
+      "user": "Kullanici",
+      "txCount": "Islem",
+      "stornoRate": "Storno %",
+      "txPerHour": "Islem/saat",
+      "avgProcSec": "Ort. islem (sn)",
+      "activeHours": "Aktif saat"
+    },
+    "tags": {
+      "gaps": "Bosluk",
+      "duplicates": "Tekrar"
+    },
+    "tseExportFailed": "TSE zincir disa aktarimi basarisiz."
   }
 }

@@ -34,6 +34,20 @@ describe('filterVisible registers', () => {
         ).toEqual(['2']);
     });
 
+    it('filters by TSE health status', () => {
+        const rows = [
+            { id: '1', status: 1, tseHealthStatus: 'healthy' } as CashRegister,
+            { id: '2', status: 1, tseHealthStatus: 'offline' } as CashRegister,
+        ];
+
+        expect(
+            filterCashRegisters(rows, {
+                tseHealth: 'healthy',
+                showDecommissioned: true,
+            }).map((r) => r.id),
+        ).toEqual(['1']);
+    });
+
     it('filters by status and allows explicit decommissioned selection', () => {
         const rows = [
             { id: '1', status: REGISTER_STATUS.open } as CashRegister,

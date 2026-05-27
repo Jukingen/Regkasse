@@ -221,5 +221,71 @@
       "cashRegisterId": "Kasa (UUID, isteğe bağlı)",
       "placeholderOptional": "isteğe bağlı"
     }
+  },
+  "personalization": {
+    "pageTitle": "Görünüm ve dil",
+    "appearance": {
+      "cardTitle": "Görünüm",
+      "theme": "Tema",
+      "density": "Yoğunluk",
+      "defaultPage": "Giriş sonrası ana sayfa",
+      "dateFormatLabel": "Tarih biçimi",
+      "timeFormat": "Saat biçimi",
+      "reducedMotion": "Azaltılmış animasyonlar",
+      "reducedMotionHint": "Daha iyi performans için",
+      "dateFormatOptions": {
+        "DD_MM_YYYY": "DD.MM.YYYY (31.12.2024)",
+        "YYYY_MM_DD": "YYYY-MM-DD (2024-12-31)",
+        "MM_DD_YYYY": "MM/DD/YYYY (12/31/2024)"
+      }
+    },
+    "theme": {
+      "cardTitle": "Renk teması",
+      "description": "Açık, koyu veya işletim sistemine uyumlu.",
+      "light": "Açık",
+      "dark": "Koyu",
+      "system": "Sistem",
+      "quickSwitchAria": "Renk temasını değiştir"
+    },
+    "density": {
+      "cardTitle": "Görünüm yoğunluğu",
+      "description": "Kompakt modda daha fazla içerik; standart varsayılandır; rahat modda daha geniş boşluk.",
+      "comfortable": "Rahat",
+      "standard": "Standart",
+      "compact": "Kompakt"
+    },
+    "language": {
+      "description": "Admin arayüz dili (tarayıcıya göre kaydedilir)."
+    },
+    "dateTimeFormat": {
+      "cardTitle": "Tarih ve saat biçimi",
+      "description": "Tablo ve detaylardaki biçimlendirmeyi geçersiz kılar. Otomatik seçilen dile uyar.",
+      "dateLabel": "Tarih biçimi",
+      "auto": "Otomatik (dil)",
+      "deAt": "Almanca (Avusturya)",
+      "enUs": "İngilizce (ABD)",
+      "trTr": "Türkçe"
+    },
+    "timeFormat": {
+      "label": "Saat biçimi",
+      "h24": "24 saat",
+      "h12": "12 saat (ÖÖ/ÖS)",
+      "h24Example": "24 saat (14:30)",
+      "h12Example": "12 saat (02:30 PM)"
+    },
+    "accessibility": {
+      "cardTitle": "Erişilebilirlik",
+      "reducedMotion": "Animasyonları azalt",
+      "reducedMotionDescription": "Daha kısa geçişler ve arayüzde daha az hareket."
+    },
+    "syncing": "Tercihler kaydediliyor…",
+    "landing": {
+      "cardTitle": "Giriş sonrası ana sayfa",
+      "description": "Başarılı girişten sonra açılacak sayfa (şifre değişikliği önceliklidir).",
+      "dashboard": "Dashboard",
+      "admin_users": "Kullanıcılar",
+      "kassenverwaltung": "Kasalar",
+      "reporting": "Raporlar"
+    }
   }
 }

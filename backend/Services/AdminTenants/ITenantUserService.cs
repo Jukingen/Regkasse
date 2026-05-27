@@ -1,3 +1,5 @@
+using KasseAPI_Final.Models.DTOs;
+
 namespace KasseAPI_Final.Services.AdminTenants;
 
 public interface ITenantUserService
