@@ -20,7 +20,10 @@ public sealed class TenantsController : ControllerBase
         _tenantService = tenantService;
     }
 
-    /// <summary>Tenants visible in the header switcher (all for SuperAdmin; active memberships otherwise).</summary>
+    /// <summary>
+    /// Tenants visible in the dev header switcher (FA and POS <c>DevTenantSwitcher</c>).
+    /// SuperAdmin: all non-deleted tenants; others: active memberships only. Requires authentication.
+    /// </summary>
     [HttpGet("switcher")]
     [ProducesResponseType(typeof(IReadOnlyList<AdminTenantListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<AdminTenantListItemDto>>> ListForSwitcher(

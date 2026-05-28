@@ -73,7 +73,12 @@
       "verificationEnabled": "✅ Enabled",
       "verificationDisabled": "⚠️ Disabled",
       "issuesTitle": "Configuration issues",
-      "editSettings": "Edit settings →"
+      "editSettings": "Edit settings →",
+      "levelHealthy": "All good",
+      "levelDegraded": "Degraded",
+      "levelUnhealthy": "Not ready",
+      "noDiagnostics": "No diagnostic messages",
+      "lastUpdated": "Last updated: {{at}}"
     },
     "restoreReadiness": {
       "title": "Recoverability",
@@ -1327,6 +1332,186 @@
   "permission": {
     "noManage": "View only — “Manage settings” is required to enqueue jobs.",
     "manualActionsTooltip": "Disabled: missing “Manage settings” permission — not a technical or server error."
+  },
+  "triggerButton": {
+    "label": "Start backup",
+    "menuStartNow": "Start backup now",
+    "menuAllTenants": "Instance backup (all tenants)",
+    "modalTitle": "Start backup",
+    "modalOk": "Start",
+    "modalHint": "The backup runs in the background. Track progress in the backup list.",
+    "tenantLabel": "Tenant (optional, traceability)",
+    "tenantPlaceholder": "Instance-wide (no tenant in key)",
+    "instanceScopeHint": "PostgreSQL backups cover the whole API instance. Tenant selection is stored in the idempotency key only.",
+    "allTenantsConfirmTitle": "Start instance backup?",
+    "allTenantsConfirmBody": "A single database backup is queued for the entire instance (not per tenant). This may take several minutes.",
+    "allTenantsSuccess": "Instance backup queued"
+  },
+  "detailModal": {
+    "title": "Backup details: {{id}}",
+    "titleLoading": "Backup details",
+    "close": "Close",
+    "download": "Download",
+    "downloadBackup": "Download backup",
+    "triggerLabel": "Trigger",
+    "requestedAt": "Requested at",
+    "completedAt": "Completed at",
+    "triggerSource": {
+      "manual": "Manual",
+      "scheduled": "Scheduled",
+      "operatorApi": "Operator API"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "artifacts": "Artifacts",
+      "verification": "Verification",
+      "pipeline": "Pipeline",
+      "logs": "Logs"
+    },
+    "artifacts": {
+      "type": "Type",
+      "size": "Size",
+      "lifecycle": "Lifecycle",
+      "onDisk": "On server",
+      "empty": "No artifacts"
+    },
+    "verification": {
+      "empty": "No verification records",
+      "panelTitle": "Verification",
+      "started": "Started",
+      "completed": "Completed",
+      "verifier": "Verifier",
+      "completeness": "Completeness",
+      "completenessOk": "OK",
+      "completenessMissing": "Missing"
+    },
+    "pipeline": {
+      "empty": "No pipeline steps"
+    }
+  },
+  "configForm": {
+    "alertTitle": "Backup configuration",
+    "alertDescription": "Automatic backups and execution mode for this API instance (UTC cron, stored in the database).",
+    "alertDescriptionSuperAdmin": "Settings apply to the whole instance (not per tenant). Staging/archive paths are set in server deployment configuration.",
+    "enabled": "Automatic backups",
+    "enabledTooltip": "Enable schedule — the background worker enqueues backups on cron",
+    "switchOn": "On",
+    "switchOff": "Off",
+    "scheduleCron": "Backup schedule (cron, UTC)",
+    "scheduleCronTooltip": "Five fields, e.g. 0 2 * * * for daily at 02:00 UTC",
+    "retentionDays": "Retention (days)",
+    "retentionDaysTooltip": "Successful runs older than this are pruned after a successful backup",
+    "retentionRange": "Between {{min}} and {{max}} days",
+    "executionModeLabel": "Backup mode",
+    "executionModeTooltip": "Fake = test, Real (PgDump) = PostgreSQL dump, Default = configuration default",
+    "executionModeOptions": {
+      "inherit": "Default (configuration)",
+      "fake": "Test (Fake)",
+      "pgDump": "Real (PgDump)"
+    },
+    "superAdminTitle": "Super Admin (instance)",
+    "superAdminDescription": "Staging and archive paths are read-only — change via deployment config (Backup:*).",
+    "externalArchiveRoot": "External archive",
+    "stagingRoot": "Effective adapter / staging",
+    "pathConfigured": "Configured (per API)",
+    "pathNotConfigured": "Not configured",
+    "deploymentPathsHint": "Absolute paths are not exposed via API for security. See configuration health and server docs.",
+    "save": "Save settings",
+    "saveSuccess": "Backup settings saved",
+    "saveError": "Error while saving",
+    "savePartialSettingsOnly": "Schedule saved; execution mode was not changed."
+  },
+  "runsTable": {
+    "instanceScopeTitle": "Instance-wide backups",
+    "instanceScopeDescription": "All tenants share the same PostgreSQL instance. This list is deployment-wide; tenant filter applies to manually triggered runs (idempotency key).",
+    "tenantFilterLabel": "Tenant (filter)",
+    "tenantFilterPlaceholder": "All tenants",
+    "startTime": "Start time",
+    "statusColumn": "Status",
+    "duration": "Duration",
+    "size": "Size",
+    "artifacts": "Artifacts",
+    "error": "Error",
+    "actions": "Actions",
+    "details": "Details",
+    "retry": "Retry",
+    "delete": "Delete",
+    "deleteUnavailable": "Delete is not available in the API yet.",
+    "noDuration": "—",
+    "durationMinutes": "{{minutes}} min",
+    "retryConfirmTitle": "Enqueue a new backup?",
+    "retryConfirmDescription": "A new manual backup run is queued (this does not replay the same run).",
+    "statusLabels": {
+      "queued": "Queued",
+      "running": "Running",
+      "awaitingVerification": "Awaiting verification",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "verificationFailed": "Verification failed",
+      "cancelled": "Cancelled"
+    },
+    "artifactType": {
+      "0": "Logical dump",
+      "1": "Physical base",
+      "2": "WAL window",
+      "3": "Globals",
+      "4": "Manifest",
+      "5": "Backup log"
+    }
+  },
+  "adminBackup": {
+    "pageTitle": "Backup & recovery",
+    "pageSubtitle": "Overview, history, and configuration — refreshes every 30 seconds.",
+    "recentBackupsTitle": "Recent backups",
+    "collapse": {
+      "config": "Backup configuration",
+      "executionMode": "Execution mode",
+      "restoreVerification": "Restore verification"
+    }
+  },
+  "management": {
+    "pageSubtitle": "Backup runs, configuration, monitoring, and logs — read-only or full management depending on permissions.",
+    "tabs": {
+      "operations": "Operations & history",
+      "monitoring": "Monitoring",
+      "configuration": "Configuration",
+      "log": "Log"
+    },
+    "role": {
+      "superAdmin": "Super Admin",
+      "tenantAdmin": "Tenant admin",
+      "readOnly": "Read-only"
+    },
+    "accessBanner": "Backup access: {{role}}",
+    "accessReadOnlyHint": "You can view status and history. Manual backup, schedule, and execution mode require “Manage settings”.",
+    "accessManageHint": "You can enqueue backups and manage automation and execution mode for this deployment instance.",
+    "accessSuperAdminHint": "Super Admin: same instance-wide backup surface (no per-tenant backup list until the API supports tenantId).",
+    "scope": {
+      "deploymentWide": "Backups apply to the whole API instance (PostgreSQL), not per tenant."
+    },
+    "runDetail": {
+      "title": "Backup run details",
+      "notFound": "Run not found.",
+      "simulatedHint": "Simulated adapter — not a production artifact."
+    },
+    "log": {
+      "subtitle": "Activity feed (backup/restore) and optional audit entries.",
+      "activityTitle": "Activities",
+      "auditTitle": "Audit (backup actions)",
+      "emptyActivity": "No backup-related activities.",
+      "emptyAudit": "No matching audit entries.",
+      "auditRestricted": "Audit log requires “View audit”.",
+      "col": {
+        "time": "Time",
+        "severity": "Severity",
+        "type": "Type",
+        "title": "Title",
+        "actor": "Actor",
+        "action": "Action",
+        "entity": "Entity",
+        "description": "Description"
+      }
+    }
   },
   "scheduleSettings": {
     "cardTitle": "Scheduled backup (server)",

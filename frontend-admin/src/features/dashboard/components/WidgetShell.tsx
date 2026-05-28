@@ -24,7 +24,7 @@ export function WidgetShell({
 }: WidgetShellProps) {
     return (
         <Card
-            bordered={false}
+            variant="borderless"
             title={
                 <Space size="small">
                     {dragHandleProps ? (

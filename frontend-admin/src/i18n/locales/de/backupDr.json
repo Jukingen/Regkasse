@@ -73,7 +73,12 @@
       "verificationEnabled": "✅ Aktiviert",
       "verificationDisabled": "⚠️ Deaktiviert",
       "issuesTitle": "Konfigurationsprobleme",
-      "editSettings": "Einstellungen bearbeiten →"
+      "editSettings": "Einstellungen bearbeiten →",
+      "levelHealthy": "Alles in Ordnung",
+      "levelDegraded": "Eingeschränkt",
+      "levelUnhealthy": "Nicht bereit",
+      "noDiagnostics": "Keine Diagnosemeldungen",
+      "lastUpdated": "Letzte Aktualisierung: {{at}}"
     },
     "restoreReadiness": {
       "title": "Wiederherstellbarkeit",
@@ -1327,6 +1332,186 @@
   "permission": {
     "noManage": "Nur Ansicht — zum Einreihen fehlt „Einstellungen verwalten“.",
     "manualActionsTooltip": "Deaktiviert: fehlende Berechtigung „Einstellungen verwalten“ — kein technischer oder Serverfehler."
+  },
+  "triggerButton": {
+    "label": "Backup starten",
+    "menuStartNow": "Backup jetzt starten",
+    "menuAllTenants": "Instanz-Backup (alle Mandanten)",
+    "modalTitle": "Backup starten",
+    "modalOk": "Starten",
+    "modalHint": "Das Backup wird im Hintergrund ausgeführt. Den Fortschritt sehen Sie in der Backup-Liste.",
+    "tenantLabel": "Mandant (optional, Nachverfolgung)",
+    "tenantPlaceholder": "Instanzweit (kein Mandant im Schlüssel)",
+    "instanceScopeHint": "PostgreSQL-Backups gelten für die gesamte API-Instanz. Die Mandanten-Auswahl wird nur im Idempotenz-Schlüssel gespeichert.",
+    "allTenantsConfirmTitle": "Instanz-Backup starten?",
+    "allTenantsConfirmBody": "Es wird ein einzelnes Datenbank-Backup für die gesamte Instanz eingereiht (nicht pro Mandant). Der Vorgang kann einige Minuten dauern.",
+    "allTenantsSuccess": "Instanz-Backup wurde eingereiht"
+  },
+  "detailModal": {
+    "title": "Backup Details: {{id}}",
+    "titleLoading": "Backup Details",
+    "close": "Schließen",
+    "download": "Herunterladen",
+    "downloadBackup": "Backup herunterladen",
+    "triggerLabel": "Auslöser",
+    "requestedAt": "Angefordert am",
+    "completedAt": "Abgeschlossen am",
+    "triggerSource": {
+      "manual": "Manuell",
+      "scheduled": "Geplant",
+      "operatorApi": "Operator-API"
+    },
+    "tabs": {
+      "overview": "Übersicht",
+      "artifacts": "Artefakte",
+      "verification": "Verifizierung",
+      "pipeline": "Pipeline",
+      "logs": "Logs"
+    },
+    "artifacts": {
+      "type": "Typ",
+      "size": "Größe",
+      "lifecycle": "Lifecycle",
+      "onDisk": "Auf Server",
+      "empty": "Keine Artefakte"
+    },
+    "verification": {
+      "empty": "Keine Verifizierungsdatensätze",
+      "panelTitle": "Verifizierung",
+      "started": "Start",
+      "completed": "Abgeschlossen",
+      "verifier": "Verifier",
+      "completeness": "Vollständigkeit",
+      "completenessOk": "OK",
+      "completenessMissing": "Fehlt"
+    },
+    "pipeline": {
+      "empty": "Keine Pipeline-Schritte"
+    }
+  },
+  "configForm": {
+    "alertTitle": "Backup Konfiguration",
+    "alertDescription": "Automatische Backups und Ausführungsmodus für diese API-Instanz (UTC-Cron, gespeichert in der Datenbank).",
+    "alertDescriptionSuperAdmin": "Einstellungen gelten für die gesamte Instanz (nicht pro Mandant). Pfade für Staging/Archiv werden in der Server-Deployment-Konfiguration gesetzt.",
+    "enabled": "Automatische Backups",
+    "enabledTooltip": "Zeitplan aktivieren — der Hintergrunddienst reiht Backups nach Cron ein",
+    "switchOn": "Aktiviert",
+    "switchOff": "Deaktiviert",
+    "scheduleCron": "Backup Zeitplan (Cron, UTC)",
+    "scheduleCronTooltip": "Fünf Felder, z. B. 0 2 * * * für täglich um 02:00 UTC",
+    "retentionDays": "Aufbewahrungsdauer (Tage)",
+    "retentionDaysTooltip": "Erfolgreiche Läufe älter als dieser Wert werden nach einem erfolgreichen Backup bereinigt",
+    "retentionRange": "Zwischen {{min}} und {{max}} Tagen",
+    "executionModeLabel": "Backup Modus",
+    "executionModeTooltip": "Fake = Test, Real (PgDump) = PostgreSQL-Dump, Standard = Konfigurations-Default",
+    "executionModeOptions": {
+      "inherit": "Standard (Konfiguration)",
+      "fake": "Test (Fake)",
+      "pgDump": "Echt (PgDump)"
+    },
+    "superAdminTitle": "Super Admin (Instanz)",
+    "superAdminDescription": "Staging- und Archivpfade sind schreibgeschützt — Änderung nur über Deployment-Konfiguration (Backup:*).",
+    "externalArchiveRoot": "Externes Archiv",
+    "stagingRoot": "Effektiver Adapter / Staging",
+    "pathConfigured": "Konfiguriert (laut API)",
+    "pathNotConfigured": "Nicht konfiguriert",
+    "deploymentPathsHint": "Absolute Pfade werden aus Sicherheitsgründen nicht in der API angezeigt. Siehe Konfigurationsgesundheit und Server-Dokumentation.",
+    "save": "Einstellungen speichern",
+    "saveSuccess": "Backup Einstellungen gespeichert",
+    "saveError": "Fehler beim Speichern",
+    "savePartialSettingsOnly": "Zeitplan gespeichert; Ausführungsmodus wurde nicht geändert."
+  },
+  "runsTable": {
+    "instanceScopeTitle": "Instanzweite Backups",
+    "instanceScopeDescription": "Alle Mandanten teilen sich dieselbe PostgreSQL-Instanz. Die Liste zeigt deployment-weite Läufe; Mandantenfilter gilt für manuell ausgelöste Läufe (Idempotency-Key).",
+    "tenantFilterLabel": "Mandant (Filter)",
+    "tenantFilterPlaceholder": "Alle Mandanten",
+    "startTime": "Startzeit",
+    "statusColumn": "Status",
+    "duration": "Dauer",
+    "size": "Größe",
+    "artifacts": "Artefakte",
+    "error": "Fehler",
+    "actions": "Aktionen",
+    "details": "Details",
+    "retry": "Wiederholen",
+    "delete": "Löschen",
+    "deleteUnavailable": "Löschen ist in der API noch nicht verfügbar.",
+    "noDuration": "—",
+    "durationMinutes": "{{minutes}} min",
+    "retryConfirmTitle": "Neues Backup einreihen?",
+    "retryConfirmDescription": "Es wird ein neuer manueller Backup-Lauf in die Warteschlange gestellt (kein erneutes Abspielen desselben Laufs).",
+    "statusLabels": {
+      "queued": "Wartend",
+      "running": "Läuft",
+      "awaitingVerification": "Verifikation ausstehend",
+      "succeeded": "Erfolgreich",
+      "failed": "Fehlgeschlagen",
+      "verificationFailed": "Verifizierung fehlgeschlagen",
+      "cancelled": "Abgebrochen"
+    },
+    "artifactType": {
+      "0": "Logical dump",
+      "1": "Physical base",
+      "2": "WAL window",
+      "3": "Globals",
+      "4": "Manifest",
+      "5": "Backup log"
+    }
+  },
+  "adminBackup": {
+    "pageTitle": "Backup & Wiederherstellung",
+    "pageSubtitle": "Übersicht, Verlauf und Konfiguration — Aktualisierung alle 30 Sekunden.",
+    "recentBackupsTitle": "Letzte Backups",
+    "collapse": {
+      "config": "Backup Konfiguration",
+      "executionMode": "Ausführungsmodus",
+      "restoreVerification": "Restore-Verifikation"
+    }
+  },
+  "management": {
+    "pageSubtitle": "Backup-Läufe, Konfiguration, Monitoring und Protokoll — je nach Berechtigung nur Ansicht oder volle Verwaltung.",
+    "tabs": {
+      "operations": "Betrieb & Verlauf",
+      "monitoring": "Monitoring",
+      "configuration": "Konfiguration",
+      "log": "Protokoll"
+    },
+    "role": {
+      "superAdmin": "Super Admin",
+      "tenantAdmin": "Tenant-Admin",
+      "readOnly": "Nur Ansicht"
+    },
+    "accessBanner": "Backup-Zugriff: {{role}}",
+    "accessReadOnlyHint": "Sie können Status und Verlauf einsehen. Manuelles Backup, Zeitplan und Ausführungsmodus erfordern „Einstellungen verwalten“.",
+    "accessManageHint": "Sie können Backups einreihen und Automatisierung sowie Ausführungsmodus für diese Instanz verwalten.",
+    "accessSuperAdminHint": "Super Admin: dieselbe instanzweite Backup-Oberfläche (kein mandantenbezogener Backup-Verlauf, bis die API tenantId unterstützt).",
+    "scope": {
+      "deploymentWide": "Backups gelten für die gesamte API-Instanz (PostgreSQL), nicht pro Mandant."
+    },
+    "runDetail": {
+      "title": "Backup-Lauf Details",
+      "notFound": "Lauf nicht gefunden.",
+      "simulatedHint": "Simulierter Adapter — kein Produktions-Artefakt."
+    },
+    "log": {
+      "subtitle": "Aktivitätsfeed (Backup/Restore) und optionale Audit-Einträge.",
+      "activityTitle": "Aktivitäten",
+      "auditTitle": "Audit (Backup-Aktionen)",
+      "emptyActivity": "Keine Backup-bezogenen Aktivitäten.",
+      "emptyAudit": "Keine passenden Audit-Einträge.",
+      "auditRestricted": "Audit-Protokoll erfordert „Audit anzeigen“.",
+      "col": {
+        "time": "Zeit",
+        "severity": "Schwere",
+        "type": "Typ",
+        "title": "Titel",
+        "actor": "Akteur",
+        "action": "Aktion",
+        "entity": "Entität",
+        "description": "Beschreibung"
+      }
+    }
   },
   "scheduleSettings": {
     "cardTitle": "Geplantes Backup (Server)",

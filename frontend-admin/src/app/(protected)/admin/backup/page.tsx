@@ -3,26 +3,30 @@
 import React from 'react';
 import { Typography } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { BackupDashboard } from '@/features/backup/pages/BackupDashboard';
-import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
+import {
+  AdminBackupPage,
+  AdminBackupPageHeaderActions,
+} from '@/features/backup/pages/AdminBackupPage';
+import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 
-export default function AdminBackupMonitoringPage() {
+export default function AdminBackupPageRoute() {
   const { t } = useI18n();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <AdminPageHeader
-        title={t('backupDr.monitoring.pageTitle')}
+        title={t('backupDr.adminBackup.pageTitle')}
         breadcrumbs={[
           adminOverviewCrumb(t),
-          { title: t('backupDr.monitoring.pageTitle'), href: '/admin/backup' },
+          { title: t('backupDr.adminBackup.pageTitle'), href: '/admin/backup' },
         ]}
+        actions={<AdminBackupPageHeaderActions />}
       />
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-        {t('backupDr.monitoring.pageSubtitle')}
+        {t('backupDr.adminBackup.pageSubtitle')}
       </Typography.Paragraph>
-      <BackupDashboard />
+      <AdminBackupPage />
     </div>
   );
 }

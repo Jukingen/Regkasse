@@ -346,28 +346,30 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
 
     return (
         <>
-            <Tooltip title={tooltipTitle}>
-                <Dropdown
-                    open={open}
-                    onOpenChange={handleOpenChange}
-                    trigger={['click']}
-                    placement="bottomRight"
-                    dropdownRender={() => dropdownContent}
-                    overlayClassName="tenant-switcher-dropdown admin-header-dropdown"
-                    getPopupContainer={getAdminHeaderPopupContainer}
-                >
-                    <Button
-                        size="small"
-                        loading={isLoading}
-                        className={`tenant-switcher-trigger${compact ? ' tenant-switcher-compact-trigger' : ''}`}
-                        icon={<SwapOutlined />}
-                        aria-label={t('adminShell.tenant.devSwitcher.ariaLabel')}
-                        aria-expanded={open}
-                    >
-                        <span className="trigger-text">{switchLabel}</span>
-                    </Button>
-                </Dropdown>
-            </Tooltip>
+            <Dropdown
+                open={open}
+                onOpenChange={handleOpenChange}
+                trigger={['click']}
+                placement="bottomRight"
+                dropdownRender={() => dropdownContent}
+                overlayClassName="tenant-switcher-dropdown admin-header-dropdown"
+                getPopupContainer={getAdminHeaderPopupContainer}
+            >
+                <Tooltip title={tooltipTitle}>
+                    <span className="tenant-switcher-trigger-wrap">
+                        <Button
+                            size="small"
+                            loading={isLoading}
+                            className={`tenant-switcher-trigger${compact ? ' tenant-switcher-compact-trigger' : ''}`}
+                            icon={<SwapOutlined />}
+                            aria-label={t('adminShell.tenant.devSwitcher.ariaLabel')}
+                            aria-expanded={open}
+                        >
+                            <span className="trigger-text">{switchLabel}</span>
+                        </Button>
+                    </span>
+                </Tooltip>
+            </Dropdown>
             <TenantSwitcherNoAdminFlow
                 tenant={noAdminTenant}
                 open={noAdminTenant != null}

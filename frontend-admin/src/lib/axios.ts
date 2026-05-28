@@ -8,6 +8,17 @@ import { getStoredLanguage } from '@/i18n/languageStorage';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+function isRequestCanceled(error: unknown): boolean {
+    if (axios.isCancel(error)) {
+        return true;
+    }
+    const message = (error as { message?: string })?.message;
+    if (message === 'canceled' || message === 'Query was cancelled') {
+        return true;
+    }
+    return (error as { code?: string })?.code === 'ERR_CANCELED';
+}
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 const baseURL = configuredBaseUrl || (isDev ? 'http://localhost:5184' : '');
 
@@ -87,7 +98,7 @@ const createAxiosInstance = () => {
                     technicalConsole.devDebug('[API] 401 Unauthorized');
                 } else if (status != null) {
                     technicalConsole.error(`[API] HTTP ${status} ${url}`, serverMessage ?? data ?? fallbackMessage);
-                } else {
+                } else if (!isRequestCanceled(error)) {
                     technicalConsole.error('[API] Network or client error', {
                         url: url || undefined,
                         message: fallbackMessage,

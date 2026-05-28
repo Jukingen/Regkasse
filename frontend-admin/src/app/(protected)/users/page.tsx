@@ -7,13 +7,11 @@
  */
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-    Table,
     Card,
     Typography,
     Tag,
     Space,
     Button,
-    Avatar,
     Select,
     Modal,
     Form,
@@ -30,12 +28,7 @@ import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import {
     UserOutlined,
-    EditOutlined,
-    StopOutlined,
-    CheckCircleOutlined,
-    EyeOutlined,
     SearchOutlined,
-    KeyOutlined,
     ReloadOutlined,
     ClearOutlined,
 } from '@ant-design/icons';
@@ -49,7 +42,7 @@ import { useRoles } from '@/features/users/hooks/useRoles';
 import { useRolesWithPermissions } from '@/features/users/hooks/useRolesWithPermissions';
 import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import { useI18n } from '@/i18n/I18nProvider';
-import { formatDateTime, formatNumber } from '@/i18n/formatting';
+import { formatNumber } from '@/i18n/formatting';
 import {
     listQueryKey,
     rolesQueryKey,
@@ -71,6 +64,8 @@ import {
     type UpdateUserRequest,
 } from '@/features/users/api/usersGateway';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
+import { EditUsernameModal } from '@/features/users/components/EditUsernameModal';
+import { UsersTable } from '@/features/users/components/UsersTable';
 import { UserFormDrawer, type UserFormSubmitValues } from '@/features/users/components/UserFormDrawer';
 import { RoleManagementDrawer } from '@/features/users/components/RoleManagementDrawer';
 import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
@@ -227,6 +222,7 @@ export default function UsersPage() {
     const [deactivateUserRecord, setDeactivateUserRecord] = useState<UserInfo | null>(null);
     const [reactivateUserRecord, setReactivateUserRecord] = useState<UserInfo | null>(null);
     const [resetPasswordUser, setResetPasswordUser] = useState<UserInfo | null>(null);
+    const [usernameEditUser, setUsernameEditUser] = useState<UserInfo | null>(null);
     /** Backend validation error shown inside reset password modal (German); cleared when modal closes. */
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
@@ -630,122 +626,18 @@ export default function UsersPage() {
         await deleteRoleMutation.mutateAsync(roleName);
     };
 
-    const columns = useMemo(
-        () => [
-            {
-                title: t('users.list.columnName'),
-                key: 'user',
-                render: (_: unknown, record: UserInfo) => (
-                    <Space>
-                        <Avatar icon={<UserOutlined />} />
-                        <div>
-                            <div style={{ fontWeight: 'bold' }}>{fullName(record)}</div>
-                            <div style={{ fontSize: '12px', color: '#999' }}>{record.email ?? record.userName ?? '—'}</div>
-                        </div>
-                    </Space>
-                ),
-            },
-            {
-                title: t('users.list.columnUserName'),
-                dataIndex: 'userName',
-                key: 'userName',
-                width: 140,
-                ellipsis: true,
-                render: (v: string | null | undefined) => v?.trim() || '—',
-                sorter: (a, b) =>
-                    (a.userName ?? '').localeCompare(b.userName ?? '', undefined, { sensitivity: 'base' }),
-            },
-            {
-                title: t('users.list.columnEmail'),
-                dataIndex: 'email',
-                key: 'email',
-                ellipsis: true,
-                render: (v: string | null) => v ?? '—',
-            },
-            {
-                title: t('users.list.columnRole'),
-                dataIndex: 'role',
-                key: 'role',
-                render: (role: string) => <Tag color="gold">{role ?? '—'}</Tag>,
-            },
-            {
-                title: t('users.list.columnBranch'),
-                key: 'branch',
-                render: () => t('users.list.branchNotAvailable'),
-            },
-            {
-                title: t('users.list.columnStatus'),
-                dataIndex: 'isActive',
-                key: 'status',
-                render: (active: boolean) => (
-                    <Tag color={active ? 'green' : 'red'}>
-                        {active ? t('users.list.statusActive') : t('users.list.statusInactive')}
-                    </Tag>
-                ),
-            },
-            {
-                title: t('users.list.columnLastLogin'),
-                dataIndex: 'lastLoginAt',
-                key: 'lastLoginAt',
-                render: (v: string | null) => (v ? formatDateTime(v, formatLocale) : '—'),
-            },
-            {
-                title: t('users.list.columnActions'),
-                key: 'actions',
-                render: (_: unknown, record: UserInfo) => (
-                    <Space wrap>
-                        {policy.canEdit && (
-                            <Button
-                                size="small"
-                                icon={<EyeOutlined />}
-                                onClick={() => setDetailUser(record)}
-                            >
-                                {t('users.list.view')}
-                            </Button>
-                        )}
-                        {policy.canEdit && (
-                            <Button
-                                size="small"
-                                icon={<EditOutlined />}
-                                onClick={() => setEditUserId(record.id ?? null)}
-                            >
-                                {t('users.list.edit')}
-                            </Button>
-                        )}
-                        {policy.canDeactivate && record.isActive && !isPlatformUserRole(record.role) && (
-                            <Button
-                                size="small"
-                                danger
-                                icon={<StopOutlined />}
-                                onClick={() => setDeactivateUserRecord(record)}
-                            >
-                                {t('users.list.deactivate')}
-                            </Button>
-                        )}
-                        {policy.canReactivate && !record.isActive && (
-                            <Button
-                                size="small"
-                                type="primary"
-                                icon={<CheckCircleOutlined />}
-                                onClick={() => setReactivateUserRecord(record)}
-                            >
-                                {t('users.list.reactivate')}
-                            </Button>
-                        )}
-                        {policy.canResetPassword(record.role) && record.id !== currentUser?.id && (
-                            <Button
-                                size="small"
-                                icon={<KeyOutlined />}
-                                onClick={() => setResetPasswordUser(record)}
-                            >
-                                {t('users.list.resetPassword')}
-                            </Button>
-                        )}
-                    </Space>
-                ),
-            },
-        ],
-        [t, formatLocale, policy, currentUser?.id],
+    const handleUsernameUpdated = useCallback(
+        (userId: string, result: { newUsername: string }) => {
+            setDetailUser((prev) =>
+                prev?.id === userId ? { ...prev, userName: result.newUsername } : prev,
+            );
+            invalidateAllUserLists();
+            void refetch();
+            if (editUserId === userId) {
+                void refetchEditUser();
+            }
+        },
+        [editUserId, refetch, refetchEditUser, queryClient],
     );
 
     if (!policy.canView) {
@@ -959,11 +851,17 @@ export default function UsersPage() {
                         />
                     )}
 
-                    <Table
-                        columns={columns}
-                        dataSource={users}
+                    <UsersTable
+                        users={users}
                         loading={isLoading}
-                        rowKey={(r) => r.id ?? ''}
+                        policy={policy}
+                        currentUserId={currentUser?.id}
+                        onView={setDetailUser}
+                        onEdit={(id) => setEditUserId(id)}
+                        onDeactivate={setDeactivateUserRecord}
+                        onReactivate={setReactivateUserRecord}
+                        onResetPassword={setResetPasswordUser}
+                        onUsernameEdit={policy.canEdit ? setUsernameEditUser : undefined}
                         virtual={shouldUseAdminTableVirtual(users.length)}
                         scroll={adminTableScrollXy(1280, users.length)}
                         pagination={{
@@ -987,27 +885,20 @@ export default function UsersPage() {
                                 if (newPageSize != null) setPageSize(newPageSize);
                             },
                         }}
-                        locale={{
-                            emptyText: (
-                                <Empty
-                                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                                    description={
-                                        <div>
-                                            <Typography.Paragraph style={{ marginBottom: 4 }}>
-                                                {hasNonDefaultListFilters
-                                                    ? t('users.list.emptyListWithFilters')
-                                                    : t('users.list.emptyList')}
-                                            </Typography.Paragraph>
-                                            {!hasNonDefaultListFilters ? (
-                                                <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
-                                                    {t('users.list.emptyListDefaultHint')}
-                                                </Typography.Paragraph>
-                                            ) : null}
-                                        </div>
-                                    }
-                                />
-                            ),
-                        }}
+                        emptyDescription={
+                            <div>
+                                <Typography.Paragraph style={{ marginBottom: 4 }}>
+                                    {hasNonDefaultListFilters
+                                        ? t('users.list.emptyListWithFilters')
+                                        : t('users.list.emptyList')}
+                                </Typography.Paragraph>
+                                {!hasNonDefaultListFilters ? (
+                                    <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
+                                        {t('users.list.emptyListDefaultHint')}
+                                    </Typography.Paragraph>
+                                ) : null}
+                            </div>
+                        }
                     />
                 </>
             )}
@@ -1046,16 +937,22 @@ export default function UsersPage() {
                 onClose={() => setDetailUser(null)}
                 user={detailUser}
                 canEditUsername={policy.canEdit}
-                onUsernameUpdated={(userId, result) => {
-                    setDetailUser((prev) =>
-                        prev?.id === userId ? { ...prev, userName: result.newUsername } : prev,
-                    );
-                    void refetch();
-                    if (editUserId === userId) {
-                        void refetchEditUser();
-                    }
-                }}
+                onUsernameUpdated={handleUsernameUpdated}
             />
+
+            {usernameEditUser?.id ? (
+                <EditUsernameModal
+                    open={!!usernameEditUser}
+                    userId={usernameEditUser.id}
+                    currentUsername={usernameEditUser.userName ?? ''}
+                    userEmail={usernameEditUser.email}
+                    onClose={() => setUsernameEditUser(null)}
+                    onSuccess={(result) => {
+                        handleUsernameUpdated(usernameEditUser.id!, result);
+                        setUsernameEditUser(null);
+                    }}
+                />
+            ) : null}
 
             <Modal
                 title={usersCopy.deactivateUser}

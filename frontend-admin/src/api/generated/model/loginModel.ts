@@ -12,7 +12,5 @@ export interface LoginModel {
   /** @nullable */
   email?: string | null;
   /** @nullable */
-  loginIdentifier?: string | null;
-  /** @nullable */
   password?: string | null;
 }

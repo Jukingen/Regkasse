@@ -62,6 +62,7 @@ export type SidebarIconToken =
     | 'WalletOutlined'
     | 'ClockCircleOutlined'
     | 'CloudDownloadOutlined'
+    | 'CloudSyncOutlined'
     | 'KeyOutlined'
     | 'ApartmentOutlined';
 
@@ -345,8 +346,9 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'backupMonitoring',
         menuKey: '/admin/backup',
         href: '/admin/backup',
-        labelKey: 'nav.backupMonitoring',
-        icon: 'AreaChartOutlined',
+        labelKey: 'nav.backupRestore',
+        icon: 'CloudSyncOutlined',
+        permission: AppPermissions.SETTINGS_VIEW,
     },
     developmentMode: {
         id: 'developmentMode',

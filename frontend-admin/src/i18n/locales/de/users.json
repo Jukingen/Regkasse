@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "backToList": "Zurück zur Liste"
+  },
   "page": {
     "title": "Benutzerverwaltung",
     "accessDeniedTitle": "Zugriff verweigert",
@@ -13,6 +16,9 @@
   },
   "username": {
     "editTitle": "Benutzername ändern",
+    "currentLabel": "Aktueller Benutzername",
+    "infoTitle": "Hinweis",
+    "infoDescription": "Die Änderung wird im Audit-Log protokolliert. Der Benutzer kann sich danach mit dem neuen Benutzernamen anmelden.",
     "newLabel": "Neuer Benutzername",
     "reasonLabel": "Grund für Änderung (optional)",
     "reasonHelp": "Wird im Audit-Log festgehalten",
@@ -245,6 +251,7 @@
     "statusInactive": "Inaktiv",
     "statusAll": "Alle",
     "view": "Ansehen",
+    "details": "Details",
     "edit": "Bearbeiten",
     "deactivate": "Deaktivieren",
     "reactivate": "Reaktivieren",

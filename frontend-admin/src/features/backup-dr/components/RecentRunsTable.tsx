@@ -16,6 +16,7 @@ export interface RecentRunsTableProps {
   t: (k: string) => string;
   onRetry?: () => void;
   pagination?: false | TablePaginationConfig;
+  onRowClick?: (row: BackupRunResponseDto) => void;
 }
 
 export function RecentRunsTable({
@@ -28,6 +29,7 @@ export function RecentRunsTable({
   t,
   onRetry,
   pagination = false,
+  onRowClick,
 }: RecentRunsTableProps) {
   return (
     <Card title={title} size="small">
@@ -53,6 +55,14 @@ export function RecentRunsTable({
         dataSource={dataSource}
         columns={columns}
         pagination={pagination}
+        onRow={
+          onRowClick
+            ? (record) => ({
+                onClick: () => onRowClick(record),
+                style: { cursor: "pointer" },
+              })
+            : undefined
+        }
       />
       <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
         {t('backupDr.runs.statusHint')}

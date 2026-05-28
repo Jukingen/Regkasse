@@ -167,20 +167,7 @@ builder.Services.Configure<LicenseSettingsOptions>(builder.Configuration.GetSect
 builder.Services.AddSingleton<IPostConfigureOptions<LicenseOptions>, LicenseOptionsFromFilesPostConfigure>();
 builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
 builder.Services.Configure<EmailSmtpOptions>(builder.Configuration.GetSection(EmailSmtpOptions.SectionName));
-builder.Services.Configure<ActivityNotificationOptions>(
-    builder.Configuration.GetSection(ActivityNotificationOptions.SectionName));
-builder.Services.AddSingleton<IActivityStreamHub, ActivityStreamHub>();
-builder.Services.AddScoped<INotificationConfigService, NotificationConfigService>();
-builder.Services.AddScoped<IActivityEventService, ActivityEventService>();
-builder.Services.AddScoped<ActivityEventRecorder>();
-builder.Services.AddScoped<IActivityEventPublisher>(sp => sp.GetRequiredService<ActivityEventRecorder>());
-builder.Services.AddScoped<IActivityEventEmailNotifier, ActivityEventEmailNotifier>();
-builder.Services.AddScoped<IActivityEventWebhookNotifier, ActivityEventWebhookNotifier>();
-builder.Services
-    .AddHttpClient(ActivityEventWebhookNotifier.HttpClientName)
-    .ConfigureHttpClient(c => c.Timeout = TimeSpan.FromSeconds(30));
-builder.Services.AddHostedService<ActivityMonitoringHostedService>();
-builder.Services.AddHostedService<ActivityEventCleanupHostedService>();
+builder.Services.AddActivityServices(builder.Configuration);
 builder.Services.AddHttpClient("LicenseRemote", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(30);
@@ -688,7 +675,6 @@ builder.Services.AddSingleton<IBackupAlertPublisher>(sp =>
             sp.GetRequiredService<WebhookBackupAlertPublisher>(),
             sp.GetRequiredService<ActivityBackupAlertPublisher>(),
         }));
-builder.Services.AddSingleton<ActivityBackupAlertPublisher>();
 builder.Services.AddSingleton<IDrOperationalObservabilityMetrics, PrometheusDrOperationalObservabilityMetrics>();
 builder.Services.AddSingleton<DrStaleRunRecoveryAlertingObserver>();
 builder.Services.AddSingleton<IDrStaleRunRecoveryObserver>(sp =>

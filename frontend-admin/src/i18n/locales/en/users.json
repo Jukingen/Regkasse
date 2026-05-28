@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "backToList": "Back to list"
+  },
   "page": {
     "title": "User management",
     "accessDeniedTitle": "Access denied",
@@ -13,6 +16,9 @@
   },
   "username": {
     "editTitle": "Change username",
+    "currentLabel": "Current username",
+    "infoTitle": "Note",
+    "infoDescription": "The change is recorded in the audit log. The user can sign in with the new username afterwards.",
     "newLabel": "New username",
     "reasonLabel": "Reason for change (optional)",
     "reasonHelp": "Recorded in the audit log",
@@ -245,6 +251,7 @@
     "statusInactive": "Inactive",
     "statusAll": "All",
     "view": "View",
+    "details": "Details",
     "edit": "Edit",
     "deactivate": "Deactivate",
     "reactivate": "Reactivate",

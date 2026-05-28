@@ -47,31 +47,33 @@ export function HeaderLanguageQuickSwitch() {
   const tooltipHint = t('adminShell.header.languageSelectHint');
 
   return (
-    <Tooltip title={tooltipHint} placement="bottomRight" mouseEnterDelay={0.35}>
-      <fieldset style={{ border: 'none', margin: 0, padding: 0, minWidth: 0, display: 'inline-flex' }}>
-        <legend className="admin-sr-only">{ariaLabel}</legend>
-        <Dropdown
-          menu={{
-            items: menuItems,
-            onClick: handleMenuClick,
-            selectedKeys: [textLocale],
-          }}
-          trigger={['click']}
-          placement="bottomRight"
-          overlayClassName="language-switcher-dropdown admin-header-dropdown"
-            getPopupContainer={getAdminHeaderPopupContainer}
-        >
-          <Button
-            type="text"
-            className="language-trigger"
-            icon={<GlobalOutlined />}
-            aria-label={ariaLabel}
-            data-testid="admin-header-language-select"
-          >
-            <span className="language-code">{textLocale.toUpperCase()}</span>
-          </Button>
-        </Dropdown>
-      </fieldset>
-    </Tooltip>
+    <fieldset style={{ border: 'none', margin: 0, padding: 0, minWidth: 0, display: 'inline-flex' }}>
+      <legend className="admin-sr-only">{ariaLabel}</legend>
+      <Dropdown
+        menu={{
+          items: menuItems,
+          onClick: handleMenuClick,
+          selectedKeys: [textLocale],
+        }}
+        trigger={['click']}
+        placement="bottomRight"
+        overlayClassName="language-switcher-dropdown admin-header-dropdown"
+        getPopupContainer={getAdminHeaderPopupContainer}
+      >
+        <Tooltip title={tooltipHint} placement="bottomRight" mouseEnterDelay={0.35}>
+          <span className="language-trigger-wrap">
+            <Button
+              type="text"
+              className="language-trigger"
+              icon={<GlobalOutlined />}
+              aria-label={ariaLabel}
+              data-testid="admin-header-language-select"
+            >
+              <span className="language-code">{textLocale.toUpperCase()}</span>
+            </Button>
+          </span>
+        </Tooltip>
+      </Dropdown>
+    </fieldset>
   );
 }

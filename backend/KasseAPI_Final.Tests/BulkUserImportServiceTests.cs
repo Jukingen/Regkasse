@@ -81,7 +81,7 @@ public sealed class BulkUserImportServiceTests
             Mock.Of<IAuditLogService>(),
             Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
             NullCurrentTenantAccessor.Instance,
-            new ActivityEventRecorder(Mock.Of<IActivityEventService>(), Mock.Of<ILogger<ActivityEventRecorder>>()),
+            ActivityEventTestSupport.CreateRecorder(),
             Mock.Of<ILogger<TenantUserService>>());
 
         var resultStore = new Mock<IBulkUserImportResultStore>();

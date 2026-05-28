@@ -89,7 +89,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
   });
 
   const isAuthenticated =
-    typeof window !== 'undefined' && !!authStorage.getAccessToken();
+    typeof window !== 'undefined' && authStorage.hasToken();
 
   const remoteQuery = useQuery({
     queryKey: userPreferencesQueryKey,
@@ -140,7 +140,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
         ...nextUser,
       });
       applyReducedAnimations(full.reducedAnimations);
-      if (authStorage.getAccessToken()) {
+      if (authStorage.hasToken()) {
         skipNextRemoteSave.current = true;
         saveMutation.mutate(mapPersonalizationToApi(full));
       }
@@ -181,7 +181,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
       });
       writeStoredPersonalization(next);
       applyReducedAnimations(next.reducedAnimations);
-      if (authStorage.getAccessToken()) {
+      if (authStorage.hasToken()) {
         skipNextRemoteSave.current = true;
         saveMutation.mutate(mapPersonalizationToApi(next));
       }

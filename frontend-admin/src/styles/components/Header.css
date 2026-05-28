@@ -86,6 +86,10 @@
   flex-shrink: 0;
 }
 
+.cash-register-quick-switch-trigger-wrap {
+  display: inline-flex;
+}
+
 .cash-register-quick-switch-trigger {
   display: inline-flex;
   align-items: center;

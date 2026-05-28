@@ -156,6 +156,7 @@ export function UserDetailDrawer({
           open={usernameModalOpen}
           userId={user.id}
           currentUsername={user.userName ?? ''}
+          userEmail={user.email}
           onClose={() => setUsernameModalOpen(false)}
           onSuccess={(result) => onUsernameUpdated?.(user.id!, result)}
         />

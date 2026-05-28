@@ -82,7 +82,7 @@ public sealed class TenantUserServiceTests
             auditLog ?? Mock.Of<IAuditLogService>(),
             Mock.Of<IHttpContextAccessor>(),
             tenantAccessor ?? NullCurrentTenantAccessor.Instance,
-            new ActivityEventRecorder(Mock.Of<IActivityEventService>(), Mock.Of<ILogger<ActivityEventRecorder>>()),
+            ActivityEventTestSupport.CreateRecorder(),
             Mock.Of<ILogger<TenantUserService>>());
 
     private static Mock<IAuditLogService> CreateAuditMock()

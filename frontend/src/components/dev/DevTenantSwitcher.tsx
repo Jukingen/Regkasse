@@ -1,24 +1,38 @@
 /**
- * Development-only tenant slug switcher (local storage + X-Tenant-Id on API requests).
+ * Development-only tenant slug switcher (API list + local storage + X-Tenant-Id on API requests).
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
-import { getDevTenantPresetName, isSameDevTenantPreset } from '../../../constants/devTenantCatalog';
-import { DEV_TENANT_PRESETS } from '../../../constants/devTenantPresets';
+import { canonicalDevTenantSlug, getDevTenantPresetName, isSameDevTenantPreset } from '../../../constants/devTenantCatalog';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../../../constants/SoftTheme';
+import { useAuth } from '../../../contexts/AuthContext';
 import {
   getDevTenantSlugOverride,
   setDevTenantAndPersist,
 } from '../../../services/tenant/devTenant';
+import { useTenants } from '../../../hooks/useTenants';
 import { sessionManager } from '../../../services/session/sessionManager';
 import { reloadApp } from './reloadApp';
 
 const isDev = __DEV__;
 
 export function DevTenantSwitcher() {
+  const { isAuthenticated } = useAuth();
   const [currentTenant, setCurrentTenant] = useState<string>('dev');
   const [open, setOpen] = useState(false);
+
+  const { tenants, isLoading, isError, isFromCache, refreshTenants } = useTenants({
+    enabled: isAuthenticated,
+  });
 
   useEffect(() => {
     if (!isDev) return;
@@ -28,19 +42,32 @@ export function DevTenantSwitcher() {
     })();
   }, []);
 
-  const onSelect = useCallback(async (value: string) => {
+  useEffect(() => {
+    if (!open || !isDev || !isAuthenticated) return;
+    void (async () => {
+      await refreshTenants();
+      const stored = await getDevTenantSlugOverride();
+      setCurrentTenant(stored ?? 'dev');
+    })();
+  }, [open, isAuthenticated, refreshTenants]);
+
+  const currentLabel = useMemo(() => {
+    const match = tenants.find((row) => isSameDevTenantPreset(row.slug, currentTenant));
+    if (match) return match.name;
+    return getDevTenantPresetName(currentTenant) ?? currentTenant;
+  }, [tenants, currentTenant]);
+
+  const onSelect = useCallback(async (slug: string) => {
     setOpen(false);
-    await setDevTenantAndPersist(value);
+    await setDevTenantAndPersist(slug);
     await sessionManager.clearSession();
-    setCurrentTenant(value);
+    setCurrentTenant(slug);
     reloadApp();
   }, []);
 
   if (!isDev) {
     return null;
   }
-
-  const currentLabel = getDevTenantPresetName(currentTenant) ?? currentTenant;
 
   return (
     <>
@@ -64,26 +91,57 @@ export function DevTenantSwitcher() {
                 ? 'Seite wird nach der Auswahl neu geladen.'
                 : 'App wird nach der Auswahl neu geladen.'}
             </Text>
-            {DEV_TENANT_PRESETS.map((preset) => (
+
+            {isAuthenticated ? (
               <Pressable
-                key={preset.slug}
-                style={[
-                  styles.option,
-                  isSameDevTenantPreset(preset.slug, currentTenant) && styles.optionSelected,
-                ]}
-                onPress={() => void onSelect(preset.slug)}
+                style={styles.refreshBtn}
+                onPress={() => void refreshTenants()}
+                accessibilityRole="button"
+                accessibilityLabel="Mandantenliste aktualisieren"
               >
-                <Text
-                  style={[
-                    styles.optionText,
-                    isSameDevTenantPreset(preset.slug, currentTenant) && styles.optionTextSelected,
-                  ]}
-                >
-                  {preset.name}
+                <Text style={styles.refreshText}>
+                  {isLoading ? 'Wird aktualisiert…' : 'Aktualisieren'}
                 </Text>
-                <Text style={styles.optionSlug}>{preset.slug}</Text>
               </Pressable>
-            ))}
+            ) : null}
+
+            {isFromCache ? (
+              <Text style={styles.cacheHint}>Offline-Zwischenspeicher (API nicht erreichbar)</Text>
+            ) : null}
+
+            {!isAuthenticated ? (
+              <Text style={styles.emptyText}>Bitte zuerst anmelden.</Text>
+            ) : isLoading ? (
+              <ActivityIndicator color={SoftColors.accent} style={styles.loader} />
+            ) : isError ? (
+              <Text style={styles.emptyText}>
+                Mandantenliste konnte nicht geladen werden.
+              </Text>
+            ) : tenants.length === 0 ? (
+              <Text style={styles.emptyText}>Keine Mandanten verfügbar.</Text>
+            ) : (
+              tenants.map((tenant) => (
+                <Pressable
+                  key={tenant.id}
+                  style={[
+                    styles.option,
+                    isSameDevTenantPreset(tenant.slug, currentTenant) && styles.optionSelected,
+                  ]}
+                  onPress={() => void onSelect(tenant.slug)}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSameDevTenantPreset(tenant.slug, currentTenant) && styles.optionTextSelected,
+                    ]}
+                  >
+                    {tenant.name}
+                  </Text>
+                  <Text style={styles.optionSlug}>{canonicalDevTenantSlug(tenant.slug)}</Text>
+                </Pressable>
+              ))
+            )}
+
             <Pressable style={styles.cancelBtn} onPress={() => setOpen(false)}>
               <Text style={styles.cancelText}>Abbrechen</Text>
             </Pressable>
@@ -129,6 +187,32 @@ const styles = StyleSheet.create({
     ...SoftTypography.caption,
     color: SoftColors.textMuted,
     marginBottom: SoftSpacing.xs,
+  },
+  refreshBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: SoftSpacing.xs,
+    paddingHorizontal: SoftSpacing.sm,
+    borderRadius: SoftRadius.sm,
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+  },
+  refreshText: {
+    ...SoftTypography.caption,
+    color: SoftColors.accent,
+    fontWeight: '600',
+  },
+  cacheHint: {
+    ...SoftTypography.caption,
+    color: SoftColors.textMuted,
+    fontStyle: 'italic',
+  },
+  loader: {
+    marginVertical: SoftSpacing.md,
+  },
+  emptyText: {
+    ...SoftTypography.body,
+    color: SoftColors.textMuted,
+    paddingVertical: SoftSpacing.sm,
   },
   option: {
     paddingVertical: SoftSpacing.sm,

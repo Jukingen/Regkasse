@@ -28,6 +28,7 @@ export interface BackupRecentRunsTableProps {
   /** Super Admin: validation-only restore with second-admin approval. */
   canRequestManualRestore?: boolean;
   onRequestManualRestore?: (run: BackupRunResponseDto) => void;
+  onSelectRun?: (run: BackupRunResponseDto) => void;
 }
 
 /** Recent backup jobs with server-backed pagination (`GET /api/admin/backup/runs`). */
@@ -39,6 +40,7 @@ export function BackupRecentRunsTable({
   onRetryInvalidate,
   canRequestManualRestore = false,
   onRequestManualRestore,
+  onSelectRun,
 }: BackupRecentRunsTableProps) {
   const [page, setPage] = useState(1);
 
@@ -133,6 +135,7 @@ export function BackupRecentRunsTable({
       queryError={runsQuery.isError}
       t={t}
       onRetry={onRetry}
+      onRowClick={onSelectRun}
       pagination={{
         current: page,
         pageSize: BACKUP_RECENT_RUNS_PAGE_SIZE,

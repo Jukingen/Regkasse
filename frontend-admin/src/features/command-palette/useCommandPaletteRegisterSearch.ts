@@ -3,7 +3,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { ShopOutlined } from '@ant-design/icons';
 import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import {
     adminCashRegisterListQueryKey,
@@ -66,7 +65,6 @@ export function useCommandPaletteRegisterSearch(
                 type: 'register' as const,
                 label,
                 description: reg.location ?? reg.id,
-                icon: <ShopOutlined />,
                 group: 'Registers' as const,
                 keywords: [reg.id ?? '', reg.registerNumber ?? '', reg.location ?? '', label],
                 action: () => {

@@ -15,6 +15,9 @@ import { CartProvider } from '../contexts/CartContext';
 import { DevelopmentModeProvider } from '../contexts/DevelopmentModeContext';
 import { useMemoryMonitor } from '../hooks/useMemoryOptimization';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
+import { fetchFreshTenants } from '../services/tenant/tenantStorage';
+import { sessionManager } from '../services/session/sessionManager';
 
 console.log('🚀 ROOT LAYOUT: Module loaded successfully');
 
@@ -32,6 +35,18 @@ export default function RootLayout() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  React.useEffect(() => {
+    void (async () => {
+      await clearLegacyTenantSwitcherCache();
+      if (!__DEV__) return;
+
+      const token = await sessionManager.getAccessToken();
+      if (!token) return;
+
+      await fetchFreshTenants();
+    })();
   }, []);
 
   React.useEffect(() => {

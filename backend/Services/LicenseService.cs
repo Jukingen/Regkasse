@@ -119,6 +119,7 @@ public sealed class LicenseService : ILicenseService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILicenseStorageService _storage;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IActivityEventPublisher _activityPublisher;
     private readonly ILogger<LicenseService> _logger;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
@@ -134,6 +135,7 @@ public sealed class LicenseService : ILicenseService
         IHttpClientFactory httpClientFactory,
         ILicenseStorageService storage,
         IServiceScopeFactory scopeFactory,
+        IActivityEventPublisher activityPublisher,
         ILogger<LicenseService> logger,
         IHostEnvironment hostEnvironment,
         IOptionsMonitor<DevelopmentOptions> developmentOptions,
@@ -143,6 +145,7 @@ public sealed class LicenseService : ILicenseService
         _httpClientFactory = httpClientFactory;
         _storage = storage;
         _scopeFactory = scopeFactory;
+        _activityPublisher = activityPublisher;
         _logger = logger;
         _hostEnvironment = hostEnvironment;
         _developmentOptions = developmentOptions;
@@ -260,12 +263,9 @@ public sealed class LicenseService : ILicenseService
     {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var publisher = scope.ServiceProvider.GetRequiredService<IActivityEventPublisher>();
-
             if (snapshot.IsExpired)
             {
-                await publisher.TryPublishAsync(
+                await _activityPublisher.TryPublishAsync(
                     LegacyDefaultTenantIds.Primary,
                     ActivityEventType.LicenseExpired,
                     new
@@ -281,7 +281,7 @@ public sealed class LicenseService : ILicenseService
             if (snapshot.ExpiryDate == null || snapshot.DaysRemaining > 30)
                 return;
 
-            await publisher.TryPublishAsync(
+            await _activityPublisher.TryPublishAsync(
                 LegacyDefaultTenantIds.Primary,
                 ActivityEventType.LicenseExpiringSoon,
                 new

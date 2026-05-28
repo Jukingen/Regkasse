@@ -144,34 +144,36 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
     const buttonLabel = activeRegister?.registerNumber ?? t('adminShell.header.cashRegisterQuickSwitchLabel');
 
     return (
-        <Tooltip title={tooltipHint} placement="bottomRight" mouseEnterDelay={0.35}>
-            <Dropdown
-                menu={{
-                    items: menuItems,
-                    onClick: handleMenuClick,
-                    selectedKeys: activeRegisterId ? [activeRegisterId] : [],
-                }}
-                trigger={['click']}
-                placement="bottomRight"
-                overlayClassName="admin-header-dropdown"
-                getPopupContainer={getAdminHeaderPopupContainer}
-            >
-                <Button
-                    type="text"
-                    className="cash-register-quick-switch-trigger"
-                    icon={<ShopOutlined />}
-                    loading={isLoading}
-                    aria-label={ariaLabel}
-                    data-testid="admin-header-cash-register-quick-switch"
-                >
-                    {!isMobile ? (
-                        <>
-                            <span className="cash-register-quick-switch-label">{buttonLabel}</span>
-                            <SwapOutlined aria-hidden />
-                        </>
-                    ) : null}
-                </Button>
-            </Dropdown>
-        </Tooltip>
+        <Dropdown
+            menu={{
+                items: menuItems,
+                onClick: handleMenuClick,
+                selectedKeys: activeRegisterId ? [activeRegisterId] : [],
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+            overlayClassName="admin-header-dropdown"
+            getPopupContainer={getAdminHeaderPopupContainer}
+        >
+            <Tooltip title={tooltipHint} placement="bottomRight" mouseEnterDelay={0.35}>
+                <span className="cash-register-quick-switch-trigger-wrap">
+                    <Button
+                        type="text"
+                        className="cash-register-quick-switch-trigger"
+                        icon={<ShopOutlined />}
+                        loading={isLoading}
+                        aria-label={ariaLabel}
+                        data-testid="admin-header-cash-register-quick-switch"
+                    >
+                        {!isMobile ? (
+                            <>
+                                <span className="cash-register-quick-switch-label">{buttonLabel}</span>
+                                <SwapOutlined aria-hidden />
+                            </>
+                        ) : null}
+                    </Button>
+                </span>
+            </Tooltip>
+        </Dropdown>
     );
 }

@@ -164,7 +164,7 @@ function LicenseStatsCard({
     const suffix = status.daysRemaining > 0 ? 'Tage' : 'abgelaufen';
 
     return (
-        <Card bordered={false}>
+                            <Card variant="borderless">
             <Statistic
                 title={title}
                 value={value}
@@ -189,7 +189,7 @@ function TenantLicenseStatCards({
     return (
         <Row gutter={[16, 16]}>
             <Col xs={24} md={8}>
-                <Card bordered={false}>
+                <Card variant="borderless">
                     <Statistic
                         title={t('license.dashboard.statTenantActive')}
                         value={active}
@@ -199,7 +199,7 @@ function TenantLicenseStatCards({
                 </Card>
             </Col>
             <Col xs={24} md={8}>
-                <Card bordered={false}>
+                <Card variant="borderless">
                     <Statistic
                         title={t('license.dashboard.statTenantExpiring30')}
                         value={expiring}
@@ -209,7 +209,7 @@ function TenantLicenseStatCards({
                 </Card>
             </Col>
             <Col xs={24} md={8}>
-                <Card bordered={false}>
+                <Card variant="borderless">
                     <Statistic
                         title={t('license.dashboard.statTenantExpired')}
                         value={expired}
@@ -338,7 +338,7 @@ export function LicenseStatsSection() {
                     </Title>
                     <Row gutter={[16, 16]}>
                         <Col xs={24} md={8}>
-                            <Card bordered={false}>
+                            <Card variant="borderless">
                                 <Statistic
                                     title={t('license.dashboard.statDeploymentActive')}
                                     value={data?.activeDeploymentLicenses ?? 0}
@@ -347,7 +347,7 @@ export function LicenseStatsSection() {
                             </Card>
                         </Col>
                         <Col xs={24} md={8}>
-                            <Card bordered={false}>
+                            <Card variant="borderless">
                                 <Statistic
                                     title={t('license.dashboard.statDeploymentExpiring30')}
                                     value={data?.expiringDeploymentLicenses ?? 0}
@@ -357,7 +357,7 @@ export function LicenseStatsSection() {
                             </Card>
                         </Col>
                         <Col xs={24} md={8}>
-                            <Card bordered={false}>
+                            <Card variant="borderless">
                                 <Statistic
                                     title={t('license.dashboard.statDeploymentExpired')}
                                     value={data?.expiredDeploymentLicenses ?? 0}
@@ -370,7 +370,7 @@ export function LicenseStatsSection() {
 
                     <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
                         <Col xs={24} md={12}>
-                            <Card bordered={false}>
+                            <Card variant="borderless">
                                 <Statistic
                                     title={t('license.dashboard.statDevices')}
                                     value={data?.activatedDevices ?? 0}
@@ -385,7 +385,9 @@ export function LicenseStatsSection() {
                     </Title>
                     <Table<LicenseActivity>
                         size="small"
-                        rowKey={(row, i) => `lic-act-${row.timestampUtc}-${row.sourceCode}-${i}`}
+                        rowKey={(row) =>
+                            `lic-act-${row.timestampUtc}-${row.sourceCode}-${row.licenseKeyMasked}-${row.machineFingerprintShort ?? ''}-${row.action}`
+                        }
                         pagination={false}
                         dataSource={data?.recentActivities ?? []}
                         columns={activityColumns}

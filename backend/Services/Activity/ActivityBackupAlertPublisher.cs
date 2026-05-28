@@ -1,5 +1,4 @@
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Tenancy;
@@ -11,41 +10,17 @@ namespace KasseAPI_Final.Services.Activity;
 public sealed class ActivityBackupAlertPublisher : IBackupAlertPublisher
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<ActivityBackupAlertPublisher> _logger;
 
     public ActivityBackupAlertPublisher(
         IServiceScopeFactory scopeFactory,
-        ICurrentTenantAccessor tenantAccessor,
         ILogger<ActivityBackupAlertPublisher> logger)
     {
         _scopeFactory = scopeFactory;
-        _tenantAccessor = tenantAccessor;
         _logger = logger;
     }
 
-    public void Publish(BackupAlertEvent evt)
-    {
-        var tenantId = _tenantAccessor.TenantId ?? LegacyDefaultTenantIds.Primary;
-
-        var (type, dedup) = MapKind(evt.Kind);
-        var metadata = BuildMetadata(evt);
-
-        var request = ActivityEventPublishBuilder.FromMetadata(
-            tenantId,
-            type,
-            metadata,
-            dedupKey: dedup);
-
-        request = request with
-        {
-            Description = string.IsNullOrWhiteSpace(evt.Message) ? request.Description : evt.Message,
-            EntityType = evt.BackupRunId.HasValue ? "backup_run" : "restore_verification_run",
-            EntityId = (evt.BackupRunId ?? evt.RestoreVerificationRunId)?.ToString(),
-        };
-
-        _ = PublishInBackgroundAsync(request);
-    }
+    public void Publish(BackupAlertEvent evt) => _ = PublishInBackgroundAsync(evt);
 
     private static Dictionary<string, object> BuildMetadata(BackupAlertEvent evt)
     {
@@ -65,17 +40,36 @@ public sealed class ActivityBackupAlertPublisher : IBackupAlertPublisher
         return metadata;
     }
 
-    private async Task PublishInBackgroundAsync(ActivityEventPublishRequest request)
+    private async Task PublishInBackgroundAsync(BackupAlertEvent evt)
     {
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            var tenantAccessor = scope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
             var activity = scope.ServiceProvider.GetRequiredService<IActivityEventService>();
+
+            var tenantId = tenantAccessor.TenantId ?? LegacyDefaultTenantIds.Primary;
+            var (type, dedup) = MapKind(evt.Kind);
+            var metadata = BuildMetadata(evt);
+
+            var request = ActivityEventPublishBuilder.FromMetadata(
+                tenantId,
+                type,
+                metadata,
+                dedupKey: dedup);
+
+            request = request with
+            {
+                Description = string.IsNullOrWhiteSpace(evt.Message) ? request.Description : evt.Message,
+                EntityType = evt.BackupRunId.HasValue ? "backup_run" : "restore_verification_run",
+                EntityId = (evt.BackupRunId ?? evt.RestoreVerificationRunId)?.ToString(),
+            };
+
             await activity.PublishAsync(request).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Activity feed publish failed for backup alert {Type}", request.Type);
+            _logger.LogWarning(ex, "Activity feed publish failed for backup alert {Kind}", evt.Kind);
         }
     }
 

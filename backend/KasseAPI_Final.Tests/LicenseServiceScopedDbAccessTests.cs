@@ -2,6 +2,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,6 +65,7 @@ public sealed class LicenseServiceScopedDbAccessTests
             httpClientFactory.Object,
             storage,
             scopeFactory.Object,
+            Mock.Of<IActivityEventPublisher>(),
             logger.Object,
             hostEnvironment.Object,
             developmentOptions.Object,

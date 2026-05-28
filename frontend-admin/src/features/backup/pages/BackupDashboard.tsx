@@ -76,6 +76,8 @@ export function BackupDashboard() {
         verification: undefined,
         restoreLatest: buildSyntheticRestoreLatest(stats ?? {}),
         recoverabilitySummary: statsToRecoverabilitySummary(stats ?? {}),
+        restoreCapability: statusQuery.data?.restore,
+        externalCopyVariant: "unknown",
         omitDedicatedSectionIssueDuplicates: true,
         hasStatusPayload: Boolean(stats),
       }),
@@ -249,12 +251,7 @@ function DashboardBody({
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <ConfigurationHealthCard
-            config={stats.configurationHealth}
-            artifactPipelinePolicy={stats.artifactPipelinePolicy}
-            canManage={canManage}
-            t={t}
-          />
+          <ConfigurationHealthCard canManage={canManage} />
         </Col>
         <Col xs={24} lg={12}>
           <RestoreReadinessCard

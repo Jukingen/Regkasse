@@ -73,7 +73,12 @@
       "verificationEnabled": "✅ Etkin",
       "verificationDisabled": "⚠️ Devre dışı",
       "issuesTitle": "Yapılandırma sorunları",
-      "editSettings": "Ayarları düzenle →"
+      "editSettings": "Ayarları düzenle →",
+      "levelHealthy": "Sorun yok",
+      "levelDegraded": "Kısıtlı",
+      "levelUnhealthy": "Hazır değil",
+      "noDiagnostics": "Tanı mesajı yok",
+      "lastUpdated": "Son güncelleme: {{at}}"
     },
     "restoreReadiness": {
       "title": "Kurtarılabilirlik",
@@ -1327,6 +1332,186 @@
   "permission": {
     "noManage": "Salt okunur — kuyruğa almak için „Ayarları yönet“ gerekir.",
     "manualActionsTooltip": "Kapalı: „Ayarları yönet“ yetkisi yok — teknik veya sunucu hatası değil."
+  },
+  "triggerButton": {
+    "label": "Yedek başlat",
+    "menuStartNow": "Yedeği şimdi başlat",
+    "menuAllTenants": "Örnek yedeği (tüm kiracılar)",
+    "modalTitle": "Yedek başlat",
+    "modalOk": "Başlat",
+    "modalHint": "Yedek arka planda çalışır. İlerlemeyi yedek listesinden izleyebilirsiniz.",
+    "tenantLabel": "Kiracı (isteğe bağlı, izleme)",
+    "tenantPlaceholder": "Örnek geneli (anahtarda kiracı yok)",
+    "instanceScopeHint": "PostgreSQL yedekleri tüm API örneğini kapsar. Kiracı seçimi yalnızca idempotency anahtarında saklanır.",
+    "allTenantsConfirmTitle": "Örnek yedeği başlatılsın mı?",
+    "allTenantsConfirmBody": "Tüm örnek için tek bir veritabanı yedeği kuyruğa alınır (kiracı başına değil). Birkaç dakika sürebilir.",
+    "allTenantsSuccess": "Örnek yedeği kuyruğa alındı"
+  },
+  "detailModal": {
+    "title": "Yedek ayrıntıları: {{id}}",
+    "titleLoading": "Yedek ayrıntıları",
+    "close": "Kapat",
+    "download": "İndir",
+    "downloadBackup": "Yedeği indir",
+    "triggerLabel": "Tetikleyici",
+    "requestedAt": "İstenen zaman",
+    "completedAt": "Tamamlanma",
+    "triggerSource": {
+      "manual": "Manuel",
+      "scheduled": "Zamanlanmış",
+      "operatorApi": "Operatör API"
+    },
+    "tabs": {
+      "overview": "Özet",
+      "artifacts": "Artefaktlar",
+      "verification": "Doğrulama",
+      "pipeline": "Pipeline",
+      "logs": "Loglar"
+    },
+    "artifacts": {
+      "type": "Tür",
+      "size": "Boyut",
+      "lifecycle": "Lifecycle",
+      "onDisk": "Sunucuda",
+      "empty": "Artefakt yok"
+    },
+    "verification": {
+      "empty": "Doğrulama kaydı yok",
+      "panelTitle": "Doğrulama",
+      "started": "Başlangıç",
+      "completed": "Bitiş",
+      "verifier": "Verifier",
+      "completeness": "Bütünlük",
+      "completenessOk": "Tamam",
+      "completenessMissing": "Eksik"
+    },
+    "pipeline": {
+      "empty": "Pipeline adımı yok"
+    }
+  },
+  "configForm": {
+    "alertTitle": "Yedek yapılandırması",
+    "alertDescription": "Bu API örneği için otomatik yedekler ve çalıştırma modu (UTC cron, veritabanında saklanır).",
+    "alertDescriptionSuperAdmin": "Ayarlar tüm örnek için geçerlidir (kiracı başına değil). Staging/arşiv yolları sunucu dağıtım yapılandırmasında tanımlanır.",
+    "enabled": "Otomatik yedekler",
+    "enabledTooltip": "Zamanlamayı etkinleştir — arka plan işçisi cron ile yedek kuyruğa alır",
+    "switchOn": "Açık",
+    "switchOff": "Kapalı",
+    "scheduleCron": "Yedek zamanlaması (cron, UTC)",
+    "scheduleCronTooltip": "Beş alan, örn. günlük 02:00 UTC için 0 2 * * *",
+    "retentionDays": "Saklama süresi (gün)",
+    "retentionDaysTooltip": "Bundan eski başarılı çalıştırmalar başarılı yedekten sonra temizlenir",
+    "retentionRange": "{{min}} ile {{max}} gün arasında",
+    "executionModeLabel": "Yedek modu",
+    "executionModeTooltip": "Fake = test, Real (PgDump) = PostgreSQL dökümü, Varsayılan = yapılandırma varsayılanı",
+    "executionModeOptions": {
+      "inherit": "Varsayılan (yapılandırma)",
+      "fake": "Test (Fake)",
+      "pgDump": "Gerçek (PgDump)"
+    },
+    "superAdminTitle": "Super Admin (örnek)",
+    "superAdminDescription": "Staging ve arşiv yolları salt okunur — Backup:* dağıtım yapılandırması ile değiştirilir.",
+    "externalArchiveRoot": "Harici arşiv",
+    "stagingRoot": "Etkin adaptör / staging",
+    "pathConfigured": "Yapılandırılmış (API)",
+    "pathNotConfigured": "Yapılandırılmamış",
+    "deploymentPathsHint": "Mutlak yollar güvenlik nedeniyle API üzerinden gösterilmez. Yapılandırma sağlığı ve sunucu belgelerine bakın.",
+    "save": "Ayarları kaydet",
+    "saveSuccess": "Yedek ayarları kaydedildi",
+    "saveError": "Kaydetme hatası",
+    "savePartialSettingsOnly": "Zamanlama kaydedildi; çalıştırma modu değiştirilmedi."
+  },
+  "runsTable": {
+    "instanceScopeTitle": "Örnek geneli yedekler",
+    "instanceScopeDescription": "Tüm kiracılar aynı PostgreSQL örneğini paylaşır. Liste dağıtım geneli çalıştırmaları gösterir; kiracı filtresi manuel tetiklenen koşularda (idempotency anahtarı) uygulanır.",
+    "tenantFilterLabel": "Kiracı (filtre)",
+    "tenantFilterPlaceholder": "Tüm kiracılar",
+    "startTime": "Başlangıç",
+    "statusColumn": "Durum",
+    "duration": "Süre",
+    "size": "Boyut",
+    "artifacts": "Artefaktlar",
+    "error": "Hata",
+    "actions": "İşlemler",
+    "details": "Ayrıntılar",
+    "retry": "Yeniden dene",
+    "delete": "Sil",
+    "deleteUnavailable": "Silme API'de henüz yok.",
+    "noDuration": "—",
+    "durationMinutes": "{{minutes}} dk",
+    "retryConfirmTitle": "Yeni yedek kuyruğa alınsın mı?",
+    "retryConfirmDescription": "Yeni bir manuel yedek çalıştırması kuyruğa alınır (aynı çalıştırma tekrarlanmaz).",
+    "statusLabels": {
+      "queued": "Beklemede",
+      "running": "Çalışıyor",
+      "awaitingVerification": "Doğrulama bekliyor",
+      "succeeded": "Başarılı",
+      "failed": "Başarısız",
+      "verificationFailed": "Doğrulama başarısız",
+      "cancelled": "İptal"
+    },
+    "artifactType": {
+      "0": "Logical dump",
+      "1": "Physical base",
+      "2": "WAL window",
+      "3": "Globals",
+      "4": "Manifest",
+      "5": "Backup log"
+    }
+  },
+  "adminBackup": {
+    "pageTitle": "Yedekleme ve kurtarma",
+    "pageSubtitle": "Özet, geçmiş ve yapılandırma — 30 saniyede bir yenilenir.",
+    "recentBackupsTitle": "Son yedekler",
+    "collapse": {
+      "config": "Yedek yapılandırması",
+      "executionMode": "Çalıştırma modu",
+      "restoreVerification": "Geri yükleme doğrulama"
+    }
+  },
+  "management": {
+    "pageSubtitle": "Yedek çalıştırmaları, yapılandırma, izleme ve günlük — yetkiye göre salt okunur veya tam yönetim.",
+    "tabs": {
+      "operations": "İşlemler ve geçmiş",
+      "monitoring": "İzleme",
+      "configuration": "Yapılandırma",
+      "log": "Günlük"
+    },
+    "role": {
+      "superAdmin": "Super Admin",
+      "tenantAdmin": "Kiracı yöneticisi",
+      "readOnly": "Salt okunur"
+    },
+    "accessBanner": "Yedek erişimi: {{role}}",
+    "accessReadOnlyHint": "Durum ve geçmişi görüntüleyebilirsiniz. Manuel yedek, zamanlama ve çalıştırma modu için „Ayarları yönet“ gerekir.",
+    "accessManageHint": "Bu dağıtım örneği için yedek kuyruğa alma ve otomasyon ile çalıştırma modunu yönetebilirsiniz.",
+    "accessSuperAdminHint": "Super Admin: aynı örnek genelinde yedek yüzeyi (API tenantId destekleyene kadar kiracı bazlı liste yok).",
+    "scope": {
+      "deploymentWide": "Yedekler kiracı başına değil, tüm API örneği (PostgreSQL) içindir."
+    },
+    "runDetail": {
+      "title": "Yedek çalıştırma ayrıntıları",
+      "notFound": "Çalıştırma bulunamadı.",
+      "simulatedHint": "Simüle adaptör — üretim artefaktı değil."
+    },
+    "log": {
+      "subtitle": "Aktivite akışı (yedek/geri yükleme) ve isteğe bağlı denetim kayıtları.",
+      "activityTitle": "Aktiviteler",
+      "auditTitle": "Denetim (yedek eylemleri)",
+      "emptyActivity": "Yedekle ilgili aktivite yok.",
+      "emptyAudit": "Eşleşen denetim kaydı yok.",
+      "auditRestricted": "Denetim günlüğü için „Denetimi görüntüle“ gerekir.",
+      "col": {
+        "time": "Zaman",
+        "severity": "Önem",
+        "type": "Tür",
+        "title": "Başlık",
+        "actor": "Kullanıcı",
+        "action": "Eylem",
+        "entity": "Varlık",
+        "description": "Açıklama"
+      }
+    }
   },
   "scheduleSettings": {
     "cardTitle": "Zamanlanmış yedek (sunucu)",

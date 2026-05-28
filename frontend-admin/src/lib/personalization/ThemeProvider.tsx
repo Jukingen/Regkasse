@@ -62,7 +62,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const skipRemoteApply = useRef(false);
 
   const isAuthenticated =
-    typeof window !== 'undefined' && !!authStorage.getAccessToken();
+    typeof window !== 'undefined' && authStorage.hasToken();
 
   const remoteQuery = useQuery({
     queryKey: userPreferencesQueryKey,
@@ -113,7 +113,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     setEffectiveTheme(applyAppearance(themeMode, densityMode));
     applyReducedAnimations(next.reducedAnimations);
 
-    if (authStorage.getAccessToken()) {
+    if (authStorage.hasToken()) {
       skipRemoteApply.current = true;
       void saveUserPreferences(mapPersonalizationToApi(next));
     }

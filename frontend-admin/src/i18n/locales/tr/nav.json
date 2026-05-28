@@ -44,6 +44,7 @@
   "paymentMethods": "Ödeme yöntemleri",
   "backupDr": "Yedekleme ve DR",
   "backupMonitoring": "Yedek izleme",
+  "backupRestore": "Yedekleme ve Geri Yükleme",
   "developmentMode": "Geliştirici modu",
   "timeSync": "Zaman senkronizasyonu",
   "licenseManagement": "Lisans",

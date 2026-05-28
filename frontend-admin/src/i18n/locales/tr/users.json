@@ -1,4 +1,7 @@
 {
+  "detail": {
+    "backToList": "Listeye dön"
+  },
   "page": {
     "title": "Kullanıcı yönetimi",
     "accessDeniedTitle": "Erişim reddedildi",
@@ -13,6 +16,9 @@
   },
   "username": {
     "editTitle": "Kullanıcı adını değiştir",
+    "currentLabel": "Mevcut kullanıcı adı",
+    "infoTitle": "Bilgi",
+    "infoDescription": "Değişiklik denetim günlüğüne kaydedilir. Kullanıcı bundan sonra yeni kullanıcı adıyla giriş yapabilir.",
     "newLabel": "Yeni kullanıcı adı",
     "reasonLabel": "Değişiklik nedeni (isteğe bağlı)",
     "reasonHelp": "Denetim günlüğüne kaydedilir",
@@ -245,6 +251,7 @@
     "statusInactive": "Pasif",
     "statusAll": "Tümü",
     "view": "Görüntüle",
+    "details": "Detaylar",
     "edit": "Düzenle",
     "deactivate": "Devre dışı bırak",
     "reactivate": "Yeniden etkinleştir",

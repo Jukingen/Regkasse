@@ -16,7 +16,7 @@ export function RksvReminderCard() {
             <Card
                 title="RKSV Sonderbelege (Erinnerungen)"
                 extra={<Button icon={<ReloadOutlined />} onClick={() => void refetch()} />}
-                bordered={false}
+                variant="borderless"
                 style={{ marginBottom: 24 }}
             >
                 <Space direction="vertical" style={{ width: '100%' }}>
@@ -36,7 +36,7 @@ export function RksvReminderCard() {
                         Erneut laden
                     </Button>
                 }
-                bordered={false}
+                variant="borderless"
                 style={{ marginBottom: 24 }}
             >
                 <Alert
@@ -54,7 +54,7 @@ export function RksvReminderCard() {
             <Card
                 title="RKSV Sonderbelege (Erinnerungen)"
                 extra={<Button icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()} />}
-                bordered={false}
+                variant="borderless"
                 style={{ marginBottom: 24 }}
             >
                 <Empty
@@ -95,7 +95,7 @@ export function RksvReminderCard() {
                     </Button>
                 </Space>
             }
-            bordered={false}
+            variant="borderless"
             style={{ marginBottom: 24 }}
         >
             <Space direction="vertical" style={{ width: '100%' }} size="middle">

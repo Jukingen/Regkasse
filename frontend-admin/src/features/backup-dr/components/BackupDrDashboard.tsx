@@ -129,7 +129,18 @@ function backupDiagnosticTagColor(severity: string | null | undefined): string {
   return "blue";
 }
 
-export function BackupDrDashboard() {
+export interface BackupDrDashboardProps {
+  /** Sekmeli yönetim panelinde üst başlık/zaman planı tekrarını gizler. */
+  embedded?: boolean;
+  hideScheduleSettings?: boolean;
+  onSelectBackupRun?: (run: BackupRunResponseDto) => void;
+}
+
+export function BackupDrDashboard({
+  embedded = false,
+  hideScheduleSettings = false,
+  onSelectBackupRun,
+}: BackupDrDashboardProps = {}) {
   const { t, formatLocale } = useI18n();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -424,14 +435,18 @@ export function BackupDrDashboard() {
 
   return (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
-      <div style={{ width: "100%", scrollMarginTop: 72 }}>
-        <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
-          {t("backupDr.page.title")}
-        </Typography.Title>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
-          {t("backupDr.page.subtitle")}
-        </Typography.Paragraph>
-        <BackupScheduleSettings canManage={canManage} />
+      {!embedded ? (
+        <div style={{ width: "100%", scrollMarginTop: 72 }}>
+          <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
+            {t("backupDr.page.title")}
+          </Typography.Title>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
+            {t("backupDr.page.subtitle")}
+          </Typography.Paragraph>
+        </div>
+      ) : null}
+      {!hideScheduleSettings ? <BackupScheduleSettings canManage={canManage} /> : null}
+      <div style={{ width: "100%", scrollMarginTop: embedded ? 0 : 72 }}>
         <Card size="small">
           <Space direction="vertical" size="small" style={{ width: "100%" }}>
             <Space wrap align="center">
@@ -1573,6 +1588,13 @@ export function BackupDrDashboard() {
                 onRetryInvalidate={invalidateAll}
                 canRequestManualRestore={canRequestManualRestore}
                 onRequestManualRestore={setManualRestoreRun}
+                onSelectRun={
+                  onSelectBackupRun
+                    ? (run) => {
+                        if (run.id) onSelectBackupRun(run);
+                      }
+                    : undefined
+                }
               />
 
               {manualRestoreRun ? (

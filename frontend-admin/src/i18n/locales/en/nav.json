@@ -44,6 +44,7 @@
   "paymentMethods": "Payment methods",
   "backupDr": "Backup & DR",
   "backupMonitoring": "Backup monitoring",
+  "backupRestore": "Backup & Restore",
   "developmentMode": "Development mode",
   "timeSync": "Time sync",
   "licenseManagement": "License",

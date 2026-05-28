@@ -122,7 +122,7 @@ Then: `http://test-cafe.localhost:5184` — host first label must match `tenants
 
 ### Option 4: POS UI
 
-`DevTenantSwitcher` in tab layout (`__DEV__` only). Presets: `dev`, `test_cafe`, `test_bar`.
+`DevTenantSwitcher` in tab layout (`__DEV__` only). Loads tenants from `GET /api/tenants/switcher` when authenticated (same as FA dev header switcher).
 
 ## POS Tenant Configuration
 

@@ -42,10 +42,12 @@ import {
     UserOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { BulkImportModal } from '@/features/users/components/BulkImportModal';
 import { CreateUserModal } from '@/features/users/components/CreateUserModal';
+import { EditUsernameModal } from '@/features/users/components/EditUsernameModal';
 import type { CreateUserQuickFormValues } from '@/features/users/components/CreateUserModal';
 import { createQuickUser, type CreateQuickUserResult } from '@/features/super-admin/api/quickUser';
 import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
@@ -154,15 +156,16 @@ function rowFromAdminDto(dto: AdminUserDto): UnifiedAdminUserRow {
     const tenantId = dto.tenantId ?? undefined;
     const tenantName = dto.tenantName ?? '';
     const tenantSlug = dto.tenantSlug ?? '';
+    const userId = dto.id ?? '';
     const base: UnifiedAdminUserRow = {
-        key: tenantId ? `tenant:${tenantId}:${dto.id}` : `platform:${dto.id}`,
+        key: tenantId ? `tenant:${tenantId}:${userId}` : `platform:${userId}`,
         kind,
         userType,
-        userId: dto.id,
+        userId,
         name: platformDisplayName(user),
         email: dto.email ?? dto.userName ?? '—',
         role: dto.role ?? '—',
-        isActive: dto.isActive,
+        isActive: dto.isActive ?? false,
         lastLoginAt: dto.lastLoginAt ?? null,
         twoFactorEnabled: dto.twoFactorEnabled,
         tenantId,
@@ -172,7 +175,8 @@ function rowFromAdminDto(dto: AdminUserDto): UnifiedAdminUserRow {
     };
     if (kind === 'tenant' && tenantId) {
         base.row = {
-            userId: dto.id,
+            userId,
+            userName: dto.userName?.trim() || user.userName?.trim() || userId,
             email: base.email,
             name: base.name,
             role: base.role,
@@ -181,7 +185,7 @@ function rowFromAdminDto(dto: AdminUserDto): UnifiedAdminUserRow {
             tenantId,
             tenantSlug,
             tenantName,
-            isActive: dto.isActive,
+            isActive: dto.isActive ?? false,
             lastLoginAt: dto.lastLoginAt ?? undefined,
             twoFactorEnabled: dto.twoFactorEnabled,
         };
@@ -231,6 +235,7 @@ export function UnifiedAdminUsersView({
     const [bulkImportOpen, setBulkImportOpen] = useState(false);
     const [resetRow, setResetRow] = useState<TenantUserRow | null>(null);
     const [passwordRow, setPasswordRow] = useState<UnifiedAdminUserRow | null>(null);
+    const [usernameEditUser, setUsernameEditUser] = useState<UserInfo | null>(null);
 
     useEffect(() => {
         setSelectedTenant(
@@ -633,6 +638,16 @@ export function UnifiedAdminUsersView({
             );
         }
 
+        if (row.userId) {
+            actions.push(
+                <Link key="details" href={`/admin/users/${row.userId}`}>
+                    <Button type="link" size="small">
+                        {t('users.list.details')}
+                    </Button>
+                </Link>,
+            );
+        }
+
         if (policy.canEdit) {
             actions.push(
                 <Tooltip key="edit" title={t('users.list.edit')}>
@@ -643,6 +658,19 @@ export function UnifiedAdminUsersView({
                         onClick={() => onEdit(row.userId)}
                     />
                 </Tooltip>,
+            );
+        }
+
+        if (policy.canEdit && record.id) {
+            actions.push(
+                <Button
+                    key="edit-username"
+                    type="link"
+                    size="small"
+                    onClick={() => setUsernameEditUser(record)}
+                >
+                    {t('users.username.editTitle')}
+                </Button>,
             );
         }
 
@@ -871,6 +899,17 @@ export function UnifiedAdminUsersView({
     const columns: ColumnsType<UnifiedAdminUserRow> = useMemo(
         () => [
             {
+                title: t('users.unified.columns.userName'),
+                key: 'userName',
+                width: 150,
+                ellipsis: true,
+                render: (_: unknown, row) => row.user.userName?.trim() || '—',
+                sorter: (a, b) =>
+                    (a.user.userName ?? '').localeCompare(b.user.userName ?? '', undefined, {
+                        sensitivity: 'base',
+                    }),
+            },
+            {
                 title: t('users.unified.columns.user'),
                 key: 'user',
                 width: 250,
@@ -889,17 +928,6 @@ export function UnifiedAdminUsersView({
                         </Flex>
                     </Flex>
                 ),
-            },
-            {
-                title: t('users.unified.columns.userName'),
-                key: 'userName',
-                width: 140,
-                ellipsis: true,
-                render: (_: unknown, row) => row.user.userName?.trim() || '—',
-                sorter: (a, b) =>
-                    (a.user.userName ?? '').localeCompare(b.user.userName ?? '', undefined, {
-                        sensitivity: 'base',
-                    }),
             },
             {
                 title: t('users.unified.columns.tenant'),
@@ -1199,6 +1227,21 @@ export function UnifiedAdminUsersView({
                         onClose={() => setPasswordRow(null)}
                     />
                 </>
+            ) : null}
+
+            {usernameEditUser?.id ? (
+                <EditUsernameModal
+                    open={!!usernameEditUser}
+                    userId={usernameEditUser.id}
+                    currentUsername={usernameEditUser.userName ?? ''}
+                    userEmail={usernameEditUser.email}
+                    onClose={() => setUsernameEditUser(null)}
+                    onSuccess={() => {
+                        void refetchAll();
+                        void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+                        setUsernameEditUser(null);
+                    }}
+                />
             ) : null}
         </Space>
     );

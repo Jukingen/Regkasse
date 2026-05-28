@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Alert, Form, Input, Modal, message } from 'antd';
+import { Alert, Form, Input, Modal, Typography, message } from 'antd';
 
 import {
     useUpdateAdminUsernameMutation,
@@ -25,6 +25,8 @@ export type EditUsernameModalProps = {
     open: boolean;
     userId: string;
     currentUsername: string;
+    /** Optional context shown under the current username field. */
+    userEmail?: string | null;
     onClose: () => void;
     onSuccess: (result: UpdateAdminUsernameResponse) => void;
 };
@@ -33,6 +35,7 @@ export function EditUsernameModal({
     open,
     userId,
     currentUsername,
+    userEmail,
     onClose,
     onSuccess,
 }: EditUsernameModalProps) {
@@ -71,6 +74,7 @@ export function EditUsernameModal({
             });
             message.success(t('users.username.updateSuccess'));
             onSuccess(result);
+            form.resetFields();
             onClose();
         } catch (error) {
             const normalized = normalizeApiError(error);
@@ -98,7 +102,24 @@ export function EditUsernameModal({
             confirmLoading={updateUsername.isPending}
             destroyOnHidden
         >
+            <Alert
+                type="info"
+                showIcon
+                message={t('users.username.infoTitle')}
+                description={t('users.username.infoDescription')}
+                style={{ marginBottom: 16 }}
+            />
+
             <Form form={form} layout="vertical" preserve={false}>
+                <Form.Item label={t('users.username.currentLabel')}>
+                    <Input value={currentUsername.trim() || '—'} disabled autoComplete="off" />
+                    {userEmail?.trim() ? (
+                        <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
+                            {userEmail.trim()}
+                        </Typography.Text>
+                    ) : null}
+                </Form.Item>
+
                 <Form.Item
                     name="newUsername"
                     label={t('users.username.newLabel')}
@@ -123,9 +144,11 @@ export function EditUsernameModal({
                         placeholder={t('users.username.reasonPlaceholder')}
                     />
                 </Form.Item>
-
-                <Alert type="warning" showIcon message={t('users.username.auditHint')} />
             </Form>
+
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t('common.auth.loginIdentifierCaseHint')}
+            </Typography.Text>
         </Modal>
     );
 }

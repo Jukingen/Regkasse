@@ -20,7 +20,7 @@ export default function RootLayout({
             <head>
                 <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }} />
             </head>
-            <body style={{ margin: 0, padding: 0 }}>
+            <body style={{ margin: 0, padding: 0 }} suppressHydrationWarning>
                 <AppProviders>
                     <StyledComponentsRegistry>{children}</StyledComponentsRegistry>
                 </AppProviders>

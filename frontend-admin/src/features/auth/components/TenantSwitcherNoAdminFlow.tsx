@@ -127,17 +127,19 @@ export function TenantSwitcherNoAdminFlow({
                     />
                 ) : null}
             </Modal>
-            <CreateUserModal
-                open={createOpen}
-                variant="tenantDetail"
-                tenantId={tenant?.id}
-                showOwnerToggle
-                confirmLoading={createMutation.isPending}
-                onClose={() => setCreateOpen(false)}
-                onComplete={handleCreateComplete}
-                onSubmit={(values) => createMutation.mutateAsync(values)}
-                initialValues={createInitialValues}
-            />
+            {createOpen && tenant ? (
+                <CreateUserModal
+                    open
+                    variant="tenantDetail"
+                    tenantId={tenant.id}
+                    showOwnerToggle
+                    confirmLoading={createMutation.isPending}
+                    onClose={() => setCreateOpen(false)}
+                    onComplete={handleCreateComplete}
+                    onSubmit={(values) => createMutation.mutateAsync(values)}
+                    initialValues={createInitialValues}
+                />
+            ) : null}
         </>
     );
 }

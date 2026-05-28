@@ -1,4 +1,5 @@
 using KasseAPI_Final.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services.Activity;
 
@@ -15,13 +16,16 @@ public interface IActivityEventPublisher
 }
 
 /// <summary>Fire-and-forget wrapper so primary flows never fail on activity feed errors.</summary>
-public sealed class ActivityEventRecorder : IActivityEventPublisher{
-    private readonly IActivityEventService _activity;
+public sealed class ActivityEventRecorder : IActivityEventPublisher
+{
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ActivityEventRecorder> _logger;
 
-    public ActivityEventRecorder(IActivityEventService activity, ILogger<ActivityEventRecorder> logger)
+    public ActivityEventRecorder(
+        IServiceScopeFactory scopeFactory,
+        ILogger<ActivityEventRecorder> logger)
     {
-        _activity = activity;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -48,7 +52,9 @@ public sealed class ActivityEventRecorder : IActivityEventPublisher{
     {
         try
         {
-            await _activity.PublishAsync(request, cancellationToken).ConfigureAwait(false);
+            using var scope = _scopeFactory.CreateScope();
+            var activity = scope.ServiceProvider.GetRequiredService<IActivityEventService>();
+            await activity.PublishAsync(request, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

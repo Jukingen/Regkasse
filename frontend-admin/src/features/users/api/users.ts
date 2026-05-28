@@ -11,28 +11,18 @@ import {
     type CreateTenantUserRequest,
     type CreateTenantUserResult,
 } from '@/features/super-admin/api/tenantUsers';
-import type { UserInfo } from '@/api/generated/model';
+import type { AdminUserDto as GeneratedAdminUserDto, UserInfo } from '@/api/generated/model';
 
-export type AdminUserDto = {
-    id: string;
-    userName?: string | null;
-    email?: string | null;
-    firstName?: string | null;
-    lastName?: string | null;
-    employeeNumber?: string | null;
-    role?: string | null;
-    taxNumber?: string | null;
-    notes?: string | null;
-    isActive: boolean;
-    createdAt?: string;
-    lastLoginAt?: string | null;
+/**
+ * Admin user row from GET /api/admin/users.
+ * Extends OpenAPI {@link GeneratedAdminUserDto} (`userName`, `tenantName`, …).
+ * `twoFactorEnabled` is not yet in the OpenAPI schema.
+ */
+export type AdminUserDto = GeneratedAdminUserDto & {
     twoFactorEnabled?: boolean;
-    tenantId?: string | null;
-    tenantName?: string | null;
-    tenantSlug?: string | null;
-    /** `Platform` or `Tenant` from GET /api/admin/users (unified list). */
-    userType?: string | null;
 };
+
+export type { GeneratedAdminUserDto };
 
 export type TenantUserRowDto = {
     userId: string;
@@ -165,12 +155,20 @@ export type AdminUserTenantMembership = {
 export const adminUsersQueryKeys = {
     all: (isActive?: boolean, role?: string, search?: string) =>
         ['admin', 'users', 'all', isActive ?? 'all', role ?? 'all', search ?? ''] as const,
+    detail: (userId: string) => ['admin', 'users', userId, 'detail'] as const,
     userTenants: (userId: string) => ['admin', 'users', userId, 'tenants'] as const,
     platform: (isActive?: boolean, search?: string) =>
         ['admin', 'users', 'platform', isActive ?? 'all', search ?? ''] as const,
     tenant: (tenantId?: string, role?: string, search?: string) =>
         ['admin', 'users', 'tenant', tenantId ?? 'all', role ?? 'all', search ?? ''] as const,
 };
+
+export async function getAdminUserById(userId: string): Promise<AdminUserDto> {
+    return customInstance<AdminUserDto>({
+        url: `/api/admin/users/${userId}`,
+        method: 'GET',
+    });
+}
 
 export async function getAdminUserTenants(userId: string): Promise<AdminUserTenantMembership[]> {
     const rows = await customInstance<
@@ -254,7 +252,7 @@ export async function removeUserFromTenant(tenantId: string, userId: string): Pr
 
 export function adminUserToUserInfo(dto: AdminUserDto): UserInfo {
     return {
-        id: dto.id,
+        id: dto.id ?? undefined,
         userName: dto.userName ?? undefined,
         email: dto.email ?? undefined,
         firstName: dto.firstName ?? '',
@@ -263,7 +261,7 @@ export function adminUserToUserInfo(dto: AdminUserDto): UserInfo {
         role: dto.role ?? undefined,
         taxNumber: dto.taxNumber ?? undefined,
         notes: dto.notes ?? undefined,
-        isActive: dto.isActive,
+        isActive: dto.isActive ?? false,
         createdAt: dto.createdAt,
         lastLoginAt: dto.lastLoginAt ?? undefined,
     };
@@ -323,6 +321,9 @@ export function useUpdateAdminUsernameMutation() {
             }),
         onSuccess: (_data, variables) => {
             void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+            void queryClient.invalidateQueries({
+                queryKey: adminUsersQueryKeys.detail(variables.userId),
+            });
             void queryClient.invalidateQueries({
                 queryKey: adminUsersQueryKeys.userTenants(variables.userId),
             });

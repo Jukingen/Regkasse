@@ -3,7 +3,7 @@
 import React from 'react';
 import { Typography } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { BackupDrDashboard } from '@/features/backup-dr/components/BackupDrDashboard';
+import { BackupManagementPanel } from '@/features/backup-management/components/BackupManagementPanel';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 
@@ -21,9 +21,9 @@ export default function BackupDrSettingsPage() {
         ]}
       />
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-        {t('backupDr.page.subtitle')}
+        {t('backupDr.management.pageSubtitle')}
       </Typography.Paragraph>
-      <BackupDrDashboard />
+      <BackupManagementPanel />
     </div>
   );
 }
