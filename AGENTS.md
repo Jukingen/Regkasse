@@ -4,10 +4,12 @@
 This repository is a POS monorepo. Prefer safe, incremental improvements over broad rewrites. Follow real package boundaries, preserve current architecture unless explicitly asked otherwise, and make the smallest safe change that satisfies the task.
 
 ## Cursor / AI Agent Integration
-- Cursor loads this file as an **always-applied workspace rule** — agents see it on every task.
+- Cursor loads **`AGENTS.md`** as an **always-applied workspace rule** — agents see it on every task.
+- **`.cursorrules`** is a thin redirect stub only; do not duplicate rules there.
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`** and relevant docs under `ai/`.
-- `.cursorrules` is a supplementary legacy rules file; prefer **AGENTS.md** when they conflict on agent workflow.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
+
+**Last updated:** 2026-05-29
 
 ## Language Rules
 Follow these language rules strictly:
@@ -152,6 +154,9 @@ curl http://localhost:5184/api/health?tenant=test_cafe
 // Use this:
 { "loginIdentifier": "manager1", "password": "..." }
 // loginIdentifier can be email OR username (case-insensitive)
+
+// Deprecated (do not use in new code):
+{ "email": "user@example.com", "password": "..." }
 ```
 
 ### Username Rules
@@ -208,13 +213,26 @@ Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `Ca
 ### Data Retention
 - Audit logs: minimum 7 years
 - Payment data: minimum 7 years
+- User data: keep until account deletion; preserve when legal hold applies
 
 ## Fiscal Rules (RKSV/TSE)
 
 ### RKSV Special Receipts
 - `Nullbeleg`, `Startbeleg`, `Monatsbeleg`, `Jahresbeleg`, `Schlussbeleg` MUST each include TSE signature
 - `Monatsbeleg` MUST be created within 7 days of month end
-- `Jahresbeleg` MUST be created by January 31st
+- `Jahresbeleg` MUST be created by January 31st of the following year
+- Show admin warning 14 days before RKSV deadline; email alert 7 days before deadline
+
+### FinanzOnline Rules
+- Production mode MUST use real SOAP submission
+- Test mode MUST use simulation (`FinanzOnline:Mode=Simulation`)
+- Failed submissions MUST retry with exponential backoff (maximum 5 attempts)
+- Submission status MUST be visible in admin panel
+
+### Signature Chain Validation
+- Receipt numbers MUST be sequential per register
+- Duplicate receipt numbers are forbidden
+- Any detected gap MUST be logged and trigger an alert
 
 ### TSE Requirements
 - Every fiscal receipt MUST have TSE signature
@@ -245,6 +263,19 @@ Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `Ca
 - Daily automated backup is mandatory per tenant
 - Manual backup can be triggered by authorized roles only
 - Backup metadata MUST include `tenant_id`, `triggered_by`, `started_at_utc`, `finished_at_utc`, `status`
+- Sensitive data in backup manifests/logs MUST be masked
+
+### Backup Permissions
+| Action | Tenant Admin | Super Admin |
+|--------|--------------|-------------|
+| View own tenant backups | Yes | Yes |
+| View all tenant backups | No | Yes |
+| Trigger tenant backup | Yes | Yes |
+| Trigger full system backup | No | Yes |
+| Modify backup schedule | Yes (own tenant) | Yes (global) |
+| Delete backup | No | Yes |
+| Request restore | No | Yes (requires second approval) |
+| Approve restore | No | Yes (second Super Admin) |
 
 ### Backup Types
 | Type | Scope | Who Can Trigger |
@@ -258,6 +289,7 @@ Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `Ca
 - Restore requires two SuperAdmin approvals
 - Restore target must be isolated/test database only
 - Every restore request/approval/execution step MUST be written to full audit trail
+- Restore operations MUST use correlation IDs for end-to-end tracing
 - Cross-tenant restore is forbidden unless explicit Super Admin recovery workflow
 
 ### Backup Status (`BackupRunStatus`)
@@ -274,6 +306,11 @@ externalArchiveRoot: "/backup/archive"  # Super Admin only
 
 ## Activity Feed & Notifications
 
+### Activity Feed
+- Important business and security events MUST be written to activity feed
+- Feed entries MUST be tenant-scoped and permission-filtered
+- Feed payloads must avoid raw secrets and sensitive payment data
+
 ### Event Types to Track
 - User actions (create, update, delete, username change)
 - Cash register actions (open, close, decommission)
@@ -285,6 +322,12 @@ externalArchiveRoot: "/backup/archive"  # Super Admin only
 - Critical failures (TSE/RKSV, backup, restore, auth anomalies) MUST generate notifications
 - Use Server-Sent Events (SSE) for in-app notifications
 - Optional email channel for critical events
+- Optional outbound webhooks (Slack/Discord/Teams) when configured
+
+### Permissions UI (Admin)
+- Show/hide frontend elements based on `hasPermission()`
+- Redirect unauthorized users to 403 page
+- Denied access attempts MUST be written to audit log
 
 ## Security Rules
 
@@ -293,6 +336,7 @@ externalArchiveRoot: "/backup/archive"  # Super Admin only
 - Client-side validation is UX-only and is NOT a security boundary
 - Username regex: `^[a-zA-Z0-9_-]{3,50}$`
 - Email format: RFC 5322 compliant
+- Tax number regex: `^ATU\d{8}$`
 
 ### Session Management
 - Use JWT with 24h expiry
@@ -314,10 +358,13 @@ User-facing errors (German):
 - `Benutzername oder Passwort ist falsch`
 - `Sie haben keine Berechtigung für diese Aktion`
 - `Das Backup ist fehlgeschlagen. Bitte kontaktieren Sie den Support.`
+- `Die TSE-Signatur konnte nicht erstellt werden`
 
 Technical logs (English):
 - `User login failed: invalid credentials`
 - `Permission denied for user {id} on resource {resource}`
+- `Backup failed: pg_dump exited with code {code}`
+- `TSE signature creation timeout after 30s`
 
 ## Directory Hints
 Before editing in each area, inspect these first:
@@ -354,6 +401,7 @@ Use `/ai` docs selectively based on the task:
 - Payment processing (money, rounding, idempotency)
 - TSE signature chain (fiscal compliance)
 - RKSV special receipts
+- Decommissioned register lifecycle (no new sessions/payments)
 - Voucher ledger balance integrity
 - FinanzOnline outbox SOAP submission flow
 - Tenant isolation (query filters, 404 semantics)
@@ -368,6 +416,57 @@ Use `/ai` docs selectively based on the task:
 - Do not commit secrets
 - Do not delete columns directly; mark as `is_deleted` or deprecated
 - Do not modify existing migration files after they are committed
+- Use additive schema changes only (new columns, new tables)
+- Perform data backfill in separate migration/step from schema introduction
+
+## Database Baseline Rules
+- `id uuid PRIMARY KEY`, `created_at timestamptz NOT NULL DEFAULT now()`, `updated_at timestamptz`
+- `is_active boolean NOT NULL DEFAULT true`
+- `tenant_id uuid REFERENCES tenants(id)` on tenant-scoped tables (indexed)
+- All foreign keys MUST have indexes
+
+## Frontend-Admin (FA) Conventions
+- Routes: `frontend-admin/src/app/(protected)/`
+- Features: `frontend-admin/src/features/{domain}/` (components, api hooks)
+- TanStack Query for server state; Zustand for UI prefs only — never store secrets in Zustand
+- Generate API client: `cd frontend-admin && npm run generate:api`
+
+## Frontend-POS (FE) Conventions
+- Routes: `frontend/app/(tabs)/`
+- Offline queue: persist across restarts; never store plain-text voucher codes offline
+- TSE via fiskaly API; offline sync when connectivity restored
+
+## Quick Reference
+
+### Useful Commands
+```bash
+# Backend
+dotnet run --project backend/KasseAPI_Final.csproj
+dotnet ef migrations add <Name> --project backend
+dotnet test
+
+# Frontend Admin
+cd frontend-admin && npm run dev
+cd frontend-admin && npm run generate:api
+cd frontend-admin && npm run test
+
+# Frontend POS
+cd frontend && npm start
+cd frontend && npm run test
+```
+
+### Useful API Endpoints (dev)
+```bash
+curl http://localhost:5184/api/health
+curl -H "X-Tenant-Id: test_cafe" http://localhost:5184/api/tenants/switcher
+curl -X POST http://localhost:5184/api/Auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"loginIdentifier":"admin","password":"***"}'
+curl -X POST http://localhost:5184/api/admin/backup/trigger \
+  -H "Authorization: Bearer ***"
+curl http://localhost:5184/api/admin/activities/unread-count \
+  -H "Authorization: Bearer ***"
+```
 
 ## Validation Commands
 Run from repository root when relevant:
