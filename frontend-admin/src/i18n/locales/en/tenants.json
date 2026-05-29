@@ -200,6 +200,10 @@
       "autoDemoSetup": {
         "label": "Create demo products and register automatically",
         "tooltip": "Creates main register and three demo products (recommended)"
+      },
+      "importDemoProducts": {
+        "label": "Import demo products automatically",
+        "tooltip": "Imports the full demo menu (salads, pizzas, pasta, kebab, …) instead of only three sample products"
       }
     }
   },
@@ -207,6 +211,7 @@
     "title": "Tenant “{{name}}” provisioned",
     "successTitle": "Tenant created",
     "successHeadline": "Customer “{{name}}” was created successfully!",
+    "demoMenuImported": "Demo menu imported: {{count}} products across demo categories.",
     "missingWarning": "Automatic setup could not be confirmed. Please verify the tenant or contact support.",
     "passwordWarning": "This password is shown only NOW, once!",
     "credentialsTitle": "Credentials (one-time display!)",

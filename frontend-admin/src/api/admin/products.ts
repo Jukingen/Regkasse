@@ -343,3 +343,73 @@ export function useUpdateAdminProductStock(
     ...opts,
   });
 }
+
+export type DemoProductImportResult = {
+  success: boolean;
+  created: number;
+  updated: number;
+  skipped: number;
+  selectedCategoryCount?: number;
+  totalProductCount?: number;
+  categorySummaries?: Array<{
+    categoryName: string;
+    productCount: number;
+    created: number;
+    skipped: number;
+  }>;
+  errorMessage?: string | null;
+  categoryIds?: string[];
+  productIds?: string[];
+};
+
+export type DemoImportRequest = {
+  overwriteExisting?: boolean;
+  selectedCategories?: string[];
+  excludedCategories?: string[];
+  selectedProductIds?: string[];
+};
+
+export type DemoImportCatalogCategory = {
+  name: string;
+  description?: string | null;
+  sortOrder: number;
+  productCount: number;
+};
+
+export type DemoImportCatalog = {
+  categories: DemoImportCatalogCategory[];
+  products: Array<{
+    id: string;
+    name: string;
+    category: string;
+    price: number;
+    taxRate: number;
+  }>;
+};
+
+/** Demo menu catalog for import selection UI. */
+export function getDemoImportCatalog(
+  options?: SecondParameter<typeof customInstance>,
+  signal?: AbortSignal,
+): Promise<DemoImportCatalog> {
+  return customInstance<DemoImportCatalog>(
+    { url: `${ADMIN_PRODUCTS}/demo/catalog`, method: 'GET', signal },
+    options,
+  ).then((res) => unwrapData<DemoImportCatalog>(res));
+}
+
+/** Import demo menu for the current tenant (JWT / dev tenant context). */
+export function importDemoProducts(
+  request: DemoImportRequest = {},
+  options?: SecondParameter<typeof customInstance>,
+): Promise<DemoProductImportResult> {
+  return customInstance<DemoProductImportResult>(
+    {
+      url: `${ADMIN_PRODUCTS}/demo/import`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: request,
+    },
+    options,
+  ).then((res) => unwrapData<DemoProductImportResult>(res));
+}

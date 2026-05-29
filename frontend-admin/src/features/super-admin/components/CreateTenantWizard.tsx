@@ -35,6 +35,7 @@ export type CreateTenantFormValues = {
     address?: string;
     grantTrialLicense: boolean;
     autoDemoSetup: boolean;
+    importDemoProducts: boolean;
 };
 
 export type CreateTenantWizardProps = {
@@ -127,6 +128,7 @@ export function CreateTenantWizard({
             form.setFieldsValue({
                 grantTrialLicense: true,
                 autoDemoSetup: true,
+                importDemoProducts: true,
             });
         }
     }, [open, form, resetFlow, phase]);
@@ -159,6 +161,7 @@ export function CreateTenantWizard({
             phone: values.phone?.trim() || undefined,
             address: values.address?.trim() || undefined,
             grantTrialLicense: grantTrial,
+            importDemoMenu: values.importDemoProducts ?? true,
         });
     };
 
@@ -230,7 +233,7 @@ export function CreateTenantWizard({
                     form={form}
                     layout="vertical"
                     requiredMark="optional"
-                    initialValues={{ grantTrialLicense: true, autoDemoSetup: true }}
+                    initialValues={{ grantTrialLicense: true, autoDemoSetup: true, importDemoProducts: true }}
                     onFinish={submitFromForm}
                 >
                     <TenantFormFields form={form} open={open} fieldState={formFields} />

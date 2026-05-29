@@ -58,4 +58,8 @@
     <ProjectReference Include="..\tools\LicenseGenerator.Core\LicenseGenerator.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="Data\demo-products.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

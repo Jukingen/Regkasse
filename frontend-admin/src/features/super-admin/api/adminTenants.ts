@@ -97,6 +97,8 @@ export type CreateAdminTenantRequest = {
     adminEmail?: string | null;
     adminPassword?: string | null;
     grantTrialLicense?: boolean;
+    /** When true, imports full demo menu (Salate, Pizzas, …) instead of three generic demo products. */
+    importDemoMenu?: boolean;
 };
 
 export type UpdateAdminTenantRequest = {
@@ -191,6 +193,43 @@ export async function hardDeleteAdminTenantDevelopment(tenantId: string): Promis
 export async function impersonateAdminTenant(tenantId: string): Promise<TenantImpersonationResponse> {
     const { data } = await AXIOS_INSTANCE.post<TenantImpersonationResponse>(
         `/api/admin/tenants/${tenantId}/impersonate`,
+    );
+    return data;
+}
+
+export type DemoProductImportResult = {
+    success: boolean;
+    created: number;
+    updated: number;
+    skipped: number;
+    selectedCategoryCount?: number;
+    totalProductCount?: number;
+    categorySummaries?: Array<{
+        categoryName: string;
+        productCount: number;
+        created: number;
+        skipped: number;
+    }>;
+    errorMessage?: string | null;
+    categoryIds?: string[];
+    productIds?: string[];
+};
+
+export type DemoImportRequest = {
+    overwriteExisting?: boolean;
+    selectedCategories?: string[];
+    excludedCategories?: string[];
+    selectedProductIds?: string[];
+};
+
+/** Super-admin: import demo menu into a specific tenant. */
+export async function importDemoProductsForTenant(
+    tenantId: string,
+    request: DemoImportRequest = {},
+): Promise<DemoProductImportResult> {
+    const { data } = await AXIOS_INSTANCE.post<DemoProductImportResult>(
+        `/api/admin/tenants/${tenantId}/demo-products/import`,
+        request,
     );
     return data;
 }

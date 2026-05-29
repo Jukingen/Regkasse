@@ -200,6 +200,10 @@
       "autoDemoSetup": {
         "label": "Demo ürünler ve kasayı otomatik oluştur",
         "tooltip": "Ana kasa ve üç demo ürün oluşturur (önerilir)"
+      },
+      "importDemoProducts": {
+        "label": "Demo ürünleri otomatik içe aktar",
+        "tooltip": "Yalnızca üç örnek ürün yerine tam demo menüsünü (salatalar, pizzalar, makarna, kebap, …) içe aktarır"
       }
     }
   },
@@ -207,6 +211,7 @@
     "title": "“{{name}}” kiracısı hazırlandı",
     "successTitle": "Kiracı oluşturuldu",
     "successHeadline": "“{{name}}” müşterisi başarıyla oluşturuldu!",
+    "demoMenuImported": "Demo menü içe aktarıldı: demo kategorilerinde {{count}} ürün oluşturuldu.",
     "missingWarning": "Otomatik kurulum doğrulanamadı. Kiracıyı elle kontrol edin veya destekle iletişime geçin.",
     "passwordWarning": "Bu şifre yalnızca ŞİMDİ, bir kez gösterilir!",
     "credentialsTitle": "Erişim bilgileri (tek seferlik!)",

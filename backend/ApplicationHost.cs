@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging.EventLog;
 using Prometheus;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -133,6 +134,13 @@ internal static class ApplicationHost
         }
 
         var isDevelopment = builder.Environment.IsDevelopment();
+
+        // On Windows, EventLog provider can throw ObjectDisposedException during shutdown races
+        // when background services still emit logs. Keep other providers active and mute EventLog.
+        if (OperatingSystem.IsWindows())
+        {
+            builder.Logging.AddFilter<EventLogLoggerProvider>(null, LogLevel.None);
+        }
 
 // Configuration Binding
 builder.Services.AddScoped<ICompanyProfileProvider, CompanyProfileProvider>();
@@ -379,6 +387,7 @@ builder.Services.AddScoped<ITenantUserService, TenantUserService>();
 builder.Services.AddSingleton<IBulkUserImportResultStore, BulkUserImportResultStore>();
 builder.Services.AddSingleton<IBulkUserImportJobManager, BulkUserImportJobManager>();
 builder.Services.AddScoped<IBulkUserImportService, BulkUserImportService>();
+builder.Services.AddScoped<IDemoProductImportService, DemoProductImportService>();
 builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
 builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
 builder.Services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();

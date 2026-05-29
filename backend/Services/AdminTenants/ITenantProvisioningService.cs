@@ -13,5 +13,6 @@ public interface ITenantProvisioningService
         string? adminEmail,
         string? adminPassword,
         bool grantTrialLicense,
+        bool importDemoMenu = false,
         CancellationToken cancellationToken = default);
 }

@@ -200,6 +200,10 @@
       "autoDemoSetup": {
         "label": "Demo-Produkte und Kasse automatisch anlegen",
         "tooltip": "Legt Hauptkasse und drei Demo-Produkte an (empfohlen)"
+      },
+      "importDemoProducts": {
+        "label": "Demo-Produkte automatisch importieren",
+        "tooltip": "Importiert das vollständige Demo-Menü (Salate, Pizzen, Pasta, Kebap, …) statt nur drei Beispielprodukte"
       }
     }
   },
@@ -207,6 +211,7 @@
     "title": "Mandant „{{name}}“ eingerichtet",
     "successTitle": "Mandant angelegt",
     "successHeadline": "Kunde „{{name}}“ wurde erfolgreich angelegt!",
+    "demoMenuImported": "Demo-Menü importiert: {{count}} Produkte angelegt.",
     "missingWarning": "Die automatische Einrichtung konnte nicht bestätigt werden. Bitte Mandant prüfen oder Support kontaktieren.",
     "passwordWarning": "Dieses Passwort wird nur JETZT einmal angezeigt!",
     "credentialsTitle": "Zugangsdaten (einmalige Anzeige!)",

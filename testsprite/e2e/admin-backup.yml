@@ -1,0 +1,60 @@
+name: "Admin Panel - Backup Management"
+description: "Backup dashboard and operations"
+
+tests:
+  - name: "Navigate to backup page"
+    url: "http://localhost:3000/admin/backup"
+    actions:
+      - type: "navigate"
+        url: "http://localhost:3000/admin/backup"
+    expected:
+      element: ".backup-page"
+      text: "Backup & Wiederherstellung"
+
+  - name: "Trigger manual backup"
+    actions:
+      - type: "click"
+        selector: "button:contains('Backup starten')"
+      - type: "click"
+        selector: ".ant-dropdown-menu-item:contains('Backup jetzt starten')"
+      - type: "click"
+        selector: ".ant-modal button:contains('OK')"
+    expected:
+      element: ".ant-message-success"
+      text: "Backup wurde gestartet"
+
+  - name: "Verify backup appears in list"
+    actions:
+      - type: "wait"
+        milliseconds: 5000
+      - type: "refresh"
+    expected:
+      element: "table tr:first-child td:contains('Succeeded|Running|Queued')"
+
+  - name: "View backup details"
+    actions:
+      - type: "click"
+        selector: "table tr:first-child button:contains('Details')"
+    expected:
+      element: ".ant-modal"
+      text: "Backup Details"
+      text: "Status"
+      text: "Artifakte"
+
+  - name: "Update backup configuration"
+    actions:
+      - type: "scroll"
+        selector: ".ant-collapse-header:contains('Backup Konfiguration')"
+      - type: "click"
+        selector: ".ant-collapse-header:contains('Backup Konfiguration')"
+      - type: "switch"
+        selector: "#enabled"
+        value: true
+      - type: "fill"
+        selector: "#scheduleCron"
+        value: "0 2 * * *"
+      - type: "click"
+        selector: "button:contains('Einstellungen speichern')"
+    expected:
+      element: ".ant-message-success"
+      text: "Backup Einstellungen gespeichert"

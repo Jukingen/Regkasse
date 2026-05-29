@@ -1,0 +1,63 @@
+name: "User Management"
+description: "Create, update, delete users"
+
+tests:
+  - name: "Create user with auto-generated username"
+    endpoint: "POST /api/admin/users"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    body:
+      email: "e2e-test-{{timestamp}}@test.com"
+      role: "Manager"
+      tenantId: "22222222-2222-2222-2222-222222222222"
+    expected:
+      status: 201
+      body:
+        userId: "exists"
+        userName: "manager{{number}}"  # Pattern match
+        generatedPassword: "exists"
+
+  - name: "Create user with custom username"
+    endpoint: "POST /api/admin/users"
+    body:
+      email: "custom-{{timestamp}}@test.com"
+      userName: "customuser_{{timestamp}}"
+      role: "Cashier"
+    expected:
+      status: 201
+      body:
+        userName: "customuser_{{timestamp}}"
+
+  - name: "Duplicate username returns 400"
+    endpoint: "POST /api/admin/users"
+    body:
+      email: "duplicate@test.com"
+      userName: "existing_user"
+      role: "Cashier"
+    expected:
+      status: 400
+      body:
+        error: "Username already taken"
+
+  - name: "Update username with audit"
+    endpoint: "PATCH /api/admin/users/{{userId}}/username"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    body:
+      newUsername: "updated_{{timestamp}}"
+      reason: "Test reason"
+    expected:
+      status: 200
+      body:
+        oldUsername: "exists"
+        newUsername: "updated_{{timestamp}}"
+
+  - name: "Generate temporary password"
+    endpoint: "POST /api/admin/users/{{userId}}/generate-temporary-password"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    expected:
+      status: 200
+      body:
+        generatedPassword: "exists"
+        forcePasswordChangeOnNextLogin: true

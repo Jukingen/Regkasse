@@ -1,0 +1,46 @@
+name: "Backup & Restore"
+description: "Backup operations and verification"
+
+tests:
+  - name: "Trigger manual backup"
+    endpoint: "POST /api/admin/backup/trigger"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    expected:
+      status: 200
+      body:
+        run:
+          id: "exists"
+          status: "Queued"
+
+  - name: "Get backup status"
+    endpoint: "GET /api/admin/backup/status/latest"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    expected:
+      status: 200
+      body:
+        latestRun: "exists"
+        configurationHealth:
+          level: "Healthy|Degraded"
+
+  - name: "List backup runs"
+    endpoint: "GET /api/admin/backup/runs?page=1&pageSize=10"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    expected:
+      status: 200
+      body:
+        items: "array"
+        totalCount: "number"
+
+  - name: "Get backup configuration"
+    endpoint: "GET /api/admin/backup/settings"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    expected:
+      status: 200
+      body:
+        enabled: "boolean"
+        scheduleCron: "string|null"
+        retentionDays: "number"

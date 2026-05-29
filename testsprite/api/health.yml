@@ -1,0 +1,51 @@
+name: "API Health & Authentication"
+description: "Verify backend is reachable and auth works"
+
+tests:
+  - name: "Health check returns 200"
+    endpoint: "GET /api/health"
+    expected:
+      status: 200
+      body:
+        status: "Healthy"
+
+  - name: "Login with email works"
+    endpoint: "POST /api/Auth/login"
+    body:
+      loginIdentifier: "superadmin@regkasse.at"
+      password: "***"
+      clientApp: "admin"
+    expected:
+      status: 200
+      body:
+        token: "exists"
+        refreshToken: "exists"
+
+  - name: "Login with username works"
+    endpoint: "POST /api/Auth/login"
+    body:
+      loginIdentifier: "testsprite_admin"
+      password: "***"
+      clientApp: "admin"
+    expected:
+      status: 200
+      body:
+        token: "exists"
+
+  - name: "Invalid login returns 400"
+    endpoint: "POST /api/Auth/login"
+    body:
+      loginIdentifier: "invalid@example.com"
+      password: "wrong"
+    expected:
+      status: 400
+
+  - name: "Get current user info"
+    endpoint: "GET /api/Auth/me"
+    headers:
+      Authorization: "Bearer {{token}}"
+    expected:
+      status: 200
+      body:
+        email: "testsprite@regkasse.at"
+        role: "SuperAdmin"

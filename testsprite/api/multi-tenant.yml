@@ -1,0 +1,28 @@
+name: "Multi-Tenant Isolation"
+description: "Verify tenant data isolation"
+
+tests:
+  - name: "Tenant switcher returns tenants"
+    endpoint: "GET /api/tenants/switcher"
+    headers:
+      X-Tenant-Id: "test_cafe"
+    expected:
+      status: 200
+      body: "array"
+      minLength: 1
+
+  - name: "Cross-tenant access returns 404 (not 403)"
+    endpoint: "GET /api/admin/payments/{{otherTenantPaymentId}}"
+    headers:
+      Authorization: "Bearer {{tenantAdminToken}}"
+    expected:
+      status: 404  # NOT 403 - security by obscurity
+
+  - name: "Super Admin can see all tenants"
+    endpoint: "GET /api/admin/tenants"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    expected:
+      status: 200
+      body: "array"
+      minLength: 2

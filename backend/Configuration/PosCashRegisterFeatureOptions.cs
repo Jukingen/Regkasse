@@ -29,4 +29,7 @@ public sealed class PosCashRegisterFeatureOptions
     /// Opening balance recorded on auto-open shift transaction (product default: 0).
     /// </summary>
     public decimal DefaultAutoOpenOpeningBalance { get; set; }
+
+    /// <summary>Safe fallback when no ambient tenant context is available (no DB read or create).</summary>
+    public static PosCashRegisterFeatureOptions Default { get; } = new();
 }

@@ -89,6 +89,9 @@ public sealed class CreateAdminTenantRequest
 
     /// <summary>When true and no license end date is set, grants a 30-day trial on the tenant row.</summary>
     public bool GrantTrialLicense { get; set; } = true;
+
+    /// <summary>When true, imports the full demo menu (Salate, Pizzas, Pasta, …) instead of three generic demo products.</summary>
+    public bool ImportDemoMenu { get; set; }
 }
 
 public sealed class HardDeleteAdminTenantRequest

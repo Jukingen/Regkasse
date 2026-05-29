@@ -202,3 +202,14 @@ backend/CreateTableOrderTables.sql
 **/.next/
 .next/cache/
 **/.next/cache/
+
+# TestSprite outputs
+/test-results/
+/test-screenshots/
+/test-videos/
+testsprite.log
+
+# Test data artifacts
+/test-temp/
+*.test.db
+testsprite_tests\tmp\config.json

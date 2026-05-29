@@ -20,6 +20,7 @@ import {
     ArrowLeftOutlined,
     DeleteOutlined,
     EditOutlined,
+    ImportOutlined,
     LoginOutlined,
     ReloadOutlined,
 } from '@ant-design/icons';
@@ -55,6 +56,7 @@ import {
 } from '@/features/super-admin/components/TenantDetailTabs';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import { DemoImportModal } from '@/features/tenants/components/DemoImportModal';
 
 const TENANT_DETAIL_QUERY_KEY = ['admin', 'tenant-detail'] as const;
 
@@ -70,6 +72,7 @@ export default function SuperAdminTenantDetailPage() {
     const displayTab: TenantDetailTabKey =
         activeTab === TENANT_DETAIL_LEGACY_USERS_TAB ? 'overview' : activeTab;
     const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
+    const [demoImportOpen, setDemoImportOpen] = useState(false);
 
     const canAccess =
         isSuperAdmin(user?.role) || hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
@@ -83,6 +86,11 @@ export default function SuperAdminTenantDetailPage() {
     const invalidateTenant = useCallback(() => {
         void queryClient.invalidateQueries({ queryKey: [...TENANT_DETAIL_QUERY_KEY, tenantId] });
         void queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+    }, [queryClient, tenantId]);
+
+    const refetchProducts = useCallback(() => {
+        void queryClient.invalidateQueries({ queryKey: ['products', tenantId] });
+        void queryClient.invalidateQueries({ queryKey: ['categories', tenantId] });
     }, [queryClient, tenantId]);
 
     const statusMutation = useMutation({
@@ -270,6 +278,12 @@ export default function SuperAdminTenantDetailPage() {
                         </Button>
                         {tenant && tenant.status !== 'deleted' ? (
                             <>
+                                <Button
+                                    icon={<ImportOutlined />}
+                                    onClick={() => setDemoImportOpen(true)}
+                                >
+                                    Demo Produkte importieren
+                                </Button>
                                 <Link href={buildAdminUsersPageHref(tenantId)}>
                                     <Button>{t('tenants.detail.overview.manageUsers')}</Button>
                                 </Link>
@@ -320,6 +334,20 @@ export default function SuperAdminTenantDetailPage() {
 
             {!tenantQuery.isLoading && !tenant && !tenantQuery.isError ? (
                 <Typography.Paragraph type="secondary">{t('tenants.users.errors.tenantNotFound')}</Typography.Paragraph>
+            ) : null}
+
+            {tenant ? (
+                <DemoImportModal
+                    open={demoImportOpen}
+                    tenantId={tenant.id}
+                    tenantName={tenant.name}
+                    onClose={() => setDemoImportOpen(false)}
+                    onSuccess={() => {
+                        refetchProducts();
+                        invalidateTenant();
+                        message.success('Demo-Produkte wurden erfolgreich importiert');
+                    }}
+                />
             ) : null}
         </AdminPageShell>
     );

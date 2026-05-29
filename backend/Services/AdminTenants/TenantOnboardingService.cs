@@ -143,6 +143,7 @@ public sealed class TenantOnboardingService : ITenantOnboardingService
                     request.AdminEmail,
                     request.AdminPassword,
                     request.GrantTrialLicense,
+                    request.ImportDemoMenu,
                     cancellationToken)
                 .ConfigureAwait(false);
 

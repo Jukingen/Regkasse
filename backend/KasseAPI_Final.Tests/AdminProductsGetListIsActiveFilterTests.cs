@@ -4,6 +4,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
@@ -83,7 +84,9 @@ public sealed class AdminProductsGetListIsActiveFilterTests
             Options.Create(new ProductMediaOptions()),
             new ProductImageThumbnailService(
                 Options.Create(new ProductMediaOptions()),
-                NullLogger<ProductImageThumbnailService>.Instance));
+                NullLogger<ProductImageThumbnailService>.Instance),
+            Mock.Of<IDemoProductImportService>(),
+            NullCurrentTenantAccessor.Instance);
 
     private static int ReadTotalCount(IActionResult result)
     {

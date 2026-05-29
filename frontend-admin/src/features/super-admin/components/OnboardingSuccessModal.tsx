@@ -88,6 +88,8 @@ export function OnboardingSuccessModal({
 
     const notifyEmail = success?.contactEmail?.trim() || success?.provisioning?.adminEmail;
     const welcomeEmailSent = success?.provisioning?.welcomeEmailSent === true;
+    const demoProductCount = success?.provisioning?.productIds?.length ?? 0;
+    const demoMenuImported = demoProductCount > 3;
 
     return (
         <Modal
@@ -124,6 +126,14 @@ export function OnboardingSuccessModal({
                         icon={<CheckCircleFilled />}
                         message={t('tenants.provisioning.successHeadline', { name: success.tenantName })}
                     />
+
+                    {demoMenuImported ? (
+                        <Alert
+                            type="info"
+                            showIcon
+                            message={t('tenants.provisioning.demoMenuImported', { count: demoProductCount })}
+                        />
+                    ) : null}
 
                     {!success.provisioning ? (
                         <Alert type="warning" showIcon message={t('tenants.provisioning.missingWarning')} />

@@ -1,0 +1,40 @@
+{
+  "categories": [
+    { "name": "Salate", "description": "Alle Salate werden mit einem Dressing nach Wahl zubereitet.", "sortOrder": 1 },
+    { "name": "Stangerl", "description": "Alle Stangerl werden mit Tomaten, Käse und Oregano zubereitet.", "sortOrder": 2 },
+    { "name": "Baguettes", "description": "Alle Baguettes werden mit Tomaten, Käse und Oregano zubereitet.", "sortOrder": 3 },
+    { "name": "Calzone", "description": "Alle Calzonen werden mit Tomaten, Käse und Oregano zubereitet.", "sortOrder": 4 },
+    { "name": "Pizza-mittel", "description": "Ø 36cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", "sortOrder": 5 },
+    { "name": "Pizza-Partner", "description": "Ø 40cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", "sortOrder": 6 },
+    { "name": "Familien-Pizza", "description": "Ø 50cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", "sortOrder": 7 },
+    { "name": "Mexikanische-Pizza-mittel", "description": "Ø 36cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.", "sortOrder": 8 },
+    { "name": "Mexikanische-Pizza-Partner", "description": "Ø 40cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.", "sortOrder": 9 },
+    { "name": "Pasta", "description": "Alle Gerichte werden mit einer Nudelsorte nach Wahl zubereitet.", "sortOrder": 10 },
+    { "name": "Imbiss", "description": "Alle Gerichte werden mit einem Dip nach Wahl serviert.", "sortOrder": 11 },
+    { "name": "Burger", "description": "Alle Burger werden mit Pommes frites serviert.", "sortOrder": 12 },
+    { "name": "Kebap", "description": "Alle Gerichte werden mit Salat, Tomaten, Zwiebeln, Rotkraut und einer Sauce nach Wahl zubereitet.", "sortOrder": 13 },
+    { "name": "Desserts", "description": "", "sortOrder": 14 },
+    { "name": "Alkoholfreie-Getrnke", "description": "", "sortOrder": 15 }
+  ],
+  "products": [
+    { "name": "chefsalat", "description": "grüner Salat mit Kebapfleisch, Zwiebeln, Tomaten, Schafskäse, Gurken und Paprika, dazu ein Stangerlbrot", "price": 9.50, "taxRate": 10, "category": "Salate" },
+    { "name": "thunfischsalat", "description": "grüner Salat mit Thunfisch, Tomaten, Gurken, Oliven und Zwiebeln, dazu ein Stangerlbrot", "price": 9.00, "taxRate": 10, "category": "Salate" },
+    { "name": "salat capricciosa", "description": "grüner Salat mit Schinken, Ei, Tomaten und Gurken, dazu ein Stangerlbrot", "price": 9.00, "taxRate": 10, "category": "Salate" },
+    { "name": "bauernsalat", "description": "grüner Salat mit Schafskäse, Oliven, Tomaten und Gurken, dazu ein Stangerlbrot", "price": 9.00, "taxRate": 10, "category": "Salate" },
+    { "name": "spinat-stangerl", "description": "mit Schafskäse und Knoblauch", "price": 9.00, "taxRate": 10, "category": "Stangerl" },
+    { "name": "thunfisch-stangerl", "description": "mit Zwiebeln und Knoblauch", "price": 9.00, "taxRate": 10, "category": "Stangerl" },
+    { "name": "schinken-stangerl", "description": "mit Schinken und Mais", "price": 9.00, "taxRate": 10, "category": "Stangerl" },
+    { "name": "pizza margherita", "description": "", "price": 9.80, "taxRate": 10, "category": "Pizza-mittel" },
+    { "name": "pizza al funghi", "description": "mit Champignons", "price": 10.80, "taxRate": 10, "category": "Pizza-mittel" },
+    { "name": "pizza prosciutto", "description": "mit Schinken", "price": 11.70, "taxRate": 10, "category": "Pizza-mittel" },
+    { "name": "pasta bolognese", "description": "mit Fleischsauce", "price": 9.50, "taxRate": 10, "category": "Pasta" },
+    { "name": "pasta carbonara", "description": "mit Schinken, Speck und Sahnesauce", "price": 9.50, "taxRate": 10, "category": "Pasta" },
+    { "name": "hamburger", "description": "mit 180g österreichischem Rindfleisch-Patty, Salat, Tomaten, Zwiebeln, Gurken und Haussauce", "price": 9.90, "taxRate": 10, "category": "Burger" },
+    { "name": "cheeseburger", "description": "mit 180g österreichischem Rindfleisch-Patty, Cheddar, Salat, Tomaten, Zwiebeln, Gurken und Haussauce", "price": 9.90, "taxRate": 10, "category": "Burger" },
+    { "name": "döner kebap", "description": "", "price": 5.40, "taxRate": 10, "category": "Kebap" },
+    { "name": "dürüm", "description": "", "price": 6.50, "taxRate": 10, "category": "Kebap" },
+    { "name": "schnitzel-teller", "description": "mit Pommes frites", "price": 11.00, "taxRate": 10, "category": "Imbiss" },
+    { "name": "coca cola 0,33l", "description": "", "price": 3.05, "taxRate": 20, "category": "Alkoholfreie-Getrnke" },
+    { "name": "fanta 0,5l", "description": "", "price": 3.25, "taxRate": 20, "category": "Alkoholfreie-Getrnke" }
+  ]
+}

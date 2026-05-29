@@ -8,8 +8,10 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Controllers.Base;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
 
@@ -30,6 +32,8 @@ namespace KasseAPI_Final.Controllers
         private readonly IWebHostEnvironment _hostEnvironment;
         private readonly IOptions<ProductMediaOptions> _productMediaOptions;
         private readonly ProductImageThumbnailService _productImageThumbnailService;
+        private readonly IDemoProductImportService _demoProductImportService;
+        private readonly ICurrentTenantAccessor _tenantAccessor;
 
         public AdminProductsController(
             AppDbContext context,
@@ -38,7 +42,9 @@ namespace KasseAPI_Final.Controllers
             ISettingsTenantResolver settingsTenantResolver,
             IWebHostEnvironment hostEnvironment,
             IOptions<ProductMediaOptions> productMediaOptions,
-            ProductImageThumbnailService productImageThumbnailService)
+            ProductImageThumbnailService productImageThumbnailService,
+            IDemoProductImportService demoProductImportService,
+            ICurrentTenantAccessor tenantAccessor)
             : base(logger)
         {
             _context = context;
@@ -47,6 +53,47 @@ namespace KasseAPI_Final.Controllers
             _hostEnvironment = hostEnvironment;
             _productMediaOptions = productMediaOptions;
             _productImageThumbnailService = productImageThumbnailService;
+            _demoProductImportService = demoProductImportService;
+            _tenantAccessor = tenantAccessor;
+        }
+
+        /// <summary>Demo menu catalog for import selection UI. GET api/admin/products/demo/catalog</summary>
+        [HttpGet("demo/catalog")]
+        [Authorize(Roles = Roles.SuperAdmin + "," + Roles.Manager)]
+        [ProducesResponseType(typeof(DemoImportCatalogDto), StatusCodes.Status200OK)]
+        public async Task<ActionResult<DemoImportCatalogDto>> GetDemoImportCatalog(
+            [FromServices] IDemoProductImportService importService,
+            CancellationToken cancellationToken = default)
+        {
+            var catalog = await importService.GetCatalogAsync(cancellationToken).ConfigureAwait(false);
+            return Ok(catalog);
+        }
+
+        /// <summary>
+        /// Import the demo menu catalog for the current tenant. POST api/admin/products/demo/import
+        /// </summary>
+        [HttpPost("demo/import")]
+        [Authorize(Roles = Roles.SuperAdmin + "," + Roles.Manager)]
+        [HasPermission(AppPermissions.ProductManage)]
+        [ProducesResponseType(typeof(ImportResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<ImportResult>> ImportDemoProducts(
+            [FromBody] DemoImportRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var tenantId = _tenantAccessor.TenantId;
+            if (tenantId == null)
+                return BadRequest(new { error = "No tenant context" });
+
+            var result = await _demoProductImportService
+                .ImportDemoProductsAsync(tenantId.Value, request, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!result.Success)
+                return StatusCode(StatusCodes.Status500InternalServerError, result);
+
+            return Ok(result);
         }
 
         /// <summary>

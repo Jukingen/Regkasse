@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
@@ -19,6 +20,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserTenantMembershipProvisioner _membershipProvisioner;
     private readonly IUserUniquenessValidationService _uniquenessValidation;
+    private readonly IDemoProductImportService _demoProductImport;
     private readonly ILogger<TenantProvisioningService> _logger;
 
     public TenantProvisioningService(
@@ -26,12 +28,14 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         UserManager<ApplicationUser> userManager,
         IUserTenantMembershipProvisioner membershipProvisioner,
         IUserUniquenessValidationService uniquenessValidation,
+        IDemoProductImportService demoProductImport,
         ILogger<TenantProvisioningService> logger)
     {
         _db = db;
         _userManager = userManager;
         _membershipProvisioner = membershipProvisioner;
         _uniquenessValidation = uniquenessValidation;
+        _demoProductImport = demoProductImport;
         _logger = logger;
     }
 
@@ -40,6 +44,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         string? adminEmail,
         string? adminPassword,
         bool grantTrialLicense,
+        bool importDemoMenu = false,
         CancellationToken cancellationToken = default)
     {
         var resolvedEmail = ResolveAdminEmail(tenant, adminEmail);
@@ -75,22 +80,52 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         };
         _db.CashRegisters.Add(cashRegister);
 
-        var category = new Category
+        Category category;
+        IReadOnlyList<Guid> productIds;
+
+        if (importDemoMenu)
         {
-            TenantId = tenant.Id,
-            Name = DefaultCategoryName,
-            VatRate = 20m,
-            SortOrder = 0,
-            CreatedAt = now,
-            IsActive = true,
-        };
-        _db.Categories.Add(category);
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            var importResult = await _demoProductImport
+                .ImportDemoProductsAsync(tenant.Id, new DemoImportRequest(), cancellationToken)
+                .ConfigureAwait(false);
 
-        var products = CreateDemoProducts(tenant.Id, category);
-        _db.Products.AddRange(products);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            if (!importResult.Success)
+            {
+                return (null, importResult.ErrorMessage ?? "Demo menu import failed.");
+            }
+
+            category = await _db.Categories
+                .IgnoreQueryFilters()
+                .Where(c => c.TenantId == tenant.Id)
+                .OrderBy(c => c.SortOrder)
+                .ThenBy(c => c.Name)
+                .FirstAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            productIds = importResult.ProductIds;
+        }
+        else
+        {
+            category = new Category
+            {
+                TenantId = tenant.Id,
+                Name = DefaultCategoryName,
+                VatRate = 20m,
+                SortOrder = 0,
+                CreatedAt = now,
+                IsActive = true,
+            };
+            _db.Categories.Add(category);
+
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+            var products = CreateDemoProducts(tenant.Id, category);
+            _db.Products.AddRange(products);
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            productIds = products.Select(p => p.Id).ToList();
+        }
 
         var adminUser = new ApplicationUser
         {
@@ -154,12 +189,13 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation(
-            "Provisioned tenant {TenantId} slug {Slug}: register {RegisterId}, admin {AdminUserId}, {ProductCount} demo products",
+            "Provisioned tenant {TenantId} slug {Slug}: register {RegisterId}, admin {AdminUserId}, {ProductCount} demo products (importDemoMenu={ImportDemoMenu})",
             tenant.Id,
             tenant.Slug,
             cashRegister.Id,
             adminUser.Id,
-            products.Count);
+            productIds.Count,
+            importDemoMenu);
 
         return (new TenantProvisioningResult
         {
@@ -169,7 +205,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             AdminEmail = resolvedEmail,
             GeneratedPassword = password,
             CategoryId = category.Id,
-            ProductIds = products.Select(p => p.Id).ToList(),
+            ProductIds = productIds,
             TrialLicenseValidUntilUtc = trialUntil,
         }, null);
     }

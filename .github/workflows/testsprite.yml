@@ -1,0 +1,69 @@
+name: TestSprite Automated Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM
+
+jobs:
+  testsprite-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup backend
+        run: |
+          cd backend
+          dotnet run --project KasseAPI_Final.csproj &
+          sleep 30
+      
+      - name: Run TestSprite API tests
+        run: |
+          npx testsprite run \
+            --config testsprite.config.json \
+            --suite api \
+            --reporters json,html \
+            --output ./test-results/api
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: testsprite-api-results
+          path: ./test-results/api
+
+  testsprite-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup backend
+        run: |
+          cd backend
+          dotnet run --project KasseAPI_Final.csproj &
+          sleep 30
+      
+      - name: Setup frontend-admin
+        run: |
+          cd frontend-admin
+          npm install
+          npm run build
+          npm run start &
+          sleep 30
+      
+      - name: Run TestSprite E2E tests
+        run: |
+          npx testsprite run \
+            --config testsprite.config.json \
+            --suite e2e \
+            --headless \
+            --reporters json,html \
+            --output ./test-results/e2e
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: testsprite-e2e-results
+          path: ./test-results/e2e

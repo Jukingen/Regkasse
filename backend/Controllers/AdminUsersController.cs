@@ -471,6 +471,20 @@ public partial class AdminUsersController : ControllerBase
             .ConfigureAwait(false);
         if (user == null)
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
+        if (_tenantAccessor.TenantId is Guid ambientTenantId)
+        {
+            var hasActiveMembershipInAmbientTenant = user.UserTenantMemberships.Any(m =>
+                m.IsActive
+                && m.TenantId == ambientTenantId
+                && m.Tenant != null
+                && m.Tenant.IsActive
+                && !string.Equals(m.Tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase));
+
+            if (!hasActiveMembershipInAmbientTenant)
+                return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+        }
+
         return Ok(ToDto(user, businessTenantIdSet));
     }
 

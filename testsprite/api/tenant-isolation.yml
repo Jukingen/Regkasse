@@ -1,0 +1,39 @@
+name: "Multi-Tenant Isolation"
+description: "Verify tenant data isolation and cross-tenant access"
+
+tests:
+  - name: "Tenant A cannot see Tenant B's users"
+    endpoint: "GET /api/admin/users"
+    headers:
+      Authorization: "Bearer {{tenantAToken}}"
+    expected:
+      status: 200
+      body: "array"
+      each: 
+        tenantId: "{{tenantAId}}"  # All users must belong to tenant A
+
+  - name: "Cross-tenant payment access returns 404"
+    endpoint: "GET /api/admin/payments/{{tenantBPaymentId}}"
+    headers:
+      Authorization: "Bearer {{tenantAToken}}"
+    expected:
+      status: 404
+      body:
+        title: "Not Found"
+
+  - name: "Super Admin can impersonate tenant"
+    endpoint: "POST /api/admin/tenants/{{tenantAId}}/impersonate"
+    headers:
+      Authorization: "Bearer {{superAdminToken}}"
+    expected:
+      status: 200
+      body:
+        token: "exists"
+        tenantId: "{{tenantAId}}"
+
+  - name: "Impersonated user cannot see other tenants"
+    endpoint: "GET /api/admin/tenants"
+    headers:
+      Authorization: "Bearer {{impersonatedToken}}"
+    expected:
+      status: 403  # Impersonated Super Admin loses global access

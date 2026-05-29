@@ -10,6 +10,8 @@ import { useProducts, useProductFilters } from '@/features/products/hooks/usePro
 import { Product } from '@/api/generated/model';
 import { mapApiProductToUi, mapUiProductToApi, formatTaxTypeLabelForLocale, formatProductUnitLabelForLocale } from '@/features/products/utils/productMapper';
 import ProductForm, { type ProductFormSubmitValues } from '@/features/products/components/ProductForm';
+import { DemoImportButton } from '@/features/tenants/components/DemoImportButton';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { ColumnType } from 'antd/es/table';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
@@ -31,6 +33,7 @@ const INACTIVE_PRODUCT_ROW_STYLE: React.CSSProperties = { opacity: 0.82 };
 export default function ProductsPage() {
     const showProductLagerUi = isAdminProductsLagerUiEnabled();
     const { t } = useI18n();
+    const { tenantName, tenantId, isRealTenantSlug } = useCurrentTenant();
     const { filters, setParam } = useProductFilters();
     const [page, setPage] = useState(() => Number(filters.page) || 1);
     const [pageSize, setPageSize] = useState(() => Number(filters.pageSize) || 10);
@@ -386,6 +389,13 @@ export default function ProductsPage() {
                                 value={searchTerm}
                             />
                         </Flex>
+                        {isRealTenantSlug && tenantName ? (
+                            <DemoImportButton
+                                tenantId={tenantId ?? undefined}
+                                tenantName={tenantName}
+                                onSuccess={invalidateList}
+                            />
+                        ) : null}
                         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                             {t('products.page.newProduct')}
                         </Button>

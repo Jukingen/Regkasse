@@ -1,0 +1,22 @@
+[
+  {
+    "id": "TC301",
+    "title": "cross tenant payment access returns 404",
+    "description": "Login as seeded admin with clientApp=admin, create or fetch a payment resource scoped to Tenant A, then request it under Tenant B context and assert HTTP 404 (never 403)."
+  },
+  {
+    "id": "TC302",
+    "title": "cross tenant user access returns 404",
+    "description": "Login as seeded admin and fetch or create a user under Tenant A. Attempt access/update via Tenant B context on /api/admin/users surfaces and assert HTTP 404."
+  },
+  {
+    "id": "TC303",
+    "title": "tenant context isolation on admin users list",
+    "description": "Call /api/admin/users with Tenant A and Tenant B contexts separately and assert response sets are isolated with no cross-tenant leakage."
+  },
+  {
+    "id": "TC304",
+    "title": "tenant context isolation on admin payments list",
+    "description": "Call /api/admin/payments under two different tenant contexts and verify each request only returns its own tenant data with no overlap."
+  }
+]

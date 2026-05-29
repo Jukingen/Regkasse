@@ -1,6 +1,7 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Tenancy;
@@ -82,6 +83,7 @@ public sealed class TenantProvisioningServiceTests
             CreateUserManagerMock().Object,
             new UserTenantMembershipProvisioner(db),
             uniqueness.Object,
+            Mock.Of<IDemoProductImportService>(),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var (result, error) = await service.ProvisionAsync(tenant, null, null, grantTrialLicense: true);
@@ -114,5 +116,75 @@ public sealed class TenantProvisioningServiceTests
         var reloadedTenant = await db.Tenants.AsNoTracking().SingleAsync(t => t.Id == tenant.Id);
         Assert.NotNull(reloadedTenant.LicenseValidUntilUtc);
         Assert.NotNull(result.TrialLicenseValidUntilUtc);
+    }
+
+    [Fact]
+    public async Task ProvisionAsync_ImportDemoMenu_UsesImportServiceInsteadOfGenericProducts()
+    {
+        await using var db = CreateDb();
+        var tenant = new Tenant
+        {
+            Id = Guid.NewGuid(),
+            Name = "Pizzeria Demo",
+            Slug = "pizzeria_demo",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Tenants.Add(tenant);
+        await db.SaveChangesAsync();
+
+        var uniqueness = new Mock<IUserUniquenessValidationService>();
+        uniqueness.Setup(x => x.IsEmailTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(false);
+
+        var categoryId = Guid.NewGuid();
+        var productIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
+        var importMock = new Mock<IDemoProductImportService>();
+        importMock
+            .Setup(s => s.ImportDemoProductsAsync(tenant.Id, It.IsAny<DemoImportRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ImportResult
+            {
+                Success = true,
+                Created = 2,
+                CategoryIds = new List<Guid> { categoryId },
+                ProductIds = productIds,
+            });
+
+        var service = new TenantProvisioningService(
+            db,
+            CreateUserManagerMock().Object,
+            new UserTenantMembershipProvisioner(db),
+            uniqueness.Object,
+            importMock.Object,
+            Mock.Of<ILogger<TenantProvisioningService>>());
+
+        db.Categories.Add(new Category
+        {
+            Id = categoryId,
+            TenantId = tenant.Id,
+            Name = "Salate",
+            SortOrder = 1,
+            VatRate = 10m,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var (result, error) = await service.ProvisionAsync(
+            tenant,
+            null,
+            null,
+            grantTrialLicense: false,
+            importDemoMenu: true);
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.Equal(productIds, result!.ProductIds);
+        importMock.Verify(
+            s => s.ImportDemoProductsAsync(tenant.Id, It.IsAny<DemoImportRequest>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        var products = await db.Products.Where(p => p.TenantId == tenant.Id).ToListAsync();
+        Assert.Empty(products);
     }
 }

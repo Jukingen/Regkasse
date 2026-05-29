@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace KasseAPI_Final.Services;
 
@@ -31,12 +32,17 @@ public sealed class UpdateCashRegisterSettingsRequest
 public sealed class CashRegisterSettingsService : ICashRegisterSettingsService
 {
     private readonly AppDbContext _db;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
     private PosCashRegisterFeatureOptions? _cachedFeatures;
 
-    public CashRegisterSettingsService(AppDbContext db, ISettingsTenantResolver settingsTenantResolver)
+    public CashRegisterSettingsService(
+        AppDbContext db,
+        ICurrentTenantAccessor tenantAccessor,
+        ISettingsTenantResolver settingsTenantResolver)
     {
         _db = db;
+        _tenantAccessor = tenantAccessor;
         _settingsTenantResolver = settingsTenantResolver;
     }
 
@@ -44,6 +50,9 @@ public sealed class CashRegisterSettingsService : ICashRegisterSettingsService
     {
         if (_cachedFeatures != null)
             return _cachedFeatures;
+
+        if (_tenantAccessor.TenantId == null)
+            return PosCashRegisterFeatureOptions.Default;
 
         var row = await GetOrCreateForEffectiveTenantAsync(cancellationToken).ConfigureAwait(false);
         _cachedFeatures = ToFeatureOptions(row);
@@ -55,17 +64,39 @@ public sealed class CashRegisterSettingsService : ICashRegisterSettingsService
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken)
             .ConfigureAwait(false);
 
+        // 1. Try to get existing settings (IgnoreQueryFilters: effective tenant may differ from ambient accessor).
         var existing = await _db.CashRegisterSettings
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
             .ConfigureAwait(false);
 
         if (existing != null)
             return existing;
 
-        var created = CreateDefaultRow(tenantId);
-        _db.CashRegisterSettings.Add(created);
-        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return created;
+        // 2. If not exists, create new
+        var settings = CreateDefaultRow(tenantId);
+        _db.CashRegisterSettings.Add(settings);
+
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex) when (IsCashRegisterSettingsDuplicateKey(ex))
+        {
+            // Race condition: another request created it between our check and save
+            _db.ChangeTracker.Clear();
+            var retry = await _db.CashRegisterSettings
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (retry != null)
+                return retry;
+
+            throw;
+        }
+
+        return settings;
     }
 
     public async Task<CashRegisterSettings> UpdateForEffectiveTenantAsync(
@@ -100,4 +131,15 @@ public sealed class CashRegisterSettingsService : ICashRegisterSettingsService
         AutoOpenAssignedClosedRegister = row.AutoOpenAssignedClosedRegister,
         DefaultAutoOpenOpeningBalance = row.DefaultAutoOpenOpeningBalance,
     };
+
+    private static bool IsCashRegisterSettingsDuplicateKey(DbUpdateException ex)
+    {
+        for (var inner = ex.InnerException; inner != null; inner = inner.InnerException)
+        {
+            if (inner is PostgresException pgEx && pgEx.SqlState == PostgresErrorCodes.UniqueViolation)
+                return true;
+        }
+
+        return false;
+    }
 }

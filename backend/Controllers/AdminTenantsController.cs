@@ -1,5 +1,6 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using Microsoft.AspNetCore.Authorization;
@@ -140,6 +141,34 @@ public sealed class AdminTenantsController : ControllerBase
         }
 
         return CreatedAtAction(nameof(GetById), new { tenantId = result!.Id }, result);
+    }
+
+    /// <summary>Import the demo menu catalog (Salate, Pizzas, Pasta, …) for an existing tenant.</summary>
+    [HttpPost("{tenantId:guid}/demo-products/import")]
+    [ProducesResponseType(typeof(ImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ImportResult>> ImportDemoProducts(
+        Guid tenantId,
+        [FromBody] DemoImportRequest? request,
+        [FromServices] IDemoProductImportService importService,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantService.GetByIdAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (tenant == null)
+            return NotFound(new { message = "Tenant not found." });
+
+        var result = await importService
+            .ImportDemoProductsAsync(tenantId, request ?? new DemoImportRequest(), cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!result.Success && string.Equals(result.ErrorMessage, "Tenant not found.", StringComparison.Ordinal))
+            return NotFound(new { message = result.ErrorMessage });
+
+        if (!result.Success)
+            return BadRequest(new { message = result.ErrorMessage ?? "Demo product import failed.", result });
+
+        return Ok(result);
     }
 
     /// <summary>Update tenant metadata or status.</summary>

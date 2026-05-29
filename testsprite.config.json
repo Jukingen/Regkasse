@@ -1,0 +1,38 @@
+{
+  "projectName": "Regkasse POS",
+  "environment": "test",
+  "baseUrl": {
+    "api": "http://localhost:5184",
+    "admin": "http://localhost:3000",
+    "pos": "http://localhost:8081"
+  },
+  "auth": {
+    "devAdmin": {
+      "loginIdentifier": "admin@admin.com",
+      "password": "Admin123!",
+      "clientApp": "admin"
+    },
+    "superAdmin": {
+      "email": "superadmin@regkasse.at",
+      "password": "***"
+    },
+    "tenantAdmin": {
+      "email": "manager@cafe.regkasse.at",
+      "password": "***"
+    },
+    "cashier": {
+      "username": "cashier1",
+      "password": "***"
+    }
+  },
+  "testData": {
+    "tenantSlug": "test_cafe",
+    "testUserId": "00000000-0000-0000-0000-000000000001",
+    "testProductId": "11111111-1111-1111-1111-111111111111"
+  },
+  "output": {
+    "reports": "./test-results",
+    "screenshots": "./test-screenshots",
+    "videos": "./test-videos"
+  }
+}

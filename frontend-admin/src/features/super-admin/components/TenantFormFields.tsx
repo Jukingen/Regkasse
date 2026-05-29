@@ -136,10 +136,21 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
                 name="autoDemoSetup"
                 valuePropName="checked"
                 tooltip={t('tenants.create.fields.autoDemoSetup.tooltip')}
-                style={{ marginBottom: 8 }}
+                style={{ marginBottom: 4 }}
             >
                 <Checkbox disabled>
                     <span>{t('tenants.create.fields.autoDemoSetup.label')}</span>
+                </Checkbox>
+            </Form.Item>
+
+            <Form.Item
+                name="importDemoProducts"
+                valuePropName="checked"
+                tooltip={t('tenants.create.fields.importDemoProducts.tooltip')}
+                style={{ marginBottom: 8 }}
+            >
+                <Checkbox>
+                    <span>{t('tenants.create.fields.importDemoProducts.label')}</span>
                 </Checkbox>
             </Form.Item>
 
