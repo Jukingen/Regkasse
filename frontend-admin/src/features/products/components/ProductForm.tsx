@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Form, Input, InputNumber, Modal, Select, Switch, Upload, message } from 'antd';
+import { Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Upload, message } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { Product } from '@/api/generated/model';
 import { useCategories } from '@/features/categories/hooks/useCategories';
@@ -127,8 +127,22 @@ export default function ProductForm({
                 const taxTypeNorm = (allowedTax as readonly number[]).includes(rawTax)
                     ? (rawTax as (typeof allowedTax)[number])
                     : TAX_TYPE_ENUM.Standard;
+                const iv = initialValues as Product & {
+                    nameDe?: string;
+                    nameEn?: string;
+                    nameTr?: string;
+                    descriptionDe?: string;
+                    descriptionEn?: string;
+                    descriptionTr?: string;
+                };
                 form.setFieldsValue({
                     ...initialValues,
+                    nameDe: iv.nameDe ?? iv.name,
+                    nameEn: iv.nameEn ?? '',
+                    nameTr: iv.nameTr ?? '',
+                    descriptionDe: iv.descriptionDe ?? iv.description ?? '',
+                    descriptionEn: iv.descriptionEn ?? '',
+                    descriptionTr: iv.descriptionTr ?? '',
                     isActive: initialValues.isActive ?? true,
                     taxType: taxTypeNorm,
                     unit: initialValues.unit || 'pcs',
@@ -172,8 +186,16 @@ export default function ProductForm({
                     ? null
                     : String(rawImageUrl).trim();
 
+            const nameDe = String(values.nameDe ?? values.name ?? '').trim();
             const processedValues: ProductFormSubmitValues = {
                 ...values,
+                name: nameDe || String(values.name ?? '').trim(),
+                nameDe: nameDe || undefined,
+                nameEn: String(values.nameEn ?? '').trim() || undefined,
+                nameTr: String(values.nameTr ?? '').trim() || undefined,
+                descriptionDe: String(values.descriptionDe ?? values.description ?? '').trim() || undefined,
+                descriptionEn: String(values.descriptionEn ?? '').trim() || undefined,
+                descriptionTr: String(values.descriptionTr ?? '').trim() || undefined,
                 price: Number(values.price),
                 cost: Number(values.cost),
                 taxType: Number(values.taxType) as any,
@@ -238,12 +260,44 @@ export default function ProductForm({
                 <Form.Item name="stockQuantity" hidden><InputNumber /></Form.Item>
                 <Form.Item name="minStockLevel" hidden><InputNumber /></Form.Item>
 
-                <Form.Item
-                    name="name"
-                    label={t('products.form.name')}
-                    rules={[{ required: true, message: t('products.form.nameRequired') }]}
-                >
-                    <Input placeholder={t('products.form.namePlaceholder')} />
+                <Collapse
+                    defaultActiveKey={['names']}
+                    style={{ marginBottom: 16 }}
+                    items={[
+                        {
+                            key: 'names',
+                            label: t('products.form.namesMultilingual'),
+                            children: (
+                                <>
+                                    <Form.Item
+                                        name="nameDe"
+                                        label={t('products.form.nameDe')}
+                                        rules={[{ required: true, message: t('products.form.nameRequired') }]}
+                                    >
+                                        <Input placeholder="Pizza Margherita" />
+                                    </Form.Item>
+                                    <Form.Item name="nameEn" label={t('products.form.nameEn')}>
+                                        <Input placeholder="Margherita Pizza" />
+                                    </Form.Item>
+                                    <Form.Item name="nameTr" label={t('products.form.nameTr')}>
+                                        <Input placeholder="Margherita Pizza" />
+                                    </Form.Item>
+                                    <Form.Item name="descriptionDe" label={t('products.form.descriptionDe')}>
+                                        <TextArea rows={2} placeholder="mit Tomaten und Mozzarella" />
+                                    </Form.Item>
+                                    <Form.Item name="descriptionEn" label={t('products.form.descriptionEn')}>
+                                        <TextArea rows={2} placeholder="with tomatoes and mozzarella" />
+                                    </Form.Item>
+                                    <Form.Item name="descriptionTr" label={t('products.form.descriptionTr')}>
+                                        <TextArea rows={2} />
+                                    </Form.Item>
+                                </>
+                            ),
+                        },
+                    ]}
+                />
+                <Form.Item name="name" hidden>
+                    <Input />
                 </Form.Item>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -306,13 +360,6 @@ export default function ProductForm({
                         options={taxTypeOptions.map((o) => ({ value: o.value, label: o.label }))}
                         placeholder={t('products.form.taxTypePlaceholder')}
                     />
-                </Form.Item>
-
-                <Form.Item
-                    name="description"
-                    label={t('products.form.description')}
-                >
-                    <TextArea rows={3} />
                 </Form.Item>
 
                 <Form.Item

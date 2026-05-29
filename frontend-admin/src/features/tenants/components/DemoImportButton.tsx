@@ -10,10 +10,11 @@ export type DemoImportButtonProps = {
     /** Super-admin tenant detail: target tenant id. Omit on products page (current tenant context). */
     tenantId?: string;
     tenantName: string;
+    tenantSlug?: string | null;
     onSuccess?: () => void;
 };
 
-export function DemoImportButton({ tenantId, tenantName, onSuccess }: DemoImportButtonProps) {
+export function DemoImportButton({ tenantId, tenantName, tenantSlug, onSuccess }: DemoImportButtonProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
@@ -26,6 +27,7 @@ export function DemoImportButton({ tenantId, tenantName, onSuccess }: DemoImport
                 open={isModalOpen}
                 tenantId={tenantId}
                 tenantName={tenantName}
+                tenantSlug={tenantSlug}
                 onClose={() => setIsModalOpen(false)}
                 onSuccess={() => {
                     setIsModalOpen(false);

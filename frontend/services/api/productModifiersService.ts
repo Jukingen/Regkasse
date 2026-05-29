@@ -22,6 +22,9 @@ export interface ModifierDto {
 export interface AddOnGroupProductItemDto {
   productId: string;
   productName: string;
+  nameDe?: string | null;
+  nameEn?: string | null;
+  nameTr?: string | null;
   price: number;
   taxType: number;
   sortOrder: number;

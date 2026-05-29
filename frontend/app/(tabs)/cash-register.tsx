@@ -42,6 +42,9 @@ import {
   type MonatsbelegStatusDto,
 } from '../../services/api/rksvSpecialReceiptsService';
 import { formatPrice } from '../../utils/formatPrice';
+import { useProductDisplayLocale } from '../../hooks/useProductDisplayLocale';
+import { resolveProductDisplayName } from '../../utils/productLocalization';
+import type { ProductTextLocale } from '../../utils/productLocalization';
 import { isValidPosCashRegisterId } from '../../utils/posCashRegister';
 import {
   isReadinessRegisterDecommissioned,
@@ -287,7 +290,8 @@ function usePOSOrderFlow(
   addItem: (productId: string, qty?: number, options?: { productName?: string; unitPrice?: number }) => Promise<void>,
   activeTableId: number,
   addToast: (type: 'error' | 'success' | 'info' | 'warning', message: string, duration?: number) => void,
-  t: (key: string, options?: Record<string, string | number>) => string
+  t: (key: string, options?: Record<string, string | number>) => string,
+  displayLocale: ProductTextLocale,
 ) {
   const [pendingModifiersByProduct, setPendingModifiersByProduct] = useState<Record<string, SelectedModifier[]>>({});
 
@@ -298,21 +302,22 @@ function usePOSOrderFlow(
         return;
       }
       try {
+        const displayName = resolveProductDisplayName(product, displayLocale);
         await addItem(product.id, 1, {
-          productName: product.name,
+          productName: displayName,
           unitPrice: product.price ?? 0,
         });
-        addToast('success', t('checkout:posFlow.toast.productAddedToTable', { name: product.name, table: activeTableId }), 2000);
+        addToast('success', t('checkout:posFlow.toast.productAddedToTable', { name: displayName, table: activeTableId }), 2000);
         setPendingModifiersByProduct((prev) => {
           const next = { ...prev };
           delete next[product.id];
           return next;
         });
       } catch (error: any) {
-        addToast('error', t('checkout:posFlow.toast.productAddError', { name: product.name, reason: error?.message || t('common:error') }), 5000);
+        addToast('error', t('checkout:posFlow.toast.productAddError', { name: resolveProductDisplayName(product, displayLocale), reason: error?.message || t('common:error') }), 5000);
       }
     },
-    [addItem, activeTableId, addToast, t]
+    [addItem, activeTableId, addToast, t, displayLocale]
   );
 
   const handleAddAddOn = useCallback(
@@ -472,11 +477,13 @@ export default function CashRegisterScreen() {
     return map;
   }, [cart?.items]);
 
+  const productDisplayLocale = useProductDisplayLocale();
+
   const {
     pendingModifiersByProduct,
     handleAddProduct,
     handleAddAddOn,
-  } = usePOSOrderFlow(addItem, activeTableId, addToast, t);
+  } = usePOSOrderFlow(addItem, activeTableId, addToast, t, productDisplayLocale);
   /** Merged modifier selection per product: last cart line or pending (for inline chips). */
   const selectedModifiersForProduct = useMemo(() => {
     const out: Record<string, SelectedModifier[]> = {};
@@ -678,7 +685,7 @@ export default function CashRegisterScreen() {
         <ModifierSelectionBottomSheet
           visible
           productId={modifierSheetProduct.id}
-          productName={modifierSheetProduct.name}
+          productName={resolveProductDisplayName(modifierSheetProduct, productDisplayLocale)}
           productPrice={modifierSheetProduct.price ?? 0}
           modifierGroups={modifierSheetProduct.modifierGroups ?? undefined}
           onClose={() => setModifierSheetProduct(null)}

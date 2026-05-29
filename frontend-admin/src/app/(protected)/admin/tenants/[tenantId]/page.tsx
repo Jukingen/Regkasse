@@ -341,11 +341,11 @@ export default function SuperAdminTenantDetailPage() {
                     open={demoImportOpen}
                     tenantId={tenant.id}
                     tenantName={tenant.name}
+                    tenantSlug={tenant.slug}
                     onClose={() => setDemoImportOpen(false)}
                     onSuccess={() => {
                         refetchProducts();
                         invalidateTenant();
-                        message.success('Demo-Produkte wurden erfolgreich importiert');
                     }}
                 />
             ) : null}

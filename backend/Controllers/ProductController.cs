@@ -8,6 +8,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Services;
+using ProductLocalizationService = KasseAPI_Final.Services.ProductLocalization;
 using KasseAPI_Final.Tenancy;
 using System.Security.Cryptography;
 using System.Text;
@@ -218,8 +219,14 @@ namespace KasseAPI_Final.Controllers
             return new CatalogProductDto
             {
                 Id = p.Id,
-                Name = p.Name ?? string.Empty,
-                Description = p.Description,
+                Name = ProductLocalizationService.ResolveName(p, "de"),
+                NameDe = p.NameDe,
+                NameEn = p.NameEn,
+                NameTr = p.NameTr,
+                Description = ProductLocalizationService.ResolveDescription(p, "de"),
+                DescriptionDe = p.DescriptionDe,
+                DescriptionEn = p.DescriptionEn,
+                DescriptionTr = p.DescriptionTr,
                 Price = p.Price,
                 ImageUrl = p.ImageUrl,
                 StockQuantity = p.StockQuantity,
@@ -249,7 +256,10 @@ namespace KasseAPI_Final.Controllers
                 .Select(a => new AddOnGroupProductItemDto
                 {
                     ProductId = a.ProductId,
-                    ProductName = a.Product!.Name,
+                    ProductName = ProductLocalizationService.ResolveName(a.Product!, "de"),
+                    NameDe = a.Product!.NameDe,
+                    NameEn = a.Product.NameEn,
+                    NameTr = a.Product.NameTr,
                     Price = a.Product.Price,
                     TaxType = a.Product.TaxType,
                     SortOrder = a.SortOrder

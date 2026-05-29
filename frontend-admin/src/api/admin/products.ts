@@ -351,6 +351,9 @@ export type DemoProductImportResult = {
   skipped: number;
   selectedCategoryCount?: number;
   totalProductCount?: number;
+  categoriesCreated?: number;
+  importedProductCount?: number;
+  averageImportedPrice?: number;
   categorySummaries?: Array<{
     categoryName: string;
     productCount: number;
@@ -367,6 +370,19 @@ export type DemoImportRequest = {
   selectedCategories?: string[];
   excludedCategories?: string[];
   selectedProductIds?: string[];
+  /** none | increasePercent | decreasePercent | roundUpToIncrement */
+  priceAdjustmentMode?: string;
+  priceAdjustmentPercent?: number;
+  priceRoundIncrement?: number;
+  /** none | categoryPlaceholder | defaultAsset */
+  imageMode?: string;
+  productOverrides?: DemoImportProductOverride[];
+};
+
+export type DemoImportProductOverride = {
+  catalogProductId: string;
+  price?: number;
+  taxRate?: number;
 };
 
 export type DemoImportCatalogCategory = {
@@ -374,6 +390,7 @@ export type DemoImportCatalogCategory = {
   description?: string | null;
   sortOrder: number;
   productCount: number;
+  vatRate: number;
 };
 
 export type DemoImportCatalog = {

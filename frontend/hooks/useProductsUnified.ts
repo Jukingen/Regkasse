@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Product, getAllProducts, getAllCategories, clearProductCache, getProductCatalog } from '../services/api/productService';
+import { productMatchesSearchQuery } from '../utils/productLocalization';
 
 export interface CatalogCategory {
   id: string;
@@ -194,11 +195,12 @@ class ProductCache {
     }
     
     const searchTerm = query.toLowerCase();
-    return this.state.products.filter(product => {
+    return this.state.products.filter((product) => {
       const productCategory = product.productCategory || product.category;
-      return product.name?.toLowerCase().includes(searchTerm) ||
-             product.description?.toLowerCase().includes(searchTerm) ||
-             productCategory?.toLowerCase().includes(searchTerm);
+      return (
+        productMatchesSearchQuery(product, searchTerm) ||
+        productCategory?.toLowerCase().includes(searchTerm)
+      );
     });
   }
 }

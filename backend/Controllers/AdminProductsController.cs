@@ -24,7 +24,7 @@ namespace KasseAPI_Final.Controllers
     [Route("api/admin/products")]
     [ApiController]
     [HasPermission(AppPermissions.ProductView)]
-    public class AdminProductsController : BaseController
+    public partial class AdminProductsController : BaseController
     {
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Product> _productRepository;
@@ -87,7 +87,7 @@ namespace KasseAPI_Final.Controllers
                 return BadRequest(new { error = "No tenant context" });
 
             var result = await _demoProductImportService
-                .ImportDemoProductsAsync(tenantId.Value, request, cancellationToken)
+                .ImportDemoProductsAsync(tenantId.Value, request, progress: null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!result.Success)
@@ -233,6 +233,7 @@ namespace KasseAPI_Final.Controllers
                 product.CreatedBy = User.Identity?.Name ?? "system";
                 product.UpdatedBy = User.Identity?.Name ?? "system";
                 product.IsActive = true;
+                ProductLocalization.SyncCanonicalFields(product);
 
                 var createdProduct = await _productRepository.AddAsync(product);
                 _logger.LogInformation("Admin product created: {Name} (ID: {Id})", product.Name, createdProduct.Id);
@@ -282,6 +283,7 @@ namespace KasseAPI_Final.Controllers
                 product.CreatedAt = existingProduct.CreatedAt;
                 product.CreatedBy = existingProduct.CreatedBy;
                 product.TenantId = existingProduct.TenantId;
+                ProductLocalization.SyncCanonicalFields(product);
 
                 _context.Entry(existingProduct).State = EntityState.Detached;
                 _context.Products.Update(product);
@@ -592,7 +594,10 @@ namespace KasseAPI_Final.Controllers
                 .Select(a => new AddOnGroupProductItemDto
                 {
                     ProductId = a.ProductId,
-                    ProductName = a.Product!.Name,
+                    ProductName = ProductLocalization.ResolveName(a.Product!, "de"),
+                    NameDe = a.Product!.NameDe,
+                    NameEn = a.Product.NameEn,
+                    NameTr = a.Product.NameTr,
                     Price = a.Product.Price,
                     TaxType = a.Product.TaxType,
                     SortOrder = a.SortOrder

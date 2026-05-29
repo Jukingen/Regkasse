@@ -33,7 +33,7 @@ const INACTIVE_PRODUCT_ROW_STYLE: React.CSSProperties = { opacity: 0.82 };
 export default function ProductsPage() {
     const showProductLagerUi = isAdminProductsLagerUiEnabled();
     const { t } = useI18n();
-    const { tenantName, tenantId, isRealTenantSlug } = useCurrentTenant();
+    const { tenantName, tenantId, tenantSlug, isRealTenantSlug } = useCurrentTenant();
     const { filters, setParam } = useProductFilters();
     const [page, setPage] = useState(() => Number(filters.page) || 1);
     const [pageSize, setPageSize] = useState(() => Number(filters.pageSize) || 10);
@@ -393,6 +393,7 @@ export default function ProductsPage() {
                             <DemoImportButton
                                 tenantId={tenantId ?? undefined}
                                 tenantName={tenantName}
+                                tenantSlug={tenantSlug}
                                 onSuccess={invalidateList}
                             />
                         ) : null}

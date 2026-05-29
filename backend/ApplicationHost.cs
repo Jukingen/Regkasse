@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
+using KasseAPI_Final.Hubs;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -308,9 +310,20 @@ builder.Services.AddAuthentication(options =>
         RoleClaimType = "role"
     };
     
-    // Debug için JWT events ekle
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            var path = context.HttpContext.Request.Path;
+            if (path.StartsWithSegments("/hubs/demo-import-progress"))
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken))
+                    context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        },
         OnTokenValidated = async context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
@@ -386,7 +399,10 @@ builder.Services.AddScoped<IQuickUserGeneratorService, QuickUserGeneratorService
 builder.Services.AddScoped<ITenantUserService, TenantUserService>();
 builder.Services.AddSingleton<IBulkUserImportResultStore, BulkUserImportResultStore>();
 builder.Services.AddSingleton<IBulkUserImportJobManager, BulkUserImportJobManager>();
+builder.Services.AddSingleton<IDemoProductImportJobManager, DemoProductImportJobManager>();
+builder.Services.AddSignalR();
 builder.Services.AddScoped<IBulkUserImportService, BulkUserImportService>();
+builder.Services.AddScoped<IDemoProductImportImageService, DemoProductImportImageService>();
 builder.Services.AddScoped<IDemoProductImportService, DemoProductImportService>();
 builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService>();
 builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
@@ -908,6 +924,7 @@ app.UseMiddleware<KasseAPI_Final.Middleware.MustChangePasswordMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.PaymentSecurityMiddleware>();
 
 app.MapControllers();
+app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
 
 // Prometheus /metrics endpoint for scraping (Grafana dashboards)
 app.MapMetrics();

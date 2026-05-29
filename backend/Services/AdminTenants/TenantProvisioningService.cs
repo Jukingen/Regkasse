@@ -88,7 +88,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
             var importResult = await _demoProductImport
-                .ImportDemoProductsAsync(tenant.Id, new DemoImportRequest(), cancellationToken)
+                .ImportDemoProductsAsync(tenant.Id, new DemoImportRequest(), progress: null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!importResult.Success)

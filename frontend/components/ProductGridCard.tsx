@@ -3,6 +3,11 @@
  * Memoized: re-renders only when product.id or selected modifiers change.
  */
 import React, { memo, useEffect, useMemo, useState } from 'react';
+import { useProductDisplayLocale } from '../hooks/useProductDisplayLocale';
+import {
+  resolveProductDisplayDescription,
+  resolveProductDisplayName,
+} from '../utils/productLocalization';
 import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { Product } from '../services/api/productService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
@@ -58,6 +63,12 @@ function ProductGridCardInner({
   onOpenAddOnSheet,
   getCategoryEmoji = () => '📦',
 }: ProductGridCardProps) {
+  const displayLocale = useProductDisplayLocale();
+  const displayName = useMemo(
+    () => resolveProductDisplayName(product, displayLocale),
+    [product, displayLocale],
+  );
+
   const groups = product.modifierGroups ?? [];
   /** Phase C: only groups with add-on products (group.products). Legacy group.modifiers removed. */
   const groupsWithProducts = useMemo(
@@ -98,7 +109,7 @@ function ProductGridCardInner({
       </View>
       <View style={styles.content}>
         <Text style={styles.category}>{product.productCategory || product.category}</Text>
-        <Text style={styles.name} numberOfLines={2}>{product.name}</Text>
+        <Text style={styles.name} numberOfLines={2}>{displayName}</Text>
         <View style={styles.priceBadge}>
           <Text style={styles.priceText}>€{product.price?.toFixed(2) || '0.00'}</Text>
         </View>
@@ -106,7 +117,11 @@ function ProductGridCardInner({
           <ModifierOptionChips
             key={group.id}
             label={group.name}
-            modifiers={(group.products ?? []).map((p) => ({ id: p.productId, name: p.productName, price: p.price }))}
+            modifiers={(group.products ?? []).map((p) => ({
+              id: p.productId,
+              name: resolveProductDisplayName(p, displayLocale),
+              price: p.price,
+            }))}
             selectedModifiers={[]}
             onAdd={(m) => onAddAddOn({ productId: m.id, productName: m.name, price: m.price })}
             hideQuantityStepper

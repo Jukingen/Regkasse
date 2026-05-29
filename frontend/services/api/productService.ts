@@ -48,7 +48,13 @@ export type RksvProductType = typeof RksvProductTypes[keyof typeof RksvProductTy
 export interface Product {
   id: string;
   name: string;
+  nameDe?: string | null;
+  nameEn?: string | null;
+  nameTr?: string | null;
   description?: string;
+  descriptionDe?: string | null;
+  descriptionEn?: string | null;
+  descriptionTr?: string | null;
   price: number;
   stockQuantity: number;
   minStockLevel: number; // Minimum stok seviyesi
@@ -110,7 +116,13 @@ export interface PaginatedResponse<T> {
 const mapProduct = (p: any): Product => ({
   id: p.Id ?? p.id,
   name: p.Name ?? p.name,
+  nameDe: p.NameDe ?? p.nameDe ?? null,
+  nameEn: p.NameEn ?? p.nameEn ?? null,
+  nameTr: p.NameTr ?? p.nameTr ?? null,
   description: p.Description ?? p.description,
+  descriptionDe: p.DescriptionDe ?? p.descriptionDe ?? null,
+  descriptionEn: p.DescriptionEn ?? p.descriptionEn ?? null,
+  descriptionTr: p.DescriptionTr ?? p.descriptionTr ?? null,
   price: p.Price ?? p.price,
   stockQuantity: p.StockQuantity ?? p.stockQuantity,
   minStockLevel: p.MinStockLevel ?? p.minStockLevel,
@@ -147,6 +159,9 @@ const mapModifierGroup = (g: any): ModifierGroupDto => ({
     ? (g.Products ?? g.products).map((p: any) => ({
         productId: p.ProductId ?? p.productId,
         productName: p.ProductName ?? p.productName ?? '',
+        nameDe: p.NameDe ?? p.nameDe ?? null,
+        nameEn: p.NameEn ?? p.nameEn ?? null,
+        nameTr: p.NameTr ?? p.nameTr ?? null,
         price: Number(p.Price ?? p.price ?? 0),
         taxType: p.TaxType ?? p.taxType ?? 1,
         sortOrder: p.SortOrder ?? p.sortOrder ?? 0,

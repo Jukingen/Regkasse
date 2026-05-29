@@ -29,6 +29,9 @@ namespace KasseAPI_Final.DTOs
     {
         public Guid ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
+        public string? NameDe { get; set; }
+        public string? NameEn { get; set; }
+        public string? NameTr { get; set; }
         public decimal Price { get; set; }
         public int TaxType { get; set; }
         public int SortOrder { get; set; }

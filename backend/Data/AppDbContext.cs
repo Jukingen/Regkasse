@@ -305,7 +305,13 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.NameDe).HasColumnName("name_de").HasMaxLength(200);
+                entity.Property(e => e.NameEn).HasColumnName("name_en").HasMaxLength(200);
+                entity.Property(e => e.NameTr).HasColumnName("name_tr").HasMaxLength(200);
                 entity.Property(e => e.Description).HasColumnType("text");
+                entity.Property(e => e.DescriptionDe).HasColumnName("description_de").HasColumnType("text");
+                entity.Property(e => e.DescriptionEn).HasColumnName("description_en").HasColumnType("text");
+                entity.Property(e => e.DescriptionTr).HasColumnName("description_tr").HasColumnType("text");
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Cost).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TaxRate).HasColumnType("decimal(5,2)");

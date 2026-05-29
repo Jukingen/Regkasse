@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -17,15 +18,18 @@ public sealed class DemoProductImportService : IDemoProductImportService
 
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _environment;
+    private readonly IDemoProductImportImageService _importImageService;
     private readonly ILogger<DemoProductImportService> _logger;
 
     public DemoProductImportService(
         AppDbContext context,
         IWebHostEnvironment environment,
+        IDemoProductImportImageService importImageService,
         ILogger<DemoProductImportService> logger)
     {
         _context = context;
         _environment = environment;
+        _importImageService = importImageService;
         _logger = logger;
     }
 
@@ -42,7 +46,8 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 c.Name,
                 c.Description,
                 c.SortOrder,
-                productCounts.GetValueOrDefault(c.Name)))
+                productCounts.GetValueOrDefault(c.Name),
+                ResolveCatalogCategoryDefaultVat(c, demoData)))
             .ToList();
 
         var products = demoData.Products
@@ -62,7 +67,72 @@ public sealed class DemoProductImportService : IDemoProductImportService
     public async Task<ImportResult> ImportDemoProductsAsync(
         Guid tenantId,
         DemoImportRequest request,
+        IProgress<DemoImportProgressDto>? progress = null,
         CancellationToken cancellationToken = default)
+    {
+        var demoData = await LoadDemoDataAsync(cancellationToken).ConfigureAwait(false);
+        return await ImportDemoDataAsync(tenantId, demoData, request, progress, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<byte[]> GetTemplateCsvAsync(CancellationToken cancellationToken = default)
+    {
+        var demoData = await LoadDemoDataAsync(cancellationToken).ConfigureAwait(false);
+        var csv = DemoProductTemplateExporter.BuildCsv(demoData);
+        return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv)).ToArray();
+    }
+
+    public Task<DemoTemplateValidationResultDto> ValidateTemplateFileAsync(
+        Stream stream,
+        string fileName,
+        int maxPreviewRows = 20,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var (rows, parseError) = DemoProductTemplateFileParser.Parse(stream, fileName);
+        var result = DemoProductTemplateValidator.Validate(rows, parseError, maxPreviewRows);
+        return Task.FromResult(result);
+    }
+
+    public async Task<ImportResult> ImportFromTemplateFileAsync(
+        Guid tenantId,
+        Stream stream,
+        string fileName,
+        DemoImportRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var (rows, parseError) = DemoProductTemplateFileParser.Parse(stream, fileName);
+        if (parseError != null)
+        {
+            return new ImportResult { Success = false, ErrorMessage = parseError };
+        }
+
+        var (demoData, buildError) = DemoProductTemplateValidator.BuildDemoData(rows);
+        if (demoData == null)
+        {
+            return new ImportResult { Success = false, ErrorMessage = buildError ?? "Template validation failed." };
+        }
+
+        var importRequest = new DemoImportRequest
+        {
+            OverwriteExisting = request.OverwriteExisting,
+            PriceAdjustmentMode = request.PriceAdjustmentMode,
+            PriceAdjustmentPercent = request.PriceAdjustmentPercent,
+            PriceRoundIncrement = request.PriceRoundIncrement,
+            ImageMode = request.ImageMode,
+            ProductOverrides = request.ProductOverrides,
+        };
+
+        return await ImportDemoDataAsync(tenantId, demoData, importRequest, progress: null, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<ImportResult> ImportDemoDataAsync(
+        Guid tenantId,
+        DemoData demoData,
+        DemoImportRequest request,
+        IProgress<DemoImportProgressDto>? progress,
+        CancellationToken cancellationToken)
     {
         var result = new ImportResult();
         var importedCategoryIds = new List<Guid>();
@@ -82,8 +152,6 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 return result;
             }
 
-            var demoData = await LoadDemoDataAsync(cancellationToken).ConfigureAwait(false);
-
             var categoriesToImport = DemoProductImportFilter.SelectCategories(demoData, request);
             result.SelectedCategoryCount = categoriesToImport.Count;
 
@@ -94,8 +162,9 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 return result;
             }
 
-            var categories = await GetOrCreateCategoriesAsync(tenantId, categoriesToImport, cancellationToken)
+            var (categories, categoriesCreated) = await GetOrCreateCategoriesAsync(tenantId, categoriesToImport, cancellationToken)
                 .ConfigureAwait(false);
+            result.CategoriesCreated = categoriesCreated;
             importedCategoryIds.AddRange(categories.Values.Select(c => c.Id));
 
             var categoryLookup = categoriesToImport.ToDictionary(c => c.Name, StringComparer.Ordinal);
@@ -106,8 +175,20 @@ public sealed class DemoProductImportService : IDemoProductImportService
             {
                 result.Success = false;
                 result.ErrorMessage = "No demo products matched the import selection.";
+                ReportProgress(progress, DemoImportJobStatus.Failed, 0, 0, 0, 0, null, Array.Empty<DemoImportCategoryProgressDto>(), result.ErrorMessage);
                 return result;
             }
+
+            var categoryProgress = BuildInitialCategoryProgress(categoriesToImport, productsToImport);
+            ReportProgress(
+                progress,
+                DemoImportJobStatus.Running,
+                productsToImport.Count,
+                0,
+                0,
+                0,
+                null,
+                categoryProgress);
 
             var categorySummaries = categoriesToImport.ToDictionary(
                 c => c.Name,
@@ -118,15 +199,41 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 },
                 StringComparer.Ordinal);
 
+            var imageMode = DemoProductImportImageModeParser.Parse(request.ImageMode);
+            var overrideLookup = request.ProductOverrides
+                .Where(o => o.CatalogProductId != Guid.Empty)
+                .GroupBy(o => o.CatalogProductId)
+                .ToDictionary(g => g.Key, g => g.First());
+
             var sequence = 0;
+            var processedCount = 0;
+            var importedCount = 0;
+            var skippedCount = 0;
+            decimal importedPriceSum = 0m;
+            var importedPriceCount = 0;
             foreach (var demoProduct in productsToImport)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                MarkCategoryProcessing(categoryProgress, demoProduct.Category);
+                ReportProgress(
+                    progress,
+                    DemoImportJobStatus.Running,
+                    productsToImport.Count,
+                    processedCount,
+                    importedCount,
+                    skippedCount,
+                    demoProduct.Name,
+                    categoryProgress);
+
                 if (!categories.TryGetValue(demoProduct.Category, out var category))
                 {
                     _logger.LogWarning(
                         "Skipping demo product {ProductName}: unknown category {Category}",
                         demoProduct.Name,
                         demoProduct.Category);
+                    processedCount++;
+                    AdvanceCategoryProgress(categoryProgress, demoProduct.Category, imported: false, skipped: false);
                     continue;
                 }
 
@@ -152,11 +259,24 @@ public sealed class DemoProductImportService : IDemoProductImportService
                     result.Skipped++;
                     summary.Skipped++;
                     importedProductIds.Add(existingProduct.Id);
+                    processedCount++;
+                    skippedCount++;
+                    AdvanceCategoryProgress(categoryProgress, demoProduct.Category, imported: false, skipped: true);
+                    ReportProgress(
+                        progress,
+                        DemoImportJobStatus.Running,
+                        productsToImport.Count,
+                        processedCount,
+                        importedCount,
+                        skippedCount,
+                        demoProduct.Name,
+                        categoryProgress);
                     continue;
                 }
 
                 var now = DateTime.UtcNow;
-                var taxType = MapTaxType(demoProduct.TaxRate);
+                var (importPrice, importTaxRate) = ResolveImportPriceAndTax(demoProduct, request, overrideLookup);
+                var taxType = MapTaxType(importTaxRate);
                 var product = existingProduct ?? new Product
                 {
                     Id = Guid.NewGuid(),
@@ -169,21 +289,33 @@ public sealed class DemoProductImportService : IDemoProductImportService
                     Cost = 0m,
                     Barcode = BuildBarcode(demoProduct.Name, ++sequence),
                     IsFiscalCompliant = true,
-                    IsTaxable = demoProduct.TaxRate > 0,
+                    IsTaxable = importTaxRate > 0,
                     RksvProductType = MapRksvProductType(taxType),
                     IsSellableAddOn = false,
                 };
 
-                product.Name = demoProduct.Name;
-                product.Description = demoProduct.Description;
-                product.Price = demoProduct.Price;
+                product.NameDe = demoProduct.Name;
+                product.NameEn = demoProduct.Name;
+                product.NameTr = demoProduct.Name;
+                product.DescriptionDe = demoProduct.Description;
+                ProductLocalization.SyncCanonicalFields(product);
+                product.Price = importPrice;
                 product.TaxType = taxType;
-                product.TaxRate = demoProduct.TaxRate;
+                product.TaxRate = importTaxRate;
+                product.IsTaxable = importTaxRate > 0;
+                product.RksvProductType = MapRksvProductType(taxType);
                 product.CategoryId = category.Id;
                 product.Category = category.Name;
                 product.IsActive = true;
                 product.UpdatedAt = now;
                 product.UpdatedBy = "demo-import";
+
+                if (ShouldAssignImportImage(existingProduct, request))
+                {
+                    await _importImageService
+                        .TryAssignPlaceholderAsync(tenantId, product, demoProduct.Category, imageMode, cancellationToken)
+                        .ConfigureAwait(false);
+                }
 
                 if (existingProduct == null)
                 {
@@ -198,10 +330,28 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 }
 
                 importedProductIds.Add(product.Id);
+                importedPriceSum += importPrice;
+                importedPriceCount++;
+                processedCount++;
+                importedCount++;
+                AdvanceCategoryProgress(categoryProgress, demoProduct.Category, imported: true, skipped: false);
+                ReportProgress(
+                    progress,
+                    DemoImportJobStatus.Running,
+                    productsToImport.Count,
+                    processedCount,
+                    importedCount,
+                    skippedCount,
+                    demoProduct.Name,
+                    categoryProgress);
             }
 
             await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             result.Success = true;
+            result.ImportedProductCount = result.Created + result.Updated;
+            result.AverageImportedPrice = importedPriceCount > 0
+                ? Math.Round(importedPriceSum / importedPriceCount, 2, MidpointRounding.AwayFromZero)
+                : 0m;
             result.CategoryIds = importedCategoryIds.Distinct().ToList();
             result.ProductIds = importedProductIds;
             result.CategorySummaries = categorySummaries.Values
@@ -247,12 +397,13 @@ public sealed class DemoProductImportService : IDemoProductImportService
         return data;
     }
 
-    private async Task<Dictionary<string, Category>> GetOrCreateCategoriesAsync(
+    private async Task<(Dictionary<string, Category> Categories, int CreatedCount)> GetOrCreateCategoriesAsync(
         Guid tenantId,
         List<DemoCategory> demoCategories,
         CancellationToken cancellationToken)
     {
         var result = new Dictionary<string, Category>(StringComparer.Ordinal);
+        var createdCount = 0;
 
         foreach (var demoCat in demoCategories)
         {
@@ -277,6 +428,7 @@ public sealed class DemoProductImportService : IDemoProductImportService
                     CreatedBy = "demo-import",
                 };
                 _context.Categories.Add(category);
+                createdCount++;
             }
             else if (category.SortOrder != demoCat.SortOrder || category.Description != demoCat.Description)
             {
@@ -291,7 +443,42 @@ public sealed class DemoProductImportService : IDemoProductImportService
         }
 
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        return result;
+        return (result, createdCount);
+    }
+
+    private static (decimal Price, decimal TaxRate) ResolveImportPriceAndTax(
+        DemoProduct demoProduct,
+        DemoImportRequest request,
+        IReadOnlyDictionary<Guid, DemoImportProductOverrideDto> overrides)
+    {
+        var price = ApplyImportPrice(demoProduct.Price, request);
+        var taxRate = demoProduct.TaxRate;
+
+        if (overrides.TryGetValue(demoProduct.Id, out var ov))
+        {
+            if (ov.Price is >= 0)
+                price = Math.Round(ov.Price.Value, 2, MidpointRounding.AwayFromZero);
+            if (ov.TaxRate is >= 0)
+                taxRate = ov.TaxRate.Value;
+        }
+
+        return (price, taxRate);
+    }
+
+    private static bool ShouldAssignImportImage(Product? existingProduct, DemoImportRequest request)
+    {
+        if (DemoProductImportImageModeParser.Parse(request.ImageMode) == DemoImportImageMode.None)
+            return false;
+
+        return existingProduct == null || request.OverwriteExisting;
+    }
+
+    private static decimal ApplyImportPrice(decimal catalogPrice, DemoImportRequest request)
+    {
+        var mode = DemoProductPriceAdjustment.ParseMode(request.PriceAdjustmentMode);
+        var percent = request.PriceAdjustmentPercent ?? 0m;
+        var increment = request.PriceRoundIncrement ?? 0.50m;
+        return DemoProductPriceAdjustment.Apply(catalogPrice, mode, percent, increment);
     }
 
     private static int MapTaxType(decimal taxRate) =>
@@ -312,6 +499,24 @@ public sealed class DemoProductImportService : IDemoProductImportService
             _ => RksvProductTypes.Standard,
         };
 
+    /// <summary>Default VAT for import validation UI (mode of product rates; drinks → 20%).</summary>
+    private static decimal ResolveCatalogCategoryDefaultVat(DemoCategory category, DemoData data)
+    {
+        if (category.Name.Contains("Getrn", StringComparison.OrdinalIgnoreCase))
+            return 20m;
+
+        var products = data.Products.Where(p => p.Category == category.Name).ToList();
+        if (products.Count == 0)
+            return category.VatRate;
+
+        return products
+            .GroupBy(p => p.TaxRate)
+            .OrderByDescending(g => g.Count())
+            .ThenByDescending(g => g.Key)
+            .First()
+            .Key;
+    }
+
     private static string BuildBarcode(string productName, int sequence)
     {
         var slug = new string(productName
@@ -324,5 +529,104 @@ public sealed class DemoProductImportService : IDemoProductImportService
 
         var barcode = $"DEMO-{slug}-{sequence:D3}";
         return barcode.Length <= 50 ? barcode : barcode[..50];
+    }
+
+    private static List<DemoImportCategoryProgressDto> BuildInitialCategoryProgress(
+        List<DemoCategory> categoriesToImport,
+        List<DemoProduct> productsToImport)
+    {
+        var list = new List<DemoImportCategoryProgressDto>();
+        foreach (var cat in categoriesToImport)
+        {
+            var total = productsToImport.Count(p => p.Category == cat.Name);
+            if (total == 0)
+                continue;
+
+            list.Add(new DemoImportCategoryProgressDto(cat.Name, total, State: "Waiting"));
+        }
+
+        if (list.Count > 0)
+            list[0] = list[0] with { State = "Processing" };
+
+        return list;
+    }
+
+    private static void MarkCategoryProcessing(
+        List<DemoImportCategoryProgressDto> categories,
+        string categoryName)
+    {
+        for (var i = 0; i < categories.Count; i++)
+        {
+            var row = categories[i];
+            if (row.CategoryName == categoryName)
+            {
+                categories[i] = row with { State = "Processing" };
+            }
+            else if (row.State == "Processing" && row.Processed < row.Total)
+            {
+                categories[i] = row with { State = "Waiting" };
+            }
+        }
+    }
+
+    private static void AdvanceCategoryProgress(
+        List<DemoImportCategoryProgressDto> categories,
+        string categoryName,
+        bool imported,
+        bool skipped)
+    {
+        for (var i = 0; i < categories.Count; i++)
+        {
+            var row = categories[i];
+            if (row.CategoryName != categoryName)
+                continue;
+
+            var processed = row.Processed + 1;
+            var importedCount = row.Imported + (imported ? 1 : 0);
+            var skippedCount = row.Skipped + (skipped ? 1 : 0);
+            var state = processed >= row.Total ? "Completed" : "Processing";
+            categories[i] = row with
+            {
+                Processed = processed,
+                Imported = importedCount,
+                Skipped = skippedCount,
+                State = state,
+            };
+
+            if (state == "Completed" && i + 1 < categories.Count)
+                categories[i + 1] = categories[i + 1] with { State = "Processing" };
+
+            break;
+        }
+    }
+
+    private static void ReportProgress(
+        IProgress<DemoImportProgressDto>? progress,
+        DemoImportJobStatus status,
+        int totalProducts,
+        int processedProducts,
+        int importedCount,
+        int skippedCount,
+        string? currentProductName,
+        IReadOnlyList<DemoImportCategoryProgressDto> categories,
+        string? message = null)
+    {
+        if (progress == null)
+            return;
+
+        var percent = totalProducts > 0
+            ? (int)Math.Round(processedProducts * 100.0 / totalProducts, MidpointRounding.AwayFromZero)
+            : 0;
+
+        progress.Report(new DemoImportProgressDto(
+            Status: status,
+            TotalProducts: totalProducts,
+            ProcessedProducts: processedProducts,
+            ImportedCount: importedCount,
+            SkippedCount: skippedCount,
+            CurrentProductName: currentProductName,
+            Percent: Math.Clamp(percent, 0, 100),
+            Categories: categories,
+            Message: message));
     }
 }

@@ -142,7 +142,7 @@ public sealed class TenantProvisioningServiceTests
         var productIds = new List<Guid> { Guid.NewGuid(), Guid.NewGuid() };
         var importMock = new Mock<IDemoProductImportService>();
         importMock
-            .Setup(s => s.ImportDemoProductsAsync(tenant.Id, It.IsAny<DemoImportRequest>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.ImportDemoProductsAsync(tenant.Id, It.IsAny<DemoImportRequest>(), null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ImportResult
             {
                 Success = true,
@@ -181,7 +181,7 @@ public sealed class TenantProvisioningServiceTests
         Assert.NotNull(result);
         Assert.Equal(productIds, result!.ProductIds);
         importMock.Verify(
-            s => s.ImportDemoProductsAsync(tenant.Id, It.IsAny<DemoImportRequest>(), It.IsAny<CancellationToken>()),
+            s => s.ImportDemoProductsAsync(tenant.Id, It.IsAny<DemoImportRequest>(), null, It.IsAny<CancellationToken>()),
             Times.Once);
 
         var products = await db.Products.Where(p => p.TenantId == tenant.Id).ToListAsync();

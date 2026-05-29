@@ -1,3 +1,4 @@
+import type { DemoImportProductOverride } from '@/api/admin/products';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { authStorage } from '@/features/auth/services/authStorage';
 import { beginTenantSwitch } from '@/features/auth/services/tenantSwitchController';
@@ -220,6 +221,11 @@ export type DemoImportRequest = {
     selectedCategories?: string[];
     excludedCategories?: string[];
     selectedProductIds?: string[];
+    priceAdjustmentMode?: string;
+    priceAdjustmentPercent?: number;
+    priceRoundIncrement?: number;
+    imageMode?: string;
+    productOverrides?: DemoImportProductOverride[];
 };
 
 /** Super-admin: import demo menu into a specific tenant. */

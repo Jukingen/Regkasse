@@ -19,6 +19,18 @@ namespace KasseAPI_Final.Models
         [MaxLength(200)]
         public string Name { get; set; } = string.Empty;
 
+        [Column("name_de")]
+        [MaxLength(200)]
+        public string? NameDe { get; set; }
+
+        [Column("name_en")]
+        [MaxLength(200)]
+        public string? NameEn { get; set; }
+
+        [Column("name_tr")]
+        [MaxLength(200)]
+        public string? NameTr { get; set; }
+
         [Required]
         [Column("price")]
         [Range(0, double.MaxValue, ErrorMessage = "Price cannot be negative")]
@@ -30,6 +42,15 @@ namespace KasseAPI_Final.Models
 
         [Column("description")]
         public string? Description { get; set; }
+
+        [Column("description_de")]
+        public string? DescriptionDe { get; set; }
+
+        [Column("description_en")]
+        public string? DescriptionEn { get; set; }
+
+        [Column("description_tr")]
+        public string? DescriptionTr { get; set; }
 
         [Required]
         [Column("category")]

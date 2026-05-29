@@ -6,6 +6,7 @@ import {
     getDemoImportCatalog,
     importDemoProducts,
     type DemoImportCatalog,
+    type DemoImportRequest,
     type DemoProductImportResult,
 } from '@/api/admin/products';
 import { importDemoProductsForTenant } from '@/features/super-admin/api/adminTenants';
@@ -15,7 +16,15 @@ export type ImportDemoProductsVariables = {
     /** Super-admin: target tenant. Omit to import into current tenant context. */
     tenantId?: string;
     selectedCategories: string[];
+    /** When set, only these demo catalog product ids are imported (within category filter). */
+    selectedProductIds?: string[];
     overwriteExisting: boolean;
+    priceAdjustment?: Pick<
+        DemoImportRequest,
+        'priceAdjustmentMode' | 'priceAdjustmentPercent' | 'priceRoundIncrement'
+    >;
+    imageMode?: DemoImportRequest['imageMode'];
+    productOverrides?: DemoImportRequest['productOverrides'];
 };
 
 export const demoImportCatalogQueryKey = ['admin', 'demo-import-catalog'] as const;
@@ -34,8 +43,23 @@ export function useImportDemoProducts() {
     const { tenantId: currentTenantId } = useCurrentTenant();
 
     return useMutation<DemoProductImportResult, Error, ImportDemoProductsVariables>({
-        mutationFn: ({ tenantId, selectedCategories, overwriteExisting }) => {
-            const request = { selectedCategories, overwriteExisting };
+        mutationFn: ({
+            tenantId,
+            selectedCategories,
+            selectedProductIds,
+            overwriteExisting,
+            priceAdjustment,
+            imageMode,
+            productOverrides,
+        }) => {
+            const request = {
+                selectedCategories,
+                overwriteExisting,
+                ...(selectedProductIds?.length ? { selectedProductIds } : {}),
+                ...priceAdjustment,
+                ...(imageMode ? { imageMode } : {}),
+                ...(productOverrides?.length ? { productOverrides } : {}),
+            };
             if (tenantId) {
                 return importDemoProductsForTenant(tenantId, request);
             }

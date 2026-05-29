@@ -159,7 +159,7 @@ public sealed class AdminTenantsController : ControllerBase
             return NotFound(new { message = "Tenant not found." });
 
         var result = await importService
-            .ImportDemoProductsAsync(tenantId, request ?? new DemoImportRequest(), cancellationToken)
+            .ImportDemoProductsAsync(tenantId, request ?? new DemoImportRequest(), progress: null, cancellationToken)
             .ConfigureAwait(false);
 
         if (!result.Success && string.Equals(result.ErrorMessage, "Tenant not found.", StringComparison.Ordinal))
@@ -167,6 +167,90 @@ public sealed class AdminTenantsController : ControllerBase
 
         if (!result.Success)
             return BadRequest(new { message = result.ErrorMessage ?? "Demo product import failed.", result });
+
+        return Ok(result);
+    }
+
+    /// <summary>Start background demo catalog import with SignalR progress for a tenant.</summary>
+    [HttpPost("{tenantId:guid}/demo-products/import/jobs")]
+    [ProducesResponseType(typeof(DemoImportJobStartResponseDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<DemoImportJobStartResponseDto>> StartDemoImportJob(
+        Guid tenantId,
+        [FromBody] DemoImportRequest? request,
+        [FromServices] IDemoProductImportJobManager jobManager,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantService.GetByIdAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (tenant == null)
+            return NotFound(new { message = "Tenant not found." });
+
+        var started = await jobManager
+            .StartCatalogImportAsync(tenantId, request ?? new DemoImportRequest(), User, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Accepted(started);
+    }
+
+    /// <summary>Poll demo import job progress for a tenant import.</summary>
+    [HttpGet("demo-products/import/jobs/{jobId}")]
+    [ProducesResponseType(typeof(DemoImportJobStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<DemoImportJobStatusDto> GetDemoImportJobStatus(
+        string jobId,
+        [FromServices] IDemoProductImportJobManager jobManager)
+    {
+        if (!jobManager.TryAuthorizeSubscription(User, jobId))
+            return NotFound();
+
+        var status = jobManager.GetStatus(jobId);
+        return status == null ? NotFound() : Ok(status);
+    }
+
+    /// <summary>Import demo products from uploaded CSV/Excel template for a tenant (super-admin).</summary>
+    [HttpPost("{tenantId:guid}/demo-products/template/import")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    [ProducesResponseType(typeof(ImportResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<ImportResult>> ImportDemoTemplateForTenant(
+        Guid tenantId,
+        IFormFile? file,
+        [FromForm] bool overwriteExisting = false,
+        [FromForm] string? priceAdjustmentMode = null,
+        [FromForm] decimal? priceAdjustmentPercent = null,
+        [FromForm] decimal? priceRoundIncrement = null,
+        [FromForm] string? imageMode = null,
+        [FromServices] IDemoProductImportService importService = null!,
+        CancellationToken cancellationToken = default)
+    {
+        var tenant = await _tenantService.GetByIdAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (tenant == null)
+            return NotFound(new { message = "Tenant not found." });
+
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "File is required." });
+
+        var request = new DemoImportRequest
+        {
+            OverwriteExisting = overwriteExisting,
+            PriceAdjustmentMode = priceAdjustmentMode,
+            PriceAdjustmentPercent = priceAdjustmentPercent,
+            PriceRoundIncrement = priceRoundIncrement,
+            ImageMode = imageMode,
+        };
+
+        await using var stream = file.OpenReadStream();
+        var result = await importService
+            .ImportFromTemplateFileAsync(tenantId, stream, file.FileName, request, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!result.Success && string.Equals(result.ErrorMessage, "Tenant not found.", StringComparison.Ordinal))
+            return NotFound(new { message = result.ErrorMessage });
+
+        if (!result.Success)
+            return BadRequest(new { message = result.ErrorMessage ?? "Template import failed.", result });
 
         return Ok(result);
     }

@@ -10,8 +10,14 @@ public class AdminProductDto
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string? NameDe { get; set; }
+    public string? NameEn { get; set; }
+    public string? NameTr { get; set; }
     public decimal Price { get; set; }
     public string? Description { get; set; }
+    public string? DescriptionDe { get; set; }
+    public string? DescriptionEn { get; set; }
+    public string? DescriptionTr { get; set; }
     public string Barcode { get; set; } = string.Empty;
     public Guid CategoryId { get; set; }
     public string Category { get; set; } = string.Empty;
@@ -42,8 +48,14 @@ public class AdminProductDto
         {
             Id = p.Id,
             Name = p.Name,
+            NameDe = p.NameDe,
+            NameEn = p.NameEn,
+            NameTr = p.NameTr,
             Price = p.Price,
             Description = p.Description,
+            DescriptionDe = p.DescriptionDe,
+            DescriptionEn = p.DescriptionEn,
+            DescriptionTr = p.DescriptionTr,
             Barcode = p.Barcode,
             CategoryId = p.CategoryId,
             Category = p.Category ?? string.Empty,

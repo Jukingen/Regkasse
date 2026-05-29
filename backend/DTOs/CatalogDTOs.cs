@@ -17,7 +17,13 @@ namespace KasseAPI_Final.DTOs
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string? NameDe { get; set; }
+        public string? NameEn { get; set; }
+        public string? NameTr { get; set; }
         public string? Description { get; set; }
+        public string? DescriptionDe { get; set; }
+        public string? DescriptionEn { get; set; }
+        public string? DescriptionTr { get; set; }
         public decimal Price { get; set; }
         public string? ImageUrl { get; set; }
         public int StockQuantity { get; set; }

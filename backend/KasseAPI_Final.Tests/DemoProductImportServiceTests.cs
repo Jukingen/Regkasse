@@ -39,7 +39,11 @@ public sealed class DemoProductImportServiceTests
     {
         var env = new Mock<IWebHostEnvironment>();
         env.Setup(e => e.ContentRootPath).Returns(ResolveBackendContentRoot());
-        return new DemoProductImportService(db, env.Object, Mock.Of<ILogger<DemoProductImportService>>());
+        return new DemoProductImportService(
+            db,
+            env.Object,
+            Mock.Of<IDemoProductImportImageService>(),
+            Mock.Of<ILogger<DemoProductImportService>>());
     }
 
     private static async Task<Tenant> SeedTenantAsync(AppDbContext db)
@@ -75,6 +79,9 @@ public sealed class DemoProductImportServiceTests
         Assert.Equal(6, result.Created);
         Assert.Equal(0, result.Updated);
         Assert.Equal(0, result.Skipped);
+        Assert.Equal(6, result.ImportedProductCount);
+        Assert.Equal(2, result.CategoriesCreated);
+        Assert.True(result.AverageImportedPrice > 0);
         Assert.NotEmpty(result.CategoryIds);
         Assert.Equal(result.Created, result.ProductIds.Count);
         Assert.Equal(2, result.CategorySummaries.Count);
@@ -107,6 +114,8 @@ public sealed class DemoProductImportServiceTests
         Assert.Equal(19, result.TotalProductCount);
         Assert.Equal(15, result.SelectedCategoryCount);
         Assert.Equal(19, result.Created);
+        Assert.Equal(19, result.ImportedProductCount);
+        Assert.Equal(15, result.CategoriesCreated);
 
         var categories = await db.Categories.IgnoreQueryFilters()
             .Where(c => c.TenantId == tenant.Id)
@@ -137,6 +146,8 @@ public sealed class DemoProductImportServiceTests
         Assert.True(overwrite.Success);
         Assert.Equal(0, overwrite.Created);
         Assert.True(overwrite.Updated >= 19);
+        Assert.Equal(0, overwrite.CategoriesCreated);
+        Assert.True(overwrite.ImportedProductCount >= 19);
     }
 
     [Fact]

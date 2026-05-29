@@ -3,6 +3,11 @@
  * Memoized: re-renders only when product.id or selected modifiers (ids+prices) change.
  */
 import React, { memo, useEffect, useMemo, useState } from 'react';
+import { useProductDisplayLocale } from '../hooks/useProductDisplayLocale';
+import {
+  resolveProductDisplayDescription,
+  resolveProductDisplayName,
+} from '../utils/productLocalization';
 import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { Product } from '../services/api/productService';
 import type { AddOnSelection } from '../services/api/productModifiersService';
@@ -60,6 +65,16 @@ function ProductRowInner({
   onOpenAddOnSheet,
   getCategoryEmoji = () => '📦',
 }: ProductRowProps) {
+  const displayLocale = useProductDisplayLocale();
+  const displayName = useMemo(
+    () => resolveProductDisplayName(product, displayLocale),
+    [product, displayLocale],
+  );
+  const displayDescription = useMemo(
+    () => resolveProductDisplayDescription(product, displayLocale),
+    [product, displayLocale],
+  );
+
   const groups = product.modifierGroups ?? [];
   /** Phase C: only groups with add-on products (group.products). Legacy group.modifiers removed. */
   const groupsWithProducts = useMemo(
@@ -101,9 +116,9 @@ function ProductRowInner({
         </View>
 
         <View style={styles.info}>
-          <Text style={styles.name} numberOfLines={1}>{product.name}</Text>
-          {product.description ? (
-            <Text style={styles.description} numberOfLines={1}>{product.description}</Text>
+          <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
+          {displayDescription ? (
+            <Text style={styles.description} numberOfLines={1}>{displayDescription}</Text>
           ) : null}
           <View style={styles.meta}>
             <View style={styles.priceBadge}>
@@ -115,7 +130,11 @@ function ProductRowInner({
             <ModifierOptionChips
               key={group.id}
               label={group.name}
-              modifiers={(group.products ?? []).map((p) => ({ id: p.productId, name: p.productName, price: p.price }))}
+              modifiers={(group.products ?? []).map((p) => ({
+                id: p.productId,
+                name: resolveProductDisplayName(p, displayLocale),
+                price: p.price,
+              }))}
               selectedModifiers={[]}
               onAdd={(m) => onAddAddOn({ productId: m.id, productName: m.name, price: m.price })}
               hideQuantityStepper
