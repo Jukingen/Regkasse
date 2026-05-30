@@ -1,0 +1,93 @@
+# Regkasse POS System - Development Rules (v3.0 - 2025)
+
+Bu dosya, proje için güncel ve yüksek riskli geliştirme kurallarını içerir.
+Detaylı tam sürüm kural seti: `/.cursorrules`.
+
+## Do NOT Touch (High Risk Areas)
+- Payment Processing - Money, rounding, idempotency
+- TSE Signature Chain - Fiscal compliance
+- RKSV Special Receipts - Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg
+- Decommissioned Register - No new sessions/payments
+- Voucher Ledger - Balance integrity
+- FinanzOnline Outbox - SOAP submission
+- Tenant Isolation - Query filters, 404 semantics
+- Singleton + EF Pattern - Always use `IServiceScopeFactory`
+
+## TSE Offline Mode
+- Max **50** offline transactions per cash register
+- When limit reached, POS must block new offline transactions
+- Warning shown at 40 transactions (80% capacity)
+- Offline queue persists across app restarts
+
+## Session Security
+- When username changes:
+  1. Update `SecurityStamp`
+  2. Invalidate all existing JWTs
+  3. Force re-login on all devices
+  4. Log the invalidation event
+
+## Quick Reference
+
+### Useful Commands
+```bash
+# Backend
+dotnet run --project backend/KasseAPI_Final.csproj
+dotnet ef migrations add <Name> --project backend
+dotnet test
+
+# FA
+npm run dev
+npm run generate:api
+npm run test
+
+# FE
+npm start
+npm run test
+```
+
+### Useful API Endpoints
+```bash
+# Health
+curl http://localhost:5184/api/health
+
+# Tenant switcher (dev)
+curl -H "X-Tenant-Id: cafe" http://localhost:5184/api/tenants/switcher
+
+# Login
+curl -X POST http://localhost:5184/api/Auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"loginIdentifier":"admin","password":"***"}'
+
+# Backup trigger
+curl -X POST http://localhost:5184/api/admin/backup/trigger \
+  -H "Authorization: Bearer ***"
+```
+
+### Quick Reference (Backup)
+```bash
+# Trigger backup
+curl -X POST http://localhost:5184/api/admin/backup/trigger \
+  -H "Authorization: Bearer ***"
+
+# Check backup status
+curl http://localhost:5184/api/admin/backup/status/latest \
+  -H "Authorization: Bearer ***"
+
+# List backups
+curl "http://localhost:5184/api/admin/backup/runs?page=1&pageSize=10" \
+  -H "Authorization: Bearer ***"
+```
+
+### Quick Reference (Activity Feed)
+```bash
+# Get unread count
+curl http://localhost:5184/api/admin/activities/unread-count \
+  -H "Authorization: Bearer ***"
+
+# Mark as read
+curl -X POST http://localhost:5184/api/admin/activities/{id}/read \
+  -H "Authorization: Bearer ***"
+```
+
+## Last Updated
+- 2025-05-28 - Added username login, backup system, activity feed, multi-tenant rules

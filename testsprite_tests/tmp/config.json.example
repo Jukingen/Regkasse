@@ -1,0 +1,19 @@
+{
+  "status": "local",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:5184",
+  "loginUser": "admin@admin.com",
+  "loginPassword": "Admin123!",
+  "executionArgs": {
+    "projectName": "Regkasse",
+    "projectPath": "C:\\path\\to\\Regkasse",
+    "testIds": [],
+    "additionalInstruction": "",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "YOUR_TESTSPRITE_API_KEY"
+    }
+  },
+  "serverPort": 51189
+}

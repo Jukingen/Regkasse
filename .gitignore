@@ -101,8 +101,17 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Cursor
-.cursor/
+# Frontend POS — local env (root .env rules apply; keep explicit for subproject tooling)
+frontend/.env
+frontend/.env.local
+frontend/.env.development
+frontend/.env.production
+
+# Frontend Admin — local env
+frontend-admin/.env
+frontend-admin/.env.local
+frontend-admin/.env.development
+frontend-admin/.env.production
 
 # Temporary files
 *.swp
@@ -209,7 +218,20 @@ backend/CreateTableOrderTables.sql
 /test-videos/
 testsprite.log
 
+# TestSprite local runtime (never commit API keys or machine-specific paths)
+testsprite_tests/tmp/config.json
+testsprite_tests/tmp/test_results.json
+testsprite_tests/tmp/raw_report.md
+testsprite_tests/tmp/code_summary.yaml
+!testsprite_tests/tmp/config.json.example
+
 # Test data artifacts
 /test-temp/
 *.test.db
-testsprite_tests\tmp\config.json
+
+# Tools — local appsettings (use repo templates / user-secrets)
+tools/**/appsettings.json
+!tools/**/appsettings.example.json
+
+# Legacy one-off DB scripts (use EF migrations + user-secrets instead)
+backend/UpdateDatabase.cs
