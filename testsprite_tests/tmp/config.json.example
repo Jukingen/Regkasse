@@ -4,7 +4,7 @@
   "scope": "codebase",
   "localEndpoint": "http://localhost:5184",
   "loginUser": "admin@admin.com",
-  "loginPassword": "Admin123!",
+  "loginPassword": "YOUR_DEV_SEED_PASSWORD",
   "executionArgs": {
     "projectName": "Regkasse",
     "projectPath": "C:\\path\\to\\Regkasse",
