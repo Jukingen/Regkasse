@@ -9,12 +9,22 @@ public static class AppPermissions
     // --- User & Role ---
     public const string UserView = "user.view";
     public const string UserManage = "user.manage";
+    public const string UserCreate = "user.create";
+    public const string UserEdit = "user.edit";
+    public const string UserDelete = "user.delete";
+    public const string UserChangeRole = "user.change.role";
+    public const string UserChangeUsername = "user.change.username";
+    public const string UserResetPassword = "user.reset.password";
     public const string RoleView = "role.view";
     public const string RoleManage = "role.manage";
 
     // --- Product, Category, Modifier ---
     public const string ProductView = "product.view";
     public const string ProductManage = "product.manage";
+    public const string ProductCreate = "product.create";
+    public const string ProductEdit = "product.edit";
+    public const string ProductDelete = "product.delete";
+    public const string ProductUpdateStock = "product.update.stock";
     public const string CategoryView = "category.view";
     public const string CategoryManage = "category.manage";
     public const string ModifierView = "modifier.view";
@@ -37,6 +47,7 @@ public static class AppPermissions
     public const string PaymentView = "payment.view";
     public const string PaymentTake = "payment.take";
     public const string PaymentCancel = "payment.cancel";
+    public const string PaymentExport = "payment.export";
     public const string RefundCreate = "refund.create";
 
     /// <summary>Apply discount to sale (e.g. manual discount, voucher).</summary>
@@ -90,6 +101,7 @@ public static class AppPermissions
     // --- Settings, Localization, ReceiptTemplate ---
     public const string SettingsView = "settings.view";
     public const string SettingsManage = "settings.manage";
+    public const string SettingsBackup = "settings.backup";
     public const string LocalizationView = "localization.view";
     public const string LocalizationManage = "localization.manage";
     public const string ReceiptTemplateView = "receipttemplate.view";
@@ -98,9 +110,11 @@ public static class AppPermissions
     // --- Audit, Report ---
     public const string AuditView = "audit.view";
     public const string AuditExport = "audit.export";
+    public const string AuditDelete = "audit.delete";
     public const string AuditCleanup = "audit.cleanup";
     public const string ReportView = "report.view";
     public const string ReportExport = "report.export";
+    public const string ReportSchedule = "report.schedule";
 
     /// <summary>Uyum / hukuki inceleme paketi (fiscal export compliance profili). Tanılama veya denetim devrinden ayrı.</summary>
     public const string FiscalExportCompliance = "fiscal.export.compliance";
@@ -137,6 +151,11 @@ public static class AppPermissions
 
     /// <summary>Super-admin tenant CRUD and impersonation (<c>/api/admin/tenants</c>).</summary>
     public const string TenantManage = "tenant.manage";
+    public const string TenantView = "tenant.view";
+    public const string TenantCreate = "tenant.create";
+    public const string TenantEdit = "tenant.edit";
+    public const string TenantDelete = "tenant.delete";
+    public const string TenantImpersonate = "tenant.impersonate";
 
     /// <summary>Destructive / sensitive issued-license lifecycle (extend in-place, cancel, soft-delete, unregister). SuperAdmin-only via catalog.</summary>
     public const string LicenseLifecycleSuper = "license.super";

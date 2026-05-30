@@ -4,6 +4,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Backup;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -111,9 +112,12 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             category = new Category
             {
                 TenantId = tenant.Id,
+                Key = CategoryKey.FromDisplayName(DefaultCategoryName),
                 Name = DefaultCategoryName,
                 VatRate = 20m,
                 SortOrder = 0,
+                FiscalCategory = RksvProductCategory.Food,
+                IsSystemCategory = true,
                 CreatedAt = now,
                 IsActive = true,
             };
@@ -177,6 +181,8 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             CreatedAt = now,
             UpdatedAt = now,
         });
+
+        _db.BackupScheduleConfigurations.Add(BackupScheduleConfigurationEnsure.CreateDefaultRow(tenant.Id, now));
 
         DateTime? trialUntil = null;
         if (grantTrialLicense && !tenant.LicenseValidUntilUtc.HasValue)

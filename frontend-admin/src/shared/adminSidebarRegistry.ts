@@ -132,6 +132,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.stornoRefundAudit',
         icon: 'AuditOutlined',
     },
+    paymentTrends: {
+        id: 'paymentTrends',
+        menuKey: '/payments/trends',
+        href: '/payments/trends',
+        labelKey: 'nav.paymentTrends',
+        icon: 'AreaChartOutlined',
+        permission: AppPermissions.PaymentView,
+    },
     vouchers: {
         id: 'vouchers',
         menuKey: '/vouchers',
@@ -321,6 +329,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.companySettings',
         icon: 'ShopOutlined',
     },
+    sessionSettings: {
+        id: 'sessionSettings',
+        menuKey: '/settings/session',
+        href: '/settings/session',
+        labelKey: 'nav.sessionSettings',
+        icon: 'ClockCircleOutlined',
+    },
     personalization: {
         id: 'personalization',
         menuKey: '/settings/personalization',
@@ -481,7 +496,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['receipts', 'payments', 'stornoRefundAudit', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
+                catalogIds: ['receipts', 'payments', 'paymentTrends', 'stornoRefundAudit', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
             },
         ],
     },
@@ -553,7 +568,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
                 labelKey: 'nav.settingsHub',
                 icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync', 'licenseManagement'],
+                catalogIds: ['companySettings', 'sessionSettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync', 'licenseManagement'],
             },
         ],
     },

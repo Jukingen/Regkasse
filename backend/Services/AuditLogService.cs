@@ -603,6 +603,9 @@ namespace KasseAPI_Final.Services
                 AuditEventType.RestoreRejected => AuditLogActions.RESTORE_REJECTED,
                 AuditEventType.RestoreCompleted => AuditLogActions.RESTORE_COMPLETED,
                 AuditEventType.RestoreFailed => AuditLogActions.RESTORE_FAILED,
+                AuditEventType.CategoryUpdated => AuditLogActions.CATEGORY_UPDATED,
+                AuditEventType.CategoryDemoReset => AuditLogActions.CATEGORY_DEMO_RESET,
+                AuditEventType.InvoiceResent => AuditLogActions.INVOICE_RESENT,
                 _ => AuditLogActions.USER_UPDATE
             };
         }
@@ -634,6 +637,9 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.RESTORE_REJECTED => AuditEventType.RestoreRejected,
                 AuditLogActions.RESTORE_COMPLETED => AuditEventType.RestoreCompleted,
                 AuditLogActions.RESTORE_FAILED => AuditEventType.RestoreFailed,
+                AuditLogActions.CATEGORY_UPDATED => AuditEventType.CategoryUpdated,
+                AuditLogActions.CATEGORY_DEMO_RESET => AuditEventType.CategoryDemoReset,
+                AuditLogActions.INVOICE_RESENT => AuditEventType.InvoiceResent,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_CREATED => AuditEventType.RestoreRequested,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_APPROVED => AuditEventType.RestoreApproved,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_REJECTED => AuditEventType.RestoreRejected,

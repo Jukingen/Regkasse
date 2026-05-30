@@ -1,78 +1,23 @@
 /**
- * Backup automation schedule settings (GET/PUT /api/admin/backup/settings, schedule status).
- * Manual integration until Orval regenerates from OpenAPI.
+ * Backup automation schedule settings — Orval-generated client + local cron helpers.
  */
 
-import { customInstance } from '@/lib/axios';
+export {
+  getApiAdminBackupSettings as getBackupScheduleSettings,
+  getGetApiAdminBackupSettingsQueryKey as getBackupScheduleSettingsQueryKey,
+  putApiAdminBackupSettings as putBackupScheduleSettings,
+  getApiAdminBackupScheduleStatus as getBackupScheduleStatus,
+  getGetApiAdminBackupScheduleStatusQueryKey as getBackupScheduleStatusQueryKey,
+} from '@/api/generated/admin/admin';
 
-export const BACKUP_SCHEDULE_SETTINGS_PATH = '/api/admin/backup/settings' as const;
-export const BACKUP_SCHEDULE_STATUS_PATH = '/api/admin/backup/schedule/status' as const;
-
-export function getBackupScheduleSettingsQueryKey() {
-  return [BACKUP_SCHEDULE_SETTINGS_PATH] as const;
-}
-
-export function getBackupScheduleStatusQueryKey() {
-  return [BACKUP_SCHEDULE_STATUS_PATH] as const;
-}
-
-export interface BackupSettingsResponseDto {
-  enabled: boolean;
-  scheduleCron: string;
-  retentionDays: number;
-  lastRunAtUtc?: string | null;
-  nextRunAtUtc?: string | null;
-  updatedAtUtc: string;
-}
-
-export interface BackupSettingsPutRequestDto {
-  enabled: boolean;
-  scheduleCron: string;
-  retentionDays: number;
-}
-
-export interface BackupScheduleLatestRunSummaryDto {
-  id: string;
-  status: number;
-  requestedAt: string;
-  completedAt?: string | null;
-  failureCode?: string | null;
-  failureDetail?: string | null;
-}
-
-export interface BackupScheduleStatusResponseDto {
-  databaseAutomationEnabled: boolean;
-  scheduleCronUtc: string;
-  storedLastRunAtUtc?: string | null;
-  storedNextRunAtUtc?: string | null;
-  computedNextRunAtUtc?: string | null;
-  latestScheduledBackupRun?: BackupScheduleLatestRunSummaryDto | null;
-}
-
-export async function getBackupScheduleSettings(): Promise<BackupSettingsResponseDto> {
-  return customInstance<BackupSettingsResponseDto>({
-    url: BACKUP_SCHEDULE_SETTINGS_PATH,
-    method: 'GET',
-  });
-}
-
-export async function putBackupScheduleSettings(
-  body: BackupSettingsPutRequestDto,
-): Promise<BackupSettingsResponseDto> {
-  return customInstance<BackupSettingsResponseDto>({
-    url: BACKUP_SCHEDULE_SETTINGS_PATH,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    data: body,
-  });
-}
-
-export async function getBackupScheduleStatus(): Promise<BackupScheduleStatusResponseDto> {
-  return customInstance<BackupScheduleStatusResponseDto>({
-    url: BACKUP_SCHEDULE_STATUS_PATH,
-    method: 'GET',
-  });
-}
+export type {
+  BackupScheduleConfigurationDto,
+  BackupScheduleFrequency,
+  BackupScheduleLatestRunSummaryDto,
+  BackupScheduleStatusResponseDto,
+  BackupSettingsPutRequestDto,
+  BackupSettingsResponseDto,
+} from '@/api/generated/model';
 
 /** Preset crons (UTC, CronFormat.Standard — 5 fields). */
 export const BACKUP_SCHEDULE_PRESET_CRONS = {

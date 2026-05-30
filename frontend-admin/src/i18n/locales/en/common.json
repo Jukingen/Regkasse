@@ -227,7 +227,15 @@
     "sessionTimeout": {
       "warningTitle": "Session will expire soon",
       "warningBody": "You will be automatically logged out due to inactivity.",
-      "stayLoggedIn": "Continue session"
+      "stayLoggedIn": "Continue",
+      "logout": "Log out",
+      "expiresIn": "Your session will expire in {{time}}",
+      "timeSecondsOnly": "{{seconds}} seconds",
+      "timeMinutesAndSeconds": "{{minutes}} minute(s) and {{seconds}} seconds",
+      "alertMessage": "Do you want to continue?",
+      "alertDescription": "Click Continue to stay signed in. Otherwise you will be logged out automatically.",
+      "securityNote": "For security reasons, inactive sessions are ended automatically.",
+      "loggedOutInactivity": "You were signed out due to inactivity."
     },
     "sessions": {
       "title": "Active sessions",
@@ -311,6 +319,8 @@
       "activeLabel": "Active"
     },
     "table": {
+      "icon": "Icon",
+      "key": "Key (System)",
       "name": "Name",
       "color": "Color",
       "description": "Description",
@@ -320,7 +330,14 @@
       "barcode": "Barcode",
       "price": "Price",
       "stock": "Stock",
-      "vatRate": "VAT Rate (%)",
+      "vatRate": "Tax",
+      "productCount": "Products",
+      "fiscalCategory": "Fiscal category",
+      "fiscalFood": "Food",
+      "fiscalBeverage": "Beverages",
+      "fiscalAlcohol": "Alcohol",
+      "fiscalTobacco": "Tobacco",
+      "fiscalOther": "Other",
       "active": "Active",
       "sortOrder": "Sort Order",
       "actions": "Actions"
@@ -332,6 +349,14 @@
       "updateError": "Category could not be updated.",
       "deleted": "Category deleted.",
       "deleteError": "Category could not be deleted."
+    },
+    "reset": {
+      "button": "Restore demo categories",
+      "confirmTitle": "Reset category names",
+      "confirmContent": "This restores all category display names to the original demo names. Your products are kept.",
+      "confirmOk": "Reset",
+      "success": "Reset {{count}} category name(s) to demo defaults.",
+      "error": "Could not restore demo categories."
     }
   }
 }

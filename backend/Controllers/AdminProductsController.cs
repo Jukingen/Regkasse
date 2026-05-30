@@ -34,6 +34,7 @@ namespace KasseAPI_Final.Controllers
         private readonly ProductImageThumbnailService _productImageThumbnailService;
         private readonly IDemoProductImportService _demoProductImportService;
         private readonly ICurrentTenantAccessor _tenantAccessor;
+        private readonly IAdminProductListService _productListService;
 
         public AdminProductsController(
             AppDbContext context,
@@ -44,7 +45,8 @@ namespace KasseAPI_Final.Controllers
             IOptions<ProductMediaOptions> productMediaOptions,
             ProductImageThumbnailService productImageThumbnailService,
             IDemoProductImportService demoProductImportService,
-            ICurrentTenantAccessor tenantAccessor)
+            ICurrentTenantAccessor tenantAccessor,
+            IAdminProductListService productListService)
             : base(logger)
         {
             _context = context;
@@ -55,6 +57,7 @@ namespace KasseAPI_Final.Controllers
             _productImageThumbnailService = productImageThumbnailService;
             _demoProductImportService = demoProductImportService;
             _tenantAccessor = tenantAccessor;
+            _productListService = productListService;
         }
 
         /// <summary>Demo menu catalog for import selection UI. GET api/admin/products/demo/catalog</summary>
@@ -97,66 +100,103 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Ürün listesi (sayfalama, opsiyonel categoryId ve name araması). GET api/admin/products
+        /// Ürün listesi (gelişmiş filtreleme, sayfalama). GET api/admin/products
         /// </summary>
-        /// <param name="isActive">Optional: omit or "true" = active only (default); "false" = inactive only; "all" = both.</param>
+        /// <param name="isActive">Legacy optional: omit or "true" = active only (default); "false" = inactive only; "all" = both.</param>
         [HttpGet]
-        public async Task<IActionResult> GetList(
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20,
+        [ProducesResponseType(typeof(ProductListResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetProducts(
+            [FromQuery] ProductFilterDto filter,
+            [FromQuery] int? pageNumber = null,
+            [FromQuery] int? pageSize = null,
             [FromQuery] Guid? categoryId = null,
             [FromQuery] string? name = null,
-            [FromQuery] string? isActive = null)
+            [FromQuery] string? isActive = null,
+            CancellationToken cancellationToken = default)
         {
             try
             {
-                if (!AdminProductListIsActiveFilterParser.TryParse(isActive, out var activeMode, out var filterError))
-                    return ErrorResponse(filterError!, 400);
+                var defaultActiveOnly = MergeLegacyListParams(filter, pageNumber, pageSize, categoryId, name, isActive);
+                if (defaultActiveOnly == null)
+                    return BadRequest(new { message = "Invalid isActive filter. Use true, false, or all.", code = "ADMIN_PRODUCTS_INVALID_IS_ACTIVE" });
 
-                var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
-                var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
+                var (response, errorCode, errorMessage) =
+                    await _productListService.QueryAsync(filter, defaultActiveOnly.Value, cancellationToken);
 
-                var query = _context.Products.Where(p => p.TenantId == tenantId);
-                query = activeMode switch
+                if (errorCode != null)
+                    return BadRequest(new { message = errorMessage, code = errorCode });
+
+                _logger.LogInformation(
+                    "Admin products list: page {Page}, total {Total}, filters {FilterCount}",
+                    response.Page,
+                    response.TotalCount,
+                    response.ActiveFilters.ActiveFilterCount);
+
+                // SuccessResponse wrapper keeps FE axios unwrap contract; body mirrors ProductListResponse + pagination alias.
+                var payload = new
                 {
-                    AdminProductListIsActiveFilterMode.ActiveOnly => query.Where(p => p.IsActive),
-                    AdminProductListIsActiveFilterMode.InactiveOnly => query.Where(p => !p.IsActive),
-                    _ => query
-                };
-                if (categoryId.HasValue)
-                    query = query.Where(p => p.CategoryId == categoryId.Value);
-                if (!string.IsNullOrWhiteSpace(name))
-                    query = query.Where(p => p.Name.ToLower().Contains(name.Trim().ToLower()));
-
-                var totalCount = await query.CountAsync();
-
-                var products = await query
-                    .OrderBy(p => p.Category)
-                    .ThenBy(p => p.Name)
-                    .Skip((validPageNumber - 1) * validPageSize)
-                    .Take(validPageSize)
-                    .ToListAsync();
-
-                var items = products.Select(AdminProductDto.FromProduct).ToList();
-                var response = new
-                {
-                    items,
+                    items = response.Items.Select(ProductListDtoMapper.ToAdminProductDto).ToList(),
                     pagination = new
                     {
-                        pageNumber = validPageNumber,
-                        pageSize = validPageSize,
-                        totalCount = totalCount,
-                        totalPages = (int)Math.Ceiling((double)totalCount / validPageSize)
-                    }
+                        pageNumber = response.Page,
+                        pageSize = response.PageSize,
+                        totalCount = response.TotalCount,
+                        totalPages = (int)Math.Ceiling((double)response.TotalCount / response.PageSize),
+                    },
+                    availableFilters = response.AvailableFilters,
+                    activeFilters = response.ActiveFilters,
                 };
 
-                _logger.LogInformation("Admin products list: page {Page}, total {Total}", validPageNumber, totalCount);
-                return SuccessResponse(response, $"Retrieved {items.Count} products");
+                return SuccessResponse(payload, $"Retrieved {response.Items.Count} products");
             }
             catch (Exception ex)
             {
-                return HandleException(ex, "AdminProducts.GetList");
+                return HandleException(ex, "AdminProducts.GetProducts");
             }
+        }
+
+        /// <returns><c>true</c> default active-only; <c>false</c> include inactive; <c>null</c> invalid legacy isActive.</returns>
+        private static bool? MergeLegacyListParams(
+            ProductFilterDto filter,
+            int? pageNumber,
+            int? pageSize,
+            Guid? categoryId,
+            string? name,
+            string? isActive)
+        {
+            if (pageNumber.HasValue && pageNumber.Value > 0)
+                filter.Page = pageNumber.Value;
+            if (pageSize.HasValue && pageSize.Value > 0)
+                filter.PageSize = pageSize.Value;
+
+            if (categoryId.HasValue && categoryId.Value != Guid.Empty && filter.CategoryIds.Count == 0)
+                filter.CategoryIds.Add(categoryId.Value);
+
+            if (!string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(filter.SearchTerm))
+            {
+                filter.SearchTerm = name.Trim();
+                filter.SearchInName = true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(isActive))
+            {
+                if (!AdminProductListIsActiveFilterParser.TryParse(isActive, out var activeMode, out _))
+                    return null;
+
+                filter.IsActive = activeMode switch
+                {
+                    AdminProductListIsActiveFilterMode.ActiveOnly => true,
+                    AdminProductListIsActiveFilterMode.InactiveOnly => false,
+                    _ => null,
+                };
+                return activeMode == AdminProductListIsActiveFilterMode.ActiveOnly;
+            }
+
+            if (filter.IsActive.HasValue)
+                return filter.IsActive.Value;
+
+            return true;
         }
 
         /// <summary>

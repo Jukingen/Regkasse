@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using KasseAPI_Final.Data.CategorySeed;
 using KasseAPI_Final.Models.DTOs;
 
 namespace KasseAPI_Final.Services;
@@ -33,14 +34,22 @@ internal static class DemoProductImportFilter
             var selected = new HashSet<string>(
                 request.SelectedCategories.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()),
                 StringComparer.Ordinal);
-            categoriesToImport = categoriesToImport.Where(c => selected.Contains(c.Name));
+            categoriesToImport = categoriesToImport.Where(c =>
+                selected.Contains(c.Name)
+                || selected.Contains(c.Key)
+                || (SystemCategories.TryResolve(c.Name, out var byName) && selected.Contains(byName.Key))
+                || (SystemCategories.TryResolve(c.Key, out var byKey) && (selected.Contains(byKey.Key) || selected.Contains(byKey.DisplayName))));
         }
         else if (request.ExcludedCategories.Count > 0)
         {
             var excluded = new HashSet<string>(
                 request.ExcludedCategories.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()),
                 StringComparer.Ordinal);
-            categoriesToImport = categoriesToImport.Where(c => !excluded.Contains(c.Name));
+            categoriesToImport = categoriesToImport.Where(c =>
+                !excluded.Contains(c.Name)
+                && !excluded.Contains(c.Key)
+                && !(SystemCategories.TryResolve(c.Name, out var byName) && excluded.Contains(byName.Key))
+                && !(SystemCategories.TryResolve(c.Key, out var byKey) && (excluded.Contains(byKey.Key) || excluded.Contains(byKey.DisplayName))));
         }
 
         return categoriesToImport.OrderBy(c => c.SortOrder).ToList();

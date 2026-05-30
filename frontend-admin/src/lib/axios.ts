@@ -5,6 +5,7 @@ import { resolveTenantSlugForApiRequest } from '@/features/auth/services/devTena
 import { TENANT_HTTP_HEADER } from '@/features/auth/services/tenantStorage';
 import { getForbiddenMessage, mapRequiredPolicyToReasonCode } from '@/shared/errors/forbiddenMessages';
 import { getStoredLanguage } from '@/i18n/languageStorage';
+import { isPublicAuthEntryPath } from '@/features/auth/utils/isPublicAuthEntryPath';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -19,6 +20,7 @@ function isRequestCanceled(error: unknown): boolean {
     }
     return (error as { code?: string })?.code === 'ERR_CANCELED';
 }
+
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 const baseURL = configuredBaseUrl || (isDev ? 'http://localhost:5184' : '');
 
@@ -46,6 +48,11 @@ const createAxiosInstance = () => {
     instance.interceptors.request.use((config) => {
         if (typeof window !== 'undefined') {
             const tenantSlug = resolveTenantSlugForApiRequest();
+            if (isDev && config.url) {
+                technicalConsole.devDebug(
+                    `[API] ${TENANT_HTTP_HEADER}: ${tenantSlug || '(none)'} → ${config.url}`,
+                );
+            }
             if (tenantSlug) {
                 config.headers = config.headers ?? {};
                 config.headers[TENANT_HTTP_HEADER] = tenantSlug;
@@ -93,7 +100,9 @@ const createAxiosInstance = () => {
             const serverMessage = typeof data?.message === 'string' ? data.message : null;
             const fallbackMessage = error?.message ?? 'Request failed';
 
-            if (isDev) {
+            const suppressLogin401Noise = status === 401 && isPublicAuthEntryPath();
+
+            if (isDev && !suppressLogin401Noise) {
                 if (status === 401) {
                     technicalConsole.devDebug('[API] 401 Unauthorized');
                 } else if (status != null) {
@@ -119,28 +128,32 @@ const createAxiosInstance = () => {
             }
 
             if (status === 401 && originalRequest && !originalRequest._retry && !String(url).includes('/api/Auth/refresh')) {
-                originalRequest._retry = true;
-                const refreshToken = authStorage.getRefreshToken();
-                if (refreshToken) {
-                    try {
-                        const refreshResponse = await instance.post('/api/Auth/refresh', { refreshToken });
-                        const nextAccessToken = (refreshResponse.data as any)?.token as string | undefined;
-                        const nextRefreshToken = (refreshResponse.data as any)?.refreshToken as string | undefined;
-                        if (nextAccessToken) {
-                            authStorage.setToken(nextAccessToken);
-                            if (nextRefreshToken) {
-                                authStorage.setRefreshToken(nextRefreshToken);
+                if (suppressLogin401Noise) {
+                    authStorage.removeToken();
+                } else {
+                    originalRequest._retry = true;
+                    const refreshToken = authStorage.getRefreshToken();
+                    if (refreshToken) {
+                        try {
+                            const refreshResponse = await instance.post('/api/Auth/refresh', { refreshToken });
+                            const nextAccessToken = (refreshResponse.data as any)?.token as string | undefined;
+                            const nextRefreshToken = (refreshResponse.data as any)?.refreshToken as string | undefined;
+                            if (nextAccessToken) {
+                                authStorage.setToken(nextAccessToken);
+                                if (nextRefreshToken) {
+                                    authStorage.setRefreshToken(nextRefreshToken);
+                                }
+                                originalRequest.headers = originalRequest.headers ?? {};
+                                originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
+                                return instance(originalRequest);
                             }
-                            originalRequest.headers = originalRequest.headers ?? {};
-                            originalRequest.headers.Authorization = `Bearer ${nextAccessToken}`;
-                            return instance(originalRequest);
+                            authStorage.removeToken();
+                        } catch {
+                            authStorage.removeToken();
                         }
-                        authStorage.removeToken();
-                    } catch {
+                    } else {
                         authStorage.removeToken();
                     }
-                } else {
-                    authStorage.removeToken();
                 }
             }
 

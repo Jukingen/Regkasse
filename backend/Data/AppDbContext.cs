@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
@@ -59,6 +60,8 @@ namespace KasseAPI_Final.Data
         public DbSet<CashRegisterTransaction> CashRegisterTransactions { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
+        public DbSet<PaymentReversalApproval> PaymentReversalApprovals { get; set; }
+        public DbSet<SuspiciousTransactionAlert> SuspiciousTransactionAlerts { get; set; }
         public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
         /// <summary>Observability: DeviceId/ClientSequence coverage per replayed offline intent (no domain impact).</summary>
         public DbSet<OfflineIntentCoverageSample> OfflineIntentCoverageSamples { get; set; }
@@ -96,6 +99,7 @@ namespace KasseAPI_Final.Data
         public DbSet<AuthSession> AuthSessions { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<UserTenantMembership> UserTenantMemberships { get; set; }
+        public DbSet<UserPermissionOverride> UserPermissionOverrides { get; set; }
         public DbSet<UserUsernameHistory> UserUsernameHistories { get; set; }
         public DbSet<DashboardPreferences> DashboardPreferences { get; set; }
         public DbSet<UserPreferences> UserPreferences { get; set; }
@@ -144,6 +148,9 @@ namespace KasseAPI_Final.Data
 
         /// <summary>Singleton (Id=1): scheduled backup UTC cron + retention (see migration seed).</summary>
         public DbSet<BackupSettings> BackupSettings { get; set; }
+
+        /// <summary>Per-tenant backup automation schedule (UTC cron + retention).</summary>
+        public DbSet<BackupScheduleConfiguration> BackupScheduleConfigurations { get; set; }
 
         /// <summary>Singleton (Id=1): persisted development-mode toggles (see migration seed).</summary>
         public DbSet<DevelopmentModeSettings> DevelopmentModeSettings { get; set; }
@@ -269,6 +276,29 @@ namespace KasseAPI_Final.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
+            builder.Entity<UserPermissionOverride>(entity =>
+            {
+                entity.ToTable("user_permission_overrides");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.UserId).HasColumnName("user_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id");
+                entity.Property(e => e.Permission).HasColumnName("permission").IsRequired().HasMaxLength(128);
+                entity.Property(e => e.IsGranted).HasColumnName("is_granted").IsRequired();
+                entity.Property(e => e.Reason).HasColumnName("reason").HasMaxLength(500);
+                entity.Property(e => e.CreatedAt).HasColumnName("created_at").IsRequired();
+                entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").HasMaxLength(450);
+                entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
+
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.UserId, e.TenantId, e.Permission });
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             builder.Entity<UserUsernameHistory>(entity =>
             {
                 entity.ToTable("user_username_history");
@@ -321,6 +351,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.ImageUrl).HasMaxLength(500);
                 entity.Property(e => e.StockQuantity).IsRequired();
                 entity.Property(e => e.MinStockLevel).IsRequired();
+                entity.Property(e => e.MaxStockLevel).HasColumnName("max_stock_level");
                 entity.Property(e => e.Unit).HasMaxLength(20);
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();
@@ -575,13 +606,18 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
+                entity.Property(e => e.Key).IsRequired().HasMaxLength(100).HasColumnName("category_key");
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.OriginalDemoName).HasMaxLength(100).HasColumnName("original_demo_name");
                 entity.Property(e => e.Description).HasMaxLength(500);
                 entity.Property(e => e.Color).HasMaxLength(20);
                 entity.Property(e => e.Icon).HasMaxLength(50);
                 entity.Property(e => e.SortOrder);
                 entity.Property(e => e.VatRate).HasColumnType("decimal(5,2)").IsRequired();
+                entity.Property(e => e.FiscalCategory).HasColumnName("fiscal_category").HasConversion<int>().IsRequired();
+                entity.Property(e => e.IsSystemCategory).HasColumnName("is_system_category").HasDefaultValue(false);
                 entity.HasAlternateKey(e => new { e.Id, e.TenantId });
+                entity.HasIndex(e => new { e.TenantId, e.Key }).IsUnique();
                 entity.HasIndex(e => new { e.TenantId, e.Name }).IsUnique();
                 entity.HasIndex(e => e.SortOrder);
             });
@@ -1014,6 +1050,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.SessionTimeoutMinutes).HasColumnName("session_timeout_minutes").IsRequired();
                 entity.Property(e => e.SessionWarningBeforeTimeoutMinutes).HasColumnName("session_warning_before_timeout_minutes").IsRequired();
                 entity.Property(e => e.KeepCartAfterTimeout).HasColumnName("keep_cart_after_timeout").IsRequired();
+                entity.Property(e => e.SessionIdleTimeoutEnabled).HasColumnName("session_idle_timeout_enabled").IsRequired();
                 
                 entity.HasIndex(e => new { e.TenantId, e.CompanyTaxNumber }).IsUnique();
             });
@@ -1999,6 +2036,19 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.UpdatedAtUtc).IsRequired();
             });
 
+            builder.Entity<BackupScheduleConfiguration>(entity =>
+            {
+                entity.ToTable("backup_schedule_configurations");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId).IsUnique();
+                entity.Property(e => e.ScheduleCron).IsRequired().HasMaxLength(120);
+                entity.Property(e => e.RetentionDays).IsRequired();
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             builder.Entity<DevelopmentModeSettings>(entity =>
             {
                 entity.ToTable("development_mode_settings");
@@ -2115,6 +2165,31 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.RestoreVerificationRunId)
                     .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<PaymentReversalApproval>(entity =>
+            {
+                entity.ToTable("payment_reversal_approvals");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.TenantId, e.PaymentId, e.Status });
+                entity.HasIndex(e => e.IdempotencyKey)
+                    .HasDatabaseName("ix_payment_reversal_approvals_idempotency_key")
+                    .HasFilter("idempotency_key IS NOT NULL");
+                entity.Property(e => e.Operation).HasConversion<int>();
+                entity.Property(e => e.Status).HasConversion<int>();
+            });
+
+            builder.Entity<SuspiciousTransactionAlert>(entity =>
+            {
+                entity.ToTable("suspicious_transaction_alerts");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId);
+                entity.HasIndex(e => new { e.TenantId, e.DedupKey, e.DetectedAtUtc });
+                entity.HasIndex(e => new { e.TenantId, e.Status, e.DetectedAtUtc });
+                entity.Property(e => e.AlertType).HasConversion<int>();
+                entity.Property(e => e.Severity).HasConversion<int>();
+                entity.Property(e => e.Status).HasConversion<int>();
             });
 
             // Vouchers (Gutscheine): configured last so FK delete behaviors are not overridden by model conventions.
@@ -2361,6 +2436,7 @@ namespace KasseAPI_Final.Data
         {
             NormalizeTimestamptzDateTimesBeforeSave();
             StampTenantIdsOnInsert();
+            NormalizeCategoriesBeforeSave();
             EnforceAuditLogAppendOnly();
             return base.SaveChanges();
         }
@@ -2372,8 +2448,33 @@ namespace KasseAPI_Final.Data
         {
             NormalizeTimestamptzDateTimesBeforeSave();
             StampTenantIdsOnInsert();
+            NormalizeCategoriesBeforeSave();
             EnforceAuditLogAppendOnly();
             return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>Auto-generates category keys on insert; blocks key/fiscal category mutation after creation.</summary>
+        private void NormalizeCategoriesBeforeSave()
+        {
+            foreach (var entry in ChangeTracker.Entries<Category>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    if (string.IsNullOrWhiteSpace(entry.Entity.Key))
+                        entry.Entity.Key = CategoryKey.FromDisplayName(entry.Entity.Name);
+
+                    if (entry.Entity.FiscalCategory == RksvProductCategory.Unspecified)
+                        entry.Entity.FiscalCategory = CategoryKey.InferFiscalCategory(entry.Entity.Name, entry.Entity.Description);
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    if (entry.Property(c => c.Key).IsModified)
+                        entry.Property(c => c.Key).CurrentValue = entry.Property(c => c.Key).OriginalValue;
+
+                    if (entry.Property(c => c.FiscalCategory).IsModified)
+                        entry.Property(c => c.FiscalCategory).CurrentValue = entry.Property(c => c.FiscalCategory).OriginalValue;
+                }
+            }
         }
 
         /// <summary>Sets <see cref="ITenantEntity.TenantId"/> on new rows from ambient tenant or owning cash register / receipt / invoice.</summary>

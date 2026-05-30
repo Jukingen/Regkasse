@@ -8,6 +8,7 @@ using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ public sealed class AdminBackupController : ControllerBase
 {
     private readonly IBackupManualTriggerService _trigger;
     private readonly IBackupRunQueryService _query;
+    private readonly IBackupRunService _backupRunService;
     private readonly IBackupRecoverabilitySummaryService _recoverabilitySummary;
     private readonly IRestoreOrchestrationBoundary _restore;
     private readonly IBackupOperationalReadiness _readiness;
@@ -40,10 +42,14 @@ public sealed class AdminBackupController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IBackupSettingsAdminService _backupSettings;
     private readonly IBackupDashboardStatsService _dashboardStats;
+    private readonly IPitrService _pitr;
+    private readonly IBackupVerificationReportService _verificationReport;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
         IBackupRunQueryService query,
+        IBackupRunService backupRunService,
         IBackupRecoverabilitySummaryService recoverabilitySummary,
         IRestoreOrchestrationBoundary restore,
         IBackupOperationalReadiness readiness,
@@ -54,10 +60,14 @@ public sealed class AdminBackupController : ControllerBase
         IHostEnvironment hostEnvironment,
         AppDbContext db,
         IBackupSettingsAdminService backupSettings,
-        IBackupDashboardStatsService dashboardStats)
+        IBackupDashboardStatsService dashboardStats,
+        IPitrService pitr,
+        IBackupVerificationReportService verificationReport,
+        ICurrentTenantAccessor tenantAccessor)
     {
         _trigger = trigger;
         _query = query;
+        _backupRunService = backupRunService;
         _recoverabilitySummary = recoverabilitySummary;
         _restore = restore;
         _readiness = readiness;
@@ -69,6 +79,9 @@ public sealed class AdminBackupController : ControllerBase
         _db = db;
         _backupSettings = backupSettings;
         _dashboardStats = dashboardStats;
+        _pitr = pitr;
+        _verificationReport = verificationReport;
+        _tenantAccessor = tenantAccessor;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -107,7 +120,16 @@ public sealed class AdminBackupController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     [ProducesResponseType(typeof(BackupSettingsResponseDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<BackupSettingsResponseDto>> GetAutomationSettings(CancellationToken cancellationToken)
-        => Ok(await _backupSettings.GetAsync(cancellationToken));
+    {
+        try
+        {
+            return Ok(await _backupSettings.GetAsync(cancellationToken));
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "TENANT_CONTEXT_REQUIRED")
+        {
+            return BadRequest(new { code = "TENANT_CONTEXT_REQUIRED", message = "Tenant context is required for backup schedule settings." });
+        }
+    }
 
     /// <summary>Updates singleton automation settings (cron is UTC CronFormat.Standard).</summary>
     [HttpPut("settings")]
@@ -126,6 +148,10 @@ public sealed class AdminBackupController : ControllerBase
             var updated = await _backupSettings.PutAsync(body, cancellationToken);
             return Ok(updated);
         }
+        catch (InvalidOperationException ex) when (ex.Message == "TENANT_CONTEXT_REQUIRED")
+        {
+            return BadRequest(new { code = "TENANT_CONTEXT_REQUIRED", message = "Tenant context is required for backup schedule settings." });
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(new { code = "BACKUP_SETTINGS_INVALID", message = ex.Message });
@@ -136,7 +162,16 @@ public sealed class AdminBackupController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     [ProducesResponseType(typeof(BackupScheduleStatusResponseDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<BackupScheduleStatusResponseDto>> GetScheduleStatus(CancellationToken cancellationToken)
-        => Ok(await _backupSettings.GetScheduleStatusAsync(cancellationToken));
+    {
+        try
+        {
+            return Ok(await _backupSettings.GetScheduleStatusAsync(cancellationToken));
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "TENANT_CONTEXT_REQUIRED")
+        {
+            return BadRequest(new { code = "TENANT_CONTEXT_REQUIRED", message = "Tenant context is required for backup schedule settings." });
+        }
+    }
 
     /// <summary>Monitoring dashboard aggregates (30-day success rate, RPO/RTO, history series).</summary>
     [HttpGet("dashboard/stats")]
@@ -278,6 +313,45 @@ public sealed class AdminBackupController : ControllerBase
         return Ok(dto);
     }
 
+    /// <summary>Point-in-time recovery window (base backups + declared WAL archiving).</summary>
+    [HttpGet("pitr/availability")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(PitrAvailabilityResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PitrAvailabilityResponseDto>> GetPitrAvailability(
+        CancellationToken cancellationToken)
+    {
+        var tenantId = _tenantAccessor.TenantId;
+        if (!tenantId.HasValue)
+            return BadRequest(new { message = "Tenant context is required.", code = "TENANT_REQUIRED" });
+
+        var dto = await _pitr.GetPitrAvailabilityAsync(tenantId.Value, cancellationToken);
+        return Ok(dto);
+    }
+
+    /// <summary>Validate a target UTC restore point against base backups and WAL coverage.</summary>
+    [HttpPost("pitr/validate")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(RestorePointValidationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<RestorePointValidationResultDto>> ValidatePitrRestorePoint(
+        [FromBody] ValidatePitrRestorePointRequestDto? body,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = _tenantAccessor.TenantId;
+        if (!tenantId.HasValue)
+            return BadRequest(new { message = "Tenant context is required.", code = "TENANT_REQUIRED" });
+
+        if (body == null)
+            return BadRequest(new { message = "Request body is required." });
+
+        var dto = await _pitr.ValidateRestorePointAsync(
+            tenantId.Value,
+            body.TargetTimeUtc,
+            cancellationToken);
+        return Ok(dto);
+    }
+
     [HttpGet("runs")]
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<BackupHistoryResponseDto>> GetHistory(
@@ -291,7 +365,7 @@ public sealed class AdminBackupController : ControllerBase
         {
             Items = items.Select(r => BackupRunMapper.ToDto(
                     r,
-                    includeChildren: false,
+                    includeChildren: true,
                     pipelinePolicy: artifactPolicy,
                     materializedChildren: false,
                     automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts))
@@ -306,21 +380,43 @@ public sealed class AdminBackupController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<BackupRunResponseDto>> GetRunById(Guid id, CancellationToken cancellationToken)
     {
-        var run = await _query.GetByIdAsync(id, cancellationToken);
-        if (run == null)
-            return NotFound();
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
         var downloadEnrichment = new BackupDownloadEnrichment(
             _backupOptions.CurrentValue,
             _hostEnvironment,
             _logger);
-        return Ok(BackupRunMapper.ToDto(
-            run,
-            includeChildren: true,
-            pipelinePolicy: artifactPolicy,
-            materializedChildren: true,
-            automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts,
-            downloadEnrichment: downloadEnrichment));
+        var dto = await _backupRunService.GetBackupRunAsync(
+            id,
+            new BackupRunDtoMappingOptions
+            {
+                PipelinePolicy = artifactPolicy,
+                AutomaticRetryMaxAttemptsBudget = _backupOptions.CurrentValue.AutomaticRetryMaxAttempts,
+                DownloadEnrichment = downloadEnrichment,
+            },
+            cancellationToken);
+        if (dto == null)
+            return NotFound();
+        return Ok(dto);
+    }
+
+    /// <summary>Detailed verification report: logical dump TOC vs live table row counts.</summary>
+    [HttpGet("runs/{id:guid}/verification-report")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(BackupVerificationReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BackupVerificationReportDto>> GetVerificationReport(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var report = await _verificationReport.GenerateReportAsync(id, cancellationToken);
+            return Ok(report);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 
     [HttpGet("verification/latest")]

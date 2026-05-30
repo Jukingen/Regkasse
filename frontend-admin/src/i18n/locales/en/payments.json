@@ -18,12 +18,49 @@
     "methodPlaceholder": "Method",
     "statusPlaceholder": "Status"
   },
+  "filtersBar": {
+    "dateStart": "Start date",
+    "dateEnd": "End date",
+    "paymentMethods": "Payment method",
+    "statuses": "Status",
+    "receiptNumber": "Receipt number",
+    "advanced": "Advanced filters",
+    "clearAll": "Clear all",
+    "drawerTitle": "Advanced filters",
+    "resetDrawer": "Reset all",
+    "amountSection": "Amount",
+    "minAmount": "Min",
+    "maxAmount": "Max",
+    "registerSection": "Cash register",
+    "allRegisters": "All registers",
+    "customerSection": "Customer",
+    "customerName": "Customer name",
+    "customerEmail": "Customer email",
+    "cashierSection": "Cashier",
+    "allCashiers": "All cashiers",
+    "transactionTypeSection": "Transaction type",
+    "stornoOnly": "Stornos only",
+    "refundOnly": "Refunds only",
+    "chipDate": "Date: {{from}} – {{to}}",
+    "chipMethod": "Method: {{value}}",
+    "chipStatus": "Status: {{value}}",
+    "chipReceipt": "Receipt: {{value}}",
+    "chipMinAmount": "Min: {{value}}",
+    "chipMaxAmount": "Max: {{value}}",
+    "chipRegister": "Register: {{value}}",
+    "chipCustomer": "Customer: {{value}}",
+    "chipCustomerEmail": "Email: {{value}}",
+    "chipCashier": "Cashier: {{value}}",
+    "chipStorno": "Stornos",
+    "chipRefund": "Refunds"
+  },
   "scope": {
     "label": "Current view:",
     "serverLine": "{{count}} from server (max. 500 per request)",
     "filteredLine": "{{count}} visible after table filters",
     "methodLine": "Method = {{value}}",
-    "statusLine": "Status = {{value}}"
+    "statusLine": "Status = {{value}}",
+    "activeFiltersLine": "{{count}} active filters"
   },
   "list": {
     "loadErrorTitle": "Could not load payments",
@@ -127,6 +164,45 @@
     "refundOk": "Process refund",
     "refundCancel": "Abort"
   },
+  "cancellationModal": {
+    "title": "Cancel payment",
+    "infoTitle": "Cancellation information",
+    "infoDescription": "This action cannot be undone. A fiscal storno receipt will be created.",
+    "reasonCodeLabel": "Cancellation reason",
+    "reasonCodePlaceholder": "Select a reason",
+    "reasonCodeRequired": "Please select a reason",
+    "reasonTextLabel": "Detailed explanation",
+    "reasonTextRequired": "Please enter an explanation",
+    "reasonTextMinLength": "At least 5 characters required",
+    "reasonTextPlaceholder": "e.g. Customer changed their mind …",
+    "summaryAmount": "Payment amount",
+    "summaryDate": "Date",
+    "summaryReceipt": "Receipt number",
+    "submit": "Submit cancellation",
+    "confirmToken": "Confirm with token",
+    "approvalTitle": "Manager approval required",
+    "approvalRequiredFallback": "This cancellation requires manager approval.",
+    "approvalEmailHint": "A 6-digit token was emailed to managers.",
+    "tokenLabel": "Approval token",
+    "tokenExtra": "6-digit code from the manager email",
+    "tokenInvalidLength": "Please enter the 6-digit token",
+    "tokenExpired": "The token has expired. Please start the cancellation again.",
+    "tokenValidFor": "Token valid for {{minutes}} min {{seconds}} sec",
+    "alreadyCancelled": "This payment has already been cancelled.",
+    "risk": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "reasons": {
+      "1": { "label": "Customer request", "description": "Customer wants to cancel the order" },
+      "2": { "label": "Wrong item", "description": "Wrong item was recorded" },
+      "3": { "label": "Price mismatch", "description": "Price discrepancy" },
+      "4": { "label": "Duplicate booking", "description": "Payment was recorded twice" },
+      "5": { "label": "Technical error", "description": "System or device error" },
+      "99": { "label": "Other", "description": "Other reason" }
+    }
+  },
   "messages": {
     "cancelSuccess": "Payment cancelled",
     "cancelError": "Cancellation failed",
@@ -219,5 +295,37 @@
       "noLines": "No line items",
       "noAuditEvents": "No matching audit entries"
     }
+  },
+  "trends": {
+    "period": {
+      "Daily": "Daily",
+      "Weekly": "Weekly",
+      "Monthly": "Monthly"
+    },
+    "totalRevenue": "Total revenue",
+    "transactions": "{{count}} transactions",
+    "avgTransaction": "Avg. transaction",
+    "periodComparison": "Current period",
+    "empty": "No payment data in the selected period.",
+    "chart": {
+      "revenue": "Revenue",
+      "count": "Count"
+    },
+    "insights": "Top method: {{method}} · Peak hour: {{hour}}:00 · Best day: {{bestDay}}"
+  },
+  "trendsDashboard": {
+    "pageTitle": "Payment trends",
+    "loadError": "Could not load trend data.",
+    "totalRevenue": "Total revenue",
+    "transactions": "Transactions",
+    "avgBasket": "Avg. basket",
+    "growth": "Growth",
+    "vsPreviousPeriod": "vs. previous period",
+    "revenueTrendTitle": "Revenue trend",
+    "transactionVolumeTitle": "Transaction volume",
+    "paymentMethodsTitle": "Payment method distribution",
+    "revenueSeries": "Revenue (€)",
+    "avgBasketSeries": "Avg. basket (€)",
+    "transactionSeries": "Transaction count"
   }
 }

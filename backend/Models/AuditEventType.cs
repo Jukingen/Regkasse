@@ -33,5 +33,9 @@ public enum AuditEventType
     RestoreCompleted = 20,
     /// <summary>Validation-only manual restore failed during execution.</summary>
     RestoreFailed = 21,
+    CategoryUpdated = 22,
+    CategoryDemoReset = 23,
+    InvoiceResent = 24,
+    UserPermissionOverridesChanged = 25,
     Other = 99
 }

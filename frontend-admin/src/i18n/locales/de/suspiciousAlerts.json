@@ -1,0 +1,21 @@
+{
+  "title": "Sicherheitswarnungen",
+  "bellAria": "Verdächtige Transaktionen und Sicherheitswarnungen",
+  "refresh": "Aktualisieren",
+  "empty": "Keine neuen Warnungen",
+  "markRead": "Als gelesen markieren",
+  "severity": {
+    "Low": "Niedrig",
+    "Medium": "Mittel",
+    "High": "Hoch",
+    "Critical": "Kritisch"
+  },
+  "types": {
+    "HighValue": "Hohe Zahlung",
+    "MultipleStornos": "Mehrere Stornos",
+    "MultipleRefunds": "Mehrere Rückerstattungen",
+    "UnusualTime": "Ungewöhnliche Uhrzeit",
+    "SameCardMultiple": "Wiederholte Kartenzahlung",
+    "RapidTransactions": "Schnelle Transaktionen"
+  }
+}

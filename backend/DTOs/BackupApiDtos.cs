@@ -115,8 +115,36 @@ public sealed class BackupRunResponseDto
     /// </summary>
     public bool HasLogicalDumpArtifact { get; init; }
 
+    /// <summary>Sum of artifact byte sizes when children are loaded; null when artifacts were not included.</summary>
+    public long? TotalSizeBytes { get; init; }
+
+    /// <summary>English human-readable total size (e.g. "12.5 MB").</summary>
+    public string? TotalSizeFormatted { get; init; }
+
+    /// <summary>Wall-clock duration from <see cref="StartedAt"/> to <see cref="CompletedAt"/> in seconds.</summary>
+    public int? DurationSeconds { get; init; }
+
+    /// <summary>English human-readable duration (e.g. "2m 30s").</summary>
+    public string? DurationFormatted { get; init; }
+
+    /// <summary>
+    /// Backup artifact total size as percent of estimated original DB size when known;
+    /// otherwise (original / logical dump) * 100 from artifact metadata.
+    /// </summary>
+    public double? CompressionRatio { get; init; }
+
     public IReadOnlyList<BackupArtifactResponseDto>? Artifacts { get; init; }
     public IReadOnlyList<BackupVerificationResponseDto>? Verifications { get; init; }
+}
+
+public sealed class ArtifactInfoDto
+{
+    public Guid Id { get; init; }
+    public BackupArtifactType ArtifactType { get; init; }
+    public long? ByteSize { get; init; }
+    public string? FormattedSize { get; init; }
+    public string StorageLocator { get; init; } = string.Empty;
+    public DateTime? CreatedAt { get; init; }
 }
 
 public sealed class BackupArtifactResponseDto
@@ -128,6 +156,11 @@ public sealed class BackupArtifactResponseDto
     public string StorageLocator { get; init; } = string.Empty;
 
     public long? ByteSize { get; init; }
+
+    /// <summary>English human-readable size (e.g. "12.5 MB").</summary>
+    public string? FormattedSize { get; init; }
+
+    public DateTime? CreatedAt { get; init; }
     public string? ContentHashSha256 { get; init; }
     public BackupArtifactLifecycleState LifecycleState { get; init; }
 
@@ -169,13 +202,18 @@ public sealed class BackupTriggerRequestDto
     public string? IdempotencyKey { get; init; }
 }
 
-/// <summary>Singleton backup automation knobs (PostgreSQL backup_settings).</summary>
+/// <summary>Per-tenant backup automation knobs (<see cref="Models.Backup.BackupScheduleConfiguration"/>).</summary>
 public sealed class BackupSettingsResponseDto
 {
+    public Guid TenantId { get; init; }
+
     public bool Enabled { get; init; }
 
     /// <summary>Five-field UTC cron (CronFormat.Standard).</summary>
     public string ScheduleCron { get; init; } = string.Empty;
+
+    /// <summary>Best-effort parse of <see cref="ScheduleCron"/> for admin UI (daily/weekly/monthly/custom).</summary>
+    public BackupScheduleConfigurationDto? Schedule { get; init; }
 
     public int RetentionDays { get; init; }
 
@@ -192,6 +230,9 @@ public sealed class BackupSettingsPutRequestDto
 
     /// <inheritdoc cref="BackupSettings.ScheduleCron"/>
     public string? ScheduleCron { get; init; }
+
+    /// <summary>When set, takes precedence over <see cref="ScheduleCron"/>.</summary>
+    public BackupScheduleConfigurationDto? Schedule { get; init; }
 
     /// <inheritdoc cref="BackupSettings.RetentionDays"/>
     public int RetentionDays { get; init; }
@@ -595,6 +636,7 @@ public static class BackupRunMapper
     /// <param name="duplicateExecutionPreventedOverride">When set (e.g. manual trigger response), overrides DB flag for API clarity.</param>
     /// <param name="materializedChildren">True when <see cref="BackupRun.Artifacts"/> / Verifications were loaded with the run (Include).</param>
     /// <param name="downloadEnrichment">When set with succeeded materialized run, populates <see cref="BackupArtifactResponseDto.IsFilePresentForDownload"/>.</param>
+    /// <param name="estimatedOriginalDatabaseBytes">When set (e.g. pg_database_size estimate), overrides metadata-only compression ratio with backup-size percent of original.</param>
     public static BackupRunResponseDto ToDto(
         BackupRun run,
         bool includeChildren = false,
@@ -602,11 +644,30 @@ public static class BackupRunMapper
         BackupArtifactPipelinePolicySnapshot? pipelinePolicy = null,
         bool materializedChildren = false,
         int? automaticRetryMaxAttemptsBudget = null,
-        BackupDownloadEnrichment? downloadEnrichment = null)
+        BackupDownloadEnrichment? downloadEnrichment = null,
+        long? estimatedOriginalDatabaseBytes = null)
     {
         var policy = pipelinePolicy ?? BackupPipelineProjector.DefaultPolicyForProjection;
         var completenessRequired = BackupCompletenessSuccessPolicy.TryParseAdapterKind(run.AdapterKind, out var adapterKind)
             && BackupCompletenessSuccessPolicy.CompletenessRequiredForSucceededRun(adapterKind);
+        var durationSeconds = BackupRunMetricsFormatter.ComputeDurationSeconds(run.StartedAt, run.CompletedAt);
+        long? totalSizeBytes = null;
+        double? compressionRatio = null;
+        if (run.Artifacts.Count > 0)
+        {
+            totalSizeBytes = BackupRunMetricsFormatter.SumArtifactBytes(run.Artifacts);
+            if (estimatedOriginalDatabaseBytes is > 0 && totalSizeBytes is > 0)
+            {
+                compressionRatio = BackupRunMetricsFormatter.ComputeBackupSizePercentOfOriginal(
+                    totalSizeBytes.Value,
+                    estimatedOriginalDatabaseBytes.Value);
+            }
+            else
+            {
+                compressionRatio = BackupRunMetricsFormatter.TryComputeCompressionRatio(run.Artifacts);
+            }
+        }
+
         return new BackupRunResponseDto
         {
             Id = run.Id,
@@ -633,6 +694,11 @@ public static class BackupRunMapper
             Pipeline = BackupPipelineProjector.Project(run, policy, materializedChildren),
             IsSimulatedExecution = ComputeIsSimulatedExecution(run.AdapterKind),
             HasLogicalDumpArtifact = ComputeHasLogicalDumpArtifact(includeChildren, run),
+            TotalSizeBytes = totalSizeBytes,
+            TotalSizeFormatted = BackupRunMetricsFormatter.FormatBytes(totalSizeBytes),
+            DurationSeconds = durationSeconds,
+            DurationFormatted = BackupRunMetricsFormatter.FormatDuration(durationSeconds),
+            CompressionRatio = compressionRatio,
             Artifacts = includeChildren
                 ? run.Artifacts.Select(a => new BackupArtifactResponseDto
                 {
@@ -642,6 +708,8 @@ public static class BackupRunMapper
                         a.ArtifactType,
                         a.StorageDescriptor),
                     ByteSize = a.ByteSize,
+                    FormattedSize = BackupRunMetricsFormatter.FormatBytes(a.ByteSize),
+                    CreatedAt = a.CreatedAt,
                     ContentHashSha256 = a.ContentHashSha256,
                     LifecycleState = a.LifecycleState,
                     ExternalRedactedLocator = a.ExternalRedactedLocator,

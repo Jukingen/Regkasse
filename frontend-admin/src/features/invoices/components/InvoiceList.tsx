@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Table, Button, Input, Select, DatePicker, Space, Tag, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form, Checkbox, Typography, Divider, Collapse, theme } from 'antd';
-import { SearchOutlined, DownloadOutlined, ReloadOutlined, EyeOutlined, PrinterOutlined, CloudUploadOutlined, RollbackOutlined } from '@ant-design/icons';
+import { SearchOutlined, DownloadOutlined, ReloadOutlined, PrinterOutlined, CloudUploadOutlined, RollbackOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import Link from 'next/link';
@@ -25,6 +25,7 @@ import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import { withTenantScope } from '@/lib/queryKeys';
 
 import { getInvoicesList, getInvoicePdf, createCreditNote, exportInvoices as orvalExportInvoices } from '../api/invoiceService';
+import { InvoiceActions } from './InvoiceActions';
 import { coerceInvoiceListSortField, type InvoiceListParams, type InvoiceListSortBy } from '../types';
 import { normalizeInvoiceItemsForDisplay } from '@/shared/contract/invoiceInvoiceItemsDisplay';
 import { invoiceProvenanceUiFacet, registerDeepLinkEligibleBadgeKind } from '@/shared/adminTruthFacets';
@@ -649,7 +650,17 @@ export const InvoiceList: React.FC = () => {
                 const reg = viewInvoiceListRegister(record);
                 return (
                     <Space size={4} wrap>
-                        <span style={{ fontWeight: 600 }}>{text}</span>
+                        <Button
+                            type="link"
+                            size="small"
+                            style={{ padding: 0, fontWeight: 600, height: 'auto' }}
+                            onClick={() => {
+                                setSelectedInvoiceId(record.id ?? null);
+                                setDetailVisible(true);
+                            }}
+                        >
+                            {text}
+                        </Button>
                         {record.documentType === DocumentType.NUMBER_1 && (
                             <Tag color="purple" style={{ fontSize: 10 }}>{t('invoices.creditNoteTagShort')}</Tag>
                         )}
@@ -752,53 +763,21 @@ export const InvoiceList: React.FC = () => {
         {
             title: t('invoices.columns.actions'),
             key: 'actions',
-            width: 268,
+            width: 150,
             fixed: 'right',
-            render: (_, record) => (
-                <Space size={4} wrap align="center">
-                    <Tooltip title={t('invoices.rowActions.detailExtendedTooltip')}>
-                        <Button
-                            type="link"
-                            size="small"
-                            style={{ paddingInline: 0 }}
-                            aria-label={t('invoices.rowActions.detailExtendedTooltip')}
-                            onClick={() => {
-                                setSelectedInvoiceId(record.id ?? null);
-                                setDetailVisible(true);
-                            }}
-                        >
-                            {t('invoices.rowActions.detailTooltip')}
-                        </Button>
-                    </Tooltip>
-                    <Tooltip title={t('invoices.rowActions.printTooltip')}>
-                        <Button
-                            icon={<PrinterOutlined />}
-                            size="small"
-                            aria-label={t('invoices.rowActions.printTooltip')}
-                            onClick={() => handlePrint(record.id ?? '')}
-                        >
-                            {t('invoices.rowActions.printCompact')}
-                        </Button>
-                    </Tooltip>
-                    {(record.status === InvoiceStatus.NUMBER_2 || record.status === InvoiceStatus.NUMBER_1) &&
-                        record.documentType !== DocumentType.NUMBER_1 && (
-                        <Tooltip title={t('invoices.rowActions.creditNoteTooltip')}>
-                            <Button
-                                icon={<RollbackOutlined />}
-                                size="small"
-                                danger
-                                aria-label={t('invoices.rowActions.creditNoteTooltip')}
-                                onClick={() => {
-                                    setCreditNoteTargetId(record.id ?? null);
-                                    setCreditNoteVisible(true);
-                                }}
-                            >
-                                {t('invoices.rowActions.creditCompact')}
-                            </Button>
-                        </Tooltip>
-                    )}
-                </Space>
-            ),
+            render: (_, record) =>
+                record.id ? (
+                    <InvoiceActions
+                        size="small"
+                        invoice={{
+                            id: record.id,
+                            invoiceNumber: record.invoiceNumber,
+                            totalAmount: record.totalAmount,
+                            status: record.status,
+                        }}
+                        onSuccess={() => void refetch()}
+                    />
+                ) : null,
         },
     ];
 
@@ -1188,7 +1167,7 @@ export const InvoiceList: React.FC = () => {
                         }
                         onChange={handleTableChange}
                         size="middle"
-                        scroll={adminTableScrollXy(1180, displayedItems.length)}
+                        scroll={adminTableScrollXy(1100, displayedItems.length)}
                         locale={{
                             emptyText: tableEmptyText,
                         }}
@@ -1205,14 +1184,34 @@ export const InvoiceList: React.FC = () => {
                     <Button key="close" onClick={() => setDetailVisible(false)}>
                         {t('invoices.detail.modalClose')}
                     </Button>,
-                    <Button
-                        key="print"
-                        type="primary"
-                        icon={<PrinterOutlined />}
-                        onClick={() => handlePrint(selectedInvoiceId || '')}
-                    >
-                        {t('invoices.detail.modalPrint')}
-                    </Button>,
+                    detailInvoice?.id ? (
+                        <InvoiceActions
+                            key="invoice-actions"
+                            invoice={{
+                                id: detailInvoice.id,
+                                invoiceNumber: detailInvoice.invoiceNumber,
+                                totalAmount: detailInvoice.totalAmount,
+                                status: detailInvoice.status,
+                                customerEmail: detailInvoice.customerEmail,
+                            }}
+                            onSuccess={() => void refetch()}
+                        />
+                    ) : null,
+                    (detailInvoice &&
+                        (detailInvoice.status === InvoiceStatus.NUMBER_1 || detailInvoice.status === InvoiceStatus.NUMBER_2) &&
+                        detailInvoice.documentType !== DocumentType.NUMBER_1) && (
+                        <Button
+                            key="credit-note"
+                            icon={<RollbackOutlined />}
+                            danger
+                            onClick={() => {
+                                setCreditNoteTargetId(detailInvoice.id ?? null);
+                                setCreditNoteVisible(true);
+                            }}
+                        >
+                            {t('invoices.rowActions.creditCompact')}
+                        </Button>
+                    ),
                     (detailInvoice && (detailInvoice.status === 1 || detailInvoice.status === 2)) && (
                         <Button
                             key="submit"

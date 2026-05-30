@@ -106,6 +106,19 @@
     "creditNoteTooltip": "Iade faturasi olustur (diyalog)",
     "creditCompact": "Iade"
   },
+  "invoiceActions": {
+    "previewTooltip": "Onizleme",
+    "downloadTooltip": "Indir",
+    "printTooltip": "Yazdir",
+    "mailTooltip": "E-posta gonder",
+    "previewModalTitle": "Fatura #{{invoiceNumber}}",
+    "download": "Indir",
+    "print": "Yazdir",
+    "close": "Kapat",
+    "emailRequired": "Lutfen bir e-posta adresi girin.",
+    "resendInvoiceNumber": "Fatura numarasi",
+    "resendAmount": "Tutar"
+  },
   "display": {
     "unknownInvoice": "Bilinmiyor"
   },
@@ -129,7 +142,9 @@
     "creditNoteCreated": "Iade faturasi olusturuldu.",
     "creditNoteExists": "Bu fatura icin zaten bir iade faturasi var.",
     "creditNoteBadRequest": "Gecersiz istek.",
-    "creditNoteFailed": "Iade faturasi olusturulamadi."
+    "creditNoteFailed": "Iade faturasi olusturulamadi.",
+    "resendOk": "Fatura {{recipient}} adresine gonderildi.",
+    "resendFailed": "Fatura e-posta ile gonderilemedi."
   },
   "modals": {
     "batchReconcileTitle": "Toplu: FinanzOnline mutabakati yeniden gonderilsin mi?",
@@ -202,7 +217,11 @@
     "modalTitlePrefix": "Fatura:",
     "modalClose": "Kapat",
     "modalPrint": "Yazdir",
+    "modalResend": "E-postayi yeniden gonder",
     "modalReconciliationRetry": "Mutabakati yeniden gonder",
+    "pdfPreviewLabel": "PDF onizleme",
+    "pdfPreviewLoading": "PDF yukleniyor…",
+    "pdfPreviewFailed": "PDF onizlemesi yuklenemedi.",
     "registerMachineLabel": "Kayit (makine baglantisi)",
     "foLinkWithContext": "FinanzOnline mutabakat (URL baglami ile)",
     "foLinkRegisterOnly": "FinanzOnline mutabakat (bu kayit, URL baglami ile)",
@@ -217,5 +236,14 @@
     "descRegisterFkMachine": "Kayit (FK, yalnizca makine)",
     "descKassenIdDisplay": "Kasa kimligi / numara (gorunum)",
     "emptyLoadFailed": "Detay yuklenmedi veya yukleme hatasi."
+  },
+  "resend": {
+    "modalTitle": "Fatura {{invoiceNumber}} yeniden gonder",
+    "modalDescription": "Fatura PDF ek olarak gonderilir. Kayitli musteri e-postasini kullanmak icin bos birakin.",
+    "modalOk": "Gonder",
+    "modalCancel": "Iptal",
+    "formEmailLabel": "Alici e-postasi",
+    "formEmailPlaceholder": "musteri@ornek.com",
+    "formEmailInvalid": "Lutfen gecerli bir e-posta adresi girin."
   }
 }

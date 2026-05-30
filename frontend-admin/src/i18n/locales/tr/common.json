@@ -227,7 +227,15 @@
     "sessionTimeout": {
       "warningTitle": "Oturum yakinda sona erecek",
       "warningBody": "Hareketsizlik nedeniyle otomatik olarak cikis yapilacaksiniz.",
-      "stayLoggedIn": "Oturuma devam et"
+      "stayLoggedIn": "Devam et",
+      "logout": "Cikis yap",
+      "expiresIn": "Oturumunuz {{time}} icinde sona erecek",
+      "timeSecondsOnly": "{{seconds}} saniye",
+      "timeMinutesAndSeconds": "{{minutes}} dakika ve {{seconds}} saniye",
+      "alertMessage": "Devam etmek istiyor musunuz?",
+      "alertDescription": "Oturumda kalmak icin Devam et'e tiklayin. Aksi halde otomatik olarak cikis yapilir.",
+      "securityNote": "Guvenlik nedeniyle hareketsiz oturumlar otomatik olarak sonlandirilir.",
+      "loggedOutInactivity": "Hareketsizlik nedeniyle oturumunuz sonlandirildi."
     },
     "sessions": {
       "title": "Aktif oturumlar",
@@ -311,6 +319,8 @@
       "activeLabel": "Aktif"
     },
     "table": {
+      "icon": "Ikon",
+      "key": "Key (Sistem)",
       "name": "Ad",
       "color": "Renk",
       "description": "Aciklama",
@@ -320,7 +330,14 @@
       "barcode": "Barkod",
       "price": "Fiyat",
       "stock": "Stok",
-      "vatRate": "KDV Orani (%)",
+      "vatRate": "Vergi",
+      "productCount": "Urunler",
+      "fiscalCategory": "Mali kategori",
+      "fiscalFood": "Yiyecek",
+      "fiscalBeverage": "Icecek",
+      "fiscalAlcohol": "Alkol",
+      "fiscalTobacco": "Tutun",
+      "fiscalOther": "Diger",
       "active": "Aktif",
       "sortOrder": "Siralama",
       "actions": "Islemler"
@@ -332,6 +349,14 @@
       "updateError": "Kategori guncellenemedi.",
       "deleted": "Kategori silindi.",
       "deleteError": "Kategori silinemedi."
+    },
+    "reset": {
+      "button": "Demo kategorileri geri yukle",
+      "confirmTitle": "Kategori adlarini sifirla",
+      "confirmContent": "Bu islem tum kategori gorunen adlarini orijinal demo adlarina geri yukler. Urunleriniz korunur.",
+      "confirmOk": "Sifirla",
+      "success": "{{count}} kategori adi demo varsayilanlarina sifirlandi.",
+      "error": "Demo kategoriler geri yuklenemedi."
     }
   }
 }

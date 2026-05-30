@@ -78,7 +78,8 @@ public sealed class DemoProductTemplateValidatorTests
         Assert.Null(error);
         Assert.NotNull(data);
         Assert.Single(data!.Categories);
-        Assert.Equal("Pizza-mittel", data.Categories[0].Name);
+        Assert.Equal("Pizza, mittel", data.Categories[0].Name);
+        Assert.Equal("pizza-mittel", data.Categories[0].Key);
         Assert.Single(data.Products);
         Assert.NotEqual(Guid.Empty, data.Products[0].Id);
     }

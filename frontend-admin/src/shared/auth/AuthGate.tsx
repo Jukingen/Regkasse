@@ -12,18 +12,27 @@ interface GuardProps {
     mode: 'protected' | 'public';
 }
 
+/** Login and related public auth screens render immediately (no session spinner). */
+function isPublicAuthEntryPath(pathname: string): boolean {
+    return pathname === '/login' || pathname.startsWith('/login/');
+}
+
 /**
  * Centralized Auth Gate
  * Managed strict redirect logic for public and protected routes.
  */
 export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
     const { t } = useI18n();
-    const { authStatus, isAuthInitializing } = useAuth();
+    const { authStatus, isAuthInitializing, isAuthenticated, isLoadingAuth } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
     const alreadyRedirected = useRef<string | null>(null);
+    const isLoginEntry = mode === 'public' && isPublicAuthEntryPath(pathname);
 
     useEffect(() => {
+        if (isLoginEntry && isAuthInitializing) {
+            return;
+        }
         if (isAuthInitializing) return;
 
         const currentPath = pathname;
@@ -50,7 +59,7 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
                 }
             }
         }
-    }, [authStatus, isAuthInitializing, router, mode, pathname]);
+    }, [authStatus, isAuthInitializing, router, mode, pathname, isLoginEntry]);
 
     useEffect(() => {
         if (process.env.NODE_ENV === 'production') return;
@@ -69,7 +78,11 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
         technicalConsole.devLog(`[AuthGate] path=${pathname} mode=${mode} decision=renderChildren authStatus=${authStatus}`);
     }, [pathname, mode, isAuthInitializing, authStatus]);
 
-    if (isAuthInitializing) {
+    if (isLoginEntry) {
+        return <>{children}</>;
+    }
+
+    if (isLoadingAuth || isAuthInitializing) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>
                 <Spin spinning tip={t('common.auth.checkingSession')}>
@@ -80,8 +93,8 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
     }
 
     // Strictly control rendering based on mode and status to prevent flashes
-    if (mode === 'protected' && authStatus === AuthStatus.Unauthenticated) return null;
-    if (mode === 'public' && authStatus === AuthStatus.Authenticated && pathname !== '/impersonate-callback') {
+    if (mode === 'protected' && !isAuthenticated) return null;
+    if (mode === 'public' && isAuthenticated && pathname !== '/impersonate-callback') {
         return null;
     }
 

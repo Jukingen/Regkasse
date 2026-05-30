@@ -10,15 +10,17 @@ import {
   Button,
   Collapse,
   Descriptions,
+  Divider,
   Modal,
+  Progress,
   Space,
   Spin,
   Table,
   Tabs,
-  Tag,
   Timeline,
   Typography,
 } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type {
   BackupArtifactResponseDto,
@@ -35,13 +37,18 @@ import { isBackupPipelineClientFallbackEnabled } from "@/features/backup-dr/logi
 import { isSimulatedBackupAdapterKind } from "@/features/backup-dr/logic/backupDrMappers";
 import { formatBackupBytes } from "@/features/backup-dr/logic/backupFormat";
 import { downloadBackupArtifactFile } from "@/features/backup-dr/logic/downloadBackupArtifactFile";
+import { BackupStatusBadge } from "@/features/backup/components/BackupStatusBadge";
 import {
-  backupRunStatusTagPresentation,
   backupTriggerSourceLabelKey,
-  formatBackupRunDuration,
   isBackupRunSucceeded,
   pipelineStepTimelineColor,
 } from "@/features/backup/logic/backupRunDetailPresentation";
+import {
+  resolveBackupRunDurationLabel,
+  resolveBackupRunSizeLabel,
+  resolveBackupRunTotalBytes,
+} from "@/features/backup/logic/backupRunTablePresentation";
+import { BackupVerificationReportPanel } from "@/features/backup/components/BackupVerificationReportPanel";
 
 export interface BackupDetailModalProps {
   runId: string | null;
@@ -81,8 +88,6 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     [formatLocale],
   );
 
-  const statusPresentation = backupRunStatusTagPresentation(run?.status);
-
   const primaryDownloadArtifact = useMemo(() => {
     const arts = run?.artifacts ?? [];
     return (
@@ -117,8 +122,28 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       {
         title: t("backupDr.detailModal.artifacts.size"),
         key: "size",
-        render: (_: unknown, row: BackupArtifactResponseDto) =>
-          formatBackupBytes(row.byteSize ?? undefined, t),
+        render: (_: unknown, row: BackupArtifactResponseDto) => {
+          if (row.formattedSize?.trim()) return row.formattedSize.trim();
+          const label = formatBackupBytes(row.byteSize ?? undefined, t);
+          const bytes = row.byteSize ?? 0;
+          if (bytes > 0) {
+            return (
+              <span>
+                {label}{" "}
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  ({bytes.toLocaleString(formatLocale)})
+                </Typography.Text>
+              </span>
+            );
+          }
+          return label;
+        },
+      },
+      {
+        title: t("backupDr.detailModal.artifacts.createdAt"),
+        dataIndex: "createdAt",
+        key: "createdAt",
+        render: (v: string | undefined) => formatDateTime(v),
       },
       {
         title: t("backupDr.detailModal.artifacts.lifecycle"),
@@ -147,6 +172,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
             <Button
               type="link"
               size="small"
+              icon={<DownloadOutlined />}
               onClick={() =>
                 void downloadBackupArtifactFile(
                   run.id!,
@@ -162,8 +188,96 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
           ),
       },
     ],
-    [canManage, run?.id, t],
+    [canManage, formatDateTime, formatLocale, run?.id, t],
   );
+
+  const renderOverviewMetrics = useCallback(() => {
+    if (!run) return null;
+
+    const durationLabel = resolveBackupRunDurationLabel(run, t);
+    const sizeLabel = resolveBackupRunSizeLabel(run, t);
+    const totalBytes = resolveBackupRunTotalBytes(run);
+    const compression =
+      run.compressionRatio != null && !Number.isNaN(run.compressionRatio)
+        ? Math.round(run.compressionRatio)
+        : null;
+
+    return (
+      <Descriptions bordered column={2} size="small">
+        <Descriptions.Item label={t("backupDr.runsTable.statusColumn")}>
+          <BackupStatusBadge status={run.status} />
+        </Descriptions.Item>
+        <Descriptions.Item label={t("backupDr.detailModal.triggerLabel")}>
+          {t(backupTriggerSourceLabelKey(run.triggerSource))}
+        </Descriptions.Item>
+        <Descriptions.Item label={t("backupDr.detailModal.startedAt")}>
+          {formatDateTime(run.startedAt)}
+        </Descriptions.Item>
+        <Descriptions.Item label={t("backupDr.detailModal.completedAt")}>
+          {formatDateTime(run.completedAt)}
+        </Descriptions.Item>
+        <Descriptions.Item label={t("backupDr.runsTable.duration")}>
+          <Typography.Text strong>{durationLabel}</Typography.Text>
+        </Descriptions.Item>
+        <Descriptions.Item label={t("backupDr.detailModal.requestedAt")}>
+          {formatDateTime(run.requestedAt)}
+        </Descriptions.Item>
+        <Descriptions.Item label={t("backupDr.detailModal.totalSize")} span={2}>
+          <Typography.Text strong>{sizeLabel}</Typography.Text>
+          {totalBytes > 0 ? (
+            <Typography.Text type="secondary">
+              {" "}
+              {t("backupDr.detailModal.totalSizeBytes", {
+                bytes: totalBytes.toLocaleString(formatLocale),
+              })}
+            </Typography.Text>
+          ) : null}
+        </Descriptions.Item>
+        {compression != null ? (
+          <Descriptions.Item label={t("backupDr.detailModal.compression")} span={2}>
+            <Progress
+              percent={compression}
+              size="small"
+              status={compression < 50 ? "success" : "normal"}
+              format={() =>
+                t("backupDr.detailModal.compressionPercent", { percent: compression })
+              }
+            />
+          </Descriptions.Item>
+        ) : null}
+        <Descriptions.Item label={t("backupDr.table.adapter")}>
+          {run.adapterKind ?? "—"}
+        </Descriptions.Item>
+        {run.failureDetail || run.failureCode ? (
+          <Descriptions.Item label={t("backupDr.runsTable.error")} span={2}>
+            <Typography.Text type="danger">
+              {[run.failureCode, run.failureDetail].filter(Boolean).join(" — ")}
+            </Typography.Text>
+          </Descriptions.Item>
+        ) : null}
+      </Descriptions>
+    );
+  }, [formatDateTime, formatLocale, run, t]);
+
+  const renderArtifactsBreakdown = useCallback(() => {
+    if (!run) return null;
+    return (
+      <>
+        <Divider orientation="left">{t("backupDr.detailModal.artifactsSection")}</Divider>
+        <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+          {t("backupDr.detailModal.artifacts.sizeBreakdownHint")}
+        </Typography.Paragraph>
+        <Table<BackupArtifactResponseDto>
+          rowKey={(r) => r.id ?? String(r.artifactType)}
+          size="small"
+          pagination={false}
+          dataSource={run.artifacts ?? []}
+          columns={artifactColumns}
+          locale={{ emptyText: t("backupDr.detailModal.artifacts.empty") }}
+        />
+      </>
+    );
+  }, [artifactColumns, run, t]);
 
   const verificationItems = useMemo(() => {
     const list = run?.verifications ?? [];
@@ -222,35 +336,8 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
                 message={t("backupDr.management.runDetail.simulatedHint")}
               />
             ) : null}
-            <Descriptions bordered column={2} size="small">
-              <Descriptions.Item label={t("backupDr.runsTable.statusColumn")}>
-                <Tag color={statusPresentation.color} icon={statusPresentation.icon}>
-                  {t(statusPresentation.labelKey)}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label={t("backupDr.detailModal.triggerLabel")}>
-                {t(backupTriggerSourceLabelKey(run.triggerSource))}
-              </Descriptions.Item>
-              <Descriptions.Item label={t("backupDr.detailModal.requestedAt")}>
-                {formatDateTime(run.requestedAt)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t("backupDr.detailModal.completedAt")}>
-                {formatDateTime(run.completedAt)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t("backupDr.runsTable.duration")}>
-                {formatBackupRunDuration(run.startedAt, run.completedAt, t)}
-              </Descriptions.Item>
-              <Descriptions.Item label={t("backupDr.table.adapter")}>
-                {run.adapterKind ?? "—"}
-              </Descriptions.Item>
-              {run.failureDetail || run.failureCode ? (
-                <Descriptions.Item label={t("backupDr.runsTable.error")} span={2}>
-                  <Typography.Text type="danger">
-                    {[run.failureCode, run.failureDetail].filter(Boolean).join(" — ")}
-                  </Typography.Text>
-                </Descriptions.Item>
-              ) : null}
-            </Descriptions>
+            {renderOverviewMetrics()}
+            {renderArtifactsBreakdown()}
           </>
         ),
       },
@@ -259,14 +346,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         label: t("backupDr.detailModal.tabs.artifacts"),
         children: (
           <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            <Table<BackupArtifactResponseDto>
-              rowKey={(r) => r.id ?? String(r.artifactType)}
-              size="small"
-              pagination={false}
-              dataSource={run.artifacts ?? []}
-              columns={artifactColumns}
-              locale={{ emptyText: t("backupDr.detailModal.artifacts.empty") }}
-            />
+            {renderArtifactsBreakdown()}
             {run.id && (run.artifacts?.length ?? 0) > 0 ? (
               <BackupArtifactsDownloadCard
                 variant="latest_success"
@@ -286,7 +366,17 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       {
         key: "verification",
         label: t("backupDr.detailModal.tabs.verification"),
-        children: verificationItems,
+        children: (
+          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            {verificationItems}
+            {run.id && isBackupRunSucceeded(run.status) ? (
+              <>
+                <Divider orientation="left">{t("backupDr.verificationReport.sectionTitle")}</Divider>
+                <BackupVerificationReportPanel runId={run.id} enabled={open} />
+              </>
+            ) : null}
+          </Space>
+        ),
       },
       {
         key: "pipeline",
@@ -346,11 +436,10 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     formatDateTime,
     isFetching,
     pipelineResolved.steps,
+    renderArtifactsBreakdown,
+    renderOverviewMetrics,
     run,
     simulated,
-    statusPresentation.color,
-    statusPresentation.icon,
-    statusPresentation.labelKey,
     t,
     verificationItems,
   ]);
@@ -368,7 +457,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       }
       open={open}
       onCancel={onClose}
-      width={800}
+      width={700}
       destroyOnClose
       footer={
         <Space>

@@ -20,6 +20,7 @@ import {
     EditOutlined,
     KeyOutlined,
     ReloadOutlined,
+    SafetyCertificateOutlined,
     ThunderboltOutlined,
     UserAddOutlined,
     UserDeleteOutlined,
@@ -46,6 +47,7 @@ import {
 } from '@/features/super-admin/api/tenantUsers';
 import { useSuperAdminPlatformPolicy } from '@/features/super-admin/auth/superAdminPlatformPolicy';
 import { CreateUserModal } from '@/features/users/components/CreateUserModal';
+import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
 import { useCreateUser } from '@/features/users/hooks/useCreateUser';
 import { InviteTenantContextBanner } from '@/features/users/components/InviteTenantContextBanner';
 import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
@@ -59,7 +61,7 @@ import {
 } from '@/features/users/api/users';
 import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
-import { isBusinessTenantSlug } from '@/features/users/utils/userScope';
+import { isBusinessTenantSlug, isPlatformUserRole } from '@/features/users/utils/userScope';
 import { useI18n } from '@/i18n';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
@@ -102,6 +104,7 @@ export function TenantUsersTabCore({
     const [quickResult, setQuickResult] = useState<CreateQuickUserResult | null>(null);
     const [quickRole, setQuickRole] = useState('Manager');
     const [resetRow, setResetRow] = useState<TenantUserRow | TenantUser | null>(null);
+    const [permissionsUser, setPermissionsUser] = useState<TenantUserRow | TenantUser | null>(null);
     const [roleChangeUserId, setRoleChangeUserId] = useState<string | null>(null);
 
     const tenantsQuery = useGetApiAdminTenants();
@@ -354,6 +357,15 @@ export function TenantUsersTabCore({
                                 {t('users.list.edit')}
                             </Button>
                         ) : null}
+                        {policy.canManagePermissions && !isPlatformUserRole(row.role) ? (
+                            <Button
+                                size="small"
+                                icon={<SafetyCertificateOutlined />}
+                                onClick={() => setPermissionsUser(row)}
+                            >
+                                {t('users.permissionsModal.action')}
+                            </Button>
+                        ) : null}
                         {canProvision && policy.canResetPassword(row.role) ? (
                             <Button size="small" icon={<KeyOutlined />} onClick={() => setResetRow(row)}>
                                 {t('users.list.resetPassword')}
@@ -593,6 +605,16 @@ export function TenantUsersTabCore({
                         />
                     ) : null}
                 </>
+            ) : null}
+
+            {permissionsUser ? (
+                <UserPermissionsModal
+                    open
+                    userId={permissionsUser.userId}
+                    userName={permissionsUser.name?.trim() || permissionsUser.userName?.trim() || permissionsUser.email}
+                    userRole={permissionsUser.role}
+                    onClose={() => setPermissionsUser(null)}
+                />
             ) : null}
         </Space>
     );

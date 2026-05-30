@@ -8,6 +8,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Tenancy;
 using System.Security.Claims;
@@ -28,6 +29,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IUserSessionInvalidation _sessionInvalidation;
         private readonly IUserUniquenessValidationService _uniquenessValidation;
         private readonly IRoleManagementService _roleManagementService;
+        private readonly IUserPermissionOverrideService _permissionOverrideService;
         private readonly ILogger<UserManagementController> _logger;
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
         private readonly ICurrentTenantAccessor _tenantAccessor;
@@ -40,6 +42,7 @@ namespace KasseAPI_Final.Controllers
             IUserSessionInvalidation sessionInvalidation,
             IUserUniquenessValidationService uniquenessValidation,
             IRoleManagementService roleManagementService,
+            IUserPermissionOverrideService permissionOverrideService,
             ILogger<UserManagementController> logger,
             IUserTenantMembershipProvisioner tenantMembershipProvisioner,
             ICurrentTenantAccessor tenantAccessor)
@@ -51,6 +54,7 @@ namespace KasseAPI_Final.Controllers
             _sessionInvalidation = sessionInvalidation;
             _uniquenessValidation = uniquenessValidation;
             _roleManagementService = roleManagementService;
+            _permissionOverrideService = permissionOverrideService;
             _logger = logger;
             _tenantMembershipProvisioner = tenantMembershipProvisioner;
             _tenantAccessor = tenantAccessor;
@@ -298,7 +302,7 @@ namespace KasseAPI_Final.Controllers
 
         // POST: api/usermanagement
         [HttpPost]
-        [HasPermission(AppPermissions.UserManage)]
+        [HasPermission(AppPermissions.UserCreate)]
         public async Task<ActionResult<UserInfo>> CreateUser([FromBody] CreateUserRequest request)
         {
             try
@@ -423,7 +427,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}
         [HttpPut("{id}")]
-        [HasPermission(AppPermissions.UserManage)]
+        [HasPermission(AppPermissions.UserEdit)]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserRequest request)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -561,7 +565,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/password — admin changes another user's password with current password (rare). Prefer reset-password for force reset.
         [HttpPut("{id}/password")]
-        [HasPermission(AppPermissions.UserManage)]
+        [HasPermission(AppPermissions.UserResetPassword)]
         public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordRequest request)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -612,7 +616,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/reset-password — force reset (admin only; no current password). Block self; only SuperAdmin can reset SuperAdmin.
         [HttpPut("{id}/reset-password")]
-        [HasPermission(AppPermissions.UserManage)]
+        [HasPermission(AppPermissions.UserResetPassword)]
         public async Task<IActionResult> ResetPassword(string id, [FromBody] ResetPasswordRequest request)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -701,7 +705,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/deactivate
         [HttpPut("{id}/deactivate")]
-        [HasPermission(AppPermissions.UserManage)]
+        [HasPermission(AppPermissions.UserEdit)]
         public async Task<IActionResult> DeactivateUser(string id, [FromBody] DeactivateUserRequest request)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -765,7 +769,7 @@ namespace KasseAPI_Final.Controllers
 
         // PUT: api/usermanagement/{id}/reactivate
         [HttpPut("{id}/reactivate")]
-        [HasPermission(AppPermissions.UserManage)]
+        [HasPermission(AppPermissions.UserEdit)]
         public async Task<IActionResult> ReactivateUser(string id, [FromBody] ReactivateUserRequest? request = null)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -820,7 +824,7 @@ namespace KasseAPI_Final.Controllers
 
         // DELETE: api/usermanagement/{id} (soft-delete: deactivate without reason – prefer PUT deactivate for compliance)
         [HttpDelete("{id}")]
-        [HasPermission(AppPermissions.UserManage)]
+        [HasPermission(AppPermissions.UserDelete)]
         public async Task<IActionResult> DeleteUser(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -869,6 +873,141 @@ namespace KasseAPI_Final.Controllers
                 _logger.LogError(ex, "Error deleting user {UserId}", id);
                 return StatusCode(500, new { message = "Internal server error" });
             }
+        }
+
+        // GET: api/usermanagement/{id}/permissions/overrides
+        [HttpGet("{id}/permissions/overrides")]
+        [HasPermission(AppPermissions.UserManage)]
+        public async Task<ActionResult<IReadOnlyList<UserPermissionOverrideDto>>> GetPermissionOverrides(
+            string id,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            var tenantScope = ResolveActorTenantScope();
+            var overrides = await _permissionOverrideService.ListOverridesAsync(id, tenantScope, cancellationToken);
+            return Ok(overrides);
+        }
+
+        // GET: api/usermanagement/{id}/permissions/effective
+        [HttpGet("{id}/permissions/effective")]
+        [HasPermission(AppPermissions.UserManage)]
+        public async Task<ActionResult<UserEffectivePermissionsDto>> GetEffectivePermissions(
+            string id,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var tenantScope = ResolveActorTenantScope();
+            var detail = await _permissionOverrideService.GetEffectivePermissionsDetailAsync(
+                id, roles, tenantScope, cancellationToken);
+            return Ok(detail);
+        }
+
+        // PUT: api/usermanagement/{id}/permissions/overrides
+        [HttpPut("{id}/permissions/overrides")]
+        [HasPermission(AppPermissions.UserManage)]
+        public async Task<ActionResult<UserPermissionOverrideDto>> UpsertPermissionOverride(
+            string id,
+            [FromBody] UpsertUserPermissionOverrideRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+            if (request == null)
+                return BadRequest(new { message = "Request body is required.", code = "VALIDATION_ERROR" });
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            var actorId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(actorId))
+                return Unauthorized(new { message = "User not authenticated", code = "UNAUTHORIZED" });
+
+            var tenantScope = ResolveActorTenantScope();
+            var result = await _permissionOverrideService.UpsertOverrideAsync(
+                id, request, actorId, tenantScope, cancellationToken);
+            if (result == null)
+                return BadRequest(new { message = "Invalid permission override request.", code = "INVALID_PERMISSION" });
+
+            await TryLogUserLifecycleAsync(
+                AuditEventType.UserPermissionOverridesChanged,
+                actorId,
+                GetCurrentUserRole(),
+                id,
+                request.Reason,
+                HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string,
+                AuditLogStatus.Success,
+                $"Permission override {(request.IsGranted ? "granted" : "denied")}: {request.Permission}",
+                oldValues: null,
+                newValues: new
+                {
+                    request.Permission,
+                    request.IsGranted,
+                    request.TenantId,
+                    request.ExpiresAt,
+                });
+
+            await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
+            return Ok(result);
+        }
+
+        // DELETE: api/usermanagement/{id}/permissions/overrides/{overrideId}
+        [HttpDelete("{id}/permissions/overrides/{overrideId:guid}")]
+        [HasPermission(AppPermissions.UserManage)]
+        public async Task<IActionResult> DeletePermissionOverride(
+            string id,
+            Guid overrideId,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest(new { message = "User id is required.", code = "VALIDATION_ERROR" });
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            var actorId = GetCurrentUserId();
+            var tenantScope = ResolveActorTenantScope();
+            var deleted = await _permissionOverrideService.DeleteOverrideAsync(id, overrideId, tenantScope, cancellationToken);
+            if (!deleted)
+                return NotFound(new { message = "Permission override not found" });
+
+            if (!string.IsNullOrEmpty(actorId))
+            {
+                await TryLogUserLifecycleAsync(
+                    AuditEventType.UserPermissionOverridesChanged,
+                    actorId,
+                    GetCurrentUserRole(),
+                    id,
+                    null,
+                    HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string,
+                    AuditLogStatus.Success,
+                    $"Permission override removed: {overrideId}");
+            }
+
+            await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
+            return Ok(new { message = "Permission override removed" });
+        }
+
+        private Guid? ResolveActorTenantScope()
+        {
+            var actorCanonicalRole = RoleCanonicalization.GetCanonicalRole(GetCurrentUserRole());
+            if (string.Equals(actorCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal))
+                return null;
+            return _tenantAccessor.TenantId;
         }
 
         // GET: api/usermanagement/roles/permissions-catalog

@@ -242,21 +242,25 @@ public class AuthControllerTests
         bool passwordValid = true,
         IList<string>? roles = null,
         bool allowLegacy = true,
-        Mock<IRolePermissionResolver>? rolePermissionResolverMock = null,
+        Mock<IEffectivePermissionResolver>? effectivePermissionResolverMock = null,
         Mock<IAuthTenantSnapshotProvider>? authTenantSnapshotMock = null,
         Mock<ILoginTenantResolver>? loginTenantResolverMock = null,
         bool requireTenantMembershipForLogin = false,
         Mock<IUserTenantMembershipProvisioner>? tenantMembershipProvisionerMock = null,
         ApplicationUser? userByName = null,
         UserManager<ApplicationUser>? userManagerOverride = null,
-        AppDbContext? appDbOverride = null)
+        AppDbContext? appDbOverride = null,
+        Mock<ISessionService>? sessionServiceMock = null)
     {
         var userManager = userManagerOverride
             ?? CreateMockUserManager(userByEmail, passwordValid, roles, userByName);
         var config = CreateConfig(allowLegacy);
         var logger = new Mock<ILogger<AuthController>>().Object;
         var tokenClaims = CreateTokenClaimsMock();
-        var rolePermissionResolver = rolePermissionResolverMock ?? CreateRolePermissionResolverMock();
+        var effectivePermissionResolver = effectivePermissionResolverMock ?? CreateEffectivePermissionResolverMock();
+        var sessionPolicy = new Mock<ITenantSessionPolicyService>();
+        sessionPolicy.Setup(s => s.GetPolicyAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TenantSessionPolicyDto());
         var authOptions = Options.Create(new AuthOptions
         {
             AllowLegacyLoginWithoutClientApp = allowLegacy,
@@ -268,9 +272,10 @@ public class AuthControllerTests
                 It.IsAny<string>(),
                 It.IsAny<Func<string, string, Guid, DateTime, string, string?, Task<string>>>(),
                 It.IsAny<Guid?>(),
+                It.IsAny<SessionClientMetadata?>(),
                 It.IsAny<CancellationToken>()))
             .Returns(
-                (string uid, string app, Func<string, string, Guid, DateTime, string, string?, Task<string>> factory, Guid? _, CancellationToken _) =>
+                (string uid, string app, Func<string, string, Guid, DateTime, string, string?, Task<string>> factory, Guid? _, SessionClientMetadata? __, CancellationToken ___) =>
                 {
                     return InvokeIssueLoginFactoryAsync(uid, app, factory);
                 });
@@ -298,13 +303,15 @@ public class AuthControllerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
+        var sessionService = sessionServiceMock ?? new Mock<ISessionService>();
+
         return new AuthController(
             appDb,
             userManager,
             config,
             logger,
             tokenClaims.Object,
-            rolePermissionResolver.Object,
+            effectivePermissionResolver.Object,
             authOptions,
             refreshTokenService.Object,
             authTenant.Object,
@@ -312,7 +319,9 @@ public class AuthControllerTests
             authService.Object,
             provisioner.Object,
             usernameHistory.Object,
-            forgotUsernameEmail.Object);
+            forgotUsernameEmail.Object,
+            sessionPolicy.Object,
+            sessionService.Object);
     }
 
     private static Mock<IAuthService> CreateAuthServiceMock(Mock<ILoginTenantResolver> loginTenantResolver)
@@ -328,11 +337,15 @@ public class AuthControllerTests
     }
 
     /// <summary>Default: same effective set as pre-alignment matrix-only JSON (system/custom via resolver in production).</summary>
-    private static Mock<IRolePermissionResolver> CreateRolePermissionResolverMock()
+    private static Mock<IEffectivePermissionResolver> CreateEffectivePermissionResolverMock()
     {
-        var mock = new Mock<IRolePermissionResolver>();
-        mock.Setup(r => r.GetPermissionsForRolesAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .Returns((IEnumerable<string> roleNames, CancellationToken _) =>
+        var mock = new Mock<IEffectivePermissionResolver>();
+        mock.Setup(r => r.GetEffectivePermissionsAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .Returns((string _, IEnumerable<string> roleNames, Guid? _, CancellationToken __) =>
             {
                 var set = RolePermissionMatrix.GetPermissionsForRoles(roleNames).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 return Task.FromResult<IReadOnlySet<string>>(set);
@@ -576,8 +589,12 @@ public class AuthControllerTests
     [Fact]
     public async Task Login_UserPayload_PermissionsComeFromRolePermissionResolver()
     {
-        var resolverMock = new Mock<IRolePermissionResolver>();
-        resolverMock.Setup(r => r.GetPermissionsForRolesAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
+        var resolverMock = new Mock<IEffectivePermissionResolver>();
+        resolverMock.Setup(r => r.GetEffectivePermissionsAsync(
+                It.IsAny<string>(),
+                It.IsAny<IEnumerable<string>>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "resolver.contract.test" });
 
         var controller = CreateController(
@@ -585,7 +602,7 @@ public class AuthControllerTests
             passwordValid: true,
             roles: new List<string> { "Cashier" },
             allowLegacy: true,
-            rolePermissionResolverMock: resolverMock);
+            effectivePermissionResolverMock: resolverMock);
 
         var result = await controller.Login(new LoginModel { Email = "test@test.com", Password = "pass" });
 
@@ -753,6 +770,10 @@ public class AuthControllerTests
                 .ReturnsAsync(new[] { user.UserName ?? "user" });
         }
 
+        var sessionPolicy = new Mock<ITenantSessionPolicyService>();
+        sessionPolicy.Setup(s => s.GetPolicyAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TenantSessionPolicyDto());
+
         return new AuthController(
             new AppDbContext(
                 new DbContextOptionsBuilder<AppDbContext>()
@@ -764,7 +785,7 @@ public class AuthControllerTests
             CreateConfig(),
             new Mock<ILogger<AuthController>>().Object,
             CreateTokenClaimsMock().Object,
-            CreateRolePermissionResolverMock().Object,
+            CreateEffectivePermissionResolverMock().Object,
             Options.Create(new AuthOptions()),
             new Mock<IRefreshTokenService>().Object,
             CreateAuthTenantSnapshotMock().Object,
@@ -772,7 +793,42 @@ public class AuthControllerTests
             CreateAuthServiceMock(CreateLoginTenantResolverMock()).Object,
             CreateMembershipProvisionerMock().Object,
             usernameHistory.Object,
-            forgotUsernameEmail.Object);
+            forgotUsernameEmail.Object,
+            sessionPolicy.Object,
+            new Mock<ISessionService>().Object);
+    }
+
+    [Fact]
+    public async Task RefreshSession_TouchesActivity_WhenSidClaimPresent()
+    {
+        var sessionId = Guid.NewGuid();
+        var sessionService = new Mock<ISessionService>();
+        sessionService
+            .Setup(s => s.TouchSessionActivityAsync(sessionId, It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var controller = CreateController(userByEmail: null, sessionServiceMock: sessionService);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(new ClaimsIdentity(
+                    new[]
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, "user-1"),
+                        new Claim("sid", sessionId.ToString()),
+                    },
+                    authenticationType: "Test")),
+            },
+        };
+
+        var result = await controller.RefreshSession(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(ok.Value);
+        sessionService.Verify(
+            s => s.TouchSessionActivityAsync(sessionId, It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 }
 

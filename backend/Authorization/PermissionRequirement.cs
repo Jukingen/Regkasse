@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 namespace KasseAPI_Final.Authorization;
 
 /// <summary>
-/// Authorization requirement that demands a specific permission (e.g. report.view).
-/// Evaluated by PermissionAuthorizationHandler using role-permission matrix.
+/// Authorization requirement that demands a specific permission (e.g. user.view).
+/// Evaluated by <see cref="PermissionAuthorizationHandler"/>.
 /// </summary>
 public sealed class PermissionRequirement : IAuthorizationRequirement
 {

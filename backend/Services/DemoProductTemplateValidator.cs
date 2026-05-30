@@ -1,4 +1,5 @@
 using System.Globalization;
+using KasseAPI_Final.Data.CategorySeed;
 using KasseAPI_Final.Models.DTOs;
 
 namespace KasseAPI_Final.Services;
@@ -49,13 +50,15 @@ internal static class DemoProductTemplateValidator
                 if (!TryParseDecimal(row.VatRateRaw, out var vatRate))
                     vatRate = 10m;
 
-                categories[row.Name.Trim()] = new DemoCategory
-                {
-                    Name = row.Name.Trim(),
-                    Description = row.Description,
-                    SortOrder = sortOrder,
-                    VatRate = vatRate,
-                };
+                var demoCategory = SystemCategories.ResolveOrCreateAdHocCategory(row.Name.Trim(), vatRate);
+                if (TryParseInt(row.SortOrderRaw, out var explicitSort))
+                    demoCategory.SortOrder = explicitSort;
+                if (TryParseDecimal(row.VatRateRaw, out var explicitVat))
+                    demoCategory.VatRate = explicitVat;
+                if (!string.IsNullOrWhiteSpace(row.Description))
+                    demoCategory.Description = row.Description;
+
+                categories[demoCategory.Name] = demoCategory;
                 continue;
             }
 
@@ -105,19 +108,15 @@ internal static class DemoProductTemplateValidator
             issues.Add(Error(null, "At least one product row is required."));
 
         // Auto-create categories referenced by products
-        var nextSort = categories.Count > 0 ? categories.Values.Max(c => c.SortOrder) + 1 : 1;
         foreach (var product in products)
         {
+            if (SystemCategories.TryResolve(product.Category, out var resolved))
+                product.Category = resolved.DisplayName;
+
             if (categories.ContainsKey(product.Category))
                 continue;
 
-            categories[product.Category] = new DemoCategory
-            {
-                Name = product.Category,
-                Description = null,
-                SortOrder = nextSort++,
-                VatRate = product.TaxRate,
-            };
+            categories[product.Category] = SystemCategories.ResolveOrCreateAdHocCategory(product.Category, product.TaxRate);
         }
 
         var previewRows = rows
@@ -163,18 +162,18 @@ internal static class DemoProductTemplateValidator
             var rowType = row.RowType.Trim().ToLowerInvariant();
             if (rowType == "category")
             {
-                if (!TryParseInt(row.SortOrderRaw, out var sortOrder))
-                    sortOrder = categories.Count + 1;
                 if (!TryParseDecimal(row.VatRateRaw, out var vatRate))
                     vatRate = 10m;
 
-                categories[row.Name.Trim()] = new DemoCategory
-                {
-                    Name = row.Name.Trim(),
-                    Description = row.Description,
-                    SortOrder = sortOrder,
-                    VatRate = vatRate,
-                };
+                var demoCategory = SystemCategories.ResolveOrCreateAdHocCategory(row.Name.Trim(), vatRate);
+                if (TryParseInt(row.SortOrderRaw, out var explicitSort))
+                    demoCategory.SortOrder = explicitSort;
+                if (TryParseDecimal(row.VatRateRaw, out var explicitVat))
+                    demoCategory.VatRate = explicitVat;
+                if (!string.IsNullOrWhiteSpace(row.Description))
+                    demoCategory.Description = row.Description;
+
+                categories[demoCategory.Name] = demoCategory;
             }
         }
 
@@ -189,15 +188,11 @@ internal static class DemoProductTemplateValidator
                 taxRate = 10m;
 
             var categoryName = row.Category!.Trim();
+            if (SystemCategories.TryResolve(categoryName, out var resolved))
+                categoryName = resolved.DisplayName;
+
             if (!categories.ContainsKey(categoryName))
-            {
-                categories[categoryName] = new DemoCategory
-                {
-                    Name = categoryName,
-                    SortOrder = categories.Count + 1,
-                    VatRate = taxRate,
-                };
-            }
+                categories[categoryName] = SystemCategories.ResolveOrCreateAdHocCategory(categoryName, taxRate);
 
             Guid.TryParse(row.Id, out var id);
             products.Add(new DemoProduct
@@ -216,6 +211,7 @@ internal static class DemoProductTemplateValidator
             Categories = categories.Values.OrderBy(c => c.SortOrder).ToList(),
             Products = products,
         };
+        SystemCategories.NormalizeProductReferences(data);
         DemoProductImportFilter.NormalizeDemoProductIds(data);
         return (data, null);
     }

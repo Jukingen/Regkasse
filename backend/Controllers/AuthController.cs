@@ -40,7 +40,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
         private readonly ITokenClaimsService _tokenClaimsService;
-        private readonly IRolePermissionResolver _rolePermissionResolver;
+        private readonly IEffectivePermissionResolver _effectivePermissionResolver;
         private readonly AuthOptions _authOptions;
         private readonly IRefreshTokenService _refreshTokenService;
         private readonly IAuthTenantSnapshotProvider _authTenantSnapshotProvider;
@@ -50,6 +50,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IUserUsernameHistoryService _usernameHistory;
         private readonly IForgotUsernameEmailService _forgotUsernameEmail;
         private readonly ITenantSessionPolicyService _sessionPolicyService;
+        private readonly ISessionService _sessionService;
 
         /// <summary>Throttles diagnostic logs when /me is called without a resolvable user id claim.</summary>
         private static readonly object GetCurrentUserMissingIdLogSync = new();
@@ -61,7 +62,7 @@ namespace KasseAPI_Final.Controllers
             IConfiguration configuration,
             ILogger<AuthController> logger,
             ITokenClaimsService tokenClaimsService,
-            IRolePermissionResolver rolePermissionResolver,
+            IEffectivePermissionResolver effectivePermissionResolver,
             IOptions<AuthOptions> authOptions,
             IRefreshTokenService refreshTokenService,
             IAuthTenantSnapshotProvider authTenantSnapshotProvider,
@@ -70,14 +71,15 @@ namespace KasseAPI_Final.Controllers
             IUserTenantMembershipProvisioner tenantMembershipProvisioner,
             IUserUsernameHistoryService usernameHistory,
             IForgotUsernameEmailService forgotUsernameEmail,
-            ITenantSessionPolicyService sessionPolicyService)
+            ITenantSessionPolicyService sessionPolicyService,
+            ISessionService sessionService)
         {
             _context = context;
             _userManager = userManager;
             _configuration = configuration;
             _logger = logger;
             _tokenClaimsService = tokenClaimsService;
-            _rolePermissionResolver = rolePermissionResolver;
+            _effectivePermissionResolver = effectivePermissionResolver;
             _authOptions = authOptions.Value;
             _refreshTokenService = refreshTokenService;
             _authTenantSnapshotProvider = authTenantSnapshotProvider;
@@ -87,6 +89,26 @@ namespace KasseAPI_Final.Controllers
             _usernameHistory = usernameHistory;
             _forgotUsernameEmail = forgotUsernameEmail;
             _sessionPolicyService = sessionPolicyService;
+            _sessionService = sessionService;
+        }
+
+        /// <summary>
+        /// Extends the current auth session idle window by updating last-activity on <c>auth_sessions</c>.
+        /// </summary>
+        [Authorize]
+        [HttpPost("refresh-session")]
+        public async Task<IActionResult> RefreshSession(CancellationToken cancellationToken = default)
+        {
+            var userId = User.GetActorUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            var sidRaw = User.FindFirst("sid")?.Value;
+            if (!Guid.TryParse(sidRaw, out var sessionId))
+                return NoContent();
+
+            await _sessionService.TouchSessionActivityAsync(sessionId, cancellationToken).ConfigureAwait(false);
+            return Ok(new { message = "Session refreshed" });
         }
 
         /// <summary>
@@ -280,7 +302,7 @@ namespace KasseAPI_Final.Controllers
                     sessionTenantId: sessionTenantKey,
                     clientMetadata: BuildSessionClientMetadata(),
                     authCt);
-                var permissions = await GetEffectivePermissionsListAsync(roles, authCt);
+                var permissions = await GetEffectivePermissionsListAsync(user.Id, roles, sessionTenantKey, authCt);
 
                 var response = new
                 {
@@ -410,18 +432,19 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(new { message = "User account is not active" });
                 }
 
-                // Same effective permission source as JWT (IRolePermissionResolver / TokenClaimsService).
+                // Same effective permission source as JWT (IEffectivePermissionResolver / TokenClaimsService).
                 var roles = await _userManager.GetRolesAsync(user);
                 var canonicalRoles = TokenClaimsService.CollectCanonicalRoles(roles, user.Role);
                 var primaryRole = TokenClaimsService.ResolvePrimaryRole(canonicalRoles);
                 var meCt = HttpContext?.RequestAborted ?? CancellationToken.None;
-                var permissions = await GetEffectivePermissionsListAsync(roles, meCt);
+
+                var tenantSnapshot = await _authTenantSnapshotProvider.GetSnapshotAsync(User, meCt);
+                Guid? tenantGuid = Guid.TryParse(tenantSnapshot.TenantId, out var tid) ? tid : null;
+                var permissions = await GetEffectivePermissionsListAsync(user.Id, roles, tenantGuid, meCt);
                 var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
                 var appContext = User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value;
 
-                var tenantSnapshot = await _authTenantSnapshotProvider.GetSnapshotAsync(User, meCt);
-                Guid? tenantGuid = Guid.TryParse(tenantSnapshot.TenantId, out var tid) ? tid : null;
                 var sessionPolicy = await _sessionPolicyService.GetPolicyAsync(tenantGuid, meCt);
 
                 var userResponse = new
@@ -652,9 +675,13 @@ namespace KasseAPI_Final.Controllers
         /// Effective permissions for API JSON: same set as embedded in JWT via <see cref="ITokenClaimsService"/>.
         /// Sorted for stable serialization (JWT claim order is not significant for authorization).
         /// </summary>
-        private async Task<List<string>> GetEffectivePermissionsListAsync(IList<string> roles, CancellationToken cancellationToken)
+        private async Task<List<string>> GetEffectivePermissionsListAsync(
+            string userId,
+            IList<string> roles,
+            Guid? tenantId,
+            CancellationToken cancellationToken)
         {
-            var set = await _rolePermissionResolver.GetPermissionsForRolesAsync(roles, cancellationToken);
+            var set = await _effectivePermissionResolver.GetEffectivePermissionsAsync(userId, roles, tenantId, cancellationToken);
             return set.OrderBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
         }
     }

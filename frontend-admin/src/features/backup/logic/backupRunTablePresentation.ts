@@ -1,6 +1,7 @@
 import type { BackupArtifactResponseDto } from "@/api/generated/model";
 import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
 import type { BackupRunResponseDto } from "@/api/generated/model";
+import { formatBackupBytes } from "@/features/backup-dr/logic/backupFormat";
 
 export type BackupRunStatusUiKey =
   | "queued"
@@ -51,6 +52,29 @@ export function sumArtifactBytes(
 ): number {
   if (!artifacts?.length) return 0;
   return artifacts.reduce((sum, a) => sum + (a.byteSize ?? 0), 0);
+}
+
+export function resolveBackupRunTotalBytes(record: BackupRunResponseDto): number {
+  return record.totalSizeBytes ?? sumArtifactBytes(record.artifacts);
+}
+
+export function resolveBackupRunDurationLabel(
+  record: BackupRunResponseDto,
+  t: (key: string, options?: Record<string, string | number>) => string,
+): string {
+  if (record.durationFormatted?.trim()) return record.durationFormatted.trim();
+  const minutes = computeBackupRunDurationMinutes(record.startedAt, record.completedAt);
+  if (minutes === undefined) return t("backupDr.runsTable.noDuration");
+  return t("backupDr.runsTable.durationMinutes", { minutes: minutes.toFixed(1) });
+}
+
+export function resolveBackupRunSizeLabel(
+  record: BackupRunResponseDto,
+  t: (key: string, options?: Record<string, string | number>) => string,
+): string {
+  if (record.totalSizeFormatted?.trim()) return record.totalSizeFormatted.trim();
+  const total = resolveBackupRunTotalBytes(record);
+  return formatBackupBytes(total > 0 ? total : undefined, t);
 }
 
 export function isBackupRunFailed(status: number | undefined): boolean {

@@ -22847,6 +22847,46 @@
         "type": "integer",
         "format": "int32"
       },
+      "BackupScheduleFrequency": {
+        "enum": [
+          "Daily",
+          "Weekly",
+          "Monthly",
+          "Custom"
+        ],
+        "type": "string"
+      },
+      "BackupScheduleConfigurationDto": {
+        "type": "object",
+        "properties": {
+          "frequency": {
+            "$ref": "#/components/schemas/BackupScheduleFrequency"
+          },
+          "hourUtc": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minuteUtc": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dayOfWeek": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "dayOfMonth": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "customCron": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "BackupScheduleLatestRunSummaryDto": {
         "type": "object",
         "properties": {
@@ -22918,6 +22958,14 @@
             "type": "string",
             "nullable": true
           },
+          "schedule": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BackupScheduleConfigurationDto"
+              }
+            ]
+          },
           "retentionDays": {
             "type": "integer",
             "format": "int32"
@@ -22928,12 +22976,24 @@
       "BackupSettingsResponseDto": {
         "type": "object",
         "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "enabled": {
             "type": "boolean"
           },
           "scheduleCron": {
             "type": "string",
             "nullable": true
+          },
+          "schedule": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BackupScheduleConfigurationDto"
+              }
+            ]
           },
           "retentionDays": {
             "type": "integer",

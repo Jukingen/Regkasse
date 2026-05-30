@@ -13,7 +13,9 @@ public static class AuthorizationExtensions
 {
     /// <summary>
     /// Registers the full app authorization layer: permission-based policies, app-context policies,
-    /// PermissionAuthorizationHandler, AppContextAuthorizationHandler, and ForbiddenResponseAuthorizationHandler.
+    /// PermissionAuthorizationHandler (JWT + IPermissionService + role matrix), AppContextAuthorizationHandler,
+    /// and ForbiddenResponseAuthorizationHandler.
+    /// Requires <see cref="IPermissionService"/> to be registered for runtime override resolution.
     /// </summary>
     public static IServiceCollection AddAppAuthorization(this IServiceCollection services)
     {

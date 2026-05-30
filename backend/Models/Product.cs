@@ -70,6 +70,10 @@ namespace KasseAPI_Final.Models
         [Range(0, int.MaxValue, ErrorMessage = "Minimum stock level cannot be negative")]
         public int MinStockLevel { get; set; }
 
+        [Column("max_stock_level")]
+        [Range(0, int.MaxValue, ErrorMessage = "Maximum stock level cannot be negative")]
+        public int? MaxStockLevel { get; set; }
+
         [Required]
         [Column("unit")]
         [MaxLength(20)]

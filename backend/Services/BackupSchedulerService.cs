@@ -12,8 +12,8 @@ using Microsoft.Extensions.Options;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Database-driven scheduled backup enqueue (UTC cron stored in backup_settings).
-/// Executes under the same PostgreSQL advisory lock as <see cref="BackupOrchestratorHostedService"/> to avoid concurrent enqueue/dequeue conflicts.
+/// Database-driven scheduled backup enqueue (per-tenant UTC cron in backup_schedule_configurations).
+/// Executes under the same PostgreSQL advisory lock as <see cref="BackupOrchestratorHostedService"/>.
 /// </summary>
 public sealed class BackupSchedulerService : BackgroundService
 {
@@ -89,7 +89,7 @@ public sealed class BackupSchedulerService : BackgroundService
             if (enqueued)
                 _logger.LogInformation("BackupSchedulerService enqueued a scheduled backup row.");
 
-            await TryRefreshStoredNextProjectionAsync(db, ct);
+            await TryRefreshStoredNextProjectionsAsync(db, ct);
         }
         finally
         {
@@ -98,10 +98,40 @@ public sealed class BackupSchedulerService : BackgroundService
         }
     }
 
-    private async Task TryRefreshStoredNextProjectionAsync(AppDbContext db, CancellationToken ct)
+    private async Task TryRefreshStoredNextProjectionsAsync(AppDbContext db, CancellationToken ct)
     {
         try
         {
+            var utcNow = DateTime.UtcNow;
+            var tenantRows = await db.BackupScheduleConfigurations
+                .IgnoreQueryFilters()
+                .Where(c => c.IsActive)
+                .ToListAsync(ct);
+
+            if (tenantRows.Count > 0)
+            {
+                var changed = false;
+                foreach (var row in tenantRows)
+                {
+                    var next = row.Enabled
+                        ? BackupScheduleProjectionHelper.ComputeNextRunUtc(row.ScheduleCron, utcNow)
+                        : null;
+                    if (row.NextRunAt == next)
+                        continue;
+                    row.NextRunAt = next;
+                    row.UpdatedAt = utcNow;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    await db.SaveChangesAsync(ct);
+                    _logger.LogInformation("BackupSchedulerService refreshed tenant NextRunAt projections.");
+                }
+
+                return;
+            }
+
             await BackupSettingsEnsure.EnsureSingletonAsync(db, ct);
             var settings = await db.BackupSettings.FirstAsync(x => x.Id == BackupSettings.SingletonId, ct);
             if (!settings.Enabled ||
@@ -111,22 +141,21 @@ public sealed class BackupSchedulerService : BackgroundService
                 if (settings.NextRunAt != null)
                 {
                     settings.NextRunAt = null;
-                    settings.UpdatedAtUtc = DateTime.UtcNow;
+                    settings.UpdatedAtUtc = utcNow;
                     await db.SaveChangesAsync(ct);
                     _logger.LogInformation("BackupSchedulerService cleared stored NextRunAt (automation disabled or invalid cron).");
                 }
                 return;
             }
 
-            var utcNow = DateTime.UtcNow;
-            var next = cron.GetNextOccurrence(utcNow, TimeZoneInfo.Utc, inclusive: false);
-            if (settings.NextRunAt == next)
+            var singletonNext = cron.GetNextOccurrence(utcNow, TimeZoneInfo.Utc, inclusive: false);
+            if (settings.NextRunAt == singletonNext)
                 return;
 
-            settings.NextRunAt = next;
+            settings.NextRunAt = singletonNext;
             settings.UpdatedAtUtc = utcNow;
             await db.SaveChangesAsync(ct);
-            _logger.LogInformation("BackupSchedulerService refreshed stored NextRunAt to {Next:o} (UTC).", next);
+            _logger.LogInformation("BackupSchedulerService refreshed singleton NextRunAt to {Next:o} (UTC).", singletonNext);
         }
         catch (Exception ex)
         {

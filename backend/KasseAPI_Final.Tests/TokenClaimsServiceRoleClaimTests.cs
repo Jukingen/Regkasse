@@ -15,7 +15,7 @@ public class TokenClaimsServiceRoleClaimTests
     [Fact]
     public async Task BuildClaimsAsync_Emits_Role_Claim_Per_Assigned_Role()
     {
-        var resolver = new MockRolePermissionResolver(Array.Empty<string>());
+        var resolver = new MockEffectivePermissionResolver(Array.Empty<string>());
         var svc = new TokenClaimsService(resolver);
         var user = new ApplicationUser
         {
@@ -50,7 +50,7 @@ public class TokenClaimsServiceRoleClaimTests
     [Fact]
     public async Task BuildClaimsAsync_Includes_User_Role_Column_When_Identity_Roles_Empty()
     {
-        var resolver = new MockRolePermissionResolver(Array.Empty<string>());
+        var resolver = new MockEffectivePermissionResolver(Array.Empty<string>());
         var svc = new TokenClaimsService(resolver);
         var user = new ApplicationUser
         {
@@ -70,7 +70,7 @@ public class TokenClaimsServiceRoleClaimTests
     [Fact]
     public async Task BuildClaimsAsync_Jwt_RoundTrip_Preserves_SuperAdmin_Role_For_Authorization()
     {
-        var resolver = new MockRolePermissionResolver(Array.Empty<string>());
+        var resolver = new MockEffectivePermissionResolver(Array.Empty<string>());
         var svc = new TokenClaimsService(resolver);
         var user = new ApplicationUser { Id = "u1", Email = "a@b.c", UserName = "a@b.c", FirstName = "A", LastName = "B" };
         var claims = await svc.BuildClaimsAsync(user, new List<string> { Roles.SuperAdmin });
@@ -103,15 +103,17 @@ public class TokenClaimsServiceRoleClaimTests
         Assert.True(principal.IsInRole(Roles.SuperAdmin));
     }
 
-    private sealed class MockRolePermissionResolver : IRolePermissionResolver
+    private sealed class MockEffectivePermissionResolver : IEffectivePermissionResolver
     {
         private readonly IReadOnlySet<string> _perms;
 
-        public MockRolePermissionResolver(IEnumerable<string> perms) =>
+        public MockEffectivePermissionResolver(IEnumerable<string> perms) =>
             _perms = perms.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        public Task<IReadOnlySet<string>> GetPermissionsForRolesAsync(
+        public Task<IReadOnlySet<string>> GetEffectivePermissionsAsync(
+            string userId,
             IEnumerable<string> roleNames,
+            Guid? tenantId = null,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlySet<string>>(_perms);
     }

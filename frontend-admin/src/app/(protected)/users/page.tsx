@@ -68,6 +68,7 @@ import { EditUsernameModal } from '@/features/users/components/EditUsernameModal
 import { UsersTable } from '@/features/users/components/UsersTable';
 import { UserFormDrawer, type UserFormSubmitValues } from '@/features/users/components/UserFormDrawer';
 import { RoleManagementDrawer } from '@/features/users/components/RoleManagementDrawer';
+import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
 import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
 import { createUsersFormRules } from '@/features/users/constants/validation';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
@@ -223,6 +224,7 @@ export default function UsersPage() {
     const [reactivateUserRecord, setReactivateUserRecord] = useState<UserInfo | null>(null);
     const [resetPasswordUser, setResetPasswordUser] = useState<UserInfo | null>(null);
     const [usernameEditUser, setUsernameEditUser] = useState<UserInfo | null>(null);
+    const [permissionsUser, setPermissionsUser] = useState<UserInfo | null>(null);
     /** Backend validation error shown inside reset password modal (German); cleared when modal closes. */
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
@@ -724,6 +726,7 @@ export default function UsersPage() {
                     onDeactivate={setDeactivateUserRecord}
                     onReactivate={setReactivateUserRecord}
                     onResetPassword={setResetPasswordUser}
+                    onManagePermissions={policy.canManagePermissions ? setPermissionsUser : undefined}
                     onCreatePlatformUser={() => {
                         setCreatePlatformMode(true);
                         setCreateOpen(true);
@@ -861,6 +864,7 @@ export default function UsersPage() {
                         onDeactivate={setDeactivateUserRecord}
                         onReactivate={setReactivateUserRecord}
                         onResetPassword={setResetPasswordUser}
+                        onManagePermissions={policy.canManagePermissions ? setPermissionsUser : undefined}
                         onUsernameEdit={policy.canEdit ? setUsernameEditUser : undefined}
                         virtual={shouldUseAdminTableVirtual(users.length)}
                         scroll={adminTableScrollXy(1280, users.length)}
@@ -1064,6 +1068,16 @@ export default function UsersPage() {
                 saveLoading={updateRolePermissionsMutation.isPending}
                 deleteLoading={deleteRoleMutation.isPending}
             />
+
+            {permissionsUser?.id ? (
+                <UserPermissionsModal
+                    open
+                    userId={permissionsUser.id}
+                    userName={fullName(permissionsUser)}
+                    userRole={permissionsUser.role}
+                    onClose={() => setPermissionsUser(null)}
+                />
+            ) : null}
         </AdminPageShell>
     );
 }

@@ -35,6 +35,7 @@ public sealed class TenantSessionPolicyService : ITenantSessionPolicyService
                 s.SessionTimeoutMinutes,
                 s.SessionWarningBeforeTimeoutMinutes,
                 s.KeepCartAfterTimeout,
+                s.SessionIdleTimeoutEnabled,
             })
             .FirstOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
@@ -47,6 +48,7 @@ public sealed class TenantSessionPolicyService : ITenantSessionPolicyService
             SessionTimeoutMinutes = Clamp(row.SessionTimeoutMinutes, 5, 480),
             WarningBeforeTimeoutMinutes = Clamp(row.SessionWarningBeforeTimeoutMinutes, 1, 60),
             KeepCartAfterTimeout = row.KeepCartAfterTimeout,
+            IdleTimeoutEnabled = row.SessionIdleTimeoutEnabled,
         };
     }
 
@@ -55,6 +57,7 @@ public sealed class TenantSessionPolicyService : ITenantSessionPolicyService
         SessionTimeoutMinutes = 30,
         WarningBeforeTimeoutMinutes = 1,
         KeepCartAfterTimeout = true,
+        IdleTimeoutEnabled = true,
     };
 
     private static int Clamp(int value, int min, int max) => Math.Max(min, Math.Min(max, value));

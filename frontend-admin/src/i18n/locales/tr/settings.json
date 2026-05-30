@@ -222,6 +222,28 @@
       "placeholderOptional": "isteğe bağlı"
     }
   },
+  "session": {
+    "pageTitle": "Oturum ve hareketsizlik",
+    "cardTitle": "Oturum ayarlari",
+    "description": "Admin panelinde kullanicilarin hareketsizlik sonrasi ne kadar oturumda kalacagini belirleyin. Otomatik cikistan once uyari gosterilir.",
+    "enabledLabel": "Hareketsizlik zaman asimini etkinlestir",
+    "enabledOn": "Acik",
+    "enabledOff": "Kapali",
+    "timeoutLabel": "Hareketsizlik zaman asimi",
+    "timeoutTooltip": "Bu sure boyunca aktivite olmazsa kullanici otomatik olarak cikar.",
+    "timeoutRequired": "Lutfen zaman asimi girin.",
+    "timeoutRange": "Deger 5 ile 480 dakika arasinda olmalidir.",
+    "timeoutPresetMinutes": "{{minutes}} dakika",
+    "warningLabel": "Cikis oncesi uyari",
+    "warningTooltip": "Zaman asimindan ne kadar once geri sayim uyarisi gosterilir (1 dakika = 60 saniye).",
+    "warningRequired": "Lutfen uyari suresi girin.",
+    "warningRange": "Deger 1 ile 10 dakika arasinda olmalidir.",
+    "warningCountdownHint": "Uyari penceresinde {{seconds}} saniyelik geri sayim gosterilir.",
+    "minutesUnit": "dk",
+    "save": "Kaydet",
+    "saveSuccess": "Oturum ayarlari kaydedildi.",
+    "saveFailed": "Oturum ayarlari kaydedilemedi."
+  },
   "personalization": {
     "pageTitle": "Görünüm ve dil",
     "appearance": {

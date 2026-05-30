@@ -18,12 +18,49 @@
     "methodPlaceholder": "Methode",
     "statusPlaceholder": "Status"
   },
+  "filtersBar": {
+    "dateStart": "Startdatum",
+    "dateEnd": "Enddatum",
+    "paymentMethods": "Zahlungsmethode",
+    "statuses": "Status",
+    "receiptNumber": "Belegnummer",
+    "advanced": "Erweiterte Filter",
+    "clearAll": "Alle löschen",
+    "drawerTitle": "Erweiterte Filter",
+    "resetDrawer": "Alle zurücksetzen",
+    "amountSection": "Betrag",
+    "minAmount": "Min",
+    "maxAmount": "Max",
+    "registerSection": "Kasse",
+    "allRegisters": "Alle Kassen",
+    "customerSection": "Kunde",
+    "customerName": "Kundenname",
+    "customerEmail": "Kunden-E-Mail",
+    "cashierSection": "Kassierer",
+    "allCashiers": "Alle Kassierer",
+    "transactionTypeSection": "Transaktionstyp",
+    "stornoOnly": "Nur Stornos",
+    "refundOnly": "Nur Rückerstattungen",
+    "chipDate": "Datum: {{from}} – {{to}}",
+    "chipMethod": "Zahlung: {{value}}",
+    "chipStatus": "Status: {{value}}",
+    "chipReceipt": "Beleg: {{value}}",
+    "chipMinAmount": "Min: {{value}}",
+    "chipMaxAmount": "Max: {{value}}",
+    "chipRegister": "Kasse: {{value}}",
+    "chipCustomer": "Kunde: {{value}}",
+    "chipCustomerEmail": "E-Mail: {{value}}",
+    "chipCashier": "Kassierer: {{value}}",
+    "chipStorno": "Stornos",
+    "chipRefund": "Rückerstattungen"
+  },
   "scope": {
     "label": "Aktive Ansicht:",
     "serverLine": "{{count}} vom Server (max. 500 je Abfrage)",
     "filteredLine": "{{count}} sichtbar nach Tabellenfilter",
     "methodLine": "Methode = {{value}}",
-    "statusLine": "Status = {{value}}"
+    "statusLine": "Status = {{value}}",
+    "activeFiltersLine": "{{count}} aktive Filter"
   },
   "list": {
     "loadErrorTitle": "Zahlungen konnten nicht geladen werden",
@@ -127,6 +164,45 @@
     "refundOk": "Rückerstattung ausführen",
     "refundCancel": "Abbrechen"
   },
+  "cancellationModal": {
+    "title": "Zahlung stornieren",
+    "infoTitle": "Storno-Information",
+    "infoDescription": "Diese Aktion ist nicht umkehrbar. Es wird ein fiskalischer Storno-Beleg erstellt.",
+    "reasonCodeLabel": "Storno-Grund",
+    "reasonCodePlaceholder": "Grund auswählen",
+    "reasonCodeRequired": "Bitte wählen Sie einen Grund",
+    "reasonTextLabel": "Detaillierte Begründung",
+    "reasonTextRequired": "Bitte geben Sie eine Begründung ein",
+    "reasonTextMinLength": "Mindestens 5 Zeichen erforderlich",
+    "reasonTextPlaceholder": "z. B. Kunde hat sich anders entschieden …",
+    "summaryAmount": "Zahlungsbetrag",
+    "summaryDate": "Datum",
+    "summaryReceipt": "Belegnummer",
+    "submit": "Storno ausführen",
+    "confirmToken": "Storno mit Token bestätigen",
+    "approvalTitle": "Manager-Freigabe erforderlich",
+    "approvalRequiredFallback": "Dieses Storno erfordert eine Manager-Freigabe.",
+    "approvalEmailHint": "Ein 6-stelliger Token wurde an die Manager per E-Mail gesendet.",
+    "tokenLabel": "Freigabe-Token",
+    "tokenExtra": "6-stelliger Code aus der Manager-E-Mail",
+    "tokenInvalidLength": "Bitte geben Sie den 6-stelligen Token ein",
+    "tokenExpired": "Der Token ist abgelaufen. Bitte starten Sie das Storno erneut.",
+    "tokenValidFor": "Token gültig für {{minutes}} Min {{seconds}} Sek",
+    "alreadyCancelled": "Diese Zahlung wurde bereits storniert.",
+    "risk": {
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch"
+    },
+    "reasons": {
+      "1": { "label": "Kundenwunsch", "description": "Kunde möchte die Bestellung stornieren" },
+      "2": { "label": "Falscher Artikel", "description": "Falscher Artikel wurde erfasst" },
+      "3": { "label": "Preis stimmt nicht", "description": "Preisabweichung" },
+      "4": { "label": "Doppelte Buchung", "description": "Zahlung wurde doppelt erfasst" },
+      "5": { "label": "Technischer Fehler", "description": "System- oder Gerätefehler" },
+      "99": { "label": "Sonstige", "description": "Anderer Grund" }
+    }
+  },
   "messages": {
     "cancelSuccess": "Zahlung storniert",
     "cancelError": "Storno fehlgeschlagen",
@@ -219,5 +295,37 @@
       "noLines": "Keine Positionsdaten",
       "noAuditEvents": "Keine passenden Audit-Einträge"
     }
+  },
+  "trends": {
+    "period": {
+      "Daily": "Täglich",
+      "Weekly": "Wöchentlich",
+      "Monthly": "Monatlich"
+    },
+    "totalRevenue": "Gesamtumsatz",
+    "transactions": "{{count}} Transaktionen",
+    "avgTransaction": "Ø Transaktion",
+    "periodComparison": "Aktueller Zeitraum",
+    "empty": "Keine Zahlungsdaten im gewählten Zeitraum.",
+    "chart": {
+      "revenue": "Umsatz",
+      "count": "Anzahl"
+    },
+    "insights": "Häufigste Methode: {{method}} · Spitzenstunde: {{hour}}:00 · Bester Tag: {{bestDay}}"
+  },
+  "trendsDashboard": {
+    "pageTitle": "Zahlungstrends",
+    "loadError": "Trenddaten konnten nicht geladen werden.",
+    "totalRevenue": "Gesamtumsatz",
+    "transactions": "Transaktionen",
+    "avgBasket": "Ø Warenkorb",
+    "growth": "Wachstum",
+    "vsPreviousPeriod": "vs. vorheriger Zeitraum",
+    "revenueTrendTitle": "Umsatzentwicklung",
+    "transactionVolumeTitle": "Transaktionsvolumen",
+    "paymentMethodsTitle": "Zahlungsmethoden Verteilung",
+    "revenueSeries": "Umsatz (€)",
+    "avgBasketSeries": "Ø Warenkorb (€)",
+    "transactionSeries": "Anzahl Transaktionen"
   }
 }

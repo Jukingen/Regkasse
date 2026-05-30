@@ -40,7 +40,11 @@ public sealed class BackupRunQueryService : IBackupRunQueryService
         pageSize = Math.Clamp(pageSize, 1, 100);
         var q = _db.BackupRuns.AsNoTracking().OrderByDescending(r => r.RequestedAt);
         var total = await q.CountAsync(cancellationToken);
-        var items = await q.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        var items = await q
+            .Include(r => r.Artifacts)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
         return (items, total);
     }
 

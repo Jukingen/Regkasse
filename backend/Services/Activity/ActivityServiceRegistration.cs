@@ -1,4 +1,5 @@
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -47,6 +48,12 @@ public static class ActivityServiceRegistration
 
         services.AddHostedService<ActivityMonitoringHostedService>();
         services.AddHostedService<ActivityEventCleanupHostedService>();
+
+        services.Configure<SuspiciousTransactionDetectionOptions>(
+            configuration.GetSection(SuspiciousTransactionDetectionOptions.SectionName));
+        services.AddScoped<ISuspiciousTransactionAlertService, SuspiciousTransactionAlertService>();
+        services.AddScoped<SuspiciousTransactionDetector>();
+        services.AddHostedService<SuspiciousTransactionDetectionHostedService>();
 
         return services;
     }

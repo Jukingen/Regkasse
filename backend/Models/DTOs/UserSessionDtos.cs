@@ -18,4 +18,5 @@ public sealed class TenantSessionPolicyDto
     public int SessionTimeoutMinutes { get; set; } = 30;
     public int WarningBeforeTimeoutMinutes { get; set; } = 1;
     public bool KeepCartAfterTimeout { get; set; } = true;
+    public bool IdleTimeoutEnabled { get; set; } = true;
 }

@@ -1,0 +1,21 @@
+{
+  "title": "Security alerts",
+  "bellAria": "Suspicious transactions and security alerts",
+  "refresh": "Refresh",
+  "empty": "No new alerts",
+  "markRead": "Mark as read",
+  "severity": {
+    "Low": "Low",
+    "Medium": "Medium",
+    "High": "High",
+    "Critical": "Critical"
+  },
+  "types": {
+    "HighValue": "High-value payment",
+    "MultipleStornos": "Multiple cancellations",
+    "MultipleRefunds": "Multiple refunds",
+    "UnusualTime": "Unusual time",
+    "SameCardMultiple": "Repeated card payment",
+    "RapidTransactions": "Rapid transactions"
+  }
+}

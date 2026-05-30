@@ -2,8 +2,9 @@
 
 import React, { useEffect } from 'react';
 import { Form, Input, InputNumber, Modal, Switch } from 'antd';
-import type { Category } from '@/api/generated/model';
+import type { AdminCategory } from '../types';
 import type { CreateCategoryFormValues, UpdateCategoryFormValues } from '../types';
+import { categoryTaxRate } from '../types';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { useI18n } from '@/i18n';
 
@@ -11,7 +12,7 @@ export type CategoryFormSubmitValues = CreateCategoryFormValues | UpdateCategory
 
 interface CategoryFormProps {
     visible: boolean;
-    initialValues?: Category | (Category & { vatRate?: number }) | null;
+    initialValues?: AdminCategory | null;
     onCancel: () => void;
     onSubmit: (values: CategoryFormSubmitValues) => Promise<void>;
     loading?: boolean;
@@ -29,19 +30,18 @@ export default function CategoryForm({
 
     useEffect(() => {
         if (visible) {
-            const withVat = initialValues as (Category & { vatRate?: number }) | undefined;
-            if (withVat) {
+            if (initialValues) {
                 form.setFieldsValue({
-                    name: withVat.name,
-                    vatRate: (withVat as { vatRate?: number }).vatRate ?? 20,
-                    sortOrder: withVat.sortOrder ?? 0,
-                    isActive: withVat.isActive ?? true,
+                    name: initialValues.name,
+                    defaultTaxRate: categoryTaxRate(initialValues),
+                    sortOrder: initialValues.sortOrder ?? 0,
+                    isActive: initialValues.isActive ?? true,
                 });
             } else {
                 form.resetFields();
                 form.setFieldsValue({
                     name: '',
-                    vatRate: 20,
+                    defaultTaxRate: 20,
                     sortOrder: 0,
                     isActive: true,
                 });
@@ -54,7 +54,7 @@ export default function CategoryForm({
             const values = await form.validateFields();
             await onSubmit({
                 name: values.name!,
-                vatRate: values.vatRate ?? 20,
+                defaultTaxRate: values.defaultTaxRate ?? 20,
                 sortOrder: values.sortOrder ?? 0,
                 isActive: values.isActive ?? true,
             });
@@ -85,7 +85,7 @@ export default function CategoryForm({
             <Form
                 form={form}
                 layout="vertical"
-                initialValues={{ vatRate: 20, sortOrder: 0, isActive: true }}
+                initialValues={{ defaultTaxRate: 20, sortOrder: 0, isActive: true }}
             >
                 <Form.Item
                     name="name"
@@ -96,7 +96,7 @@ export default function CategoryForm({
                 </Form.Item>
 
                 <Form.Item
-                    name="vatRate"
+                    name="defaultTaxRate"
                     label={t('common.categories.form.vatLabel')}
                     rules={[
                         { required: true, message: t('common.categories.form.vatRequired') },

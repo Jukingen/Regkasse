@@ -202,6 +202,7 @@ export type UnifiedAdminUsersViewProps = {
     onDeactivate: (user: UserInfo) => void;
     onReactivate: (user: UserInfo) => void;
     onResetPassword: (user: UserInfo) => void;
+    onManagePermissions?: (user: UserInfo) => void;
     onCreatePlatformUser: () => void;
 };
 
@@ -215,6 +216,7 @@ export function UnifiedAdminUsersView({
     onDeactivate,
     onReactivate,
     onResetPassword,
+    onManagePermissions,
     onCreatePlatformUser,
 }: UnifiedAdminUsersViewProps) {
     const { t, formatLocale } = useI18n();
@@ -674,6 +676,24 @@ export function UnifiedAdminUsersView({
             );
         }
 
+        if (
+            policy.canManagePermissions &&
+            onManagePermissions &&
+            record.id &&
+            !isPlatformUserRole(row.role)
+        ) {
+            actions.push(
+                <Tooltip key="permissions" title={t('users.permissionsModal.action')}>
+                    <Button
+                        size="small"
+                        icon={<SafetyOutlined />}
+                        aria-label={t('users.permissionsModal.action')}
+                        onClick={() => onManagePermissions(record)}
+                    />
+                </Tooltip>,
+            );
+        }
+
         if (policy.canResetPassword(row.role) && record.id !== currentUserId) {
             actions.push(
                 <Tooltip key="reset-password" title={t('users.list.resetPassword')}>
@@ -992,6 +1012,7 @@ export function UnifiedAdminUsersView({
             onDeactivate,
             onReactivate,
             onResetPassword,
+            onManagePermissions,
             removeMutation.isPending,
             currentUserId,
         ],

@@ -7,6 +7,7 @@ export const DASHBOARD_WIDGET_IDS = {
     licenseExpiry: 'license-expiry',
     finanzOnlineStatus: 'finanzonline-status',
     topSellingProducts: 'top-selling-products',
+    paymentTrends: 'payment-trends',
 } as const;
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[keyof typeof DASHBOARD_WIDGET_IDS];

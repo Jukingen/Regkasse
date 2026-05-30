@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Backup automation + execution mode form (settings PUT + execution-mode PUT).
+ * Backup execution mode form (execution-mode PUT only; schedule is BackupScheduleSettings).
  */
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -18,15 +18,12 @@ import {
   Row,
   Select,
   Spin,
-  Switch,
   Typography,
   message,
 } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
-import { useBackupSettings } from "@/features/backup/hooks/useBackupSettings";
-import { useUpdateBackupSettings } from "@/features/backup/hooks/useUpdateBackupSettings";
 import {
   getBackupExecutionMode,
   getGetApiAdminBackupExecutionModeQueryKey,
@@ -42,21 +39,9 @@ import {
   initialExecutionModeSelection,
   toPutExecutionModeString,
 } from "@/features/backup/logic/backupExecutionModeFormMapping";
-import {
-  getBackupScheduleStatus,
-  getBackupScheduleStatusQueryKey,
-  isPlausibleStandardCron,
-  normalizeCronWhitespace,
-} from "@/features/backup-dr/logic/backupScheduleSettingsApi";
 import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
 
-const RETENTION_MIN = 1;
-const RETENTION_MAX = 3650;
-
 export type BackupConfigurationFormValues = {
-  enabled: boolean;
-  scheduleCron: string;
-  retentionDays: number;
   executionMode: BackupExecutionModeRadioValue;
 };
 
@@ -67,25 +52,16 @@ function axiosNormalizedMessage(err: unknown): string | undefined {
 }
 
 export function BackupConfigurationForm() {
-  const { t, formatLocale } = useI18n();
+  const { t } = useI18n();
   const { canConfigure: canEdit, canEditExecutionMode, isSuperAdmin: superAdmin } =
     useBackupPermissions();
   const [form] = Form.useForm<BackupConfigurationFormValues>();
   const [initialExecutionMode, setInitialExecutionMode] =
     useState<BackupExecutionModeRadioValue>("InheritFromConfiguration");
-
-  const settingsQuery = useBackupSettings();
-  const updateSettings = useUpdateBackupSettings();
-
+  const [saving, setSaving] = useState(false);
   const executionModeQuery = useQuery({
     queryKey: getGetApiAdminBackupExecutionModeQueryKey(),
     queryFn: getBackupExecutionMode,
-    staleTime: 20_000,
-  });
-
-  const scheduleStatusQuery = useQuery({
-    queryKey: getBackupScheduleStatusQueryKey(),
-    queryFn: getBackupScheduleStatus,
     staleTime: 20_000,
   });
 
@@ -97,20 +73,13 @@ export function BackupConfigurationForm() {
   const policy = statusLatest.data?.artifactPipelinePolicy;
 
   useEffect(() => {
-    const s = settingsQuery.data;
     const e = executionModeQuery.data;
-    if (!s && !e) return;
+    if (!e) return;
 
-    const executionMode = e ? initialExecutionModeSelection(e) : "InheritFromConfiguration";
-    if (e) setInitialExecutionMode(executionMode);
-
-    form.setFieldsValue({
-      enabled: s?.enabled ?? false,
-      scheduleCron: normalizeCronWhitespace(s?.scheduleCron ?? "0 2 * * *"),
-      retentionDays: s?.retentionDays ?? 30,
-      executionMode,
-    });
-  }, [executionModeQuery.data, form, settingsQuery.data]);
+    const executionMode = initialExecutionModeSelection(e);
+    setInitialExecutionMode(executionMode);
+    form.setFieldsValue({ executionMode });
+  }, [executionModeQuery.data, form]);
 
   const executionModeOptions = useMemo(() => {
     const modes: BackupExecutionModeRadioValue[] = [
@@ -148,19 +117,8 @@ export function BackupConfigurationForm() {
   };
 
   const handleSubmit = async (values: BackupConfigurationFormValues) => {
-    const cron = normalizeCronWhitespace(values.scheduleCron);
-    if (!isPlausibleStandardCron(cron)) {
-      message.error(t("backupDr.scheduleSettings.customCronInvalid"));
-      return;
-    }
-
+    setSaving(true);
     try {
-      await updateSettings.mutateAsync({
-        enabled: values.enabled,
-        scheduleCron: cron,
-        retentionDays: values.retentionDays,
-      });
-
       if (canEditExecutionMode && values.executionMode !== initialExecutionMode) {
         const fakeRow = findSelectableRow(executionModeQuery.data?.selectableModes, "Fake");
         const needsStrong = fakeSwitchNeedsStrongWarning(values.executionMode, fakeRow);
@@ -196,36 +154,24 @@ export function BackupConfigurationForm() {
       }
 
       message.success(t("backupDr.configForm.saveSuccess"));
-      await settingsQuery.refetch();
-      await scheduleStatusQuery.refetch();
+      await executionModeQuery.refetch();
     } catch (err) {
       const extra = axiosNormalizedMessage(err);
       message.error(
         extra ? `${t("backupDr.configForm.saveError")} ${extra}` : t("backupDr.configForm.saveError"),
       );
+    } finally {
+      setSaving(false);
     }
   };
 
-  const fmt = (iso: string | null | undefined) => {
-    if (!iso) return t("backupDr.scheduleSettings.noRunsYet");
-    try {
-      return new Date(iso).toLocaleString(formatLocale);
-    } catch {
-      return iso;
-    }
-  };
-
-  if (settingsQuery.isError || executionModeQuery.isError) {
+  if (executionModeQuery.isError) {
     return <Alert type="error" showIcon message={t("backupDr.scheduleSettings.loadError")} />;
   }
 
-  if (settingsQuery.isLoading || executionModeQuery.isLoading) {
+  if (executionModeQuery.isLoading) {
     return <Spin />;
   }
-
-  const nextRun =
-    scheduleStatusQuery.data?.computedNextRunAtUtc ??
-    scheduleStatusQuery.data?.storedNextRunAtUtc;
 
   return (
     <Form
@@ -247,60 +193,6 @@ export function BackupConfigurationForm() {
       />
 
       <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="enabled"
-            label={t("backupDr.configForm.enabled")}
-            valuePropName="checked"
-            tooltip={t("backupDr.configForm.enabledTooltip")}
-          >
-            <Switch
-              checkedChildren={t("backupDr.configForm.switchOn")}
-              unCheckedChildren={t("backupDr.configForm.switchOff")}
-            />
-          </Form.Item>
-        </Col>
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="scheduleCron"
-            label={t("backupDr.configForm.scheduleCron")}
-            tooltip={t("backupDr.configForm.scheduleCronTooltip")}
-            rules={[
-              {
-                validator: async (_, value) => {
-                  if (!isPlausibleStandardCron(normalizeCronWhitespace(value ?? ""))) {
-                    throw new Error(t("backupDr.scheduleSettings.customCronInvalid"));
-                  }
-                },
-              },
-            ]}
-          >
-            <Input placeholder="0 2 * * *" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col xs={24} md={12}>
-          <Form.Item
-            name="retentionDays"
-            label={t("backupDr.configForm.retentionDays")}
-            tooltip={t("backupDr.configForm.retentionDaysTooltip")}
-            rules={[
-              {
-                type: "number",
-                min: RETENTION_MIN,
-                max: RETENTION_MAX,
-                message: t("backupDr.configForm.retentionRange", {
-                  min: String(RETENTION_MIN),
-                  max: String(RETENTION_MAX),
-                }),
-              },
-            ]}
-          >
-            <InputNumber min={RETENTION_MIN} max={RETENTION_MAX} style={{ width: "100%" }} />
-          </Form.Item>
-        </Col>
         {canEditExecutionMode ? (
           <Col xs={24} md={12}>
             <Form.Item
@@ -354,16 +246,12 @@ export function BackupConfigurationForm() {
         </>
       ) : null}
 
-      <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-        {t("backupDr.scheduleSettings.nextRunComputed")}: {fmt(nextRun)}
-      </Typography.Paragraph>
-
       {canEdit ? (
         <Form.Item style={{ marginBottom: 0 }}>
           <Button
             type="primary"
             htmlType="submit"
-            loading={updateSettings.isPending || executionModeQuery.isFetching}
+            loading={saving || executionModeQuery.isFetching}
           >
             {t("backupDr.configForm.save")}
           </Button>

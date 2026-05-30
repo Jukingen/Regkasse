@@ -13,6 +13,7 @@ using System.Text;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Tse;
+using KasseAPI_Final.Models.DTOs;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -402,7 +403,13 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 // TODO: scope check – ensure user can cancel this payment (e.g. same branch/cash register or manager).
-                var result = await _paymentService.CancelPaymentAsync(id, request.Reason, userId, request.IdempotencyKey?.Trim());
+                var result = await _paymentService.CancelPaymentAsync(
+                    id,
+                    request.Reason,
+                    userId,
+                    request.IdempotencyKey?.Trim(),
+                    request.ReasonCode,
+                    request.ApprovalToken?.Trim());
                 
                 if (result.Success)
                 {
@@ -410,7 +417,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 if (!string.IsNullOrEmpty(result.DiagnosticCode))
-                    return ErrorResponse(result.Message, 400, new { errors = result.Errors, diagnosticCode = result.DiagnosticCode });
+                    return ErrorResponse(result.Message, 400, MapReversalFailurePayload(result));
                 return ErrorResponse(result.Message, 400, result.Errors);
             }
             catch (Exception ex)
@@ -440,7 +447,14 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("User not authenticated", 401);
                 }
 
-                var result = await _paymentService.RefundPaymentAsync(id, request.Amount, request.Reason, userId, request.IdempotencyKey?.Trim());
+                var result = await _paymentService.RefundPaymentAsync(
+                    id,
+                    request.Amount,
+                    request.Reason,
+                    userId,
+                    request.IdempotencyKey?.Trim(),
+                    request.ReasonCode,
+                    request.ApprovalToken?.Trim());
                 
                 if (result.Success)
                 {
@@ -448,7 +462,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 if (!string.IsNullOrEmpty(result.DiagnosticCode))
-                    return ErrorResponse(result.Message, 400, new { errors = result.Errors, diagnosticCode = result.DiagnosticCode });
+                    return ErrorResponse(result.Message, 400, MapReversalFailurePayload(result));
                 return ErrorResponse(result.Message, 400, result.Errors);
             }
             catch (Exception ex)
@@ -677,6 +691,17 @@ namespace KasseAPI_Final.Controllers
             return node;
         }
 
+        private static object MapReversalFailurePayload(PaymentResult result) =>
+            new
+            {
+                errors = result.Errors,
+                diagnosticCode = result.DiagnosticCode,
+                requiresApproval = result.RequiresApproval,
+                approvalRequestId = result.ApprovalRequestId,
+                approvalTokenExpiresAtUtc = result.ApprovalTokenExpiresAtUtc,
+                approvalNotificationSent = result.ApprovalNotificationSent,
+            };
+
         /// <summary>
         /// Manuel JWS doğrulama. RKSV Checklist 1–5 sonuçları.
         /// Admin only.
@@ -715,38 +740,8 @@ namespace KasseAPI_Final.Controllers
         }
     }
 
-    /// <summary>
-    /// Ödeme iptal request modeli
-    /// </summary>
-    public class CancelPaymentRequest
-    {
-        [Required]
-        public string Reason { get; set; } = string.Empty;
-
-        /// <summary>Sprint 6: Optional idempotency key; retries with same key return the same cancel result.</summary>
-        [MaxLength(64)]
-        public string? IdempotencyKey { get; set; }
-    }
-
-    /// <summary>
-    /// Ödeme iade request modeli
-    /// </summary>
-    public class RefundPaymentRequest
-    {
-        [Required]
-        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
-        public decimal Amount { get; set; }
-        
-        [Required]
-        public string Reason { get; set; } = string.Empty;
-
-        /// <summary>Sprint 6: Optional idempotency key; retries with same key return the same refund (no duplicate BelegNr/stock).</summary>
-        [MaxLength(64)]
-        public string? IdempotencyKey { get; set; }
-    }
-
-    /// <summary>
-    /// Manuel JWS doğrulama request.
+        /// <summary>
+        /// Manuel JWS doğrulama request.
     /// Swagger örnek: { "compactJws": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJrYXNzZW5JZCI6IktBU1NFLTAwMSJ9.signature..." }
     /// </summary>
     public class VerifySignatureRequest

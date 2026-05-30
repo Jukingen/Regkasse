@@ -173,6 +173,16 @@ public sealed class BackupOptions
     /// true iken requeue öncesi artefakt/doğrulama satırları silinir.
     /// </summary>
     public bool AllowAutomaticRetryAfterVerificationIntegrityFailure { get; set; }
+
+    /// <summary>
+    /// Operator-declared WAL archiving for PITR planning UI (not continuously verified by the worker).
+    /// </summary>
+    public bool PitrWalArchivingDeclaredEnabled { get; set; }
+
+    /// <summary>
+    /// Declared lag between last archived WAL and database "now" for PITR upper bound (minutes).
+    /// </summary>
+    public int? PitrWalArchiveDeclaredLagMinutes { get; set; }
 }
 
 /// <summary>Maps to registered <see cref="Services.Backup.IBackupExecutionAdapter"/> implementation.</summary>

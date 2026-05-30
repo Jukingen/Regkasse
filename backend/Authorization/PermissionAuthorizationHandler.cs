@@ -1,43 +1,72 @@
 using System.Security.Claims;
+using KasseAPI_Final.Security;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 
 namespace KasseAPI_Final.Authorization;
 
 /// <summary>
-/// Evaluates PermissionRequirement: first checks "permission" claims (from login token), then falls back to role-derived permissions via RolePermissionMatrix only.
-/// Normal JWTs from <see cref="KasseAPI_Final.Services.TokenClaimsService"/> include resolver-based permission claims (matrix + custom role claims). If a token had no permission claims,
-/// fallback would not include AspNetRoleClaims for custom roles — avoid issuing such tokens; login/refresh always populate claims today.
+/// Evaluates <see cref="PermissionRequirement"/> for policies registered via <see cref="HasPermissionAttribute"/>.
+/// 1. JWT <c>permission</c> claims + <see cref="PermissionImplication"/> (fast path).
+/// 2. <see cref="IPermissionService.HasPermissionAsync"/> (roles + user overrides from DB).
+/// 3. Role claims + <see cref="RolePermissionMatrix"/> fallback (unit tests / legacy tokens without permission claims).
 /// </summary>
 public sealed class PermissionAuthorizationHandler : AuthorizationHandler<PermissionRequirement>
 {
     private const string RoleClaimType = "role";
     private const string LegacyRoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
 
-    protected override Task HandleRequirementAsync(
+    private readonly IServiceScopeFactory _scopeFactory;
+
+    public PermissionAuthorizationHandler(IServiceScopeFactory scopeFactory)
+    {
+        _scopeFactory = scopeFactory;
+    }
+
+    protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
         PermissionRequirement requirement)
     {
         var user = context.User;
-        var permissionClaims = user.Claims.Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase)).Select(c => c.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var permissionClaims = user.Claims
+            .Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         if (permissionClaims.Count > 0)
         {
-            if (permissionClaims.Contains(requirement.Permission))
-            {
+            if (PermissionImplication.IsSatisfied(requirement.Permission, permissionClaims))
                 context.Succeed(requirement);
-                return Task.CompletedTask;
+            return;
+        }
+
+        var userId = user.GetActorUserId();
+        if (!string.IsNullOrEmpty(userId))
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var permissionService = scope.ServiceProvider.GetService<IPermissionService>();
+            if (permissionService != null)
+            {
+                var tenantAccessor = scope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
+                if (await permissionService.HasPermissionAsync(
+                        userId,
+                        requirement.Permission,
+                        tenantAccessor.TenantId))
+                {
+                    context.Succeed(requirement);
+                    return;
+                }
             }
-            return Task.CompletedTask;
         }
 
         var roles = GetRolesFromContext(user);
         if (roles.Count == 0)
-            return Task.CompletedTask;
+            return;
 
         var permissions = RolePermissionMatrix.GetPermissionsForRoles(roles);
-        if (permissions.Contains(requirement.Permission))
+        if (PermissionImplication.IsSatisfied(requirement.Permission, permissions))
             context.Succeed(requirement);
-
-        return Task.CompletedTask;
     }
 
     private static IReadOnlyList<string> GetRolesFromContext(ClaimsPrincipal user)
@@ -47,7 +76,8 @@ public sealed class PermissionAuthorizationHandler : AuthorizationHandler<Permis
         foreach (var claim in user.Claims)
         {
             if (string.Equals(claim.Type, RoleClaimType, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(claim.Type, LegacyRoleClaimType, StringComparison.OrdinalIgnoreCase))
+                string.Equals(claim.Type, LegacyRoleClaimType, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(claim.Type, ClaimTypes.Role, StringComparison.OrdinalIgnoreCase))
             {
                 var value = claim.Value?.Trim();
                 if (!string.IsNullOrEmpty(value))

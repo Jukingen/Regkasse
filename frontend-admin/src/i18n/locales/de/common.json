@@ -227,7 +227,15 @@
     "sessionTimeout": {
       "warningTitle": "Sitzung läuft ab",
       "warningBody": "Sie werden wegen Inaktivität automatisch abgemeldet.",
-      "stayLoggedIn": "Sitzung fortsetzen"
+      "stayLoggedIn": "Fortsetzen",
+      "logout": "Ausloggen",
+      "expiresIn": "Ihre Sitzung läuft in {{time}} ab",
+      "timeSecondsOnly": "{{seconds}} Sekunden",
+      "timeMinutesAndSeconds": "{{minutes}} Minute(n) und {{seconds}} Sekunden",
+      "alertMessage": "Möchten Sie fortfahren?",
+      "alertDescription": "Klicken Sie auf „Fortsetzen“, um eingeloggt zu bleiben. Andernfalls werden Sie automatisch ausgeloggt.",
+      "securityNote": "Aus Sicherheitsgründen werden inaktive Sitzungen automatisch beendet.",
+      "loggedOutInactivity": "Sie wurden aufgrund von Inaktivität ausgeloggt."
     },
     "sessions": {
       "title": "Aktive Sitzungen",
@@ -311,6 +319,8 @@
       "activeLabel": "Aktiv"
     },
     "table": {
+      "icon": "Icon",
+      "key": "Key (System)",
       "name": "Name",
       "color": "Farbe",
       "description": "Beschreibung",
@@ -320,7 +330,14 @@
       "barcode": "Barcode",
       "price": "Preis",
       "stock": "Bestand",
-      "vatRate": "MwSt. (%)",
+      "vatRate": "Steuer",
+      "productCount": "Produkte",
+      "fiscalCategory": "Fiskalkategorie",
+      "fiscalFood": "Speisen",
+      "fiscalBeverage": "Getränke",
+      "fiscalAlcohol": "Alkohol",
+      "fiscalTobacco": "Tabak",
+      "fiscalOther": "Sonstige",
       "active": "Aktiv",
       "sortOrder": "Sortierung",
       "actions": "Aktionen"
@@ -332,6 +349,14 @@
       "updateError": "Kategorie konnte nicht aktualisiert werden.",
       "deleted": "Kategorie geloescht.",
       "deleteError": "Kategorie konnte nicht geloescht werden."
+    },
+    "reset": {
+      "button": "Demo-Kategorien wiederherstellen",
+      "confirmTitle": "Kategorien zuruecksetzen",
+      "confirmContent": "Dies setzt alle Kategorie-Namen auf die Original-Demo-Namen zurueck. Ihre Produkte bleiben erhalten.",
+      "confirmOk": "Zuruecksetzen",
+      "success": "{{count}} Kategorie(n) auf Demo-Namen zurueckgesetzt.",
+      "error": "Demo-Kategorien konnten nicht wiederhergestellt werden."
     }
   }
 }

@@ -41,12 +41,42 @@ type SecondParameter<T> = T extends (arg: any, arg2?: infer U) => any ? U : neve
 /** Omit or 'true': active only (API default). 'false': inactive only. 'all': both. */
 export type AdminProductsListIsActiveParam = 'true' | 'false' | 'all';
 
+export type AdminProductsStockStatusParam = 'InStock' | 'OutOfStock' | 'LowStock' | 'Overstock' | 'All';
+
 export interface AdminProductsListParams {
   pageNumber?: number;
+  page?: number;
   pageSize?: number;
   categoryId?: string;
+  categoryIds?: string[];
   name?: string;
+  searchTerm?: string;
+  searchInName?: boolean;
+  searchInDescription?: boolean;
+  searchInBarcode?: boolean;
+  minPrice?: number;
+  maxPrice?: number;
+  stockStatus?: AdminProductsStockStatusParam;
+  minStock?: number;
+  maxStock?: number;
+  taxTypes?: number[];
   isActive?: AdminProductsListIsActiveParam;
+  isTaxable?: boolean;
+  createdFrom?: string;
+  createdTo?: string;
+  sortBy?: string;
+  sortDirection?: string;
+}
+
+export interface ProductFilterSummaryResponse {
+    activeFilterCount?: number;
+    appliedFilters?: Record<string, unknown>;
+    availableTaxTypes?: number[];
+}
+
+export interface ProductAvailableFiltersResponse {
+    taxTypes?: number[];
+    categories?: Array<{ id: string; name: string }>;
 }
 
 export interface AdminProductsListResponse {
@@ -57,6 +87,8 @@ export interface AdminProductsListResponse {
     totalCount: number;
     totalPages: number;
   };
+  activeFilters?: ProductFilterSummaryResponse;
+  availableFilters?: ProductAvailableFiltersResponse;
 }
 
 function unwrapData<T>(res: any): T {
@@ -66,13 +98,37 @@ function unwrapData<T>(res: any): T {
 
 /** Builds GET query object for list endpoint (stable contract for tests and axios). */
 export function buildAdminProductsListQueryParams(params?: AdminProductsListParams) {
-  return {
-    pageNumber: params?.pageNumber,
+  const query: Record<string, unknown> = {
+    pageNumber: params?.pageNumber ?? params?.page,
     pageSize: params?.pageSize,
-    categoryId: params?.categoryId,
-    name: params?.name,
+    sortBy: params?.sortBy,
+    sortDirection: params?.sortDirection,
+    searchTerm: params?.searchTerm ?? params?.name,
+    searchInName: params?.searchInName,
+    searchInDescription: params?.searchInDescription,
+    searchInBarcode: params?.searchInBarcode,
+    minPrice: params?.minPrice,
+    maxPrice: params?.maxPrice,
+    stockStatus: params?.stockStatus,
+    minStock: params?.minStock,
+    maxStock: params?.maxStock,
+    taxTypes: params?.taxTypes,
     isActive: params?.isActive,
+    isTaxable: params?.isTaxable,
+    createdFrom: params?.createdFrom,
+    createdTo: params?.createdTo,
   };
+
+  const categoryIds = params?.categoryIds?.length
+    ? params.categoryIds
+    : params?.categoryId
+      ? [params.categoryId]
+      : undefined;
+  if (categoryIds?.length) {
+    query.categoryIds = categoryIds;
+  }
+
+  return query;
 }
 
 export function getAdminProductsList(

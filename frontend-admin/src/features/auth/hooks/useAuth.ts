@@ -65,22 +65,23 @@ export const useAuth = () => {
         gcTime: 1000 * 60 * 10,
         refetchOnWindowFocus: false,
         refetchOnMount: false,
-        enabled: isBrowser,
+        enabled: isBrowser && hasCredentials,
     });
 
-    const querySettled = isFetched || isError;
+    const effectiveUser = hasCredentials ? user : undefined;
+    const querySettled = isFetched || isError || (isBrowser && !hasCredentials);
 
     const transientRecoveryAttempted = useRef(false);
 
     useEffect(() => {
-        if (user) {
+        if (effectiveUser) {
             transientRecoveryAttempted.current = false;
             tenantStorage.persistBootstrap({
-                tenantId: user.tenantId,
-                tenantSlug: user.tenantSlug,
+                tenantId: effectiveUser.tenantId,
+                tenantSlug: effectiveUser.tenantSlug,
             });
         }
-    }, [user]);
+    }, [effectiveUser]);
 
     useEffect(() => {
         if (!isBrowser || !isError || !error) {
@@ -115,9 +116,9 @@ export const useAuth = () => {
     let authStatus: AuthStatus = AuthStatus.Loading;
 
     const meInFlightWithCredentials =
-        hasCredentials && !user && (isFetching || fetchStatus === 'fetching');
+        hasCredentials && !effectiveUser && (isFetching || fetchStatus === 'fetching');
 
-    if (user) {
+    if (effectiveUser) {
         authStatus = AuthStatus.Authenticated;
     } else if (!querySettled) {
         authStatus = AuthStatus.Loading;
@@ -152,7 +153,7 @@ export const useAuth = () => {
     }
 
     return {
-        user,
+        user: effectiveUser,
         authStatus,
         isAuthInitializing,
         /** False until browser mount and /me bootstrap completes (no early permission redirects). */

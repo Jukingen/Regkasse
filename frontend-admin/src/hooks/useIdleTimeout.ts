@@ -16,8 +16,8 @@ export type UseIdleTimeoutResult = {
 };
 
 /**
+ * @deprecated Prefer `useSessionTimeout` for warning countdown + auto-logout.
  * Web admin idle detection: mouse, keyboard, touch, scroll.
- * Returns `reset` so the warning modal can extend the session.
  */
 export function useIdleTimeout({
     timeoutMinutes,

@@ -9,6 +9,7 @@ import {
     EditOutlined,
     EyeOutlined,
     KeyOutlined,
+    SafetyCertificateOutlined,
     StopOutlined,
 } from '@ant-design/icons';
 
@@ -33,6 +34,7 @@ export type UsersTableProps = {
     onDeactivate: (user: UserInfo) => void;
     onReactivate: (user: UserInfo) => void;
     onResetPassword: (user: UserInfo) => void;
+    onManagePermissions?: (user: UserInfo) => void;
     onUsernameEdit?: (user: UserInfo) => void;
     /** When set, renders a Details link to `{adminUserDetailsPath}/{userId}`. */
     adminUserDetailsPath?: string;
@@ -52,6 +54,7 @@ export function UsersTable({
     onDeactivate,
     onReactivate,
     onResetPassword,
+    onManagePermissions,
     onUsernameEdit,
     adminUserDetailsPath,
     pagination,
@@ -162,6 +165,15 @@ export function UsersTable({
                                 {t('users.list.reactivate')}
                             </Button>
                         )}
+                        {policy.canManagePermissions && onManagePermissions && record.id && !isPlatformUserRole(record.role) && (
+                            <Button
+                                size="small"
+                                icon={<SafetyCertificateOutlined />}
+                                onClick={() => onManagePermissions(record)}
+                            >
+                                {t('users.permissionsModal.action')}
+                            </Button>
+                        )}
                         {policy.canResetPassword(record.role) && record.id !== currentUserId && (
                             <Button
                                 size="small"
@@ -185,6 +197,7 @@ export function UsersTable({
             onDeactivate,
             onReactivate,
             onResetPassword,
+            onManagePermissions,
             onUsernameEdit,
             adminUserDetailsPath,
         ],

@@ -138,7 +138,7 @@ export class InvoicePdfHttpError extends Error {
 }
 
 /**
- * PDF for api/Invoice/{id}/pdf (supports POS payment id projection).
+ * PDF download for api/Invoice/{id}/pdf (supports POS payment id projection).
  */
 export async function downloadInvoicePdf(id: string): Promise<Blob> {
     const token = await sessionManager.getAccessToken();
@@ -152,4 +152,36 @@ export async function downloadInvoicePdf(id: string): Promise<Blob> {
         throw new InvoicePdfHttpError(response.status, `PDF download failed: ${response.status}`);
     }
     return await response.blob();
+}
+
+/** Browser-embedded preview via api/Invoice/{id}/preview */
+export async function previewInvoicePdf(id: string): Promise<Blob> {
+    const token = await sessionManager.getAccessToken();
+    const response = await fetch(`${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/preview`, {
+        method: 'GET',
+        headers: await resolveTenantFetchHeaders(
+            token ? { Authorization: `Bearer ${token}` } : {},
+        ),
+    });
+    if (!response.ok) {
+        throw new InvoicePdfHttpError(response.status, `PDF preview failed: ${response.status}`);
+    }
+    return await response.blob();
+}
+
+export async function resendInvoiceEmail(id: string, recipientEmail?: string): Promise<boolean> {
+    const token = await sessionManager.getAccessToken();
+    const response = await fetch(`${API_BASE_URL}/Invoice/${encodeURIComponent(id)}/resend`, {
+        method: 'POST',
+        headers: await resolveTenantFetchHeaders({
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        }),
+        body: JSON.stringify(recipientEmail ? { recipientEmail } : {}),
+    });
+    if (!response.ok) {
+        return false;
+    }
+    const payload = (await response.json()) as { message?: string };
+    return Boolean(payload.message);
 }

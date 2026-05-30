@@ -31,4 +31,11 @@ export interface AuthUser {
   lastLoginAt?: string | null;
   /** When true, user must change password before using the app (admin reset). */
   mustChangePasswordOnNextLogin?: boolean;
+  /** Tenant idle session policy from GET /api/Auth/me. */
+  sessionPolicy?: {
+    sessionTimeoutMinutes: number;
+    warningBeforeTimeoutMinutes: number;
+    keepCartAfterTimeout?: boolean;
+    idleTimeoutEnabled?: boolean;
+  };
 }

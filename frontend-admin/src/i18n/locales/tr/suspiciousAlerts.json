@@ -1,0 +1,21 @@
+{
+  "title": "Güvenlik uyarıları",
+  "bellAria": "Şüpheli işlemler ve güvenlik uyarıları",
+  "refresh": "Yenile",
+  "empty": "Yeni uyarı yok",
+  "markRead": "Okundu işaretle",
+  "severity": {
+    "Low": "Düşük",
+    "Medium": "Orta",
+    "High": "Yüksek",
+    "Critical": "Kritik"
+  },
+  "types": {
+    "HighValue": "Yüksek tutarlı ödeme",
+    "MultipleStornos": "Çoklu iptal",
+    "MultipleRefunds": "Çoklu iade",
+    "UnusualTime": "Olağandışı saat",
+    "SameCardMultiple": "Tekrarlayan kart ödemesi",
+    "RapidTransactions": "Hızlı işlemler"
+  }
+}

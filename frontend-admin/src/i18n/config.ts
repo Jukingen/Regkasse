@@ -28,6 +28,7 @@ import deSuperadmin from './locales/de/superadmin.json';
 import deDashboard from './locales/de/dashboard.json';
 import deCashRegisters from './locales/de/cashRegisters.json';
 import deActivityNotifications from './locales/de/activityNotifications.json';
+import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -58,6 +59,7 @@ import enSuperadmin from './locales/en/superadmin.json';
 import enDashboard from './locales/en/dashboard.json';
 import enCashRegisters from './locales/en/cashRegisters.json';
 import enActivityNotifications from './locales/en/activityNotifications.json';
+import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
 import trNav from './locales/tr/nav.json';
@@ -88,6 +90,7 @@ import trSuperadmin from './locales/tr/superadmin.json';
 import trDashboard from './locales/tr/dashboard.json';
 import trCashRegisters from './locales/tr/cashRegisters.json';
 import trActivityNotifications from './locales/tr/activityNotifications.json';
+import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -132,6 +135,7 @@ const catalogs = {
     dashboard: deDashboard,
     cashRegisters: deCashRegisters,
     activityNotifications: deActivityNotifications,
+    suspiciousAlerts: deSuspiciousAlerts,
   },
   en: {
     adminShell: enAdminShell,
@@ -164,6 +168,7 @@ const catalogs = {
     dashboard: enDashboard,
     cashRegisters: enCashRegisters,
     activityNotifications: enActivityNotifications,
+    suspiciousAlerts: enSuspiciousAlerts,
   },
   tr: {
     adminShell: trAdminShell,
@@ -196,6 +201,7 @@ const catalogs = {
     dashboard: trDashboard,
     cashRegisters: trCashRegisters,
     activityNotifications: trActivityNotifications,
+    suspiciousAlerts: trSuspiciousAlerts,
   },
 } as const;
 

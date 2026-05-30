@@ -71,6 +71,7 @@ export const ADMIN_NAV_LABEL_KEYS = {
     settingsHub: 'nav.settingsHub',
     /** Firma, FinanzOnline, TSE – Route /settings */
     companySettings: 'nav.companySettings',
+    sessionSettings: 'nav.sessionSettings',
     personalization: 'nav.personalization',
     settings: 'nav.settings',
     paymentMethods: 'nav.paymentMethods',

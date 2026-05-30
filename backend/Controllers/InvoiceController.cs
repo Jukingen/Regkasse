@@ -13,9 +13,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.Text.Json;
 using System.Linq;
 using System.Security.Claims;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -29,21 +26,22 @@ namespace KasseAPI_Final.Controllers
         private readonly ICompanyProfileProvider _companyProfileProvider;
         private readonly IReceiptSequenceService _receiptSequenceService;
         private readonly ITseService _tseService;
+        private readonly IInvoicePdfService _invoicePdfService;
 
         public InvoiceController(
             AppDbContext context,
             ILogger<InvoiceController> logger,
             ICompanyProfileProvider companyProfileProvider,
             IReceiptSequenceService receiptSequenceService,
-            ITseService tseService)
+            ITseService tseService,
+            IInvoicePdfService invoicePdfService)
         {
             _context = context;
             _logger = logger;
             _companyProfileProvider = companyProfileProvider;
             _receiptSequenceService = receiptSequenceService;
             _tseService = tseService;
-            // License configuration for QuestPDF (Community)
-            QuestPDF.Settings.License = LicenseType.Community;
+            _invoicePdfService = invoicePdfService;
         }
 
         // GET: api/Invoice/list
@@ -794,202 +792,72 @@ namespace KasseAPI_Final.Controllers
 
         [HasPermission(AppPermissions.InvoiceView)]
         [HttpGet("{id}/pdf")]
-        public async Task<IActionResult> GetInvoicePdf(Guid id, [FromQuery] bool copy = false)
+        [Produces("application/pdf")]
+        public async Task<IActionResult> GetInvoicePdf(Guid id)
         {
             try
             {
-                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(HttpContext.RequestAborted);
-                var invoice = await _context.Invoices.FindAsync(id);
-                if (invoice == null || !invoice.IsActive)
-                {
-                    var posInvoice = await _context.PaymentDetails.FindAsync(id);
-                    if (posInvoice == null || !posInvoice.IsActive)
-                    {
-                        return NotFound("Fatura bulunamadı");
-                    }
-
-                    var kassenPdf = await _context.CashRegisters.AsNoTracking()
-                        .Where(r => r.Id == posInvoice.CashRegisterId)
-                        .Select(r => r.RegisterNumber)
-                        .FirstOrDefaultAsync() ?? "";
-
-                    invoice = new Invoice
-                    {
-                        Id = posInvoice.Id,
-                        InvoiceNumber = posInvoice.ReceiptNumber,
-                        InvoiceDate = posInvoice.CreatedAt,
-                        DueDate = posInvoice.CreatedAt,
-                        Status = InvoiceStatus.Paid,
-                        Subtotal = posInvoice.TotalAmount - posInvoice.TaxAmount,
-                        TaxAmount = posInvoice.TaxAmount,
-                        TotalAmount = posInvoice.TotalAmount,
-                        PaidAmount = posInvoice.TotalAmount,
-                        RemainingAmount = 0,
-                        CustomerName = posInvoice.CustomerName,
-                        CustomerTaxNumber = posInvoice.Steuernummer,
-                        CompanyName = companyProfile.CompanyName ?? string.Empty, // Filled from CompanyProfile
-                        CompanyTaxNumber = companyProfile.TaxNumber ?? string.Empty,
-                        CompanyAddress = $"{companyProfile.Street} {companyProfile.ZipCode} {companyProfile.City}".Trim(),
-                        TseSignature = posInvoice.TseSignature,
-                        KassenId = kassenPdf,
-                        CashRegisterId = posInvoice.CashRegisterId,
-                        TseTimestamp = posInvoice.TseTimestamp,
-                        PaymentMethod = posInvoice.PaymentMethod,
-                        InvoiceItems = posInvoice.PaymentItems,
-                        TaxDetails = posInvoice.TaxDetails,
-                        IsActive = true
-                    };
-                }
-
-                var document = Document.Create(container =>
-                {
-                    container.Page(page =>
-                    {
-                        page.Size(PageSizes.A4);
-                        page.Margin(2, Unit.Centimetre);
-                        page.PageColor(Colors.White);
-                        page.DefaultTextStyle(x => x.FontSize(10));
-
-                        page.Header().Row(row =>
-                        {
-                            row.RelativeItem().Column(col =>
-                            {
-                                col.Item().Text(invoice.CompanyName).SemiBold().FontSize(16);
-                                col.Item().Text(invoice.CompanyAddress);
-                                col.Item().Text($"VAT/UID: {invoice.CompanyTaxNumber}");
-                            });
-
-                            row.ConstantItem(100).AlignRight().Text(text =>
-                            {
-                                text.Span("INVOICE").FontSize(20).SemiBold();
-                                if (copy)
-                                {
-                                    text.EmptyLine();
-                                    text.Span("COPY / KOPIE").FontSize(14).FontColor(Colors.Red.Medium);
-                                }
-                            });
-                        });
-
-                        page.Content().PaddingVertical(1, Unit.Centimetre).Column(col =>
-                        {
-                            // Info Grid
-                            col.Item().Row(row =>
-                            {
-                                row.RelativeItem().Column(c =>
-                                {
-                                    c.Item().Text("Bill To:").SemiBold();
-                                    c.Item().Text(invoice.CustomerName ?? "Cash Customer");
-                                    if(!string.IsNullOrEmpty(invoice.CustomerAddress)) c.Item().Text(invoice.CustomerAddress);
-                                    if(!string.IsNullOrEmpty(invoice.CustomerTaxNumber)) c.Item().Text(invoice.CustomerTaxNumber);
-                                });
-
-                                row.RelativeItem().AlignRight().Column(c =>
-                                {
-                                    c.Item().Text($"Invoice #: {invoice.InvoiceNumber}");
-                                    c.Item().Text($"Date: {invoice.InvoiceDate:dd.MM.yyyy}");
-                                    c.Item().Text($"Status: {invoice.Status}");
-                                    c.Item().Text($"KassenID: {invoice.KassenId}");
-                                });
-                            });
-
-                            col.Item().PaddingVertical(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-
-                            // Items Table
-                            col.Item().Table(table =>
-                            {
-                                table.ColumnsDefinition(columns =>
-                                {
-                                    columns.RelativeColumn(3); // Name
-                                    columns.RelativeColumn();  // Qty
-                                    columns.RelativeColumn();  // Price
-                                    columns.RelativeColumn();  // Tax
-                                    columns.RelativeColumn();  // Total
-                                });
-
-                                table.Header(header =>
-                                {
-                                    header.Cell().Element(CellStyle).Text("Description");
-                                    header.Cell().Element(CellStyle).AlignRight().Text("Qty");
-                                    header.Cell().Element(CellStyle).AlignRight().Text("Price");
-                                    header.Cell().Element(CellStyle).AlignRight().Text("VAT");
-                                    header.Cell().Element(CellStyle).AlignRight().Text("Total");
-
-                                    static IContainer CellStyle(IContainer container) => 
-                                        container.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).PaddingVertical(5).DefaultTextStyle(x => x.SemiBold());
-                                });
-
-                                // Line items: same JSON shape as payment_details.PaymentItems (PaymentItem list).
-                                List<PaymentItem>? pdfLineItems = null;
-                                if (invoice.InvoiceItems?.RootElement.ValueKind == JsonValueKind.Array)
-                                {
-                                    try
-                                    {
-                                        pdfLineItems = JsonSerializer.Deserialize<List<PaymentItem>>(
-                                            invoice.InvoiceItems.RootElement.GetRawText());
-                                    }
-                                    catch (JsonException)
-                                    {
-                                        pdfLineItems = null;
-                                    }
-                                }
-
-                                if (pdfLineItems != null)
-                                {
-                                    foreach (var pi in pdfLineItems)
-                                    {
-                                        var displayName = string.IsNullOrWhiteSpace(pi.ProductName) ? "Item" : pi.ProductName;
-                                        var taxFraction = pi.TaxRate;
-
-                                        table.Cell().Element(BodyCellStyle).Text(displayName);
-                                        table.Cell().Element(BodyCellStyle).AlignRight().Text(pi.Quantity.ToString());
-                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{pi.UnitPrice:F2}");
-                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{taxFraction:P0}");
-                                        table.Cell().Element(BodyCellStyle).AlignRight().Text($"{pi.TotalPrice:F2}");
-                                    }
-                                }
-
-                                static IContainer BodyCellStyle(IContainer container) => 
-                                    container.PaddingVertical(5);
-                            });
-
-                            col.Item().PaddingVertical(5).LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
-
-                            // Totals
-                            col.Item().AlignRight().Column(c =>
-                            {
-                                c.Item().Text($"Subtotal: {invoice.Subtotal:C}");
-                                c.Item().Text($"Tax: {invoice.TaxAmount:C}");
-                                c.Item().Text($"Total: {invoice.TotalAmount:C}").Bold().FontSize(12);
-                            });
-
-                            col.Item().PaddingVertical(10);
-
-                            // RKSV / Footer
-                            if (!string.IsNullOrEmpty(invoice.TseSignature))
-                            {
-                                col.Item().Background(Colors.Grey.Lighten4).Padding(10).Column(c =>
-                                {
-                                    c.Item().Text("RKSV Signature (TSE)").FontSize(8).SemiBold();
-                                    c.Item().Text(invoice.TseSignature).FontFamily("Consolas").FontSize(8);
-                                    c.Item().Text($"Timestamp: {invoice.TseTimestamp:O}").FontSize(8);
-                                });
-                            }
-                        });
-
-                        page.Footer().AlignCenter().Text(x =>
-                        {
-                            x.Span("Page ");
-                            x.CurrentPageNumber();
-                        });
-                    });
-                });
-
-                var pdfBytes = document.GeneratePdf();
-                return File(pdfBytes, "application/pdf", $"Invoice-{invoice.InvoiceNumber}.pdf");
+                var pdf = await _invoicePdfService.GenerateInvoicePdfAsync(id, cancellationToken: HttpContext.RequestAborted);
+                return File(pdf, "application/pdf", $"Rechnung_{id}.pdf");
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Invoice not found");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating PDF for invoice {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HasPermission(AppPermissions.InvoiceView)]
+        [HttpGet("{id}/preview")]
+        [Produces("application/pdf")]
+        public async Task<IActionResult> PreviewInvoice(Guid id)
+        {
+            try
+            {
+                var pdf = await _invoicePdfService.GenerateInvoicePdfAsync(id, cancellationToken: HttpContext.RequestAborted);
+                return File(pdf, "application/pdf");
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound("Invoice not found");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating invoice preview for {Id}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        [HasPermission(AppPermissions.InvoiceView)]
+        [HttpPost("{id}/resend")]
+        public async Task<IActionResult> ResendInvoice(Guid id, [FromBody] ResendInvoiceRequest? request)
+        {
+            try
+            {
+                if (request != null && !TryValidateModel(request))
+                    return ValidationProblem(ModelState);
+
+                var result = await _invoicePdfService.ResendInvoiceEmailAsync(
+                    id,
+                    request?.RecipientEmail,
+                    HttpContext.RequestAborted);
+
+                if (!result)
+                    return BadRequest(new { error = "Failed to send email" });
+
+                return Ok(new { message = "Invoice resent successfully" });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { error = "Invoice not found" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resending invoice email for {Id}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -1205,5 +1073,11 @@ namespace KasseAPI_Final.Controllers
         [Required]
         [StringLength(500)]
         public string ReasonText { get; set; } = string.Empty;
+    }
+
+    public class ResendInvoiceRequest
+    {
+        [EmailAddress]
+        public string? RecipientEmail { get; set; }
     }
 }

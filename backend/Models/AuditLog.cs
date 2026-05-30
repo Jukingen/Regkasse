@@ -157,6 +157,7 @@ namespace KasseAPI_Final.Models
         public const string INVOICE_UPDATE = "INVOICE_UPDATE";
         public const string INVOICE_DELETE = "INVOICE_DELETE";
         public const string INVOICE_PRINT = "INVOICE_PRINT";
+        public const string INVOICE_RESENT = "INVOICE_RESENT";
 
         // Receipt operations
         public const string RECEIPT_PRINTED = "RECEIPT_PRINTED";
@@ -248,6 +249,12 @@ namespace KasseAPI_Final.Models
         /// <summary>Cash register stammdaten updated (PUT /api/admin/cash-registers/{id}).</summary>
         public const string CASH_REGISTER_UPDATED = "CASH_REGISTER_UPDATED";
 
+    /// <summary>Admin category metadata updated (display name, icon, sort order, etc.).</summary>
+    public const string CATEGORY_UPDATED = "CATEGORY_UPDATED";
+
+    /// <summary>Bulk reset of demo category display names to original demo labels.</summary>
+    public const string CATEGORY_DEMO_RESET = "CATEGORY_DEMO_RESET";
+
         /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
         public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
 
@@ -293,6 +300,8 @@ namespace KasseAPI_Final.Models
             public const string FISCAL_EXPORT = "FiscalExport";
 
             public const string CASH_REGISTER = "CashRegister";
+
+            public const string CATEGORY = "Category";
 
             public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
         }

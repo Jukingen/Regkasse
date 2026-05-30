@@ -2,19 +2,33 @@ import { describe, expect, it } from 'vitest';
 import { buildAdminProductsListQueryParams } from '../products';
 
 describe('buildAdminProductsListQueryParams', () => {
-    it('omits isActive when listing active-only (default API)', () => {
+    it('maps search and pagination to advanced list query', () => {
         expect(
             buildAdminProductsListQueryParams({
                 pageNumber: 2,
                 pageSize: 10,
-                name: 'milk',
-            })
+                searchTerm: 'milk',
+                searchInName: true,
+            }),
         ).toEqual({
             pageNumber: 2,
             pageSize: 10,
-            categoryId: undefined,
-            name: 'milk',
+            sortBy: undefined,
+            sortDirection: undefined,
+            searchTerm: 'milk',
+            searchInName: true,
+            searchInDescription: undefined,
+            searchInBarcode: undefined,
+            minPrice: undefined,
+            maxPrice: undefined,
+            stockStatus: undefined,
+            minStock: undefined,
+            maxStock: undefined,
+            taxTypes: undefined,
             isActive: undefined,
+            isTaxable: undefined,
+            createdFrom: undefined,
+            createdTo: undefined,
         });
     });
 
@@ -23,25 +37,31 @@ describe('buildAdminProductsListQueryParams', () => {
         expect(buildAdminProductsListQueryParams({ isActive: 'false' }).isActive).toBe('false');
     });
 
-    it('combines search name with isActive', () => {
+    it('maps legacy name to searchTerm and categoryId to categoryIds', () => {
         const q = buildAdminProductsListQueryParams({
             pageNumber: 1,
             pageSize: 20,
             name: 'tea',
+            categoryId: 'cat-1',
             isActive: 'all',
         });
-        expect(q.name).toBe('tea');
+        expect(q.searchTerm).toBe('tea');
+        expect(q.categoryIds).toEqual(['cat-1']);
         expect(q.isActive).toBe('all');
     });
 
-    it('passes pagination with inactive filter', () => {
+    it('passes advanced filter arrays', () => {
         const q = buildAdminProductsListQueryParams({
-            pageNumber: 3,
-            pageSize: 5,
-            isActive: 'false',
+            taxTypes: [1, 2],
+            categoryIds: ['a', 'b'],
+            stockStatus: 'LowStock',
+            minPrice: 1,
+            maxPrice: 9.99,
         });
-        expect(q.pageNumber).toBe(3);
-        expect(q.pageSize).toBe(5);
-        expect(q.isActive).toBe('false');
+        expect(q.taxTypes).toEqual([1, 2]);
+        expect(q.categoryIds).toEqual(['a', 'b']);
+        expect(q.stockStatus).toBe('LowStock');
+        expect(q.minPrice).toBe(1);
+        expect(q.maxPrice).toBe(9.99);
     });
 });

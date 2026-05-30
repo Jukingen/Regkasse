@@ -14,6 +14,7 @@ import { CashRegisterQuickSwitch } from '@/components/layout/CashRegisterQuickSw
 import { EnvironmentBadge } from '@/components/EnvironmentBadge';
 import { LicenseStatusIndicator } from '@/components/admin-layout/LicenseStatusIndicator';
 import { ActivityNotificationsBell } from '@/features/activity-notifications/components/ActivityNotificationsBell';
+import { AlertBell } from '@/components/AlertBell';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 import { useI18n } from '@/i18n';
 import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
@@ -137,6 +138,7 @@ export function AdminShellHeader({
                             <CashRegisterQuickSwitch isMobile={isMobile} />
                             <HeaderThemeQuickSwitch />
                             <HeaderLanguageQuickSwitch />
+                            <AlertBell />
                             <ActivityNotificationsBell />
                             <MonatsbelegGlobalBadge />
                         </div>

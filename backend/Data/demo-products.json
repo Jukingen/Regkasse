@@ -1,21 +1,4 @@
 {
-  "categories": [
-    { "name": "Salate", "description": "Alle Salate werden mit einem Dressing nach Wahl zubereitet.", "sortOrder": 1 },
-    { "name": "Stangerl", "description": "Alle Stangerl werden mit Tomaten, Käse und Oregano zubereitet.", "sortOrder": 2 },
-    { "name": "Baguettes", "description": "Alle Baguettes werden mit Tomaten, Käse und Oregano zubereitet.", "sortOrder": 3 },
-    { "name": "Calzone", "description": "Alle Calzonen werden mit Tomaten, Käse und Oregano zubereitet.", "sortOrder": 4 },
-    { "name": "Pizza-mittel", "description": "Ø 36cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", "sortOrder": 5 },
-    { "name": "Pizza-Partner", "description": "Ø 40cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", "sortOrder": 6 },
-    { "name": "Familien-Pizza", "description": "Ø 50cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.", "sortOrder": 7 },
-    { "name": "Mexikanische-Pizza-mittel", "description": "Ø 36cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.", "sortOrder": 8 },
-    { "name": "Mexikanische-Pizza-Partner", "description": "Ø 40cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.", "sortOrder": 9 },
-    { "name": "Pasta", "description": "Alle Gerichte werden mit einer Nudelsorte nach Wahl zubereitet.", "sortOrder": 10 },
-    { "name": "Imbiss", "description": "Alle Gerichte werden mit einem Dip nach Wahl serviert.", "sortOrder": 11 },
-    { "name": "Burger", "description": "Alle Burger werden mit Pommes frites serviert.", "sortOrder": 12 },
-    { "name": "Kebap", "description": "Alle Gerichte werden mit Salat, Tomaten, Zwiebeln, Rotkraut und einer Sauce nach Wahl zubereitet.", "sortOrder": 13 },
-    { "name": "Desserts", "description": "", "sortOrder": 14 },
-    { "name": "Alkoholfreie-Getrnke", "description": "", "sortOrder": 15 }
-  ],
   "products": [
     { "name": "chefsalat", "description": "grüner Salat mit Kebapfleisch, Zwiebeln, Tomaten, Schafskäse, Gurken und Paprika, dazu ein Stangerlbrot", "price": 9.50, "taxRate": 10, "category": "Salate" },
     { "name": "thunfischsalat", "description": "grüner Salat mit Thunfisch, Tomaten, Gurken, Oliven und Zwiebeln, dazu ein Stangerlbrot", "price": 9.00, "taxRate": 10, "category": "Salate" },

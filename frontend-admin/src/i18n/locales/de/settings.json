@@ -222,6 +222,28 @@
       "placeholderOptional": "optional"
     }
   },
+  "session": {
+    "pageTitle": "Sitzung & Inaktivität",
+    "cardTitle": "Sitzungseinstellungen",
+    "description": "Legen Sie fest, wie lange Benutzer im Admin ohne Aktivität angemeldet bleiben. Vor dem automatischen Abmelden erscheint eine Warnung.",
+    "enabledLabel": "Inaktivitäts-Timeout aktivieren",
+    "enabledOn": "Aktiv",
+    "enabledOff": "Deaktiviert",
+    "timeoutLabel": "Inaktivitäts-Timeout",
+    "timeoutTooltip": "Nach dieser Zeit ohne Aktivität werden Benutzer automatisch abgemeldet.",
+    "timeoutRequired": "Bitte Timeout eingeben.",
+    "timeoutRange": "Wert muss zwischen 5 und 480 Minuten liegen.",
+    "timeoutPresetMinutes": "{{minutes}} Minuten",
+    "warningLabel": "Vorwarnzeit",
+    "warningTooltip": "Wie lange vor dem Timeout die Countdown-Warnung angezeigt wird (1 Minute = 60 Sekunden).",
+    "warningRequired": "Bitte Vorwarnzeit eingeben.",
+    "warningRange": "Wert muss zwischen 1 und 10 Minuten liegen.",
+    "warningCountdownHint": "In der Warnung sehen Benutzer einen {{seconds}} Sekunden Countdown.",
+    "minutesUnit": "Min.",
+    "save": "Speichern",
+    "saveSuccess": "Sitzungseinstellungen gespeichert.",
+    "saveFailed": "Fehler beim Speichern der Sitzungseinstellungen."
+  },
   "personalization": {
     "pageTitle": "Darstellung & Sprache",
     "appearance": {

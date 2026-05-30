@@ -106,6 +106,19 @@
     "creditNoteTooltip": "Gutschrift erstellen (Dialog)",
     "creditCompact": "Gutschrift"
   },
+  "invoiceActions": {
+    "previewTooltip": "Vorschau",
+    "downloadTooltip": "Herunterladen",
+    "printTooltip": "Drucken",
+    "mailTooltip": "E-Mail senden",
+    "previewModalTitle": "Rechnung #{{invoiceNumber}}",
+    "download": "Herunterladen",
+    "print": "Drucken",
+    "close": "Schließen",
+    "emailRequired": "Bitte geben Sie eine E-Mail-Adresse ein.",
+    "resendInvoiceNumber": "Rechnungsnummer",
+    "resendAmount": "Betrag"
+  },
   "display": {
     "unknownInvoice": "Unbekannt"
   },
@@ -129,7 +142,9 @@
     "creditNoteCreated": "Gutschrift erstellt.",
     "creditNoteExists": "Für diese Rechnung existiert bereits eine Gutschrift.",
     "creditNoteBadRequest": "Ungültige Anfrage.",
-    "creditNoteFailed": "Gutschrift konnte nicht erstellt werden."
+    "creditNoteFailed": "Gutschrift konnte nicht erstellt werden.",
+    "resendOk": "Rechnung wurde an {{recipient}} gesendet.",
+    "resendFailed": "Rechnung konnte nicht per E-Mail gesendet werden."
   },
   "modals": {
     "batchReconcileTitle": "Stapel: FinanzOnline-Abgleich erneut senden?",
@@ -202,7 +217,11 @@
     "modalTitlePrefix": "Rechnung:",
     "modalClose": "Schließen",
     "modalPrint": "Drucken",
+    "modalResend": "E-Mail erneut senden",
     "modalReconciliationRetry": "Abgleich erneut senden",
+    "pdfPreviewLabel": "PDF-Vorschau",
+    "pdfPreviewLoading": "PDF wird geladen…",
+    "pdfPreviewFailed": "PDF-Vorschau konnte nicht geladen werden.",
     "registerMachineLabel": "Register (Maschinenbezug)",
     "foLinkWithContext": "FinanzOnline-Abgleich (mit URL-Kontext)",
     "foLinkRegisterOnly": "FinanzOnline-Abgleich (diese Kasse, mit URL-Kontext)",
@@ -217,5 +236,14 @@
     "descRegisterFkMachine": "Register (FK, nur Maschine)",
     "descKassenIdDisplay": "Kassen-ID / Nummer (Anzeige)",
     "emptyLoadFailed": "Keine Details geladen oder Fehler beim Laden."
+  },
+  "resend": {
+    "modalTitle": "Rechnung {{invoiceNumber}} erneut senden",
+    "modalDescription": "Die Rechnung wird als PDF-Anhang versendet. Leer lassen, um die gespeicherte Kunden-E-Mail zu verwenden.",
+    "modalOk": "Senden",
+    "modalCancel": "Abbrechen",
+    "formEmailLabel": "Empfänger-E-Mail",
+    "formEmailPlaceholder": "kunde@beispiel.at",
+    "formEmailInvalid": "Bitte eine gültige E-Mail-Adresse eingeben."
   }
 }

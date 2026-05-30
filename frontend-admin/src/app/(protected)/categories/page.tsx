@@ -3,21 +3,19 @@
 import React, { useState, useEffect } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
-import type { Category, CreateCategoryRequest, UpdateCategoryRequest } from '@/api/generated/model';
-import { Button, Table, Space, message, Popconfirm, Empty, Spin, Input, Alert, Typography, Flex } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Button, Table, Space, message, Empty, Spin, Input, Alert, Typography, Flex } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useCategories } from '@/features/categories/hooks/useCategories';
-import type { CategoryWithVat } from '@/features/categories/types';
+import type { AdminCategory } from '@/features/categories/types';
+import { buildCategoryUpdatePayload, categoryTaxRate } from '@/features/categories/types';
 import type { CategoryFormSubmitValues } from '@/features/categories/components/CategoryForm';
 import CategoryForm from '@/features/categories/components/CategoryForm';
-import type { ColumnType } from 'antd/es/table';
+import CategoryTable from '@/features/categories/components/CategoryTable';
+import { ResetCategoriesButton } from '@/features/categories/components/ResetCategoriesButton';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
-
-type CategoryCreatePayload = CreateCategoryRequest & { vatRate?: number };
-type CategoryUpdatePayload = UpdateCategoryRequest & { vatRate?: number };
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -123,13 +121,15 @@ export default function CategoriesPage() {
 
     const { useList, useSearch, useCreate, useUpdate, useDelete, invalidateList } = useCategories();
 
-    const listOptions: Partial<UseQueryOptions<Category[], Error, Category[]>> = { placeholderData: keepPreviousData };
+    const listOptions: Partial<UseQueryOptions<AdminCategory[], Error, AdminCategory[]>> = {
+        placeholderData: keepPreviousData,
+    };
     const listQuery = useList(listOptions);
     const searchQuery = useSearch(searchDebounced.trim(), listOptions);
 
     const isSearching = searchDebounced.trim().length > 0;
     const activeQuery = isSearching ? searchQuery : listQuery;
-    const categories = (isSearching ? searchQuery.data : listQuery.data) ?? undefined;
+    const categories = (isSearching ? searchQuery.data : listQuery.data) ?? [];
     const isLoading = isSearching ? searchQuery.isLoading : listQuery.isLoading;
     const isError = activeQuery.isError;
     const error = activeQuery.error;
@@ -140,18 +140,18 @@ export default function CategoriesPage() {
     const deleteMutation = useDelete();
 
     const [formVisible, setFormVisible] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<CategoryWithVat | null>(null);
-
-    const listForTable = (categories ?? []) as CategoryWithVat[];
+    const [editingCategory, setEditingCategory] = useState<AdminCategory | null>(null);
 
     const handleCreate = async (values: CategoryFormSubmitValues) => {
         try {
+            const taxRate = values.defaultTaxRate ?? values.vatRate ?? 20;
             await createMutation.mutateAsync({
                 data: {
                     name: values.name,
                     sortOrder: values.sortOrder ?? 0,
-                    vatRate: values.vatRate ?? 20,
-                } as CategoryCreatePayload,
+                    defaultTaxRate: taxRate,
+                    vatRate: taxRate,
+                },
             });
             message.success(t('common.categories.messages.created'));
             setFormVisible(false);
@@ -164,13 +164,14 @@ export default function CategoriesPage() {
     const handleUpdate = async (values: CategoryFormSubmitValues) => {
         if (!editingCategory?.id) return;
         try {
+            const taxRate = values.defaultTaxRate ?? values.vatRate ?? categoryTaxRate(editingCategory);
             await updateMutation.mutateAsync({
                 id: editingCategory.id,
-                data: {
+                data: buildCategoryUpdatePayload(editingCategory, {
                     name: values.name,
                     sortOrder: values.sortOrder ?? 0,
-                    vatRate: values.vatRate ?? 20,
-                } as CategoryUpdatePayload,
+                    defaultTaxRate: taxRate,
+                }),
             });
             message.success(t('common.categories.messages.updated'));
             setFormVisible(false);
@@ -181,84 +182,31 @@ export default function CategoriesPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
+    const handleInlineNameUpdate = async (category: AdminCategory, newName: string) => {
+        if (!category.id) return;
         try {
-            await deleteMutation.mutateAsync({ id });
+            await updateMutation.mutateAsync({
+                id: category.id,
+                data: buildCategoryUpdatePayload(category, { name: newName }),
+            });
+            message.success(t('common.categories.messages.updated'));
+            invalidateList();
+        } catch {
+            message.error(t('common.categories.messages.updateError'));
+            throw new Error('Category name update failed');
+        }
+    };
+
+    const handleDelete = async (category: AdminCategory) => {
+        if (!category.id) return;
+        try {
+            await deleteMutation.mutateAsync({ id: category.id });
             message.success(t('common.categories.messages.deleted'));
             invalidateList();
         } catch {
             message.error(t('common.categories.messages.deleteError'));
         }
     };
-
-    const columns: ColumnType<CategoryWithVat>[] = [
-        {
-            title: t('common.categories.table.name'),
-            dataIndex: 'name',
-            key: 'name',
-            render: (name: string) => <span style={{ fontWeight: 600 }}>{name}</span>,
-        },
-        {
-            title: t('common.categories.table.vatRate'),
-            dataIndex: 'vatRate',
-            key: 'vatRate',
-            align: 'right',
-            sorter: (a, b) => (a.vatRate ?? 0) - (b.vatRate ?? 0),
-            render: (vat: number | undefined) => (vat != null ? `${vat}%` : '–'),
-        },
-        {
-            title: t('common.categories.table.active'),
-            dataIndex: 'isActive',
-            key: 'isActive',
-            align: 'center',
-            render: (active: boolean | undefined) => (active ? t('common.buttons.yes') : t('common.buttons.no')),
-        },
-        {
-            title: t('common.categories.table.sortOrder'),
-            dataIndex: 'sortOrder',
-            key: 'sortOrder',
-            align: 'right',
-            sorter: (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
-        },
-        {
-            title: t('common.categories.table.actions'),
-            key: 'actions',
-            width: 200,
-            align: 'right',
-            render: (_: unknown, record: CategoryWithVat) => (
-                <Space size="small" wrap>
-                    <Button
-                        type="default"
-                        size="small"
-                        icon={<EditOutlined />}
-                        onClick={() => {
-                            setEditingCategory(record);
-                            setFormVisible(true);
-                        }}
-                    >
-                        {t('common.buttons.edit')}
-                    </Button>
-                    <Popconfirm
-                        title={t('common.categories.deleteConfirmTitle')}
-                        description={t('common.categories.deleteConfirmDescription')}
-                        onConfirm={() => record.id && handleDelete(record.id)}
-                        okText={t('common.buttons.yes')}
-                        cancelText={t('common.buttons.no')}
-                    >
-                        <Button
-                            type="default"
-                            size="small"
-                            danger
-                            icon={<DeleteOutlined />}
-                            loading={deleteMutation.isPending && deleteMutation.variables?.id === record.id}
-                        >
-                            {t('common.buttons.delete')}
-                        </Button>
-                    </Popconfirm>
-                </Space>
-            ),
-        },
-    ];
 
     const openCreate = () => {
         setEditingCategory(null);
@@ -280,6 +228,7 @@ export default function CategoriesPage() {
                             onSearch={(v) => setSearchTerm(v)}
                             style={{ width: 280, maxWidth: '100%' }}
                         />
+                        <ResetCategoriesButton />
                         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                             {t('common.categories.newCategory')}
                         </Button>
@@ -317,15 +266,19 @@ export default function CategoriesPage() {
             ) : null}
 
             {!isError ? (
-                <Table
-                    columns={columns}
-                    dataSource={listForTable}
-                    rowKey="id"
+                <CategoryTable
+                    data={categories}
                     loading={isLoading}
-                    pagination={{ pageSize: 10, showSizeChanger: true }}
-                    locale={{ emptyText: <Empty description={t('common.categories.emptyCategories')} /> }}
+                    onEdit={(record) => {
+                        setEditingCategory(record);
+                        setFormVisible(true);
+                    }}
+                    onDelete={handleDelete}
+                    onUpdateName={handleInlineNameUpdate}
+                    deleteLoadingId={deleteMutation.isPending ? deleteMutation.variables?.id : undefined}
                     expandable={{
-                        expandedRowRender: (record) => record.id ? <CategoryProducts categoryId={record.id} /> : null,
+                        expandedRowRender: (record) =>
+                            record.id ? <CategoryProducts categoryId={record.id} /> : null,
                         rowExpandable: () => true,
                     }}
                 />

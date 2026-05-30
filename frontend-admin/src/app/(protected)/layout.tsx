@@ -38,7 +38,7 @@ import { VerwaltungTenantContextGate } from '@/components/admin-layout/Verwaltun
 import { AdminShellHeader } from '@/components/layout/Header';
 import { CommandPaletteShell } from '@/components/CommandPalette';
 import { PasswordChangeRequiredRedirect } from '@/features/auth/components/PasswordChangeRequiredRedirect';
-import { IdleTimeoutProvider } from '@/features/auth/components/IdleTimeoutProvider';
+import { AppLayout } from '@/components/AppLayout';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
@@ -266,7 +266,7 @@ export default function DashboardLayout({
     // AuthGate: wait for /me (see useAuth.isAuthInitializing). PermissionRouteGuard: ROUTE_PERMISSIONS vs user.permissions.
     return (
         <AuthGate mode="protected">
-            <IdleTimeoutProvider>
+            <AppLayout>
             <CommandPaletteShell />
             <PermissionRouteGuard>
                 <Suspense fallback={null}>
@@ -344,7 +344,7 @@ export default function DashboardLayout({
                     </Layout>
                 </Layout>
             </PermissionRouteGuard>
-            </IdleTimeoutProvider>
+            </AppLayout>
         </AuthGate>
     );
 }

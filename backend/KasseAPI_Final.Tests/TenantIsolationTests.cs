@@ -6,6 +6,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.AdminTenants;
@@ -177,6 +178,13 @@ public sealed class TenantIsolationTests
         return (resolver, httpAccessor.Object);
     }
 
+    private static IOptionsMonitor<PaymentReversalApprovalOptions> DefaultReversalOptionsMonitor()
+    {
+        var mock = new Mock<IOptionsMonitor<PaymentReversalApprovalOptions>>();
+        mock.Setup(x => x.CurrentValue).Returns(new PaymentReversalApprovalOptions());
+        return mock.Object;
+    }
+
     private static AdminPaymentsController CreateAdminPaymentsController(
         AppDbContext db,
         ISettingsTenantResolver tenantResolver)
@@ -185,6 +193,12 @@ public sealed class TenantIsolationTests
             db,
             Mock.Of<IPaymentService>(),
             Mock.Of<IReceiptPdfService>(),
+            new AdminPaymentListService(
+                db,
+                tenantResolver,
+                new PaymentMethodCatalogService(db, tenantResolver)),
+            NoOpPaymentReversalApprovalService.Instance,
+            DefaultReversalOptionsMonitor(),
             Mock.Of<ILogger<AdminPaymentsController>>(),
             tenantResolver);
     }
@@ -240,10 +254,10 @@ public sealed class TenantIsolationTests
             var (resolver, _) = CreateTenantResolver(db, UserWithTenant(TenantAId));
             var controller = CreateAdminPaymentsController(db, resolver);
 
-            var result = await controller.GetList(pageSize: 50);
+            var result = await controller.GetPayments(new PaymentFilterDto(), pageSize: 50);
 
             var ok = Assert.IsType<OkObjectResult>(result.Result);
-            var body = Assert.IsType<AdminPaymentsListResponse>(ok.Value);
+            var body = Assert.IsType<PaymentListResponse>(ok.Value);
             Assert.All(body.Items, item =>
                 Assert.DoesNotContain(seed.PaymentBId, body.Items.Select(i => i.Id)));
             Assert.Contains(body.Items, i => i.Id == seed.PaymentAId);
@@ -387,9 +401,9 @@ public sealed class TenantIsolationTests
             var (resolver, _) = CreateTenantResolver(db, UserWithTenant(TenantAId));
             var controller = CreateAdminPaymentsController(db, resolver);
 
-            var result = await controller.GetList(pageSize: 50);
+            var result = await controller.GetPayments(new PaymentFilterDto(), pageSize: 50);
             var ok = Assert.IsType<OkObjectResult>(result.Result);
-            var body = Assert.IsType<AdminPaymentsListResponse>(ok.Value);
+            var body = Assert.IsType<PaymentListResponse>(ok.Value);
 
             Assert.DoesNotContain(body.Items, i => i.Id == seed.PaymentBId);
         }
@@ -404,9 +418,9 @@ public sealed class TenantIsolationTests
             var (resolver, _) = CreateTenantResolver(db, UserWithTenant(TenantBId));
             var controller = CreateAdminPaymentsController(db, resolver);
 
-            var result = await controller.GetList(pageSize: 50);
+            var result = await controller.GetPayments(new PaymentFilterDto(), pageSize: 50);
             var ok = Assert.IsType<OkObjectResult>(result.Result);
-            var body = Assert.IsType<AdminPaymentsListResponse>(ok.Value);
+            var body = Assert.IsType<PaymentListResponse>(ok.Value);
 
             Assert.Contains(body.Items, i => i.Id == seed.PaymentBId);
             Assert.DoesNotContain(body.Items, i => i.Id == seed.PaymentAId);

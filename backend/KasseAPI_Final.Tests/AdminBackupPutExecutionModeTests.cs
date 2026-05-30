@@ -8,6 +8,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -74,6 +75,7 @@ public sealed class AdminBackupPutExecutionModeTests
         var c = new AdminBackupController(
             Mock.Of<IBackupManualTriggerService>(),
             Mock.Of<IBackupRunQueryService>(),
+            Mock.Of<IBackupRunService>(),
             Mock.Of<IBackupRecoverabilitySummaryService>(),
             Mock.Of<IRestoreOrchestrationBoundary>(),
             readiness,
@@ -84,7 +86,9 @@ public sealed class AdminBackupPutExecutionModeTests
             hostEnvironment,
             db,
             Mock.Of<IBackupSettingsAdminService>(),
-            Mock.Of<IBackupDashboardStatsService>());
+            Mock.Of<IBackupDashboardStatsService>(),
+            Mock.Of<IPitrService>(),
+            Mock.Of<ICurrentTenantAccessor>());
 
         var http = new DefaultHttpContext
         {

@@ -13,7 +13,7 @@ export function AuthSessionInvalidationListener() {
 
     useEffect(() => {
         const onCleared = () => {
-            void queryClient.invalidateQueries({ queryKey: AUTH_KEYS.user });
+            queryClient.setQueryData(AUTH_KEYS.user, null);
         };
         window.addEventListener(AUTH_SESSION_CLEARED_EVENT, onCleared);
         return () => window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, onCleared);

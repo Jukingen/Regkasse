@@ -1,7 +1,10 @@
 using System.Security.Claims;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -12,10 +15,13 @@ namespace KasseAPI_Final.Tests;
 /// </summary>
 public class PermissionAuthorizationHandlerTests
 {
-    private static IServiceProvider BuildAuthorizationServices()
+    private static IServiceProvider BuildAuthorizationServices(IPermissionService? permissionService = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        if (permissionService != null)
+            services.AddSingleton(permissionService);
+        services.AddSingleton<ICurrentTenantAccessor>(NullCurrentTenantAccessor.Instance);
         services.AddAppAuthorization();
         return services.BuildServiceProvider();
     }
@@ -168,6 +174,43 @@ public class PermissionAuthorizationHandlerTests
         var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.PaymentTake));
 
         Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_UserCreate_Allows_SuperAdmin_With_UserManage_Claim()
+    {
+        var provider = BuildAuthorizationServices();
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithPermissions(AppPermissions.UserManage);
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.UserCreate));
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task PermissionPolicy_UsesPermissionService_When_No_Jwt_Permission_Claims()
+    {
+        var permissionService = new Mock<IPermissionService>();
+        permissionService.Setup(s => s.HasPermissionAsync(
+                "user-id",
+                AppPermissions.ReportExport,
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var provider = BuildAuthorizationServices(permissionService.Object);
+        var auth = provider.GetRequiredService<IAuthorizationService>();
+        var user = CreatePrincipalWithRoles("ReportViewer");
+
+        var result = await auth.AuthorizeAsync(user, null, PermissionPolicy(AppPermissions.ReportExport));
+
+        Assert.True(result.Succeeded);
+        permissionService.Verify(s => s.HasPermissionAsync(
+            "user-id",
+            AppPermissions.ReportExport,
+            It.IsAny<Guid?>(),
+            It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // --- UserView / UserManage ---

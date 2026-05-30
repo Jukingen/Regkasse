@@ -40,6 +40,8 @@ export interface UsersPolicy {
   canResetPassword: (targetRole: string | undefined | null) => boolean;
   /** Mandant user create with generated password — SuperAdmin only (not Manager). */
   canProvisionTenantCredentials: boolean;
+  /** Individual permission overrides (user.manage). */
+  canManagePermissions: boolean;
 }
 
 /**
@@ -65,6 +67,9 @@ export function getUsersPolicy(
     canResetPassword: (targetRole: string | undefined | null) =>
       roleCanResetPassword(role, targetRole ?? ''),
     canProvisionTenantCredentials: canProvisionTenantCredentials(role),
+    canManagePermissions: usePerms
+      ? hasPermission(userWithPerms, PERMISSIONS.USER_MANAGE)
+      : canManageUsers(role),
   };
 }
 

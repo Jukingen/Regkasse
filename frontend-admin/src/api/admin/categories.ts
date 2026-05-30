@@ -4,7 +4,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import { customInstance } from '@/lib/axios';
-import type { Category, CreateCategoryRequest, UpdateCategoryRequest, Product } from '@/api/generated/model';
+import type { Product } from '@/api/generated/model';
+import type { AdminCategory, AdminCategoryCreatePayload, AdminCategoryUpdatePayload } from '@/features/categories/types';
 
 const ADMIN_CATEGORIES = '/api/admin/categories';
 
@@ -18,9 +19,9 @@ function unwrapData<T>(res: any): T {
 export function getAdminCategories(
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
-): Promise<Category[]> {
-  return customInstance<Category[]>({ url: ADMIN_CATEGORIES, method: 'GET', signal }, options).then((res) =>
-    unwrapData<Category[]>(res)
+): Promise<AdminCategory[]> {
+  return customInstance<AdminCategory[]>({ url: ADMIN_CATEGORIES, method: 'GET', signal }, options).then((res) =>
+    unwrapData<AdminCategory[]>(res)
   );
 }
 
@@ -28,23 +29,23 @@ export function getAdminCategoryById(
   id: string,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
-): Promise<Category> {
-  return customInstance<Category>({ url: `${ADMIN_CATEGORIES}/${id}`, method: 'GET', signal }, options).then((res) =>
-    unwrapData<Category>(res)
+): Promise<AdminCategory> {
+  return customInstance<AdminCategory>({ url: `${ADMIN_CATEGORIES}/${id}`, method: 'GET', signal }, options).then((res) =>
+    unwrapData<AdminCategory>(res)
   );
 }
 
 export function createAdminCategory(
-  data: CreateCategoryRequest,
+  data: AdminCategoryCreatePayload,
   options?: SecondParameter<typeof customInstance>
-): Promise<Category> {
-  return customInstance<Category>(
+): Promise<AdminCategory> {
+  return customInstance<AdminCategory>(
     { url: ADMIN_CATEGORIES, method: 'POST', headers: { 'Content-Type': 'application/json' }, data },
     options
-  ).then((res) => unwrapData<Category>(res));
+  ).then((res) => unwrapData<AdminCategory>(res));
 }
 
-export function updateAdminCategory(id: string, data: UpdateCategoryRequest, options?: SecondParameter<typeof customInstance>) {
+export function updateAdminCategory(id: string, data: AdminCategoryUpdatePayload, options?: SecondParameter<typeof customInstance>) {
   return customInstance<void>({ url: `${ADMIN_CATEGORIES}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data }, options);
 }
 
@@ -66,10 +67,23 @@ export function searchAdminCategories(
   query: string,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
-): Promise<Category[]> {
-  return customInstance<Category[]>({ url: `${ADMIN_CATEGORIES}/search`, method: 'GET', params: { query }, signal }, options).then((res) =>
-    unwrapData<Category[]>(res)
+): Promise<AdminCategory[]> {
+  return customInstance<AdminCategory[]>({ url: `${ADMIN_CATEGORIES}/search`, method: 'GET', params: { query }, signal }, options).then((res) =>
+    unwrapData<AdminCategory[]>(res)
   );
+}
+
+export type CategoryDemoResetResult = {
+  resetCount: number;
+  skippedCount: number;
+  totalCategories: number;
+};
+
+export function resetDemoCategoryNames(options?: SecondParameter<typeof customInstance>): Promise<CategoryDemoResetResult> {
+  return customInstance<CategoryDemoResetResult>(
+    { url: `${ADMIN_CATEGORIES}/reset-demo-names`, method: 'POST' },
+    options
+  ).then((res) => unwrapData<CategoryDemoResetResult>(res));
 }
 
 export const adminCategoriesQueryKeys = {
@@ -82,8 +96,8 @@ export const adminCategoriesQueryKeys = {
 };
 
 export function useAdminCategoriesList(
-  options?: Partial<UseQueryOptions<Category[], Error, Category[]>>
-): UseQueryResult<Category[], Error> {
+  options?: Partial<UseQueryOptions<AdminCategory[], Error, AdminCategory[]>>
+): UseQueryResult<AdminCategory[], Error> {
   return useQuery({
     queryKey: adminCategoriesQueryKeys.lists(),
     queryFn: ({ signal }) => getAdminCategories(undefined, signal),
@@ -93,8 +107,8 @@ export function useAdminCategoriesList(
 
 export function useAdminCategoryById(
   id: string,
-  options?: Partial<UseQueryOptions<Category, Error, Category>>
-): UseQueryResult<Category, Error> {
+  options?: Partial<UseQueryOptions<AdminCategory, Error, AdminCategory>>
+): UseQueryResult<AdminCategory, Error> {
   return useQuery({
     queryKey: adminCategoriesQueryKeys.detail(id),
     queryFn: ({ signal }) => getAdminCategoryById(id, undefined, signal),
@@ -117,8 +131,8 @@ export function useAdminCategoryProducts(
 
 export function useAdminCategoriesSearch(
   query: string,
-  options?: Partial<UseQueryOptions<Category[], Error, Category[]>>
-): UseQueryResult<Category[], Error> {
+  options?: Partial<UseQueryOptions<AdminCategory[], Error, AdminCategory[]>>
+): UseQueryResult<AdminCategory[], Error> {
   return useQuery({
     queryKey: adminCategoriesQueryKeys.search(query),
     queryFn: ({ signal }) => searchAdminCategories(query, undefined, signal),
@@ -128,8 +142,8 @@ export function useAdminCategoriesSearch(
 }
 
 export function useCreateAdminCategory(
-  opts?: UseMutationOptions<Category, Error, { data: CreateCategoryRequest }>
-): UseMutationResult<Category, Error, { data: CreateCategoryRequest }> {
+  opts?: UseMutationOptions<AdminCategory, Error, { data: AdminCategoryCreatePayload }>
+): UseMutationResult<AdminCategory, Error, { data: AdminCategoryCreatePayload }> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ data }) => createAdminCategory(data),
@@ -139,8 +153,8 @@ export function useCreateAdminCategory(
 }
 
 export function useUpdateAdminCategory(
-  opts?: UseMutationOptions<void, Error, { id: string; data: UpdateCategoryRequest }>
-): UseMutationResult<void, Error, { id: string; data: UpdateCategoryRequest }> {
+  opts?: UseMutationOptions<void, Error, { id: string; data: AdminCategoryUpdatePayload }>
+): UseMutationResult<void, Error, { id: string; data: AdminCategoryUpdatePayload }> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => updateAdminCategory(id, data),
@@ -157,6 +171,17 @@ export function useDeleteAdminCategory(opts?: UseMutationOptions<void, Error, { 
   return useMutation({
     mutationFn: ({ id }) => deleteAdminCategory(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminCategoriesQueryKeys.lists() }),
+    ...opts,
+  });
+}
+
+export function useResetDemoCategories(
+  opts?: UseMutationOptions<CategoryDemoResetResult, Error, void>
+): UseMutationResult<CategoryDemoResetResult, Error, void> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => resetDemoCategoryNames(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminCategoriesQueryKeys.all }),
     ...opts,
   });
 }

@@ -100,5 +100,9 @@ namespace KasseAPI_Final.Models
         /// <summary>When true, POS keeps cart state after idle logout (client-side).</summary>
         [Column("keep_cart_after_timeout")]
         public bool KeepCartAfterTimeout { get; set; } = true;
+
+        /// <summary>When false, idle auto-logout and warning modal are disabled for the tenant.</summary>
+        [Column("session_idle_timeout_enabled")]
+        public bool SessionIdleTimeoutEnabled { get; set; } = true;
     }
 }

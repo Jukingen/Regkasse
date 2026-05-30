@@ -1,5 +1,6 @@
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Models.DTOs;
 
 namespace KasseAPI_Final.Services
 {
@@ -40,12 +41,25 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Ödeme iptal et. Sprint 6: optional idempotencyKey for retry-safe cancel.
         /// </summary>
-        Task<PaymentResult> CancelPaymentAsync(Guid paymentId, string reason, string userId, string? idempotencyKey = null);
+        Task<PaymentResult> CancelPaymentAsync(
+            Guid paymentId,
+            string reason,
+            string userId,
+            string? idempotencyKey = null,
+            CancellationReasonCode reasonCode = CancellationReasonCode.Other,
+            string? approvalToken = null);
         
         /// <summary>
-        /// Ödeme iade et. Sprint 6: optional idempotencyKey for retry-safe refund (no duplicate BelegNr/stock).
+        /// Ödeme iade et. Sprint 6: optional idempotencyKey — retries with same key return existing refund (no duplicate BelegNr/stock).
         /// </summary>
-        Task<PaymentResult> RefundPaymentAsync(Guid paymentId, decimal amount, string reason, string userId, string? idempotencyKey = null);
+        Task<PaymentResult> RefundPaymentAsync(
+            Guid paymentId,
+            decimal amount,
+            string reason,
+            string userId,
+            string? idempotencyKey = null,
+            RefundReasonCode reasonCode = RefundReasonCode.Other,
+            string? approvalToken = null);
         
         /// <summary>
         /// Ödeme istatistiklerini getir

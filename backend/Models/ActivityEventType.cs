@@ -19,4 +19,10 @@ public enum ActivityEventType
     BackupSucceeded = 51,
     RestoreDrillFailed = 52,
     RestoreDrillSucceeded = 53,
+    SuspiciousHighValuePayment = 60,
+    SuspiciousMultipleStornos = 61,
+    SuspiciousMultipleRefunds = 62,
+    SuspiciousUnusualTime = 63,
+    SuspiciousSameCardMultiple = 64,
+    SuspiciousRapidTransactions = 65,
 }

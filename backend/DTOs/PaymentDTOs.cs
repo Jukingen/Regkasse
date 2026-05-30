@@ -224,6 +224,15 @@ namespace KasseAPI_Final.DTOs
         /// <summary>Offline intent id when <see cref="NonFiscalOfflineQueued"/> is true.</summary>
         public Guid? OfflineTransactionId { get; set; }
 
+        /// <summary>High-risk reversal requires manager approval before execution.</summary>
+        public bool RequiresApproval { get; set; }
+
+        public Guid? ApprovalRequestId { get; set; }
+
+        public DateTime? ApprovalTokenExpiresAtUtc { get; set; }
+
+        public bool ApprovalNotificationSent { get; set; }
+
         /// <summary>True when the payment was stored while NTP clock drift was outside tolerance (typically offline replay only).</summary>
         public bool TimeSyncWarning { get; set; }
     }

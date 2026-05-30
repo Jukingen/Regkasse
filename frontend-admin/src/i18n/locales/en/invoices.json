@@ -106,6 +106,19 @@
     "creditNoteTooltip": "Create credit note (dialog)",
     "creditCompact": "Credit"
   },
+  "invoiceActions": {
+    "previewTooltip": "Preview",
+    "downloadTooltip": "Download",
+    "printTooltip": "Print",
+    "mailTooltip": "Send email",
+    "previewModalTitle": "Invoice #{{invoiceNumber}}",
+    "download": "Download",
+    "print": "Print",
+    "close": "Close",
+    "emailRequired": "Please enter an email address.",
+    "resendInvoiceNumber": "Invoice number",
+    "resendAmount": "Amount"
+  },
   "display": {
     "unknownInvoice": "Unknown"
   },
@@ -129,7 +142,9 @@
     "creditNoteCreated": "Credit note created.",
     "creditNoteExists": "A credit note already exists for this invoice.",
     "creditNoteBadRequest": "Invalid request.",
-    "creditNoteFailed": "Credit note could not be created."
+    "creditNoteFailed": "Credit note could not be created.",
+    "resendOk": "Invoice sent to {{recipient}}.",
+    "resendFailed": "Invoice could not be sent by email."
   },
   "modals": {
     "batchReconcileTitle": "Batch: resend FinanzOnline reconciliation?",
@@ -202,7 +217,11 @@
     "modalTitlePrefix": "Invoice:",
     "modalClose": "Close",
     "modalPrint": "Print",
+    "modalResend": "Resend email",
     "modalReconciliationRetry": "Resend reconciliation",
+    "pdfPreviewLabel": "PDF preview",
+    "pdfPreviewLoading": "Loading PDF…",
+    "pdfPreviewFailed": "PDF preview could not be loaded.",
     "registerMachineLabel": "Register (machine link)",
     "foLinkWithContext": "FinanzOnline reconciliation (with URL context)",
     "foLinkRegisterOnly": "FinanzOnline reconciliation (this register, with URL context)",
@@ -217,5 +236,14 @@
     "descRegisterFkMachine": "Register (FK, machine only)",
     "descKassenIdDisplay": "Cash register ID / number (display)",
     "emptyLoadFailed": "No details loaded or error while loading."
+  },
+  "resend": {
+    "modalTitle": "Resend invoice {{invoiceNumber}}",
+    "modalDescription": "The invoice will be sent as a PDF attachment. Leave empty to use the stored customer email.",
+    "modalOk": "Send",
+    "modalCancel": "Cancel",
+    "formEmailLabel": "Recipient email",
+    "formEmailPlaceholder": "customer@example.com",
+    "formEmailInvalid": "Please enter a valid email address."
   }
 }

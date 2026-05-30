@@ -20,8 +20,8 @@ public static class PermissionClaimHelper
             .Where(c => string.Equals(c.Type, PermissionCatalog.PermissionClaimType, StringComparison.OrdinalIgnoreCase))
             .Select(c => c.Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (permissionClaims.Contains(permission))
-            return true;
+        if (permissionClaims.Count > 0)
+            return PermissionImplication.IsSatisfied(permission, permissionClaims);
 
         var roles = GetRolesFromPrincipal(user);
         return RolePermissionMatrix.GetPermissionsForRoles(roles).Contains(permission);

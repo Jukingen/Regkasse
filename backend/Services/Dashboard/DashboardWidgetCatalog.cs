@@ -13,16 +13,18 @@ public static class DashboardWidgetCatalog
     public const string LicenseExpiry = "license-expiry";
     public const string FinanzOnlineStatus = "finanzonline-status";
     public const string TopSellingProducts = "top-selling-products";
+    public const string PaymentTrends = "payment-trends";
 
     private static readonly IReadOnlyList<DashboardWidgetDefinition> All =
     [
         new(TodaySales, "Heutiger Umsatz", "Umsatz und Verkäufe für heute", AppPermissions.ReportView, 0, true, true),
-        new(ActiveCashRegisters, "Aktive Kassen", "Kassenstatus und Anzahl", AppPermissions.CashRegisterView, 1, true, true),
-        new(LowStockAlerts, "Niedriger Bestand", "Artikel unter Mindestbestand", AppPermissions.InventoryView, 2, true, true),
-        new(TopSellingProducts, "Top-Artikel", "Meistverkaufte Produkte", AppPermissions.ReportView, 3, true, true),
-        new(RecentUsers, "Neue Benutzer", "Zuletzt angelegte Benutzer", AppPermissions.UserView, 4, true, true),
-        new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.SettingsManage, 5, true, true),
-        new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 6, true, true),
+        new(PaymentTrends, "Zahlungstrends", "Tägliche, wöchentliche und monatliche Zahlungsentwicklung", AppPermissions.PaymentView, 1, true, true),
+        new(ActiveCashRegisters, "Aktive Kassen", "Kassenstatus und Anzahl", AppPermissions.CashRegisterView, 2, true, true),
+        new(LowStockAlerts, "Niedriger Bestand", "Artikel unter Mindestbestand", AppPermissions.InventoryView, 3, true, true),
+        new(TopSellingProducts, "Top-Artikel", "Meistverkaufte Produkte", AppPermissions.ReportView, 4, true, true),
+        new(RecentUsers, "Neue Benutzer", "Zuletzt angelegte Benutzer", AppPermissions.UserView, 5, true, true),
+        new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.SettingsManage, 6, true, true),
+        new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 7, true, true),
     ];
 
     public static IReadOnlyList<DashboardWidgetDefinition> GetAll() => All;
@@ -45,12 +47,18 @@ public static class DashboardWidgetCatalog
                 WidgetId = w.WidgetId,
                 Order = w.DefaultOrder,
                 IsVisible = w.DefaultVisible,
-                Settings = w.WidgetId == TopSellingProducts
-                    ? new Dictionary<string, JsonElement>
+                Settings = w.WidgetId switch
+                {
+                    TopSellingProducts => new Dictionary<string, JsonElement>
                     {
                         ["period"] = JsonSerializer.SerializeToElement("today"),
-                    }
-                    : null,
+                    },
+                    PaymentTrends => new Dictionary<string, JsonElement>
+                    {
+                        ["period"] = JsonSerializer.SerializeToElement("Daily"),
+                    },
+                    _ => null,
+                },
             })
             .ToList();
     }

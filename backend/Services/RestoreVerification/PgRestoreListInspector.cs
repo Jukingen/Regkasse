@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Services.Backup;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -23,7 +24,8 @@ public sealed class PgRestoreListInspector : IPgRestoreListInspector
         string absoluteDumpPath,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(absoluteDumpPath) || !File.Exists(absoluteDumpPath))
+        var run = await RunPgRestoreListAsync(absoluteDumpPath, cancellationToken);
+        if (run.MissingFile)
         {
             return new PgRestoreListInspectResult
             {
@@ -32,6 +34,88 @@ public sealed class PgRestoreListInspector : IPgRestoreListInspector
                 StdErrSnippet = "Dump file missing."
             };
         }
+
+        if (run.CouldNotStartProcess)
+        {
+            return new PgRestoreListInspectResult
+            {
+                Success = false,
+                ExitCode = -1,
+                StdErrSnippet = "Failed to start pg_restore."
+            };
+        }
+
+        var lines = run.StdOut.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Length;
+
+        if (!run.Success)
+            _logger.LogWarning(
+                "pg_restore --list failed: exitCode={ExitCode}, stderrLen={Len}",
+                run.ExitCode,
+                run.StdErr.Length);
+
+        return new PgRestoreListInspectResult
+        {
+            Success = run.Success,
+            ExitCode = run.ExitCode,
+            NonEmptyLineCount = lines,
+            StdErrSnippet = Truncate(run.StdErr.Trim(), 2000)
+        };
+    }
+
+    public async Task<PgRestoreListTableCatalogResult> ReadTableDataCatalogAsync(
+        string absoluteDumpPath,
+        CancellationToken cancellationToken = default)
+    {
+        var run = await RunPgRestoreListAsync(absoluteDumpPath, cancellationToken);
+        if (run.MissingFile)
+        {
+            return new PgRestoreListTableCatalogResult
+            {
+                Success = false,
+                ExitCode = -1,
+                StdErrSnippet = "Dump file missing."
+            };
+        }
+
+        if (run.CouldNotStartProcess)
+        {
+            return new PgRestoreListTableCatalogResult
+            {
+                Success = false,
+                ExitCode = -1,
+                StdErrSnippet = "Failed to start pg_restore."
+            };
+        }
+
+        if (!run.Success)
+        {
+            _logger.LogWarning(
+                "pg_restore --list catalog read failed: exitCode={ExitCode}",
+                run.ExitCode);
+            return new PgRestoreListTableCatalogResult
+            {
+                Success = false,
+                ExitCode = run.ExitCode,
+                StdErrSnippet = Truncate(run.StdErr.Trim(), 2000)
+            };
+        }
+
+        var entries = PgRestoreListTableDataParser.ParseTableDataEntries(run.StdOut);
+        return new PgRestoreListTableCatalogResult
+        {
+            Success = true,
+            ExitCode = run.ExitCode,
+            TableDataEntries = entries
+        };
+    }
+
+    private async Task<PgRestoreListProcessRun> RunPgRestoreListAsync(
+        string absoluteDumpPath,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(absoluteDumpPath) || !File.Exists(absoluteDumpPath))
+            return PgRestoreListProcessRun.Missing();
 
         var o = _options.CurrentValue;
         var exe = string.IsNullOrWhiteSpace(o.PgRestoreExecutablePath)
@@ -56,48 +140,39 @@ public sealed class PgRestoreListInspector : IPgRestoreListInspector
         try
         {
             if (!proc.Start())
-            {
-                return new PgRestoreListInspectResult
-                {
-                    Success = false,
-                    ExitCode = -1,
-                    StdErrSnippet = "Failed to start pg_restore."
-                };
-            }
+                return PgRestoreListProcessRun.FailedToStart();
 
             proc.BeginOutputReadLine();
             proc.BeginErrorReadLine();
             await proc.WaitForExitAsync(cancellationToken);
 
-            var outText = stdout.ToString();
-            var lines = outText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Length;
-
-            var ok = proc.ExitCode == 0;
-            if (!ok)
-                _logger.LogWarning(
-                    "pg_restore --list failed: exitCode={ExitCode}, stderrLen={Len}",
-                    proc.ExitCode,
-                    stderr.Length);
-
-            return new PgRestoreListInspectResult
-            {
-                Success = ok,
-                ExitCode = proc.ExitCode,
-                NonEmptyLineCount = lines,
-                StdErrSnippet = Truncate(stderr.ToString().Trim(), 2000)
-            };
+            return new PgRestoreListProcessRun(
+                proc.ExitCode == 0,
+                proc.ExitCode,
+                stdout.ToString(),
+                stderr.ToString());
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "pg_restore --list process error");
-            return new PgRestoreListInspectResult
-            {
-                Success = false,
-                ExitCode = -1,
-                StdErrSnippet = ex.Message
-            };
+            return new PgRestoreListProcessRun(false, -1, string.Empty, ex.Message);
         }
+    }
+
+    private sealed record PgRestoreListProcessRun(
+        bool Success,
+        int ExitCode,
+        string StdOut,
+        string StdErr)
+    {
+        public bool MissingFile { get; init; }
+        public bool CouldNotStartProcess { get; init; }
+
+        public static PgRestoreListProcessRun Missing() =>
+            new(false, -1, string.Empty, string.Empty) { MissingFile = true };
+
+        public static PgRestoreListProcessRun FailedToStart() =>
+            new(false, -1, string.Empty, string.Empty) { CouldNotStartProcess = true };
     }
 
     private static string QuoteArg(string path)

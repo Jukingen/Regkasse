@@ -330,9 +330,10 @@ const CartScreen: React.FC = () => {
   // E-posta gönderimi
   const handleEmailSend = async (email: string) => {
     try {
-      // Backend'e e-posta gönderim isteği
-      console.log(`Sending invoice to ${email}`);
-      return true; // Başarılı simülasyonu
+      const invoiceId = emailInvoice.data?.id;
+      if (!invoiceId) return false;
+      const { resendInvoiceEmail } = await import('../services/api/invoiceService');
+      return await resendInvoiceEmail(invoiceId, email);
     } catch (error) {
       return false;
     }

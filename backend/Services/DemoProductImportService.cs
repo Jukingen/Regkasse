@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Data.CategorySeed;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
@@ -390,9 +391,11 @@ public sealed class DemoProductImportService : IDemoProductImportService
 
         var json = await File.ReadAllTextAsync(jsonPath, cancellationToken).ConfigureAwait(false);
         var data = JsonSerializer.Deserialize<DemoData>(json, JsonOptions);
-        if (data == null || data.Categories.Count == 0 || data.Products.Count == 0)
+        if (data == null || data.Products.Count == 0)
             throw new InvalidOperationException("Demo product catalog is empty or invalid.");
 
+        data.Categories = SystemCategories.CreateDemoCatalogCategories().ToList();
+        SystemCategories.NormalizeProductReferences(data);
         DemoProductImportFilter.NormalizeDemoProductIds(data);
         return data;
     }
@@ -407,10 +410,17 @@ public sealed class DemoProductImportService : IDemoProductImportService
 
         foreach (var demoCat in demoCategories)
         {
+            var categoryKey = !string.IsNullOrWhiteSpace(demoCat.Key)
+                ? demoCat.Key
+                : CategoryKey.FromDisplayName(demoCat.Name);
             var category = await _context.Categories
                 .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Name == demoCat.Name, cancellationToken)
-                .ConfigureAwait(false);
+                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Key == categoryKey, cancellationToken)
+                .ConfigureAwait(false)
+                ?? await _context.Categories
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Name == demoCat.Name, cancellationToken)
+                    .ConfigureAwait(false);
 
             if (category == null)
             {
@@ -418,10 +428,17 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 {
                     Id = Guid.NewGuid(),
                     TenantId = tenantId,
+                    Key = categoryKey,
                     Name = demoCat.Name,
+                    OriginalDemoName = demoCat.Name,
                     Description = demoCat.Description,
+                    Icon = demoCat.Icon,
                     SortOrder = demoCat.SortOrder,
                     VatRate = demoCat.VatRate,
+                    FiscalCategory = demoCat.FiscalCategory == RksvProductCategory.Unspecified
+                        ? CategoryKey.InferFiscalCategory(demoCat.Name, demoCat.Description)
+                        : demoCat.FiscalCategory,
+                    IsSystemCategory = true,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -430,13 +447,29 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 _context.Categories.Add(category);
                 createdCount++;
             }
-            else if (category.SortOrder != demoCat.SortOrder || category.Description != demoCat.Description)
+            else
             {
-                category.SortOrder = demoCat.SortOrder;
-                category.Description = demoCat.Description;
-                category.VatRate = demoCat.VatRate;
-                category.UpdatedAt = DateTime.UtcNow;
-                category.UpdatedBy = "demo-import";
+                if (string.IsNullOrWhiteSpace(category.Key))
+                    category.Key = categoryKey;
+
+                if (string.IsNullOrWhiteSpace(category.OriginalDemoName))
+                    category.OriginalDemoName = demoCat.Name;
+
+                category.IsSystemCategory = true;
+
+                if (string.IsNullOrWhiteSpace(category.Icon) && !string.IsNullOrWhiteSpace(demoCat.Icon))
+                    category.Icon = demoCat.Icon;
+
+                if (category.SortOrder != demoCat.SortOrder
+                    || category.Description != demoCat.Description
+                    || category.VatRate != demoCat.VatRate)
+                {
+                    category.SortOrder = demoCat.SortOrder;
+                    category.Description = demoCat.Description;
+                    category.VatRate = demoCat.VatRate;
+                    category.UpdatedAt = DateTime.UtcNow;
+                    category.UpdatedBy = "demo-import";
+                }
             }
 
             result[demoCat.Name] = category;

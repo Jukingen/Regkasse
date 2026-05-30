@@ -7,10 +7,7 @@ import {
   Button,
   Card,
   Descriptions,
-  Input,
   InputNumber,
-  Radio,
-  Slider,
   Space,
   Spin,
   Switch,
@@ -19,17 +16,20 @@ import {
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
+import { BackupSchedulePlanner } from "@/features/backup/components/BackupSchedulePlanner";
 import {
-  BACKUP_SCHEDULE_PRESET_CRONS,
-  type BackupSchedulePresetId,
+  apiScheduleToPlannerState,
+  buildCronFromPlannerState,
+  isPlannerStateValid,
+  plannerStateToPutSchedule,
+  type BackupSchedulePlannerState,
+} from "@/features/backup/logic/backupScheduleCronCodec";
+import {
   type BackupSettingsPutRequestDto,
-  detectSchedulePreset,
   getBackupScheduleSettings,
   getBackupScheduleSettingsQueryKey,
   getBackupScheduleStatus,
   getBackupScheduleStatusQueryKey,
-  isPlausibleStandardCron,
-  normalizeCronWhitespace,
   putBackupScheduleSettings,
 } from "@/features/backup-dr/logic/backupScheduleSettingsApi";
 import { BACKUP_ACTIVE_POLL_MS, isBackupLatestRunActiveStatus } from "@/features/backup-dr/logic/backupRunDetailPollPolicy";
@@ -78,8 +78,9 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
   });
 
   const [enabled, setEnabled] = useState(false);
-  const [preset, setPreset] = useState<BackupSchedulePresetId>("daily");
-  const [customCron, setCustomCron] = useState<string>(BACKUP_SCHEDULE_PRESET_CRONS.daily);
+  const [planner, setPlanner] = useState<BackupSchedulePlannerState>(() =>
+    apiScheduleToPlannerState(null, "0 2 * * *"),
+  );
   const [retentionDays, setRetentionDays] = useState(30);
   const [serverRetentionRaw, setServerRetentionRaw] = useState<number | null>(null);
   const [cronTouchedInvalid, setCronTouchedInvalid] = useState(false);
@@ -88,26 +89,20 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
     const d = settingsQuery.data;
     if (!d) return;
     setEnabled(Boolean(d.enabled));
-    const cron = normalizeCronWhitespace(d.scheduleCron || "");
-    const p = detectSchedulePreset(cron);
-    setPreset(p);
-    setCustomCron(p === "custom" ? d.scheduleCron : cron);
+    setPlanner(apiScheduleToPlannerState(d.schedule ?? null, d.scheduleCron || "0 2 * * *"));
     setRetentionDays(Math.min(Math.max(d.retentionDays, RETENTION_UI_MIN), RETENTION_UI_MAX));
     setServerRetentionRaw(d.retentionDays);
   }, [
     settingsQuery.data?.updatedAtUtc,
     settingsQuery.data?.enabled,
     settingsQuery.data?.scheduleCron,
+    settingsQuery.data?.schedule,
     settingsQuery.data?.retentionDays,
     settingsQuery.isSuccess,
   ]);
 
-  const effectiveCron = useMemo(() => {
-    if (preset === "custom") return normalizeCronWhitespace(customCron);
-    return BACKUP_SCHEDULE_PRESET_CRONS[preset];
-  }, [preset, customCron]);
-
-  const customCronOk = preset !== "custom" || isPlausibleStandardCron(customCron);
+  const effectiveCron = useMemo(() => buildCronFromPlannerState(planner), [planner]);
+  const plannerOk = isPlannerStateValid(planner);
 
   const putMutation = useMutation({
     mutationFn: putBackupScheduleSettings,
@@ -118,19 +113,22 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
     },
     onError: (err: unknown) => {
       const extra = axiosNormalizedMessage(err);
-      message.error(extra ? `${t("backupDr.scheduleSettings.saveError")} ${extra}` : t("backupDr.scheduleSettings.saveError"));
+      message.error(
+        extra ? `${t("backupDr.scheduleSettings.saveError")} ${extra}` : t("backupDr.scheduleSettings.saveError"),
+      );
     },
   });
 
   const onSave = () => {
     if (!canManage) return;
-    if (!customCronOk) {
+    if (!plannerOk) {
       setCronTouchedInvalid(true);
       message.error(t("backupDr.scheduleSettings.customCronInvalid"));
       return;
     }
     const body: BackupSettingsPutRequestDto = {
       enabled,
+      schedule: plannerStateToPutSchedule(planner),
       scheduleCron: effectiveCron,
       retentionDays,
     };
@@ -147,24 +145,13 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
   };
 
   const status = scheduleStatusQuery.data;
-  const nextDisplay =
-    status?.computedNextRunAtUtc ?? status?.storedNextRunAtUtc ?? null;
+  const nextDisplay = status?.computedNextRunAtUtc ?? status?.storedNextRunAtUtc ?? null;
 
-  const serverRetentionOverUi =
-    serverRetentionRaw != null && serverRetentionRaw > RETENTION_UI_MAX;
-
-  const onRetentionSlider = (v: number) => {
-    const n = Number.isFinite(v) ? Math.round(v) : RETENTION_UI_MIN;
-    setRetentionDays(Math.min(RETENTION_UI_MAX, Math.max(RETENTION_UI_MIN, n)));
-  };
+  const serverRetentionOverUi = serverRetentionRaw != null && serverRetentionRaw > RETENTION_UI_MAX;
 
   if (settingsQuery.isError) {
     return (
-      <Card
-        id="backup-dr-schedule-settings"
-        size="small"
-        title={t("backupDr.scheduleSettings.cardTitle")}
-      >
+      <Card id="backup-dr-schedule-settings" size="small" title={t("backupDr.scheduleSettings.cardTitle")}>
         <Alert type="error" showIcon message={t("backupDr.scheduleSettings.loadError")} />
       </Card>
     );
@@ -209,81 +196,42 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
             <Switch checked={enabled} onChange={setEnabled} disabled={!canManage} />
           </Space>
 
-          <div>
-            <Typography.Text strong>{t("backupDr.scheduleSettings.scheduleLabel")}</Typography.Text>
-            <Radio.Group
-              style={{ display: "block", marginTop: 8 }}
-              value={preset}
-              onChange={(e) => {
-                setPreset(e.target.value as BackupSchedulePresetId);
-                setCronTouchedInvalid(false);
-              }}
-              disabled={!canManage}
-            >
-              <Space direction="vertical">
-                <Radio value="daily">{t("backupDr.scheduleSettings.presetDaily")}</Radio>
-                <Radio value="weeklyMon">{t("backupDr.scheduleSettings.presetWeeklyMon")}</Radio>
-                <Radio value="monthly1">{t("backupDr.scheduleSettings.presetMonthly1")}</Radio>
-                <Radio value="custom">{t("backupDr.scheduleSettings.presetCustom")}</Radio>
-              </Space>
-            </Radio.Group>
-            {preset === "custom" ? (
-              <div style={{ marginTop: 8, maxWidth: 480 }}>
-                <Input
-                  value={customCron}
-                  onChange={(e) => {
-                    setCustomCron(e.target.value);
-                    setCronTouchedInvalid(false);
-                  }}
-                  placeholder={t("backupDr.scheduleSettings.customCronPlaceholder")}
-                  disabled={!canManage}
-                  status={cronTouchedInvalid && !customCronOk ? "error" : undefined}
-                />
-                {cronTouchedInvalid && !customCronOk ? (
-                  <Typography.Text type="danger" style={{ display: "block", marginTop: 4 }}>
-                    {t("backupDr.scheduleSettings.customCronInvalid")}
-                  </Typography.Text>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
+          <BackupSchedulePlanner
+            value={planner}
+            onChange={(next) => {
+              setPlanner(next);
+              setCronTouchedInvalid(false);
+            }}
+            disabled={!canManage}
+            showCustomCronInvalid={cronTouchedInvalid && !plannerOk}
+          />
+
+          <Typography.Text type="secondary" code style={{ fontSize: 12 }}>
+            {t("backupDr.scheduleSettings.cronPreview", { cron: effectiveCron })}
+          </Typography.Text>
 
           <div>
             <Typography.Text strong>{t("backupDr.scheduleSettings.retentionLabel")}</Typography.Text>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 8, marginTop: 4 }}>
               {t("backupDr.scheduleSettings.retentionHint")}
             </Typography.Paragraph>
-            <Space wrap align="center" style={{ width: "100%" }}>
-              <Slider
-                min={RETENTION_UI_MIN}
-                max={RETENTION_UI_MAX}
-                value={retentionDays}
-                onChange={onRetentionSlider}
-                disabled={!canManage}
-                style={{ minWidth: 200, flex: 1 }}
-              />
-              <InputNumber
-                min={RETENTION_UI_MIN}
-                max={RETENTION_UI_MAX}
-                value={retentionDays}
-                onChange={(v) =>
-                  setRetentionDays(
-                    typeof v === "number" && Number.isFinite(v)
-                      ? Math.min(RETENTION_UI_MAX, Math.max(RETENTION_UI_MIN, Math.round(v)))
-                      : RETENTION_UI_MIN,
-                  )
-                }
-                disabled={!canManage}
-              />
-            </Space>
+            <InputNumber
+              min={RETENTION_UI_MIN}
+              max={RETENTION_UI_MAX}
+              value={retentionDays}
+              onChange={(v) =>
+                setRetentionDays(
+                  typeof v === "number" && Number.isFinite(v)
+                    ? Math.min(RETENTION_UI_MAX, Math.max(RETENTION_UI_MIN, Math.round(v)))
+                    : RETENTION_UI_MIN,
+                )
+              }
+              disabled={!canManage}
+              style={{ width: 120 }}
+            />
           </div>
 
-          <Descriptions
-            size="small"
-            column={1}
-            title={t("backupDr.scheduleSettings.statusTitle")}
-            bordered
-          >
+          <Descriptions size="small" column={1} title={t("backupDr.scheduleSettings.statusTitle")} bordered>
             <Descriptions.Item label={t("backupDr.scheduleSettings.nextRunComputed")}>
               {scheduleStatusQuery.isLoading ? <Spin size="small" /> : fmt(nextDisplay)}
             </Descriptions.Item>

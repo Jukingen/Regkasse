@@ -1,12 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
-import { Button, Table, Space, message, Tag, Input, Popconfirm, Alert, Empty, Modal, InputNumber, Typography, Flex, Tooltip, Select } from 'antd';
+import { Button, Table, Space, message, Tag, Popconfirm, Alert, Empty, Modal, InputNumber, Typography, Flex, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, StockOutlined } from '@ant-design/icons';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useProducts, useProductFilters } from '@/features/products/hooks/useProducts';
+import { useProducts } from '@/features/products/hooks/useProducts';
+import { ProductFilterBar } from '@/features/products/components/ProductFilterBar';
+import type { ProductFilters } from '@/features/products/types/productFilters';
+import {
+    buildProductListSearchParams,
+    parseProductFiltersFromSearchParams,
+    parseProductPaginationFromSearchParams,
+} from '@/features/products/utils/productFilterUrl';
+import { productFiltersToApiParams } from '@/features/products/utils/productFiltersToApiParams';
+import { useCategories } from '@/features/categories/hooks/useCategories';
+import type { AdminCategory } from '@/features/categories/types';
 import { Product } from '@/api/generated/model';
 import { mapApiProductToUi, mapUiProductToApi, formatTaxTypeLabelForLocale, formatProductUnitLabelForLocale } from '@/features/products/utils/productMapper';
 import ProductForm, { type ProductFormSubmitValues } from '@/features/products/components/ProductForm';
@@ -16,15 +27,8 @@ import { ColumnType } from 'antd/es/table';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
-import {
-    activeFilterFromUrl,
-    listIsActiveQueryParam,
-    shouldClearProductListStatusQueryParam,
-    type ProductListActiveFilter,
-} from '@/features/products/utils/productListStatusQuery';
 import { isAdminProductsLagerUiEnabled } from '@/features/products/utils/adminProductsLagerUi';
 
-const SEARCH_DEBOUNCE_MS = 400;
 const MIN_SEARCH_LENGTH = 2;
 
 /** Slightly de-emphasize inactive product rows without hiding actions */
@@ -33,20 +37,18 @@ const INACTIVE_PRODUCT_ROW_STYLE: React.CSSProperties = { opacity: 0.82 };
 export default function ProductsPage() {
     const showProductLagerUi = isAdminProductsLagerUiEnabled();
     const { t } = useI18n();
+    const router = useRouter();
+    const searchParams = useSearchParams();
     const { tenantName, tenantId, tenantSlug, isRealTenantSlug } = useCurrentTenant();
-    const { filters, setParam } = useProductFilters();
-    const [page, setPage] = useState(() => Number(filters.page) || 1);
-    const [pageSize, setPageSize] = useState(() => Number(filters.pageSize) || 10);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [searchDebounced, setSearchDebounced] = useState('');
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setSearchDebounced(searchTerm);
-            if (searchTerm.trim()) setPage(1);
-        }, SEARCH_DEBOUNCE_MS);
-        return () => clearTimeout(timer);
-    }, [searchTerm]);
+    const filters = useMemo(
+        () => parseProductFiltersFromSearchParams(new URLSearchParams(searchParams.toString())),
+        [searchParams],
+    );
+    const pagination = useMemo(
+        () => parseProductPaginationFromSearchParams(new URLSearchParams(searchParams.toString())),
+        [searchParams],
+    );
 
     const {
         useList,
@@ -58,36 +60,62 @@ export default function ProductsPage() {
         invalidateList,
     } = useProducts();
 
-    const activeFilter = activeFilterFromUrl(filters.status);
+    const { useList: useCategoriesList } = useCategories();
+    const categoriesQuery = useCategoriesList();
+    const categories = categoriesQuery.data ?? [];
 
-    // Drop invalid or empty status= so shared links fall back to default active list
-    useEffect(() => {
-        if (shouldClearProductListStatusQueryParam(filters.status)) {
-            setParam('status', null);
-        }
-    }, [filters.status, setParam]);
-
-    const listQuery = useList(
-        {
-            pageNumber: page,
-            pageSize,
-            name: searchDebounced.trim().length >= MIN_SEARCH_LENGTH ? searchDebounced.trim() : undefined,
-            categoryId: filters.categoryId?.trim() || undefined,
-            isActive: listIsActiveQueryParam(activeFilter),
-        },
-        { placeholderData: keepPreviousData }
+    const listParams = useMemo(
+        () => productFiltersToApiParams(filters, pagination),
+        [filters, pagination],
     );
 
-    const handleActiveFilterChange = (value: ProductListActiveFilter) => {
-        setPage(1);
-        if (value === 'active') {
-            setParam('status', null);
-        } else if (value === 'all') {
-            setParam('status', 'all');
-        } else {
-            setParam('status', 'inactive');
+    const listQuery = useList(listParams, { placeholderData: keepPreviousData });
+
+    const filterCategories = useMemo((): AdminCategory[] => {
+        const fromApi = listQuery.data?.availableFilters?.categories;
+        if (fromApi?.length) {
+            return fromApi.map((c) => ({
+                id: c.id,
+                key: c.id,
+                name: c.name,
+            }));
         }
-    };
+        return categories;
+    }, [listQuery.data?.availableFilters?.categories, categories]);
+
+    const filterTaxTypes = useMemo(() => {
+        const values = listQuery.data?.availableFilters?.taxTypes ?? [1, 2, 3, 4];
+        return values.map((value) => ({
+            value,
+            label:
+                value === 1
+                    ? t('products.form.taxStandard')
+                    : value === 2
+                      ? t('products.form.taxReduced')
+                      : value === 3
+                        ? t('products.form.taxSpecial')
+                        : t('products.filters.taxZero'),
+        }));
+    }, [listQuery.data?.availableFilters?.taxTypes, t]);
+
+    const applyFiltersAndPagination = useCallback(
+        (nextFilters: ProductFilters, nextPagination: { page: number; pageSize: number }) => {
+            const params = buildProductListSearchParams(
+                nextFilters,
+                nextPagination,
+                new URLSearchParams(searchParams.toString()),
+            );
+            router.replace(`?${params.toString()}`, { scroll: false });
+        },
+        [router, searchParams],
+    );
+
+    const handleFilterChange = useCallback(
+        (nextFilters: ProductFilters) => {
+            applyFiltersAndPagination(nextFilters, { page: 1, pageSize: pagination.pageSize });
+        },
+        [applyFiltersAndPagination, pagination.pageSize],
+    );
 
     const createMutation = useCreate();
     const updateMutation = useUpdate();
@@ -103,15 +131,14 @@ export default function ProductsPage() {
     const { data: listData, isLoading, isError, error, refetch } = listQuery;
     const rawItems = listData?.items ?? [];
     const products = rawItems.map(mapApiProductToUi);
-    const pagination = listData?.pagination
+    const tablePagination = listData?.pagination
         ? {
-            current: page,
-            pageSize,
+            current: pagination.page,
+            pageSize: pagination.pageSize,
             total: listData.pagination.totalCount,
             showSizeChanger: true,
             onChange: (p: number, ps: number) => {
-                setPage(p);
-                setPageSize(ps);
+                applyFiltersAndPagination(filters, { page: p, pageSize: ps });
             },
         }
         : false;
@@ -359,36 +386,7 @@ export default function ProductsPage() {
                 title={t('products.page.title')}
                 breadcrumbs={[adminOverviewCrumb(t), { title: t('products.page.title') }]}
                 actions={
-                    <Flex wrap="wrap" gap="middle" align="center" justify="flex-end" style={{ width: '100%' }}>
-                        <Flex
-                            wrap="wrap"
-                            gap={8}
-                            align="center"
-                            style={{ flex: 1, minWidth: 0, justifyContent: 'flex-end' }}
-                        >
-                            {/* Toolbar filters: status today; room for category etc. without crowding the table */}
-                            <Select<ProductListActiveFilter>
-                                size="small"
-                                value={activeFilter}
-                                onChange={handleActiveFilterChange}
-                                options={[
-                                    { value: 'all', label: t('products.page.filterAll') },
-                                    { value: 'active', label: t('products.page.filterActive') },
-                                    { value: 'inactive', label: t('products.page.filterInactive') },
-                                ]}
-                                style={{ width: 130, maxWidth: '100%' }}
-                                aria-label={t('products.page.filterLabel')}
-                                title={t('products.page.filterLabel')}
-                            />
-                            <Input.Search
-                                placeholder={t('products.page.searchPlaceholder')}
-                                allowClear
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onSearch={(v) => setSearchTerm(v)}
-                                style={{ width: 280, maxWidth: '100%', minWidth: 160 }}
-                                value={searchTerm}
-                            />
-                        </Flex>
+                    <Flex wrap="wrap" gap="middle" align="center" justify="flex-end">
                         {isRealTenantSlug && tenantName ? (
                             <DemoImportButton
                                 tenantId={tenantId ?? undefined}
@@ -407,6 +405,13 @@ export default function ProductsPage() {
                     {t('products.page.searchHint', { min: MIN_SEARCH_LENGTH })}
                 </Typography.Paragraph>
             </AdminPageHeader>
+
+            <ProductFilterBar
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                categories={filterCategories}
+                taxTypes={filterTaxTypes}
+            />
 
             {isError ? (
                 <Alert
@@ -439,7 +444,7 @@ export default function ProductsPage() {
                     dataSource={products}
                     rowKey="id"
                     loading={isLoading}
-                    pagination={pagination}
+                    pagination={tablePagination}
                     size="middle"
                     scroll={{ x: showProductLagerUi ? 1100 : 980 }}
                     locale={{ emptyText: <Empty description={t('products.page.empty')} /> }}

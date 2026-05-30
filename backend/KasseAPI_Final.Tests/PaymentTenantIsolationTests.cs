@@ -1,8 +1,10 @@
 using System.Threading;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
@@ -117,15 +119,23 @@ public sealed class PaymentTenantIsolationTests
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
         var mockPay = new Mock<IPaymentService>(MockBehavior.Strict);
         var mockPdf = new Mock<IReceiptPdfService>(MockBehavior.Loose);
+        var resolver = TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary);
+        var reversalOptions = new Mock<Microsoft.Extensions.Options.IOptionsMonitor<PaymentReversalApprovalOptions>>();
+        reversalOptions.Setup(x => x.CurrentValue).Returns(new PaymentReversalApprovalOptions());
         var c = new AdminPaymentsController(
             ctx,
             mockPay.Object,
             mockPdf.Object,
+            new AdminPaymentListService(ctx, resolver, new PaymentMethodCatalogService(ctx, resolver)),
+            NoOpPaymentReversalApprovalService.Instance,
+            reversalOptions.Object,
             NullLogger<AdminPaymentsController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
-        var result = await c.GetList(startDate: new DateTime(2026, 3, 15), endDate: new DateTime(2026, 3, 15), cancellationToken: CancellationToken.None);
+            resolver);
+        var result = await c.GetPayments(
+            new PaymentFilterDto { StartDate = new DateTime(2026, 3, 15), EndDate = new DateTime(2026, 3, 15) },
+            cancellationToken: CancellationToken.None);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var body = Assert.IsType<AdminPaymentsListResponse>(ok.Value);
+        var body = Assert.IsType<PaymentListResponse>(ok.Value);
         Assert.DoesNotContain(body.Items, x => x.Id == payB);
         Assert.Single(body.Items);
     }
@@ -137,12 +147,18 @@ public sealed class PaymentTenantIsolationTests
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
         var mockPay = new Mock<IPaymentService>(MockBehavior.Strict);
         var mockPdf = new Mock<IReceiptPdfService>(MockBehavior.Loose);
+        var resolver = TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary);
+        var reversalOptions = new Mock<Microsoft.Extensions.Options.IOptionsMonitor<PaymentReversalApprovalOptions>>();
+        reversalOptions.Setup(x => x.CurrentValue).Returns(new PaymentReversalApprovalOptions());
         var c = new AdminPaymentsController(
             ctx,
             mockPay.Object,
             mockPdf.Object,
+            new AdminPaymentListService(ctx, resolver, new PaymentMethodCatalogService(ctx, resolver)),
+            NoOpPaymentReversalApprovalService.Instance,
+            reversalOptions.Object,
             NullLogger<AdminPaymentsController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary));
+            resolver);
         var result = await c.GetDetail(payB, CancellationToken.None);
         Assert.IsType<NotFoundObjectResult>(result.Result);
     }

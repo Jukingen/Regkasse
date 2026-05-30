@@ -13,6 +13,12 @@ internal static class ActivityEventSeverityRules
             ActivityEventType.RestoreDrillFailed => ActivitySeverityNames.Critical,
             ActivityEventType.OfflineQueueGrowing => ActivitySeverityNames.Warning,
             ActivityEventType.LicenseExpiringSoon => ActivitySeverityNames.Warning,
+            ActivityEventType.SuspiciousHighValuePayment => ActivitySeverityNames.Error,
+            ActivityEventType.SuspiciousMultipleStornos => ActivitySeverityNames.Warning,
+            ActivityEventType.SuspiciousMultipleRefunds => ActivitySeverityNames.Error,
+            ActivityEventType.SuspiciousUnusualTime => ActivitySeverityNames.Warning,
+            ActivityEventType.SuspiciousSameCardMultiple => ActivitySeverityNames.Error,
+            ActivityEventType.SuspiciousRapidTransactions => ActivitySeverityNames.Warning,
             _ => ActivitySeverityNames.Info,
         };
 

@@ -45,6 +45,28 @@ export const getInvoicePdf = (id: string): Promise<Blob> => {
     });
 };
 
+export const getInvoicePreview = (id: string): Promise<Blob> => {
+    return customInstance<Blob>({
+        url: `/api/Invoice/${id}/preview`,
+        method: 'GET',
+        responseType: 'blob',
+    });
+};
+
+export interface ResendInvoiceResult {
+    message?: string;
+    error?: string;
+}
+
+export const resendInvoiceEmail = (id: string, recipientEmail?: string): Promise<ResendInvoiceResult> => {
+    return customInstance<ResendInvoiceResult>({
+        url: `/api/Invoice/${id}/resend`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        data: recipientEmail ? { recipientEmail } : {},
+    });
+};
+
 /** Credit note — Orval-typed POST /api/Invoice/{id}/credit-note (returns `Invoice` per OpenAPI). */
 export function createCreditNote(id: string, body: CreateCreditNoteBody): Promise<Invoice> {
     return postApiInvoiceIdCreditNote(id, body);

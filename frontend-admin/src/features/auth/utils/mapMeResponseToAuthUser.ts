@@ -18,6 +18,11 @@ export type SessionPolicyResponse = {
     sessionTimeoutMinutes?: number;
     warningBeforeTimeoutMinutes?: number;
     keepCartAfterTimeout?: boolean;
+    idleTimeoutEnabled?: boolean;
+    SessionTimeoutMinutes?: number;
+    WarningBeforeTimeoutMinutes?: number;
+    KeepCartAfterTimeout?: boolean;
+    IdleTimeoutEnabled?: boolean;
 };
 
 export type MeResponse = UserInfo & MeResponseCamelExtensions & {
@@ -78,5 +83,21 @@ export function mapMeResponseToAuthUser(res: MeResponse): AuthUser {
         lastLoginAt: res.lastLoginAt ?? res.LastLoginAt,
         mustChangePasswordOnNextLogin:
             res.mustChangePasswordOnNextLogin ?? res.MustChangePasswordOnNextLogin ?? false,
+        sessionPolicy: mapSessionPolicy(res.sessionPolicy),
+    };
+}
+
+function mapSessionPolicy(raw: SessionPolicyResponse | undefined) {
+    if (!raw) return undefined;
+    const timeout =
+        raw.sessionTimeoutMinutes ?? raw.SessionTimeoutMinutes;
+    const warning =
+        raw.warningBeforeTimeoutMinutes ?? raw.WarningBeforeTimeoutMinutes;
+    if (timeout == null && warning == null) return undefined;
+    return {
+        sessionTimeoutMinutes: timeout ?? 30,
+        warningBeforeTimeoutMinutes: warning ?? 1,
+        keepCartAfterTimeout: raw.keepCartAfterTimeout ?? raw.KeepCartAfterTimeout,
+        idleTimeoutEnabled: raw.idleTimeoutEnabled ?? raw.IdleTimeoutEnabled ?? true,
     };
 }

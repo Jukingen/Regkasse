@@ -6,6 +6,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
@@ -147,6 +148,62 @@ namespace KasseAPI_Final.Controllers
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
+
+        [HasPermission(AppPermissions.SettingsView)]
+        [HttpGet("session")]
+        public async Task<ActionResult<SessionSettingsDto>> GetSessionSettings(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(cancellationToken).ConfigureAwait(false);
+                if (settings == null)
+                    return NotFound(new { message = "System settings not found" });
+
+                return Ok(MapSessionSettings(settings));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting session settings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpPut("session")]
+        [HasPermission(AppPermissions.SettingsManage)]
+        public async Task<IActionResult> UpdateSessionSettings(
+            [FromBody] UpdateSessionSettingsRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var settings = await LoadSystemSettingsForEffectiveTenantAsync(cancellationToken).ConfigureAwait(false);
+                if (settings == null)
+                    return NotFound(new { message = "System settings not found" });
+
+                settings.SessionTimeoutMinutes = Math.Clamp(request.TimeoutMinutes, 5, 480);
+                settings.SessionWarningBeforeTimeoutMinutes = Math.Clamp(request.WarningMinutes, 1, 10);
+                settings.SessionIdleTimeoutEnabled = request.Enabled;
+                settings.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                return Ok(MapSessionSettings(settings));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating session settings");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        private static SessionSettingsDto MapSessionSettings(SystemSettings settings) => new()
+        {
+            TimeoutMinutes = settings.SessionTimeoutMinutes,
+            WarningMinutes = settings.SessionWarningBeforeTimeoutMinutes,
+            Enabled = settings.SessionIdleTimeoutEnabled,
+        };
 
         // GET: api/settings/tax-rates
         [HasPermission(AppPermissions.SettingsView)]

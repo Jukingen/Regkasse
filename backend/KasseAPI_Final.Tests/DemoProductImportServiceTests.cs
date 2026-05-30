@@ -91,9 +91,11 @@ public sealed class DemoProductImportServiceTests
         var categories = await db.Categories.IgnoreQueryFilters()
             .Where(c => c.TenantId == tenant.Id)
             .OrderBy(c => c.SortOrder)
-            .Select(c => c.Name)
             .ToListAsync();
-        Assert.Equal(["Salate", "Pasta"], categories);
+        Assert.Equal(["Salate", "Pasta"], categories.Select(c => c.Name));
+        Assert.All(categories, c => Assert.False(string.IsNullOrWhiteSpace(c.Key)));
+        Assert.Contains(categories, c => c.Key == "salate" && c.OriginalDemoName == "Salate" && c.IsSystemCategory);
+        Assert.Contains(categories, c => c.Key == "pizza-mittel" && c.Name == "Pizza, mittel" && c.Icon == "🍕");
 
         var chefsalat = await db.Products.IgnoreQueryFilters()
             .SingleAsync(p => p.TenantId == tenant.Id && p.Name == "chefsalat");
@@ -112,15 +114,16 @@ public sealed class DemoProductImportServiceTests
 
         Assert.True(result.Success);
         Assert.Equal(19, result.TotalProductCount);
-        Assert.Equal(15, result.SelectedCategoryCount);
+        Assert.Equal(16, result.SelectedCategoryCount);
         Assert.Equal(19, result.Created);
         Assert.Equal(19, result.ImportedProductCount);
-        Assert.Equal(15, result.CategoriesCreated);
+        Assert.Equal(16, result.CategoriesCreated);
 
         var categories = await db.Categories.IgnoreQueryFilters()
             .Where(c => c.TenantId == tenant.Id)
             .ToListAsync();
-        Assert.Equal(15, categories.Count);
+        Assert.Equal(16, categories.Count);
+        Assert.Contains(categories, c => c.Key == "saucen" && c.IsSystemCategory);
     }
 
     [Fact]

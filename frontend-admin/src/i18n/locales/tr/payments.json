@@ -18,12 +18,49 @@
     "methodPlaceholder": "Yontem",
     "statusPlaceholder": "Durum"
   },
+  "filtersBar": {
+    "dateStart": "Baslangic tarihi",
+    "dateEnd": "Bitis tarihi",
+    "paymentMethods": "Odeme yontemi",
+    "statuses": "Durum",
+    "receiptNumber": "Fis numarasi",
+    "advanced": "Gelismis filtreler",
+    "clearAll": "Tumunu temizle",
+    "drawerTitle": "Gelismis filtreler",
+    "resetDrawer": "Sifirla",
+    "amountSection": "Tutar",
+    "minAmount": "Min",
+    "maxAmount": "Max",
+    "registerSection": "Kasa",
+    "allRegisters": "Tum kasalar",
+    "customerSection": "Musteri",
+    "customerName": "Musteri adi",
+    "customerEmail": "Musteri e-postasi",
+    "cashierSection": "Kasiyer",
+    "allCashiers": "Tum kasiyerler",
+    "transactionTypeSection": "Islem tipi",
+    "stornoOnly": "Yalnizca stornolar",
+    "refundOnly": "Yalnizca iadeler",
+    "chipDate": "Tarih: {{from}} – {{to}}",
+    "chipMethod": "Yontem: {{value}}",
+    "chipStatus": "Durum: {{value}}",
+    "chipReceipt": "Fis: {{value}}",
+    "chipMinAmount": "Min: {{value}}",
+    "chipMaxAmount": "Max: {{value}}",
+    "chipRegister": "Kasa: {{value}}",
+    "chipCustomer": "Musteri: {{value}}",
+    "chipCustomerEmail": "E-posta: {{value}}",
+    "chipCashier": "Kasiyer: {{value}}",
+    "chipStorno": "Stornolar",
+    "chipRefund": "Iadeler"
+  },
   "scope": {
     "label": "Aktif gorunum:",
     "serverLine": "Sunucudan {{count}} (istek basina en fazla 500)",
     "filteredLine": "Tablo filtresinden sonra gorunen: {{count}}",
     "methodLine": "Yontem = {{value}}",
-    "statusLine": "Durum = {{value}}"
+    "statusLine": "Durum = {{value}}",
+    "activeFiltersLine": "{{count}} aktif filtre"
   },
   "list": {
     "loadErrorTitle": "Odemeler yuklenemedi",
@@ -127,6 +164,45 @@
     "refundOk": "Iade yap",
     "refundCancel": "Vazgec"
   },
+  "cancellationModal": {
+    "title": "Odeme iptali",
+    "infoTitle": "Iptal bilgisi",
+    "infoDescription": "Bu islem geri alinamaz. Fiskal storno fis olusturulur.",
+    "reasonCodeLabel": "Iptal nedeni",
+    "reasonCodePlaceholder": "Neden secin",
+    "reasonCodeRequired": "Lutfen bir neden secin",
+    "reasonTextLabel": "Detayli aciklama",
+    "reasonTextRequired": "Lutfen bir aciklama girin",
+    "reasonTextMinLength": "En az 5 karakter gerekli",
+    "reasonTextPlaceholder": "ornegin Musteri fikrini degistirdi …",
+    "summaryAmount": "Odeme tutari",
+    "summaryDate": "Tarih",
+    "summaryReceipt": "Fis numarasi",
+    "submit": "Iptal uygula",
+    "confirmToken": "Token ile onayla",
+    "approvalTitle": "Yonetici onayi gerekli",
+    "approvalRequiredFallback": "Bu iptal icin yonetici onayi gerekli.",
+    "approvalEmailHint": "6 haneli token yoneticilere e-posta ile gonderildi.",
+    "tokenLabel": "Onay tokeni",
+    "tokenExtra": "Yonetici e-postasindaki 6 haneli kod",
+    "tokenInvalidLength": "Lutfen 6 haneli tokeni girin",
+    "tokenExpired": "Token suresi doldu. Lutfen iptali yeniden baslatin.",
+    "tokenValidFor": "Token gecerlilik: {{minutes}} dk {{seconds}} sn",
+    "alreadyCancelled": "Bu odeme zaten iptal edilmis.",
+    "risk": {
+      "low": "Dusuk",
+      "medium": "Orta",
+      "high": "Yuksek"
+    },
+    "reasons": {
+      "1": { "label": "Musteri istegi", "description": "Musteri siparisi iptal etmek istiyor" },
+      "2": { "label": "Yanlis urun", "description": "Yanlis urun kaydedildi" },
+      "3": { "label": "Fiyat uyumsuz", "description": "Fiyat farki" },
+      "4": { "label": "Cift kayit", "description": "Odeme iki kez kaydedildi" },
+      "5": { "label": "Teknik hata", "description": "Sistem veya cihaz hatasi" },
+      "99": { "label": "Diger", "description": "Baska bir neden" }
+    }
+  },
   "messages": {
     "cancelSuccess": "Odeme iptal edildi",
     "cancelError": "Iptal basarisiz",
@@ -219,5 +295,37 @@
       "noLines": "Satir yok",
       "noAuditEvents": "Eslesen denetim kaydi yok"
     }
+  },
+  "trends": {
+    "period": {
+      "Daily": "Gunluk",
+      "Weekly": "Haftalik",
+      "Monthly": "Aylik"
+    },
+    "totalRevenue": "Toplam ciro",
+    "transactions": "{{count}} islem",
+    "avgTransaction": "Ort. islem",
+    "periodComparison": "Mevcut donem",
+    "empty": "Secilen donemde odeme verisi yok.",
+    "chart": {
+      "revenue": "Ciro",
+      "count": "Adet"
+    },
+    "insights": "En cok kullanilan yontem: {{method}} · Yogun saat: {{hour}}:00 · En iyi gun: {{bestDay}}"
+  },
+  "trendsDashboard": {
+    "pageTitle": "Odeme trendleri",
+    "loadError": "Trend verileri yuklenemedi.",
+    "totalRevenue": "Toplam ciro",
+    "transactions": "Islemler",
+    "avgBasket": "Ort. sepet",
+    "growth": "Buyume",
+    "vsPreviousPeriod": "onceki doneme karsi",
+    "revenueTrendTitle": "Ciro gelisimi",
+    "transactionVolumeTitle": "Islem hacmi",
+    "paymentMethodsTitle": "Odeme yontemi dagilimi",
+    "revenueSeries": "Ciro (€)",
+    "avgBasketSeries": "Ort. sepet (€)",
+    "transactionSeries": "Islem sayisi"
   }
 }

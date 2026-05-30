@@ -4,6 +4,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Tenancy;
@@ -19,7 +20,7 @@ using Xunit;
 namespace KasseAPI_Final.Tests;
 
 /// <summary>
-/// In-memory <see cref="AdminProductsController.GetList"/> coverage for isActive filter, search, and pagination.
+/// In-memory <see cref="AdminProductsController.GetProducts"/> coverage for isActive filter, search, and pagination.
 /// </summary>
 public sealed class AdminProductsGetListIsActiveFilterTests
 {
@@ -86,7 +87,8 @@ public sealed class AdminProductsGetListIsActiveFilterTests
                 Options.Create(new ProductMediaOptions()),
                 NullLogger<ProductImageThumbnailService>.Instance),
             Mock.Of<IDemoProductImportService>(),
-            NullCurrentTenantAccessor.Instance);
+            NullCurrentTenantAccessor.Instance,
+            new AdminProductListService(ctx, TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary)));
 
     private static int ReadTotalCount(IActionResult result)
     {
@@ -110,7 +112,7 @@ public sealed class AdminProductsGetListIsActiveFilterTests
     {
         await using var ctx = await SeedThreeProductsAsync();
         var c = CreateController(ctx);
-        var result = await c.GetList(1, 20, null, null, null);
+        var result = await c.GetProducts(new ProductFilterDto(), pageNumber: 1, pageSize: 20);
         Assert.Equal(2, ReadTotalCount(result));
     }
 
@@ -119,7 +121,7 @@ public sealed class AdminProductsGetListIsActiveFilterTests
     {
         await using var ctx = await SeedThreeProductsAsync();
         var c = CreateController(ctx);
-        var result = await c.GetList(1, 20, null, null, "all");
+        var result = await c.GetProducts(new ProductFilterDto(), pageNumber: 1, pageSize: 20, isActive: "all");
         Assert.Equal(3, ReadTotalCount(result));
     }
 
@@ -128,7 +130,7 @@ public sealed class AdminProductsGetListIsActiveFilterTests
     {
         await using var ctx = await SeedThreeProductsAsync();
         var c = CreateController(ctx);
-        var result = await c.GetList(1, 20, null, null, "false");
+        var result = await c.GetProducts(new ProductFilterDto(), pageNumber: 1, pageSize: 20, isActive: "false");
         Assert.Equal(1, ReadTotalCount(result));
         Assert.Equal("Gamma", ReadFirstItemName(result));
     }
@@ -138,7 +140,7 @@ public sealed class AdminProductsGetListIsActiveFilterTests
     {
         await using var ctx = await SeedThreeProductsAsync();
         var c = CreateController(ctx);
-        var result = await c.GetList(1, 20, null, null, "nope");
+        var result = await c.GetProducts(new ProductFilterDto(), pageNumber: 1, pageSize: 20, isActive: "nope");
         Assert.IsType<BadRequestObjectResult>(result);
     }
 
@@ -147,7 +149,7 @@ public sealed class AdminProductsGetListIsActiveFilterTests
     {
         await using var ctx = await SeedThreeProductsAsync();
         var c = CreateController(ctx);
-        var result = await c.GetList(1, 20, null, "Gamma", "all");
+        var result = await c.GetProducts(new ProductFilterDto(), pageNumber: 1, pageSize: 20, name: "Gamma", isActive: "all");
         Assert.Equal(1, ReadTotalCount(result));
         Assert.Equal("Gamma", ReadFirstItemName(result));
     }
@@ -157,7 +159,7 @@ public sealed class AdminProductsGetListIsActiveFilterTests
     {
         await using var ctx = await SeedThreeProductsAsync();
         var c = CreateController(ctx);
-        var result = await c.GetList(2, 1, null, null, "all");
+        var result = await c.GetProducts(new ProductFilterDto(), pageNumber: 2, pageSize: 1, isActive: "all");
         Assert.Equal(3, ReadTotalCount(result));
         Assert.Equal("Beta", ReadFirstItemName(result));
     }

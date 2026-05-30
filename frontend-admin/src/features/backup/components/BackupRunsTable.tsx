@@ -11,26 +11,18 @@ import {
   Button,
   message,
   Popconfirm,
+  Progress,
   Select,
   Space,
   Table,
-  Tag,
   Tooltip,
   Typography,
 } from "antd";
 import type { ColumnsType, TableProps } from "antd/es/table";
-import {
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  SyncOutlined,
-} from "@ant-design/icons";
 import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
 import { backupQueryKeys, useBackupRuns, useTriggerBackup } from "@/features/backup/api/backupHooks";
 import type { BackupRunResponseDto } from "@/api/generated/model";
 import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
-import { BackupArtifactLifecycleState } from "@/api/generated/model/backupArtifactLifecycleState";
 import { useI18n } from "@/i18n";
 import { useQueryClient } from "@tanstack/react-query";
 import { triggerErrorMessageBackupDashboard } from "@/features/backup-dr/logic/backupManualTriggerMessaging";
@@ -45,48 +37,17 @@ import {
 import { apiNullableToUndefined } from "@/features/backup-dr/logic/backupDrDtoNormalize";
 import { formatBackupBytes } from "@/features/backup-dr/logic/backupFormat";
 import { BackupDetailModal } from "@/features/backup/components/BackupDetailModal";
+import { BackupVerificationReport } from "@/features/backup/components/BackupVerificationReport";
+import { isBackupRunSucceeded } from "@/features/backup/logic/backupRunDetailPresentation";
+import { BackupStatusBadge } from "@/features/backup/components/BackupStatusBadge";
 import {
   compareBackupRunsByRequestedAtDesc,
-  computeBackupRunDurationMinutes,
   filterBackupRunsByTenantIdempotency,
   isBackupRunFailed,
-  resolveBackupRunStatusUiKey,
-  sumArtifactBytes,
+  resolveBackupRunDurationLabel,
+  resolveBackupRunSizeLabel,
+  resolveBackupRunTotalBytes,
 } from "@/features/backup/logic/backupRunTablePresentation";
-
-type StatusTagConfig = {
-  color: string;
-  icon: React.ReactNode;
-};
-
-function statusTagConfig(uiKey: ReturnType<typeof resolveBackupRunStatusUiKey>): StatusTagConfig {
-  switch (uiKey) {
-    case "succeeded":
-      return { color: "success", icon: <CheckCircleOutlined /> };
-    case "failed":
-      return { color: "error", icon: <CloseCircleOutlined /> };
-    case "verificationFailed":
-      return { color: "warning", icon: <ExclamationCircleOutlined /> };
-    case "running":
-    case "awaitingVerification":
-      return { color: "processing", icon: <SyncOutlined spin /> };
-    case "queued":
-      return { color: "default", icon: <ClockCircleOutlined /> };
-    case "cancelled":
-      return { color: "default", icon: <CloseCircleOutlined /> };
-    default:
-      return { color: "default", icon: null };
-  }
-}
-
-function artifactLifecycleBadgeStatus(
-  lifecycle: number | undefined,
-): "success" | "error" | "processing" | "default" {
-  if (lifecycle === BackupArtifactLifecycleState.NUMBER_1) return "success";
-  if (lifecycle === BackupArtifactLifecycleState.NUMBER_2) return "success";
-  if (lifecycle === BackupArtifactLifecycleState.NUMBER_3) return "error";
-  return "default";
-}
 
 export interface BackupRunsTableProps {
   onViewDetails?: (run: BackupRunResponseDto) => void;
@@ -108,6 +69,8 @@ export function BackupRunsTable({
   const [selectedTenantId, setSelectedTenantId] = useState<string | undefined>();
   const [detailRunId, setDetailRunId] = useState<string | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [verificationReportRunId, setVerificationReportRunId] = useState<string | null>(null);
+  const [verificationReportOpen, setVerificationReportOpen] = useState(false);
 
   const { tenants, isLoading: tenantsLoading } = useTenants({
     enabled: canFilterRunsByTenant,
@@ -150,41 +113,34 @@ export function BackupRunsTable({
 
   const formatDateTime = useCallback(
     (iso: string | undefined | null) => {
-      if (!iso) return "—";
+      if (!iso) return t("backupDr.runsTable.noValue");
       try {
         return new Date(iso).toLocaleString(formatLocale);
       } catch {
         return iso;
       }
     },
-    [formatLocale],
+    [formatLocale, t],
   );
 
-  const statusLabel = useCallback(
-    (status: number | undefined) => {
-      const uiKey = resolveBackupRunStatusUiKey(status);
-      if (uiKey === "unknown") return t("backupDr.summary.unknown");
-      return t(`backupDr.runsTable.statusLabels.${uiKey}`);
+  const formatTime = useCallback(
+    (iso: string | undefined | null) => {
+      if (!iso) return t("backupDr.runsTable.noValue");
+      try {
+        return new Date(iso).toLocaleTimeString(formatLocale);
+      } catch {
+        return iso;
+      }
     },
-    [t],
+    [formatLocale, t],
   );
 
   const artifactTypeLabel = useCallback(
     (type: number | undefined) => {
-      if (type === undefined) return "—";
+      if (type === undefined) return t("backupDr.runsTable.noValue");
       const key = `backupDr.runsTable.artifactType.${type}`;
       const label = t(key);
       return label === key ? String(type) : label;
-    },
-    [t],
-  );
-
-  const lifecycleLabel = useCallback(
-    (lifecycle: number | undefined) => {
-      if (lifecycle === undefined) return "";
-      const key = `backupDr.lifecycle.${lifecycle}`;
-      const label = t(key);
-      return label === key ? String(lifecycle) : label;
     },
     [t],
   );
@@ -217,21 +173,16 @@ export function BackupRunsTable({
         title: t("backupDr.runsTable.statusColumn"),
         dataIndex: "status",
         key: "status",
-        render: (status: number | undefined) => {
-          const uiKey = resolveBackupRunStatusUiKey(status);
-          const cfg = statusTagConfig(uiKey);
-          return (
-            <Tag color={cfg.color} icon={cfg.icon}>
-              {statusLabel(status)}
-            </Tag>
-          );
-        },
+        render: (status: number | undefined) => <BackupStatusBadge status={status} />,
         filters: [
-          { text: statusLabel(BackupRunStatus.NUMBER_3), value: BackupRunStatus.NUMBER_3 },
-          { text: statusLabel(BackupRunStatus.NUMBER_4), value: BackupRunStatus.NUMBER_4 },
-          { text: statusLabel(BackupRunStatus.NUMBER_5), value: BackupRunStatus.NUMBER_5 },
-          { text: statusLabel(BackupRunStatus.NUMBER_1), value: BackupRunStatus.NUMBER_1 },
-          { text: statusLabel(BackupRunStatus.NUMBER_0), value: BackupRunStatus.NUMBER_0 },
+          { text: t("backupDr.runsTable.statusLabels.succeeded"), value: BackupRunStatus.NUMBER_3 },
+          { text: t("backupDr.runsTable.statusLabels.failed"), value: BackupRunStatus.NUMBER_4 },
+          {
+            text: t("backupDr.runsTable.statusLabels.verificationFailed"),
+            value: BackupRunStatus.NUMBER_5,
+          },
+          { text: t("backupDr.runsTable.statusLabels.running"), value: BackupRunStatus.NUMBER_1 },
+          { text: t("backupDr.runsTable.statusLabels.queued"), value: BackupRunStatus.NUMBER_0 },
         ],
         onFilter: (value, record) => record.status === value,
       },
@@ -239,45 +190,79 @@ export function BackupRunsTable({
         title: t("backupDr.runsTable.duration"),
         key: "duration",
         render: (_: unknown, record: BackupRunResponseDto) => {
-          const minutes = computeBackupRunDurationMinutes(
-            record.startedAt,
-            record.completedAt,
+          const label = resolveBackupRunDurationLabel(record, t);
+          return (
+            <Tooltip
+              title={t("backupDr.runsTable.durationTooltip", {
+                start: formatTime(record.startedAt),
+                end: formatTime(record.completedAt),
+              })}
+            >
+              <span>{label}</span>
+            </Tooltip>
           );
-          if (minutes === undefined) return t("backupDr.runsTable.noDuration");
-          return t("backupDr.runsTable.durationMinutes", {
-            minutes: minutes.toFixed(1),
-          });
         },
       },
       {
         title: t("backupDr.runsTable.size"),
         key: "size",
-        render: (_: unknown, record: BackupRunResponseDto) =>
-          formatBackupBytes(sumArtifactBytes(record.artifacts), t),
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const label = resolveBackupRunSizeLabel(record, t);
+          const bytes = resolveBackupRunTotalBytes(record);
+          const tooltip =
+            bytes > 0
+              ? t("backupDr.runsTable.sizeBytesTooltip", {
+                  bytes: bytes.toLocaleString(formatLocale),
+                })
+              : undefined;
+          return (
+            <Tooltip title={tooltip}>
+              <span>{label}</span>
+            </Tooltip>
+          );
+        },
+      },
+      {
+        title: t("backupDr.runsTable.compression"),
+        key: "compression",
+        render: (_: unknown, record: BackupRunResponseDto) => {
+          const ratio = record.compressionRatio;
+          if (ratio == null || Number.isNaN(ratio)) {
+            return t("backupDr.runsTable.noValue");
+          }
+          const percent = Math.round(ratio);
+          return (
+            <Progress
+              percent={percent}
+              size="small"
+              status={percent < 50 ? "success" : "normal"}
+              format={() => `${percent}%`}
+            />
+          );
+        },
       },
       {
         title: t("backupDr.runsTable.artifacts"),
         key: "artifacts",
         render: (_: unknown, record: BackupRunResponseDto) => {
           const list = record.artifacts ?? [];
-          if (!list.length) return "—";
+          if (!list.length) return t("backupDr.runsTable.noValue");
           return (
             <Space size={[4, 4]} wrap>
               {list.map((artifact) => {
                 const typeLabel = artifactTypeLabel(artifact.artifactType);
-                const locator = artifact.storageLocator?.trim() || "—";
-                const life = lifecycleLabel(artifact.lifecycleState);
+                const sizeLabel =
+                  artifact.formattedSize?.trim() ||
+                  formatBackupBytes(artifact.byteSize ?? undefined, t);
                 return (
                   <Tooltip
-                    key={artifact.id ?? `${typeLabel}-${locator}`}
-                    title={`${typeLabel}: ${locator}${life ? ` · ${life}` : ""}`}
+                    key={artifact.id ?? `${typeLabel}-${artifact.storageLocator ?? ""}`}
+                    title={`${typeLabel}: ${sizeLabel}`}
                   >
-                    <Space size={4}>
-                      <Badge
-                        status={artifactLifecycleBadgeStatus(artifact.lifecycleState)}
-                      />
-                      <Typography.Text style={{ fontSize: 12 }}>{typeLabel}</Typography.Text>
-                    </Space>
+                    <Badge
+                      status={(artifact.byteSize ?? 0) > 0 ? "success" : "default"}
+                      text={<Typography.Text style={{ fontSize: 12 }}>{typeLabel}</Typography.Text>}
+                    />
                   </Tooltip>
                 );
               })}
@@ -292,7 +277,7 @@ export function BackupRunsTable({
         ellipsis: true,
         render: (text: string | null | undefined, record: BackupRunResponseDto) => {
           const detail = text?.trim() || record.failureCode?.trim();
-          if (!detail) return "—";
+          if (!detail) return t("backupDr.runsTable.noValue");
           return (
             <Typography.Text type="danger" ellipsis={{ tooltip: detail }}>
               {detail}
@@ -313,6 +298,18 @@ export function BackupRunsTable({
             <Button type="link" size="small" onClick={() => viewDetails(record)}>
               {t("backupDr.runsTable.details")}
             </Button>
+            {record.id && isBackupRunSucceeded(record.status) ? (
+              <Button
+                type="link"
+                size="small"
+                onClick={() => {
+                  setVerificationReportRunId(record.id!);
+                  setVerificationReportOpen(true);
+                }}
+              >
+                {t("backupDr.verificationReport.openReportShort")}
+              </Button>
+            ) : null}
             {isBackupRunFailed(record.status) && canTrigger ? (
               <Popconfirm
                 title={t("backupDr.runsTable.retryConfirmTitle")}
@@ -351,13 +348,13 @@ export function BackupRunsTable({
       artifactTypeLabel,
       canTrigger,
       formatDateTime,
-      lifecycleLabel,
-      statusLabel,
+      formatLocale,
+      formatTime,
+      handleRetrySuccess,
       isSuperAdmin,
+      selectedTenantId,
       t,
       triggerBackup.isPending,
-      handleRetrySuccess,
-      selectedTenantId,
       viewDetails,
     ],
   );
@@ -456,6 +453,16 @@ export function BackupRunsTable({
         open={detailModalOpen}
         onClose={() => setDetailModalOpen(false)}
       />
+      {verificationReportRunId ? (
+        <BackupVerificationReport
+          backupRunId={verificationReportRunId}
+          open={verificationReportOpen}
+          onClose={() => {
+            setVerificationReportOpen(false);
+            setVerificationReportRunId(null);
+          }}
+        />
+      ) : null}
     </>
   );
 }

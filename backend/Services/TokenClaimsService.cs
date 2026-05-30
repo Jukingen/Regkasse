@@ -12,11 +12,11 @@ namespace KasseAPI_Final.Services;
 /// </summary>
 public sealed class TokenClaimsService : ITokenClaimsService
 {
-    private readonly IRolePermissionResolver _rolePermissionResolver;
+    private readonly IEffectivePermissionResolver _effectivePermissionResolver;
 
-    public TokenClaimsService(IRolePermissionResolver rolePermissionResolver)
+    public TokenClaimsService(IEffectivePermissionResolver effectivePermissionResolver)
     {
-        _rolePermissionResolver = rolePermissionResolver;
+        _effectivePermissionResolver = effectivePermissionResolver;
     }
 
     /// <summary>Collects distinct canonical role names from Identity roles, or the user row when Identity has none.</summary>
@@ -105,7 +105,12 @@ public sealed class TokenClaimsService : ITokenClaimsService
         if (!hasIdentityRoles && !string.IsNullOrWhiteSpace(user.Role))
             roleNamesForResolver.Add(user.Role.Trim());
 
-        var permissions = await _rolePermissionResolver.GetPermissionsForRolesAsync(roleNamesForResolver, cancellationToken);
+        Guid? tenantGuid = Guid.TryParse(tenantId, out var parsedTenantId) ? parsedTenantId : null;
+        var permissions = await _effectivePermissionResolver.GetEffectivePermissionsAsync(
+            user.Id,
+            roleNamesForResolver,
+            tenantGuid,
+            cancellationToken);
         foreach (var p in permissions)
             list.Add(new Claim(PermissionCatalog.PermissionClaimType, p));
 

@@ -48,6 +48,8 @@ namespace KasseAPI_Final
             // Fail-fast: auth session/refresh schema must exist before login pipeline can issue tokens.
             await VerifyCriticalAuthSchemaAsync(context);
 
+            await VerifyCriticalCatalogSchemaAsync(context);
+
             var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
@@ -102,6 +104,53 @@ namespace KasseAPI_Final
             throw new InvalidOperationException(
                 $"Critical auth schema missing. auth_sessions={hasAuthSessions}, refresh_tokens={hasRefreshTokens}. " +
                 $"Connection={safeConn}. Ensure migration 'AddAuthSessionsAndRefreshTokens' is applied to the active database.");
+        }
+
+        /// <summary>
+        /// Ensures recent catalog migrations were applied to the same database the API uses (demo import / admin products).
+        /// </summary>
+        private static async Task VerifyCriticalCatalogSchemaAsync(AppDbContext context)
+        {
+            static async Task<bool> ColumnExistsAsync(AppDbContext db, string table, string column)
+            {
+                var conn = db.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                    await conn.OpenAsync();
+                await using var cmd = conn.CreateCommand();
+                cmd.CommandText = """
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = @table
+                          AND column_name = @column
+                    )
+                    """;
+                var tableParam = cmd.CreateParameter();
+                tableParam.ParameterName = "@table";
+                tableParam.Value = table;
+                cmd.Parameters.Add(tableParam);
+                var columnParam = cmd.CreateParameter();
+                columnParam.ParameterName = "@column";
+                columnParam.Value = column;
+                cmd.Parameters.Add(columnParam);
+                var result = await cmd.ExecuteScalarAsync();
+                return result is bool b && b;
+            }
+
+            var hasCategoryFiscal = await ColumnExistsAsync(context, "categories", "fiscal_category");
+            var hasCategoryKey = await ColumnExistsAsync(context, "categories", "category_key");
+            var hasProductNameDe = await ColumnExistsAsync(context, "products", "name_de");
+
+            if (hasCategoryFiscal && hasCategoryKey && hasProductNameDe)
+                return;
+
+            var conn = context.Database.GetDbConnection().ConnectionString ?? "(empty)";
+            var safeConn = System.Text.RegularExpressions.Regex.Replace(conn, @"Password=[^;]*", "Password=***");
+            throw new InvalidOperationException(
+                "Critical catalog schema missing. " +
+                $"categories.fiscal_category={hasCategoryFiscal}, categories.category_key={hasCategoryKey}, products.name_de={hasProductNameDe}. " +
+                $"Connection={safeConn}. From the backend folder run: dotnet ef database update --project KasseAPI_Final.csproj");
         }
     }
 }

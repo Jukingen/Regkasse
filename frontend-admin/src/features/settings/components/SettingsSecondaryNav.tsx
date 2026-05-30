@@ -16,6 +16,7 @@ import {
     CreditCardOutlined,
     CloudServerOutlined,
     ExperimentOutlined,
+    ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useI18n } from '@/i18n/I18nProvider';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
@@ -29,6 +30,7 @@ const SETTINGS_TAB_META: Record<
     { labelKey: string; Icon: ComponentType }
 > = {
     '/settings': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
+    '/settings/session': { labelKey: ADMIN_NAV_LABEL_KEYS.sessionSettings, Icon: ClockCircleOutlined },
     '/settings/personalization': { labelKey: ADMIN_NAV_LABEL_KEYS.personalization, Icon: BgColorsOutlined },
     '/settings/payment-methods': { labelKey: ADMIN_NAV_LABEL_KEYS.paymentMethods, Icon: CreditCardOutlined },
     '/settings/backup-dr': { labelKey: ADMIN_NAV_LABEL_KEYS.backupDr, Icon: CloudServerOutlined },

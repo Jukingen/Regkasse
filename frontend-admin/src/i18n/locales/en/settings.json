@@ -222,6 +222,28 @@
       "placeholderOptional": "optional"
     }
   },
+  "session": {
+    "pageTitle": "Session & inactivity",
+    "cardTitle": "Session settings",
+    "description": "Configure how long users may stay signed in without activity in the admin panel. A warning appears before automatic sign-out.",
+    "enabledLabel": "Enable inactivity timeout",
+    "enabledOn": "On",
+    "enabledOff": "Off",
+    "timeoutLabel": "Inactivity timeout",
+    "timeoutTooltip": "After this period without activity, the user is signed out automatically.",
+    "timeoutRequired": "Please enter a timeout.",
+    "timeoutRange": "Value must be between 5 and 480 minutes.",
+    "timeoutPresetMinutes": "{{minutes}} minutes",
+    "warningLabel": "Warning before sign-out",
+    "warningTooltip": "How long before timeout the countdown warning is shown (1 minute = 60 seconds).",
+    "warningRequired": "Please enter a warning duration.",
+    "warningRange": "Value must be between 1 and 10 minutes.",
+    "warningCountdownHint": "Users see a {{seconds}} second countdown in the warning dialog.",
+    "minutesUnit": "min",
+    "save": "Save",
+    "saveSuccess": "Session settings saved.",
+    "saveFailed": "Could not save session settings."
+  },
   "personalization": {
     "pageTitle": "Appearance & language",
     "appearance": {

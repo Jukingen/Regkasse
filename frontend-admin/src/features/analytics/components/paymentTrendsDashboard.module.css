@@ -1,0 +1,59 @@
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.controlsCard :global(.ant-card-body) {
+    padding: 16px;
+}
+
+.metricRow {
+    margin-bottom: 0;
+}
+
+.methodList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+}
+
+.methodRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.methodRow:last-child {
+    border-bottom: none;
+}
+
+.methodName {
+    flex: 1;
+    min-width: 0;
+}
+
+.methodAmount {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.methodPct {
+    color: rgba(0, 0, 0, 0.45);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.growthHint {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.45);
+    margin-top: 4px;
+}
+
+.chartCard {
+    min-height: 320px;
+}

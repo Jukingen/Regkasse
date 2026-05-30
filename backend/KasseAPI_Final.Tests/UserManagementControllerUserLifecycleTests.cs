@@ -100,6 +100,7 @@ public class UserManagementControllerUserLifecycleTests
             sessionInvalidation,
             uniquenessValidation ?? CreateUniquenessValidationMock(),
             roleMgmt,
+            Mock.Of<IUserPermissionOverrideService>(),
             logger,
             provisioner,
             NullCurrentTenantAccessor.Instance);

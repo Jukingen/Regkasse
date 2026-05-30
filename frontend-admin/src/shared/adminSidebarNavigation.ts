@@ -60,6 +60,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     [ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions]: [
         '/receipts',
         '/payments',
+        '/payments/trends',
         '/payments/storno-refund-audit',
         '/invoices',
         '/receipt-templates',

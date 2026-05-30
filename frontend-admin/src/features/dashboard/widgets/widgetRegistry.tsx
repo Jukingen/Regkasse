@@ -9,6 +9,7 @@ import { RecentUsersWidget } from '@/features/dashboard/widgets/RecentUsersWidge
 import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryWidget';
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
 import { TopSellingProductsWidget } from '@/features/dashboard/widgets/TopSellingProductsWidget';
+import { PaymentTrendWidget, parsePaymentTrendPeriod } from '@/features/dashboard/widgets/PaymentTrendWidget';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 
 export type DashboardWidgetRenderProps = {
@@ -45,6 +46,16 @@ export function renderDashboardWidget(
                 props.settings?.period === 'week' ? ('week' as const) : ('today' as const);
             return (
                 <TopSellingProductsWidget
+                    {...common}
+                    period={period}
+                    onPeriodChange={(p) => props.onSettingsChange?.({ period: p })}
+                />
+            );
+        }
+        case DASHBOARD_WIDGET_IDS.paymentTrends: {
+            const period = parsePaymentTrendPeriod(props.settings?.period);
+            return (
+                <PaymentTrendWidget
                     {...common}
                     period={period}
                     onPeriodChange={(p) => props.onSettingsChange?.({ period: p })}

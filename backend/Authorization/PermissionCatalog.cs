@@ -24,11 +24,21 @@ public static class PermissionCatalog
         // User & Role
         AppPermissions.UserView,
         AppPermissions.UserManage,
+        AppPermissions.UserCreate,
+        AppPermissions.UserEdit,
+        AppPermissions.UserDelete,
+        AppPermissions.UserChangeRole,
+        AppPermissions.UserChangeUsername,
+        AppPermissions.UserResetPassword,
         AppPermissions.RoleView,
         AppPermissions.RoleManage,
         // Product, Category, Modifier
         AppPermissions.ProductView,
         AppPermissions.ProductManage,
+        AppPermissions.ProductCreate,
+        AppPermissions.ProductEdit,
+        AppPermissions.ProductDelete,
+        AppPermissions.ProductUpdateStock,
         AppPermissions.CategoryView,
         AppPermissions.CategoryManage,
         AppPermissions.ModifierView,
@@ -49,6 +59,7 @@ public static class PermissionCatalog
         AppPermissions.PaymentView,
         AppPermissions.PaymentTake,
         AppPermissions.PaymentCancel,
+        AppPermissions.PaymentExport,
         AppPermissions.RefundCreate,
         AppPermissions.DiscountApply,
         // CashRegister, Cashdrawer, Shift
@@ -83,6 +94,7 @@ public static class PermissionCatalog
         // Settings, Localization, ReceiptTemplate
         AppPermissions.SettingsView,
         AppPermissions.SettingsManage,
+        AppPermissions.SettingsBackup,
         AppPermissions.LocalizationView,
         AppPermissions.LocalizationManage,
         AppPermissions.ReceiptTemplateView,
@@ -90,9 +102,11 @@ public static class PermissionCatalog
         // Audit, Report
         AppPermissions.AuditView,
         AppPermissions.AuditExport,
+        AppPermissions.AuditDelete,
         AppPermissions.AuditCleanup,
         AppPermissions.ReportView,
         AppPermissions.ReportExport,
+        AppPermissions.ReportSchedule,
         AppPermissions.FiscalExportCompliance,
         // FinanzOnline
         AppPermissions.FinanzOnlineView,
@@ -111,6 +125,11 @@ public static class PermissionCatalog
         AppPermissions.RksvSchlussbelegCreate,
         AppPermissions.SystemCritical,
         AppPermissions.TenantManage,
+        AppPermissions.TenantView,
+        AppPermissions.TenantCreate,
+        AppPermissions.TenantEdit,
+        AppPermissions.TenantDelete,
+        AppPermissions.TenantImpersonate,
         AppPermissions.LicenseLifecycleSuper,
         AppPermissions.LicenseView,
         // Legacy / convenience

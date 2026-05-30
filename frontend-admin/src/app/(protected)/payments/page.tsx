@@ -3,7 +3,7 @@
 /**
  * Admin odeme listesi ve detay cekmecesi; metinler payments namespace, sayi/tarih/para formatLocale ile.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Table,
   Card,
@@ -11,8 +11,6 @@ import {
   Tag,
   Space,
   Button,
-  DatePicker,
-  Select,
   Drawer,
   Descriptions,
   Alert,
@@ -32,18 +30,29 @@ import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabel
 import { CreditCardOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { OPERATOR_LINK_LABELS } from '@/shared/operatorTruthCopy';
 import {
-  postApiAdminPaymentsIdCancel,
   postApiAdminPaymentsIdRefund,
-  useGetApiAdminPayments,
   useGetApiAdminPaymentsId,
   useGetApiAdminPaymentsStatistics,
 } from '@/api/generated/admin/admin';
+import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type {
   AdminPaymentDetailDto,
   AdminPaymentListItemDto,
+  CashRegister,
 } from '@/api/generated/model';
+import { useAdminPaymentsList } from '@/features/payments/api/adminPaymentsListQuery';
+import { PaymentFilterBar } from '@/features/payments/components/PaymentFilterBar';
+import type { PaymentFilters } from '@/features/payments/types/paymentFilters';
+import { countActivePaymentFilters } from '@/features/payments/utils/countActivePaymentFilters';
+import {
+  buildPaymentListSearchParams,
+  createDefaultPaymentFilters,
+  parsePaymentFiltersFromSearchParams,
+  parsePaymentPaginationFromSearchParams,
+} from '@/features/payments/utils/paymentFilterUrl';
+import { paymentFiltersToApiParams } from '@/features/payments/utils/paymentFiltersToApiParams';
 import dayjs from 'dayjs';
-import { keepPreviousData, useMutation } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -53,7 +62,7 @@ import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
-import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
+import { CancellationModal } from '@/features/payments/components/CancellationModal';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import {
   FORMAT_EMPTY_DISPLAY,
@@ -61,10 +70,16 @@ import {
   formatCurrency,
   formatDateTime,
 } from '@/i18n/formatting';
+import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 
-const { RangePicker } = DatePicker;
-
-const DEFAULT_DATE_RANGE = { startDate: dayjs().subtract(30, 'day').format('YYYY-MM-DD'), endDate: dayjs().format('YYYY-MM-DD') };
+function normalizeRegisters(data: unknown): CashRegister[] {
+  if (Array.isArray(data)) return data as CashRegister[];
+  if (data && typeof data === 'object' && 'registers' in data) {
+    const r = (data as { registers?: CashRegister[] }).registers;
+    if (Array.isArray(r)) return r;
+  }
+  return [];
+}
 
 const DEFAULT_LIST_PAGE_SIZE = 50;
 
@@ -161,16 +176,18 @@ export default function PaymentsPage() {
   const isPaymentBlockedByLicense =
     tenantLicense?.kind === 'grace_readonly' ||
     tenantLicense?.kind === 'lockdown';
-  const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
-    dayjs(DEFAULT_DATE_RANGE.startDate),
-    dayjs(DEFAULT_DATE_RANGE.endDate),
-  ]);
-  const [methodFilter, setMethodFilter] = useState<string | undefined>();
-  const [statusFilter, setStatusFilter] = useState<string | undefined>();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_LIST_PAGE_SIZE);
+
+  const initialPagination = useMemo(
+    () => parsePaymentPaginationFromSearchParams(searchParams ?? new URLSearchParams()),
+    [searchParams],
+  );
+  const [filters, setFilters] = useState<PaymentFilters>(() =>
+    parsePaymentFiltersFromSearchParams(searchParams ?? new URLSearchParams()),
+  );
+  const [page, setPage] = useState(initialPagination.page);
+  const [pageSize, setPageSize] = useState(initialPagination.pageSize);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [refundReason, setRefundReason] = useState('');
   const [refundAmount, setRefundAmount] = useState<number | null>(null);
   useEffect(() => {
@@ -178,30 +195,46 @@ export default function PaymentsPage() {
     if (pid) setSelectedPaymentId(pid);
   }, [searchParams]);
 
+  const filtersSerialized = useMemo(() => JSON.stringify(filters), [filters]);
+  const prevFiltersSerialized = useRef(filtersSerialized);
+
   useEffect(() => {
-    setPage(1);
-  }, [dateRange, methodFilter, statusFilter]);
+    if (prevFiltersSerialized.current !== filtersSerialized) {
+      setPage(1);
+      prevFiltersSerialized.current = filtersSerialized;
+    }
+  }, [filtersSerialized]);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const built = buildPaymentListSearchParams(filters, { page, pageSize }, new URLSearchParams());
+    const paymentId = searchParams.get('paymentId');
+    if (paymentId) built.set('paymentId', paymentId);
+    const nextQuery = built.toString();
+    const currentQuery = searchParams.toString();
+    if (nextQuery !== currentQuery) {
+      router.replace(nextQuery ? `?${nextQuery}` : window.location.pathname, { scroll: false });
+    }
+  }, [filters, page, pageSize, router, searchParams]);
+
+  const handleFilterChange = useCallback((next: PaymentFilters) => {
+    setFilters(Object.keys(next).length === 0 ? createDefaultPaymentFilters() : next);
+  }, []);
 
   const listParams = useMemo(
-    () => ({
-      startDate: dateRange[0].format('YYYY-MM-DD'),
-      endDate: dateRange[1].format('YYYY-MM-DD'),
-      pageNumber: page,
-      pageSize,
-      method: methodFilter,
-      status: statusFilter,
-    }),
-    [dateRange, page, pageSize, methodFilter, statusFilter],
+    () => paymentFiltersToApiParams(filters, { page, pageSize }),
+    [filters, page, pageSize],
   );
 
-  const { data, isLoading, isError, error, refetch } = useGetApiAdminPayments(listParams, {
-    query: { placeholderData: keepPreviousData },
-  });
+  const { data: registersRaw } = useGetApiCashRegister();
+  const cashRegisters = useMemo(() => normalizeRegisters(registersRaw), [registersRaw]);
+
+  const { data, isLoading, isError, error, refetch } = useAdminPaymentsList(listParams);
   const { data: statsRaw, isLoading: statsLoading } = useGetApiAdminPaymentsStatistics({
     startDate: listParams.startDate,
     endDate: listParams.endDate,
   });
-  const { data: paymentDetail, isLoading: detailLoading } = useGetApiAdminPaymentsId(selectedPaymentId ?? '', {
+  const { data: paymentDetail, isLoading: detailLoading, refetch: refetchPaymentDetail } = useGetApiAdminPaymentsId(selectedPaymentId ?? '', {
     query: { enabled: !!selectedPaymentId },
   });
   const paymentDetailData = paymentDetail as AdminPaymentDetailDto | undefined;
@@ -215,33 +248,21 @@ export default function PaymentsPage() {
   const safeOperationalDetail: AdminPaymentDetailDto = operationalDetail ?? ({} as AdminPaymentDetailDto);
 
   const paymentsScopeSummary = useMemo(() => {
-    const startStr = fmt.formatDate(dateRange[0].toDate());
-    const endStr = fmt.formatDate(dateRange[1].toDate());
+    const start = filters.dateRange?.[0] ?? dayjs().subtract(30, 'day');
+    const end = filters.dateRange?.[1] ?? dayjs();
+    const startStr = fmt.formatDate(start.toDate());
+    const endStr = fmt.formatDate(end.toDate());
     const parts = [
       `${startStr}–${endStr}`,
       t('payments.scope.serverLine', { count: totalCount }),
       t('payments.scope.filteredLine', { count: payments.length }),
     ];
-    if (methodFilter) parts.push(t('payments.scope.methodLine', { value: methodFilter }));
-    if (statusFilter) parts.push(t('payments.scope.statusLine', { value: paymentStatusUiLabel(statusFilter) }));
+    const activeCount = countActivePaymentFilters(filters);
+    if (activeCount > 0) {
+      parts.push(t('payments.scope.activeFiltersLine', { count: activeCount }));
+    }
     return parts.join(' · ');
-  }, [dateRange, totalCount, payments.length, methodFilter, statusFilter, fmt, t, paymentStatusUiLabel]);
-
-  const cancelMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedPaymentId) throw new Error(t('payments.messages.errorNoPaymentSelected'));
-      return postApiAdminPaymentsIdCancel(selectedPaymentId, { reason: cancelReason.trim() });
-    },
-    onSuccess: async () => {
-      message.success(t('payments.messages.cancelSuccess'));
-      setCancelReason('');
-      await refetch();
-    },
-    onError: (err: Error) => {
-      // If Error.message is a backend string, show it; otherwise localized fallback.
-      message.error(err?.message ?? t('payments.messages.cancelError'));
-    },
-  });
+  }, [filters, totalCount, payments.length, fmt, t]);
 
   const refundMutation = useMutation({
     mutationFn: async () => {
@@ -285,18 +306,18 @@ export default function PaymentsPage() {
     }
   };
 
-  const methodOptions = useMemo(
-    () => Array.from(new Set(payments.map((p) => p.method).filter(Boolean))) as string[],
-    [payments],
-  );
-  const statusOptions = useMemo(
-    () =>
-      PAYMENT_STATUS_FILTER_VALUES.map((s) => ({
-        value: s,
-        label: paymentStatusUiLabel(s),
-      })),
-    [paymentStatusUiLabel],
-  );
+  const availableMethods = useMemo(() => {
+    const fromApi = data?.activeFilters?.availablePaymentMethods;
+    if (fromApi && fromApi.length > 0) return fromApi;
+    const fromItems = Array.from(new Set(payments.map((p) => p.method).filter(Boolean))) as string[];
+    return fromItems;
+  }, [data?.activeFilters?.availablePaymentMethods, payments]);
+
+  const availableStatuses = useMemo(() => {
+    const fromApi = data?.activeFilters?.availableStatuses;
+    if (fromApi && fromApi.length > 0) return fromApi;
+    return [...PAYMENT_STATUS_FILTER_VALUES];
+  }, [data?.activeFilters?.availableStatuses]);
 
   const columns = useMemo(
     () => [
@@ -480,35 +501,13 @@ export default function PaymentsPage() {
         </Typography.Paragraph>
       </AdminPageHeader>
 
-      <Card size="small">
-        <Space wrap>
-          <RangePicker
-            value={dateRange}
-            onChange={(v) => {
-              if (!v || !v[0] || !v[1]) return;
-              setDateRange([v[0], v[1]]);
-            }}
-            format="DD.MM.YYYY"
-            allowClear={false}
-          />
-          <Select
-            placeholder={t('payments.filters.methodPlaceholder')}
-            allowClear
-            value={methodFilter}
-            onChange={(v) => setMethodFilter(v)}
-            style={{ width: 160 }}
-            options={methodOptions.map((m) => ({ value: m, label: m }))}
-          />
-          <Select
-            placeholder={t('payments.filters.statusPlaceholder')}
-            allowClear
-            value={statusFilter}
-            onChange={(v) => setStatusFilter(v)}
-            style={{ width: 180 }}
-            options={statusOptions}
-          />
-        </Space>
-      </Card>
+      <PaymentFilterBar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        availableMethods={availableMethods}
+        availableStatuses={availableStatuses}
+        cashRegisters={cashRegisters}
+      />
 
       <AdminPageScopeSummary label={t('payments.scope.label')}>{paymentsScopeSummary}</AdminPageScopeSummary>
 
@@ -893,31 +892,37 @@ export default function PaymentsPage() {
               {canCancel && (
                 <Card size="small" title={t('payments.detail.cancelCardTitle')}>
                   <Space direction="vertical" style={{ width: '100%' }}>
-                    <Input
-                      placeholder={t('payments.detail.cancelReasonPlaceholder')}
-                      value={cancelReason}
-                      onChange={(e) => setCancelReason(e.target.value)}
-                    />
-                    <Button
-                      danger
-                      loading={cancelMutation.isPending}
-                      disabled={!cancelReason.trim() || isPaymentBlockedByLicense}
-                      onClick={() =>
-                        Modal.confirm({
-                          title: t('payments.detail.cancelModalTitle'),
-                          content: t('payments.detail.cancelModalContent'),
-                          okText: t('payments.detail.cancelOk'),
-                          okButtonProps: { danger: true },
-                          cancelText: t('payments.detail.cancelCancel'),
-                          onOk: () => cancelMutation.mutate(),
-                        })
-                      }
-                    >
-                      {t('payments.detail.cancelButton')}
-                    </Button>
+                    {paymentDetailData?.isStorno ? (
+                      <Alert
+                        type="info"
+                        showIcon
+                        message={t('payments.cancellationModal.alreadyCancelled')}
+                      />
+                    ) : (
+                      <Button
+                        danger
+                        disabled={isPaymentBlockedByLicense || !paymentDetailData?.id}
+                        onClick={() => setCancelModalOpen(true)}
+                      >
+                        {t('payments.detail.cancelButton')}
+                      </Button>
+                    )}
                   </Space>
                 </Card>
               )}
+
+              {paymentDetailData?.id ? (
+                <CancellationModal
+                  payment={paymentDetailData}
+                  open={cancelModalOpen}
+                  onClose={() => setCancelModalOpen(false)}
+                  onSuccess={async () => {
+                    await refetch();
+                    await refetchPaymentDetail();
+                  }}
+                  disabled={isPaymentBlockedByLicense}
+                />
+              ) : null}
 
               {!canRefund && (
                 <Alert

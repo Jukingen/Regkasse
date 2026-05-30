@@ -1,3 +1,5 @@
+using KasseAPI_Final.Models;
+
 namespace KasseAPI_Final.Services;
 
 public sealed class DemoData
@@ -8,10 +10,13 @@ public sealed class DemoData
 
 public sealed class DemoCategory
 {
+    public string Key { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public string? Icon { get; set; }
     public int SortOrder { get; set; }
     public decimal VatRate { get; set; } = 10m;
+    public RksvProductCategory FiscalCategory { get; set; } = RksvProductCategory.Food;
 }
 
 public sealed class DemoProduct

@@ -6,8 +6,9 @@ using Npgsql;
 using KasseAPI_Final;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
 using KasseAPI_Final.DTOs;
+using AuditLogStatus = KasseAPI_Final.Models.AuditLogStatus;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Services.Pricing;
@@ -73,6 +74,7 @@ namespace KasseAPI_Final.Services
         private readonly IHostEnvironment? _hostEnvironment;
         private readonly IOptionsMonitor<DevelopmentOptions>? _developmentOptions;
         private readonly IDevelopmentModeService? _developmentModeService;
+        private readonly IPaymentReversalApprovalService _reversalApproval;
 
         public PaymentService(
             AppDbContext context,
@@ -106,7 +108,8 @@ namespace KasseAPI_Final.Services
             IOptions<OfflineVoucherEncryptionOptions>? offlineVoucherEncryption = null,
             IHostEnvironment? hostEnvironment = null,
             IOptionsMonitor<DevelopmentOptions>? developmentOptions = null,
-            IDevelopmentModeService? developmentModeService = null)
+            IDevelopmentModeService? developmentModeService = null,
+            IPaymentReversalApprovalService? reversalApproval = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -140,6 +143,7 @@ namespace KasseAPI_Final.Services
             _hostEnvironment = hostEnvironment;
             _developmentOptions = developmentOptions;
             _developmentModeService = developmentModeService;
+            _reversalApproval = reversalApproval ?? NoOpPaymentReversalApprovalService.Instance;
         }
 
         /// <summary>
@@ -1598,10 +1602,28 @@ namespace KasseAPI_Final.Services
         /// Cancel payment via fiscal storno (reversal). Original payment is NEVER modified; a reversal record is created with TSE signature and credit note.
         /// Sprint 6: optional idempotencyKey — retries with same key return existing storno.
         /// </summary>
-        public async Task<PaymentResult> CancelPaymentAsync(Guid paymentId, string reason, string userId, string? idempotencyKey = null)
+        public async Task<PaymentResult> CancelPaymentAsync(
+            Guid paymentId,
+            string reason,
+            string userId,
+            string? idempotencyKey = null,
+            CancellationReasonCode reasonCode = CancellationReasonCode.Other,
+            string? approvalToken = null)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length < 5)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Cancellation reason is required (minimum 5 characters)",
+                        Errors = { "Reason must be at least 5 characters" },
+                        DiagnosticCode = "CANCELLATION_REASON_REQUIRED",
+                        IsDeterministicFailure = true
+                    };
+                }
+
                 var user = await _userService.GetUserByIdAsync(userId);
                 if (DemoUserHelper.IsDemoUser(user))
                 {
@@ -1703,8 +1725,25 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                // RKSV: reversal row must carry a concrete StornoReason (CancelPayment has no client enum → Anderes).
-                return await CreateStornoReversalAsync(payment, reason, userId, key, StornoReason.Anderes);
+                // RKSV: reversal row must carry a concrete StornoReason mapped from reason code.
+                var formattedReason = PaymentReversalReasonMapper.FormatCancellationReason(reasonCode, reason);
+                var stornoReason = PaymentReversalReasonMapper.ToStornoReason(reasonCode);
+
+                var approvalGate = await _reversalApproval.EnforceApprovalAsync(
+                    payment,
+                    PaymentReversalOperation.Cancel,
+                    null,
+                    formattedReason,
+                    (int)reasonCode,
+                    userId,
+                    approvalToken,
+                    key,
+                    CancellationToken.None);
+                var approvalFailure = MapApprovalGateFailure(approvalGate);
+                if (approvalFailure != null)
+                    return approvalFailure;
+
+                return await CreateStornoReversalAsync(payment, formattedReason, userId, key, stornoReason);
             }
             catch (Exception ex)
             {
@@ -2084,10 +2123,29 @@ namespace KasseAPI_Final.Services
         /// <summary>
         /// Ödeme iade et. Sprint 6: optional idempotencyKey — retries with same key return existing refund (no duplicate BelegNr/stock).
         /// </summary>
-        public async Task<PaymentResult> RefundPaymentAsync(Guid paymentId, decimal amount, string reason, string userId, string? idempotencyKey = null)
+        public async Task<PaymentResult> RefundPaymentAsync(
+            Guid paymentId,
+            decimal amount,
+            string reason,
+            string userId,
+            string? idempotencyKey = null,
+            RefundReasonCode reasonCode = RefundReasonCode.Other,
+            string? approvalToken = null)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length < 5)
+                {
+                    return new PaymentResult
+                    {
+                        Success = false,
+                        Message = "Refund reason is required (minimum 5 characters)",
+                        Errors = { "Reason must be at least 5 characters" },
+                        DiagnosticCode = "REFUND_REASON_REQUIRED",
+                        IsDeterministicFailure = true
+                    };
+                }
+
                 // Demo kullanıcı kontrolü: IsDemo bayrağı (ve eski Demo rolü geriye dönük uyumluluk için)
                 var user = await _userService.GetUserByIdAsync(userId);
                 if (DemoUserHelper.IsDemoUser(user))
@@ -2202,6 +2260,21 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                var formattedRefundReason = PaymentReversalReasonMapper.FormatRefundReason(reasonCode, reason);
+                var approvalGate = await _reversalApproval.EnforceApprovalAsync(
+                    payment,
+                    PaymentReversalOperation.Refund,
+                    amount,
+                    formattedRefundReason,
+                    (int)reasonCode,
+                    userId,
+                    approvalToken,
+                    refundKey,
+                    CancellationToken.None);
+                var approvalFailure = MapApprovalGateFailure(approvalGate);
+                if (approvalFailure != null)
+                    return approvalFailure;
+
                 decimal refundRatio = amount / payment.TotalAmount;
                 decimal refundTaxAmount = -payment.TaxAmount * refundRatio;
 
@@ -2296,7 +2369,7 @@ namespace KasseAPI_Final.Services
                         OriginalPaymentId = paymentId,
                         OriginalReceiptId = originalSaleReceipt?.ReceiptId,
                         IsRefund = true,
-                        RefundReason = reason,
+                        RefundReason = formattedRefundReason,
                         RefundAmount = amount,
                         RefundedAt = DateTime.UtcNow,
                         TotalAmount = -amount,
@@ -3789,6 +3862,32 @@ namespace KasseAPI_Final.Services
             string.Equals(cashRegisterResolutionCode, CashRegisterResolutionCodes.Decommissioned, StringComparison.Ordinal)
                 ? RksvGuardErrorCodes.RegisterDecommissioned
                 : cashRegisterResolutionCode;
+
+        private static PaymentResult? MapApprovalGateFailure(PaymentReversalApprovalGateOutcome gate) =>
+            gate.Result switch
+            {
+                PaymentReversalApprovalGateResult.ApprovalRequired => new PaymentResult
+                {
+                    Success = false,
+                    Message = "Manager approval is required for this reversal",
+                    Errors = { "Submit the 6-digit approval token from a manager to continue" },
+                    DiagnosticCode = "REVERSAL_APPROVAL_REQUIRED",
+                    RequiresApproval = true,
+                    ApprovalRequestId = gate.ApprovalRequestId,
+                    ApprovalTokenExpiresAtUtc = gate.ExpiresAtUtc,
+                    ApprovalNotificationSent = gate.NotificationSent,
+                    IsDeterministicFailure = true,
+                },
+                PaymentReversalApprovalGateResult.InvalidToken => new PaymentResult
+                {
+                    Success = false,
+                    Message = "Invalid or expired approval token",
+                    Errors = { "Approval token is invalid, expired, or does not match the pending request" },
+                    DiagnosticCode = "REVERSAL_APPROVAL_INVALID",
+                    IsDeterministicFailure = true,
+                },
+                _ => null,
+            };
 
         #endregion
     }

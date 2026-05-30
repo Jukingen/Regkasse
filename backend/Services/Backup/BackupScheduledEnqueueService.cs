@@ -10,8 +10,8 @@ using Microsoft.Extensions.Options;
 namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
-/// UTC cron ile zamanlanmış yedek sıraya alma; <c>backup_settings.enabled</c> açıkken DB cron’u,
-/// kapalıyken <see cref="BackupOptions.ScheduledBackupEnabled"/> + yapılandırma cron’unu kullanır.
+/// UTC cron ile zamanlanmış yedek sıraya alma. Önce kiracı <see cref="BackupScheduleConfiguration"/> satırları;
+/// hiçbiri etkin değilse singleton <c>backup_settings</c> veya yapılandırma cron'una düşer.
 /// </summary>
 public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueService
 {
@@ -39,33 +39,6 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
         if (!opts.WorkerEnabled)
             return false;
 
-        await BackupSettingsEnsure.EnsureSingletonAsync(db, cancellationToken);
-        var settingsRow = await db.BackupSettings.FirstAsync(x => x.Id == BackupSettings.SingletonId, cancellationToken);
-
-        var useDbSchedule = settingsRow.Enabled;
-        string? cronText = useDbSchedule
-            ? settingsRow.ScheduleCron?.Trim()
-            : opts.GetEffectiveScheduledBackupCronExpression();
-
-        if (string.IsNullOrWhiteSpace(cronText))
-        {
-            if (useDbSchedule)
-                _logger.LogDebug(
-                    "Scheduled backup enqueue skipped: database automation enabled but schedule_cron empty.");
-            return false;
-        }
-
-        if (!useDbSchedule && !opts.ScheduledBackupEnabled)
-            return false;
-
-        if (!CronExpression.TryParse(cronText, CronFormat.Standard, out var expr))
-        {
-            _logger.LogWarning(
-                "Scheduled backup enqueue skipped: cron expression failed to parse ({Source}).",
-                useDbSchedule ? "database" : "configuration");
-            return false;
-        }
-
         var health = _readiness.GetConfigurationHealth();
         if (health.Level == BackupConfigurationHealthLevel.Unhealthy)
         {
@@ -86,12 +59,64 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
         if (hasActiveScheduled)
             return false;
 
-        var lastScheduledRequestedAt = await BackupScheduleProjection.GetLastScheduledRequestedAtAsync(db, cancellationToken);
+        var tenantConfigs = await db.BackupScheduleConfigurations
+            .IgnoreQueryFilters()
+            .Where(c => c.IsActive && c.Enabled)
+            .ToListAsync(cancellationToken);
 
-        var anchor = lastScheduledRequestedAt ?? utcNow.AddYears(-10);
-        var nextFire = expr.GetNextOccurrence(anchor, TimeZoneInfo.Utc, inclusive: false);
-        if (nextFire == null || nextFire.Value > utcNow)
+        var dueTenantConfigs = tenantConfigs
+            .Where(c => BackupScheduleProjectionHelper.IsScheduleDue(c, utcNow))
+            .ToList();
+
+        var useTenantSchedules = dueTenantConfigs.Count > 0;
+        string? cronText;
+        var useDbSchedule = false;
+
+        if (useTenantSchedules)
+        {
+            cronText = dueTenantConfigs[0].ScheduleCron.Trim();
+        }
+        else
+        {
+            await BackupSettingsEnsure.EnsureSingletonAsync(db, cancellationToken);
+            var settingsRow = await db.BackupSettings.FirstAsync(x => x.Id == BackupSettings.SingletonId, cancellationToken);
+            useDbSchedule = settingsRow.Enabled;
+            cronText = useDbSchedule
+                ? settingsRow.ScheduleCron?.Trim()
+                : opts.GetEffectiveScheduledBackupCronExpression();
+
+            if (string.IsNullOrWhiteSpace(cronText))
+            {
+                if (useDbSchedule)
+                    _logger.LogDebug(
+                        "Scheduled backup enqueue skipped: database automation enabled but schedule_cron empty.");
+                return false;
+            }
+
+            if (!useDbSchedule && !opts.ScheduledBackupEnabled)
+                return false;
+
+            if (!CronExpression.TryParse(cronText, CronFormat.Standard, out var legacyExpr))
+            {
+                _logger.LogWarning(
+                    "Scheduled backup enqueue skipped: cron expression failed to parse ({Source}).",
+                    useDbSchedule ? "database" : "configuration");
+                return false;
+            }
+
+            var lastScheduledRequestedAt = await BackupScheduleProjection.GetLastScheduledRequestedAtAsync(db, cancellationToken);
+            var anchor = lastScheduledRequestedAt ?? utcNow.AddYears(-10);
+            var nextFire = legacyExpr.GetNextOccurrence(anchor, TimeZoneInfo.Utc, inclusive: false);
+            if (nextFire == null || nextFire.Value > utcNow)
+                return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(cronText)
+            || !CronExpression.TryParse(cronText, CronFormat.Standard, out var expr))
+        {
+            _logger.LogWarning("Scheduled backup enqueue skipped: tenant cron failed to parse.");
             return false;
+        }
 
         var effectiveKind = health.EffectiveAdapterKind;
         var adapterKind = effectiveKind.ToString();
@@ -106,7 +131,7 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
             CorrelationId = null,
             ConfigSnapshotJson = OperationalRunConfigSnapshotBuilder.SerializeBackup(
                 opts,
-                "backup_scheduled_enqueue",
+                useTenantSchedules ? "backup_scheduled_enqueue_tenant" : "backup_scheduled_enqueue",
                 capturedAt,
                 effectiveKind,
                 health.AdminRuntimeExecutionMode)
@@ -115,20 +140,36 @@ public sealed class BackupScheduledEnqueueService : IBackupScheduledEnqueueServi
         db.BackupRuns.Add(run);
         await db.SaveChangesAsync(cancellationToken);
 
-        run.CorrelationId = $"sched-{run.Id:N}";
-        if (useDbSchedule)
+        run.CorrelationId = useTenantSchedules
+            ? $"sched-tenant-{run.Id:N}"
+            : $"sched-{run.Id:N}";
+
+        if (useTenantSchedules)
         {
-            settingsRow.NextRunAt = expr.GetNextOccurrence(capturedAt, TimeZoneInfo.Utc, inclusive: false);
-            settingsRow.UpdatedAtUtc = capturedAt;
+            foreach (var cfg in dueTenantConfigs)
+            {
+                BackupScheduleProjectionHelper.RefreshNextRunAt(cfg, capturedAt);
+                cfg.UpdatedAt = capturedAt;
+            }
+        }
+        else
+        {
+            var settingsRow = await db.BackupSettings.FirstAsync(x => x.Id == BackupSettings.SingletonId, cancellationToken);
+            if (useDbSchedule)
+            {
+                settingsRow.NextRunAt = expr.GetNextOccurrence(capturedAt, TimeZoneInfo.Utc, inclusive: false);
+                settingsRow.UpdatedAtUtc = capturedAt;
+            }
         }
 
         await db.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
-            "Enqueued scheduled backup run: runId={RunId}, adapterKind={AdapterKind}, scheduleSource={Source}",
+            "Enqueued scheduled backup run: runId={RunId}, adapterKind={AdapterKind}, scheduleSource={Source}, dueTenantCount={TenantCount}",
             run.Id,
             adapterKind,
-            useDbSchedule ? "database" : "configuration");
+            useTenantSchedules ? "tenant_schedules" : useDbSchedule ? "database" : "configuration",
+            dueTenantConfigs.Count);
 
         return true;
     }
