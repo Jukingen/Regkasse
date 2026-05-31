@@ -4,10 +4,12 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -65,7 +67,12 @@ public class CategoriesControllerProductsDtoTests
 
         await context.SaveChangesAsync();
 
-        var controller = new CategoriesController(context, NullLogger<CategoriesController>.Instance, TenantTestDoubles.PrimaryTenantResolver);
+        var controller = new CategoriesController(
+            context,
+            NullLogger<CategoriesController>.Instance,
+            TenantTestDoubles.PrimaryTenantResolver,
+            Mock.Of<IAuditLogService>(),
+            Mock.Of<ICategoryDemoResetService>());
         var result = await controller.GetCategoryProducts(categoryId);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var payload = Assert.IsAssignableFrom<IEnumerable<AdminCategoryProductDto>>(ok.Value);

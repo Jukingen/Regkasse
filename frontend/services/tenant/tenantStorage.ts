@@ -9,6 +9,7 @@ export const TENANT_STORAGE_KEYS = {
   tenantId: 'tenant_id',
   tenantSlug: 'tenant_slug',
   apiBaseUrl: 'api_base_url',
+  licenseBootstrap: 'license_bootstrap',
   /** Last successful GET /api/tenants/switcher payload (offline fallback for dev switcher). */
   switcherList: 'tenants',
 } as const;
@@ -68,6 +69,7 @@ export const tenantStorage = {
       TENANT_STORAGE_KEYS.tenantId,
       TENANT_STORAGE_KEYS.tenantSlug,
       TENANT_STORAGE_KEYS.apiBaseUrl,
+      TENANT_STORAGE_KEYS.licenseBootstrap,
     ]);
   },
 

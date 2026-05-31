@@ -1,9 +1,13 @@
 using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 
 namespace KasseAPI_Final.Tests;
@@ -57,5 +61,32 @@ internal static class TenantTestDoubles
                 It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         return m.Object;
+    }
+
+    public static AdminPaymentsController CreateAdminPaymentsController(
+        AppDbContext db,
+        ISettingsTenantResolver tenantResolver,
+        IPaymentService? paymentService = null,
+        IAdminPaymentListService? paymentListService = null)
+    {
+        paymentListService ??= new AdminPaymentListService(
+            db,
+            tenantResolver,
+            new PaymentMethodCatalogService(db, tenantResolver));
+
+        var reversalOptions = new Mock<IOptionsMonitor<PaymentReversalApprovalOptions>>();
+        reversalOptions.Setup(x => x.CurrentValue).Returns(new PaymentReversalApprovalOptions());
+
+        return new AdminPaymentsController(
+            db,
+            paymentService ?? Mock.Of<IPaymentService>(),
+            Mock.Of<IReceiptPdfService>(),
+            paymentListService,
+            Mock.Of<IAdminSuspiciousAlertService>(),
+            Mock.Of<IPaymentTrendAnalysisService>(),
+            NoOpPaymentReversalApprovalService.Instance,
+            reversalOptions.Object,
+            Mock.Of<ILogger<AdminPaymentsController>>(),
+            tenantResolver);
     }
 }

@@ -1,16 +1,15 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { CashRegister } from '@/api/generated/model';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import { useQuery } from '@tanstack/react-query';
-import {
-    getApiRksvMonatsbelegStatusOverview,
-    getGetApiRksvMonatsbelegStatusOverviewQueryKey,
-} from '@/api/generated/rksv/rksv';
 import type { MonatsbelegStatusDto } from '@/api/generated/model';
+import {
+    MONATSBELEG_REFETCH_INTERVAL_MS,
+    useMonatsbelegStatus,
+} from '@/features/rksv/hooks/useMonatsbeleg';
 
-const FIVE_MIN_MS = 5 * 60 * 1000;
+const FIVE_MIN_MS = MONATSBELEG_REFETCH_INTERVAL_MS;
 
 function normalizeRegisterRows(data: unknown): CashRegister[] {
     if (Array.isArray(data)) return data as CashRegister[];
@@ -36,7 +35,9 @@ export function useAdminMonatsbelegOverview(enabled = true) {
     const {
         data: registersRaw,
         isLoading: registersLoading,
+        isFetching: registersFetching,
         isError: registersError,
+        error: registersQueryError,
         refetch: refetchRegisters,
     } = useGetApiCashRegister({
         query: {
@@ -58,15 +59,13 @@ export function useAdminMonatsbelegOverview(enabled = true) {
         [registers],
     );
 
-    const overviewQuery = useQuery({
-        queryKey: getGetApiRksvMonatsbelegStatusOverviewQueryKey(),
-        queryFn: () => getApiRksvMonatsbelegStatusOverview(),
-        enabled: enabled && registerIds.length > 0 && !registersLoading && !registersError,
-        staleTime: FIVE_MIN_MS,
-        refetchInterval: FIVE_MIN_MS,
-        refetchIntervalInBackground: false,
-        refetchOnWindowFocus: false,
-    });
+    const overviewEnabled = enabled && registerIds.length > 0 && !registersLoading && !registersError;
+
+    const overviewQuery = useMonatsbelegStatus({ enabled: overviewEnabled });
+
+    // Disabled queries stay isPending in TanStack Query v5; only treat active fetches as loading.
+    const statusPending = overviewQuery.fetchStatus === 'fetching';
+    const loadError = registersError || overviewQuery.isError;
 
     const statusByRegisterId = useMemo(() => {
         const map = new Map<string, MonatsbelegStatusDto>();
@@ -86,21 +85,32 @@ export function useAdminMonatsbelegOverview(enabled = true) {
                 register,
                 registerId: id,
                 status: statusByRegisterId.get(id),
-                statusError: overviewQuery.isError,
-                statusLoading: overviewQuery.isPending || overviewQuery.isLoading,
+                statusError: loadError,
+                statusLoading: statusPending,
             });
         }
         return out;
-    }, [registerIds, registers, statusByRegisterId, overviewQuery.isError, overviewQuery.isPending, overviewQuery.isLoading]);
+    }, [loadError, registerIds, registers, statusByRegisterId, statusPending]);
 
     const redCount = useMemo(() => rows.filter((r) => r.status?.missingMonths?.some((m) => m.isOverdue)).length, [rows]);
 
-    const statusPending = overviewQuery.isPending || overviewQuery.isLoading;
+    const refetchAll = useCallback(async () => {
+        await refetchRegisters();
+        if (overviewEnabled) {
+            await overviewQuery.refetch();
+        }
+    }, [overviewEnabled, overviewQuery.refetch, refetchRegisters]);
 
     return {
         registersLoading,
+        registersFetching,
         registersError,
+        registersQueryError,
+        loadError,
+        overviewError: overviewQuery.error,
         refetchRegisters,
+        refetchOverview: overviewQuery.refetch,
+        refetchAll,
         rows,
         redCount,
         statusPending,

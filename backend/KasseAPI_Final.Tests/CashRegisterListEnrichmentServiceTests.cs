@@ -1,6 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
@@ -40,21 +41,21 @@ public sealed class CashRegisterListEnrichmentServiceTests
     [InlineData(TseOperationalHealth.Offline, true, "offline")]
     [InlineData(TseOperationalHealth.Online, false, "notConfigured")]
     public void MapTseHealthStatus_maps_expected_values(
-        TseOperationalHealth health,
+        TseOperationalHealth tseHealth,
         bool configured,
         string expected)
     {
         var snapshot = new TseHealthSnapshot
         {
-            Status = health,
+            Status = tseHealth,
             LastCheckUtc = DateTime.UtcNow,
         };
 
-        var health = new CashRegisterHealthService(
+        var healthService = new CashRegisterHealthService(
             CreateDb(),
             AlwaysOnlineTseHealthMonitor.Instance,
             CreateTseOptionsMonitor("Device"));
-        var actual = health.MapTseHealthStatus(snapshot, configured);
+        var actual = healthService.MapTseHealthStatus(snapshot, configured);
         Assert.Equal(expected, actual);
     }
 

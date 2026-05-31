@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
@@ -30,9 +33,13 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// Tenant data isolation: API scoping, cross-tenant access, host/header resolution, Super Admin, offline queue.
 /// Uses in-memory EF (no Docker). PostgreSQL integration can extend via <see cref="PostgreSqlReplayFixture"/>.
+/// HTTP pipeline coverage via <see cref="TenantIsolationWebApplicationFactory"/>.
 /// </summary>
-public sealed class TenantIsolationTests
+public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebApplicationFactory>
 {
+    private readonly TenantIsolationWebApplicationFactory _factory;
+
+    public TenantIsolationTests(TenantIsolationWebApplicationFactory factory) => _factory = factory;
     private static readonly Guid TenantAId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid TenantBId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     private const string TenantASlug = "companyA";
@@ -178,30 +185,10 @@ public sealed class TenantIsolationTests
         return (resolver, httpAccessor.Object);
     }
 
-    private static IOptionsMonitor<PaymentReversalApprovalOptions> DefaultReversalOptionsMonitor()
-    {
-        var mock = new Mock<IOptionsMonitor<PaymentReversalApprovalOptions>>();
-        mock.Setup(x => x.CurrentValue).Returns(new PaymentReversalApprovalOptions());
-        return mock.Object;
-    }
-
     private static AdminPaymentsController CreateAdminPaymentsController(
         AppDbContext db,
-        ISettingsTenantResolver tenantResolver)
-    {
-        return new AdminPaymentsController(
-            db,
-            Mock.Of<IPaymentService>(),
-            Mock.Of<IReceiptPdfService>(),
-            new AdminPaymentListService(
-                db,
-                tenantResolver,
-                new PaymentMethodCatalogService(db, tenantResolver)),
-            NoOpPaymentReversalApprovalService.Instance,
-            DefaultReversalOptionsMonitor(),
-            Mock.Of<ILogger<AdminPaymentsController>>(),
-            tenantResolver);
-    }
+        ISettingsTenantResolver tenantResolver) =>
+        TenantTestDoubles.CreateAdminPaymentsController(db, tenantResolver);
 
     private static PaymentService CreatePaymentService(AppDbContext db, ISettingsTenantResolver tenantResolver)
     {
@@ -334,7 +321,7 @@ public sealed class TenantIsolationTests
         {
             Id = TenantAId,
             Name = "Cafe",
-            Slug = "test_cafe",
+            Slug = "cafe",
             Status = TenantStatuses.Active,
             IsActive = true,
             CreatedAt = DateTime.UtcNow,
@@ -432,6 +419,33 @@ public sealed class TenantIsolationTests
     #region 6 Offline queue + EF global filter
 
     [Fact]
+    public async Task OfflineTransaction_GlobalFilter_FailClosed_WhenAmbientTenantNull_ReturnsNoRows()
+    {
+        var accessor = new CurrentTenantAccessor { TenantId = TenantAId };
+        var (db, seed) = await SeedTwoTenantPaymentsAsync(accessor);
+        await using (db)
+        {
+            db.OfflineTransactions.Add(new OfflineTransaction
+            {
+                Id = Guid.NewGuid(),
+                CashRegisterId = seed.CashRegisterAId,
+                PayloadJson = "{}",
+                ServerReceivedAtUtc = DateTime.UtcNow,
+                OfflineCreatedAtUtc = DateTime.UtcNow,
+                Status = OfflineTransactionStatus.Pending,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            });
+            await db.SaveChangesAsync();
+
+            accessor.TenantId = null;
+
+            Assert.Empty(await db.OfflineTransactions.ToListAsync());
+            Assert.Single(await db.OfflineTransactions.IgnoreQueryFilters().ToListAsync());
+        }
+    }
+
+    [Fact]
     public async Task OfflineTransaction_GlobalFilter_IsolatesByAmbientTenant()
     {
         var accessorA = new CurrentTenantAccessor();
@@ -520,6 +534,93 @@ public sealed class TenantIsolationTests
 
         var visible = await db.Products.Select(p => p.Name).ToListAsync();
         Assert.Empty(visible);
+    }
+
+    #endregion
+
+    #region 7 HTTP pipeline — fail-closed tenant validation
+
+    private async Task<string> GetSuperAdminTokenAsync(HttpClient client)
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            loginIdentifier = TenantIsolationWebApplicationFactory.SuperAdminEmail,
+            password = TenantIsolationWebApplicationFactory.SuperAdminPassword,
+            clientApp = "admin",
+        });
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(
+                $"Super Admin login failed: {(int)response.StatusCode} {response.StatusCode}. Body: {body}");
+        }
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return json.RootElement.GetProperty("token").GetString()
+            ?? throw new InvalidOperationException("Login response missing token.");
+    }
+
+    [Fact]
+    public async Task Request_WithNoTenantContext_Returns404_NotAllData()
+    {
+        // Suspended host → TenantResolution leaves TenantId null. No Bearer token (JWT tenant_id would re-bind tenant).
+        var client = _factory.CreateClientForSuspendedTenantHost();
+
+        var response = await client.GetAsync("/api/admin/products");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains("Not Found", body, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(TenantIsolationWebApplicationFactory.SecretProductName, body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Request_WithValidTenant_ReturnsData()
+    {
+        var client = _factory.CreateClientForActiveTenantHost();
+        var token = await GetSuperAdminTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync("/api/admin/products");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SuperAdmin_CanAccessTenantManagement_WithoutTenantContext()
+    {
+        var client = _factory.CreateClient();
+        var token = await GetSuperAdminTokenAsync(client);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        var response = await client.GetAsync("/api/admin/tenants");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PublicEndpoint_WorksWithoutTenantContext()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/health");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PublicAuth_WithoutTenant_IsNotBlockedByTenantValidation()
+    {
+        var client = _factory.CreateClientForSuspendedTenantHost();
+
+        var response = await client.PostAsJsonAsync("/api/auth/login", new
+        {
+            loginIdentifier = "nobody",
+            password = "invalid-password",
+        });
+
+        Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     #endregion

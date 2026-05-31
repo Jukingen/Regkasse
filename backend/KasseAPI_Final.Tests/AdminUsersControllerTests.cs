@@ -157,7 +157,8 @@ public class AdminUsersControllerTests
         string actorRole = "SuperAdmin",
         AppDbContext? context = null,
         IUsernameChangeEmailService? usernameChangeEmail = null,
-        IUserUsernameHistoryService? usernameHistory = null)
+        IUserUsernameHistoryService? usernameHistory = null,
+        ICurrentTenantAccessor? tenantAccessor = null)
     {
         var logger = new Mock<ILogger<AdminUsersController>>().Object;
         var tenantUserService = new Mock<ITenantUserService>().Object;
@@ -173,9 +174,10 @@ public class AdminUsersControllerTests
             logger,
             TenantTestDoubles.NoOpProvisioner(),
             tenantUserService,
-            NullCurrentTenantAccessor.Instance,
+            tenantAccessor ?? NullCurrentTenantAccessor.Instance,
             usernameChangeEmail ?? CreateUsernameChangeEmailMock(),
-            usernameHistory ?? CreateUsernameHistoryMock());
+            usernameHistory ?? CreateUsernameHistoryMock(),
+            ActivityEventTestSupport.CreateRecorder());
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),
@@ -1520,6 +1522,146 @@ public class AdminUsersControllerTests
         var controller = CreateController(userManager, roleManager, audit, session);
 
         var result = await controller.GetActivity("nonexistent");
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    private static async Task<(AppDbContext Db, AdminUsersController Controller, ApplicationUser OtherTenantUser)> SeedCrossTenantMutationScenarioAsync(
+        string actorRole = Roles.Manager)
+    {
+        var tenantAId = Guid.NewGuid();
+        var tenantBId = Guid.NewGuid();
+        var db = CreateEphemeralContext();
+
+        db.Tenants.AddRange(
+            new Tenant
+            {
+                Id = tenantAId,
+                Name = "Tenant A",
+                Slug = "tenant-a",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
+                Id = tenantBId,
+                Name = "Tenant B",
+                Slug = "tenant-b",
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+
+        var otherTenantUser = new ApplicationUser
+        {
+            Id = "user-tenant-b",
+            UserName = "cashier-b",
+            Email = "cashier-b@test.com",
+            FirstName = "Other",
+            LastName = "Tenant",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            ConcurrencyStamp = "etag-b",
+        };
+        db.Users.Add(otherTenantUser);
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = otherTenantUser.Id,
+            TenantId = tenantBId,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var userManager = CreateUserManager(db);
+        var roleManager = new RoleManager<IdentityRole>(
+            new RoleStore<IdentityRole>(db),
+            null!,
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            null!);
+
+        var controller = CreateController(
+            userManager,
+            roleManager,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorId: "manager-a",
+            actorRole: actorRole,
+            context: db,
+            tenantAccessor: new CurrentTenantAccessor { TenantId = tenantAId });
+
+        return (db, controller, otherTenantUser);
+    }
+
+    [Fact]
+    public async Task Patch_WhenUserNotInAmbientTenant_ReturnsNotFound()
+    {
+        var (_, controller, user) = await SeedCrossTenantMutationScenarioAsync();
+
+        var result = await controller.Patch(
+            user.Id,
+            new AdminUsersController.AdminPatchUserRequest { FirstName = "Hacked" },
+            ifMatch: user.ConcurrencyStamp);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Deactivate_WhenUserNotInAmbientTenant_ReturnsNotFound()
+    {
+        var (_, controller, user) = await SeedCrossTenantMutationScenarioAsync();
+
+        var result = await controller.Deactivate(
+            user.Id,
+            new AdminUsersController.AdminDeactivateRequest { Reason = "Cross-tenant attempt" });
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Reactivate_WhenUserNotInAmbientTenant_ReturnsNotFound()
+    {
+        var (_, controller, user) = await SeedCrossTenantMutationScenarioAsync();
+        user.IsActive = false;
+
+        var result = await controller.Reactivate(user.Id, null);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenUserNotInAmbientTenant_ReturnsNotFound()
+    {
+        var (_, controller, user) = await SeedCrossTenantMutationScenarioAsync();
+
+        var result = await controller.UpdateUsername(
+            user.Id,
+            new UpdateUsernameRequest { NewUsername = "hacked-name", Reason = "test" });
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task ForcePasswordReset_WhenUserNotInAmbientTenant_ReturnsNotFound()
+    {
+        var (_, controller, user) = await SeedCrossTenantMutationScenarioAsync();
+
+        var result = await controller.ForcePasswordReset(
+            user.Id,
+            new AdminUsersController.AdminForcePasswordResetRequest { NewPassword = "NewPass123!" });
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GenerateTemporaryPassword_WhenUserNotInAmbientTenant_ReturnsNotFound()
+    {
+        var (_, controller, user) = await SeedCrossTenantMutationScenarioAsync(actorRole: Roles.SuperAdmin);
+
+        var result = await controller.GenerateTemporaryPassword(user.Id);
 
         Assert.IsType<NotFoundObjectResult>(result.Result);
     }

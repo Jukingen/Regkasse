@@ -118,19 +118,8 @@ public sealed class PaymentTenantIsolationTests
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
         var mockPay = new Mock<IPaymentService>(MockBehavior.Strict);
-        var mockPdf = new Mock<IReceiptPdfService>(MockBehavior.Loose);
         var resolver = TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary);
-        var reversalOptions = new Mock<Microsoft.Extensions.Options.IOptionsMonitor<PaymentReversalApprovalOptions>>();
-        reversalOptions.Setup(x => x.CurrentValue).Returns(new PaymentReversalApprovalOptions());
-        var c = new AdminPaymentsController(
-            ctx,
-            mockPay.Object,
-            mockPdf.Object,
-            new AdminPaymentListService(ctx, resolver, new PaymentMethodCatalogService(ctx, resolver)),
-            NoOpPaymentReversalApprovalService.Instance,
-            reversalOptions.Object,
-            NullLogger<AdminPaymentsController>.Instance,
-            resolver);
+        var c = TenantTestDoubles.CreateAdminPaymentsController(ctx, resolver, mockPay.Object);
         var result = await c.GetPayments(
             new PaymentFilterDto { StartDate = new DateTime(2026, 3, 15), EndDate = new DateTime(2026, 3, 15) },
             cancellationToken: CancellationToken.None);
@@ -146,19 +135,8 @@ public sealed class PaymentTenantIsolationTests
         await using var ctx = CreateContext();
         var (_, _, _, _, payB) = await SeedTwoTenantPaymentsAsync(ctx);
         var mockPay = new Mock<IPaymentService>(MockBehavior.Strict);
-        var mockPdf = new Mock<IReceiptPdfService>(MockBehavior.Loose);
         var resolver = TenantTestDoubles.SettingsResolverReturning(LegacyDefaultTenantIds.Primary);
-        var reversalOptions = new Mock<Microsoft.Extensions.Options.IOptionsMonitor<PaymentReversalApprovalOptions>>();
-        reversalOptions.Setup(x => x.CurrentValue).Returns(new PaymentReversalApprovalOptions());
-        var c = new AdminPaymentsController(
-            ctx,
-            mockPay.Object,
-            mockPdf.Object,
-            new AdminPaymentListService(ctx, resolver, new PaymentMethodCatalogService(ctx, resolver)),
-            NoOpPaymentReversalApprovalService.Instance,
-            reversalOptions.Object,
-            NullLogger<AdminPaymentsController>.Instance,
-            resolver);
+        var c = TenantTestDoubles.CreateAdminPaymentsController(ctx, resolver, mockPay.Object);
         var result = await c.GetDetail(payB, CancellationToken.None);
         Assert.IsType<NotFoundObjectResult>(result.Result);
     }

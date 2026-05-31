@@ -27,6 +27,13 @@ public sealed class PaymentReversalApprovalServiceTests
         return new AppDbContext(options);
     }
 
+    private static IOptionsMonitor<T> MonitorOf<T>(T value) where T : class
+    {
+        var mock = new Mock<IOptionsMonitor<T>>();
+        mock.Setup(x => x.CurrentValue).Returns(value);
+        return mock.Object;
+    }
+
     private static PaymentReversalApprovalService CreateSut(
         AppDbContext db,
         PaymentReversalApprovalOptions? options = null,
@@ -51,14 +58,14 @@ public sealed class PaymentReversalApprovalServiceTests
         var workflow = new ApprovalWorkflowService(
             db,
             tenantResolver.Object,
-            Options.Create(opts));
+            MonitorOf(opts));
 
         return new PaymentReversalApprovalService(
             db,
             tenantResolver.Object,
             emailMock.Object,
             workflow,
-            Options.Create(opts),
+            MonitorOf(opts),
             NullLogger<PaymentReversalApprovalService>.Instance);
     }
 
@@ -71,7 +78,7 @@ public sealed class PaymentReversalApprovalServiceTests
             CashRegisterId = Guid.NewGuid(),
             TotalAmount = total,
             TaxAmount = 0m,
-            PaymentMethod = "Cash",
+            PaymentMethod = PaymentMethod.Cash,
             CashierId = "cashier",
             TableNumber = 1,
             CreatedAt = DateTime.UtcNow,

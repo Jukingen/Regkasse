@@ -25,6 +25,13 @@ public sealed class SuspiciousTransactionDetectorTests
         return new AppDbContext(options);
     }
 
+    private static IOptionsMonitor<T> MonitorOf<T>(T value) where T : class
+    {
+        var mock = new Mock<IOptionsMonitor<T>>();
+        mock.Setup(x => x.CurrentValue).Returns(value);
+        return mock.Object;
+    }
+
     [Fact]
     public async Task DetectForTenantAsync_high_value_payment_creates_alert()
     {
@@ -64,7 +71,7 @@ public sealed class SuspiciousTransactionDetectorTests
         var detector = new SuspiciousTransactionDetector(
             db,
             alertMock.Object,
-            Options.Create(new SuspiciousTransactionDetectionOptions
+            MonitorOf(new SuspiciousTransactionDetectionOptions
             {
                 HighValueThresholdEur = 500m,
             }));
@@ -103,7 +110,7 @@ public sealed class SuspiciousTransactionDetectorTests
         var svc = new SuspiciousTransactionAlertService(
             db,
             activityMock.Object,
-            Options.Create(new SuspiciousTransactionDetectionOptions()),
+            MonitorOf(new SuspiciousTransactionDetectionOptions()),
             NullLogger<SuspiciousTransactionAlertService>.Instance);
 
         await svc.TryPublishAlertAsync(

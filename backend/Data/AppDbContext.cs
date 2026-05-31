@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Models.RestoreVerification;
@@ -18,22 +20,26 @@ namespace KasseAPI_Final.Data
     public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         private readonly ICurrentTenantAccessor _tenantAccessor;
+        private readonly ILogger<AppDbContext> _logger;
 
         /// <summary>EF Core design-time only (migrations, <see cref="DesignTimeDbContextFactory"/>). Tenant query filters disabled.</summary>
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
         {
             _tenantAccessor = NullCurrentTenantAccessor.Instance;
+            _logger = NullLogger<AppDbContext>.Instance;
         }
 
         /// <summary>Runtime DI and tests with an explicit tenant accessor.</summary>
         [ActivatorUtilitiesConstructor]
         public AppDbContext(
             DbContextOptions<AppDbContext> options,
-            ICurrentTenantAccessor tenantAccessor)
+            ICurrentTenantAccessor tenantAccessor,
+            ILogger<AppDbContext>? logger = null)
             : base(options)
         {
             _tenantAccessor = tenantAccessor ?? throw new ArgumentNullException(nameof(tenantAccessor));
+            _logger = logger ?? NullLogger<AppDbContext>.Instance;
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -2307,7 +2313,7 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.InvoiceId);
             });
 
-            // Global query filter: e.TenantId == ambient tenant when JWT/middleware set a tenant (Guid, not string).
+            // Global query filter: fail-closed — no ambient tenant means no tenant-scoped rows (never expose all tenants).
             foreach (var entityType in builder.Model.GetEntityTypes()
                 .Where(t => t.ClrType?.GetInterface(nameof(ITenantEntity)) != null))
             {
@@ -2317,14 +2323,15 @@ namespace KasseAPI_Final.Data
                     .MakeGenericMethod(clrType)
                     .Invoke(this, null)!;
                 builder.Entity(clrType).HasQueryFilter(filter);
+                _logger.LogDebug("Added query filter for {EntityType}", clrType.Name);
             }
 
-            Console.WriteLine("AppDbContext model configuration completed with TableOrder support");
+            _logger.LogDebug("AppDbContext model configuration completed with TableOrder support");
         }
 
         private Expression<Func<TEntity, bool>> CreateTenantQueryFilter<TEntity>()
             where TEntity : class, ITenantEntity =>
-            e => _tenantAccessor.TenantId == null || e.TenantId == _tenantAccessor.TenantId;
+            e => _tenantAccessor.TenantId != null && e.TenantId == _tenantAccessor.TenantId;
 
         /// <summary>
         /// <c>timestamptz</c> columns: Npgsql rejects non-UTC <see cref="DateTime"/> on parameters and on many write paths.

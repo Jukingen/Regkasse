@@ -88,6 +88,37 @@ public partial class AdminUsersController : ControllerBase
     private string? ActorId => User.GetActorUserId();
     private string ActorRole => User.GetActorRole() ?? "Unknown";
 
+    private async Task<bool> ValidateUserInTenantAsync(
+        string userId,
+        Guid? expectedTenantId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = expectedTenantId ?? _tenantAccessor.TenantId;
+        if (tenantId == null)
+            return false;
+
+        var membership = await _context.UserTenantMemberships
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                m => m.UserId == userId
+                    && m.TenantId == tenantId
+                    && m.IsActive,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return membership != null;
+    }
+
+    private async Task<bool> IsUserAccessibleInAmbientTenantAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (_tenantAccessor.TenantId is not Guid ambientTenantId)
+            return true;
+
+        return await ValidateUserInTenantAsync(userId, ambientTenantId, cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task<List<Guid>> GetBusinessTenantIdsAsync(CancellationToken cancellationToken) =>
         await _context.Tenants
             .AsNoTracking()
@@ -854,10 +885,17 @@ public partial class AdminUsersController : ControllerBase
     [ProducesResponseType(typeof(ApiError), 400)]
     [ProducesResponseType(typeof(ApiError), 404)]
     [ProducesResponseType(typeof(ApiError), 412)]
-    public async Task<ActionResult<AdminUserDto>> Patch(string id, [FromBody] AdminPatchUserRequest request, [FromHeader(Name = "If-Match")] string? ifMatch = null)
+    public async Task<ActionResult<AdminUserDto>> Patch(
+        string id,
+        [FromBody] AdminPatchUserRequest request,
+        [FromHeader(Name = "If-Match")] string? ifMatch = null,
+        CancellationToken cancellationToken = default)
     {
         if (request == null)
             return BadRequest(ApiError.Validation("Invalid body", new Dictionary<string, string[]> { ["body"] = new[] { "Request body is required." } }));
+
+        if (!await IsUserAccessibleInAmbientTenantAsync(id, cancellationToken).ConfigureAwait(false))
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
@@ -940,10 +978,16 @@ public partial class AdminUsersController : ControllerBase
     [ProducesResponseType(typeof(AdminUserDto), 200)]
     [ProducesResponseType(typeof(ApiError), 400)]
     [ProducesResponseType(typeof(ApiError), 404)]
-    public async Task<ActionResult<AdminUserDto>> Deactivate(string id, [FromBody] AdminDeactivateRequest request)
+    public async Task<ActionResult<AdminUserDto>> Deactivate(
+        string id,
+        [FromBody] AdminDeactivateRequest request,
+        CancellationToken cancellationToken = default)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.Reason))
             return BadRequest(ApiError.Validation("Reason required", new Dictionary<string, string[]> { ["reason"] = new[] { "Deactivation reason is required for audit compliance." } }));
+
+        if (!await IsUserAccessibleInAmbientTenantAsync(id, cancellationToken).ConfigureAwait(false))
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
@@ -979,8 +1023,14 @@ public partial class AdminUsersController : ControllerBase
     [ProducesResponseType(typeof(AdminUserDto), 200)]
     [ProducesResponseType(typeof(ApiError), 400)]
     [ProducesResponseType(typeof(ApiError), 404)]
-    public async Task<ActionResult<AdminUserDto>> Reactivate(string id, [FromBody] AdminReactivateRequest? request = null)
+    public async Task<ActionResult<AdminUserDto>> Reactivate(
+        string id,
+        [FromBody] AdminReactivateRequest? request = null,
+        CancellationToken cancellationToken = default)
     {
+        if (!await IsUserAccessibleInAmbientTenantAsync(id, cancellationToken).ConfigureAwait(false))
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
@@ -1034,6 +1084,9 @@ public partial class AdminUsersController : ControllerBase
     {
         if (request == null)
             return BadRequest(ApiError.Validation("Invalid body", new Dictionary<string, string[]> { ["body"] = new[] { "Request body is required." } }));
+
+        if (!await IsUserAccessibleInAmbientTenantAsync(id, cancellationToken).ConfigureAwait(false))
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
         var newUsername = request.NewUsername.Trim();
         var validationErrors = UsernameValidation.ValidateNewUsername(newUsername);
@@ -1191,10 +1244,16 @@ public partial class AdminUsersController : ControllerBase
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ApiError), 400)]
     [ProducesResponseType(typeof(ApiError), 404)]
-    public async Task<IActionResult> ForcePasswordReset(string id, [FromBody] AdminForcePasswordResetRequest request)
+    public async Task<IActionResult> ForcePasswordReset(
+        string id,
+        [FromBody] AdminForcePasswordResetRequest request,
+        CancellationToken cancellationToken = default)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 8)
             return BadRequest(ApiError.Validation("Invalid password", new Dictionary<string, string[]> { ["newPassword"] = new[] { "New password must be at least 8 characters." } }));
+
+        if (!await IsUserAccessibleInAmbientTenantAsync(id, cancellationToken).ConfigureAwait(false))
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
@@ -1221,13 +1280,18 @@ public partial class AdminUsersController : ControllerBase
     [ProducesResponseType(typeof(ApiError), 400)]
     [ProducesResponseType(typeof(ApiError), 403)]
     [ProducesResponseType(typeof(ApiError), 404)]
-    public async Task<ActionResult<AdminTemporaryPasswordResponse>> GenerateTemporaryPassword(string id)
+    public async Task<ActionResult<AdminTemporaryPasswordResponse>> GenerateTemporaryPassword(
+        string id,
+        CancellationToken cancellationToken = default)
     {
         if (!IsActorSuperAdmin())
             return StatusCode(403, ApiError.Forbidden("Forbidden", "Only Super Admin can generate temporary passwords."));
 
         if (id == ActorId)
             return BadRequest(ApiError.BusinessRule("You cannot generate a temporary password for your own account."));
+
+        if (!await IsUserAccessibleInAmbientTenantAsync(id, cancellationToken).ConfigureAwait(false))
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)

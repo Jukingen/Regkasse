@@ -6,6 +6,9 @@ namespace KasseAPI_Final;
 /// </summary>
 public static class OpenApiExportMode
 {
+    /// <summary>When set, <see cref="ApplicationHost"/> uses EF InMemory with this database name (integration tests only).</summary>
+    public const string IntegrationTestInMemoryDatabaseEnvironmentVariable = "REGKASSE_TEST_INMEMORY_DB";
+
     public const string EnvironmentVariableName = "REGKASSE_OPENAPI_EXPORT";
 
     /// <summary>

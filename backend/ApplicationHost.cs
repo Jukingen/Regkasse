@@ -107,6 +107,20 @@ internal static class ApplicationHost
         string connectionString,
         bool isDevelopment)
     {
+        var inMemoryDatabaseName = Environment.GetEnvironmentVariable(OpenApiExportMode.IntegrationTestInMemoryDatabaseEnvironmentVariable);
+        if (!string.IsNullOrWhiteSpace(inMemoryDatabaseName))
+        {
+            options.UseInMemoryDatabase(inMemoryDatabaseName);
+            options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
+            if (isDevelopment)
+            {
+                options.EnableSensitiveDataLogging();
+                options.EnableDetailedErrors();
+            }
+
+            return;
+        }
+
         options.UseNpgsql(connectionString);
         options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
         options.AddInterceptors(NpgsqlTimestamptzUtcParameterInterceptor.Instance);
@@ -909,6 +923,8 @@ app.UseMiddleware<KasseAPI_Final.Middleware.CorrelationIdMiddleware>();
 
 // Subdomain → tenant slug → Guid on ICurrentTenantAccessor (before auth; JWT may override later).
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantResolutionMiddleware>();
+// TenantValidationMiddleware is registered after TenantContextMiddleware (below) so JWT tenant_id
+// and Development X-Tenant-Id overrides are applied before fail-closed validation runs.
 
 // Public GET for product images saved by admin upload (anonymous; unguessable file names).
 var productMediaOpts = app.Services.GetRequiredService<IOptions<ProductMediaOptions>>().Value;
@@ -932,6 +948,8 @@ app.UseStaticFiles(new StaticFileOptions
 // Authentication ve Authorization middleware
 app.UseAuthentication();
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantContextMiddleware>();
+// Fail-closed: tenant-scoped API paths return 404 when ICurrentTenantAccessor.TenantId is unset.
+app.UseMiddleware<KasseAPI_Final.Middleware.TenantValidationMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.SessionActivityMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.TenantOperationalGateMiddleware>();
 app.UseMiddleware<KasseAPI_Final.Middleware.LicenseMiddleware>();
@@ -941,17 +959,26 @@ app.UseMiddleware<KasseAPI_Final.Middleware.MustChangePasswordMiddleware>();
 // Payment Security Middleware
 app.UseMiddleware<KasseAPI_Final.Middleware.PaymentSecurityMiddleware>();
 
-app.MapControllers();
-app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
+if (OpenApiExportMode.IsEnabled)
+{
+    // CreateWebApplication (OpenAPI / integration-test host) already mapped controllers, metrics, and liveness probes.
+    app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
+}
+else
+{
+    app.MapControllers();
+    app.MapHub<DemoImportProgressHub>("/hubs/demo-import-progress");
 
-// Prometheus /metrics endpoint for scraping (Grafana dashboards)
-app.MapMetrics();
+    // Prometheus /metrics endpoint for scraping (Grafana dashboards)
+    app.MapMetrics();
 
-// Test endpoint
-app.MapGet("/", () => "Kasse API is running!");
-app.MapGet("/health", () => "OK");
-// Alias for scripts/docs that probe /api/health (same liveness as /health).
-app.MapGet("/api/health", () => "OK");
+    // Test endpoint
+    app.MapGet("/", () => "Kasse API is running!");
+    app.MapGet("/health", () => "OK");
+    // Alias for scripts/docs that probe /api/health (same liveness as /health).
+    app.MapGet("/api/health", () => "OK");
+}
+
 app.MapGet("/health/finanzonline", (IServiceProvider services) =>
     Results.Json(FinanzOnlineReadinessEvaluator.EvaluateFromRootServices(services)))
     .AllowAnonymous();

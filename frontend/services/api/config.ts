@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type InternalAxiosRequestConfig } from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { sessionManager } from '../session/sessionManager';
 import {
@@ -53,12 +53,34 @@ export async function hydrateDevTenantApiBaseUrl(): Promise<void> {
     }
 }
 
+/** Resolves slug from login/license persistence, with dev override when applicable. */
+async function resolveRequestTenantSlug(): Promise<string | null> {
+    const persistedSlug = await tenantStorage.getTenantSlug();
+    return resolveEffectiveTenantSlug(persistedSlug);
+}
+
+/** Adds {@link TENANT_HTTP_HEADER} when a tenant slug is available. */
+export async function addTenantHeader(
+    config: InternalAxiosRequestConfig,
+): Promise<InternalAxiosRequestConfig> {
+    const tenantSlug = await resolveRequestTenantSlug();
+    if (!tenantSlug) {
+        return config;
+    }
+
+    config.headers = applyTenantHeader(
+        config.headers as Record<string, unknown> | undefined,
+        tenantSlug,
+    ) as typeof config.headers;
+
+    return config;
+}
+
 /** Headers for raw <c>fetch()</c> (axios request interceptor adds tenant header automatically). */
 export async function resolveTenantFetchHeaders(
     headers: Record<string, string> = {},
 ): Promise<Record<string, string>> {
-    const persistedSlug = await tenantStorage.getTenantSlug();
-    const tenantSlug = await resolveEffectiveTenantSlug(persistedSlug);
+    const tenantSlug = await resolveRequestTenantSlug();
     if (!tenantSlug) return headers;
     return applyTenantHeader(headers, tenantSlug) as Record<string, string>;
 }
@@ -166,16 +188,7 @@ axiosInstance.interceptors.request.use(
     async (config) => {
         await applyDevNetworkDelayIfConfigured();
 
-        // 🚀 DEBOUNCING KALDIRILDI - Ürün yükleme için basitleştirildi
-
-        const persistedSlug = await tenantStorage.getTenantSlug();
-        const tenantSlug = await resolveEffectiveTenantSlug(persistedSlug);
-        if (tenantSlug) {
-            config.headers = applyTenantHeader(
-                config.headers as Record<string, unknown> | undefined,
-                tenantSlug,
-            ) as typeof config.headers;
-        }
+        await addTenantHeader(config);
 
         // Token kontrolü
         const token = await sessionManager.getAccessToken();

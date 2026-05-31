@@ -12,9 +12,9 @@ import i18n from '../i18n';
 import { changeLanguage as persistAndChangeLanguage } from '../i18n';
 import { DEFAULT_TEXT_LOCALE, normalizeTextLocale } from '../i18n/localeUtils';
 import * as authService from '../services/api/authService';
-import { applyStoredApiBaseUrl, hydrateDevTenantApiBaseUrl } from '../services/api/config';
+import { applyStoredApiBaseUrl, hydrateDevTenantApiBaseUrl, resetApiBaseUrlToConfigured } from '../services/api/config';
 import { sessionManager } from '../services/session/sessionManager';
-import { tenantStorage } from '../services/tenant/tenantStorage';
+import { tenantStorage, type TenantBootstrap } from '../services/tenant/tenantStorage';
 import { handleAPIError } from '../services/errorService';
 import { isAuthError, AuthAppError } from '../features/auth/authErrors';
 import { getUserSettingsAfterLogin } from '../services/api/userSettingsService';
@@ -39,6 +39,52 @@ function authDevError(...args: unknown[]) {
         // eslint-disable-next-line no-console
         console.error(...args);
     }
+}
+
+type SessionTenantFields = {
+    tenantId?: string | null;
+    tenantSlug?: string | null;
+};
+
+async function persistTenantBootstrap(bootstrapData: TenantBootstrap): Promise<void> {
+    await tenantStorage.persistBootstrap(bootstrapData);
+    if (bootstrapData.apiBaseUrl) {
+        applyStoredApiBaseUrl(bootstrapData.apiBaseUrl);
+    }
+}
+
+async function resolveTenantBootstrapFromSession(
+    cleanToken: string,
+    storedUser: SessionTenantFields,
+): Promise<TenantBootstrap> {
+    let tenantId = storedUser.tenantId ?? null;
+    const tenantSlug = storedUser.tenantSlug ?? null;
+
+    if (!tenantId) {
+        try {
+            const decoded = jwtDecode(cleanToken) as { tenant_id?: string };
+            tenantId = decoded.tenant_id ?? null;
+        } catch {
+            // JWT decode failed; tenant id stays null
+        }
+    }
+
+    const [existingTenantId, existingSlug, existingApiBaseUrl] = await Promise.all([
+        tenantStorage.getTenantId(),
+        tenantStorage.getTenantSlug(),
+        tenantStorage.getApiBaseUrl(),
+    ]);
+
+    return {
+        tenantId: tenantId ?? existingTenantId,
+        tenantSlug: tenantSlug ?? existingSlug,
+        apiBaseUrl: existingApiBaseUrl,
+    };
+}
+
+async function clearPersistedTenantBootstrap(): Promise<void> {
+    await tenantStorage.clear();
+    resetApiBaseUrlToConfigured();
 }
 
 // Cart cache temizleme için event listener
@@ -222,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setJustLoggedIn(false);
 
             await sessionManager.clearSession();
+            await clearPersistedTenantBootstrap();
 
             if (!options?.skipCartClear) {
                 await clearCartCache();
@@ -351,6 +398,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 try {
                     const storedUser = JSON.parse(userStr);
                     if (storedUser?.id) {
+                        const bootstrap = await resolveTenantBootstrapFromSession(cleanToken, storedUser);
+                        await persistTenantBootstrap(bootstrap);
+
                         const userWithToken: User = {
                             ...storedUser,
                             token: cleanToken
@@ -383,6 +433,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             try {
                 const result = await checkBackendAuth();
                 if (result.isAuthenticated && result.user?.id) {
+                    const bootstrap = await resolveTenantBootstrapFromSession(cleanToken, result.user);
+                    await persistTenantBootstrap(bootstrap);
+
                     // FIX: Only update if user actually changed
                     const shouldUpdate = !user || user.id !== result.user.id;
 
@@ -453,6 +506,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             setIsAuthReady(true);
                             return;
                         }
+
+                        const bootstrap = await resolveTenantBootstrapFromSession(cleanToken, storedUser);
+                        await persistTenantBootstrap(bootstrap);
+                        authDevLog('✅ AUTH INIT: Tenant bootstrap restored from session', bootstrap);
 
                         // Token geçerliyse user state'i restore et
                         const userWithToken = {
@@ -610,9 +667,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 tenantId?: string | null;
                 tenantSlug?: string | null;
             };
-            await tenantStorage.persistBootstrap({
+            const existingApiBaseUrl = await tenantStorage.getApiBaseUrl();
+            await persistTenantBootstrap({
                 tenantId: loginUser.tenantId,
                 tenantSlug: loginUser.tenantSlug,
+                apiBaseUrl: existingApiBaseUrl,
             });
 
             if (isDev) {
@@ -754,6 +813,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setJustLoggedIn(false);
 
             await sessionManager.clearSession();
+            await clearPersistedTenantBootstrap();
 
             // 🧹 CART CACHE TEMİZLİĞİ - Event ile
             if (typeof window !== 'undefined' && window.dispatchEvent) {

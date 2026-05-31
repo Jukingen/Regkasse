@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Alert, Button, Card, Progress, Space, Table, Tag, Typography, message } from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { RegisterMonatsbelegRow } from '@/features/dashboard/hooks/useAdminMonatsbelegOverview';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -78,9 +79,22 @@ function getNextMissingMonthLabel(nextRequiredMonth: string | null | undefined):
 export type MonatsbelegComplianceTableProps = {
     rows: RegisterMonatsbelegRow[];
     loading: boolean;
+    loadError?: boolean;
+    hasRegisters?: boolean;
+    headerExtra?: ReactNode;
+    onRefresh?: () => void;
+    refreshLoading?: boolean;
 };
 
-export function MonatsbelegComplianceTable({ rows, loading }: MonatsbelegComplianceTableProps) {
+export function MonatsbelegComplianceTable({
+    rows,
+    loading,
+    loadError = false,
+    hasRegisters = true,
+    headerExtra,
+    onRefresh,
+    refreshLoading = false,
+}: MonatsbelegComplianceTableProps) {
     const { hasPermission } = usePermissions();
     const queryClient = useQueryClient();
     const canMonatsbeleg = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
@@ -216,7 +230,25 @@ export function MonatsbelegComplianceTable({ rows, loading }: MonatsbelegComplia
     );
 
     return (
-        <Card title="Monatsbeleg (RKSV)" bordered={false} style={{ marginBottom: 24 }}>
+        <Card
+            title="Monatsbeleg (RKSV)"
+            bordered={false}
+            style={{ marginBottom: 24 }}
+            extra={
+                <Space size="small">
+                    {headerExtra}
+                    {onRefresh ? (
+                        <Button
+                            icon={<ReloadOutlined />}
+                            size="small"
+                            loading={refreshLoading}
+                            onClick={onRefresh}
+                            aria-label="Monatsbeleg-Daten aktualisieren"
+                        />
+                    ) : null}
+                </Space>
+            }
+        >
             {demoAutoSuggestEnabled ? (
                 <Alert
                     type="info"
@@ -229,6 +261,17 @@ export function MonatsbelegComplianceTable({ rows, loading }: MonatsbelegComplia
                 Übersicht aller Kassen: Monatsbeleg-Frist nach Kalendermonat (Europe/Vienna). Aktualisierung alle 5 Minuten
                 und bei Fenster-Fokus.
             </Typography.Paragraph>
+            {loadError ? (
+                <Alert
+                    type="error"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message="Monatsbeleg-Status konnte nicht geladen werden"
+                />
+            ) : null}
+            {!loading && !loadError && !hasRegisters ? (
+                <Typography.Text type="secondary">Keine Kassen vorhanden.</Typography.Text>
+            ) : null}
             <Table<RegisterMonatsbelegRow>
                 rowKey={(r) => r.registerId}
                 loading={loading}

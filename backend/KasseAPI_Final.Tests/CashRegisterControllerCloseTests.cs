@@ -52,7 +52,8 @@ public class CashRegisterControllerCloseTests
             CreateTestUserManager(),
             shift,
             TenantTestDoubles.PrimaryTenantResolver,
-            Mock.Of<ICashRegisterManagementService>());
+            Mock.Of<ICashRegisterManagementService>(),
+            Mock.Of<ICashRegisterListEnrichmentService>());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

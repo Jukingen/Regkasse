@@ -3,6 +3,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -167,7 +168,9 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
         var controller = new CategoriesController(
             ctx,
             NullLogger<CategoriesController>.Instance,
-            TenantTestDoubles.PrimaryTenantResolver);
+            TenantTestDoubles.PrimaryTenantResolver,
+            Mock.Of<IAuditLogService>(),
+            Mock.Of<ICategoryDemoResetService>());
         var dup = await controller.CreateCategory(new CreateCategoryRequest { Name = "Existing", VatRate = 10m });
         Assert.IsType<BadRequestObjectResult>(dup.Result);
     }
@@ -231,7 +234,9 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
         var controller = new CategoriesController(
             ctx,
             NullLogger<CategoriesController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(TenantB));
+            TenantTestDoubles.SettingsResolverReturning(TenantB),
+            Mock.Of<IAuditLogService>(),
+            Mock.Of<ICategoryDemoResetService>());
         var res = await controller.CreateCategory(new CreateCategoryRequest { Name = "Fresh", VatRate = 10m });
         var created = Assert.IsType<CreatedAtActionResult>(res.Result);
         var cat = Assert.IsType<Category>(created.Value);
@@ -250,7 +255,9 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
         var controller = new CategoriesController(
             ctx,
             NullLogger<CategoriesController>.Instance,
-            TenantTestDoubles.SettingsResolverReturning(TenantA));
+            TenantTestDoubles.SettingsResolverReturning(TenantA),
+            Mock.Of<IAuditLogService>(),
+            Mock.Of<ICategoryDemoResetService>());
         var res = await controller.GetCategory(catBId);
         Assert.IsType<NotFoundObjectResult>(res.Result);
     }

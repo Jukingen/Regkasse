@@ -1,7 +1,7 @@
 namespace KasseAPI_Final.Tenancy;
 
 /// <summary>
-/// Design-time and unit tests: no ambient tenant; global filters are not applied.
+/// Design-time and unit tests: no ambient tenant; tenant-scoped global filters return no rows (fail-closed).
 /// </summary>
 public sealed class NullCurrentTenantAccessor : ICurrentTenantAccessor
 {
