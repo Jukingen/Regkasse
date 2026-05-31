@@ -255,6 +255,9 @@ namespace KasseAPI_Final.Models
     /// <summary>Bulk reset of demo category display names to original demo labels.</summary>
     public const string CATEGORY_DEMO_RESET = "CATEGORY_DEMO_RESET";
 
+    /// <summary>Super Admin renewed mandant license (grace-period days may be deducted).</summary>
+    public const string LICENSE_RENEWED = "LICENSE_RENEWED";
+
         /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
         public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
 

@@ -1,5 +1,6 @@
 using KasseAPI_Final;
 using KasseAPI_Final.Configuration;
+using static KasseAPI_Final.Configuration.LicenseGracePeriodConfig;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminTenants;
@@ -127,7 +128,7 @@ public sealed class ActivityMonitoringHostedService : BackgroundService
             return;
         }
 
-        int[] anchors = [30, 15, 7];
+        int[] anchors = [30, WarningDaysBeforeExpiry, 7];
         foreach (var anchor in anchors)
         {
             if (days > anchor)

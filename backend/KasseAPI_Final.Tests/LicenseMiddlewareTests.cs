@@ -2,6 +2,7 @@ using System.Text;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Moq;
 using Xunit;
@@ -10,6 +11,7 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class LicenseMiddlewareTests
 {
+    private static readonly Guid TenantId = Guid.Parse("88888888-8888-8888-8888-888888888888");
     private static readonly DateTime Now = new(2026, 5, 25, 0, 0, 0, DateTimeKind.Utc);
 
     private static DefaultHttpContext CreateContext(string path, string method)
@@ -21,7 +23,9 @@ public sealed class LicenseMiddlewareTests
         return context;
     }
 
-    private static Mock<ILicenseService> CreateLicenseService(LicenseStatusResponse deploymentSnapshot)
+    private static Mock<ILicenseService> CreateLicenseService(
+        LicenseStatusResponse deploymentSnapshot,
+        LicenseStatusInfo? tenantStatus = null)
     {
         var mock = new Mock<ILicenseService>(MockBehavior.Loose);
         mock.Setup(x => x.ValidateAsync(It.IsAny<CancellationToken>()))
@@ -31,7 +35,21 @@ public sealed class LicenseMiddlewareTests
         mock.Setup(x => x.GetCurrentStatusAsync(It.IsAny<CancellationToken>())).ReturnsAsync(deploymentSnapshot);
         mock.Setup(x => x.GetCurrentDeploymentStatusAsync(It.IsAny<CancellationToken>())).ReturnsAsync(deploymentSnapshot);
         mock.SetupGet(x => x.IsLicenseSnapshotInitialized).Returns(true);
+        mock.Setup(x => x.GetLicenseStatusAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(tenantStatus ?? new LicenseStatusInfo
+            {
+                CanAccess = true,
+                CanTransact = true,
+                DaysRemaining = 30,
+                StatusMessage = "Lizenz gültig bis 30.06.2026",
+            });
         return mock;
+    }
+
+    private static ICurrentTenantAccessor CreateTenantAccessor(Guid? tenantId = null)
+    {
+        var accessor = new CurrentTenantAccessor { TenantId = tenantId ?? TenantId };
+        return accessor;
     }
 
     private static async Task<string> ReadBodyAsync(DefaultHttpContext context)
@@ -54,7 +72,11 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(context, licenseService.Object, new DeploymentLicenseValidator());
+        await sut.InvokeAsync(
+            context,
+            licenseService.Object,
+            new DeploymentLicenseValidator(),
+            CreateTenantAccessor());
 
         var body = await ReadBodyAsync(context);
         Assert.False(nextCalled);
@@ -75,7 +97,11 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(context, licenseService.Object, new DeploymentLicenseValidator());
+        await sut.InvokeAsync(
+            context,
+            licenseService.Object,
+            new DeploymentLicenseValidator(),
+            CreateTenantAccessor());
 
         Assert.True(nextCalled);
     }
@@ -88,7 +114,11 @@ public sealed class LicenseMiddlewareTests
         var blockedContext = CreateContext("/api/auth/login", HttpMethods.Post);
         var sut = new LicenseMiddleware(_ => Task.CompletedTask);
 
-        await sut.InvokeAsync(blockedContext, licenseService.Object, new DeploymentLicenseValidator());
+        await sut.InvokeAsync(
+            blockedContext,
+            licenseService.Object,
+            new DeploymentLicenseValidator(),
+            CreateTenantAccessor());
 
         var blockedBody = await ReadBodyAsync(blockedContext);
         Assert.Equal(StatusCodes.Status403Forbidden, blockedContext.Response.StatusCode);
@@ -102,8 +132,106 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await allowedSut.InvokeAsync(allowedContext, licenseService.Object, new DeploymentLicenseValidator());
+        await allowedSut.InvokeAsync(
+            allowedContext,
+            licenseService.Object,
+            new DeploymentLicenseValidator(),
+            CreateTenantAccessor());
 
         Assert.True(nextCalled);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_TenantLicenseBlocked_Returns403WithGermanMessage()
+    {
+        var snapshot = new LicenseStatusResponse(true, false, false, 90, Now.AddDays(90), "machine");
+        var tenantStatus = new LicenseStatusInfo
+        {
+            CanAccess = false,
+            ValidUntil = Now.AddDays(-30),
+            DaysOverdue = 30,
+            StatusMessage = "Lizenz abgelaufen. Zugang gesperrt. Bitte Lizenz erneuern.",
+        };
+        var licenseService = CreateLicenseService(snapshot, tenantStatus);
+        var context = CreateContext("/api/admin/products", HttpMethods.Get);
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await sut.InvokeAsync(
+            context,
+            licenseService.Object,
+            new DeploymentLicenseValidator(),
+            CreateTenantAccessor());
+
+        var body = await ReadBodyAsync(context);
+        Assert.False(nextCalled);
+        Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+        Assert.Contains("License Expired", body, StringComparison.Ordinal);
+        Assert.Contains("Ihre Lizenz ist abgelaufen", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_TenantInGracePeriod_AddsLicenseHeaders()
+    {
+        var snapshot = new LicenseStatusResponse(true, false, false, 90, Now.AddDays(90), "machine");
+        var tenantStatus = new LicenseStatusInfo
+        {
+            CanAccess = true,
+            CanTransact = true,
+            DaysRemaining = -5,
+            DaysOverdue = 5,
+            GracePeriodRemaining = 16,
+            IsInGracePeriod = true,
+            StatusMessage = "Lizenz abgelaufen. Grace Period: noch 16 Tage",
+        };
+        var licenseService = CreateLicenseService(snapshot, tenantStatus);
+        var context = CreateContext("/api/admin/products", HttpMethods.Get);
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await sut.InvokeAsync(
+            context,
+            licenseService.Object,
+            new DeploymentLicenseValidator(),
+            CreateTenantAccessor());
+
+        Assert.True(nextCalled);
+        Assert.Equal(tenantStatus.StatusMessage, context.Response.Headers[LicenseMiddleware.LicenseStatusHeaderName].ToString());
+        Assert.Equal("-5", context.Response.Headers[LicenseMiddleware.LicenseDaysRemainingHeaderName].ToString());
+        Assert.Equal("16", context.Response.Headers[LicenseMiddleware.LicenseGraceRemainingHeaderName].ToString());
+    }
+
+    [Fact]
+    public async Task InvokeAsync_PublicEndpoint_SkipsTenantLicenseCheck()
+    {
+        var snapshot = new LicenseStatusResponse(true, false, false, 90, Now.AddDays(90), "machine");
+        var tenantStatus = new LicenseStatusInfo { CanAccess = false };
+        var licenseService = CreateLicenseService(snapshot, tenantStatus);
+        var context = CreateContext("/api/health", HttpMethods.Get);
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await sut.InvokeAsync(
+            context,
+            licenseService.Object,
+            new DeploymentLicenseValidator(),
+            CreateTenantAccessor());
+
+        Assert.True(nextCalled);
+        licenseService.Verify(
+            x => x.GetLicenseStatusAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

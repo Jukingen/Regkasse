@@ -1711,9 +1711,6 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
-                    b.HasIndex("TenantId", "Name")
-                        .IsUnique();
-
                     b.ToTable("categories");
                 });
 
@@ -6740,6 +6737,16 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
 
+                    b.Property<DateTime?>("LicenseGracePeriodStartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("license_grace_period_started_at");
+
+                    b.Property<int>("LicenseGracePeriodUsedDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("license_grace_period_used_days");
+
                     b.Property<string>("LicenseKey")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -6782,6 +6789,9 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LicenseValidUntilUtc")
+                        .HasDatabaseName("IX_tenants_license_valid_until");
 
                     b.HasIndex("Slug")
                         .IsUnique();

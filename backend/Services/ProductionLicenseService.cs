@@ -101,7 +101,28 @@ public sealed class ProductionLicenseService : ILicenseService
     }
 
     /// <inheritdoc />
-    public async Task<LicenseActivationResult> ActivateAsync(
+    public Task<LicenseActivationResult> ActivateAsync(
+        ActivateLicenseRequest request,
+        LicenseActivationClientInfo? clientInfo = null,
+        CancellationToken cancellationToken = default) =>
+        ActivateAsyncInner(request, clientInfo, cancellationToken);
+
+    /// <inheritdoc />
+    public async Task<LicenseStatusInfo> GetLicenseStatusAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var info = await _inner.GetLicenseStatusAsync(tenantId, cancellationToken).ConfigureAwait(false);
+        if (!IsSuperAdminRequest())
+            return info;
+
+        info.CanAccess = true;
+        info.CanTransact = true;
+        info.RequiresRenewal = false;
+        return info;
+    }
+
+    private async Task<LicenseActivationResult> ActivateAsyncInner(
         ActivateLicenseRequest request,
         LicenseActivationClientInfo? clientInfo = null,
         CancellationToken cancellationToken = default)

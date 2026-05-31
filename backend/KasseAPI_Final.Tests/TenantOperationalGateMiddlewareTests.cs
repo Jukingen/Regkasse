@@ -64,7 +64,7 @@ public sealed class TenantOperationalGateMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_GraceReadOnly_BlocksNonUserManagementWrites()
+    public async Task InvokeAsync_LockdownAfterGrace_BlocksNonUserManagementWrites()
     {
         await using var db = CreateDb();
         await SeedTenantAsync(db, Now.AddDays(-45));
@@ -92,7 +92,7 @@ public sealed class TenantOperationalGateMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_GraceReadOnly_AllowsUserManagementWrites()
+    public async Task InvokeAsync_LockdownAfterGrace_BlocksUserManagementWrites()
     {
         await using var db = CreateDb();
         await SeedTenantAsync(db, Now.AddDays(-45));
@@ -113,14 +113,17 @@ public sealed class TenantOperationalGateMiddlewareTests
             Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
             new TenantLicenseValidator());
 
-        Assert.True(nextCalled);
+        var body = await ReadBodyAsync(context);
+        Assert.False(nextCalled);
+        Assert.Equal(StatusCodes.Status403Forbidden, context.Response.StatusCode);
+        Assert.Contains("LICENSE_EXPIRED_USER_MGMT_BLOCKED", body, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task InvokeAsync_GraceWrite_AddsWarningHeaders()
     {
         await using var db = CreateDb();
-        await SeedTenantAsync(db, Now.AddDays(-5));
+        await SeedTenantAsync(db, DateTime.UtcNow.AddDays(-5));
 
         var accessor = new CurrentTenantAccessor { TenantId = TenantId };
         var context = CreateHttpContext("/api/admin/products", HttpMethods.Get);
@@ -201,7 +204,7 @@ public sealed class TenantOperationalGateMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_GraceReadOnly_AllowsReportExportPosts()
+    public async Task InvokeAsync_LockdownAfterGrace_AllowsReportExportPosts()
     {
         await using var db = CreateDb();
         await SeedTenantAsync(db, Now.AddDays(-45));

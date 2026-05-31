@@ -4,8 +4,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SoftColors, SoftSpacing } from '../constants/SoftTheme';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
+import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '../constants/licenseGracePeriod';
 
-const WARNING_THRESHOLD_DAYS = 15;
+const WARNING_THRESHOLD_DAYS = TENANT_WARNING_DAYS_BEFORE_EXPIRY;
 
 /**
  * POS lisans uyarı bandı (Almanca):

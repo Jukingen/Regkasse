@@ -3,6 +3,7 @@ import i18n from '../../i18n';
 export type AuthErrorCode =
   | 'POS_UNAUTHORIZED_USER'
   | 'INVALID_CREDENTIALS'
+  | 'LICENSE_ACCESS_DENIED'
   | 'NETWORK_ERROR'
   | 'SESSION_EXPIRED'
   | 'UNKNOWN_AUTH_ERROR';
@@ -69,6 +70,7 @@ export function normalizeLoginError(error: unknown): AuthAppError {
 const AUTH_ERROR_I18N_KEYS: Record<AuthErrorCode, string> = {
   POS_UNAUTHORIZED_USER: 'auth:errors.posUnauthorized',
   INVALID_CREDENTIALS: 'auth:errors.invalidCredentials',
+  LICENSE_ACCESS_DENIED: 'auth:errors.licenseAccessDenied',
   NETWORK_ERROR: 'auth:errors.networkError',
   SESSION_EXPIRED: 'auth:errors.sessionExpired',
   UNKNOWN_AUTH_ERROR: 'auth:errors.unknownError',

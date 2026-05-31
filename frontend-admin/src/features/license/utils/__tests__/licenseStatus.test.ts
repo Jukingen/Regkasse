@@ -27,6 +27,20 @@ describe('licenseStatus', () => {
         expect(status.canAccess).toBe(true);
     });
 
+    it('derives tenant lockdown after grace when only validity is available', () => {
+        const status = resolveTenantRowLicenseStatus(
+            {
+                licenseKey: 'REGK-KEY',
+                licenseValidUntilUtc: '2026-04-25T00:00:00Z',
+            },
+            nowMs,
+        );
+
+        expect(status.kind).toBe('lockdown');
+        expect(status.daysExpired).toBe(25);
+        expect(status.canAccess).toBe(false);
+    });
+
     it('derives tenant lockdown from row data when only validity is available', () => {
         const status = resolveTenantRowLicenseStatus(
             {

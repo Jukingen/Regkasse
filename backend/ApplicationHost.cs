@@ -412,6 +412,7 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
+builder.Services.AddScoped<ILicenseRenewalService, LicenseRenewalService>();
 builder.Services.AddScoped<IQuickUserGeneratorService, QuickUserGeneratorService>();
 builder.Services.AddScoped<ITenantUserService, TenantUserService>();
 builder.Services.AddSingleton<IBulkUserImportResultStore, BulkUserImportResultStore>();

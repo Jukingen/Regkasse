@@ -3,18 +3,21 @@ using System.Text.Json;
 using KasseAPI_Final;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 
 namespace KasseAPI_Final.Middleware
 {
     /// <summary>
-    /// Adds license visibility headers and enforces per-route license feature flags for authenticated traffic.
+    /// Adds license visibility headers and enforces deployment + mandant license policy for authenticated traffic.
     /// Runs after <c>UseAuthentication</c> so JWT <c>app_context</c> is available.
     /// </summary>
     public sealed class LicenseMiddleware
     {
         public const string LicenseStatusHeaderName = "X-License-Status";
         public const string LicenseWarningHeaderName = "X-License-Warning";
+        public const string LicenseDaysRemainingHeaderName = "X-License-Days-Remaining";
+        public const string LicenseGraceRemainingHeaderName = "X-License-Grace-Remaining";
 
         private readonly RequestDelegate _next;
 
@@ -26,7 +29,8 @@ namespace KasseAPI_Final.Middleware
         public async Task InvokeAsync(
             HttpContext context,
             ILicenseService licenseService,
-            DeploymentLicenseValidator deploymentLicenseValidator)
+            DeploymentLicenseValidator deploymentLicenseValidator,
+            ICurrentTenantAccessor tenantAccessor)
         {
             await licenseService.ValidateAsync(context.RequestAborted).ConfigureAwait(false);
             var deploymentSnapshot = licenseService.GetDeploymentStatus();
@@ -54,7 +58,70 @@ namespace KasseAPI_Final.Middleware
             if (!await TryEnforceLicensedFeaturesAsync(context, deploymentSnapshot).ConfigureAwait(false))
                 return;
 
+            if (!await TryEnforceTenantMandantAccessAsync(context, licenseService, tenantAccessor)
+                    .ConfigureAwait(false))
+            {
+                return;
+            }
+
             await _next(context);
+        }
+
+        private static async Task<bool> TryEnforceTenantMandantAccessAsync(
+            HttpContext context,
+            ILicenseService licenseService,
+            ICurrentTenantAccessor tenantAccessor)
+        {
+            if (OpenApiExportMode.IsEnabled)
+                return true;
+
+            if (tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+                return true;
+
+            var path = context.Request.Path.Value ?? string.Empty;
+            if (IsTenantLicensePublicPath(path))
+                return true;
+
+            var licenseStatus = await licenseService
+                .GetLicenseStatusAsync(tenantId, context.RequestAborted)
+                .ConfigureAwait(false);
+
+            if (!licenseStatus.CanAccess)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsJsonAsync(
+                    new
+                    {
+                        error = "License Expired",
+                        message = "Ihre Lizenz ist abgelaufen. Bitte kontaktieren Sie Ihren Administrator.",
+                        status = StatusCodes.Status403Forbidden,
+                        licenseStatus = new
+                        {
+                            expired = true,
+                            validUntil = licenseStatus.ValidUntil,
+                            daysOverdue = licenseStatus.DaysOverdue,
+                        },
+                    },
+                    context.RequestAborted).ConfigureAwait(false);
+                return false;
+            }
+
+            if (context.Response.HasStarted)
+                return true;
+
+            context.Response.Headers[LicenseStatusHeaderName] = licenseStatus.StatusMessage;
+            context.Response.Headers[LicenseDaysRemainingHeaderName] = licenseStatus.DaysRemaining.ToString();
+            context.Response.Headers[LicenseGraceRemainingHeaderName] = licenseStatus.GracePeriodRemaining.ToString();
+            return true;
+        }
+
+        private static bool IsTenantLicensePublicPath(string path)
+        {
+            var lower = path.ToLowerInvariant();
+            return lower.StartsWith("/api/auth", StringComparison.Ordinal)
+                || lower.StartsWith("/api/health", StringComparison.Ordinal)
+                || lower.StartsWith("/swagger", StringComparison.Ordinal)
+                || lower.StartsWith("/api/license", StringComparison.Ordinal);
         }
 
         private static async Task<bool> TryEnforceDeploymentAccessAsync(

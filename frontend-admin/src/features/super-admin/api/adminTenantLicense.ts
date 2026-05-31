@@ -56,6 +56,19 @@ export type SetTenantLicenseTierRequest = {
     validUntilUtc?: string | null;
 };
 
+export type RenewTenantLicenseRequest = {
+    additionalMonths: number;
+    paymentConfirmed: boolean;
+};
+
+export type LicenseRenewalResult = {
+    success: boolean;
+    newExpiryDate?: string | null;
+    daysAdded?: number;
+    daysDeducted?: number;
+    message?: string;
+};
+
 export async function getAdminTenantLicense(tenantId: string): Promise<TenantLicenseOverview> {
     const { data } = await AXIOS_INSTANCE.get<TenantLicenseOverview>(
         `/api/admin/tenants/${tenantId}/license`,
@@ -78,6 +91,19 @@ export async function extendAdminTenantLicense(
         `/api/admin/tenants/${tenantId}/license/extend`,
         body,
     );
+    return data;
+}
+
+/** POST /api/admin/license/renew — mandant SaaS renewal with grace-period deduction. */
+export async function renewAdminTenantLicense(
+    tenantId: string,
+    body: RenewTenantLicenseRequest,
+): Promise<LicenseRenewalResult> {
+    const { data } = await AXIOS_INSTANCE.post<LicenseRenewalResult>('/api/admin/license/renew', {
+        tenantId,
+        additionalMonths: body.additionalMonths,
+        paymentConfirmed: body.paymentConfirmed,
+    });
     return data;
 }
 

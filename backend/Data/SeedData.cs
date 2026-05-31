@@ -7,8 +7,8 @@ namespace KasseAPI_Final.Data
     {
         public static async Task SeedProductsAsync(AppDbContext context)
         {
-            // Eğer ürünler zaten varsa ekleme
-            if (await context.Products.AnyAsync())
+            // Skip when any tenant already has products (AddDemoData seeds default tenant during bootstrap).
+            if (await context.Products.IgnoreQueryFilters().AnyAsync())
             {
                 return;
             }

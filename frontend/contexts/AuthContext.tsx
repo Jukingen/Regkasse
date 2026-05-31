@@ -18,6 +18,7 @@ import { tenantStorage, type TenantBootstrap } from '../services/tenant/tenantSt
 import { handleAPIError } from '../services/errorService';
 import { isAuthError, AuthAppError } from '../features/auth/authErrors';
 import { getUserSettingsAfterLogin } from '../services/api/userSettingsService';
+import { checkLicenseStatus } from '../services/api/licenseStatusService';
 import { authTrace } from '../utils/authTrace';
 // CRITICAL FIX: useTranslation hook'unu kaldırdık - infinite loop'a neden oluyordu
 const isDev = __DEV__;
@@ -85,6 +86,22 @@ async function resolveTenantBootstrapFromSession(
 async function clearPersistedTenantBootstrap(): Promise<void> {
     await tenantStorage.clear();
     resetApiBaseUrlToConfigured();
+}
+
+/** Blocks session when mandant license is in lockdown (`canAccess === false`). */
+async function enforceMandantLicenseGate(bootstrap: TenantBootstrap): Promise<boolean> {
+    const tenantId = bootstrap.tenantId?.trim();
+    if (!tenantId) {
+        return true;
+    }
+
+    const licenseOk = await checkLicenseStatus(tenantId);
+    if (licenseOk) {
+        return true;
+    }
+
+    await sessionManager.clearSession();
+    return false;
 }
 
 // Cart cache temizleme için event listener
@@ -401,6 +418,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const bootstrap = await resolveTenantBootstrapFromSession(cleanToken, storedUser);
                         await persistTenantBootstrap(bootstrap);
 
+                        const licenseAllowed = await enforceMandantLicenseGate(bootstrap);
+                        if (!licenseAllowed) {
+                            await handleLogoutAndRedirect();
+                            return;
+                        }
+
                         const userWithToken: User = {
                             ...storedUser,
                             token: cleanToken
@@ -435,6 +458,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (result.isAuthenticated && result.user?.id) {
                     const bootstrap = await resolveTenantBootstrapFromSession(cleanToken, result.user);
                     await persistTenantBootstrap(bootstrap);
+
+                    const licenseAllowed = await enforceMandantLicenseGate(bootstrap);
+                    if (!licenseAllowed) {
+                        await handleLogoutAndRedirect();
+                        return;
+                    }
 
                     // FIX: Only update if user actually changed
                     const shouldUpdate = !user || user.id !== result.user.id;
@@ -510,6 +539,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         const bootstrap = await resolveTenantBootstrapFromSession(cleanToken, storedUser);
                         await persistTenantBootstrap(bootstrap);
                         authDevLog('✅ AUTH INIT: Tenant bootstrap restored from session', bootstrap);
+
+                        const licenseAllowed = await enforceMandantLicenseGate(bootstrap);
+                        if (!licenseAllowed) {
+                            authDevWarn('⛔ AUTH INIT: Mandant license blocked session restore');
+                            if (typeof sessionStorage !== 'undefined') {
+                                sessionStorage.removeItem('hasInitialAuthCheck');
+                            }
+                            setIsLoading(false);
+                            setIsAuthReady(true);
+                            return;
+                        }
 
                         // Token geçerliyse user state'i restore et
                         const userWithToken = {
@@ -673,6 +713,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 tenantSlug: loginUser.tenantSlug,
                 apiBaseUrl: existingApiBaseUrl,
             });
+
+            const licenseAllowed = await enforceMandantLicenseGate({
+                tenantId: loginUser.tenantId,
+                tenantSlug: loginUser.tenantSlug,
+                apiBaseUrl: existingApiBaseUrl,
+            });
+            if (!licenseAllowed) {
+                setJustLoggedIn(false);
+                throw new AuthAppError('LICENSE_ACCESS_DENIED', 403);
+            }
 
             if (isDev) {
                 authDevLog('Session tokens stored');

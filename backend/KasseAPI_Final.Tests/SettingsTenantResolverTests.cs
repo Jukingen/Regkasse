@@ -9,6 +9,16 @@ namespace KasseAPI_Final.Tests;
 
 public class SettingsTenantResolverTests
 {
+    private static SettingsTenantResolver CreateResolver(
+        IHttpContextAccessor httpAccessor,
+        IAuthTenantSnapshotProvider snapshotProvider,
+        Guid? ambientTenantId = null)
+    {
+        var tenantAccessor = new Mock<ICurrentTenantAccessor>();
+        tenantAccessor.SetupGet(a => a.TenantId).Returns(ambientTenantId);
+        return new SettingsTenantResolver(httpAccessor, snapshotProvider, tenantAccessor.Object);
+    }
+
     [Fact]
     public async Task ResolveEffectiveTenantIdAsync_Delegates_To_AuthTenantSnapshot()
     {
@@ -21,7 +31,7 @@ public class SettingsTenantResolverTests
         var http = new Mock<IHttpContextAccessor>();
         http.Setup(h => h.HttpContext).Returns((HttpContext?)null);
 
-        var resolver = new SettingsTenantResolver(http.Object, snapshotMock.Object);
+        var resolver = CreateResolver(http.Object, snapshotMock.Object);
         var id = await resolver.ResolveEffectiveTenantIdAsync();
 
         Assert.Equal(LegacyDefaultTenantIds.Primary, id);
@@ -43,9 +53,31 @@ public class SettingsTenantResolverTests
         var http = new Mock<IHttpContextAccessor>();
         http.Setup(h => h.HttpContext).Returns(httpContext);
 
-        var resolver = new SettingsTenantResolver(http.Object, snapshotMock.Object);
+        var resolver = CreateResolver(http.Object, snapshotMock.Object);
         var id = await resolver.ResolveEffectiveTenantIdAsync();
 
         Assert.Equal(other, id);
+    }
+
+    [Fact]
+    public async Task ResolveEffectiveTenantIdAsync_Prefers_Ambient_Tenant_Over_Jwt()
+    {
+        var ambient = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        var jwtTenant = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
+        var snapshotMock = new Mock<IAuthTenantSnapshotProvider>();
+        snapshotMock
+            .Setup(p => p.GetSnapshotAsync(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(jwtTenant.ToString("D"), "Jwt", "jwt", null, null));
+
+        var http = new Mock<IHttpContextAccessor>();
+        http.Setup(h => h.HttpContext).Returns(new DefaultHttpContext());
+
+        var resolver = CreateResolver(http.Object, snapshotMock.Object, ambient);
+        var id = await resolver.ResolveEffectiveTenantIdAsync();
+
+        Assert.Equal(ambient, id);
+        snapshotMock.Verify(
+            p => p.GetSnapshotAsync(It.IsAny<ClaimsPrincipal?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

@@ -5,6 +5,7 @@ using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -158,7 +159,7 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
     }
 
     [Fact]
-    public async Task CreateCategory_DuplicateNameSameTenant_ReturnsBadRequest()
+    public async Task CreateCategory_DuplicateNameSameTenant_ReturnsConflict()
     {
         await using var ctx = CreateContext();
         TenantTestDoubles.EnsureDefaultTenant(ctx);
@@ -172,7 +173,27 @@ public sealed class Wave3ATenantScopedCategoryAndProductTests
             Mock.Of<IAuditLogService>(),
             Mock.Of<ICategoryDemoResetService>());
         var dup = await controller.CreateCategory(new CreateCategoryRequest { Name = "Existing", VatRate = 10m });
-        Assert.IsType<BadRequestObjectResult>(dup.Result);
+        var conflict = Assert.IsAssignableFrom<ObjectResult>(dup.Result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateCategory_DuplicateNameInactiveCategorySameTenant_ReturnsConflict()
+    {
+        await using var ctx = CreateContext();
+        TenantTestDoubles.EnsureDefaultTenant(ctx);
+        ctx.Categories.Add(new Category { TenantId = TenantA, Name = "Archived", VatRate = 10m, IsActive = false });
+        await ctx.SaveChangesAsync();
+
+        var controller = new CategoriesController(
+            ctx,
+            NullLogger<CategoriesController>.Instance,
+            TenantTestDoubles.PrimaryTenantResolver,
+            Mock.Of<IAuditLogService>(),
+            Mock.Of<ICategoryDemoResetService>());
+        var dup = await controller.CreateCategory(new CreateCategoryRequest { Name = "archived", VatRate = 10m });
+        var conflict = Assert.IsAssignableFrom<ObjectResult>(dup.Result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
     }
 
     [Fact]

@@ -984,6 +984,17 @@ public sealed class AdminTenantsControllerTests
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow,
         });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "admin@cafe-off.test",
+            Email = "admin@cafe-off.test",
+            FirstName = "Cafe",
+            LastName = "Admin",
+            Role = Roles.Manager,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
         await db.SaveChangesAsync();
 
         var audit = new Mock<IAuditLogService>();
@@ -1006,8 +1017,13 @@ public sealed class AdminTenantsControllerTests
         var (success, _) = await service.SoftDeleteAsync(tenantId, "actor-1");
 
         Assert.True(success);
-        var membership = await db.UserTenantMemberships.SingleAsync(m => m.UserId == "u1" && m.TenantId == tenantId);
+        var membership = await db.UserTenantMemberships.IgnoreQueryFilters()
+            .SingleAsync(m => m.UserId == "u1" && m.TenantId == tenantId);
         Assert.False(membership.IsActive);
+        var user = await db.Users.SingleAsync(u => u.Id == "u1");
+        Assert.False(user.IsActive);
+        Assert.NotNull(user.DeactivatedAt);
+        Assert.Equal("actor-1", user.DeactivatedBy);
         audit.Verify(
             a => a.LogSystemOperationAsync(
                 AuditLogActions.TENANT_SOFT_DELETED,

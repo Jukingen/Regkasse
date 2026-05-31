@@ -1,4 +1,4 @@
-import { customInstance } from '@/api/mutator/custom-instance';
+import { customInstance } from '@/lib/axios';
 
 const PITR_AVAILABILITY_PATH = '/api/admin/backup/pitr/availability';
 const PITR_VALIDATE_PATH = '/api/admin/backup/pitr/validate';

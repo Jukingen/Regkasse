@@ -66,7 +66,7 @@ public class CashRegisterBootstrapSeedTests
             ctx,
             NullLogger.Instance);
 
-        var registers = await ctx.CashRegisters.AsNoTracking()
+        var registers = await ctx.CashRegisters.IgnoreQueryFilters().AsNoTracking()
             .OrderBy(r => r.TenantId)
             .ToListAsync();
 
@@ -106,7 +106,7 @@ public class CashRegisterBootstrapSeedTests
             ctx,
             NullLogger.Instance);
 
-        var registers = await ctx.CashRegisters.AsNoTracking()
+        var registers = await ctx.CashRegisters.IgnoreQueryFilters().AsNoTracking()
             .OrderBy(r => r.TenantId)
             .ToListAsync();
 
@@ -131,6 +131,6 @@ public class CashRegisterBootstrapSeedTests
             ctx,
             NullLogger.Instance);
 
-        Assert.Equal(2, await ctx.CashRegisters.CountAsync());
+        Assert.Equal(2, await ctx.CashRegisters.IgnoreQueryFilters().CountAsync());
     }
 }

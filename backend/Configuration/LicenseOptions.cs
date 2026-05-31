@@ -69,4 +69,13 @@ public sealed class LicenseOptions
 
     /// <summary>Maximum cashiers for POS; <c>-1</c> means unlimited.</summary>
     public int LicenseFeatureMaxCashiers { get; set; } = -1;
+
+    /// <summary>Mandant grace period length in days after <c>license_valid_until_utc</c>.</summary>
+    public int GracePeriodDays { get; set; } = LicenseGracePeriodConfig.DefaultGracePeriodDays;
+
+    /// <summary>Days before mandant expiry when pre-expiry warnings begin.</summary>
+    public int WarningDaysBeforeExpiry { get; set; } = LicenseGracePeriodConfig.DefaultWarningDaysBeforeExpiry;
+
+    /// <summary>Additional days after grace before lockdown; zero blocks immediately when grace ends.</summary>
+    public int BlockAfterGraceDays { get; set; } = LicenseGracePeriodConfig.DefaultBlockAfterGraceDays;
 }

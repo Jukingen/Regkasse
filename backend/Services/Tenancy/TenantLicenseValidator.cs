@@ -1,3 +1,5 @@
+using KasseAPI_Final.Configuration;
+
 namespace KasseAPI_Final.Services.Tenancy;
 
 public enum TenantLicenseStatus
@@ -16,8 +18,11 @@ public readonly record struct TenantLicensePermissions(
 
 public sealed class TenantLicenseValidator
 {
-    public const int GraceDaysWrite = 30;
-    public const int LockdownDays = 90;
+    public static int GraceDaysWrite => LicenseGracePeriodConfig.GracePeriodDays;
+
+    /// <summary>First day (inclusive) after grace when lockdown applies.</summary>
+    public static int LockdownStartsAfterDaysExpired =>
+        LicenseGracePeriodConfig.GracePeriodDays + LicenseGracePeriodConfig.BlockAfterGraceDays;
 
     public TenantLicenseStatus GetStatus(DateTime? validUntilUtc, DateTime? nowUtc = null)
     {
@@ -33,9 +38,6 @@ public sealed class TenantLicenseValidator
 
         if (daysExpired <= GraceDaysWrite)
             return TenantLicenseStatus.GraceWrite;
-
-        if (daysExpired <= LockdownDays)
-            return TenantLicenseStatus.GraceReadOnly;
 
         return TenantLicenseStatus.Lockdown;
     }

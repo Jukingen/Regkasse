@@ -22,6 +22,24 @@ public sealed class LicensePublicStatusDto
 
     /// <summary>True when <see cref="IDevelopmentModeService.ShouldBypassLicense"/> supplied the current snapshot (Development host only).</summary>
     public bool IsDevelopmentBypass { get; init; }
+
+    /// <summary>Mandant access flag when <c>tenantId</c> query or tenant context is resolved; otherwise null.</summary>
+    public bool? CanAccess { get; init; }
+
+    /// <summary>Mandant transaction flag when tenant context is resolved; otherwise null.</summary>
+    public bool? CanTransact { get; init; }
+
+    /// <summary>German mandant status copy when tenant context is resolved.</summary>
+    public string? StatusMessage { get; init; }
+
+    /// <summary>True when mandant license is expired but still within the grace window.</summary>
+    public bool IsInGracePeriod { get; init; }
+
+    /// <summary>Remaining mandant grace days when <see cref="IsInGracePeriod"/> is true.</summary>
+    public int GracePeriodRemaining { get; init; }
+
+    /// <summary>True when mandant license requires renewal (lockdown).</summary>
+    public bool RequiresRenewal { get; init; }
 }
 
 /// <summary>Optional POS feature flags from <c>GET /api/license/features</c> plus enabled license feature ids.</summary>

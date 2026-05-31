@@ -15,20 +15,24 @@ namespace KasseAPI_Final.Controllers;
 public sealed class AdminTenantLicensesController : ControllerBase
 {
     private readonly IAdminTenantLicenseService _licenseService;
+    private readonly ILicenseRenewalService _licenseRenewalService;
     private readonly IAuthorizationService _authorization;
     private readonly ILogger<AdminTenantLicensesController> _logger;
 
     public AdminTenantLicensesController(
         IAdminTenantLicenseService licenseService,
+        ILicenseRenewalService licenseRenewalService,
         IAuthorizationService authorization,
         ILogger<AdminTenantLicensesController> logger)
     {
         _licenseService = licenseService;
+        _licenseRenewalService = licenseRenewalService;
         _authorization = authorization;
         _logger = logger;
     }
 
     private string? ActorUserId => User.GetActorUserId();
+    private string? ActorRole => User.GetActorRole();
 
     [HttpGet]
     [ProducesResponseType(typeof(TenantLicenseOverviewDto), StatusCodes.Status200OK)]
@@ -75,6 +79,32 @@ public sealed class AdminTenantLicensesController : ControllerBase
             return NotFound(new { message = error });
         if (error != null)
             return BadRequest(new { message = error });
+        return Ok(result);
+    }
+
+    [HttpPost("renew")]
+    [ProducesResponseType(typeof(LicenseRenewalResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LicenseRenewalResult>> Renew(
+        Guid tenantId,
+        [FromBody] RenewTenantLicenseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var result = await _licenseRenewalService
+            .RenewLicenseAsync(tenantId, request.AdditionalMonths, ActorUserId, ActorRole, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!result.Success)
+        {
+            if (string.Equals(result.Message, "Tenant not found", StringComparison.OrdinalIgnoreCase))
+                return NotFound(new { message = result.Message });
+            return BadRequest(new { message = result.Message });
+        }
+
         return Ok(result);
     }
 

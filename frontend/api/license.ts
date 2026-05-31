@@ -10,7 +10,24 @@ export type LicensePublicStatusDto = {
   isExpired: boolean;
   isValid: boolean;
   mode?: string;
+  canAccess?: boolean | null;
+  canTransact?: boolean | null;
+  statusMessage?: string | null;
+  isInGracePeriod?: boolean;
+  gracePeriodRemaining?: number;
+  requiresRenewal?: boolean;
 };
+
+/** Mandant fields returned when GET /api/license/status includes tenant context. */
+export type TenantLicenseStatusDto = Pick<
+  LicensePublicStatusDto,
+  | 'canAccess'
+  | 'canTransact'
+  | 'statusMessage'
+  | 'daysRemaining'
+  | 'isInGracePeriod'
+  | 'gracePeriodRemaining'
+>;
 
 /** Matches backend `LicenseActivationResult` (camelCase JSON). */
 export type LicenseActivationResultDto = {
@@ -30,6 +47,12 @@ export const licenseApi = {
   /** GET /api/license/status (anonymous). */
   getStatus(): Promise<LicensePublicStatusDto> {
     return apiClient.get<LicensePublicStatusDto>('/license/status');
+  },
+
+  /** GET /api/license/status?tenantId=… (authenticated or dev tenant header). */
+  getTenantLicenseStatus(tenantId: string): Promise<TenantLicenseStatusDto> {
+    const query = encodeURIComponent(tenantId);
+    return apiClient.get<TenantLicenseStatusDto>(`/license/status?tenantId=${query}`);
   },
 
   /** POST /api/license/activate (anonymous; display key only). */

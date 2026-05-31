@@ -17,36 +17,29 @@ public sealed class TenantLicenseValidatorTests
 
     [Theory]
     [InlineData(1)]
-    [InlineData(30)]
-    public void GetStatus_WhenExpiredWithin30Days_ReturnsGraceWrite(int daysExpired)
+    [InlineData(21)]
+    public void GetStatus_WhenExpiredWithinGracePeriod_ReturnsGraceWrite(int daysExpired)
     {
         var status = _sut.GetStatus(Now.AddDays(-daysExpired), Now);
         Assert.Equal(TenantLicenseStatus.GraceWrite, status);
     }
 
     [Theory]
-    [InlineData(31)]
+    [InlineData(22)]
     [InlineData(90)]
-    public void GetStatus_WhenExpiredWithin90Days_ReturnsGraceReadOnly(int daysExpired)
+    public void GetStatus_WhenExpiredBeyondGracePeriod_ReturnsLockdown(int daysExpired)
     {
         var status = _sut.GetStatus(Now.AddDays(-daysExpired), Now);
-        Assert.Equal(TenantLicenseStatus.GraceReadOnly, status);
-    }
-
-    [Fact]
-    public void GetStatus_WhenExpiredBeyond90Days_ReturnsLockdown()
-    {
-        var status = _sut.GetStatus(Now.AddDays(-91), Now);
         Assert.Equal(TenantLicenseStatus.Lockdown, status);
     }
 
     [Fact]
-    public void GetPermissions_WhenGraceReadOnly_AllowsUserManagementButNotWrites()
+    public void GetPermissions_WhenLockdown_DeniesAllAccessForNormalUsers()
     {
         var permissions = _sut.GetPermissions(Now.AddDays(-45), isSuperAdmin: false, Now);
         Assert.False(permissions.CanWrite);
-        Assert.True(permissions.CanManageUsers);
-        Assert.True(permissions.CanAccess);
+        Assert.False(permissions.CanManageUsers);
+        Assert.False(permissions.CanAccess);
     }
 
     [Fact]

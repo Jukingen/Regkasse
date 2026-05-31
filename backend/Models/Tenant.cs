@@ -42,6 +42,14 @@ public class Tenant : BaseEntity
     [Column("license_valid_until_utc")]
     public DateTime? LicenseValidUntilUtc { get; set; }
 
+    /// <summary>UTC instant when the post-expiry grace window started (set on first day after expiry).</summary>
+    [Column("license_grace_period_started_at")]
+    public DateTime? LicenseGracePeriodStartedAt { get; set; }
+
+    /// <summary>Consumed grace days for renewal deduction and reporting.</summary>
+    [Column("license_grace_period_used_days")]
+    public int LicenseGracePeriodUsedDays { get; set; }
+
     [Column("deleted_at_utc")]
     public DateTime? DeletedAtUtc { get; set; }
 

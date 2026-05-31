@@ -95,7 +95,7 @@ public sealed class DemoProductImportServiceTests
         Assert.Equal(["Salate", "Pasta"], categories.Select(c => c.Name));
         Assert.All(categories, c => Assert.False(string.IsNullOrWhiteSpace(c.Key)));
         Assert.Contains(categories, c => c.Key == "salate" && c.OriginalDemoName == "Salate" && c.IsSystemCategory);
-        Assert.Contains(categories, c => c.Key == "pizza-mittel" && c.Name == "Pizza, mittel" && c.Icon == "🍕");
+        Assert.Contains(categories, c => c.Key == "pasta" && c.Name == "Pasta" && c.IsSystemCategory);
 
         var chefsalat = await db.Products.IgnoreQueryFilters()
             .SingleAsync(p => p.TenantId == tenant.Id && p.Name == "chefsalat");
@@ -154,6 +154,34 @@ public sealed class DemoProductImportServiceTests
     }
 
     [Fact]
+    public async Task ImportDemoProductsAsync_ReusesExistingCategoryWhenNameMatchesButKeyDiffers()
+    {
+        await using var db = CreateDb();
+        var tenant = await SeedTenantAsync(db);
+        db.Categories.Add(new Category
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenant.Id,
+            Key = "salate-2",
+            Name = "Salate",
+            VatRate = 10m,
+            FiscalCategory = RksvProductCategory.Food,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var result = await service.ImportDemoProductsAsync(
+            tenant.Id,
+            new DemoImportRequest { SelectedCategories = ["Salate"] });
+
+        Assert.True(result.Success);
+        Assert.Equal(0, result.CategoriesCreated);
+        Assert.Equal(1, await db.Categories.IgnoreQueryFilters().CountAsync(c => c.TenantId == tenant.Id && c.Name == "Salate"));
+    }
+
+    [Fact]
     public async Task ImportDemoProductsAsync_ReturnsErrorWhenTenantMissing()
     {
         await using var db = CreateDb();
@@ -163,5 +191,38 @@ public sealed class DemoProductImportServiceTests
 
         Assert.False(result.Success);
         Assert.Equal("Tenant not found.", result.ErrorMessage);
+    }
+
+    [SkippableFact]
+    public async Task ImportDemoProductsAsync_PostgreSql_DoubleImport_NoDuplicateCategoryErrors()
+    {
+        var cs = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        Skip.If(string.IsNullOrWhiteSpace(cs), "Set ConnectionStrings__DefaultConnection for local PG verification.");
+
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseAppNpgsql(cs).Options;
+        await using var db = new AppDbContext(options);
+        var tenantId = DemoTenantIds.Cafe;
+        Skip.If(!await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == tenantId), "Cafe tenant missing; run migrations first.");
+
+        // Clean prior partial runs for idempotent local verification.
+        var existingProducts = await db.Products.IgnoreQueryFilters().Where(p => p.TenantId == tenantId).ToListAsync();
+        var existingCategories = await db.Categories.IgnoreQueryFilters().Where(c => c.TenantId == tenantId).ToListAsync();
+        if (existingProducts.Count > 0 || existingCategories.Count > 0)
+        {
+            db.Products.RemoveRange(existingProducts);
+            db.Categories.RemoveRange(existingCategories);
+            await db.SaveChangesAsync();
+        }
+
+        var service = CreateService(db);
+        var first = await service.ImportDemoProductsAsync(tenantId, new DemoImportRequest());
+        Assert.True(first.Success, first.ErrorMessage);
+        Assert.Equal(16, first.CategoriesCreated);
+        Assert.Equal(16, await db.Categories.IgnoreQueryFilters().CountAsync(c => c.TenantId == tenantId));
+
+        var second = await service.ImportDemoProductsAsync(tenantId, new DemoImportRequest());
+        Assert.True(second.Success, second.ErrorMessage);
+        Assert.Equal(0, second.CategoriesCreated);
+        Assert.Equal(16, await db.Categories.IgnoreQueryFilters().CountAsync(c => c.TenantId == tenantId));
     }
 }

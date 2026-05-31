@@ -37,6 +37,7 @@ public static class CashRegisterBootstrapSeed
         var activeTenantIds = activeTenants.Select(t => t.Id).ToList();
 
         var tenantIdsWithRegisters = await context.CashRegisters
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(r => activeTenantIds.Contains(r.TenantId))
             .Select(r => r.TenantId)
@@ -50,12 +51,16 @@ public static class CashRegisterBootstrapSeed
 
         if (missingTenantIds.Count == 0)
         {
-            var operational = await context.CashRegisters.AsNoTracking()
+            var operational = await context.CashRegisters
+                .IgnoreQueryFilters()
+                .AsNoTracking()
                 .WhereCountsTowardPosOperationalCardinality()
                 .CountAsync(cancellationToken);
             if (operational == 0)
             {
-                var snapshot = await context.CashRegisters.AsNoTracking()
+                var snapshot = await context.CashRegisters
+                    .IgnoreQueryFilters()
+                    .AsNoTracking()
                     .OrderBy(r => r.RegisterNumber)
                     .Select(r => new
                     {

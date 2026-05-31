@@ -46,6 +46,8 @@ public sealed class LicenseOptionsFromFilesPostConfigure : IPostConfigureOptions
             static (o, v) => o.SigningPrivateKeyPem = v,
             fs.PrivateKeyPath,
             "LicenseSettings:PrivateKeyPath → License:SigningPrivateKeyPem");
+
+        LicenseGracePeriodConfig.ApplyFrom(options);
     }
 
     private void TryLoadPemFromPath(

@@ -5,10 +5,12 @@ import {
     Alert,
     Button,
     Card,
+    Checkbox,
     DatePicker,
     Descriptions,
     Form,
     Input,
+    Modal,
     Select,
     Space,
     Table,
@@ -17,6 +19,7 @@ import {
     message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { AxiosError } from 'axios';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -35,6 +38,7 @@ import {
     extendAdminTenantLicense,
     getAdminTenantLicense,
     issueAdminTenantDeploymentLicense,
+    renewAdminTenantLicense,
     setAdminTenantLicenseTier,
     type TenantLicenseConsistency,
     type TenantLicenseHistoryItem,
@@ -53,10 +57,25 @@ type ExtendFormValues = {
     validUntilUtc?: dayjs.Dayjs;
 };
 
+type RenewFormValues = {
+    additionalMonths: number;
+    paymentConfirmed: boolean;
+};
+
+const RENEW_MONTH_OPTIONS = [1, 3, 6, 12, 24] as const;
+
+function readApiErrorMessage(error: unknown, fallback: string): string {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const msg = axiosError.response?.data?.message;
+    return typeof msg === 'string' && msg.trim().length > 0 ? msg.trim() : fallback;
+}
+
 export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const [extendForm] = Form.useForm<ExtendFormValues>();
+    const [renewForm] = Form.useForm<RenewFormValues>();
+    const [renewOpen, setRenewOpen] = useState(false);
     const [consistency, setConsistency] = useState<TenantLicenseConsistency | null>(null);
 
     const licenseQuery = useQuery({
@@ -90,6 +109,27 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
             invalidate();
         },
         onError: () => message.error(t('tenants.messages.saveFailed')),
+    });
+
+    const renewMutation = useMutation({
+        mutationFn: (values: RenewFormValues) => renewAdminTenantLicense(tenant.id, values),
+        onSuccess: (result) => {
+            const base = result.message ?? t('tenants.detail.license.renewSuccess');
+            if (result.daysDeducted && result.daysDeducted > 0) {
+                message.success(
+                    `${base} (${t('tenants.detail.license.renewResultDaysDeducted', {
+                        count: result.daysDeducted,
+                    })})`,
+                );
+            } else {
+                message.success(base);
+            }
+            setRenewOpen(false);
+            renewForm.resetFields();
+            invalidate();
+        },
+        onError: (error) =>
+            message.error(readApiErrorMessage(error, t('tenants.messages.saveFailed'))),
     });
 
     const tierMutation = useMutation({
@@ -132,6 +172,15 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
     const status = licenseQuery.data?.status;
     const history = licenseQuery.data?.history ?? [];
     const resolvedStatus = status ? resolveTenantLicenseStatus(status) : null;
+    const inGracePeriod = resolvedStatus?.kind === 'grace_write';
+
+    const openRenewModal = () => {
+        renewForm.setFieldsValue({
+            additionalMonths: 12,
+            paymentConfirmed: false,
+        });
+        setRenewOpen(true);
+    };
 
     const historyColumns: ColumnsType<TenantLicenseHistoryItem> = [
         {
@@ -251,6 +300,9 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                     <Button loading={trialMutation.isPending} onClick={() => trialMutation.mutate()}>
                         {t('tenants.detail.license.activateTrial')}
                     </Button>
+                    <Button type="primary" onClick={openRenewModal}>
+                        {t('tenants.detail.license.renewAction')}
+                    </Button>
                     <Select
                         placeholder={t('tenants.detail.license.changeTier')}
                         style={{ width: 200 }}
@@ -295,6 +347,74 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                     pagination={{ pageSize: 10 }}
                 />
             </Card>
+
+            <Modal
+                title={t('tenants.detail.license.renewModalTitle')}
+                open={renewOpen}
+                onCancel={() => setRenewOpen(false)}
+                footer={null}
+                destroyOnClose
+            >
+                {inGracePeriod ? (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        style={{ marginBottom: 16 }}
+                        message={t('tenants.detail.license.renewGraceHint')}
+                    />
+                ) : null}
+                <Form
+                    form={renewForm}
+                    layout="vertical"
+                    onFinish={(values) => {
+                        if (!values.paymentConfirmed) {
+                            message.warning(t('tenants.detail.license.renewPaymentRequired'));
+                            return;
+                        }
+                        renewMutation.mutate(values);
+                    }}
+                >
+                    <Form.Item
+                        name="additionalMonths"
+                        label={t('tenants.detail.license.renewMonthsLabel')}
+                        rules={[
+                            {
+                                required: true,
+                                message: t('tenants.detail.license.renewMonthsRequired'),
+                            },
+                        ]}
+                    >
+                        <Select
+                            options={RENEW_MONTH_OPTIONS.map((months) => ({
+                                value: months,
+                                label: `${months}`,
+                            }))}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="paymentConfirmed"
+                        valuePropName="checked"
+                        rules={[
+                            {
+                                validator: (_, value: boolean) =>
+                                    value
+                                        ? Promise.resolve()
+                                        : Promise.reject(
+                                              new Error(t('tenants.detail.license.renewPaymentRequired')),
+                                          ),
+                            },
+                        ]}
+                    >
+                        <Checkbox>{t('tenants.detail.license.renewPaymentConfirmed')}</Checkbox>
+                    </Form.Item>
+                    <Space>
+                        <Button onClick={() => setRenewOpen(false)}>{t('common.buttons.cancel')}</Button>
+                        <Button type="primary" htmlType="submit" loading={renewMutation.isPending}>
+                            {t('tenants.detail.license.renewSubmit')}
+                        </Button>
+                    </Space>
+                </Form>
+            </Modal>
         </Space>
     );
 }

@@ -12,31 +12,18 @@ namespace KasseAPI_Final
             Console.WriteLine("Demo veriler ekleniyor...");
             var tenantId = LegacyDefaultTenantIds.Primary;
 
-            // Kategoriler ekle
-            if (!await context.Categories.AnyAsync())
-            {
-                var categories = new[]
-                {
-                    new Category { Id = Guid.NewGuid(), TenantId = tenantId, Name = "Getränke", Description = "Alkoholfreie und alkoholische Getränke", Color = "#3498db", Icon = "wine", SortOrder = 1, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-                    new Category { Id = Guid.NewGuid(), TenantId = tenantId, Name = "Speisen", Description = "Hauptgerichte und Vorspeisen", Color = "#e74c3c", Icon = "restaurant", SortOrder = 2, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-                    new Category { Id = Guid.NewGuid(), TenantId = tenantId, Name = "Desserts", Description = "Süße Nachspeisen und Kuchen", Color = "#f39c12", Icon = "ice-cream", SortOrder = 3, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-                    new Category { Id = Guid.NewGuid(), TenantId = tenantId, Name = "Snacks", Description = "Kleine Zwischenmahlzeiten", Color = "#27ae60", Icon = "fast-food", SortOrder = 4, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-                    new Category { Id = Guid.NewGuid(), TenantId = tenantId, Name = "Kaffee & Tee", Description = "Heiße Getränke", Color = "#8e44ad", Icon = "cafe", SortOrder = 5, IsActive = true, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
-                };
-
-                context.Categories.AddRange(categories);
-                await context.SaveChangesAsync();
-                Console.WriteLine($"{categories.Length} kategori eklendi.");
-            }
+            // Kategoriler ekle (upsert — duplicate tenant+name/key engellenir)
+            var categoriesCreated = await CategorySeedData.SeedLegacyDevCategoriesAsync(context, tenantId);
+            if (categoriesCreated > 0)
+                Console.WriteLine($"{categoriesCreated} kategori eklendi.");
             else
-            {
                 Console.WriteLine("Kategoriler zaten mevcut, atlanıyor...");
-            }
 
             // Ürünler ekle
-            if (!await context.Products.AnyAsync())
+            if (!await context.Products.IgnoreQueryFilters().AnyAsync(p => p.TenantId == tenantId))
             {
                 var catByName = await context.Categories
+                    .IgnoreQueryFilters()
                     .AsNoTracking()
                     .Where(c => c.TenantId == tenantId)
                     .ToDictionaryAsync(c => c.Name, c => c.Id);

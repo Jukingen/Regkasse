@@ -51,14 +51,30 @@ public sealed class LicenseController : ControllerBase
         _db = db;
     }
 
-    /// <summary>Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).</summary>
+    /// <summary>
+    /// Current license snapshot (trial vs paid, expiry, coarse feature tags, display mode).
+    /// When <paramref name="tenantId"/> or resolved tenant context is present, mandant grace-period fields are included.
+    /// </summary>
     [HttpGet("status")]
-    public async Task<ActionResult<LicensePublicStatusDto>> GetStatus(CancellationToken cancellationToken)
+    public async Task<ActionResult<LicensePublicStatusDto>> GetStatus(
+        [FromQuery] Guid? tenantId,
+        CancellationToken cancellationToken)
     {
         // Same mapping in all environments so POS/admin anonymous status matches activated license
         // Optional synthetic licensing is controlled by <see cref="IDevelopmentModeService.ShouldBypassLicense"/> (Development host only).
         var s = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
-        return Ok(MapPublicStatus(s));
+        var dto = MapPublicStatus(s);
+
+        var resolvedTenantId = ResolveMandantTenantId(tenantId);
+        if (resolvedTenantId is Guid effectiveTenantId)
+        {
+            var mandant = await _licenseService
+                .GetLicenseStatusAsync(effectiveTenantId, cancellationToken)
+                .ConfigureAwait(false);
+            dto = ApplyMandantOverlay(dto, mandant);
+        }
+
+        return Ok(dto);
     }
 
     /// <summary>Optional POS-facing feature limits (configuration-driven).</summary>
@@ -242,6 +258,38 @@ public sealed class LicenseController : ControllerBase
             return "(empty)";
         var trimmed = value.Trim();
         return trimmed.Length <= 12 ? trimmed : trimmed[..12] + "…";
+    }
+
+    private Guid? ResolveMandantTenantId(Guid? tenantIdFromQuery)
+    {
+        if (tenantIdFromQuery is Guid fromQuery && fromQuery != Guid.Empty)
+            return fromQuery;
+
+        var fromAccessor = _tenantAccessor.TenantId;
+        return fromAccessor != Guid.Empty ? fromAccessor : null;
+    }
+
+    private static LicensePublicStatusDto ApplyMandantOverlay(
+        LicensePublicStatusDto deployment,
+        LicenseStatusInfo mandant)
+    {
+        return new LicensePublicStatusDto
+        {
+            LicenseType = deployment.LicenseType,
+            ValidUntil = mandant.ValidUntil ?? deployment.ValidUntil,
+            DaysRemaining = mandant.DaysRemaining,
+            Features = deployment.Features,
+            IsExpired = !mandant.CanAccess && mandant.RequiresRenewal,
+            IsValid = mandant.CanAccess,
+            Mode = deployment.Mode,
+            IsDevelopmentBypass = deployment.IsDevelopmentBypass,
+            CanAccess = mandant.CanAccess,
+            CanTransact = mandant.CanTransact,
+            StatusMessage = mandant.StatusMessage,
+            IsInGracePeriod = mandant.IsInGracePeriod,
+            GracePeriodRemaining = mandant.GracePeriodRemaining,
+            RequiresRenewal = mandant.RequiresRenewal,
+        };
     }
 
     private static LicensePublicStatusDto MapPublicStatus(LicenseStatusResponse s)

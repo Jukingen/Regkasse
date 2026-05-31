@@ -181,7 +181,8 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
         var httpContext = new DefaultHttpContext { User = user };
         var httpAccessor = new Mock<IHttpContextAccessor>();
         httpAccessor.Setup(h => h.HttpContext).Returns(httpContext);
-        var resolver = new SettingsTenantResolver(httpAccessor.Object, new AuthTenantSnapshotProvider(db));
+        var tenantAccessor = new Mock<ICurrentTenantAccessor>();
+        var resolver = new SettingsTenantResolver(httpAccessor.Object, new AuthTenantSnapshotProvider(db), tenantAccessor.Object);
         return (resolver, httpAccessor.Object);
     }
 

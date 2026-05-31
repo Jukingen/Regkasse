@@ -50,11 +50,48 @@ public sealed class TenantService : ITenantService
         tenant.UpdatedBy = actorUserId;
 
         var memberships = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .Where(m => m.TenantId == tenantId && m.IsActive)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
         foreach (var membership in memberships)
             membership.IsActive = false;
+
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        var affectedUserIds = memberships.Select(m => m.UserId).Distinct().ToList();
+        if (affectedUserIds.Count > 0)
+        {
+            var users = await _db.Users
+                .Where(u => affectedUserIds.Contains(u.Id) && u.IsActive)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            var deactivatedAt = DateTime.UtcNow;
+            foreach (var user in users)
+            {
+                if (OperationalTenantMembershipPolicy.IsSuperAdmin(user))
+                    continue;
+
+                var hasOperational = await (
+                    from m in _db.UserTenantMemberships.IgnoreQueryFilters()
+                    join t in _db.Tenants on m.TenantId equals t.Id
+                    where m.UserId == user.Id
+                        && m.IsActive
+                        && t.IsActive
+                        && t.Status != TenantStatuses.Deleted
+                    select m.Id
+                ).AnyAsync(cancellationToken).ConfigureAwait(false);
+                if (hasOperational)
+                    continue;
+
+                user.IsActive = false;
+                user.DeactivatedAt = deactivatedAt;
+                user.DeactivatedBy = actorUserId;
+                user.DeactivationReason = $"Tenant '{tenant.Slug}' was deleted.";
+                user.UpdatedAt = deactivatedAt;
+            }
+        }
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         _logger.LogWarning("Super-admin soft-deleted tenant {TenantId} slug {Slug}", tenant.Id, tenant.Slug);
@@ -90,6 +127,7 @@ public sealed class TenantService : ITenantService
         tenant.UpdatedBy = actorUserId;
 
         var memberships = await _db.UserTenantMemberships
+            .IgnoreQueryFilters()
             .Where(m => m.TenantId == tenantId && !m.IsActive)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

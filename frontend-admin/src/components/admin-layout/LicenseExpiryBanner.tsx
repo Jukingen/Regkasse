@@ -15,6 +15,7 @@ import {
     type LicenseStatus,
 } from '@/features/license/hooks/useLicenseStatus';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { TENANT_GRACE_PERIOD_DAYS } from '@/features/license/constants/licenseGracePeriod';
 
 export function LicenseExpiryBanner() {
     const router = useRouter();
@@ -68,8 +69,8 @@ export function LicenseExpiryBanner() {
                         description={renderBannerDescription(
                             <>
                                 Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen. Sie
-                                haben noch <strong>{Math.max(0, 30 - license.daysExpired)}</strong> Tage Zeit, um
-                                die Lizenz zu verlaengern. Danach werden neue Verkaeufe deaktiviert.
+                                haben noch <strong>{Math.max(0, TENANT_GRACE_PERIOD_DAYS - license.daysExpired)}</strong> Tage Zeit, um
+                                die Lizenz zu verlaengern. Danach wird der Mandant gesperrt.
                             </>,
                             renderTenantRenewAction(),
                         )}
@@ -82,13 +83,12 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Mandantenlizenz abgelaufen - Verkaeufe deaktiviert"
+                        message="Mandantenlizenz abgelaufen - System gesperrt"
                         description={renderBannerDescription(
                             <>
                                 Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen.
-                                <strong> Neue Verkaeufe sind deaktiviert.</strong> Sie koennen weiterhin Berichte
-                                einsehen und Benutzer verwalten. Bitte verlaengern Sie die Lizenz innerhalb der
-                                naechsten <strong>{Math.max(0, 90 - license.daysExpired)}</strong> Tage.
+                                Das System ist im Lockdown-Modus. Bitte verlaengern Sie die Lizenz oder kontaktieren
+                                Sie Ihren Administrator.
                             </>,
                             renderTenantRenewAction(),
                         )}

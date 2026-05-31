@@ -30,6 +30,12 @@ public sealed class ExtendTenantLicenseRequest
     public DateTime? ValidUntilUtc { get; set; }
 }
 
+public sealed class RenewTenantLicenseRequest
+{
+    [Range(1, 120)]
+    public int AdditionalMonths { get; set; }
+}
+
 public sealed class SetTenantLicenseTierRequest
 {
     /// <summary>basic | standard | premium</summary>

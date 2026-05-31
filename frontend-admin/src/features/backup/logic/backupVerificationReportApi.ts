@@ -1,4 +1,4 @@
-import { customInstance } from '@/api/mutator/custom-instance';
+import { customInstance } from '@/lib/axios';
 
 export type BackupVerificationReportStatus = 'Verified' | 'PartiallyVerified' | 'NotVerified';
 

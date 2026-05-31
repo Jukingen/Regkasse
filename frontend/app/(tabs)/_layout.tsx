@@ -8,6 +8,7 @@ import { WaveLoader } from '../../src/components/common/WaveLoader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LicenseExpiryBanner } from '../../components/LicenseExpiryBanner';
+import { LicenseWarningBanner } from '../../components/LicenseWarningBanner';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { EnvironmentBadge } from '../../components/EnvironmentBadge';
 import { DevTenantSwitcher } from '../../src/components/dev/DevTenantSwitcher';
@@ -119,6 +120,7 @@ function PosTabsInner({
     <TseHealthProvider>
       <View style={{ flex: 1 }}>
         <ToastContainer toasts={tabBarToasts} onRemove={removeTabBarToast} />
+        <LicenseWarningBanner />
         <LicenseExpiryBanner />
         <View style={styles.licenseStatusBar}>
           <LicenseStatusIndicator />

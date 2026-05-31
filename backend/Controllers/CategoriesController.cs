@@ -200,9 +200,11 @@ namespace KasseAPI_Final.Controllers
 
 
 
+                var normalizedName = request.Name.Trim();
+
                 var key = string.IsNullOrWhiteSpace(request.Key)
 
-                    ? CategoryKey.FromDisplayName(request.Name)
+                    ? CategoryKey.FromDisplayName(normalizedName)
 
                     : request.Key.Trim().ToLowerInvariant();
 
@@ -219,38 +221,34 @@ namespace KasseAPI_Final.Controllers
 
 
                 var existingKey = await _context.Categories
-
-                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Key == key && c.IsActive);
-
-
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Key == key);
 
                 if (existingKey != null)
-
                 {
-
-                    return BadRequest(new { message = "Category key already exists" });
-
+                    return Conflict(new
+                    {
+                        error = "Category key already exists",
+                        message = $"Eine Kategorie mit dem Schlüssel '{key}' existiert bereits.",
+                    });
                 }
-
-
 
                 var existingCategory = await _context.Categories
-
-                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Name.ToLower() == request.Name.ToLower() && c.IsActive);
-
-
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Name.ToLower() == normalizedName.ToLower());
 
                 if (existingCategory != null)
-
                 {
-
-                    return BadRequest(new { message = "Category name already exists" });
-
+                    return Conflict(new
+                    {
+                        error = "Category already exists",
+                        message = $"Eine Kategorie mit dem Namen '{normalizedName}' existiert bereits.",
+                    });
                 }
 
 
 
-                var fiscalCategory = request.FiscalCategory ?? CategoryKey.InferFiscalCategory(request.Name, request.Description);
+                var fiscalCategory = request.FiscalCategory ?? CategoryKey.InferFiscalCategory(normalizedName, request.Description);
 
                 if (fiscalCategory == RksvProductCategory.Unspecified)
 
@@ -266,7 +264,7 @@ namespace KasseAPI_Final.Controllers
 
                     Key = key,
 
-                    Name = request.Name,
+                    Name = normalizedName,
 
                     Description = request.Description,
 

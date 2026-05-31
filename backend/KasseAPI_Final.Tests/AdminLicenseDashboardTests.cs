@@ -36,6 +36,8 @@ public sealed class AdminLicenseDashboardTests
         var controller = new AdminLicenseController(
             Mock.Of<ILicenseService>(),
             Mock.Of<ILicenseIssuanceService>(),
+            Mock.Of<ILicenseRenewalService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
             db,
             Mock.Of<IAdminTenantService>(),
             Mock.Of<ILicenseReminderNotificationStore>(),
@@ -66,6 +68,8 @@ public sealed class AdminLicenseDashboardTests
         var controller = new AdminLicenseController(
             Mock.Of<ILicenseService>(),
             Mock.Of<ILicenseIssuanceService>(),
+            Mock.Of<ILicenseRenewalService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
             db,
             adminTenantService,
             Mock.Of<ILicenseReminderNotificationStore>(),

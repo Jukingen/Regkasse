@@ -6,9 +6,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { useAuth } from '../contexts/AuthContext';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
+import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '../constants/licenseGracePeriod';
 
 /** Kept in sync with `LicenseExpiryBanner` warning window to avoid duplicate copy. */
-const LICENSE_EXPIRY_WARNING_DAYS = 15;
+const LICENSE_EXPIRY_WARNING_DAYS = TENANT_WARNING_DAYS_BEFORE_EXPIRY;
 
 /**
  * High-visibility strip for POS mode: demo login vs long-horizon trial license.

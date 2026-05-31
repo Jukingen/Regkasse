@@ -86,7 +86,7 @@ export function exportBackupVerificationReportPdf(
               <th>${escapeHtml(t('backupDr.verificationReport.backupRows'))}</th>
               <th>${escapeHtml(t('backupDr.verificationReport.sourceRows'))}</th>
               <th>${escapeHtml(t('backupDr.verificationReport.diffColumn'))}</th>
-              <th>${escapeHtml(t('backupDr.verificationReport.verified')}</th>
+              <th>${escapeHtml(t('backupDr.verificationReport.verified'))}</th>
             </tr>
           </thead>
           <tbody>${tableRows}</tbody>

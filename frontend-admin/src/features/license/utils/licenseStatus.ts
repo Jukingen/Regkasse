@@ -1,13 +1,14 @@
 import type { LicenseStatusResponse } from '@/api/manual/adminLicense';
 import type { TenantLicenseStatus as TenantLicenseStatusDto } from '@/features/super-admin/api/adminTenantLicense';
+import {
+    DEPLOYMENT_GRACE_WRITE_DAYS,
+    DEPLOYMENT_LOCKDOWN_DAYS,
+    TENANT_GRACE_PERIOD_DAYS,
+} from '@/features/license/constants/licenseGracePeriod';
 
 type TranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const TENANT_GRACE_WRITE_DAYS = 30;
-const TENANT_LOCKDOWN_DAYS = 90;
-const DEPLOYMENT_GRACE_WRITE_DAYS = 15;
-const DEPLOYMENT_LOCKDOWN_DAYS = 60;
 
 export type LicenseStatusKind =
     | 'active'
@@ -157,11 +158,8 @@ function resolveTenantKind(daysRemaining: number, explicitKind: LicenseStatusKin
     }
 
     const daysExpired = Math.abs(daysRemaining);
-    if (daysExpired <= TENANT_GRACE_WRITE_DAYS) {
+    if (daysExpired <= TENANT_GRACE_PERIOD_DAYS) {
         return 'grace_write';
-    }
-    if (daysExpired <= TENANT_LOCKDOWN_DAYS) {
-        return 'grace_readonly';
     }
     return 'lockdown';
 }

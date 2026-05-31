@@ -123,11 +123,31 @@ public partial class AdminUsersController : ControllerBase
         await _context.Tenants
             .AsNoTracking()
             .Where(t => t.IsActive
+                && t.Status != TenantStatuses.Deleted
                 && t.Slug != "admin"
                 && t.Slug != LegacyDefaultTenantIds.PrimarySlug)
             .Select(t => t.Id)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+    private static IEnumerable<ApplicationUser> ApplyOrphanUserListFilter(
+        IEnumerable<ApplicationUser> users,
+        bool? isActive)
+    {
+        if (isActive == true)
+        {
+            return users.Where(u =>
+                u.IsActive && !OperationalTenantMembershipPolicy.IsOrphanedTenantUser(u));
+        }
+
+        if (isActive == false)
+        {
+            return users.Where(u =>
+                !u.IsActive || OperationalTenantMembershipPolicy.IsOrphanedTenantUser(u));
+        }
+
+        return users.Where(u => !OperationalTenantMembershipPolicy.IsOrphanedTenantUser(u));
+    }
 
     /// <summary>Case-insensitive match on login name, email, display name, and employee number.</summary>
     private static IQueryable<ApplicationUser> ApplyUserSearchFilter(IQueryable<ApplicationUser> query, string? search)
@@ -170,20 +190,36 @@ public partial class AdminUsersController : ControllerBase
         var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
         var businessTenantIdSet = businessTenantIds.ToHashSet();
 
-        var userIdsWithBusinessMembership = await _context.UserTenantMemberships
+        var operationalTenantIds = await _context.Tenants
             .AsNoTracking()
+            .Where(t => t.IsActive && t.Status != TenantStatuses.Deleted)
+            .Select(t => t.Id)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        var userIdsWithOperationalMembership = await MembershipsQuery()
+            .Where(m => m.IsActive && operationalTenantIds.Contains(m.TenantId))
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+        var operationalUserIdSet = userIdsWithOperationalMembership.ToHashSet();
+
+        var userIdsWithBusinessMembership = await MembershipsQuery()
             .Where(m => m.IsActive && businessTenantIds.Contains(m.TenantId))
             .Select(m => m.UserId)
             .Distinct()
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        var businessUserIdSet = userIdsWithBusinessMembership.ToHashSet();
 
         var query = UsersWithMembershipsQuery();
-        if (isActive.HasValue)
-            query = query.Where(u => u.IsActive == isActive.Value);
+        if (isActive == true)
+            query = query.Where(u => u.IsActive);
 
         query = query.Where(u =>
-            u.Role == Roles.SuperAdmin || !userIdsWithBusinessMembership.Contains(u.Id));
+            u.Role == Roles.SuperAdmin
+            || (operationalUserIdSet.Contains(u.Id) && !businessUserIdSet.Contains(u.Id)));
         query = ApplyUserSearchFilter(query, search);
 
         var users = await query
@@ -191,7 +227,9 @@ public partial class AdminUsersController : ControllerBase
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
-        return users.Select(u => ToDto(u, businessTenantIdSet)).ToList();
+        return ApplyOrphanUserListFilter(users, isActive)
+            .Select(u => ToDto(u, businessTenantIdSet))
+            .ToList();
     }
 
     private async Task<List<AdminTenantUserRowDto>> ListTenantUsersAsync(
@@ -266,8 +304,7 @@ public partial class AdminUsersController : ControllerBase
 
         var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
 
-        var membershipQuery = _context.UserTenantMemberships
-            .AsNoTracking()
+        var membershipQuery = MembershipsQuery()
             .Where(m => m.IsActive && businessTenantIds.Contains(m.TenantId));
 
         var rows = await (
@@ -324,11 +361,21 @@ public partial class AdminUsersController : ControllerBase
         return string.IsNullOrEmpty(name) ? u.UserName ?? u.Id : name;
     }
 
-    private IQueryable<ApplicationUser> UsersWithMembershipsQuery() =>
-        _context.Users
-            .AsNoTracking()
+    private IQueryable<UserTenantMembership> MembershipsQuery() =>
+        _tenantAccessor.TenantId is Guid
+            ? _context.UserTenantMemberships.AsNoTracking()
+            : _context.UserTenantMemberships.AsNoTracking().IgnoreQueryFilters();
+
+    private IQueryable<ApplicationUser> UsersWithMembershipsQuery()
+    {
+        var query = _context.Users.AsNoTracking();
+        if (_tenantAccessor.TenantId is not Guid)
+            query = query.IgnoreQueryFilters();
+
+        return query
             .Include(u => u.UserTenantMemberships)
             .ThenInclude(m => m.Tenant);
+    }
 
     private static UserTenantMembership? PickPrimaryMembership(
         ApplicationUser user,
@@ -338,7 +385,7 @@ public partial class AdminUsersController : ControllerBase
             .Where(m => m.IsActive
                 && m.Tenant != null
                 && m.Tenant.IsActive
-                && !string.Equals(m.Tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+                && m.Tenant.Status != TenantStatuses.Deleted)
             .ToList();
 
         if (active.Count == 0)
@@ -406,7 +453,7 @@ public partial class AdminUsersController : ControllerBase
                 && m.IsActive
                 && m.Tenant != null
                 && m.Tenant.IsActive
-                && !string.Equals(m.Tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+                && m.Tenant.Status != TenantStatuses.Deleted)
             .OrderByDescending(m => m.IsOwner)
             .ThenBy(m => m.CreatedAtUtc)
             .ThenBy(m => m.Id)
@@ -443,8 +490,8 @@ public partial class AdminUsersController : ControllerBase
         var businessTenantIdSet = businessTenantIds.ToHashSet();
 
         var query = UsersWithMembershipsQuery();
-        if (isActive.HasValue)
-            query = query.Where(u => u.IsActive == isActive.Value);
+        if (isActive == true)
+            query = query.Where(u => u.IsActive);
         if (!string.IsNullOrWhiteSpace(role))
             query = query.Where(u => u.Role == role);
         query = ApplyUserSearchFilter(query, search);
@@ -453,7 +500,7 @@ public partial class AdminUsersController : ControllerBase
             .OrderBy(u => u.LastName).ThenBy(u => u.FirstName)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        return Ok(users.Select(u => ToDto(u, businessTenantIdSet)));
+        return Ok(ApplyOrphanUserListFilter(users, isActive).Select(u => ToDto(u, businessTenantIdSet)));
     }
 
     /// <summary>Preview next auto-generated username for Quick Create (role-based prefix + number).</summary>
@@ -510,7 +557,7 @@ public partial class AdminUsersController : ControllerBase
                 && m.TenantId == ambientTenantId
                 && m.Tenant != null
                 && m.Tenant.IsActive
-                && !string.Equals(m.Tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase));
+                && m.Tenant.Status != TenantStatuses.Deleted);
 
             if (!hasActiveMembershipInAmbientTenant)
                 return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));

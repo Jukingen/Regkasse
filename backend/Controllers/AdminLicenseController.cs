@@ -25,6 +25,8 @@ public sealed partial class AdminLicenseController : ControllerBase
 {
     private readonly ILicenseService _licenseService;
     private readonly ILicenseIssuanceService _licenseIssuanceService;
+    private readonly ILicenseRenewalService _licenseRenewalService;
+    private readonly IAdminTenantLicenseService _adminTenantLicenseService;
     private readonly AppDbContext _db;
     private readonly IAdminTenantService _adminTenantService;
     private readonly ILicenseReminderNotificationStore _licenseReminderNotificationStore;
@@ -34,6 +36,8 @@ public sealed partial class AdminLicenseController : ControllerBase
     public AdminLicenseController(
         ILicenseService licenseService,
         ILicenseIssuanceService licenseIssuanceService,
+        ILicenseRenewalService licenseRenewalService,
+        IAdminTenantLicenseService adminTenantLicenseService,
         AppDbContext db,
         IAdminTenantService adminTenantService,
         ILicenseReminderNotificationStore licenseReminderNotificationStore,
@@ -42,6 +46,8 @@ public sealed partial class AdminLicenseController : ControllerBase
     {
         _licenseService = licenseService;
         _licenseIssuanceService = licenseIssuanceService;
+        _licenseRenewalService = licenseRenewalService;
+        _adminTenantLicenseService = adminTenantLicenseService;
         _db = db;
         _adminTenantService = adminTenantService;
         _licenseReminderNotificationStore = licenseReminderNotificationStore;
@@ -532,12 +538,15 @@ public sealed partial class AdminLicenseController : ControllerBase
     /// </summary>
     [HttpPost("renew")]
     [HasPermission(AppPermissions.SettingsManage)]
-    public async Task<ActionResult<GenerateLicenseResponse>> Renew(
+    public async Task<ActionResult<object>> Renew(
         [FromBody] RenewLicenseRequestBody? body,
         CancellationToken cancellationToken)
     {
         if (body is null)
             return BadRequest(new GenerateLicenseResponse(false, null, null, null, "Request body is required."));
+
+        if (body.TenantId is Guid mandantTenantId && mandantTenantId != Guid.Empty)
+            return await RenewMandantLicenseAsync(body, mandantTenantId, cancellationToken).ConfigureAwait(false);
 
         var hasId = body.IssuedLicenseId.HasValue && body.IssuedLicenseId.Value != Guid.Empty;
         var hasKey = !string.IsNullOrWhiteSpace(body.LicenseKey);
@@ -807,14 +816,24 @@ public sealed class TransferLicenseRequestBody
 /// <summary>Body for <c>POST /api/admin/license/renew</c>.</summary>
 public sealed class RenewLicenseRequestBody
 {
+    /// <summary>Mandant SaaS renewal: tenant row id (mutually exclusive with issued-license fields).</summary>
+    public Guid? TenantId { get; set; }
+
+    /// <summary>Months to add for mandant renewal (required when <see cref="TenantId"/> is set).</summary>
+    [Range(1, 120)]
+    public int? AdditionalMonths { get; set; }
+
+    /// <summary>Mandant renewal requires explicit payment confirmation.</summary>
+    public bool PaymentConfirmed { get; set; }
+
     /// <summary>Full REGK key of the row to renew (mutually exclusive with <see cref="IssuedLicenseId"/>).</summary>
     public string? LicenseKey { get; set; }
 
     /// <summary>Row id from <c>GET /api/admin/license/list</c> (mutually exclusive with <see cref="LicenseKey"/>).</summary>
     public Guid? IssuedLicenseId { get; set; }
 
-    [Required]
-    public string NewExpiryDate { get; set; } = "";
+    /// <summary>Issued-license renewal end date (YYYY-MM-DD UTC end-of-day); required for issued path.</summary>
+    public string? NewExpiryDate { get; set; }
 }
 
 /// <summary>Body for <c>POST /api/admin/license/revoke</c>.</summary>

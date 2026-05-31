@@ -605,6 +605,7 @@ namespace KasseAPI_Final.Services
                 AuditEventType.RestoreFailed => AuditLogActions.RESTORE_FAILED,
                 AuditEventType.CategoryUpdated => AuditLogActions.CATEGORY_UPDATED,
                 AuditEventType.CategoryDemoReset => AuditLogActions.CATEGORY_DEMO_RESET,
+                AuditEventType.LicenseRenewed => AuditLogActions.LICENSE_RENEWED,
                 AuditEventType.InvoiceResent => AuditLogActions.INVOICE_RESENT,
                 _ => AuditLogActions.USER_UPDATE
             };
@@ -639,6 +640,7 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.RESTORE_FAILED => AuditEventType.RestoreFailed,
                 AuditLogActions.CATEGORY_UPDATED => AuditEventType.CategoryUpdated,
                 AuditLogActions.CATEGORY_DEMO_RESET => AuditEventType.CategoryDemoReset,
+                AuditLogActions.LICENSE_RENEWED => AuditEventType.LicenseRenewed,
                 AuditLogActions.INVOICE_RESENT => AuditEventType.InvoiceResent,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_CREATED => AuditEventType.RestoreRequested,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_APPROVED => AuditEventType.RestoreApproved,

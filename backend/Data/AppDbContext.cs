@@ -624,7 +624,8 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.IsSystemCategory).HasColumnName("is_system_category").HasDefaultValue(false);
                 entity.HasAlternateKey(e => new { e.Id, e.TenantId });
                 entity.HasIndex(e => new { e.TenantId, e.Key }).IsUnique();
-                entity.HasIndex(e => new { e.TenantId, e.Name }).IsUnique();
+                // Case-insensitive unique (tenant_id, name) enforced in PostgreSQL via
+                // IX_categories_tenant_id_Name_ci — see migration CaseInsensitiveCategoryNameUniqueIndex.
                 entity.HasIndex(e => e.SortOrder);
             });
 
@@ -914,10 +915,14 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue(TenantStatuses.Active);
                 entity.Property(e => e.LicenseKey).HasMaxLength(100);
                 entity.Property(e => e.LicenseValidUntilUtc);
+                entity.Property(e => e.LicenseGracePeriodStartedAt);
+                entity.Property(e => e.LicenseGracePeriodUsedDays).HasDefaultValue(0);
                 entity.Property(e => e.DeletedAtUtc);
                 entity.Property(e => e.DeletedByUserId).HasMaxLength(450);
                 entity.HasIndex(e => e.Slug).IsUnique();
                 entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.LicenseValidUntilUtc)
+                    .HasDatabaseName("IX_tenants_license_valid_until");
             });
 
             builder.Entity<SystemTimeSyncLog>(entity =>

@@ -2,7 +2,8 @@ namespace KasseAPI_Final.Tenancy;
 
 /// <summary>
 /// Resolves the effective tenant for singleton settings reads/writes.
-/// Uses the same rules as <see cref="IAuthTenantSnapshotProvider"/> (JWT <c>tenant_id</c> when valid, else legacy default).
+/// Prefers ambient <see cref="ICurrentTenantAccessor"/>; otherwise uses
+/// <see cref="IAuthTenantSnapshotProvider"/> (JWT <c>tenant_id</c> when valid, else legacy default).
 /// </summary>
 public interface ISettingsTenantResolver
 {

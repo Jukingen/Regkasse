@@ -606,6 +606,15 @@ public class AdminUsersControllerTests
         db.Tenants.AddRange(
             new Tenant
             {
+                Id = LegacyDefaultTenantIds.Primary,
+                Name = "Default",
+                Slug = LegacyDefaultTenantIds.PrimarySlug,
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            },
+            new Tenant
+            {
                 Id = cafeTenantId,
                 Name = "Cafe Alpha",
                 Slug = "cafe-alpha",
@@ -676,6 +685,15 @@ public class AdminUsersControllerTests
                 IsActive = true,
                 IsOwner = true,
                 CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+            },
+            new UserTenantMembership
+            {
+                Id = Guid.NewGuid(),
+                UserId = "platform-1",
+                TenantId = LegacyDefaultTenantIds.Primary,
+                IsActive = true,
+                IsOwner = false,
+                CreatedAtUtc = DateTime.UtcNow,
             });
 
         await db.SaveChangesAsync();
@@ -699,11 +717,111 @@ public class AdminUsersControllerTests
         Assert.Equal("Cafe Alpha", dtos["cashier-1"].TenantName);
         Assert.Equal("cafe-alpha", dtos["cashier-1"].TenantSlug);
 
-        Assert.Equal("Platform", dtos["platform-1"].UserType);
-        Assert.Null(dtos["platform-1"].TenantName);
+        Assert.Equal("Tenant", dtos["platform-1"].UserType);
+        Assert.Equal(LegacyDefaultTenantIds.Primary.ToString(), dtos["platform-1"].TenantId);
+        Assert.Equal("default", dtos["platform-1"].TenantSlug);
 
         Assert.Equal("cashier", dtos["cashier-1"].UserName);
         Assert.Equal("platform", dtos["platform-1"].UserName);
+    }
+
+    [Fact]
+    public async Task List_ExcludesOrphanedTenantUsers_WhenActiveFilterTrue()
+    {
+        await using var db = CreateEphemeralContext();
+        var deletedTenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = deletedTenantId,
+            Name = "Bar Test",
+            Slug = "bar",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "bar-admin",
+            UserName = "admin@bar.regkasse.at",
+            Email = "admin@bar.regkasse.at",
+            FirstName = "Admin",
+            LastName = "Test Bar",
+            Role = Roles.Manager,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = "bar-admin",
+            TenantId = deletedTenantId,
+            IsActive = false,
+            IsOwner = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var activeResult = await controller.List(isActive: true);
+        var activeDtos = Assert.IsAssignableFrom<IEnumerable<AdminUserDto>>(
+            Assert.IsType<OkObjectResult>(activeResult).Value).ToList();
+        Assert.DoesNotContain(activeDtos, d => d.Id == "bar-admin");
+
+        var inactiveResult = await controller.List(isActive: false);
+        var inactiveDtos = Assert.IsAssignableFrom<IEnumerable<AdminUserDto>>(
+            Assert.IsType<OkObjectResult>(inactiveResult).Value).ToList();
+        Assert.Contains(inactiveDtos, d => d.Id == "bar-admin");
+    }
+
+    [Fact]
+    public async Task List_TypePlatform_ExcludesOrphanedTenantUsers()
+    {
+        await using var db = CreateEphemeralContext();
+        var deletedTenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = deletedTenantId,
+            Name = "Cafe Test",
+            Slug = "cafe",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "cafe-admin",
+            UserName = "admin@cafe.regkasse.at",
+            Email = "admin@cafe.regkasse.at",
+            FirstName = "Admin",
+            LastName = "Test Cafe",
+            Role = Roles.Manager,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            Id = Guid.NewGuid(),
+            UserId = "cafe-admin",
+            TenantId = deletedTenantId,
+            IsActive = false,
+            IsOwner = true,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object);
+
+        var result = await controller.List(type: "platform", isActive: true);
+        var dtos = Assert.IsAssignableFrom<IEnumerable<AdminUserDto>>(
+            Assert.IsType<OkObjectResult>(result).Value).ToList();
+        Assert.DoesNotContain(dtos, d => d.Id == "cafe-admin");
     }
 
     [Fact]

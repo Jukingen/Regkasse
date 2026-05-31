@@ -14,7 +14,7 @@ namespace KasseAPI_Final.Services;
 public sealed class LicenseReminderHostedService : IHostedService, IDisposable
 {
     /// <summary>Implicit in-app escalation window (German UI consumes English API copy).</summary>
-    private const int InAppExpiryDayThreshold = 15;
+    private static int InAppExpiryDayThreshold => LicenseGracePeriodConfig.WarningDaysBeforeExpiry;
 
     private readonly IOptionsMonitor<LicenseOptions> _licenseOptions;
     private readonly IServiceScopeFactory _scopeFactory;

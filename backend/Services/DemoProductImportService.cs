@@ -298,8 +298,10 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 product.NameDe = demoProduct.Name;
                 product.NameEn = demoProduct.Name;
                 product.NameTr = demoProduct.Name;
-                product.DescriptionDe = demoProduct.Description;
+                product.DescriptionDe = demoProduct.Description ?? string.Empty;
                 ProductLocalization.SyncCanonicalFields(product);
+                if (string.IsNullOrEmpty(product.Description))
+                    product.Description = string.Empty;
                 product.Price = importPrice;
                 product.TaxType = taxType;
                 product.TaxRate = importTaxRate;
@@ -413,14 +415,22 @@ public sealed class DemoProductImportService : IDemoProductImportService
             var categoryKey = !string.IsNullOrWhiteSpace(demoCat.Key)
                 ? demoCat.Key
                 : CategoryKey.FromDisplayName(demoCat.Name);
-            var category = await _context.Categories
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Key == categoryKey, cancellationToken)
-                .ConfigureAwait(false)
-                ?? await _context.Categories
+            var normalizedName = demoCat.Name.ToLowerInvariant();
+
+            var category = result.Values.FirstOrDefault(c =>
+                string.Equals(c.Key, categoryKey, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(c.Name, demoCat.Name, StringComparison.OrdinalIgnoreCase));
+
+            if (category == null)
+            {
+                category = await _context.Categories
                     .IgnoreQueryFilters()
-                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Name == demoCat.Name, cancellationToken)
+                    .FirstOrDefaultAsync(
+                        c => c.TenantId == tenantId
+                            && (c.Key == categoryKey || c.Name.ToLower() == normalizedName),
+                        cancellationToken)
                     .ConfigureAwait(false);
+            }
 
             if (category == null)
             {
@@ -446,6 +456,7 @@ public sealed class DemoProductImportService : IDemoProductImportService
                 };
                 _context.Categories.Add(category);
                 createdCount++;
+                await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             else
             {

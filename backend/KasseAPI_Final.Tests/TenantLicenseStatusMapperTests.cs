@@ -43,7 +43,7 @@ public sealed class TenantLicenseStatusMapperTests
     }
 
     [Fact]
-    public void TryMapToLicenseStatus_GraceReadOnly_ReturnsExpired()
+    public void TryMapToLicenseStatus_LockdownAfterGrace_ReturnsExpired()
     {
         var now = new DateTime(2026, 5, 22, 12, 0, 0, DateTimeKind.Utc);
         var tenant = new Tenant
@@ -51,7 +51,7 @@ public sealed class TenantLicenseStatusMapperTests
             Id = DemoTenantIds.Bar,
             Slug = "bar",
             Name = "Test Bar",
-            LicenseValidUntilUtc = now.AddDays(-31),
+            LicenseValidUntilUtc = now.AddDays(-22),
         };
 
         var status = TenantLicenseStatusMapper.TryMapToLicenseStatus(tenant, "machine-hash", now);

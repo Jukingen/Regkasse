@@ -37,5 +37,6 @@ public enum AuditEventType
     CategoryDemoReset = 23,
     InvoiceResent = 24,
     UserPermissionOverridesChanged = 25,
+    LicenseRenewed = 26,
     Other = 99
 }

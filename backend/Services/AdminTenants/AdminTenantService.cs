@@ -127,7 +127,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
                 (m, t) => new { m.TenantId, t.Status, t.IsActive })
             .Where(x =>
                 x.IsActive
-                && !string.Equals(x.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
+                && x.Status != TenantStatuses.Deleted)
             .Select(x => x.TenantId)
             .Distinct()
             .ToListAsync(cancellationToken)
