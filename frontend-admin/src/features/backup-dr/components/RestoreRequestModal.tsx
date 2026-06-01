@@ -1,21 +1,12 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Super Admin: create validation-only manual restore request (approval is a separate modal).
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Divider,
-  Form,
-  Input,
-  Modal,
-  Space,
-  Typography,
-  message,
-} from 'antd';
+import { Modal, Alert, Button, Divider, Form, Input, Space, Typography } from 'antd';
 import { DatabaseOutlined, WarningOutlined } from '@ant-design/icons';
 import type { BackupRunResponseDto } from '@/api/generated/model';
 import { useQueryClient } from '@tanstack/react-query';
@@ -45,6 +36,8 @@ export function RestoreRequestModal({
   onRequestCreated,
   t,
 }: RestoreRequestModalProps) {
+  const { message } = useAntdApp();
+
   const queryClient = useQueryClient();
   const [targetDatabase, setTargetDatabase] = useState('');
   const [reason, setReason] = useState('');
@@ -93,7 +86,7 @@ export function RestoreRequestModal({
       open={open}
       onCancel={onClose}
       width={560}
-      destroyOnClose
+      destroyOnHidden
       footer={
         <Space>
           <Button onClick={onClose}>{t('backupDr.manualRestore.actions.close')}</Button>
@@ -106,7 +99,7 @@ export function RestoreRequestModal({
       <Alert
         type="warning"
         showIcon
-        message={t('backupDr.manualRestore.alert.title')}
+        title={t('backupDr.manualRestore.alert.title')}
         description={t('backupDr.manualRestore.alert.description')}
       />
 

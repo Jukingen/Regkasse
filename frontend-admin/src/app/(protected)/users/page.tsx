@@ -1,28 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * User management – RKSV/DSGVO-aligned user lifecycle.
  * Table: name, email, role, branch, status, last login, actions.
  * Filters: role, status, branch, search. Drawer create/edit, deactivate (reason), reactivate, activity timeline tab.
  */
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import {
-    Card,
-    Typography,
-    Tag,
-    Space,
-    Button,
-    Select,
-    Modal,
-    Form,
-    Input,
-    message,
-    Alert,
-    Empty,
-    Flex,
-    Tooltip,
-    Descriptions,
-} from 'antd';
+import { Modal, Card, Typography, Tag, Space, Button, Select, Form, Input, Alert, Empty, Flex, Tooltip, Descriptions } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -159,7 +144,7 @@ function UsersPageActiveTenantContext() {
                     type="warning"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message={t('adminShell.tenant.devSwitcher.suspendedSuffix')}
+                    title={t('adminShell.tenant.devSwitcher.suspendedSuffix')}
                 />
             ) : null}
             <Flex gap={4} wrap="wrap" style={{ marginBottom: 8 }}>
@@ -199,6 +184,8 @@ function UsersPageActiveTenantContext() {
 }
 
 export default function UsersPage() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const pathname = usePathname();
     const router = useRouter();
@@ -652,7 +639,7 @@ export default function UsersPage() {
                 <Alert
                     type="warning"
                     showIcon
-                    message={t('users.page.accessDeniedTitle')}
+                    title={t('users.page.accessDeniedTitle')}
                     description={t('users.page.accessDeniedDescription')}
                 />
             </AdminPageShell>
@@ -836,13 +823,13 @@ export default function UsersPage() {
                         <Alert
                             type="error"
                             showIcon
-                            message={t('users.list.errorLoad')}
+                            title={t('users.list.errorLoad')}
                             description={
                                 normalizeError(listError, t('users.list.errorLoadDetailFallback')).message ||
                                 t('users.list.errorLoadDetailFallback')
                             }
                             action={
-                                <Space direction="vertical" size="small">
+                                <Space orientation="vertical" size="small">
                                     <Button size="small" onClick={() => refetch()}>
                                         {t('users.list.retry')}
                                     </Button>
@@ -1012,14 +999,14 @@ export default function UsersPage() {
                         </p>
                         <Alert
                             type="info"
-                            message={usersCopy.resetPasswordSecurityNote}
+                            title={usersCopy.resetPasswordSecurityNote}
                             showIcon
                             style={{ marginBottom: 16 }}
                         />
                         {resetPasswordValidationError && (
                             <Alert
                                 type="error"
-                                message={resetPasswordValidationError}
+                                title={resetPasswordValidationError}
                                 showIcon
                                 style={{ marginBottom: 16 }}
                             />

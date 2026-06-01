@@ -19,7 +19,7 @@ export function SuperAdminModeBanner() {
             type="warning"
             showIcon
             style={{ marginBottom: 12 }}
-            message={t('superadmin.noTenant.banner')}
+            title={t('superadmin.noTenant.banner')}
             description={t('superadmin.noTenant.message')}
             action={
                 <Link href="/admin">

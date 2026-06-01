@@ -56,8 +56,8 @@ export function TenantDetailCashRegistersTab({
     ];
 
     return (
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <Alert type="info" showIcon message={t('tenants.detail.registers.hint')} />
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+            <Alert type="info" showIcon title={t('tenants.detail.registers.hint')} />
             <Space wrap>
                 <Button icon={<ReloadOutlined />} onClick={() => void registersQuery.refetch()}>
                     {t('common.refresh')}

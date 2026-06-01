@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Collapse, Form, Input, InputNumber, Modal, Select, Switch, Upload, message } from 'antd';
+import { Modal, Button, Collapse, Form, Input, InputNumber, Select, Switch, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { Product } from '@/api/generated/model';
 import { useCategories } from '@/features/categories/hooks/useCategories';
@@ -31,6 +32,8 @@ export default function ProductForm({
     onSubmit,
     loading,
 }: ProductFormProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [form] = Form.useForm();
     const [modifierGroups, setModifierGroups] = useState<ModifierGroupDto[]>([]);

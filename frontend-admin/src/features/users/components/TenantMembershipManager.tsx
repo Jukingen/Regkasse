@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useMemo, useState } from 'react';
-import { Button, message } from 'antd';
+import { Button } from 'antd';
 import { TeamOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -31,6 +32,8 @@ export function TenantMembershipManager({
     currentTenants,
     onSuccess,
 }: TenantMembershipManagerProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const { tenants, isLoading: tenantsLoading } = useTenantList();

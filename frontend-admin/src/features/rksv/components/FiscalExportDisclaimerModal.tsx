@@ -68,9 +68,9 @@ export function FiscalExportDisclaimerModal({ open, onCancel, onConfirm }: Fisca
                 </Button>,
             ]}
             width={560}
-            destroyOnClose
+            destroyOnHidden
         >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 {disclaimerQuery.isLoading ? (
                     <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}>
                         <Spin />
@@ -79,7 +79,7 @@ export function FiscalExportDisclaimerModal({ open, onCancel, onConfirm }: Fisca
                     <Alert
                         type="warning"
                         showIcon
-                        message={
+                        title={
                             <Typography.Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-line' }}>
                                 {alertDescription}
                             </Typography.Paragraph>

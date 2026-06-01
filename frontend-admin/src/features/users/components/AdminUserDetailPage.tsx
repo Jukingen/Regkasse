@@ -82,7 +82,7 @@ export function AdminUserDetailPage() {
                 <Alert
                     type="warning"
                     showIcon
-                    message={t('users.page.accessDeniedTitle')}
+                    title={t('users.page.accessDeniedTitle')}
                     description={t('users.page.accessDeniedDescription')}
                 />
             </AdminPageShell>
@@ -113,7 +113,7 @@ export function AdminUserDetailPage() {
                 <Alert
                     type="error"
                     showIcon
-                    message={t('users.list.errorLoad')}
+                    title={t('users.list.errorLoad')}
                     action={
                         <Button size="small" onClick={() => void userQuery.refetch()}>
                             {t('users.list.retry')}
@@ -123,7 +123,7 @@ export function AdminUserDetailPage() {
             ) : null}
 
             {user ? (
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                     <Card title={usersCopy.details}>
                         <Descriptions column={1} bordered size="small">
                             <Descriptions.Item label={usersCopy.status}>

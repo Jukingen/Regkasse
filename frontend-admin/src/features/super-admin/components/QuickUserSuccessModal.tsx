@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect, useState } from 'react';
-import { Alert, Button, Descriptions, Modal, Space, Typography, message } from 'antd';
+import { Modal, Alert, Button, Descriptions, Space, Typography } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 
 import { CredentialCopyRow } from '@/features/super-admin/components/CredentialCopyRow';
@@ -29,6 +30,8 @@ export function QuickUserSuccessModal({
     onClose,
     onGenerateAnother,
 }: QuickUserSuccessModalProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const { canProvisionTenantCredentials } = useSuperAdminPlatformPolicy();
     const [password, setPassword] = useState('');
@@ -76,7 +79,7 @@ export function QuickUserSuccessModal({
             }
             open={open}
             onCancel={onClose}
-            destroyOnClose
+            destroyOnHidden
             footer={[
                 <Button key="copy-all" onClick={() => void copyAllCredentials()}>
                     {t('tenants.users.quick.result.copyAll')}
@@ -90,12 +93,12 @@ export function QuickUserSuccessModal({
             ]}
             width={560}
         >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <CredentialCopyRow label={t('tenants.users.quick.result.usernameLabel')} value={userName} />
                 <CredentialCopyRow label={t('tenants.users.quick.result.emailLabel')} value={result.email} />
                 <CredentialCopyRow label={t('tenants.users.quick.result.passwordLabel')} value={password} />
 
-                <Alert type="warning" showIcon message={t('tenants.users.quick.result.passwordOnceWarning')} />
+                <Alert type="warning" showIcon title={t('tenants.users.quick.result.passwordOnceWarning')} />
 
                 <Descriptions column={1} size="small" colon={false}>
                     <Descriptions.Item label={t('tenants.users.quick.result.roleLabel')}>

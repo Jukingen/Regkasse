@@ -1,21 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useMemo, useState } from 'react';
-import {
-  Button,
-  Table,
-  Space,
-  message,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  Switch,
-  Select,
-  Tag,
-  Typography,
-  Empty,
-} from 'antd';
+import { Modal, Button, Table, Space, Form, Input, InputNumber, Switch, Select, Tag, Typography, Empty } from 'antd';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import {
@@ -36,6 +23,8 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 
 export default function PaymentMethodsSettingsPage() {
+  const { message, modal } = useAntdApp();
+
   const { t } = useI18n();
   const { user } = useAuth();
   const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
@@ -137,7 +126,7 @@ export default function PaymentMethodsSettingsPage() {
   };
 
   const handleDeactivate = (row: PaymentMethodDefinitionAdmin) => {
-    Modal.confirm({
+    modal.confirm({
       title: t('settings.paymentMethods.deactivateConfirmTitle'),
       content: t('settings.paymentMethods.deactivateConfirmBody', { code: row.code }),
       okText: t('common.buttons.yes'),
@@ -211,7 +200,7 @@ export default function PaymentMethodsSettingsPage() {
   return (
     <>
       <AdminPageHeader title={t('settings.paymentMethods.title')} breadcrumbs={headerBreadcrumbs} />
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="large" style={{ width: '100%' }}>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('settings.paymentMethods.intro')}
         </Typography.Paragraph>
@@ -240,7 +229,7 @@ export default function PaymentMethodsSettingsPage() {
         onCancel={() => setModalOpen(false)}
         onOk={handleSubmit}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
         width={640}
         okText={t('common.buttons.save')}
         cancelText={t('common.buttons.cancel')}

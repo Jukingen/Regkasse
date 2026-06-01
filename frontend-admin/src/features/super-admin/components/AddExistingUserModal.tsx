@@ -43,7 +43,7 @@ export function AddExistingUserModal({
             onCancel={onClose}
             onOk={() => form.submit()}
             confirmLoading={confirmLoading}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form
                 form={form}

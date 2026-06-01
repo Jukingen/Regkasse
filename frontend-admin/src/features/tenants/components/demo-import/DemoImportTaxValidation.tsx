@@ -81,7 +81,7 @@ export function DemoImportTaxValidation({
     const hasIssues = summary.issues.length > 0;
 
     return (
-        <Space direction="vertical" style={{ width: '100%' }} size="small">
+        <Space orientation="vertical" style={{ width: '100%' }} size="small">
             <Text type="secondary">Schnellkorrektur:</Text>
             <Space wrap>
                 {TAX_BULK_FIX_PRESETS.map((preset) => (
@@ -92,14 +92,14 @@ export function DemoImportTaxValidation({
             </Space>
 
             {!hasIssues ? (
-                <Alert type="success" showIcon message="Keine Steuerprobleme in der Auswahl" />
+                <Alert type="success" showIcon title="Keine Steuerprobleme in der Auswahl" />
             ) : null}
 
             {errorIssues.length > 0 ? (
                 <Alert
                     type="error"
                     showIcon
-                    message={`${errorIssues.length} Produkt(e) mit ungültigem Steuersatz`}
+                    title={`${errorIssues.length} Produkt(e) mit ungültigem Steuersatz`}
                     description={
                         <List
                             size="small"
@@ -115,7 +115,7 @@ export function DemoImportTaxValidation({
                     type="warning"
                     showIcon
                     icon={<WarningOutlined />}
-                    message={`${warningIssues.length} Hinweis(e) zur Steuerprüfung`}
+                    title={`${warningIssues.length} Hinweis(e) zur Steuerprüfung`}
                     description={
                         <List
                             size="small"

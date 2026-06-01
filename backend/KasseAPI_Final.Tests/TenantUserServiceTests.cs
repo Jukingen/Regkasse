@@ -243,6 +243,8 @@ public sealed class TenantUserServiceTests
         Assert.False(string.IsNullOrEmpty(result.GeneratedPassword));
         Assert.True(result.ForcePasswordChangeOnNextLogin);
         Assert.Equal("create@cafe.test", result.Email);
+        Assert.Equal(tenantId, result.TenantId);
+        Assert.Equal("create-cafe", result.TenantSlug);
 
         audit.Verify(
             x => x.LogUserLifecycleAsync(

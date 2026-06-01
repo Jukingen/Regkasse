@@ -40,7 +40,7 @@ export function BackupPipelineStepper({ steps, t }: BackupPipelineStepperProps) 
   if (!steps.length) return null;
 
   return (
-    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={10} style={{ width: '100%' }}>
       {steps.map((s) => (
         <div key={s.id} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <Typography.Text aria-hidden style={{ fontSize: 16, lineHeight: 1.5, flexShrink: 0 }}>

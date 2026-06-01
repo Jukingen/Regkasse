@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback } from 'react';
-import { Button, Card, List, Space, Tag, Typography, message } from 'antd';
+import { Button, Card, List, Space, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -22,6 +23,8 @@ function formatClientApp(app: string): string {
 }
 
 export function SessionManager() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
 
@@ -67,7 +70,7 @@ export function SessionManager() {
                 </Button>
             }
         >
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     {t('common.auth.sessions.description')}
                 </Typography.Paragraph>

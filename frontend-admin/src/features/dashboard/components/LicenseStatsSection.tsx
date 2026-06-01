@@ -170,7 +170,7 @@ function LicenseStatsCard({
                 value={value}
                 suffix={suffix}
                 prefix={getLicensePhaseIcon(status.kind)}
-                valueStyle={{ color: phaseColor }}
+                styles={{ content: {  color: phaseColor  } }}
             />
             <div style={{ marginTop: 8 }}>
                 <Tag color={phaseColor}>{getLicensePhaseLabel(status)}</Tag>
@@ -194,7 +194,7 @@ function TenantLicenseStatCards({
                         title={t('license.dashboard.statTenantActive')}
                         value={active}
                         prefix={<SafetyOutlined style={{ color: '#52c41a' }} />}
-                        valueStyle={{ color: '#52c41a' }}
+                        styles={{ content: {  color: '#52c41a'  } }}
                     />
                 </Card>
             </Col>
@@ -204,7 +204,7 @@ function TenantLicenseStatCards({
                         title={t('license.dashboard.statTenantExpiring30')}
                         value={expiring}
                         prefix={<WarningOutlined style={{ color: '#faad14' }} />}
-                        valueStyle={{ color: '#faad14' }}
+                        styles={{ content: {  color: '#faad14'  } }}
                     />
                 </Card>
             </Col>
@@ -214,7 +214,7 @@ function TenantLicenseStatCards({
                         title={t('license.dashboard.statTenantExpired')}
                         value={expired}
                         prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                        valueStyle={{ color: '#ff4d4f' }}
+                        styles={{ content: {  color: '#ff4d4f'  } }}
                     />
                 </Card>
             </Col>
@@ -305,7 +305,7 @@ export function LicenseStatsSection() {
     }
 
     if (isSuperAdminUser && isError) {
-        return <Alert type="error" showIcon message={t('license.dashboard.loadFailed')} />;
+        return <Alert type="error" showIcon title={t('license.dashboard.loadFailed')} />;
     }
 
     return (
@@ -352,7 +352,7 @@ export function LicenseStatsSection() {
                                     title={t('license.dashboard.statDeploymentExpiring30')}
                                     value={data?.expiringDeploymentLicenses ?? 0}
                                     prefix={<WarningOutlined style={{ color: '#faad14' }} />}
-                                    valueStyle={{ color: '#faad14' }}
+                                    styles={{ content: {  color: '#faad14'  } }}
                                 />
                             </Card>
                         </Col>
@@ -362,7 +362,7 @@ export function LicenseStatsSection() {
                                     title={t('license.dashboard.statDeploymentExpired')}
                                     value={data?.expiredDeploymentLicenses ?? 0}
                                     prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-                                    valueStyle={{ color: '#ff4d4f' }}
+                                    styles={{ content: {  color: '#ff4d4f'  } }}
                                 />
                             </Card>
                         </Col>

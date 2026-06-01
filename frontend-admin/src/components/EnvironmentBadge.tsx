@@ -78,7 +78,7 @@ export function EnvironmentBadge() {
       menu={{ items }}
       trigger={['click']}
       placement="bottomRight"
-      overlayClassName="admin-header-dropdown"
+      classNames={{ root: "admin-header-dropdown" }}
       getPopupContainer={getAdminHeaderPopupContainer}
     >
       <Tag color="orange" style={{ cursor: 'pointer', marginInlineEnd: 0 }}>

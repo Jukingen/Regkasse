@@ -180,7 +180,7 @@ public class AdminPaymentsController : ControllerBase
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
             var p = await _context.PaymentDetails.AsNoTracking()
                 .Where(x => x.Id == id)
-                .Where(x => _context.CashRegisters.Any(cr => cr.Id == x.CashRegisterId && cr.TenantId == tenantId))
+                .Where(x => _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == x.CashRegisterId && cr.TenantId == tenantId))
                 .FirstOrDefaultAsync(cancellationToken);
             if (p == null)
                 return NotFound(new { message = "Payment not found", code = "ADMIN_PAYMENT_NOT_FOUND" });
@@ -545,7 +545,7 @@ public class AdminPaymentsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
-        return await _context.CashRegisters.AsNoTracking()
+        return await _context.CashRegisters.AsNoTracking().ForResolvedTenantScope()
             .AnyAsync(cr => cr.Id == payment.CashRegisterId && cr.TenantId == tenantId, cancellationToken);
     }
 
@@ -632,7 +632,7 @@ public class AdminPaymentsController : ControllerBase
         {
             original = await _context.PaymentDetails.AsNoTracking()
                 .Where(x => x.Id == reversal.OriginalPaymentId.Value)
-                .Where(x => _context.CashRegisters.Any(cr => cr.Id == x.CashRegisterId && cr.TenantId == tenantId))
+                .Where(x => _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == x.CashRegisterId && cr.TenantId == tenantId))
                 .FirstOrDefaultAsync(cancellationToken);
         }
 

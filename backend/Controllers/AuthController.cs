@@ -162,17 +162,24 @@ namespace KasseAPI_Final.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginModel model)
         {
+            string? loginIdentifier = null;
             try
             {
-                var loginIdentifier = model.ResolveLoginIdentifier();
+#pragma warning disable CS0618 // Legacy email login fallback
+                var identifier = model.LoginIdentifier ?? model.Email;
+#pragma warning restore CS0618
+                if (string.IsNullOrWhiteSpace(identifier))
+                    return BadRequest(new { message = "Login identifier required" });
+
+                loginIdentifier = identifier.Trim();
                 _logger.LogInformation(
                     "Login attempt for user: {LoginMasked}, clientApp: {ClientApp}",
                     MaskLoginIdentifier(loginIdentifier),
                     model.ClientApp ?? "(none)");
 
-                if (string.IsNullOrWhiteSpace(loginIdentifier) || string.IsNullOrWhiteSpace(model.Password))
+                if (string.IsNullOrWhiteSpace(model.Password))
                 {
-                    return BadRequest(new { message = "Email ve şifre gerekli" });
+                    return BadRequest(new { message = "Password required" });
                 }
 
                 // --- clientApp validation (fail-closed) ---
@@ -338,7 +345,7 @@ namespace KasseAPI_Final.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Login error for user: {LoginMasked}", MaskLoginIdentifier(model.ResolveLoginIdentifier()));
+                _logger.LogError(ex, "Login error for user: {LoginMasked}", MaskLoginIdentifier(loginIdentifier));
                 return StatusCode(500, new { message = "Giriş işlemi sırasında hata oluştu" });
             }
         }

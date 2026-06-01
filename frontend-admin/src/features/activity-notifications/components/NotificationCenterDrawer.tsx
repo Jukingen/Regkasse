@@ -109,7 +109,7 @@ export function NotificationCenterDrawer({ open, onClose }: Props) {
             title={t('activityNotifications.title')}
             open={open}
             onClose={onClose}
-            width={480}
+            size={480}
             classNames={{ body: styles.drawerBody }}
             extra={
                 unreadItems.length > 0 ? (

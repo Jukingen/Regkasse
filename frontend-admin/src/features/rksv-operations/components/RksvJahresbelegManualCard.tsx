@@ -1,10 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Minimal admin trigger for RKSV Jahresbeleg (manual POST). German operator copy only.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Button, Card, Input, InputNumber, Modal, Select, Space, Typography, message } from 'antd';
+import { Button, Card, Input, InputNumber, Select, Space, Typography } from 'antd';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
 import { customInstance } from '@/lib/axios';
@@ -35,6 +36,8 @@ function normalizeRegisterRows(data: unknown): CashRegister[] {
 }
 
 export function RksvJahresbelegManualCard() {
+  const { message, modal } = useAntdApp();
+
   const { hasPermission } = usePermissions();
   const can = hasPermission(PERMISSIONS.RKSV_JAHRESBELEG_CREATE);
   const { data: registersRaw, isLoading } = useGetApiCashRegister();
@@ -74,7 +77,7 @@ export function RksvJahresbelegManualCard() {
   }, [registerId, year, earlyReason]);
 
   const onCreateClick = useCallback(() => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Jahresbeleg erstellen',
       content: 'Dieser Vorgang kann nicht rückgängig gemacht werden.',
       okText: 'Erstellen',
@@ -93,7 +96,7 @@ export function RksvJahresbelegManualCard() {
       <Typography.Paragraph type="secondary" style={{ marginTop: 0, fontSize: 12 }}>
         Erstellt einen fiskalischen Jahres-Nullbeleg für die gewählte Kasse und das Kalenderjahr (Wien).
       </Typography.Paragraph>
-      <Space direction="vertical" style={{ width: '100%' }} size="middle">
+      <Space orientation="vertical" style={{ width: '100%' }} size="middle">
         <div>
           <Typography.Text type="secondary">Kasse</Typography.Text>
           <Select

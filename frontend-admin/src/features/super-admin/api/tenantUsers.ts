@@ -34,6 +34,9 @@ export type CreateTenantUserResult = {
     success: boolean;
     tenantPortalUrl?: string | null;
     role?: string | null;
+    /** Mandant the user was created under (matches URL path / selected tenant). */
+    tenantId?: string | null;
+    tenantSlug?: string | null;
 };
 
 export const TENANT_CREATE_ROLES = ['Manager', 'Cashier', 'Accountant', 'Waiter', 'Kitchen'] as const;

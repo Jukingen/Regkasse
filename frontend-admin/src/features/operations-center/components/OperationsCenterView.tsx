@@ -99,7 +99,7 @@ export default function OperationsCenterView() {
           : undefined;
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <ReceiptReprintWizard
                 open={reprintOpen}
                 onClose={() => setReprintOpen(false)}
@@ -138,7 +138,7 @@ export default function OperationsCenterView() {
                     <Col xs={24} lg={12}>
                         <Card title={t('adminShell.operationsCenter.exceptionQueueTitle')} loading={summaryQuery.isLoading}>
                             {summaryQuery.isError ? (
-                                <Alert type="error" message={String(summaryQuery.error)} showIcon />
+                                <Alert type="error" title={String(summaryQuery.error)} showIcon />
                             ) : (
                                 <Row gutter={16}>
                                     <Col span={12}>
@@ -190,7 +190,7 @@ export default function OperationsCenterView() {
                             style={{ marginTop: 12 }}
                             type="info"
                             showIcon
-                            message={t('adminShell.operationsCenter.xzHint')}
+                            title={t('adminShell.operationsCenter.xzHint')}
                         />
                     </Card>
                 </Col>
@@ -209,7 +209,7 @@ export default function OperationsCenterView() {
                         type="error"
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message={String((error as Error)?.message ?? 'Error')}
+                        title={String((error as Error)?.message ?? 'Error')}
                     />
                 ) : null}
                 <ReceiptsFilterBar
@@ -223,7 +223,7 @@ export default function OperationsCenterView() {
                         style={{ marginBottom: 12 }}
                         type="info"
                         showIcon
-                        message={t('adminShell.operationsCenter.reprintWorkflowBanner')}
+                        title={t('adminShell.operationsCenter.reprintWorkflowBanner')}
                     />
                 ) : null}
                 <ReceiptsTable
@@ -268,7 +268,7 @@ export default function OperationsCenterView() {
                     </Typography.Paragraph>
                 </Card>
             ) : (
-                <Alert type="warning" showIcon message={t('adminShell.operationsCenter.reprintNoPermission')} />
+                <Alert type="warning" showIcon title={t('adminShell.operationsCenter.reprintNoPermission')} />
             )}
         </Space>
     );

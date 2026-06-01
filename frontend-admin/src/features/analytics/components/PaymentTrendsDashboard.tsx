@@ -131,7 +131,7 @@ export function PaymentTrendsDashboard() {
                             precision={2}
                             prefix={<DollarOutlined />}
                             suffix="€"
-                            valueStyle={{ color: '#3f8600' }}
+                            styles={{ content: {  color: '#3f8600'  } }}
                         />
                     </Card>
                 </Col>
@@ -171,7 +171,7 @@ export function PaymentTrendsDashboard() {
                                     <MinusOutlined />
                                 )
                             }
-                            valueStyle={{ color: growthPositive ? '#3f8600' : growthNegative ? '#cf1322' : undefined }}
+                            styles={{ content: {  color: growthPositive ? '#3f8600' : growthNegative ? '#cf1322' : undefined  } }}
                         />
                         <div className={styles.growthHint}>{t('payments.trendsDashboard.vsPreviousPeriod')}</div>
                     </Card>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Admin license issuance card. POST /api/admin/license/generate via TanStack Query mutation;
  * surfaces key + JWT in a success modal and inline summary with copy actions.
@@ -8,20 +9,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import dayjs, { type Dayjs } from 'dayjs';
-import {
-    Alert,
-    Button,
-    Card,
-    Checkbox,
-    DatePicker,
-    Descriptions,
-    Form,
-    Input,
-    Modal,
-    Space,
-    Typography,
-    message,
-} from 'antd';
+import { Modal, Alert, Button, Card, Checkbox, DatePicker, Descriptions, Form, Input, Space, Typography } from 'antd';
 import { CopyOutlined, KeyOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n, formatDate } from '@/i18n';
@@ -92,6 +80,8 @@ export function LicenseGenerationCard({
     enabledLicenseFeatures,
     prefill,
 }: Props) {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const [form] = Form.useForm<FormValues>();
@@ -162,7 +152,7 @@ export function LicenseGenerationCard({
     if (!canGenerate) {
         return (
             <Card type="inner" title={t('license.generation.title')}>
-                <Alert type="info" showIcon message={t('license.generation.noPermission')} />
+                <Alert type="info" showIcon title={t('license.generation.noPermission')} />
             </Card>
         );
     }
@@ -170,7 +160,7 @@ export function LicenseGenerationCard({
     if (!deploymentLicenseAllows(enabledLicenseFeatures, LICENSE_DEPLOYMENT_FEATURE.AdminLicenseManage)) {
         return (
             <Card type="inner" title={t('license.generation.title')}>
-                <Alert type="warning" showIcon message={t('license.generation.featureNotIncluded')} />
+                <Alert type="warning" showIcon title={t('license.generation.featureNotIncluded')} />
             </Card>
         );
     }
@@ -203,7 +193,7 @@ export function LicenseGenerationCard({
                     type="error"
                     showIcon
                     closable
-                    message={t('license.generation.failed')}
+                    title={t('license.generation.failed')}
                     description={requestError}
                     style={{ marginBottom: 16 }}
                     onClose={() => setRequestError(null)}
@@ -330,14 +320,14 @@ export function LicenseGenerationCard({
                     </Space>
                 }
                 width={720}
-                destroyOnClose
+                destroyOnHidden
             >
                 {issued && issued.success ? (
                     <>
                         <Alert
                             type="warning"
                             showIcon
-                            message={t('license.generation.result.title')}
+                            title={t('license.generation.result.title')}
                             description={t('license.generation.result.warning')}
                             style={{ marginBottom: 12 }}
                         />
@@ -413,7 +403,7 @@ function IssuedLicenseResult({
             <Alert
                 type="info"
                 showIcon
-                message={t('license.generation.result.title')}
+                title={t('license.generation.result.title')}
                 description={t('license.generation.result.warning')}
                 style={{ marginBottom: 12 }}
             />

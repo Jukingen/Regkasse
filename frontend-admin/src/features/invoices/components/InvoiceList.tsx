@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState, useMemo } from 'react';
-import { Table, Button, Input, Select, DatePicker, Space, Tag, Row, Col, message, Tooltip, Modal, Descriptions, Alert, Empty, Form, Checkbox, Typography, Divider, Collapse, theme } from 'antd';
+import { Modal, Table, Button, Input, Select, DatePicker, Space, Tag, Row, Col, Tooltip, Descriptions, Alert, Empty, Form, Checkbox, Typography, Divider, Collapse, theme } from 'antd';
 import { SearchOutlined, DownloadOutlined, ReloadOutlined, PrinterOutlined, CloudUploadOutlined, RollbackOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -128,6 +129,7 @@ function escapeCsvScalar(v: unknown): string {
 }
 
 export const InvoiceList: React.FC = () => {
+    const { message, modal } = useAntdApp();
     const { token } = theme.useToken();
     const queryClient = useQueryClient();
     const { formatLocale, t } = useI18n();
@@ -246,14 +248,14 @@ export const InvoiceList: React.FC = () => {
             fromUtc: args.fromUtc,
             toUtc: args.toUtc,
         });
-        Modal.success({
+        modal.success({
             title: args.title,
             okText: t('invoices.modals.openFinanzOnlineQueue'),
             onOk: () => {
                 window.open(link, '_blank', 'noopener,noreferrer');
             },
             content: (
-                <Space direction="vertical" size={8}>
+                <Space orientation="vertical" size={8}>
                     <Typography.Text>{args.messageText}</Typography.Text>
                     {args.submissionId ? (
                         <Typography.Text copyable={{ text: args.submissionId }}>
@@ -393,7 +395,7 @@ export const InvoiceList: React.FC = () => {
 
     const handleBatchSubmit = () => {
         if (!selectedRowKeys.length) return;
-        Modal.confirm({
+        modal.confirm({
             title: t('invoices.modals.batchReconcileTitle'),
             content: t('invoices.modals.batchReconcileBody', { count: selectedRowKeys.length }),
             okText: t('invoices.modals.batchReconcileOk'),
@@ -562,10 +564,10 @@ export const InvoiceList: React.FC = () => {
                 });
             } else {
                 message.warning(`${t('invoices.modals.reconciliationFailedTitle')}: ${data.message}`);
-                Modal.warning({
+                modal.warning({
                     title: t('invoices.modals.reconciliationFailedTitle'),
                     content: (
-                        <Space direction="vertical" size={8}>
+                        <Space orientation="vertical" size={8}>
                             <Typography.Text>{data.message || t('invoices.reconciliation.retryUnknownError')}</Typography.Text>
                             <Typography.Text type="secondary">
                                 {t('invoices.reconciliation.failedOpenQueueHint')}
@@ -592,10 +594,10 @@ export const InvoiceList: React.FC = () => {
             void invalidateReconciliationViews();
         } catch (err: unknown) {
             message.error(t('invoices.messages.reconciliationRetryTriggerFailed'));
-            Modal.error({
+            modal.error({
                 title: t('invoices.modals.reconciliationErrorTitle'),
                 content: (
-                    <Space direction="vertical" size={8}>
+                    <Space orientation="vertical" size={8}>
                         <Typography.Text>
                             {getAxiosResponseDataString(err) ??
                                 t('invoices.reconciliation.catchFallbackMessage')}
@@ -850,7 +852,7 @@ export const InvoiceList: React.FC = () => {
 
     return (
         <React.Fragment>
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                 <AdminPageHeader
                     title={t('invoices.page.title')}
                     breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('invoices.page.title') }]}
@@ -904,7 +906,7 @@ export const InvoiceList: React.FC = () => {
                     </Typography.Paragraph>
                 </AdminPageHeader>
                 <Divider style={{ margin: '4px 0 4px' }} />
-                <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                     {/* Filters */}
                     <Row gutter={[16, 16]}>
                         <Col xs={24} sm={8} md={6}>
@@ -927,7 +929,7 @@ export const InvoiceList: React.FC = () => {
                             />
                         </Col>
                         <Col xs={24} sm={8} md={5}>
-                            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                            <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                                 <Input
                                     placeholder={t('invoices.filters.registerPlaceholder')}
                                     value={cashRegisterIdFilter}
@@ -979,9 +981,9 @@ export const InvoiceList: React.FC = () => {
                         <Alert
                             type="warning"
                             showIcon
-                            message={t('invoices.dateRange.blocksQueryTitle')}
+                            title={t('invoices.dateRange.blocksQueryTitle')}
                             description={
-                                <Space direction="vertical" size={4}>
+                                <Space orientation="vertical" size={4}>
                                     <Typography.Text>{dateRangeError}</Typography.Text>
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                         {t('invoices.dateRange.blocksQuerySuffix')}
@@ -1069,7 +1071,7 @@ export const InvoiceList: React.FC = () => {
                         <Alert
                             type="warning"
                             showIcon
-                            message={t('invoices.registerFilter.invalidTitle')}
+                            title={t('invoices.registerFilter.invalidTitle')}
                             description={t('invoices.registerFilter.invalidDescription')}
                         />
                     )}
@@ -1078,9 +1080,9 @@ export const InvoiceList: React.FC = () => {
                     {isError && data ? (
                         <Alert
                             type="error"
-                            message={t('common.loadErrors.list')}
+                            title={t('common.loadErrors.list')}
                             description={
-                                <Space direction="vertical" size={4}>
+                                <Space orientation="vertical" size={4}>
                                     <Typography.Text>{invoiceListLocalizedErrorHint(listQueryError, t)}</Typography.Text>
                                     <BackendRawTextBlock introKey="common.backend.serverHintIntro" body={extractRawApiErrorMessage(listQueryError)} />
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -1250,7 +1252,7 @@ export const InvoiceList: React.FC = () => {
                                         : t('invoices.detail.positionsEmptyRaw');
 
                             return (
-                                <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                                <Space orientation="vertical" size={0} style={{ width: '100%' }}>
                                     <OperatorSummaryStrip>
                                         <Space wrap size={[16, 12]} align="start">
                                             <div>
@@ -1315,7 +1317,7 @@ export const InvoiceList: React.FC = () => {
                                             ) : null}
                                         </Space>
                                         <Divider style={{ margin: '12px 0' }} />
-                                        <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                                        <Space orientation="vertical" size={6} style={{ width: '100%' }}>
                                             <Space wrap align="center">
                                                 <Typography.Text type="secondary">{t('invoices.detail.paymentReconciliation')}</Typography.Text>
                                                 {detailInvoice.sourcePaymentId ? (
@@ -1406,12 +1408,12 @@ export const InvoiceList: React.FC = () => {
                                                 {fmt.formatCurrency(detailInvoice.taxAmount ?? 0)}
                                             </Descriptions.Item>
                                             <Descriptions.Item label={t('invoices.detail.descRegisterFkMachine')} span={2}>
-                                                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                                                     {detailRegFk.isRawPresentButNotLinkSafe ? (
                                                         <Alert
                                                             type="warning"
                                                             showIcon
-                                                            message={OPERATOR_REGISTER_LINK_COPY.uuidNotLinkSafeTitle}
+                                                            title={OPERATOR_REGISTER_LINK_COPY.uuidNotLinkSafeTitle}
                                                             description={OPERATOR_REGISTER_LINK_COPY.uuidNotLinkSafeDescription}
                                                         />
                                                     ) : null}
@@ -1486,18 +1488,18 @@ export const InvoiceList: React.FC = () => {
                                                     key: 'items',
                                                     label: t('invoices.detail.positionsCollapseLabel', { label: positionsLabel }),
                                                     children: (
-                                                        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                                        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                                                             <Alert
                                                                 type="info"
                                                                 showIcon
-                                                                message={t('invoices.detail.contractInvoiceItemsTitle')}
+                                                                title={t('invoices.detail.contractInvoiceItemsTitle')}
                                                                 description={RKSv_ADMIN_CONTRACT_GAPS.invoiceDetailInvoiceItems}
                                                             />
                                                             {itemsDisplay.kind === 'parse_error' ? (
                                                                 <Alert
                                                                     type="warning"
                                                                     showIcon
-                                                                    message={t('invoices.detail.itemsParseErrorTitle')}
+                                                                    title={t('invoices.detail.itemsParseErrorTitle')}
                                                                     description={itemsDisplay.message}
                                                                 />
                                                             ) : null}
@@ -1505,7 +1507,7 @@ export const InvoiceList: React.FC = () => {
                                                                 <Alert
                                                                     type="warning"
                                                                     showIcon
-                                                                    message={t('invoices.detail.itemsUnexpectedTypeTitle')}
+                                                                    title={t('invoices.detail.itemsUnexpectedTypeTitle')}
                                                                     description={t('invoices.detail.itemsUnexpectedTypeDesc', {
                                                                         primitive: itemsDisplay.primitive,
                                                                     })}
@@ -1557,7 +1559,7 @@ export const InvoiceList: React.FC = () => {
             >
                 <Alert
                     type="warning"
-                    message={t('invoices.creditNote.alertMessage')}
+                    title={t('invoices.creditNote.alertMessage')}
                     description={t('invoices.creditNote.alertDescription')}
                     showIcon
                     style={{ marginBottom: 16 }}

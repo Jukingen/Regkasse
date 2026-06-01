@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useState } from 'react';
-import { Button, message } from 'antd';
+import { Button } from 'antd';
 import type { ButtonProps } from 'antd';
 import { PrinterOutlined } from '@ant-design/icons';
 import { reprintReceipt } from '@/api/admin/payments';
@@ -21,6 +22,8 @@ export interface ReprintButtonProps {
 }
 
 export function ReprintButton({ paymentId, receiptNumber, disabled, size = 'middle' }: ReprintButtonProps) {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
   const { hasPermission } = usePermissions();
   const canReprintPdf = hasPermission(PERMISSIONS.RECEIPT_REPRINT);

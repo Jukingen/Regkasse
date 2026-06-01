@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Progress, Radio, Space, Typography, message } from 'antd';
+import { Modal, Alert, Progress, Radio, Space, Typography } from 'antd';
 
 import type { AuditLogListParams } from '@/features/audit-logs/hooks/useAuditLogSearchParams';
 import {
@@ -28,6 +29,8 @@ function triggerBlobDownload(blob: Blob, fileName: string) {
 }
 
 export function AuditExportModal({ open, params, onClose }: Props) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [format, setFormat] = useState<AuditExportFormat>('csv');
     const [busy, setBusy] = useState(false);
@@ -102,9 +105,9 @@ export function AuditExportModal({ open, params, onClose }: Props) {
             onOk={handleExport}
             okText={t('common.auditLogs.exportModalStart')}
             confirmLoading={busy}
-            destroyOnClose
+            destroyOnHidden
         >
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     {t('common.auditLogs.exportModalHint')}
                 </Typography.Paragraph>
@@ -115,7 +118,7 @@ export function AuditExportModal({ open, params, onClose }: Props) {
                 </Radio.Group>
                 {jobId ? (
                     <>
-                        <Alert type="info" message={t('common.auditLogs.exportBackground')} showIcon />
+                        <Alert type="info" title={t('common.auditLogs.exportBackground')} showIcon />
                         <Progress percent={progress} status={progress >= 100 ? 'success' : 'active'} />
                     </>
                 ) : null}

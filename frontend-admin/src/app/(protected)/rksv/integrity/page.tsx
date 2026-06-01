@@ -91,7 +91,7 @@ export default function IntegrityReportPage() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('rksvHub.integrityPage.alertTitle')}
+        title={t('rksvHub.integrityPage.alertTitle')}
         description={
           <span>
             {t('rksvHub.integrityPage.alertIntro')}{' '}
@@ -135,7 +135,7 @@ export default function IntegrityReportPage() {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message={t('rksvHub.integrityPage.loadFailedTitle')}
+          title={t('rksvHub.integrityPage.loadFailedTitle')}
           description={
             <ApiErrorAlertDescription
               t={t}
@@ -150,13 +150,13 @@ export default function IntegrityReportPage() {
       {!error && report && (
         <>
           {hasAnyIssue ? (
-            <Alert type="warning" showIcon style={{ marginBottom: 16 }} message={t('rksvHub.integrityPage.hasIssuesTitle')} />
+            <Alert type="warning" showIcon style={{ marginBottom: 16 }} title={t('rksvHub.integrityPage.hasIssuesTitle')} />
           ) : (
             <Alert
               type="success"
               showIcon
               style={{ marginBottom: 16 }}
-              message={t('rksvHub.integrityPage.noIssuesTitle')}
+              title={t('rksvHub.integrityPage.noIssuesTitle')}
             />
           )}
 

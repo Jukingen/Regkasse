@@ -239,7 +239,7 @@ export default function RksvComplianceDashboard() {
               ]}
             />
           ) : (
-            <Alert type="success" showIcon message={t('rksvHub.compliancePage.startbelegAllPresent')} />
+            <Alert type="success" showIcon title={t('rksvHub.compliancePage.startbelegAllPresent')} />
           )}
           {(report?.specialReceipts?.length ?? 0) > 0 && (
             <Table
@@ -325,7 +325,7 @@ export default function RksvComplianceDashboard() {
           ]}
         />
       ) : (
-        <Alert type="success" showIcon message={t('rksvHub.compliancePage.chainOk')} />
+        <Alert type="success" showIcon title={t('rksvHub.compliancePage.chainOk')} />
       )}
         </>
       ),
@@ -379,7 +379,7 @@ export default function RksvComplianceDashboard() {
           ]}
         />
       ) : (
-        <Alert type="success" showIcon message={t('rksvHub.compliancePage.sequenceOk')} />
+        <Alert type="success" showIcon title={t('rksvHub.compliancePage.sequenceOk')} />
       ),
     },
     {
@@ -426,7 +426,7 @@ export default function RksvComplianceDashboard() {
           ]}
         />
       ) : (
-        <Alert type="success" showIcon message={t('rksvHub.compliancePage.tseOk')} />
+        <Alert type="success" showIcon title={t('rksvHub.compliancePage.tseOk')} />
       ),
     },
     {
@@ -475,7 +475,7 @@ export default function RksvComplianceDashboard() {
           ]}
         />
       ) : (
-        <Alert type="success" showIcon message={t('rksvHub.compliancePage.qrOk')} />
+        <Alert type="success" showIcon title={t('rksvHub.compliancePage.qrOk')} />
       ),
     },
   ];
@@ -495,7 +495,7 @@ export default function RksvComplianceDashboard() {
         type="warning"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('rksvHub.compliancePage.legalAlertTitle')}
+        title={t('rksvHub.compliancePage.legalAlertTitle')}
         description={report?.legalNoticeDe ?? t('rksvHub.compliancePage.legalAlertFallback')}
       />
 
@@ -547,7 +547,7 @@ export default function RksvComplianceDashboard() {
           type="error"
           showIcon
           style={{ marginBottom: 16 }}
-          message={t('rksvHub.compliancePage.loadFailedTitle')}
+          title={t('rksvHub.compliancePage.loadFailedTitle')}
           description={
             <ApiErrorAlertDescription
               t={t}
@@ -562,9 +562,9 @@ export default function RksvComplianceDashboard() {
       {!error && report && (
         <>
           {summary?.overallPass ? (
-            <Alert type="success" showIcon style={{ marginBottom: 16 }} message={t('rksvHub.compliancePage.overallPass')} />
+            <Alert type="success" showIcon style={{ marginBottom: 16 }} title={t('rksvHub.compliancePage.overallPass')} />
           ) : (
-            <Alert type="warning" showIcon style={{ marginBottom: 16 }} message={t('rksvHub.compliancePage.overallFail')} />
+            <Alert type="warning" showIcon style={{ marginBottom: 16 }} title={t('rksvHub.compliancePage.overallFail')} />
           )}
 
           <Card size="small" style={{ marginBottom: 16 }}>

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
@@ -59,7 +60,9 @@ public class AdminUsersControllerTests
         string? actorId = "admin-id",
         string actorRole = Roles.SuperAdmin,
         IUsernameChangeEmailService? usernameChangeEmail = null,
-        IUserUsernameHistoryService? usernameHistory = null)
+        IUserUsernameHistoryService? usernameHistory = null,
+        ICurrentTenantAccessor? tenantAccessor = null,
+        ITenantUserService? tenantUserService = null)
     {
         var userManager = CreateUserManager(context);
         var roleManager = new RoleManager<IdentityRole>(
@@ -78,7 +81,9 @@ public class AdminUsersControllerTests
             actorRole,
             context,
             usernameChangeEmail,
-            usernameHistory);
+            usernameHistory,
+            tenantAccessor,
+            tenantUserService);
     }
 
     private static (UserManager<ApplicationUser> UserManager, RoleManager<IdentityRole> RoleManager) CreateMockUserAndRoleManagers(ApplicationUser? existingUser = null)
@@ -158,10 +163,11 @@ public class AdminUsersControllerTests
         AppDbContext? context = null,
         IUsernameChangeEmailService? usernameChangeEmail = null,
         IUserUsernameHistoryService? usernameHistory = null,
-        ICurrentTenantAccessor? tenantAccessor = null)
+        ICurrentTenantAccessor? tenantAccessor = null,
+        ITenantUserService? tenantUserService = null)
     {
         var logger = new Mock<ILogger<AdminUsersController>>().Object;
-        var tenantUserService = new Mock<ITenantUserService>().Object;
+        tenantUserService ??= new Mock<ITenantUserService>().Object;
         var db = context ?? CreateEphemeralContext();
         var controller = new AdminUsersController(
             db,
@@ -1131,6 +1137,111 @@ public class AdminUsersControllerTests
         Assert.Equal(body.UserName, persisted.UserName);
         Assert.True(persisted.MustChangePasswordOnNextLogin);
         Assert.True(PasswordGenerator.GenerateSecurePassword().Length >= 12);
+    }
+
+    [Fact]
+    public void AdminCreateUserRequest_Deserializes_TenantId_FromCamelCaseJson()
+    {
+        var tenantId = Guid.Parse("9c8f4e2b-1a3d-4f6e-8b7c-0d1e2f3a4b5c");
+        var json =
+            $$"""{"email":"manager@test.com","role":"Manager","tenantId":"{{tenantId:D}}","isOwner":true}""";
+
+        var request = JsonSerializer.Deserialize<AdminCreateUserRequest>(
+            json,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true,
+            });
+
+        Assert.NotNull(request);
+        Assert.Equal(tenantId, request.TenantId);
+        Assert.True(request.IsOwner);
+    }
+
+    [Fact]
+    public async Task Create_ManagerWithoutTenantId_ReturnsBadRequest_DoesNotProvisionDefaultTenant()
+    {
+        await using var db = CreateEphemeralContext();
+        await SeedRolesAsync(db);
+        var tenantUserService = new Mock<ITenantUserService>();
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            tenantUserService: tenantUserService.Object);
+
+        var result = await controller.Create(new AdminCreateUserRequest
+        {
+            Email = "manager@test.com",
+            Role = Roles.Manager,
+        });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        var error = Assert.IsType<ApiError>(badRequest.Value);
+        Assert.Contains("tenantId", error.Errors!.Keys, StringComparer.OrdinalIgnoreCase);
+        tenantUserService.Verify(
+            x => x.CreateAsync(
+                It.IsAny<Guid>(),
+                It.IsAny<CreateTenantUserRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Never);
+        Assert.False(await db.Users.AnyAsync(u => u.Email == "manager@test.com"));
+    }
+
+    [Fact]
+    public async Task Create_ManagerWithTenantIdInBody_DelegatesToTenantUserService()
+    {
+        await using var db = CreateEphemeralContext();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        var tenantUserService = new Mock<ITenantUserService>();
+        tenantUserService
+            .Setup(x => x.CreateAsync(
+                tenantId,
+                It.IsAny<CreateTenantUserRequest>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((
+                new CreateTenantUserResultDto(
+                    "user-tenant-1",
+                    "manager@test.com",
+                    "manager1",
+                    "Temp#Pass12345",
+                    true,
+                    true,
+                    TenantId: tenantId,
+                    TenantSlug: "dev"),
+                null));
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            tenantUserService: tenantUserService.Object);
+
+        var result = await controller.Create(new AdminCreateUserRequest
+        {
+            Email = "manager@test.com",
+            Role = Roles.Manager,
+            TenantId = tenantId,
+        });
+
+        var created = Assert.IsType<CreatedAtActionResult>(result);
+        var body = Assert.IsType<CreateTenantUserResultDto>(created.Value);
+        Assert.Equal(tenantId, body.TenantId);
+        Assert.Equal("dev", body.TenantSlug);
+        tenantUserService.Verify(
+            x => x.CreateAsync(
+                tenantId,
+                It.Is<CreateTenantUserRequest>(r => r.Email == "manager@test.com" && r.Role == Roles.Manager),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
     }
 
     [Fact]

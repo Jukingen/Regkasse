@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Form, Input, Modal, Select, Space, Tag, Typography, message } from 'antd';
+import { Modal, Alert, Form, Input, Select, Space, Tag, Typography } from 'antd';
 import { ClockCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import type { AdminPaymentDetailDto } from '@/api/generated/model';
@@ -49,6 +50,8 @@ export function CancellationModal({
     onSuccess,
     disabled = false,
 }: CancellationModalProps) {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const [form] = Form.useForm<FormValues>();
     const [step, setStep] = useState<'form' | 'approval'>('form');
@@ -180,14 +183,14 @@ export function CancellationModal({
                 danger: step === 'form',
                 disabled: disabled || (step === 'approval' && waitTimeSeconds <= 0),
             }}
-            destroyOnClose
+            destroyOnHidden
             width={520}
         >
             <Alert
                 type="warning"
                 showIcon
                 icon={<WarningOutlined />}
-                message={t('payments.cancellationModal.infoTitle')}
+                title={t('payments.cancellationModal.infoTitle')}
                 description={t('payments.cancellationModal.infoDescription')}
                 style={{ marginBottom: 16 }}
             />
@@ -269,11 +272,11 @@ export function CancellationModal({
                     </div>
                 </Form>
             ) : (
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Alert
                         type="info"
                         showIcon
-                        message={t('payments.cancellationModal.approvalTitle')}
+                        title={t('payments.cancellationModal.approvalTitle')}
                         description={
                             <>
                                 <Typography.Paragraph style={{ marginBottom: 8 }}>
@@ -297,7 +300,7 @@ export function CancellationModal({
                         type={waitTimeSeconds > 0 ? 'warning' : 'error'}
                         showIcon
                         icon={<ClockCircleOutlined />}
-                        message={
+                        title={
                             waitTimeSeconds > 0
                                 ? t('payments.cancellationModal.tokenValidFor', {
                                       minutes: waitMinutes,

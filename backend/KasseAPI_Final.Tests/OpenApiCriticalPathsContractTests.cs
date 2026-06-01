@@ -48,7 +48,7 @@ public class OpenApiCriticalPathsContractTests
 
         Assert.True(root.TryGetProperty("components", out var components));
         Assert.True(components.TryGetProperty("schemas", out var schemas));
-        foreach (var name in new[] { "CreatePaymentRequest", "AdminPaymentsListResponse", "PaymentMethod" })
+        foreach (var name in new[] { "CreatePaymentRequest", "PaymentListResponse", "PaymentMethod" })
         {
             Assert.True(schemas.TryGetProperty(name, out _), $"Missing schema: {name}");
         }

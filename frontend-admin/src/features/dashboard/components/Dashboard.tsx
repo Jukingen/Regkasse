@@ -120,7 +120,7 @@ export function Dashboard({ headerSlot }: DashboardProps) {
                 <Alert
                     type="error"
                     showIcon
-                    message="Dashboard konnte nicht geladen werden"
+                    title="Dashboard konnte nicht geladen werden"
                     style={{ marginBottom: 16 }}
                 />
             ) : null}
@@ -139,7 +139,7 @@ export function Dashboard({ headerSlot }: DashboardProps) {
                     type="warning"
                     showIcon
                     closable
-                    message="Layout konnte nicht gespeichert werden"
+                    title="Layout konnte nicht gespeichert werden"
                     style={{ marginTop: 8 }}
                 />
             ) : null}

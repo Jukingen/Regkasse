@@ -31,7 +31,7 @@ export function UserTenantSummary({ userRole, memberships, loading }: UserTenant
     }
 
     return (
-        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
             {memberships.map((m) => (
                 <div key={m.tenantId}>
                     <Text strong>{m.tenantName}</Text>

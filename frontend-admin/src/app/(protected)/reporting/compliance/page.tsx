@@ -1,27 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Compliance- und Betriebsberichte: Mutabakat, TSE-Kette, Offline-Wiederherstellung, Peak-Hours, Warenbewegung.
  */
 import React, { useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    DatePicker,
-    Row,
-    Select,
-    Space,
-    Spin,
-    Statistic,
-    Table,
-    Dropdown,
-    Tabs,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Row, Select, Space, Spin, Statistic, Table, Dropdown, Tabs, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import { CalendarOutlined, DownloadOutlined, SettingOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
@@ -72,6 +56,8 @@ function normalizeRegisters(data: unknown): CashRegister[] {
 }
 
 export default function ComplianceReportingPage() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const { hasPermission } = usePermissions();
     const canExport = hasPermission(PERMISSIONS.REPORT_EXPORT);
@@ -230,7 +216,7 @@ export default function ComplianceReportingPage() {
             title: t('reporting.compliance.columns.user'),
             key: 'user',
             render: (_: unknown, row) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <Typography.Text strong>{row.userName}</Typography.Text>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {row.role || '—'} · {row.userId}
@@ -438,10 +424,10 @@ export default function ComplianceReportingPage() {
                         children: (
                             <Spin spinning={reconciliationQ.isLoading}>
                                 {rec?.disclaimerDe ? (
-                                    <Alert type="info" showIcon message={rec.disclaimerDe} style={{ marginBottom: 12 }} />
+                                    <Alert type="info" showIcon title={rec.disclaimerDe} style={{ marginBottom: 12 }} />
                                 ) : null}
                                 {rec?.notes ? (
-                                    <Alert type="warning" showIcon message={rec.notes} style={{ marginBottom: 12 }} />
+                                    <Alert type="warning" showIcon title={rec.notes} style={{ marginBottom: 12 }} />
                                 ) : null}
                                 <Row gutter={16}>
                                     <Col xs={12} md={6}>
@@ -486,7 +472,7 @@ export default function ComplianceReportingPage() {
                         children: (
                             <Spin spinning={tseQ.isLoading}>
                                 {tseQ.data?.operatorNoteDe ? (
-                                    <Alert type="info" showIcon message={tseQ.data.operatorNoteDe} style={{ marginBottom: 12 }} />
+                                    <Alert type="info" showIcon title={tseQ.data.operatorNoteDe} style={{ marginBottom: 12 }} />
                                 ) : null}
                                 <Row gutter={16} style={{ marginBottom: 16 }}>
                                     <Col xs={12} md={6}>
@@ -531,7 +517,7 @@ export default function ComplianceReportingPage() {
                         children: (
                             <Spin spinning={offlineQ.isLoading}>
                                 {offlineQ.data?.operatorNoteDe ? (
-                                    <Alert type="info" showIcon message={offlineQ.data.operatorNoteDe} style={{ marginBottom: 12 }} />
+                                    <Alert type="info" showIcon title={offlineQ.data.operatorNoteDe} style={{ marginBottom: 12 }} />
                                 ) : null}
                                 <Row gutter={16} style={{ marginBottom: 16 }}>
                                     <Col xs={12} md={6}>
@@ -622,7 +608,7 @@ export default function ComplianceReportingPage() {
                                         type="warning"
                                         showIcon
                                         style={{ marginBottom: 12 }}
-                                        message={t('reporting.compliance.users.stornoWarning', {
+                                        title={t('reporting.compliance.users.stornoWarning', {
                                             count: userPerfQ.data.highStornoRateWarning.length,
                                             pct: (userPerfQ.data.highStornoRateThreshold * 100).toFixed(0),
                                         })}

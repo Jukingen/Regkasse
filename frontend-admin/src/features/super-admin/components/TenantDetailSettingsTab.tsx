@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Card, Form, Input, Select, Space, message } from 'antd';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { Button, Card, Form, Input, Select, Space } from 'antd';
 import { useMutation } from '@tanstack/react-query';
 
 import {
@@ -44,6 +45,8 @@ export function TenantDetailSettingsTab({
     onHardDelete,
     onDevelopmentHardDelete,
 }: TenantDetailSettingsTabProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const canManageDeletion = useCanManageTenantDeletion();
     const [form] = Form.useForm<SettingsFormValues>();
@@ -65,7 +68,7 @@ export function TenantDetailSettingsTab({
     });
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Card>
                 <Form
                     key={`${tenant.id}-${tenant.updatedAt ?? tenant.createdAt}`}

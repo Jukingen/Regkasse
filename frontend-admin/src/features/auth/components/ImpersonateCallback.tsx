@@ -36,7 +36,7 @@ export function ImpersonateCallback() {
                 <Alert
                     type="error"
                     showIcon
-                    message={t('tenants.impersonationCallback.titleFailed')}
+                    title={t('tenants.impersonationCallback.titleFailed')}
                     description={t(messageId)}
                     style={{ maxWidth: 480 }}
                 />
@@ -49,7 +49,7 @@ export function ImpersonateCallback() {
 
     return (
         <CenteredPanel>
-            <Spin size="large" tip={t('tenants.impersonationCallback.processing')} />
+            <Spin size="large" description={t('tenants.impersonationCallback.processing')} />
         </CenteredPanel>
     );
 }

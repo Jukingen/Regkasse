@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect, useMemo } from 'react';
-import { Form, Input, Modal, Select, message } from 'antd';
+import { Modal, Form, Input, Select } from 'antd';
 
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
@@ -30,6 +31,8 @@ export function CreateCashRegisterModal({
     onClose,
     onSuccess,
 }: CreateCashRegisterModalProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const { user } = useAuth();
     const isSuperAdminUser = isSuperAdmin(user?.role);
@@ -98,7 +101,7 @@ export function CreateCashRegisterModal({
             okText={t('cashRegisters.create.confirm')}
             cancelText={t('cashRegisters.create.cancel')}
             confirmLoading={createMutation.isPending}
-            destroyOnClose
+            destroyOnHidden
             width={480}
         >
             <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark="optional">

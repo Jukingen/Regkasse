@@ -1,9 +1,10 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState, useEffect } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
-import { Button, Table, Space, message, Empty, Spin, Input, Alert, Typography, Flex } from 'antd';
+import { Button, Table, Space, Empty, Spin, Input, Alert, Typography, Flex } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -36,7 +37,7 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
             <div style={{ padding: 16 }}>
                 <Alert
                     type="error"
-                    message={t('common.categories.productsLoadError')}
+                    title={t('common.categories.productsLoadError')}
                     description={
                         error ? (
                             <ApiErrorAlertDescription
@@ -110,6 +111,8 @@ function CategoryProducts({ categoryId }: { categoryId: string }) {
 }
 
 export default function CategoriesPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [searchTerm, setSearchTerm] = useState('');
     const [searchDebounced, setSearchDebounced] = useState('');
@@ -214,7 +217,7 @@ export default function CategoriesPage() {
     };
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
                 title={t('nav.categories')}
                 breadcrumbs={[adminOverviewCrumb(t), { title: t('nav.categories') }]}
@@ -243,7 +246,7 @@ export default function CategoriesPage() {
             {isError ? (
                 <Alert
                     type="error"
-                    message={t('common.categories.loadErrorTitle')}
+                    title={t('common.categories.loadErrorTitle')}
                     description={
                         error ? (
                             <ApiErrorAlertDescription

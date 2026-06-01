@@ -1,7 +1,7 @@
 'use client';
 
 import React, { FC, useState } from 'react';
-import { Button, Card, Form, Input, Typography, message } from 'antd';
+import { App, Button, Card, Form, Input, Typography } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useMutation } from '@tanstack/react-query';
@@ -17,6 +17,7 @@ type ForgotUsernameFormValues = {
 };
 
 export const ForgotUsernameForm: FC = () => {
+    const { message } = App.useApp();
     const { t } = useI18n();
     const [submitted, setSubmitted] = useState(false);
 

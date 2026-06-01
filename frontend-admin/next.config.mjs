@@ -3,6 +3,10 @@
  * Türkçe: Eksik veya geçersiz NEXT_PUBLIC_RKSV_ENVIRONMENT ile sessiz üretim artefaktı üretilmez.
  */
 import bundleAnalyzer from '@next/bundle-analyzer';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** UTF-8 BOM; `rksvEnvironment.ts` ile aynı kural (editör .env başına FEFF ekleyebilir). */
 function stripBomAndTrimRksvEnv(raw) {
@@ -35,8 +39,12 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    allowedDevOrigins: ['admin.regkasse.local', '*.regkasse.local'],
     transpilePackages: ['@ant-design/icons', 'antd', 'rc-util', 'rc-pagination', 'rc-picker', 'rc-notification', 'rc-tooltip'],
     reactStrictMode: true,
+    turbopack: {
+        root: path.join(__dirname, '..'),
+    },
     experimental: {
         optimizePackageImports: ['antd', '@ant-design/icons'],
     },

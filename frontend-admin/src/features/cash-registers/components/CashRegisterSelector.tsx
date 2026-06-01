@@ -238,7 +238,7 @@ export function CashRegisterSelector({
     }
 
     return (
-        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="small" style={{ width: '100%' }}>
             <Select
                 placeholder={t('cashRegisters.create.tenantPlaceholder')}
                 value={pickedTenantId ?? currentTenantId}

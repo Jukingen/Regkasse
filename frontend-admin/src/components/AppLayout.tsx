@@ -1,7 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
+
 import { useCallback, useMemo, type ReactNode } from 'react';
-import { message } from 'antd';
+
 import { SessionTimeoutWarning } from '@/components/SessionTimeoutWarning';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
 import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
@@ -35,6 +37,8 @@ type AppLayoutProps = {
  * Mount inside authenticated routes (see `(protected)/layout.tsx`).
  */
 export function AppLayout({ children }: AppLayoutProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const { authStatus, logout, user } = useAuth();
 

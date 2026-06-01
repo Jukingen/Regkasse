@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Button, Modal, Progress, Space, Typography, Upload, message } from 'antd';
+import { Modal, Alert, Button, Progress, Space, Typography, Upload } from 'antd';
 import type { UploadFile } from 'antd/es/upload';
 import { DownloadOutlined, InboxOutlined, StopOutlined, UploadOutlined } from '@ant-design/icons';
 import { ImportPreviewTable } from '@/features/users/components/ImportPreviewTable';
@@ -35,6 +36,8 @@ const PREVIEW_ROW_COUNT = 10;
  * Bulk user import: upload, preview, background job with progress, results modal.
  */
 export function BulkImportModal({ open, onClose, onSuccess }: Props) {
+  const { message } = useAntdApp();
+
     const [step, setStep] = useState<Step>('upload');
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const [previewRows, setPreviewRows] = useState<BulkImportPreviewRow[]>([]);
@@ -202,7 +205,7 @@ export function BulkImportModal({ open, onClose, onSuccess }: Props) {
                 width={760}
                 footer={footer}
                 closable={step !== 'importing'}
-                maskClosable={step !== 'importing'}
+                mask={{ closable: step !== 'importing' }}
             >
                 <Typography.Paragraph type="secondary">
                     Pflichtspalten: <code>email</code>, <code>role</code>, <code>tenantSlug</code>. Rollen: Manager,
@@ -233,9 +236,9 @@ export function BulkImportModal({ open, onClose, onSuccess }: Props) {
                 ) : null}
 
                 {step === 'preview' ? (
-                    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                    <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                         {previewError ? (
-                            <Alert type="error" showIcon message={previewError} />
+                            <Alert type="error" showIcon title={previewError} />
                         ) : (
                             <ImportPreviewTable
                                 rows={previewRows}
@@ -247,7 +250,7 @@ export function BulkImportModal({ open, onClose, onSuccess }: Props) {
                 ) : null}
 
                 {step === 'importing' ? (
-                    <Space direction="vertical" style={{ width: '100%' }} size="large">
+                    <Space orientation="vertical" style={{ width: '100%' }} size="large">
                         <Typography.Text>Import läuft…</Typography.Text>
                         <Progress percent={progressPercent} status="active" />
                         <Typography.Text type="secondary">
@@ -258,7 +261,7 @@ export function BulkImportModal({ open, onClose, onSuccess }: Props) {
                 ) : null}
 
                 {step === 'done' && !resultsOpen ? (
-                    <Alert type="success" showIcon message="Import abgeschlossen" />
+                    <Alert type="success" showIcon title="Import abgeschlossen" />
                 ) : null}
             </Modal>
 

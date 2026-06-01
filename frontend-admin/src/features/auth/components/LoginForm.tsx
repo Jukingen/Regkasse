@@ -1,7 +1,7 @@
 'use client';
 
 import React, { FC } from 'react';
-import { Form, Input, Button, Card, Typography, message } from 'antd';
+import { App, Form, Input, Button, Card, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -25,6 +25,7 @@ type LoginFormValues = {
 };
 
 export const LoginForm: FC = () => {
+    const { message } = App.useApp();
     const router = useRouter();
     const queryClient = useQueryClient();
     const { t } = useI18n();

@@ -55,7 +55,7 @@ export function UserDetailDrawer({
     <Drawer
       title={fullName(user)}
       placement="right"
-      width={840}
+      size={840}
       onClose={onClose}
       open={open}
       destroyOnHidden

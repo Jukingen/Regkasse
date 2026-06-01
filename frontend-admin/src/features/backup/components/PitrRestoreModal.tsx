@@ -1,20 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Col,
-  DatePicker,
-  Modal,
-  Row,
-  Space,
-  Spin,
-  Statistic,
-  Tag,
-  Timeline,
-  Typography,
-} from 'antd';
+import { Modal, Alert, Button, Col, DatePicker, Row, Space, Spin, Statistic, Tag, Timeline, Typography } from 'antd';
 import {
   CalendarOutlined,
   CheckCircleOutlined,
@@ -60,6 +48,8 @@ export function PitrRestoreModal({
   onRestore,
   restoreSubmitting = false,
 }: PitrRestoreModalProps) {
+  const { modal } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const [selectedTime, setSelectedTime] = useState<Dayjs | null>(null);
   const [validation, setValidation] = useState<RestorePointValidationResult | null>(null);
@@ -107,7 +97,7 @@ export function PitrRestoreModal({
   const handleRestore = () => {
     if (!validation?.isValid || !selectedTime) return;
 
-    Modal.confirm({
+    modal.confirm({
       title: t('backupDr.pitr.confirmTitle'),
       content: (
         <div>
@@ -163,7 +153,7 @@ export function PitrRestoreModal({
       open={open}
       onCancel={onClose}
       width={700}
-      destroyOnClose
+      destroyOnHidden
       footer={[
         <Button key="cancel" onClick={onClose}>
           {t('backupDr.pitr.cancel')}
@@ -181,7 +171,7 @@ export function PitrRestoreModal({
       ]}
     >
       <Alert
-        message={t('backupDr.pitr.alertTitle')}
+        title={t('backupDr.pitr.alertTitle')}
         description={t('backupDr.pitr.alertDescription')}
         type="warning"
         showIcon
@@ -190,7 +180,7 @@ export function PitrRestoreModal({
 
       {tenantError ? (
         <Alert
-          message={t('backupDr.pitr.tenantRequiredTitle')}
+          title={t('backupDr.pitr.tenantRequiredTitle')}
           description={t('backupDr.pitr.tenantRequiredDescription')}
           type="error"
           showIcon
@@ -205,7 +195,7 @@ export function PitrRestoreModal({
             <Alert
               type="info"
               showIcon
-              message={t('backupDr.pitr.scopeNoteTitle')}
+              title={t('backupDr.pitr.scopeNoteTitle')}
               description={availability.message}
               style={{ marginBottom: 16 }}
             />
@@ -297,14 +287,14 @@ export function PitrRestoreModal({
                       <Statistic
                         title={t('backupDr.pitr.baseBackup')}
                         value={formatPitrDateTime(validation.baseBackupTimeUtc, formatLocale)}
-                        valueStyle={{ fontSize: 14 }}
+                        styles={{ content: {  fontSize: 14  } }}
                       />
                     </Col>
                     <Col span={12}>
                       <Statistic
                         title={t('backupDr.pitr.targetTime')}
                         value={formatPitrDateTime(validation.targetTimeUtc, formatLocale)}
-                        valueStyle={{ fontSize: 14 }}
+                        styles={{ content: {  fontSize: 14  } }}
                       />
                     </Col>
                   </Row>
@@ -339,7 +329,7 @@ export function PitrRestoreModal({
 
           {!availability?.walArchivingEnabled ? (
             <Alert
-              message={t('backupDr.pitr.walDisabledTitle')}
+              title={t('backupDr.pitr.walDisabledTitle')}
               description={t('backupDr.pitr.walDisabledDescription')}
               type="info"
               showIcon

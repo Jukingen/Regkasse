@@ -67,7 +67,7 @@ export function AdminOperationalContextPanel({
             }}
             title={title}
         >
-            <Space direction="vertical" size={10} style={{ width: '100%' }}>
+            <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                 {eyebrow ? (
                     <Typography.Text type="secondary" style={{ fontSize: 11, textTransform: 'uppercase' }}>
                         {eyebrow}

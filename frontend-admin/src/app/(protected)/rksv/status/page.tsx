@@ -45,9 +45,9 @@ export default function RksvStatusPage() {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertMessage}
+                title={OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertMessage}
                 description={
-                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                    <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                         <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
                             {OPERATOR_RKSV_GENERAL_STATUS_COPY.pageScopeAlertBody}
                         </Typography.Paragraph>
@@ -84,7 +84,7 @@ export default function RksvStatusPage() {
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message="RKSV Sonderbelege"
+                title="RKSV Sonderbelege"
                 description={
                     <Typography.Paragraph style={{ marginBottom: 0 }}>
                         Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg und Endbeleg (Schlussbeleg) finden Sie unter{' '}
@@ -96,7 +96,7 @@ export default function RksvStatusPage() {
             {tseError && (
                 <Alert
                     type="error"
-                    message={OPERATOR_RKSV_GENERAL_STATUS_COPY.tseStatusLoadError}
+                    title={OPERATOR_RKSV_GENERAL_STATUS_COPY.tseStatusLoadError}
                     description={
                         <ApiErrorAlertDescription
                             t={t}
@@ -111,7 +111,7 @@ export default function RksvStatusPage() {
             {foError && (
                 <Alert
                     type="warning"
-                    message={OPERATOR_RKSV_GENERAL_STATUS_COPY.foStatusLoadError}
+                    title={OPERATOR_RKSV_GENERAL_STATUS_COPY.foStatusLoadError}
                     description={
                         <ApiErrorAlertDescription
                             t={t}
@@ -254,7 +254,7 @@ export default function RksvStatusPage() {
                 title={t('rksvHub.rksvStatusPage.paymentTruthCardTitle')}
                 style={{ marginBottom: 0 }}
             >
-                <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                     <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
                         {t('rksvHub.rksvStatusPage.paymentTruthLineBeforeLink')}{' '}
                         <Link href="/rksv/finanz-online-queue">

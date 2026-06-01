@@ -98,7 +98,7 @@ function withForwardedToken(request: NextRequest, token: string): NextResponse {
     });
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     if (

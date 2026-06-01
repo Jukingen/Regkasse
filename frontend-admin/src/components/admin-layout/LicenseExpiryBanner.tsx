@@ -50,7 +50,7 @@ export function LicenseExpiryBanner() {
         ) : null;
 
     const renderBannerDescription = (content: ReactNode, action?: ReactNode) => (
-        <Space direction="vertical" size="small">
+        <Space orientation="vertical" size="small">
             <span>{content}</span>
             {action ?? null}
         </Space>
@@ -65,7 +65,7 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Mandantenlizenz - Grace-Periode"
+                        title="Mandantenlizenz - Grace-Periode"
                         description={renderBannerDescription(
                             <>
                                 Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen. Sie
@@ -83,7 +83,7 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Mandantenlizenz abgelaufen - System gesperrt"
+                        title="Mandantenlizenz abgelaufen - System gesperrt"
                         description={renderBannerDescription(
                             <>
                                 Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen.
@@ -101,7 +101,7 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Mandantenlizenz abgelaufen - System gesperrt"
+                        title="Mandantenlizenz abgelaufen - System gesperrt"
                         description={renderBannerDescription(
                             <>
                                 Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen. Das
@@ -118,7 +118,7 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Mandantenlizenz fehlt"
+                        title="Mandantenlizenz fehlt"
                         description={renderBannerDescription(
                             <>Fuer diesen Mandanten ist keine Lizenz hinterlegt. Bitte hinterlegen Sie eine Lizenz.</>,
                             renderTenantRenewAction(),
@@ -139,7 +139,7 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Deployment-Lizenz - Grace-Periode"
+                        title="Deployment-Lizenz - Grace-Periode"
                         description={renderBannerDescription(
                             <>
                                 Die Deployment-Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen
@@ -157,7 +157,7 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Deployment-Lizenz abgelaufen - Nur-Lesen-Modus"
+                        title="Deployment-Lizenz abgelaufen - Nur-Lesen-Modus"
                         description={renderBannerDescription(
                             <>
                                 Die Deployment-Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen
@@ -176,7 +176,7 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Deployment-Lizenz abgelaufen - System im Lockdown"
+                        title="Deployment-Lizenz abgelaufen - System im Lockdown"
                         description={renderBannerDescription(
                             <>
                                 Die Deployment-Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen
@@ -193,7 +193,7 @@ export function LicenseExpiryBanner() {
                         banner
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message="Deployment-Lizenz fehlt"
+                        title="Deployment-Lizenz fehlt"
                         description={renderBannerDescription(
                             <>Fuer dieses Deployment ist keine Lizenz hinterlegt.</>,
                             renderDeploymentRenewAction(),

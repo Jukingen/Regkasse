@@ -25,6 +25,13 @@ beforeAll(() => {
             dispatchEvent: vi.fn(),
         })),
     });
+
+    class ResizeObserverMock {
+        observe = vi.fn();
+        unobserve = vi.fn();
+        disconnect = vi.fn();
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 });
 
 function renderModal(node: React.ReactNode) {
@@ -39,8 +46,43 @@ function renderModal(node: React.ReactNode) {
     );
 }
 
+const sampleTenants = [
+    { id: 'tenant-1', name: 'Cafe Central', slug: 'cafe-central', status: 'active', isActive: true, createdAt: '' },
+    { id: 'tenant-2', name: 'Dev Bistro', slug: 'dev', status: 'active', isActive: true, createdAt: '' },
+] as const;
+
 describe('CreateUserModal', () => {
-    it('assigns the selected tenant directly without opening the assignment modal', async () => {
+    it('shows modal mandant selector when super admin has no fixed tenant (not header switcher)', () => {
+        renderModal(
+            <CreateUserModal
+                open
+                isSuperAdmin
+                tenantRows={[...sampleTenants]}
+                onClose={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByLabelText('Mandant')).toBeInTheDocument();
+        expect(screen.getByRole('combobox', { name: 'Mandant' })).toBeInTheDocument();
+    });
+
+    it('hides modal mandant selector when fixedTenantId is set from page filter or tenant detail', () => {
+        renderModal(
+            <CreateUserModal
+                open
+                isSuperAdmin
+                tenantId="tenant-1"
+                tenantRows={[...sampleTenants]}
+                onClose={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.queryByLabelText('Mandant')).not.toBeInTheDocument();
+    });
+
+    it('creates with the selected tenant in onSubmit without calling onAssignTenants', async () => {
         const onSubmit = vi.fn().mockResolvedValue({
             userId: 'user-1',
             email: 'alice@example.com',
@@ -55,10 +97,8 @@ describe('CreateUserModal', () => {
                 open
                 isSuperAdmin
                 allowDeferredTenantAssignment
-                tenantRows={[
-                    { id: 'tenant-1', name: 'Cafe Central', slug: 'cafe-central', status: 'active', isActive: true, createdAt: '' },
-                ]}
-                initialValues={{ tenantId: 'tenant-1' }}
+                tenantRows={[...sampleTenants]}
+                initialValues={{ tenantId: 'tenant-2' }}
                 onClose={vi.fn()}
                 onSubmit={onSubmit}
                 onAssignTenants={onAssignTenants}
@@ -73,12 +113,47 @@ describe('CreateUserModal', () => {
                 expect.objectContaining({
                     email: 'alice@example.com',
                     role: 'Manager',
+                    tenantId: 'tenant-2',
                 }),
             );
         });
-        expect(onSubmit.mock.calls[0]?.[0]).not.toHaveProperty('tenantId');
-        await waitFor(() => expect(onAssignTenants).toHaveBeenCalledWith('user-1', ['tenant-1']));
+        expect(onAssignTenants).not.toHaveBeenCalled();
         expect(screen.queryByText('Optional können Sie jetzt Mandanten für alice@example.com auswählen.')).not.toBeInTheDocument();
+    });
+
+    it('submits tenantId from form field when user selects mandant in modal', async () => {
+        const onSubmit = vi.fn().mockResolvedValue({
+            userId: 'user-3',
+            email: 'carol@example.com',
+            generatedPassword: 'Temp#Pass123',
+            forcePasswordChangeOnNextLogin: true,
+            success: true,
+        });
+
+        renderModal(
+            <CreateUserModal
+                open
+                isSuperAdmin
+                tenantRows={[...sampleTenants]}
+                onClose={vi.fn()}
+                onSubmit={onSubmit}
+            />,
+        );
+
+        fireEvent.change(screen.getByLabelText('E-Mail'), { target: { value: 'carol@example.com' } });
+        fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Mandant' }));
+        const devOption = await screen.findByText('Dev Bistro (dev)');
+        fireEvent.click(devOption);
+        fireEvent.click(screen.getByRole('button', { name: /Benutzer erstellen/i }));
+
+        await waitFor(() => {
+            expect(onSubmit).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    email: 'carol@example.com',
+                    tenantId: 'tenant-2',
+                }),
+            );
+        });
     });
 
     it('opens the assignment modal when no tenant was selected during creation', async () => {
@@ -95,9 +170,7 @@ describe('CreateUserModal', () => {
                 open
                 isSuperAdmin
                 allowDeferredTenantAssignment
-                tenantRows={[
-                    { id: 'tenant-1', name: 'Cafe Central', slug: 'cafe-central', status: 'active', isActive: true, createdAt: '' },
-                ]}
+                tenantRows={[...sampleTenants]}
                 onClose={vi.fn()}
                 onSubmit={onSubmit}
                 onAssignTenants={vi.fn().mockResolvedValue(undefined)}
@@ -125,9 +198,7 @@ describe('CreateUserModal', () => {
                 open
                 isSuperAdmin
                 allowDeferredTenantAssignment
-                tenantRows={[
-                    { id: 'tenant-1', name: 'Cafe Central', slug: 'cafe-central', status: 'active', isActive: true, createdAt: '' },
-                ]}
+                tenantRows={[...sampleTenants]}
                 onClose={vi.fn()}
                 onSubmit={vi.fn()}
                 onAssignTenants={vi.fn().mockResolvedValue(undefined)}

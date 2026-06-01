@@ -154,7 +154,7 @@ export default function AdminVouchersListPage() {
   if (!canRead) {
     return (
       <AdminPageShell>
-        <Alert type="error" message={t('vouchers.list.permissionDenied')} showIcon />
+        <Alert type="error" title={t('vouchers.list.permissionDenied')} showIcon />
       </AdminPageShell>
     );
   }
@@ -175,7 +175,7 @@ export default function AdminVouchersListPage() {
         }
       />
       {listQuery.isError ? (
-        <Alert type="error" message={t('vouchers.errors.loadFailed')} showIcon style={{ marginBottom: 16 }} />
+        <Alert type="error" title={t('vouchers.errors.loadFailed')} showIcon style={{ marginBottom: 16 }} />
       ) : null}
       <Card>
         <Space wrap style={{ marginBottom: 16 }}>

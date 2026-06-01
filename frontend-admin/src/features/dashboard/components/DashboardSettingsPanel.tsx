@@ -26,7 +26,7 @@ export function DashboardSettingsPanel({
         <Drawer
             title="Dashboard anpassen"
             placement="right"
-            width={360}
+            size={360}
             open={open}
             onClose={onClose}
         >

@@ -338,7 +338,7 @@ export function ProductFilterBar({ filters, onFilterChange, categories, taxTypes
             <Drawer
                 title={t('products.filters.drawerTitle')}
                 placement="right"
-                width={450}
+                size={450}
                 open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 extra={
@@ -349,7 +349,7 @@ export function ProductFilterBar({ filters, onFilterChange, categories, taxTypes
                     ) : null
                 }
             >
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                     <div>
                         <div style={{ marginBottom: 8, fontWeight: 500 }}>{t('products.filters.search')}</div>
                         <Checkbox.Group

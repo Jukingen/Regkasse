@@ -5,19 +5,7 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Alert,
-  Badge,
-  Button,
-  message,
-  Popconfirm,
-  Progress,
-  Select,
-  Space,
-  Table,
-  Tooltip,
-  Typography,
-} from "antd";
+import { App, Alert, Badge, Button, Popconfirm, Progress, Select, Space, Table, Tooltip, Typography } from 'antd';
 import type { ColumnsType, TableProps } from "antd/es/table";
 import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
 import { backupQueryKeys, useBackupRuns, useTriggerBackup } from "@/features/backup/api/backupHooks";
@@ -61,6 +49,8 @@ export function BackupRunsTable({
   onRetryInvalidate,
   hideTitle = false,
 }: BackupRunsTableProps) {
+  const { message } = App.useApp();
+
   const { t, formatLocale } = useI18n();
   const queryClient = useQueryClient();
   const permissions = useBackupPermissions();
@@ -405,7 +395,7 @@ export function BackupRunsTable({
           type="error"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t("backupDr.errors.partialTable")}
+          title={t("backupDr.errors.partialTable")}
           action={
             <Button type="link" size="small" onClick={() => void onRetry()}>
               {t("backupDr.actions.refresh")}
@@ -422,7 +412,7 @@ export function BackupRunsTable({
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        message={t("backupDr.runsTable.instanceScopeTitle")}
+        title={t("backupDr.runsTable.instanceScopeTitle")}
         description={t("backupDr.runsTable.instanceScopeDescription")}
       />
       {canFilterRunsByTenant ? (

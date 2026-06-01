@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect } from 'react';
-import { message, Card, Button, Spin } from 'antd';
+import { Card, Button, Spin } from 'antd';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -16,6 +17,8 @@ import type { CreateReceiptTemplateRequest, UpdateReceiptTemplateRequest } from 
 import { useI18n } from '@/i18n';
 
 export default function NewReceiptTemplatePage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const router = useRouter();
     const { user, isInitialized } = useAuth();
@@ -49,7 +52,7 @@ export default function NewReceiptTemplatePage() {
     if (!isInitialized || !canManage) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                <Spin size="large" tip={t('receiptTemplates.page.accessCheck')} />
+                <Spin size="large" description={t('receiptTemplates.page.accessCheck')} />
             </div>
         );
     }

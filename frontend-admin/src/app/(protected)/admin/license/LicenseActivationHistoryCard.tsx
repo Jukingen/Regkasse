@@ -1,26 +1,12 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Admin audit list for POST /api/license/activate (German copy via `license.activationHistory.*`).
  */
 
 import React, { useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    DatePicker,
-    Form,
-    Input,
-    Popconfirm,
-    Select,
-    Space,
-    Switch,
-    Table,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, DatePicker, Form, Input, Popconfirm, Select, Space, Switch, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
@@ -48,6 +34,8 @@ type FilterFormValues = {
 };
 
 export function LicenseActivationHistoryCard() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const [form] = Form.useForm<FilterFormValues>();
@@ -280,7 +268,7 @@ export function LicenseActivationHistoryCard() {
             </Form>
 
             {listQuery.isError ? (
-                <Alert type="error" showIcon message={t('license.activationHistory.loadError')} />
+                <Alert type="error" showIcon title={t('license.activationHistory.loadError')} />
             ) : (
                 <Table<LicenseActivationAttemptListItemDto>
                     rowKey={(r) => r.id}

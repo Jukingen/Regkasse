@@ -45,7 +45,7 @@ export function BackupEvidenceLadderContent({
         type={alertType}
         showIcon
         style={{ marginBottom: 16 }}
-        message={t(model.headlineKey)}
+        title={t(model.headlineKey)}
       />
       <List
         size="small"

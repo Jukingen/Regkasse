@@ -1,9 +1,10 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Button, message, Space, Input } from 'antd';
+import { Button, Space, Input } from 'antd';
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -33,6 +34,8 @@ async function getAdminCustomerAssignmentCount(customerId: string): Promise<numb
 }
 
 export default function CustomersPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const router = useRouter();
     const { filters, setParam } = useCustomerFilters();
@@ -119,7 +122,7 @@ export default function CustomersPage() {
     };
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
                 title={ADMIN_NAV_LABELS.customers}
                 breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.customers }]}

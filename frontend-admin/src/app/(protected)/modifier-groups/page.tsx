@@ -1,12 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Add-on groups (modifier groups). Create/edit groups and manage add-on products.
  * Product–group assignment is configured on the product page.
  */
 
 import React, { useState } from 'react';
-import { Button, Modal, Form, Input, InputNumber, Switch, message, Collapse, Tabs, Select, Popconfirm, Space, Card, Spin, Typography } from 'antd';
+import { Modal, Button, Form, Input, InputNumber, Switch, Collapse, Tabs, Select, Popconfirm, Space, Card, Spin, Typography } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -29,6 +30,8 @@ import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 const modifierGroupsKey = ['modifier-groups'] as const;
 
 export default function ModifierGroupsPage() {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
   const { tenantSlug } = useCurrentTenant();
   const [groupModalOpen, setGroupModalOpen] = useState(false);
@@ -245,7 +248,7 @@ export default function ModifierGroupsPage() {
   });
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
         title={t('modifierGroups.page.title')}
         breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.modifierGroups }]}

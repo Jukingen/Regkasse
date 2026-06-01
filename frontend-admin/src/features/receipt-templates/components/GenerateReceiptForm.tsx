@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState, useEffect, useRef } from 'react';
-import { Form, Input, InputNumber, Button, Card, message, Select, Typography, Alert } from 'antd';
+import { Form, Input, InputNumber, Button, Card, Select, Typography, Alert } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import type { GenerateReceiptRequest, ReceiptItem } from '@/api/generated/model';
 import { useReceiptTemplates } from '../hooks/useReceiptTemplates';
@@ -18,6 +19,8 @@ interface GenerateReceiptFormProps {
 }
 
 export default function GenerateReceiptForm({ onGenerate, loading, initialTemplateId }: GenerateReceiptFormProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [form] = Form.useForm();
     const [generatedContent, setGeneratedContent] = useState<string | null>(null);
@@ -232,7 +235,7 @@ export default function GenerateReceiptForm({ onGenerate, loading, initialTempla
                     <Alert
                         type="warning"
                         showIcon
-                        message={t('receiptTemplates.generate.resultWarningTitle')}
+                        title={t('receiptTemplates.generate.resultWarningTitle')}
                         description={t('receiptTemplates.generate.resultWarningDescription')}
                         style={{ marginBottom: 16 }}
                     />

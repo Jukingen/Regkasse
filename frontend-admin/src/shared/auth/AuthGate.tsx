@@ -85,7 +85,7 @@ export const AuthGate: FC<GuardProps> = ({ children, mode }) => {
     if (isLoadingAuth || isAuthInitializing) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>
-                <Spin spinning tip={t('common.auth.checkingSession')}>
+                <Spin spinning description={t('common.auth.checkingSession')}>
                     <div style={{ padding: 50 }} />
                 </Spin>
             </div>

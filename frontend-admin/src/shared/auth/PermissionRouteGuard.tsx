@@ -68,7 +68,7 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   if (state === 'loading') {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-        <Spin size="large" tip="Checking access..." />
+        <Spin size="large" description="Checking access..." />
       </div>
     );
   }

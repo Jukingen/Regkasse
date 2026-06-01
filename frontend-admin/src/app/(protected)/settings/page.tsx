@@ -1,8 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Form, Input, Button, Card, Tabs, message, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography, Alert, Empty, Badge, Modal } from 'antd';
+import { Modal, Form, Input, Button, Card, Tabs, Row, Col, InputNumber, Switch, Divider, Spin, Descriptions, Typography, Alert, Empty, Badge } from 'antd';
 import { SaveOutlined, LockOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -34,6 +35,8 @@ function getSettingsLoadErrorDescription(err: unknown, translate: (key: string) 
 }
 
 export default function SettingsPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const searchParams = useSearchParams();
     const mustChangePassword = searchParams.get('mustChangePassword') === '1';
@@ -88,7 +91,7 @@ export default function SettingsPage() {
                 <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
                 <Alert
                     type="error"
-                    message={t('settings.page.loadErrorTitle')}
+                    title={t('settings.page.loadErrorTitle')}
                     description={getSettingsLoadErrorDescription(error, t)}
                     showIcon
                     action={
@@ -145,7 +148,7 @@ export default function SettingsPage() {
                     <Alert
                         type="warning"
                         showIcon
-                        message={t('settings.changePassword.requiredBanner')}
+                        title={t('settings.changePassword.requiredBanner')}
                         style={{ marginBottom: 16 }}
                     />
                 ) : null}
@@ -662,7 +665,7 @@ function DemoResetTab() {
                 okText="Reset ausführen"
                 okButtonProps={{ danger: true }}
                 cancelText="Abbrechen"
-                maskClosable={!resetMutation.isPending}
+                mask={{ closable: !resetMutation.isPending }}
                 closable={!resetMutation.isPending}
             >
                 <Typography.Paragraph>

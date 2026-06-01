@@ -106,7 +106,7 @@ export default function RksvBelegcheckPage() {
             />
 
             <Card style={{ maxWidth: 960 }}>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                     <div>
                         <Typography.Text strong>{t('nav.rksvBelegcheckQrLabel')}</Typography.Text>
                         <Input.TextArea
@@ -126,7 +126,7 @@ export default function RksvBelegcheckPage() {
                         <Alert
                             type="error"
                             showIcon
-                            message={t('nav.rksvBelegcheckRequestFailed')}
+                            title={t('nav.rksvBelegcheckRequestFailed')}
                             description={
                                 <ApiErrorAlertDescription
                                     t={t}
@@ -141,7 +141,7 @@ export default function RksvBelegcheckPage() {
                     {result && (
                         <div>
                             <Typography.Title level={5}>{t('nav.rksvBelegcheckResultTitle')}</Typography.Title>
-                            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                                 <div>
                                     {result.isValidFormat ? (
                                         <Tag color="success">{t('nav.rksvBelegcheckValid')}</Tag>
@@ -153,7 +153,7 @@ export default function RksvBelegcheckPage() {
                                     <Alert
                                         type={result.isValidFormat ? 'info' : 'warning'}
                                         showIcon
-                                        message={t('nav.rksvBelegcheckErrorsHeading')}
+                                        title={t('nav.rksvBelegcheckErrorsHeading')}
                                         description={
                                             <List
                                                 size="small"

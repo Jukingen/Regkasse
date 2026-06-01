@@ -149,7 +149,7 @@ export function AlertBell() {
             open={open}
             onOpenChange={setOpen}
             placement="bottomRight"
-            overlayClassName="admin-header-dropdown"
+            classNames={{ root: "admin-header-dropdown" }}
             getPopupContainer={getAdminHeaderPopupContainer}
         >
             <Badge count={unreadCount} offset={[-2, 2]} size="small">

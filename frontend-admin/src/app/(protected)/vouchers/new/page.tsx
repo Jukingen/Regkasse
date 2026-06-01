@@ -1,21 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Radio,
-  Select,
-  Space,
-  Typography,
-  message,
-} from 'antd';
+import { Modal, Alert, Button, Card, DatePicker, Form, Input, InputNumber, Radio, Select, Space, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import Link from 'next/link';
@@ -30,6 +17,8 @@ import { useCreateAdminVoucher, type CreateAdminVoucherResponse } from '@/api/ad
 dayjs.extend(utc);
 
 export default function AdminVoucherCreatePage() {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
   const router = useRouter();
   const { hasPermission } = usePermissions();
@@ -43,7 +32,7 @@ export default function AdminVoucherCreatePage() {
   if (!canCreate) {
     return (
       <AdminPageShell>
-        <Alert type="error" message={t('vouchers.create.permissionDenied')} showIcon />
+        <Alert type="error" title={t('vouchers.create.permissionDenied')} showIcon />
       </AdminPageShell>
     );
   }
@@ -157,7 +146,7 @@ export default function AdminVoucherCreatePage() {
       >
         <Alert
           type="warning"
-          message={t('vouchers.create.plaintextWarning')}
+          title={t('vouchers.create.plaintextWarning')}
           description={t('vouchers.create.plaintextNoLaterHint')}
           showIcon
           style={{ marginBottom: 16 }}

@@ -333,7 +333,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
                 type="warning"
                 showIcon
                 style={{ marginBottom: 12 }}
-                message={t("backupDr.management.runDetail.simulatedHint")}
+                title={t("backupDr.management.runDetail.simulatedHint")}
               />
             ) : null}
             {renderOverviewMetrics()}
@@ -345,7 +345,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         key: "artifacts",
         label: t("backupDr.detailModal.tabs.artifacts"),
         children: (
-          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <Space orientation="vertical" style={{ width: "100%" }} size="middle">
             {renderArtifactsBreakdown()}
             {run.id && (run.artifacts?.length ?? 0) > 0 ? (
               <BackupArtifactsDownloadCard
@@ -367,7 +367,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         key: "verification",
         label: t("backupDr.detailModal.tabs.verification"),
         children: (
-          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+          <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
             {verificationItems}
             {run.id && isBackupRunSucceeded(run.status) ? (
               <>
@@ -458,7 +458,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       open={open}
       onCancel={onClose}
       width={700}
-      destroyOnClose
+      destroyOnHidden
       footer={
         <Space>
           <Button onClick={onClose}>{t("backupDr.detailModal.close")}</Button>
@@ -473,9 +473,9 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
       {!runId ? null : isLoading && !run ? (
         <Spin />
       ) : isError ? (
-        <Alert type="error" showIcon message={t("backupDr.errors.runDetailPartial")} />
+        <Alert type="error" showIcon title={t("backupDr.errors.runDetailPartial")} />
       ) : !run ? (
-        <Alert type="warning" showIcon message={t("backupDr.management.runDetail.notFound")} />
+        <Alert type="warning" showIcon title={t("backupDr.management.runDetail.notFound")} />
       ) : (
         <Tabs items={tabItems} />
       )}

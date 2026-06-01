@@ -434,7 +434,7 @@ export function BackupDrDashboard({
       restoreLatestQuery.isError);
 
   return (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       {!embedded ? (
         <div style={{ width: "100%", scrollMarginTop: 72 }}>
           <Typography.Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
@@ -448,7 +448,7 @@ export function BackupDrDashboard({
       {!hideScheduleSettings ? <BackupScheduleSettings canManage={canManage} /> : null}
       <div style={{ width: "100%", scrollMarginTop: embedded ? 0 : 72 }}>
         <Card size="small">
-          <Space direction="vertical" size="small" style={{ width: "100%" }}>
+          <Space orientation="vertical" size="small" style={{ width: "100%" }}>
             <Space wrap align="center">
               <Button
                 icon={<ReloadOutlined />}
@@ -467,7 +467,7 @@ export function BackupDrDashboard({
               <Alert
                 type="error"
                 showIcon
-                message={t("backupDr.errors.loadFailed")}
+                title={t("backupDr.errors.loadFailed")}
                 action={
                   <Button onClick={() => invalidateAll()}>
                     {t("backupDr.actions.refresh")}
@@ -486,7 +486,7 @@ export function BackupDrDashboard({
                     <Alert
                       type="info"
                       showIcon
-                      message={t("backupDr.scope.title")}
+                      title={t("backupDr.scope.title")}
                       description={
                         <div>
                           <Typography.Paragraph style={{ marginBottom: 8 }}>
@@ -531,7 +531,7 @@ export function BackupDrDashboard({
         <Spin />
       ) : (
         <>
-          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={12} style={{ width: "100%" }}>
             <BackupDrDataFreshnessStrip
               show={partialSupportingQueryFailure}
               recoverabilityFailed={recoverabilityQuery.isError}
@@ -581,7 +581,7 @@ export function BackupDrDashboard({
             descriptionKey="backupDr.dashboardSections.proofAndPostureDesc"
             t={t}
           >
-            <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Space orientation="vertical" size={12} style={{ width: "100%" }}>
               <HealthBanner
                 critical={banner.critical}
                 warn={banner.warn}
@@ -615,7 +615,7 @@ export function BackupDrDashboard({
             descriptionKey="backupDr.dashboardSections.environmentDesc"
             t={t}
           >
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
               <Divider orientation="left" plain style={{ marginTop: 0 }}>
                 {t("backupDr.ia.drilldownGlance")}
               </Divider>
@@ -628,9 +628,11 @@ export function BackupDrDashboard({
                         operatorTruth.summaryPresentation
                           .backupHealthSummaryLabelKey,
                       )}
-                      valueStyle={healthStatisticValueStyle(
+                      styles={{
+                        content: healthStatisticValueStyle(
                         operatorTruth.summaryPresentation.backupHealthUiKind,
-                      )}
+                      ),
+                      }}
                     />
                     <Typography.Paragraph
                       type="secondary"
@@ -648,10 +650,12 @@ export function BackupDrDashboard({
                         operatorTruth.summaryPresentation
                           .restoreReadinessSummaryLabelKey,
                       )}
-                      valueStyle={restoreReadinessStatisticValueStyle(
+                      styles={{
+                        content: restoreReadinessStatisticValueStyle(
                         operatorTruth.summaryPresentation
                           .restoreReadinessUiKind,
-                      )}
+                      ),
+                      }}
                     />
                     <Typography.Paragraph
                       type="secondary"
@@ -722,7 +726,7 @@ export function BackupDrDashboard({
                     label: t("backupDr.layout.pipelineNoticesCollapse"),
                     children: (
                       <Space
-                        direction="vertical"
+                        orientation="vertical"
                         size="middle"
                         style={{ width: "100%" }}
                       >
@@ -730,7 +734,7 @@ export function BackupDrDashboard({
                           <Alert
                             type={REAL_DUMP_PATH_BANNER_ALERT_TYPE}
                             showIcon
-                            message={t("backupDr.realDumpMode.bannerTitle")}
+                            title={t("backupDr.realDumpMode.bannerTitle")}
                             description={
                               <Typography.Paragraph
                                 style={{ marginBottom: 0 }}
@@ -745,7 +749,7 @@ export function BackupDrDashboard({
                           <Alert
                             type="info"
                             showIcon
-                            message={t("backupDr.fakeMode.bannerTitle")}
+                            title={t("backupDr.fakeMode.bannerTitle")}
                             description={
                               <div>
                                 <Typography.Paragraph
@@ -791,7 +795,7 @@ export function BackupDrDashboard({
                               operatorTruth.operatorValidity.severity,
                             )}
                             showIcon
-                            message={t(
+                            title={t(
                               operatorTruth.operatorValidity.titleKey,
                             )}
                             description={
@@ -915,7 +919,7 @@ export function BackupDrDashboard({
                       type="warning"
                       showIcon
                       style={{ marginTop: 16 }}
-                      message={t("backupDr.download.lkgLoadFailed")}
+                      title={t("backupDr.download.lkgLoadFailed")}
                       action={
                         <Button
                           size="small"
@@ -970,14 +974,14 @@ export function BackupDrDashboard({
                     {t("backupDr.externalCopy.scopeFromLatestRun")}
                   </Typography.Paragraph>
                   {runDetailQuery.isLoading && latest?.id ? (
-                    <Spin tip={t("backupDr.externalCopy.loading")} />
+                    <Spin description={t("backupDr.externalCopy.loading")} />
                   ) : (
                     <Alert
                       type={mapExternalCopyVariantToAlertType(
                         operatorTruth.artifact.externalCopyVariant,
                       )}
                       showIcon
-                      message={operatorTruth.artifact.externalCopyDisplayText}
+                      title={operatorTruth.artifact.externalCopyDisplayText}
                     />
                   )}
                   <Typography.Paragraph
@@ -998,7 +1002,7 @@ export function BackupDrDashboard({
             titleKey="backupDr.dashboardSections.restoreDrill"
             t={t}
           >
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
               <Card
                 title={t("backupDr.artifactVerification.title")}
                 size="small"
@@ -1168,7 +1172,7 @@ export function BackupDrDashboard({
                   key: "configuration",
                   label: t("backupDr.layout.configurationCollapse"),
                   children: (
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
               <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
                   <Card title={t("backupDr.pipeline.title")} size="small">
@@ -1241,7 +1245,7 @@ export function BackupDrDashboard({
                 <Col xs={24} lg={12}>
                   <Card title={t("backupDr.health.title")} size="small">
                     <Space
-                      direction="vertical"
+                      orientation="vertical"
                       style={{ width: "100%" }}
                       size="middle"
                     >
@@ -1357,7 +1361,7 @@ export function BackupDrDashboard({
                         style={{ marginTop: 12 }}
                         type="warning"
                         showIcon
-                        message={t("backupDr.lock.hintsFromApi")}
+                        title={t("backupDr.lock.hintsFromApi")}
                         description={
                           <ul style={{ marginBottom: 0 }}>
                             {operatorTruth.lockHints.restore.map((x, i) => (
@@ -1379,7 +1383,7 @@ export function BackupDrDashboard({
                       <Alert
                         type="warning"
                         showIcon
-                        message={t("backupDr.lock.hintsFromApi")}
+                        title={t("backupDr.lock.hintsFromApi")}
                         description={
                           <ul style={{ marginBottom: 0 }}>
                             {operatorTruth.lockHints.backup.map((x, i) => (
@@ -1407,11 +1411,11 @@ export function BackupDrDashboard({
             titleKey="backupDr.dashboardSections.reference"
             t={t}
           >
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
               <Alert
                 type="info"
                 showIcon
-                message={t("backupDr.knownGaps.title")}
+                title={t("backupDr.knownGaps.title")}
                 description={t("backupDr.knownGaps.body")}
               />
 
@@ -1540,7 +1544,7 @@ export function BackupDrDashboard({
                   </Typography.Text>
                 ) : (
                   <Space
-                    direction="vertical"
+                    orientation="vertical"
                     style={{ width: "100%" }}
                     size="small"
                   >
@@ -1555,7 +1559,7 @@ export function BackupDrDashboard({
                               : "info"
                         }
                         showIcon
-                        message={item.text}
+                        title={item.text}
                       />
                     ))}
                   </Space>
@@ -1579,7 +1583,7 @@ export function BackupDrDashboard({
           </BackupDrSection>
 
           <BackupDrSection titleKey="backupDr.dashboardSections.history" t={t}>
-            <Space direction="vertical" size="large" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="large" style={{ width: "100%" }}>
               <BackupRecentRunsTable
                 backupStatusLabel={(s) => operatorTruth.labels.backupStatus(s)}
                 formatDt={formatDt}

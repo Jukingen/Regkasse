@@ -102,7 +102,7 @@ export function TenantFormFields({ form, fieldState }: TenantFormFieldsProps) {
                 validateStatus={slugFieldStatus}
                 rules={slugRules}
             >
-                <Space direction="vertical" style={{ width: '100%' }} size={0}>
+                <Space orientation="vertical" style={{ width: '100%' }} size={0}>
                     <Input
                         placeholder={t('tenants.create.fields.slug.placeholder')}
                         onChange={handleSlugChange}

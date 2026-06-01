@@ -170,7 +170,7 @@ export default function OfflineIntentCoveragePage() {
             ) : error ? (
                 <Alert
                     type="error"
-                    message={t('rksvHub.offlineIntentCoveragePage.loadErrorTitle')}
+                    title={t('rksvHub.offlineIntentCoveragePage.loadErrorTitle')}
                     description={
                         <ApiErrorAlertDescription
                             t={t}
@@ -188,7 +188,7 @@ export default function OfflineIntentCoveragePage() {
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}
-                            message={t('rksvHub.offlineIntentCoveragePage.lowCoverageTitle')}
+                            title={t('rksvHub.offlineIntentCoveragePage.lowCoverageTitle')}
                             description={
                                 coverage?.alertReason ??
                                 t('rksvHub.offlineIntentCoveragePage.thresholdFallback')
@@ -197,7 +197,7 @@ export default function OfflineIntentCoveragePage() {
                     ) : null}
 
                     <Card size="small" style={{ marginBottom: 16 }}>
-                        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                             <Space wrap align="center">
                                 <Typography.Text strong>{t('rksvHub.offlineIntentCoveragePage.filterDateRangeUtc')}</Typography.Text>
                                 <RangePicker

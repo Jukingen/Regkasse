@@ -42,7 +42,7 @@ export function TimeSyncDriftAlertCard() {
             showIcon
             icon={<ClockCircleOutlined />}
             style={{ marginBottom: 24 }}
-            message={t('timeSync.dashboard.alertTitle')}
+            title={t('timeSync.dashboard.alertTitle')}
             description={
                 <>
                     {t('timeSync.dashboard.alertDescription', {

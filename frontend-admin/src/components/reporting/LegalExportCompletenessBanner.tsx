@@ -55,7 +55,7 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
         type="warning"
         showIcon
         style={{ marginTop: 8 }}
-        message={t('reporting.legalExportCompleteness.unavailable')}
+        title={t('reporting.legalExportCompleteness.unavailable')}
       />
     );
   }
@@ -68,7 +68,7 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
         type="success"
         showIcon
         style={{ marginTop: 8 }}
-        message={t('reporting.legalExportCompleteness.successComplete')}
+        title={t('reporting.legalExportCompleteness.successComplete')}
       />
     );
   }
@@ -86,7 +86,7 @@ export function LegalExportCompletenessBanner({ reportKind, reportId, enabled }:
       type={alertType}
       showIcon
       style={{ marginTop: 8 }}
-      message={title}
+      title={title}
       description={
         <ul style={{ margin: 0, paddingLeft: 18 }}>
           {issues.map((i, idx) => (

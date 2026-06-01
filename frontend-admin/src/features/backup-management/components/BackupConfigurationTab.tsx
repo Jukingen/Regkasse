@@ -12,12 +12,12 @@ export function BackupConfigurationTab() {
   const access = useBackupManagementAccess();
 
   return (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       {access.isReadOnly ? (
-        <Alert type="info" showIcon message={t("backupDr.permission.noManage")} />
+        <Alert type="info" showIcon title={t("backupDr.permission.noManage")} />
       ) : null}
       {access.isSuperAdmin ? (
-        <Alert type="info" showIcon message={t("backupDr.management.scope.deploymentWide")} />
+        <Alert type="info" showIcon title={t("backupDr.management.scope.deploymentWide")} />
       ) : null}
       <BackupConfigurationForm />
       <ConfigurationHealthCard canManage={access.canEditConfiguration} poll={false} />

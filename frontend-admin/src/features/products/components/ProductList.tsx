@@ -23,7 +23,7 @@ export default function ProductList({ data, loading, onEdit, onDelete }: Product
             dataIndex: 'name',
             key: 'name',
             render: (text: string, record: Product) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <span style={{ fontWeight: 500 }}>{text}</span>
                     {record.barcode && <span style={{ fontSize: 12, color: '#888' }}>{record.barcode}</span>}
                 </Space>

@@ -128,7 +128,7 @@ export function AdminBackupPage() {
       <Alert
         type="error"
         showIcon
-        message={t("backupDr.errors.loadFailed")}
+        title={t("backupDr.errors.loadFailed")}
         description={t("backupDr.monitoring.dashboardStatsLoadFailed")}
       />
     );
@@ -153,7 +153,7 @@ export function AdminBackupPage() {
       key: "config",
       label: t("backupDr.adminBackup.collapse.config"),
       children: (
-        <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={16} style={{ width: "100%" }}>
           <ConfigurationHealthCard canManage={permissions.canConfigure} />
           <BackupScheduleSettings canManage={permissions.canConfigure} />
           {permissions.canConfigure ? <BackupConfigurationForm /> : null}
@@ -166,7 +166,7 @@ export function AdminBackupPage() {
             key: "restore",
             label: t("backupDr.adminBackup.collapse.restoreVerification"),
             children: (
-              <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              <Space orientation="vertical" size={16} style={{ width: "100%" }}>
                 <PitrRestoreWorkflow
                   canRestore={permissions.canRestore}
                   showRequestsTable
@@ -190,17 +190,17 @@ export function AdminBackupPage() {
 
   return (
     <div className="backup-page">
-      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+      <Space orientation="vertical" size={16} style={{ width: "100%" }}>
         {permissions.isReadOnly ? (
-          <Alert type="info" showIcon message={t("backupDr.permission.noManage")} />
+          <Alert type="info" showIcon title={t("backupDr.permission.noManage")} />
         ) : null}
 
         {access.isSuperAdmin ? (
-          <Alert type="info" showIcon message={t("backupDr.management.scope.deploymentWide")} />
+          <Alert type="info" showIcon title={t("backupDr.management.scope.deploymentWide")} />
         ) : null}
 
         {activeBackupHint ? (
-          <Alert type="info" showIcon message={t("backupDr.monitoring.header.activeHint")} />
+          <Alert type="info" showIcon title={t("backupDr.monitoring.header.activeHint")} />
         ) : null}
 
         <Row gutter={[16, 16]}>

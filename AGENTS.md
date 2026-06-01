@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`** and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-05-29
+**Last updated:** 2026-05-31
 
 ## Language Rules
 Follow these language rules strictly:
@@ -66,9 +66,26 @@ For medium or large changes, always provide:
 - a test strategy
 
 ## Repo Map
+
+### Updated Stack Versions
+
+| Component | Version |
+|-----------|---------|
+| Backend (.NET) | 10.0.8 |
+| EF Core | 10.0.8 |
+| Next.js | 16.2.6 |
+| React | 19.2.6 |
+| Ant Design | 6.4.3 |
+| Expo | SDK 56 |
+| React Native | 0.85.3 |
+
+- Admin auth boundary: `frontend-admin/src/proxy.ts` (Next.js 16; replaces deprecated `middleware.ts`).
+- Ant Design 6: prefer `destroyOnHidden` (Modal/Drawer/Tabs), `popupRender` (Dropdown/Select), `titlePlacement` (Divider); `Card bordered={false}` → `variant="borderless"`; `Tag bordered={false}` → `variant="filled"`. **Never** use static `message` / `notification` / `Modal.confirm` from `antd` imports — use `useAntdApp()` (see Frontend-Admin conventions).
+
+### Packages
 - `backend/` - ASP.NET Core 10 API (auth, domain logic, fiscal/TSE/RKSV, reporting, OpenAPI)
-- `frontend/` - Mobile POS (Expo Router + React Native + TypeScript)
-- `frontend-admin/` - Admin panel (Next.js 14 + Ant Design + TanStack Query)
+- `frontend/` - Mobile POS (Expo SDK 56 + React Native + TypeScript)
+- `frontend-admin/` - Admin panel (Next.js 16 + Ant Design 6 + TanStack Query)
 - `localization/` - Shared i18n import/export/validation tooling
 - `scripts/` - Cross-repo validation and consistency scripts
 - `tools/` - License generator and i18n utility tools
@@ -430,6 +447,57 @@ Use `/ai` docs selectively based on the task:
 - Features: `frontend-admin/src/features/{domain}/` (components, api hooks)
 - TanStack Query for server state; Zustand for UI prefs only — never store secrets in Zustand
 - Generate API client: `cd frontend-admin && npm run generate:api`
+- UI: Ant Design 6 + `@ant-design/nextjs-registry` for SSR; no official `@ant-design/codemod-v6` — migrate deprecated props manually (see stack table above)
+- **Ant Design 6 feedback APIs (message / notification / modal):** `<App>` wraps the tree in `ThemeProvider`; components/hooks use `useAntdApp()` from `frontend-admin/src/hooks/useAntdApp.ts` (thin wrapper over `App.useApp()`). Do **not** import `message`, `notification`, or call `Modal.confirm` statically from `antd`.
+
+### Ant Design 6 — batch fix pattern (message / notification / modal)
+
+Static APIs cannot consume theme context. Replace as follows (FA standard: `useAntdApp()`; equivalent to inline `App.useApp()`).
+
+**Message**
+
+```tsx
+// Before (wrong)
+import { message } from 'antd';
+message.success(t('common.auth.loginSuccess'));
+
+// After (correct)
+import { useAntdApp } from '@/hooks/useAntdApp';
+
+const { message } = useAntdApp();
+message.success(t('common.auth.loginSuccess'));
+```
+
+**Notification**
+
+```tsx
+// Before (wrong)
+import { notification } from 'antd';
+notification.error({ message: 'Error', description: 'Something went wrong' });
+
+// After (correct)
+import { useAntdApp } from '@/hooks/useAntdApp';
+
+const { notification } = useAntdApp();
+notification.error({ message: 'Error', description: 'Something went wrong' });
+```
+
+**Modal static methods** (`confirm`, `success`, `warning`, `error`, `info`): use `modal` from `App.useApp()` (or `useAntdApp()`), not `Modal.confirm`. Keep `import { Modal } from 'antd'` only for JSX `<Modal>`.
+
+```tsx
+// Before (wrong)
+import { Modal } from 'antd';
+Modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
+
+// After (correct)
+import { App } from 'antd';
+const { modal } = App.useApp();
+modal.confirm({ title: 'Confirm', content: 'Are you sure?', onOk: () => {} });
+```
+
+**Non-React callers** (axios interceptors, query client defaults): `showAntdError` from `@/lib/antdAppBridge` (registered by `AntdAppBridgeRegistrar`).
+
+**Helpers** that accept `message.open`: pass `message.open` from `useAntdApp()` in the caller (e.g. `openApiErrorMessage(message.open, t, err, options)`).
 
 ## Frontend-POS (FE) Conventions
 - Routes: `frontend/app/(tabs)/`

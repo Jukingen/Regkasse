@@ -1,26 +1,13 @@
 "use client";
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Backup execution mode form (execution-mode PUT only; schedule is BackupScheduleSettings).
  */
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import {
-  Alert,
-  Button,
-  Col,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Row,
-  Select,
-  Spin,
-  Typography,
-  message,
-} from "antd";
+import { Alert, Button, Col, Divider, Form, Input, InputNumber, Row, Select, Spin, Typography } from 'antd';
 import { useQuery } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
@@ -52,6 +39,8 @@ function axiosNormalizedMessage(err: unknown): string | undefined {
 }
 
 export function BackupConfigurationForm() {
+  const { message, modal } = useAntdApp();
+
   const { t } = useI18n();
   const { canConfigure: canEdit, canEditExecutionMode, isSuperAdmin: superAdmin } =
     useBackupPermissions();
@@ -125,7 +114,7 @@ export function BackupConfigurationForm() {
 
         if (values.executionMode === "SimulatedFake" && needsStrong) {
           await new Promise<void>((resolve, reject) => {
-            Modal.confirm({
+            modal.confirm({
               title: t("backupDr.executionMode.saveConfirmTitleFakeStrong"),
               content: t("backupDr.executionMode.saveConfirmBodyFakeStrong"),
               okText: t("backupDr.executionMode.saveConfirmOk"),
@@ -166,7 +155,7 @@ export function BackupConfigurationForm() {
   };
 
   if (executionModeQuery.isError) {
-    return <Alert type="error" showIcon message={t("backupDr.scheduleSettings.loadError")} />;
+    return <Alert type="error" showIcon title={t("backupDr.scheduleSettings.loadError")} />;
   }
 
   if (executionModeQuery.isLoading) {
@@ -182,7 +171,7 @@ export function BackupConfigurationForm() {
     >
       <Alert
         type="info"
-        message={t("backupDr.configForm.alertTitle")}
+        title={t("backupDr.configForm.alertTitle")}
         description={t(
           superAdmin
             ? "backupDr.configForm.alertDescriptionSuperAdmin"
@@ -211,7 +200,7 @@ export function BackupConfigurationForm() {
           <Divider />
           <Alert
             type="warning"
-            message={t("backupDr.configForm.superAdminTitle")}
+            title={t("backupDr.configForm.superAdminTitle")}
             description={t("backupDr.configForm.superAdminDescription")}
             showIcon
             style={{ marginBottom: 16 }}

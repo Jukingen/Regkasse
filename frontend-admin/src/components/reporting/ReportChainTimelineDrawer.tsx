@@ -52,10 +52,10 @@ export function ReportChainTimelineDrawer(props: {
   return (
     <Drawer
       title={t('adminShell.reporting.reportCenter.chainDrawerTitle')}
-      width={480}
+      size={480}
       open={open}
       onClose={onClose}
-      destroyOnClose
+      destroyOnHidden
     >
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
         {t('adminShell.reporting.reportCenter.chainDrawerIntro')}

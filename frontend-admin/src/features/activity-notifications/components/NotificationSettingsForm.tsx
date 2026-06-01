@@ -1,19 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect } from 'react';
-import {
-    Alert,
-    Button,
-    Checkbox,
-    Divider,
-    Form,
-    Input,
-    message,
-    Select,
-    Space,
-    Spin,
-    Switch,
-} from 'antd';
+import { Alert, Button, Checkbox, Divider, Form, Input, Select, Space, Spin, Switch } from 'antd';
 
 import type { NotificationConfig } from '@/api/manual/activityEvents';
 import {
@@ -43,6 +32,8 @@ function textToRecipients(text: string): string[] {
 }
 
 export function NotificationSettingsForm() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [form] = Form.useForm<FormValues>();
     const { data: config, isLoading, isError, refetch } = useNotificationConfig(true);
@@ -94,7 +85,7 @@ export function NotificationSettingsForm() {
         return (
             <Alert
                 type="error"
-                message={t('activityNotifications.settingsLoadError')}
+                title={t('activityNotifications.settingsLoadError')}
                 action={
                     <Button size="small" onClick={() => void refetch()}>
                         {t('common.buttons.retry')}
@@ -131,7 +122,7 @@ export function NotificationSettingsForm() {
 
             <Divider>{t('activityNotifications.settings.eventsSection')}</Divider>
             <Form.Item label={t('activityNotifications.settings.enabledEvents')}>
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                     {ACTIVITY_EVENT_TYPES.map((eventType) => (
                         <Form.Item
                             key={eventType}
@@ -146,7 +137,7 @@ export function NotificationSettingsForm() {
             </Form.Item>
 
             <Form.Item label={t('activityNotifications.settings.severityThreshold')}>
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                     {ACTIVITY_EVENT_TYPES.map((eventType) => (
                         <Form.Item
                             key={`sev-${eventType}`}

@@ -1,8 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useMemo, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Alert, Button, Card, Progress, Space, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Progress, Space, Table, Tag, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { RegisterMonatsbelegRow } from '@/features/dashboard/hooks/useAdminMonatsbelegOverview';
@@ -95,6 +96,8 @@ export function MonatsbelegComplianceTable({
     onRefresh,
     refreshLoading = false,
 }: MonatsbelegComplianceTableProps) {
+  const { message } = useAntdApp();
+
     const { hasPermission } = usePermissions();
     const queryClient = useQueryClient();
     const canMonatsbeleg = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
@@ -142,7 +145,7 @@ export function MonatsbelegComplianceTable({
                 title: 'Kasse',
                 key: 'register',
                 render: (_, record) => (
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                         <Typography.Text strong>
                             {record.register.location?.trim() || '—'}
                         </Typography.Text>
@@ -186,7 +189,7 @@ export function MonatsbelegComplianceTable({
 
                     const progress = getYearlyProgress(record.status?.missingMonths ?? undefined);
                     return (
-                        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                             <Progress percent={progress.percent} size="small" />
                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                 {progress.completed} von {progress.total} Monaten im aktuellen Jahr abgeschlossen
@@ -206,7 +209,7 @@ export function MonatsbelegComplianceTable({
 
                     const nextMissingMonthLabel = getNextMissingMonthLabel(record.status?.nextRequiredMonth);
                     return (
-                        <Space direction="vertical" size={8}>
+                        <Space orientation="vertical" size={8}>
                             <Link href={`/rksv/sonderbelege?registerId=${encodeURIComponent(record.registerId)}`}>
                                 <Button type="primary" size="small">
                                     Monatsbeleg für {nextMissingMonthLabel} erstellen
@@ -254,7 +257,7 @@ export function MonatsbelegComplianceTable({
                     type="info"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message="Demo-Modus: Sie können Monatsbelege zu Testzwecken jederzeit erstellen. Im Produktivbetrieb sind sie gesetzlich vorgeschrieben."
+                    title="Demo-Modus: Sie können Monatsbelege zu Testzwecken jederzeit erstellen. Im Produktivbetrieb sind sie gesetzlich vorgeschrieben."
                 />
             ) : null}
             <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
@@ -266,7 +269,7 @@ export function MonatsbelegComplianceTable({
                     type="error"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message="Monatsbeleg-Status konnte nicht geladen werden"
+                    title="Monatsbeleg-Status konnte nicht geladen werden"
                 />
             ) : null}
             {!loading && !loadError && !hasRegisters ? (

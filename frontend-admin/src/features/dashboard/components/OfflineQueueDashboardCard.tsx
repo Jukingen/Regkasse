@@ -61,7 +61,7 @@ export function OfflineQueueDashboardCard() {
                     type="warning"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message="Erhöhter Rückstau"
+                    title="Erhöhter Rückstau"
                     description={`${pending} Zahlungen warten auf fiskalische Signatur (Schwelle &gt; 10).`}
                 />
             ) : null}

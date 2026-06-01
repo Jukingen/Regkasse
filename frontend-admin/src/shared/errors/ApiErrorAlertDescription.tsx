@@ -24,7 +24,7 @@ export function ApiErrorAlertDescription({ t, error, ...options }: Props) {
   }, [error, options.logContext]);
 
   return (
-    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={4} style={{ width: '100%' }}>
       <Typography.Text>
         {getUserFacingApiErrorMessage(t, error, { ...options, skipLog: true })}
       </Typography.Text>

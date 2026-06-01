@@ -155,7 +155,7 @@ function OpsHealthCard(props: {
           transition: `opacity ${token.motionDurationMid}`,
         }}
       >
-        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="small" style={{ width: '100%' }}>
           <Space align="center" style={{ justifyContent: 'space-between', width: '100%' }} wrap>
             <Typography.Text strong>{title}</Typography.Text>
             {level === 'unavailable' ? (
@@ -185,7 +185,7 @@ function OpsHealthCard(props: {
               {detailLines.slice(0, 4).join(' · ')}
             </Typography.Paragraph>
           )}
-          <Space direction="vertical" size={0}>
+          <Space orientation="vertical" size={0}>
             <Link href={primaryHref} passHref legacyBehavior>
               <Button
                 type="link"
@@ -369,7 +369,7 @@ export function RksvOperationsDashboard() {
         <Alert
           type="error"
           showIcon
-          message={t('rksvHub.nextSteps.title')}
+          title={t('rksvHub.nextSteps.title')}
           description={t('rksvHub.nextSteps.critical')}
           style={{ marginBottom: token.marginMD }}
         />
@@ -377,7 +377,7 @@ export function RksvOperationsDashboard() {
         <Alert
           type="warning"
           showIcon
-          message={t('rksvHub.nextSteps.title')}
+          title={t('rksvHub.nextSteps.title')}
           description={t('rksvHub.nextSteps.warning')}
           style={{ marginBottom: token.marginMD }}
         />
@@ -430,7 +430,7 @@ export function RksvOperationsDashboard() {
                 >
                   {t(group.descriptionKey)}
                 </Typography.Paragraph>
-                <Space direction="vertical" size={token.marginXXS} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={token.marginXXS} style={{ width: '100%' }}>
                   {group.links.map((item) => (
                     <Link key={item.href} href={item.href} passHref legacyBehavior>
                       <Button
@@ -633,7 +633,7 @@ export function RksvOperationsDashboard() {
       <Alert
         type="info"
         showIcon
-        message={t('rksvHub.notes.title')}
+        title={t('rksvHub.notes.title')}
         role="note"
         description={
           <ul style={{ marginBottom: 0, paddingLeft: token.paddingLG }}>

@@ -1,5 +1,6 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import {
     DeleteOutlined,
     DownOutlined,
@@ -7,7 +8,7 @@ import {
     LockOutlined,
     UnlockOutlined,
 } from '@ant-design/icons';
-import { Dropdown, message } from 'antd';
+import { Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CashRegister } from '@/api/generated/model';
@@ -39,6 +40,8 @@ export function CashRegisterQuickActions({
     canDecommission = false,
     onDecommission,
 }: CashRegisterQuickActionsProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const registerId = register.id?.trim();

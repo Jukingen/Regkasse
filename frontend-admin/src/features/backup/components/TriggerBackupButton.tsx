@@ -6,18 +6,8 @@
  */
 
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Alert,
-  Button,
-  Dropdown,
-  Form,
-  Modal,
-  Select,
-  Tooltip,
-  Typography,
-  message,
-} from "antd";
-import type { MenuProps } from "antd";
+import { App, Modal, Alert, Button, Dropdown, Form, Select, Tooltip, Typography } from 'antd';
+import type { MenuProps } from 'antd';
 import { CloudUploadOutlined, DatabaseOutlined } from "@ant-design/icons";
 import { useI18n } from "@/i18n";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
@@ -31,6 +21,8 @@ export interface TriggerBackupButtonProps {
 }
 
 export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
+  const { message, modal } = App.useApp();
+
   const { t } = useI18n();
   const { isSuperAdmin: superAdmin } = useBackupPermissions();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -71,7 +63,7 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
   }, [selectedTenantId, t, triggerBackup]);
 
   const handleAllTenantsTrigger = useCallback(() => {
-    Modal.confirm({
+    modal.confirm({
       title: t("backupDr.triggerButton.allTenantsConfirmTitle"),
       content: (
         <Typography.Paragraph style={{ marginBottom: 0 }}>
@@ -152,14 +144,14 @@ export function TriggerBackupButton({ canManage }: TriggerBackupButtonProps) {
         confirmLoading={triggerBackup.isPending}
         okText={t("backupDr.triggerButton.modalOk")}
         cancelText={t("common.buttons.cancel")}
-        destroyOnClose
+        destroyOnHidden
       >
         {superAdmin ? (
           <Alert
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t("backupDr.triggerButton.instanceScopeHint")}
+            title={t("backupDr.triggerButton.instanceScopeHint")}
           />
         ) : null}
 

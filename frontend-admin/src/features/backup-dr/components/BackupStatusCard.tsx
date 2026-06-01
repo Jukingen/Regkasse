@@ -129,9 +129,9 @@ export function BackupLatestRunCardPresentation({
               {t('backupDr.latestRun.distinctFromRecoverability')}
             </Typography.Paragraph>
           ) : null}
-          <Alert type="info" showIcon message={t('backupDr.latestRun.orchestrationHint')} style={{ marginBottom: 12 }} />
+          <Alert type="info" showIcon title={t('backupDr.latestRun.orchestrationHint')} style={{ marginBottom: 12 }} />
           {simulatedOperationalMode && !omitFakeOperationalNotice ? (
-            <Alert type="info" showIcon style={{ marginBottom: 12 }} message={t('backupDr.latestRun.fakeModeOperationalNotice')} />
+            <Alert type="info" showIcon style={{ marginBottom: 12 }} title={t('backupDr.latestRun.fakeModeOperationalNotice')} />
           ) : null}
           <Descriptions column={1} size="small" bordered style={{ marginBottom: 16 }}>
             <Descriptions.Item label={t('backupDr.latestRun.id')}>{latest.id}</Descriptions.Item>
@@ -177,7 +177,7 @@ export function BackupLatestRunCardPresentation({
               type="warning"
               showIcon
               style={{ marginBottom: 12 }}
-              message={
+              title={
                 projectionVersionMismatch
                   ? t('backupDr.pipelineSteps.sourceNotice.projectionVersionMismatch', {
                       version: (detail?.pipeline ?? latest?.pipeline)?.projectionVersion ?? '—',
@@ -191,7 +191,7 @@ export function BackupLatestRunCardPresentation({
               type="warning"
               showIcon
               style={{ marginBottom: 12 }}
-              message={
+              title={
                 projectionVersionMismatch
                   ? t('backupDr.pipelineSteps.sourceNotice.projectionVersionBlocked')
                   : t('backupDr.pipelineSteps.sourceNotice.fallbackDisabled')
@@ -199,10 +199,10 @@ export function BackupLatestRunCardPresentation({
             />
           )}
           {detailError && (
-            <Alert type="warning" showIcon style={{ marginBottom: 12 }} message={t('backupDr.errors.runDetailPartial')} />
+            <Alert type="warning" showIcon style={{ marginBottom: 12 }} title={t('backupDr.errors.runDetailPartial')} />
           )}
           {loadingDetail && latest.id ? (
-            <Spin tip={t('backupDr.externalCopy.loading')} />
+            <Spin description={t('backupDr.externalCopy.loading')} />
           ) : (
             <BackupPipelineStepper steps={steps} t={t} />
           )}

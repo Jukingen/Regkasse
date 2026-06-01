@@ -1,8 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useMemo, useState } from 'react';
 import { keepPreviousData } from '@tanstack/react-query';
-import { Button, Table, Space, message, Tag, Popconfirm, Alert, Empty, Modal, InputNumber, Typography, Flex, Tooltip } from 'antd';
+import { Modal, Button, Table, Space, Tag, Popconfirm, Alert, Empty, InputNumber, Typography, Flex, Tooltip } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, StockOutlined } from '@ant-design/icons';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -35,6 +36,8 @@ const MIN_SEARCH_LENGTH = 2;
 const INACTIVE_PRODUCT_ROW_STYLE: React.CSSProperties = { opacity: 0.82 };
 
 export default function ProductsPage() {
+  const { message } = useAntdApp();
+
     const showProductLagerUi = isAdminProductsLagerUiEnabled();
     const { t } = useI18n();
     const router = useRouter();
@@ -234,7 +237,7 @@ export default function ProductsPage() {
                     </Tag>
                 );
                 return (
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                         {tag}
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                             {t('products.table.minLabel')}: {min} {unit}
@@ -264,7 +267,7 @@ export default function ProductsPage() {
                         <div style={{ whiteSpace: 'pre-wrap', maxWidth: 400 }}>{tipLines.join('\n\n')}</div>
                     ) : undefined;
                 const cell = (
-                    <Space direction="vertical" size={2} style={{ width: '100%', maxWidth: 320 }}>
+                    <Space orientation="vertical" size={2} style={{ width: '100%', maxWidth: 320 }}>
                         <Typography.Text strong ellipsis style={{ display: 'block' }}>
                             {record.name?.trim() ? record.name : FORMAT_EMPTY_DISPLAY}
                         </Typography.Text>
@@ -336,7 +339,7 @@ export default function ProductsPage() {
                 const labelShort = label.length > 22 ? `${label.slice(0, 20)}…` : label;
                 return (
                     <Tooltip title={label}>
-                        <Space direction="vertical" size={0} style={{ textAlign: 'right', width: '100%' }}>
+                        <Space orientation="vertical" size={0} style={{ textAlign: 'right', width: '100%' }}>
                             <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
                                 {short}
                             </Typography.Text>
@@ -381,7 +384,7 @@ export default function ProductsPage() {
     ];
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
                 title={t('products.page.title')}
                 breadcrumbs={[adminOverviewCrumb(t), { title: t('products.page.title') }]}
@@ -416,7 +419,7 @@ export default function ProductsPage() {
             {isError ? (
                 <Alert
                     type="error"
-                    message={t('products.page.loadErrorTitle')}
+                    title={t('products.page.loadErrorTitle')}
                     description={
                         error ? (
                             <ApiErrorAlertDescription

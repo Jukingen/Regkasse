@@ -58,7 +58,7 @@ namespace KasseAPI_Final.Services
                 .Include(r => r.TaxLines)
                 .Include(r => r.Payment)!.ThenInclude(p => p!.OfflineTransaction)
                 .Where(r => (r.ReceiptId == receiptId || r.PaymentId == receiptId)
-                    && _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId))
+                    && _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId))
                 .FirstOrDefaultAsync();
 
             return receipt != null ? await MapToDtoAsync(receipt) : null;
@@ -73,7 +73,7 @@ namespace KasseAPI_Final.Services
                 .Include(r => r.TaxLines)
                 .Include(r => r.Payment)
                 .Where(r => r.PaymentId == paymentId
-                    && _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId))
+                    && _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId))
                 .FirstOrDefaultAsync();
 
             return receipt != null ? await MapToDtoAsync(receipt) : null;
@@ -88,7 +88,7 @@ namespace KasseAPI_Final.Services
                 .Include(r => r.TaxLines)
                 .Include(r => r.Payment)
                 .Where(r => r.PaymentId == paymentId
-                    && _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == effectiveTenantId))
+                    && _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == effectiveTenantId))
                 .FirstOrDefaultAsync();
 
             if (existingReceipt != null)
@@ -359,7 +359,7 @@ namespace KasseAPI_Final.Services
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync();
             var queryable = _context.Receipts.AsNoTracking()
                 .Include(r => r.Payment)
-                .Where(r => _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId));
+                .Where(r => _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId));
 
             if (!string.IsNullOrWhiteSpace(receiptNumber))
                 queryable = queryable.Where(r => r.ReceiptNumber != null && EF.Functions.ILike(r.ReceiptNumber, $"%{receiptNumber.Trim()}%"));

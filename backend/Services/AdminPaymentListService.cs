@@ -49,7 +49,7 @@ public sealed class AdminPaymentListService : IAdminPaymentListService
 
         if (filter.CashRegisterId.HasValue && filter.CashRegisterId.Value != Guid.Empty)
         {
-            var regOk = await _context.CashRegisters.AsNoTracking()
+            var regOk = await _context.CashRegisters.AsNoTracking().ForResolvedTenantScope()
                 .AnyAsync(cr => cr.Id == filter.CashRegisterId.Value && cr.TenantId == tenantId, cancellationToken);
             if (!regOk)
                 return (new PaymentListResponse(), "ADMIN_PAYMENTS_INVALID_REGISTER", "Cash register is not in the current tenant");
@@ -59,7 +59,9 @@ public sealed class AdminPaymentListService : IAdminPaymentListService
         var availableMethods = await LoadAvailablePaymentMethodsAsync(tenantId, cancellationToken);
 
         IQueryable<PaymentDetails> query = _context.PaymentDetails.AsNoTracking()
-            .ApplyTenantCashRegisterScope(_context.CashRegisters.AsNoTracking(), tenantId);
+            .ApplyTenantCashRegisterScope(
+                _context.CashRegisters.AsNoTracking().ForResolvedTenantScope(),
+                tenantId);
 
         query = query.ApplyDateRangeFilter(filter, nowUtc);
         query = query.ApplyAmountRangeFilter(filter);

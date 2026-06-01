@@ -348,7 +348,7 @@ public class AdminOfflineTransactionsController : BaseController
     private IQueryable<OfflineTransaction> TenantScopedOfflineQuery(Guid tenantId)
     {
         return _context.OfflineTransactions
-            .Where(o => _context.CashRegisters.Any(cr => cr.Id == o.CashRegisterId && cr.TenantId == tenantId));
+            .Where(o => _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == o.CashRegisterId && cr.TenantId == tenantId));
     }
 
     private static ReplayOfflineTransactionItem BuildReplayItem(OfflineTransaction row)

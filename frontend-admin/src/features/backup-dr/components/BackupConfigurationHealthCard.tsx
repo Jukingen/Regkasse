@@ -100,7 +100,7 @@ export function BackupConfigurationHealthCard({
           type="warning"
           showIcon
           style={{ marginTop: 12 }}
-          message={t("backupDr.monitoring.configHealth.issuesTitle")}
+          title={t("backupDr.monitoring.configHealth.issuesTitle")}
           description={issues.join(", ")}
         />
       ) : null}

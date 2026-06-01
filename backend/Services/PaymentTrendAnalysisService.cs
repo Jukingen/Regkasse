@@ -88,7 +88,7 @@ public sealed class PaymentTrendAnalysisService : IPaymentTrendAnalysisService
     {
         return await _context.PaymentDetails
             .AsNoTracking()
-            .ApplyTenantCashRegisterScope(_context.CashRegisters.AsNoTracking(), tenantId)
+            .ApplyTenantCashRegisterScope(_context.CashRegisters.AsNoTracking().ForResolvedTenantScope(), tenantId)
             .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < toExclusiveUtc)
             .Where(p => p.IsActive && !p.IsStorno && !p.IsRefund)
             .Select(p => new PaymentTrendRow(p.CreatedAt, p.TotalAmount, p.PaymentMethodRaw))

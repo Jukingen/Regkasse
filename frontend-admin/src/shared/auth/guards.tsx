@@ -28,7 +28,7 @@ export const AuthGuard: FC<GuardProps> = ({ children }) => {
     if (isLoadingAuth) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <Spin size="large" tip="Authenticating..." />
+                <Spin size="large" description="Authenticating..." />
             </div>
         );
     }
@@ -58,7 +58,7 @@ export const GuestGuard: FC<GuardProps> = ({ children }) => {
     if (isLoadingAuth) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <Spin size="large" tip="Checking session..." />
+                <Spin size="large" description="Checking session..." />
             </div>
         );
     }

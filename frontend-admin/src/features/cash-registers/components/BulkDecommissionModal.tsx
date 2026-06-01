@@ -55,12 +55,12 @@ export function BulkDecommissionModal({
             okText={t('cashRegisters.bulk.decommissionConfirm')}
             cancelText={t('cashRegisters.decommission.cancel')}
             okButtonProps={{ danger: true, loading: confirmLoading, disabled: eligible.length === 0 }}
-            destroyOnClose
+            destroyOnHidden
         >
             <Alert
                 type="warning"
                 showIcon
-                message={t('cashRegisters.decommission.irreversibleWarning')}
+                title={t('cashRegisters.decommission.irreversibleWarning')}
                 style={{ marginBottom: 16 }}
             />
             <Typography.Paragraph>

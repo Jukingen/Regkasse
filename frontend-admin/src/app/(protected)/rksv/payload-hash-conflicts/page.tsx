@@ -1,29 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Payload-Hash conflicts — mixed surface: Tabs separate read-only investigation (analyze, export, tables)
  * from the Eingriff (repair dry-run / apply). Permissions unchanged; repair requires elevated rights on the API.
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Card,
-  Table,
-  Tag,
-  Statistic,
-  Row,
-  Col,
-  Spin,
-  Alert,
-  Button,
-  Space,
-  Select,
-  InputNumber,
-  message,
-  Typography,
-  Modal,
-  Tabs,
-} from 'antd';
+import { Card, Table, Tag, Statistic, Row, Col, Spin, Alert, Button, Space, Select, InputNumber, Typography, Tabs } from 'antd';
 import { ReloadOutlined, DownloadOutlined, ToolOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -57,6 +41,8 @@ function severityColor(severity: string): string {
 }
 
 export default function PayloadHashConflictsPage() {
+  const { message, modal } = useAntdApp();
+
   const { t } = useI18n();
   const { user } = useAuth();
   const canRepair = hasPermission(user, PERMISSIONS.SYSTEM_CRITICAL);
@@ -235,7 +221,7 @@ export default function PayloadHashConflictsPage() {
   );
 
   const confirmApplyRepair = useCallback(() => {
-    Modal.confirm({
+    modal.confirm({
       title: t('rksvHub.payloadHashConflictsPage.modalApplyTitle'),
       content: t('rksvHub.payloadHashConflictsPage.modalApplyContent'),
       okText: t('rksvHub.payloadHashConflictsPage.modalOk'),
@@ -267,7 +253,7 @@ export default function PayloadHashConflictsPage() {
       {error && (
         <Alert
           type="error"
-          message={t('rksvHub.payloadHashConflictsPage.analyzeFailed')}
+          title={t('rksvHub.payloadHashConflictsPage.analyzeFailed')}
           description={
             <ApiErrorAlertDescription
               t={t}
@@ -337,7 +323,7 @@ export default function PayloadHashConflictsPage() {
                 </Space>
                 {isLoading && !result ? (
                   <Card>
-                    <Spin tip={t('rksvHub.payloadHashConflictsPage.spinAnalyzing')} size="large" />
+                    <Spin description={t('rksvHub.payloadHashConflictsPage.spinAnalyzing')} size="large" />
                   </Card>
                 ) : result ? (
                   <>
@@ -373,7 +359,7 @@ export default function PayloadHashConflictsPage() {
                     {result.legacyDataQualityRiskHigh && result.warningMessage && (
                       <Alert
                         type="warning"
-                        message={t('rksvHub.payloadHashConflictsPage.legacyDataQualityTitle')}
+                        title={t('rksvHub.payloadHashConflictsPage.legacyDataQualityTitle')}
                         description={result.warningMessage}
                         style={{ marginBottom: 16 }}
                         showIcon
@@ -422,7 +408,7 @@ export default function PayloadHashConflictsPage() {
 
                     <Alert
                       type="info"
-                      message={t('rksvHub.payloadHashConflictsPage.investigationReadOnlyTitle')}
+                      title={t('rksvHub.payloadHashConflictsPage.investigationReadOnlyTitle')}
                       description={t('rksvHub.payloadHashConflictsPage.investigationReadOnlyBody')}
                       style={{ marginTop: 16 }}
                       showIcon
@@ -442,14 +428,14 @@ export default function PayloadHashConflictsPage() {
                 <Alert
                   type="error"
                   showIcon
-                  message={t('rksvHub.payloadHashConflictsPage.repairDangerTitle')}
+                  title={t('rksvHub.payloadHashConflictsPage.repairDangerTitle')}
                   description={t('rksvHub.payloadHashConflictsPage.repairDangerBody')}
                   style={{ marginBottom: 16 }}
                 />
                 {!canRepair && (
                   <Alert
                     type="warning"
-                    message={t('rksvHub.payloadHashConflictsPage.repairLockedTitle')}
+                    title={t('rksvHub.payloadHashConflictsPage.repairLockedTitle')}
                     description={t('rksvHub.payloadHashConflictsPage.repairLockedBody')}
                     style={{ marginBottom: 16 }}
                     showIcon

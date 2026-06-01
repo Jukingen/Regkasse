@@ -1,10 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Post-create success: one-time credentials, first steps, and primary actions.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, Input, Modal, Space, Typography, message } from 'antd';
+import { Modal, Alert, Button, Input, Space, Typography } from 'antd';
 import { CheckCircleFilled, CopyOutlined, EyeInvisibleOutlined, EyeOutlined, LoginOutlined, PlusOutlined } from '@ant-design/icons';
 
 import { useI18n } from '@/i18n';
@@ -39,6 +40,8 @@ export function OnboardingSuccessModal({
     onSwitchToTenant,
     switchToTenantLoading = false,
 }: OnboardingSuccessModalProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [passwordVisible, setPasswordVisible] = useState(false);
 
@@ -97,7 +100,7 @@ export function OnboardingSuccessModal({
             open={!!success}
             onCancel={handleClose}
             width={640}
-            destroyOnClose
+            destroyOnHidden
             footer={
                 success
                     ? [
@@ -119,24 +122,24 @@ export function OnboardingSuccessModal({
             }
         >
             {success ? (
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                     <Alert
                         type="success"
                         showIcon
                         icon={<CheckCircleFilled />}
-                        message={t('tenants.provisioning.successHeadline', { name: success.tenantName })}
+                        title={t('tenants.provisioning.successHeadline', { name: success.tenantName })}
                     />
 
                     {demoMenuImported ? (
                         <Alert
                             type="info"
                             showIcon
-                            message={t('tenants.provisioning.demoMenuImported', { count: demoProductCount })}
+                            title={t('tenants.provisioning.demoMenuImported', { count: demoProductCount })}
                         />
                     ) : null}
 
                     {!success.provisioning ? (
-                        <Alert type="warning" showIcon message={t('tenants.provisioning.missingWarning')} />
+                        <Alert type="warning" showIcon title={t('tenants.provisioning.missingWarning')} />
                     ) : (
                         <>
                             <div>
@@ -187,7 +190,7 @@ export function OnboardingSuccessModal({
                                     type="warning"
                                     showIcon
                                     style={{ marginTop: 12 }}
-                                    message={t('tenants.provisioning.passwordWarning')}
+                                    title={t('tenants.provisioning.passwordWarning')}
                                 />
                                 {success.provisioning.forcePasswordChangeOnNextLogin ? (
                                     <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>

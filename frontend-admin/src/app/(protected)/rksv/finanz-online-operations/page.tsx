@@ -1,23 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Descriptions,
-  Input,
-  Row,
-  Space,
-  Spin,
-  Statistic,
-  Table,
-  Tag,
-  Tooltip,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, Button, Card, Col, Descriptions, Input, Row, Space, Spin, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -51,6 +36,8 @@ function connectionTagColor(
 }
 
 export default function FinanzOnlineOperationsPage() {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [invoiceId, setInvoiceId] = useState('');
@@ -128,7 +115,7 @@ export default function FinanzOnlineOperationsPage() {
         type="warning"
         showIcon
         style={{ marginBottom: 12 }}
-        message={t('rksvHub.finanzOnlineOpsPage.nonAuthoritativeBannerTitle')}
+        title={t('rksvHub.finanzOnlineOpsPage.nonAuthoritativeBannerTitle')}
         description={t('rksvHub.finanzOnlineOpsPage.nonAuthoritativeBannerDescription')}
       />
       {statusQuery.data?.finanzOnlineTransportsSimulated ? (
@@ -136,7 +123,7 @@ export default function FinanzOnlineOperationsPage() {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message={OPERATOR_FO_OPERATIONS_PAGE_COPY.simulatedTransportNote}
+          title={OPERATOR_FO_OPERATIONS_PAGE_COPY.simulatedTransportNote}
         />
       ) : null}
 
@@ -153,7 +140,7 @@ export default function FinanzOnlineOperationsPage() {
             ) : statusQuery.isError ? (
               <Alert
                 type="error"
-                message={t('rksvHub.finanzOnlineOpsPage.statusLoadFailed')}
+                title={t('rksvHub.finanzOnlineOpsPage.statusLoadFailed')}
                 description={
                   <ApiErrorAlertDescription
                     t={t}
@@ -244,7 +231,7 @@ export default function FinanzOnlineOperationsPage() {
             ) : configQuery.isError ? (
               <Alert
                 type="error"
-                message={t('rksvHub.finanzOnlineOpsPage.configLoadFailed')}
+                title={t('rksvHub.finanzOnlineOpsPage.configLoadFailed')}
                 description={
                   <ApiErrorAlertDescription
                     t={t}
@@ -255,7 +242,7 @@ export default function FinanzOnlineOperationsPage() {
                 }
               />
             ) : (
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <Row gutter={[12, 12]}>
                   <Col span={12}>
                     <Statistic
@@ -298,13 +285,13 @@ export default function FinanzOnlineOperationsPage() {
                 {testResult && (
                   <Alert
                     type={testResult.success ? 'success' : 'warning'}
-                    message={
+                    title={
                       testResult.success
                         ? t('rksvHub.finanzOnlineOpsPage.testSuccess')
                         : t('rksvHub.finanzOnlineOpsPage.testWarning')
                     }
                     description={
-                      <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                      <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                         <Typography.Text>
                           {t('rksvHub.finanzOnlineOpsPage.responseTimeLine', {
                             ms: String(testResult.responseTime ?? ''),
@@ -343,14 +330,14 @@ export default function FinanzOnlineOperationsPage() {
           {t('rksvHub.finanzOnlineOpsPage.errorsTableHint')}
         </Typography.Paragraph>
         {errorsPayload?.diagnosticWarning ? (
-          <Alert type="info" showIcon style={{ marginBottom: 12 }} message={errorsPayload.diagnosticWarning} />
+          <Alert type="info" showIcon style={{ marginBottom: 12 }} title={errorsPayload.diagnosticWarning} />
         ) : null}
         {errorsQuery.isLoading ? (
           <Spin />
         ) : errorsQuery.isError ? (
           <Alert
             type="error"
-            message={t('rksvHub.finanzOnlineOpsPage.errorsLoadFailed')}
+            title={t('rksvHub.finanzOnlineOpsPage.errorsLoadFailed')}
             description={
               <ApiErrorAlertDescription
                 t={t}
@@ -361,7 +348,7 @@ export default function FinanzOnlineOperationsPage() {
             }
           />
         ) : errors.length === 0 ? (
-          <Alert type="info" message={t('rksvHub.finanzOnlineOpsPage.noErrorsFound')} />
+          <Alert type="info" title={t('rksvHub.finanzOnlineOpsPage.noErrorsFound')} />
         ) : (
           <Table
             size="small"
@@ -404,13 +391,13 @@ export default function FinanzOnlineOperationsPage() {
         }
       >
         {!canRunHistory ? (
-          <Alert type="info" message={t('rksvHub.finanzOnlineOpsPage.enterInvoiceIdHint')} />
+          <Alert type="info" title={t('rksvHub.finanzOnlineOpsPage.enterInvoiceIdHint')} />
         ) : historyQuery.isLoading ? (
           <Spin />
         ) : historyQuery.isError ? (
           <Alert
             type="error"
-            message={t('rksvHub.finanzOnlineOpsPage.historyLoadFailed')}
+            title={t('rksvHub.finanzOnlineOpsPage.historyLoadFailed')}
             description={
               <ApiErrorAlertDescription
                 t={t}
@@ -421,7 +408,7 @@ export default function FinanzOnlineOperationsPage() {
             }
           />
         ) : history.length === 0 ? (
-          <Alert type="info" message={t('rksvHub.finanzOnlineOpsPage.historyEmpty')} />
+          <Alert type="info" title={t('rksvHub.finanzOnlineOpsPage.historyEmpty')} />
         ) : (
           <Table
             size="small"

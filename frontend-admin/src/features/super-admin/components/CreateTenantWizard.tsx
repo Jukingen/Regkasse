@@ -197,8 +197,8 @@ export function CreateTenantWizard({
                 open={open && !success && phase !== 'form' && isProcessing}
                 onCancel={handleWizardClose}
                 width={640}
-                destroyOnClose
-                maskClosable={false}
+                destroyOnHidden
+                mask={{ closable: false }}
                 closable={false}
                 footer={null}
             >
@@ -219,7 +219,7 @@ export function CreateTenantWizard({
                 open={open && !success && phase === 'form'}
                 onCancel={handleWizardClose}
                 width={640}
-                destroyOnClose
+                destroyOnHidden
                 footer={[
                     <Button key="cancel" onClick={handleWizardClose}>
                         {t('common.buttons.cancel')}

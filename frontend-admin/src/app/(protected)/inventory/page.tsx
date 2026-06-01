@@ -1,28 +1,12 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Back-office inventory: stock, movements, reorder suggestions, stocktake draft, transfers — permissions and confirm dialogs.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Alert,
-  App,
-  Button,
-  Card,
-  DatePicker,
-  Drawer,
-  Flex,
-  Input,
-  InputNumber,
-  Modal,
-  Select,
-  Space,
-  Spin,
-  Table,
-  Tabs,
-  Tag,
-  Typography,
-} from 'antd';
+
+import { Modal, Alert, Button, Card, DatePicker, Drawer, Flex, Input, InputNumber, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -104,7 +88,8 @@ function extractApiError(err: unknown, translate: (key: string) => string): stri
 }
 
 export default function InventoryOperationsPage() {
-  const { message } = App.useApp();
+  const { message, modal } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const qc = useQueryClient();
   const { hasPermission } = usePermissions();
@@ -270,7 +255,7 @@ export default function InventoryOperationsPage() {
       message.warning(t('adminShell.inventory.permissionDenied'));
       return;
     }
-    Modal.confirm({
+    modal.confirm({
       title: t('adminShell.inventory.actionDelete'),
       content: t('adminShell.inventory.confirmDelete'),
       okButtonProps: { danger: true },
@@ -294,7 +279,7 @@ export default function InventoryOperationsPage() {
       title: t('adminShell.inventory.colProduct'),
       dataIndex: 'productName',
       render: (_, r) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Typography.Text strong>{r.productName}</Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {r.productCategory}
@@ -359,7 +344,7 @@ export default function InventoryOperationsPage() {
     {
       title: t('adminShell.inventory.colProduct'),
       render: (_, row) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <span>{row.productName}</span>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {row.productCategory}
@@ -399,7 +384,7 @@ export default function InventoryOperationsPage() {
       message.info(t('adminShell.inventory.countNoVariance'));
       return;
     }
-    Modal.confirm({
+    modal.confirm({
       title: t('adminShell.inventory.finalizeCount'),
       content: t('adminShell.inventory.confirmFinalize'),
       onOk: async () => {
@@ -429,7 +414,7 @@ export default function InventoryOperationsPage() {
     {
       title: t('adminShell.inventory.colProduct'),
       render: (_, r) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Typography.Text strong>{r.productName}</Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {r.productCategory}
@@ -472,14 +457,14 @@ export default function InventoryOperationsPage() {
           }
           breadcrumbs={[adminOverviewCrumb(t), { title: t('adminShell.inventory.pageTitle'), href: '/inventory' }]}
         />
-        <Alert type="info" showIcon message={t('adminShell.inventory.featureDisabledTitle')} description={t('adminShell.inventory.featureDisabledBody')} style={{ marginTop: 16 }} />
+        <Alert type="info" showIcon title={t('adminShell.inventory.featureDisabledTitle')} description={t('adminShell.inventory.featureDisabledBody')} style={{ marginTop: 16 }} />
       </div>
     );
   }
 
   if (!canView) {
     return (
-      <Alert type="error" message={t('adminShell.inventory.permissionDenied')} style={{ margin: 24 }} />
+      <Alert type="error" title={t('adminShell.inventory.permissionDenied')} style={{ margin: 24 }} />
     );
   }
 
@@ -582,7 +567,7 @@ export default function InventoryOperationsPage() {
             label: t('adminShell.inventory.tabCount'),
             children: (
               <Card size="small" title={t('adminShell.inventory.countTitle')}>
-                <Alert type="info" showIcon message={t('adminShell.inventory.countDraftHint')} style={{ marginBottom: 12 }} />
+                <Alert type="info" showIcon title={t('adminShell.inventory.countDraftHint')} style={{ marginBottom: 12 }} />
                 <Spin spinning={invQuery.isLoading}>
                   <Table rowKey="id" columns={countCols} dataSource={filtered} pagination={false} />
                   <Button
@@ -617,7 +602,7 @@ export default function InventoryOperationsPage() {
         }}
         confirmLoading={restockMut.isPending}
       >
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <Typography.Text>
             {activeRow?.productName} — {t('adminShell.inventory.colStock')}: {activeRow?.currentStock}
           </Typography.Text>
@@ -650,7 +635,7 @@ export default function InventoryOperationsPage() {
         }}
         confirmLoading={adjustMut.isPending}
       >
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <Typography.Paragraph type="secondary">{t('adminShell.inventory.adjustmentHint')}</Typography.Paragraph>
           <InputNumber value={adjDelta} onChange={(v) => setAdjDelta(Number(v) || 0)} />
           <Input.TextArea rows={3} placeholder={t('adminShell.inventory.reason')} value={adjReason} onChange={(e) => setAdjReason(e.target.value)} />
@@ -677,7 +662,7 @@ export default function InventoryOperationsPage() {
         }}
         confirmLoading={transferMut.isPending}
       >
-        <Space direction="vertical" style={{ width: '100%' }}>
+        <Space orientation="vertical" style={{ width: '100%' }}>
           <Typography.Text>{activeRow?.productName}</Typography.Text>
           <Select
             showSearch
@@ -697,7 +682,7 @@ export default function InventoryOperationsPage() {
         title={t('adminShell.inventory.drawerTxTitle')}
         open={!!drawerInvId}
         onClose={() => setDrawerInvId(null)}
-        width={560}
+        size={560}
       >
         <Spin spinning={txQ.isLoading}>
           <Table

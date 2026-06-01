@@ -37,7 +37,7 @@ export const AdminOnlyGate: FC<AdminOnlyGateProps> = ({ children }) => {
     if (isAuthInitializing) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 80 }}>
-                <Spin size="large" tip="Checking authorization..." />
+                <Spin size="large" description="Checking authorization..." />
             </div>
         );
     }

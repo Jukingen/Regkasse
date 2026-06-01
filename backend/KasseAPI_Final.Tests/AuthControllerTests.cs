@@ -305,7 +305,7 @@ public class AuthControllerTests
 
         var sessionService = sessionServiceMock ?? new Mock<ISessionService>();
 
-        return new AuthController(
+        var controller = new AuthController(
             appDb,
             userManager,
             config,
@@ -322,6 +322,11 @@ public class AuthControllerTests
             forgotUsernameEmail.Object,
             sessionPolicy.Object,
             sessionService.Object);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
+        };
+        return controller;
     }
 
     private static Mock<IAuthService> CreateAuthServiceMock(Mock<ILoginTenantResolver> loginTenantResolver)

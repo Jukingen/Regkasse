@@ -1,21 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Super-admin tenant detail dashboard — overview, users, registers, license, settings.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import {
-    Alert,
-    Button,
-    Card,
-    Space,
-    Tabs,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, Space, Tabs, Tag, Typography } from 'antd';
 import {
     ArrowLeftOutlined,
     DeleteOutlined,
@@ -61,6 +53,8 @@ import { DemoImportModal } from '@/features/tenants/components/DemoImportModal';
 const TENANT_DETAIL_QUERY_KEY = ['admin', 'tenant-detail'] as const;
 
 export default function SuperAdminTenantDetailPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const params = useParams();
     const router = useRouter();
@@ -240,7 +234,7 @@ export default function SuperAdminTenantDetailPage() {
     if (!canAccess) {
         return (
             <AdminPageShell>
-                <Alert type="error" message={t('tenants.accessDenied.title')} description={t('tenants.accessDenied.body')} />
+                <Alert type="error" title={t('tenants.accessDenied.title')} description={t('tenants.accessDenied.body')} />
             </AdminPageShell>
         );
     }
@@ -248,7 +242,7 @@ export default function SuperAdminTenantDetailPage() {
     if (!tenantId) {
         return (
             <AdminPageShell>
-                <Alert type="error" message={t('tenants.users.errors.invalidTenant')} />
+                <Alert type="error" title={t('tenants.users.errors.invalidTenant')} />
             </AdminPageShell>
         );
     }
@@ -325,7 +319,7 @@ export default function SuperAdminTenantDetailPage() {
             ) : null}
 
             {tenantQuery.isError ? (
-                <Alert type="error" message={t('tenants.users.errors.tenantNotFound')} style={{ marginBottom: 16 }} />
+                <Alert type="error" title={t('tenants.users.errors.tenantNotFound')} style={{ marginBottom: 16 }} />
             ) : null}
 
             <Card loading={tenantQuery.isLoading && !tenant}>

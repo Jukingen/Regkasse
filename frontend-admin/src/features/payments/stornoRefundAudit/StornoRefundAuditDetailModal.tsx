@@ -130,12 +130,12 @@ export function StornoRefundAuditDetailModal({ paymentId, open, onClose }: Storn
             onCancel={onClose}
             footer={null}
             width={960}
-            destroyOnClose
+            destroyOnHidden
         >
             {isLoading ? (
                 <Text type="secondary">{t('payments.stornoRefundAudit.detail.loading')}</Text>
             ) : !detail ? (
-                <Alert type="warning" message={t('payments.stornoRefundAudit.detail.empty')} showIcon />
+                <Alert type="warning" title={t('payments.stornoRefundAudit.detail.empty')} showIcon />
             ) : (
                 <>
                     <Descriptions bordered size="small" column={2} style={{ marginBottom: 16 }}>
@@ -172,7 +172,7 @@ export function StornoRefundAuditDetailModal({ paymentId, open, onClose }: Storn
                             style={{ marginBottom: 16 }}
                             type="info"
                             showIcon
-                            message={t('payments.stornoRefundAudit.detail.timeDeltaTitle')}
+                            title={t('payments.stornoRefundAudit.detail.timeDeltaTitle')}
                             description={formatDurationSeconds(audit.secondsBetweenOriginalAndReversal, t)}
                         />
                     ) : null}

@@ -125,9 +125,9 @@ export function BackupRunProgressBanner({
       <Alert
         type="warning"
         showIcon
-        message={title}
+        title={title}
         description={
-          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+          <Space orientation="vertical" size={4} style={{ width: '100%' }}>
             {body ? <Typography.Text>{body}</Typography.Text> : null}
             {etaLine ? (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -168,7 +168,7 @@ export function BackupRunProgressBanner({
     <Alert
       type={alertType}
       showIcon
-      message={title}
+      title={title}
       description={description}
       style={{ marginBottom: 12 }}
     />

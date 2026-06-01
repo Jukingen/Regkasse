@@ -1,12 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Artefakt listesi ve indirme: satır başına gerçeklik / kurtarılabilirlik / API dosya varlığı sinyali (iyimser etiket yok).
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { InfoCircleOutlined } from '@ant-design/icons';
-import { Button, Card, Modal, Space, Spin, Table, Tag, Tooltip, Typography, message } from 'antd';
+import { Button, Card, Space, Spin, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { BackupArtifactResponseDto } from '@/api/generated/model';
 import {
@@ -90,6 +91,8 @@ export function BackupArtifactsDownloadCard({
   loadingArtifacts = false,
   t,
 }: BackupArtifactsDownloadCardProps) {
+  const { message, modal } = useAntdApp();
+
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const runCtx: RunDownloadContext = useMemo(
@@ -179,11 +182,11 @@ export function BackupArtifactsDownloadCard({
       const artifactName = rawLabel === labelKey ? t('backupDr.download.types.unknown') : rawLabel;
 
       if (stubLike && canManage) {
-        Modal.confirm({
+        modal.confirm({
           title: t('backupDr.download.confirmStubTitle'),
           width: 520,
           content: (
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="small" style={{ width: '100%' }}>
               <Typography.Paragraph style={{ marginBottom: 0 }}>
                 {t('backupDr.download.confirmStubBody', {
                   artifact: artifactName,
@@ -206,11 +209,11 @@ export function BackupArtifactsDownloadCard({
         return;
       }
       if (shouldConfirmDownloadUnprovenLogicalDump(row, row._truth) && canManage) {
-        Modal.confirm({
+        modal.confirm({
           title: t('backupDr.download.confirmUnprovenLogicalTitle'),
           width: 520,
           content: (
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="small" style={{ width: '100%' }}>
               <Typography.Paragraph style={{ marginBottom: 0 }}>{t('backupDr.download.confirmUnprovenLogicalLead')}</Typography.Paragraph>
               <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
                 {t(row._truth.contentExpectationKey)}

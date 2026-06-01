@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect, useState } from 'react';
-import { Alert, Button, Modal, Space, Typography, message } from 'antd';
+import { Modal, Alert, Button, Space, Typography } from 'antd';
 
 import { CredentialCopyRow } from '@/features/super-admin/components/CredentialCopyRow';
 import type { CreateTenantUserResult } from '@/features/super-admin/api/tenantUsers';
@@ -16,6 +17,8 @@ export type UserCreatedSuccessModalProps = {
 };
 
 export function UserCreatedSuccessModal({ open, result, onClose }: UserCreatedSuccessModalProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const { canProvisionTenantCredentials } = useSuperAdminPlatformPolicy();
     const [password, setPassword] = useState('');
@@ -57,7 +60,7 @@ export function UserCreatedSuccessModal({ open, result, onClose }: UserCreatedSu
             title={t('users.create.success')}
             open={open}
             onCancel={onClose}
-            destroyOnClose
+            destroyOnHidden
             footer={[
                 <Button key="copy-all" onClick={() => void copyAllCredentials()}>
                     {t('tenants.users.quick.result.copyAll')}
@@ -68,13 +71,13 @@ export function UserCreatedSuccessModal({ open, result, onClose }: UserCreatedSu
             ]}
             width={520}
         >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 {userName ? (
                     <CredentialCopyRow label={t('tenants.users.quick.result.usernameLabel')} value={userName} />
                 ) : null}
                 <CredentialCopyRow label={t('tenants.users.quick.result.emailLabel')} value={result.email} />
                 <CredentialCopyRow label={t('users.create.password')} value={password} />
-                <Alert type="warning" showIcon message={t('users.create.generatedPasswordInfo')} />
+                <Alert type="warning" showIcon title={t('users.create.generatedPasswordInfo')} />
                 {portalUrl ? (
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {portalUrl}

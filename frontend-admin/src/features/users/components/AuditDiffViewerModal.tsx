@@ -50,7 +50,7 @@ export function AuditDiffViewerModal({ open, onClose, entry, getLabel, formatOpt
                     {usersCopy.close}
                 </Button>,
             ]}
-            destroyOnClose
+            destroyOnHidden
             width={560}
         >
             {hasRows ? (

@@ -1,24 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Super-admin tenant management (SuperAdmin role / system.critical).
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    Form,
-    Input,
-    Modal,
-    Select,
-    Space,
-    Switch,
-    Empty,
-    Table,
-    Typography,
-    message,
-} from 'antd';
+import { Modal, Alert, Button, Card, Form, Input, Select, Space, Switch, Empty, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -65,6 +52,8 @@ type TenantFormValues = {
 };
 
 export default function SuperAdminTenantsPage() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -275,7 +264,7 @@ export default function SuperAdminTenantsPage() {
     if (!canAccess) {
         return (
             <AdminPageShell>
-                <Alert type="error" message={t('tenants.accessDenied.title')} description={t('tenants.accessDenied.body')} />
+                <Alert type="error" title={t('tenants.accessDenied.title')} description={t('tenants.accessDenied.body')} />
             </AdminPageShell>
         );
     }
@@ -371,7 +360,7 @@ export default function SuperAdminTenantsPage() {
                 onCancel={() => setEditRow(null)}
                 onOk={() => editForm.submit()}
                 confirmLoading={updateMutation.isPending}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form
                     form={editForm}

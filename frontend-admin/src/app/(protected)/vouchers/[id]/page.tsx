@@ -1,20 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Descriptions,
-  Form,
-  Input,
-  Modal,
-  Space,
-  Spin,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { Modal, Alert, Button, Card, Descriptions, Form, Input, Space, Spin, Tag, Typography } from 'antd';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -76,6 +64,8 @@ function statusColor(status: string): string {
 }
 
 export default function AdminVoucherDetailPage() {
+  const { message } = useAntdApp();
+
   const params = useParams();
   const id = typeof params?.id === 'string' ? params.id : '';
   const { t, formatLocale } = useI18n();
@@ -136,7 +126,7 @@ export default function AdminVoucherDetailPage() {
   if (!canRead) {
     return (
       <AdminPageShell>
-        <Alert type="error" message={t('vouchers.list.permissionDenied')} showIcon />
+        <Alert type="error" title={t('vouchers.list.permissionDenied')} showIcon />
       </AdminPageShell>
     );
   }
@@ -144,7 +134,7 @@ export default function AdminVoucherDetailPage() {
   if (!id) {
     return (
       <AdminPageShell>
-        <Alert type="error" message={t('vouchers.errors.loadFailed')} showIcon />
+        <Alert type="error" title={t('vouchers.errors.loadFailed')} showIcon />
       </AdminPageShell>
     );
   }
@@ -175,7 +165,7 @@ export default function AdminVoucherDetailPage() {
       {detailQuery.isLoading ? (
         <Spin />
       ) : detailQuery.isError || !d ? (
-        <Alert type="error" message={t('vouchers.errors.loadFailed')} showIcon />
+        <Alert type="error" title={t('vouchers.errors.loadFailed')} showIcon />
       ) : (
         <>
           <Card style={{ marginBottom: 16 }}>
@@ -225,10 +215,10 @@ export default function AdminVoucherDetailPage() {
               type="info"
               showIcon
               style={{ marginBottom: 16 }}
-              message={t('vouchers.detail.verifyCodeHint')}
+              title={t('vouchers.detail.verifyCodeHint')}
               description={t('vouchers.detail.codePrivacyNotice')}
             />
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
               <Space.Compact style={{ width: '100%', maxWidth: 520 }}>
                 <Input.Password
                   autoComplete="off"

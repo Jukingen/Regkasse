@@ -22,7 +22,7 @@ export function LanguageSelector() {
   );
 
   return (
-    <Space direction="vertical" size={4} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={4} style={{ width: '100%' }}>
       <Typography.Text strong>{t('settings.language.label')}</Typography.Text>
       <Select<TextLocale>
         value={textLocale}

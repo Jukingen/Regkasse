@@ -44,7 +44,7 @@ export function BackupSchedulePlanner({
   };
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
       <div>
         <Typography.Text strong>{t('backupDr.scheduleSettings.frequencyLabel')}</Typography.Text>
         <Radio.Group
@@ -58,7 +58,7 @@ export function BackupSchedulePlanner({
           }
           disabled={disabled}
         >
-          <Space direction="vertical">
+          <Space orientation="vertical">
             <Radio value="Daily">{t('backupDr.scheduleSettings.frequencyDaily')}</Radio>
             <Radio value="Weekly">{t('backupDr.scheduleSettings.frequencyWeekly')}</Radio>
             <Radio value="Monthly">{t('backupDr.scheduleSettings.frequencyMonthly')}</Radio>

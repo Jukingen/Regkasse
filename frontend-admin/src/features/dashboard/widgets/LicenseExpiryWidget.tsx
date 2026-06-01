@@ -32,14 +32,14 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
                     <Statistic
                         title="Verbleibende Tage"
                         value={days ?? '—'}
-                        valueStyle={{
+                        styles={{ content: { 
                             color:
                                 severity === 'error'
                                     ? '#cf1322'
                                     : severity === 'warning'
                                       ? '#d48806'
                                       : '#3f8600',
-                        }}
+                         } }}
                     />
                     <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
                         Gültig bis: {formatDate(licenseValidUntilUtc, formatLocale)}
@@ -49,7 +49,7 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
                             style={{ marginTop: 12 }}
                             type={severity === 'error' ? 'error' : 'warning'}
                             showIcon
-                            message={
+                            title={
                                 days <= 7
                                     ? 'Lizenz läuft in Kürze ab — bitte verlängern.'
                                     : 'Lizenz läuft innerhalb von 30 Tagen ab.'
@@ -61,7 +61,7 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
                 <Alert
                     type="info"
                     showIcon
-                    message="Kein Lizenzablaufdatum hinterlegt"
+                    title="Kein Lizenzablaufdatum hinterlegt"
                     description={
                         <Link href="/settings">Einstellungen öffnen</Link>
                     }

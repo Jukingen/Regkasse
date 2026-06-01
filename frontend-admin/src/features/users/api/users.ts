@@ -66,6 +66,8 @@ export type CreateUserResult = {
     forcePasswordChangeOnNextLogin: boolean;
     success: boolean;
     tenantPortalUrl?: string | null;
+    tenantId?: string | null;
+    tenantSlug?: string | null;
 };
 
 export type UsernameSuggestionResponse = {
@@ -90,7 +92,16 @@ type AdminCreateUserResponseDto = {
     forcePasswordChangeOnNextLogin?: boolean;
 };
 
-function mapTenantCreateResult(result: CreateTenantUserResult): CreateUserResult {
+function mapTenantCreateResult(
+    result: CreateTenantUserResult,
+    requestedTenantId: string,
+): CreateUserResult {
+    const responseTenantId = result.tenantId ?? requestedTenantId;
+    if (result.tenantId && result.tenantId !== requestedTenantId) {
+        throw new Error(
+            `Tenant mismatch: requested ${requestedTenantId}, API returned ${result.tenantId}`,
+        );
+    }
     return {
         userId: result.userId,
         email: result.email,
@@ -99,6 +110,8 @@ function mapTenantCreateResult(result: CreateTenantUserResult): CreateUserResult
         forcePasswordChangeOnNextLogin: result.forcePasswordChangeOnNextLogin,
         success: result.success,
         tenantPortalUrl: result.tenantPortalUrl,
+        tenantId: responseTenantId,
+        tenantSlug: result.tenantSlug ?? undefined,
     };
 }
 
@@ -113,7 +126,7 @@ export async function createUser(data: CreateUserRequest): Promise<CreateUserRes
             isOwner: data.isOwner,
         };
         const result = await createTenantUser(data.tenantId, tenantBody);
-        return mapTenantCreateResult(result);
+        return mapTenantCreateResult(result, data.tenantId);
     }
     return createPlatformUser({ ...data, email });
 }

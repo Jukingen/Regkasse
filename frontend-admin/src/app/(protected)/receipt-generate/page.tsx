@@ -1,8 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Alert, Card, message } from 'antd';
+import { Alert, Card } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 
@@ -13,6 +14,8 @@ import { useI18n } from '@/i18n';
 
 /** Receipt-generate page: template-based sample output only. Not fiscal; no TSE, no payment. */
 export default function GenerateReceiptPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const searchParams = useSearchParams();
     const templateIdFromUrl = searchParams.get('templateId') ?? undefined;
@@ -41,7 +44,7 @@ export default function GenerateReceiptPage() {
             <Alert
                 type="warning"
                 showIcon
-                message={t('receiptTemplates.page.generateWarningTitle')}
+                title={t('receiptTemplates.page.generateWarningTitle')}
                 description={t('receiptTemplates.page.generateWarningDescription')}
                 style={{ marginBottom: 16 }}
             />

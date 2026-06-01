@@ -1,28 +1,12 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Role management drawer: left = role list (System + Custom), right = grouped permission checklist.
  * System roles are readonly; custom roles are editable. No legacy/deprecated role category.
  */
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import {
-  Drawer,
-  List,
-  Button,
-  Space,
-  Spin,
-  Alert,
-  Empty,
-  Checkbox,
-  Tooltip,
-  Typography,
-  Modal,
-  Select,
-  Tag,
-  Card,
-  Row,
-  Col,
-} from 'antd';
+import { Drawer, List, Button, Space, Spin, Alert, Empty, Checkbox, Tooltip, Typography, Select, Tag, Card, Row, Col } from 'antd';
 import { PlusOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
 import type { RoleWithPermissionsDto } from '../api/usersGateway';
 import type { PermissionCatalogItemDto } from '../api/usersGateway';
@@ -116,6 +100,8 @@ export function RoleManagementDrawer({
   saveLoading = false,
   deleteLoading = false,
 }: Props) {
+  const { modal } = useAntdApp();
+
   const { t } = useI18n();
 
   const roleDisplayLabel = useCallback(
@@ -336,7 +322,7 @@ export function RoleManagementDrawer({
   const handleSelectRole = (roleName: string) => {
     if (roleName === selectedRoleName) return;
     if (dirty) {
-      Modal.confirm({
+      modal.confirm({
         title: t('users.roleDrawer.confirmCloseWithDirty'),
         okText: t('users.roleDrawer.confirmDiscardOk'),
         cancelText: t('users.roleDrawer.confirmDiscardCancel'),
@@ -353,7 +339,7 @@ export function RoleManagementDrawer({
 
   const handleClose = () => {
     if (dirty) {
-      Modal.confirm({
+      modal.confirm({
         title: t('users.roleDrawer.confirmCloseWithDirty'),
         okText: t('users.roleDrawer.confirmDiscardOk'),
         cancelText: t('users.roleDrawer.confirmDiscardCancel'),
@@ -382,13 +368,13 @@ export function RoleManagementDrawer({
   const handleDelete = () => {
     if (!selectedRoleName || !selectedRoleCanDelete) return;
     if (selectedRole && selectedRole.userCount > 0) {
-      Modal.warning({
+      modal.warning({
         title: t('users.roleDrawer.roleHasUsers'),
         content: t('users.roleDrawer.roleDeleteBlockedReassignFirst'),
       });
       return;
     }
-    Modal.confirm({
+    modal.confirm({
       title: t('users.roleDrawer.deleteRole'),
       content: t('users.roleDrawer.deleteRoleConfirmBody', { roleName: selectedRoleName }),
       okText: t('users.roleDrawer.deleteRole'),
@@ -419,7 +405,7 @@ export function RoleManagementDrawer({
     <Drawer
       title={t('users.page.manageRoles')}
       placement="right"
-      width={720}
+      size={720}
       open={open}
       onClose={handleClose}
       destroyOnHidden
@@ -467,7 +453,7 @@ export function RoleManagementDrawer({
       {error && (
         <Alert
           type="error"
-          message={t('users.list.errorLoad')}
+          title={t('users.list.errorLoad')}
           action={
             <Button size="small" onClick={onRetry}>
               {t('users.list.retry')}
@@ -479,7 +465,7 @@ export function RoleManagementDrawer({
 
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-          <Spin spinning tip={t('users.roleDrawer.loadingTip')}>
+          <Spin spinning description={t('users.roleDrawer.loadingTip')}>
             <div style={{ minHeight: 80 }} />
           </Spin>
         </div>
@@ -712,7 +698,7 @@ export function RoleManagementDrawer({
                 {(isSystemRole || selectedRole?.isImmutable) && (
                   <Alert
                     type="info"
-                    message={t('users.roleDrawer.badgeSystemRole')}
+                    title={t('users.roleDrawer.badgeSystemRole')}
                     description={t('users.roleDrawer.systemRoleImmutableInfo')}
                     showIcon
                     style={{ marginBottom: 12 }}
@@ -721,7 +707,7 @@ export function RoleManagementDrawer({
                 {selectedRole && !selectedRole.isSystemRole && !selectedRole.isImmutable && selectedRole.userCount > 0 && (
                   <Alert
                     type="info"
-                    message={t('users.roleDrawer.roleHasUsers')}
+                    title={t('users.roleDrawer.roleHasUsers')}
                     description={t('users.roleDrawer.roleDeleteBlockedReassignFirst')}
                     showIcon
                     style={{ marginBottom: 12 }}
@@ -749,7 +735,7 @@ export function RoleManagementDrawer({
                         <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 6, fontWeight: 500 }}>
                           {t(`users.roleDrawer.groups.${groupSlug}`)}
                         </Typography.Text>
-                        <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                        <Space orientation="vertical" size={2} style={{ width: '100%' }}>
                           {items.map((item) => (
                             <Checkbox
                               key={item.key}

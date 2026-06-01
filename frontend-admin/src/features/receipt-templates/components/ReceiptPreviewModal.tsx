@@ -39,11 +39,11 @@ export default function ReceiptPreviewModal({ templateId, onClose }: ReceiptPrev
             footer={null}
             width={700}
         >
-            {isLoading && <Spin tip={t('receiptTemplates.preview.loading')} />}
+            {isLoading && <Spin description={t('receiptTemplates.preview.loading')} />}
             {isError && (
                 <Alert
                     type="error"
-                    message={notFound ? t('receiptTemplates.preview.errorNotFound') : t('receiptTemplates.preview.errorGeneric')}
+                    title={notFound ? t('receiptTemplates.preview.errorNotFound') : t('receiptTemplates.preview.errorGeneric')}
                     description={errorMessage}
                     showIcon
                 />

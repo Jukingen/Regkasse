@@ -93,7 +93,7 @@ export function BackupManagementPanel({ defaultTab = "operations" }: BackupManag
         type={access.isReadOnly ? "info" : "success"}
         showIcon
         style={{ marginBottom: 8 }}
-        message={
+        title={
           <>
             {t("backupDr.management.accessBanner", { role: roleTag })}{" "}
             <Tag>{roleTag}</Tag>

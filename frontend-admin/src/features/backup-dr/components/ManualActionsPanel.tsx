@@ -119,7 +119,7 @@ export function ManualActionsPanel({
           type={modeAwareConfirmations.cardAlert.severity === 'error' ? 'error' : 'warning'}
           showIcon
           style={{ marginBottom: 12 }}
-          message={modeAwareConfirmations.cardAlert.message}
+          title={modeAwareConfirmations.cardAlert.message}
         />
       ) : null}
       {modeAwareConfirmations?.actionBannerLine ? (

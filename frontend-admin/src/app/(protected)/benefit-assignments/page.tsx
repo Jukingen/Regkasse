@@ -1,22 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState, useMemo } from 'react';
-import {
-  Button,
-  Table,
-  Space,
-  message,
-  Popconfirm,
-  Tooltip,
-  Empty,
-  Alert,
-  Modal,
-  Form,
-  InputNumber,
-  Select,
-  Switch,
-  DatePicker,
-} from 'antd';
+import { Modal, Button, Table, Space, Popconfirm, Tooltip, Empty, Alert, Form, InputNumber, Select, Switch, DatePicker } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, FilterOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -39,6 +25,8 @@ import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescripti
 import { useSearchParams } from 'next/navigation';
 
 export default function BenefitAssignmentsPage() {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
@@ -200,7 +188,7 @@ export default function BenefitAssignmentsPage() {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
         title={filterCustomer ? `${t('benefits.assignments.pageTitle')} – ${filterCustomer.name}` : t('benefits.assignments.pageTitle')}
         breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('benefits.assignments.breadcrumb') }]}
@@ -230,7 +218,7 @@ export default function BenefitAssignmentsPage() {
       {listQuery.isError ? (
         <Alert
           type="error"
-          message={t('benefits.shared.loadFailedTitle')}
+          title={t('benefits.shared.loadFailedTitle')}
           description={
             listQuery.error ? (
               <ApiErrorAlertDescription
@@ -265,7 +253,7 @@ export default function BenefitAssignmentsPage() {
         onOk={handleSubmit}
         onCancel={() => { setModalOpen(false); setEditing(null); }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
         okText={t('common.buttons.save')}
         cancelText={t('common.buttons.cancel')}
       >

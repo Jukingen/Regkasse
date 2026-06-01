@@ -48,14 +48,14 @@ export default function ReceiptDetailPage() {
     };
 
     if (isLoading) {
-        return <Spin style={{ display: 'block', margin: '80px auto' }} tip={t('receipts.detail.loadingTip')} />;
+        return <Spin style={{ display: 'block', margin: '80px auto' }} description={t('receipts.detail.loadingTip')} />;
     }
 
     if (isError && isNotFoundError(error)) {
         return (
             <Alert
                 type="warning"
-                message={t('receipts.detail.notFoundTitle')}
+                title={t('receipts.detail.notFoundTitle')}
                 description={t('receipts.detail.notFoundDescription')}
                 showIcon
                 action={
@@ -69,7 +69,7 @@ export default function ReceiptDetailPage() {
         return (
             <Alert
                 type="error"
-                message={t('receipts.detail.loadFailedTitle')}
+                title={t('receipts.detail.loadFailedTitle')}
                 description={getReceiptDetailErrorMessage(error, t('receipts.detail.unexpectedError'))}
                 showIcon
                 action={
@@ -95,7 +95,7 @@ export default function ReceiptDetailPage() {
         return (
             <Alert
                 type="warning"
-                message={t('receipts.detail.notFoundTitle')}
+                title={t('receipts.detail.notFoundTitle')}
                 description={t('receipts.detail.fallbackNoData')}
                 showIcon
                 action={
@@ -106,7 +106,7 @@ export default function ReceiptDetailPage() {
     }
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Button
                 icon={<ArrowLeftOutlined />}
                 onClick={handleBack}

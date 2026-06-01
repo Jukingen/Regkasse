@@ -1,22 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState } from 'react';
-import {
-  Button,
-  Table,
-  Space,
-  message,
-  Popconfirm,
-  Tooltip,
-  Empty,
-  Alert,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Switch,
-} from 'antd';
+import { Modal, Button, Table, Space, Popconfirm, Tooltip, Empty, Alert, Form, Input, InputNumber, Select, Switch } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import {
@@ -37,6 +23,8 @@ import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function BenefitDefinitionsPage() {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
 
   const benefitKindLabel = (k: AppliedBenefitKind) => {
@@ -195,7 +183,7 @@ export default function BenefitDefinitionsPage() {
   ];
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
         title={t('benefits.definitions.pageTitle')}
         breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: t('benefits.definitions.breadcrumb') }]}
@@ -209,7 +197,7 @@ export default function BenefitDefinitionsPage() {
       {listQuery.isError ? (
         <Alert
           type="error"
-          message={t('benefits.shared.loadFailedTitle')}
+          title={t('benefits.shared.loadFailedTitle')}
           description={
             listQuery.error ? (
               <ApiErrorAlertDescription
@@ -244,7 +232,7 @@ export default function BenefitDefinitionsPage() {
         onOk={handleSubmit}
         onCancel={() => { setModalOpen(false); setEditing(null); }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
         okText={t('common.buttons.save')}
         cancelText={t('common.buttons.cancel')}
       >

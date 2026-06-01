@@ -135,7 +135,7 @@ export default function RksvSignatureChainVerification() {
           type="success"
           showIcon
           icon={<CheckCircleOutlined />}
-          message={t('rksvHub.signatureChainPage.chainIntact')}
+          title={t('rksvHub.signatureChainPage.chainIntact')}
           description={t('rksvHub.signatureChainPage.chainIntactDetail', { count: chain.length })}
         />
       );
@@ -146,7 +146,7 @@ export default function RksvSignatureChainVerification() {
           type="warning"
           showIcon
           icon={<WarningOutlined />}
-          message={t('rksvHub.signatureChainPage.chainReview')}
+          title={t('rksvHub.signatureChainPage.chainReview')}
           description={t('rksvHub.signatureChainPage.chainReviewDetail', {
             count: chainIssues.length,
           })}
@@ -158,7 +158,7 @@ export default function RksvSignatureChainVerification() {
         type="error"
         showIcon
         icon={<CloseCircleOutlined />}
-        message={t('rksvHub.signatureChainPage.chainBroken')}
+        title={t('rksvHub.signatureChainPage.chainBroken')}
         description={t('rksvHub.signatureChainPage.chainBrokenDetail', {
           breaks: chainIssues.filter((c) => c.status === 'Fail').length,
           gaps: sequenceGaps.length,
@@ -237,7 +237,7 @@ export default function RksvSignatureChainVerification() {
         type="warning"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('rksvHub.signatureChainPage.legalAlertTitle')}
+        title={t('rksvHub.signatureChainPage.legalAlertTitle')}
         description={report?.legalNoticeDe ?? t('rksvHub.signatureChainPage.legalAlertFallback')}
       />
 
@@ -298,7 +298,7 @@ export default function RksvSignatureChainVerification() {
           showIcon
           className={styles.noPrint}
           style={{ marginBottom: 16 }}
-          message={t('rksvHub.signatureChainPage.loadFailedTitle')}
+          title={t('rksvHub.signatureChainPage.loadFailedTitle')}
           description={
             <ApiErrorAlertDescription
               t={t}

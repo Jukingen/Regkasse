@@ -1,14 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect, useRef, useState } from 'react';
-import {
-    Modal,
-    Button,
-    Alert,
-    Space,
-    Tabs,
-    message,
-} from 'antd';
+import { Modal, Button, Alert, Space, Tabs } from 'antd';
 import { ImportOutlined } from '@ant-design/icons';
 
 import type { DemoProductImportResult } from '@/api/admin/products';
@@ -53,6 +47,8 @@ function extractImportErrorMessage(error: unknown): string {
 }
 
 export function DemoImportModal({ open, tenantId, tenantName, tenantSlug, onClose, onSuccess }: DemoImportModalProps) {
+  const { message } = useAntdApp();
+
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<'wizard' | 'template'>('wizard');
     const [wizardKey, setWizardKey] = useState(0);
@@ -156,7 +152,7 @@ export function DemoImportModal({ open, tenantId, tenantName, tenantSlug, onClos
             title="Import läuft"
             open={importing}
             closable={false}
-            maskClosable={false}
+            mask={{ closable: false }}
             width={520}
             footer={
                 <Button
@@ -186,7 +182,7 @@ export function DemoImportModal({ open, tenantId, tenantName, tenantSlug, onClos
             }
         >
             <Alert
-                message={`Produkte für "${tenantName}"`}
+                title={`Produkte für "${tenantName}"`}
                 description="Geführter Import-Schritt für Schritt oder eigene CSV/Excel-Vorlage."
                 type="info"
                 showIcon

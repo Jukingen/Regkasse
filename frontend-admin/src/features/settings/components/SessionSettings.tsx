@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect } from 'react';
-import { Form, InputNumber, Switch, Button, message, Card, Typography, Select } from 'antd';
+import { Form, InputNumber, Switch, Button, Card, Typography, Select } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { useI18n } from '@/i18n';
 import { useSessionSettings, useUpdateSessionSettings } from '@/features/settings/hooks/useSessionSettings';
@@ -10,6 +11,8 @@ import type { SessionSettings as SessionSettingsValues } from '@/features/settin
 const TIMEOUT_PRESETS = [30, 60] as const;
 
 export function SessionSettings() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [form] = Form.useForm<SessionSettingsValues>();
     const { data: settings, isLoading, refetch } = useSessionSettings();

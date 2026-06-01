@@ -291,7 +291,7 @@ export default function IncidentInvestigationPage() {
                               ? 'red'
                               : 'orange';
                     return (
-                        <Space direction="vertical" size={2}>
+                        <Space orientation="vertical" size={2}>
                             <Tag color={color} title={backendApiTooltip}>
                                 {fo.finanzOnlineStatus ?? FORMAT_EMPTY_DISPLAY}
                             </Tag>
@@ -338,7 +338,7 @@ export default function IncidentInvestigationPage() {
                 render: (_: unknown, r: ReplayBatchPaymentItemDto) => {
                     const fo = foByPayment.get(String(r.paymentId));
                     return (
-                        <Space direction="vertical" size={0}>
+                        <Space orientation="vertical" size={0}>
                             <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                                 {ti('timeReplay')}{' '}
                                 {r.createdAtUtc ? formatIncidentShortTime(r.createdAtUtc, formatLocale) : FORMAT_EMPTY_DISPLAY}
@@ -396,14 +396,14 @@ export default function IncidentInvestigationPage() {
                     }
                     if (!reg.rawTrimmed) {
                         return (
-                            <Space direction="vertical" size={2}>
+                            <Space orientation="vertical" size={2}>
                                 <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>
                                 <AdminTruthBadge kind="link_incomplete" />
                             </Space>
                         );
                     }
                     return (
-                        <Space direction="vertical" size={4}>
+                        <Space orientation="vertical" size={4}>
                             <Typography.Text code copyable={{ text: reg.rawTrimmed }}>
                                 {reg.linkSafeUuid ? `${reg.rawTrimmed.slice(0, 8)}…` : reg.rawTrimmed}
                             </Typography.Text>
@@ -525,7 +525,7 @@ export default function IncidentInvestigationPage() {
             {incidentError && (
                 <Alert
                     type="error"
-                    message={t('common.loadErrors.incidentAggregate')}
+                    title={t('common.loadErrors.incidentAggregate')}
                     description={
                         incidentError instanceof Error
                             ? incidentError.message
@@ -538,7 +538,7 @@ export default function IncidentInvestigationPage() {
             {notFound && (
                 <Alert
                     type="info"
-                    message={t('common.incident.aggregateNotFoundTitle')}
+                    title={t('common.incident.aggregateNotFoundTitle')}
                     description={t('common.incident.aggregateNotFoundDescription')}
                     style={{ marginBottom: 16 }}
                 />
@@ -546,14 +546,14 @@ export default function IncidentInvestigationPage() {
 
             {isLoading && (
                 <Card>
-                    <Spin tip={t('common.loading.incidentAggregate')} />
+                    <Spin description={t('common.loading.incidentAggregate')} />
                 </Card>
             )}
 
             {hasBatch && batch && !incidentLoading && (
                 <>
                     <OperatorSummaryStrip>
-                        <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                        <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                             <div>
                                 <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
                                     {ti('summaryCorrelationLabel')}
@@ -578,7 +578,7 @@ export default function IncidentInvestigationPage() {
                                     <Tag color="default">{ti('coverageSamplesTag', { count: batch.coverageSampleCount })}</Tag>
                                 )}
                             </Space>
-                            <Space direction="vertical" size={4}>
+                            <Space orientation="vertical" size={4}>
                                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                                     {ti('batchCorrelationApiLabel')}
                                 </Typography.Text>
@@ -599,7 +599,7 @@ export default function IncidentInvestigationPage() {
                             <Alert
                                 type="info"
                                 showIcon
-                                message={ti('foTruthNoticeTitle')}
+                                title={ti('foTruthNoticeTitle')}
                                 description={
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                         {ti('foTruthNoticeBefore')}{' '}
@@ -640,12 +640,12 @@ export default function IncidentInvestigationPage() {
                                 (hints.hasLockTimeoutAudit ||
                                     hints.hasPayloadImmutableMismatchAudit ||
                                     (hints.finanzOnlineOpenOrProblemCount ?? 0) > 0) && (
-                                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                    <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                                         {hints.hasLockTimeoutAudit && (
-                                            <Alert type="warning" showIcon message={ti('advisoryLockTimeoutTitle')} />
+                                            <Alert type="warning" showIcon title={ti('advisoryLockTimeoutTitle')} />
                                         )}
                                         {hints.hasPayloadImmutableMismatchAudit && (
-                                            <Alert type="error" showIcon message={ti('payloadImmutableMismatchTitle')} />
+                                            <Alert type="error" showIcon title={ti('payloadImmutableMismatchTitle')} />
                                         )}
                                     </Space>
                                 )}

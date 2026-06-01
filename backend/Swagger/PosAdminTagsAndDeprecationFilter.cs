@@ -1,4 +1,5 @@
-using Microsoft.OpenApi.Models;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace KasseAPI_Final.Swagger;
@@ -23,17 +24,16 @@ public class PosAdminTagsAndDeprecationFilter : IOperationFilter
                 + "When unauthenticated, send header `X-App-Context: pos` or `X-App-Context: admin` so activation attempts record the source app. "
                 + "Machine binding uses this server's canonical fingerprint (`ILicenseStorageService`); optional `machineFingerprint` in JSON or "
                 + "`X-Machine-Fingerprint` must match the server when provided.";
-            operation.Tags = new List<OpenApiTag> { new() { Name = "License" } };
+            operation.Tags = new HashSet<OpenApiTagReference> { new("License") };
         }
 
-        // Tag: POS veya Admin (Swagger gruplaması)
         if (path.StartsWith("api/pos/", StringComparison.OrdinalIgnoreCase) || path.Equals("api/pos", StringComparison.OrdinalIgnoreCase))
         {
-            operation.Tags = new List<OpenApiTag> { new() { Name = "POS" } };
+            operation.Tags = new HashSet<OpenApiTagReference> { new("POS") };
         }
         else if (path.StartsWith("api/admin/", StringComparison.OrdinalIgnoreCase) || path.Equals("api/admin", StringComparison.OrdinalIgnoreCase))
         {
-            operation.Tags = new List<OpenApiTag> { new() { Name = "Admin" } };
+            operation.Tags = new HashSet<OpenApiTagReference> { new("Admin") };
         }
 
         if (path.Equals("api/admin/development-mode/settings", StringComparison.OrdinalIgnoreCase))

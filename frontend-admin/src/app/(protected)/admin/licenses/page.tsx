@@ -1,26 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
-import {
-    Alert,
-    Button,
-    Card,
-    DatePicker,
-    Empty,
-    Form,
-    Input,
-    Modal,
-    Progress,
-    Select,
-    Space,
-    Statistic,
-    Table,
-    Tag,
-    Tooltip,
-    Typography,
-    message,
-} from 'antd';
+import { Modal, Alert, Button, Card, DatePicker, Empty, Form, Input, Progress, Select, Space, Statistic, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
     CheckCircleOutlined,
@@ -218,7 +201,7 @@ function ExtendLicenseModal({
             onOk={() => form.submit()}
             confirmLoading={extendMutation.isPending}
             width={500}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form
                 form={form}
@@ -249,7 +232,7 @@ function ExtendLicenseModal({
                 </Form.Item>
 
                 <Alert
-                    message={t('tenants.licensesPage.extendModal.hintTitle')}
+                    title={t('tenants.licensesPage.extendModal.hintTitle')}
                     description={t('tenants.licensesPage.extendModal.hintDescription')}
                     type="info"
                     showIcon
@@ -260,6 +243,8 @@ function ExtendLicenseModal({
 }
 
 export default function AdminTenantLicensesPage() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -603,7 +588,7 @@ export default function AdminTenantLicensesPage() {
             <AdminPageShell>
                 <Alert
                     type="error"
-                    message={t('tenants.accessDenied.title')}
+                    title={t('tenants.accessDenied.title')}
                     description={t('tenants.accessDenied.body')}
                 />
             </AdminPageShell>
@@ -640,35 +625,35 @@ export default function AdminTenantLicensesPage() {
                     <Statistic
                         title={t('license.phase.labels.active')}
                         value={summary.active}
-                        valueStyle={{ color: '#52c41a' }}
+                        styles={{ content: {  color: '#52c41a'  } }}
                     />
                 </Card>
                 <Card size="small" style={{ borderLeft: '4px solid #faad14' }}>
                     <Statistic
                         title={t('license.phase.labels.graceWrite')}
                         value={summary.graceWrite}
-                        valueStyle={{ color: '#faad14' }}
+                        styles={{ content: {  color: '#faad14'  } }}
                     />
                 </Card>
                 <Card size="small" style={{ borderLeft: '4px solid #ff7a45' }}>
                     <Statistic
                         title={t('license.phase.labels.graceReadonly')}
                         value={summary.graceReadOnly}
-                        valueStyle={{ color: '#ff7a45' }}
+                        styles={{ content: {  color: '#ff7a45'  } }}
                     />
                 </Card>
                 <Card size="small" style={{ borderLeft: '4px solid #ff4d4f' }}>
                     <Statistic
                         title={t('license.phase.labels.lockdown')}
                         value={summary.lockdown}
-                        valueStyle={{ color: '#ff4d4f' }}
+                        styles={{ content: {  color: '#ff4d4f'  } }}
                     />
                 </Card>
                 <Card size="small" style={{ borderLeft: '4px solid #ff4d4f' }}>
                     <Statistic
                         title={t('license.phase.labels.expired')}
                         value={summary.expired}
-                        valueStyle={{ color: '#ff4d4f' }}
+                        styles={{ content: {  color: '#ff4d4f'  } }}
                     />
                 </Card>
                 <Card size="small">
@@ -739,7 +724,7 @@ export default function AdminTenantLicensesPage() {
                 <Alert
                     type="error"
                     showIcon
-                    message={t('common.messages.unknownError')}
+                    title={t('common.messages.unknownError')}
                     style={{ marginBottom: 16 }}
                 />
             ) : null}

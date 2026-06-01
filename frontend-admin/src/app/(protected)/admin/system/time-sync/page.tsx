@@ -1,23 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect } from 'react';
-import {
-    Badge,
-    Button,
-    Card,
-    Col,
-    Descriptions,
-    Form,
-    InputNumber,
-    Row,
-    Space,
-    Spin,
-    Switch,
-    Table,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Badge, Button, Card, Col, Descriptions, Form, InputNumber, Row, Space, Spin, Switch, Table, Tag, Typography } from 'antd';
 import { ReloadOutlined, SaveOutlined, SyncOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -57,6 +42,8 @@ function badgeTag(statusBadge: string, t: (k: string) => string): React.ReactNod
 }
 
 export default function AdminTimeSyncPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const [form] = Form.useForm<NtpAdminConfigurationUpdateDto>();
@@ -262,7 +249,7 @@ export default function AdminTimeSyncPage() {
                                 ok ? (
                                     <Badge status="success" text={t('timeSync.history.success')} />
                                 ) : (
-                                    <Space direction="vertical" size={0}>
+                                    <Space orientation="vertical" size={0}>
                                         <Badge status="error" text={t('timeSync.history.failed')} />
                                         {row.errorMessage ? (
                                             <Typography.Text type="danger" ellipsis style={{ maxWidth: 280 }}>

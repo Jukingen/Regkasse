@@ -754,7 +754,7 @@ export default function ReportCenterPage() {
 
       {tab === 'periodenbericht' ? (
         <Card title={t('adminShell.reporting.reportCenter.tabPerioden')}>
-          <Alert type="info" showIcon message={t('adminShell.reporting.reportCenter.periodenSectionIntro')} style={{ marginBottom: 12 }} />
+          <Alert type="info" showIcon title={t('adminShell.reporting.reportCenter.periodenSectionIntro')} style={{ marginBottom: 12 }} />
           <Card size="small" style={{ marginBottom: 12 }} title={t('adminShell.reporting.reportCenter.filtersTitle')}>
             <Row gutter={[12, 12]}>
               <Col xs={24} md={12}>
@@ -801,7 +801,7 @@ export default function ReportCenterPage() {
 
       {tab === 'xz' ? (
         <Card title={t('adminShell.reporting.reportCenter.tabXz')}>
-          <Alert type="warning" showIcon message={t('adminShell.reporting.reportCenter.xzLegalNote')} style={{ marginBottom: 8 }} />
+          <Alert type="warning" showIcon title={t('adminShell.reporting.reportCenter.xzLegalNote')} style={{ marginBottom: 8 }} />
           <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
             {t('adminShell.reporting.reportCenter.xzOperationalNote')}
           </Typography.Paragraph>
@@ -845,8 +845,8 @@ export default function ReportCenterPage() {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 12 }}
-                message={
-                  <Space direction="vertical" size={4}>
+                title={
+                  <Space orientation="vertical" size={4}>
                     {xzQ.data.legalDisclaimers.map((line, i) => (
                       <Typography.Text key={`legal-${i}`}>{line}</Typography.Text>
                     ))}
@@ -860,7 +860,7 @@ export default function ReportCenterPage() {
                 type="info"
                 showIcon
                 style={{ marginBottom: 12 }}
-                message={
+                title={
                   <ul style={{ margin: 0, paddingLeft: 18 }}>
                     {xzQ.data.informationalWarnings.map((w) => (
                       <li key={w}>{w}</li>
@@ -891,7 +891,7 @@ export default function ReportCenterPage() {
 
             {xzQ.data?.parts?.length ? (
               <Card size="small" title={t('adminShell.reporting.totalsTitle')} style={{ marginBottom: 16 }}>
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                   {xzQ.data.parts.map((p) => (
                     <div key={p.kind}>
                       <Typography.Text strong>{p.label}</Typography.Text>
@@ -950,7 +950,7 @@ export default function ReportCenterPage() {
                 type="info"
                 showIcon
                 style={{ marginBottom: 12 }}
-                message={
+                title={
                   <div>
                     <div>{xzQ.data.operationalVsClosing.note}</div>
                     <div>
@@ -994,7 +994,7 @@ export default function ReportCenterPage() {
         <Card title={t('adminShell.reporting.reportCenter.tabQueue')}>
           <Typography.Paragraph type="secondary">{t('adminShell.reporting.reportCenter.queueSectionIntro')}</Typography.Paragraph>
           {!canFinanzOnlineView ? (
-            <Alert type="warning" showIcon message={t('adminShell.reporting.reportCenter.queueNoPermission')} style={{ marginBottom: 12 }} />
+            <Alert type="warning" showIcon title={t('adminShell.reporting.reportCenter.queueNoPermission')} style={{ marginBottom: 12 }} />
           ) : null}
           {canFinanzOnlineView ? (
             <>
@@ -1035,7 +1035,7 @@ export default function ReportCenterPage() {
         onCancel={() => setPeriodenModalOpen(false)}
         footer={null}
         width={640}
-        destroyOnClose
+        destroyOnHidden
       >
         <Spin spinning={periodenDetailQ.isLoading}>
           {periodenDetailQ.data ? (
@@ -1056,7 +1056,7 @@ export default function ReportCenterPage() {
                 <Alert
                   type="info"
                   showIcon
-                  message={periodenDetailQ.data.warnings.map((w) => (
+                  title={periodenDetailQ.data.warnings.map((w) => (
                     <div key={w}>{w}</div>
                   ))}
                 />

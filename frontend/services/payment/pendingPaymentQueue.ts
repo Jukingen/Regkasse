@@ -475,8 +475,9 @@ export async function retrySinglePending(queueId: string): Promise<{
     );
     const items =
       (raw as ReplayOfflineTransactionsResponse)?.data ?? (raw as any)?.Value?.data ?? [];
-    const rawIt = items?.find(
-      (x) => String(x?.requestedOfflineTransactionId ?? '').trim() === queueId
+    const rawIt = (items as ReplayOfflineTransactionsResponseItem[] | undefined)?.find(
+      (x: ReplayOfflineTransactionsResponseItem) =>
+        String(x.requestedOfflineTransactionId ?? '').trim() === queueId
     );
     const batchCorrelationId =
       (raw as ReplayOfflineTransactionsResponse)?.replayBatchCorrelationId ??

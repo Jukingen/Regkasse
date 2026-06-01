@@ -13,7 +13,7 @@ export function FiscalRetentionNotice() {
         <Alert
             type="info"
             showIcon
-            message={t('fiscalExportAudit.retention.title')}
+            title={t('fiscalExportAudit.retention.title')}
             description={t('fiscalExportAudit.retention.body')}
             style={{ marginBottom: 16 }}
         />

@@ -713,11 +713,52 @@ public partial class AdminUsersController : ControllerBase
         if (request == null)
             return BadRequest(ApiError.Validation("Invalid body", new Dictionary<string, string[]> { ["body"] = new[] { "Request body is required." } }));
 
-        if (request.TenantId is Guid tenantId && tenantId != Guid.Empty)
+        var roleName = request.Role?.Trim();
+        var resolvedTenantId = ResolveCreateTenantId(request);
+
+        _logger.LogInformation(
+            "Admin user create: role={Role}, requestTenantId={RequestTenantId}, ambientTenantId={AmbientTenantId}, resolvedTenantId={ResolvedTenantId}",
+            roleName ?? "(empty)",
+            request.TenantId,
+            _tenantAccessor.TenantId,
+            resolvedTenantId);
+
+        if (resolvedTenantId is Guid tenantId)
             return await CreateTenantUserAsync(tenantId, request, cancellationToken).ConfigureAwait(false);
+
+        if (!IsPlatformOnlyRole(roleName))
+        {
+            _logger.LogWarning(
+                "Admin user create rejected: mandant role {Role} without tenant (requestTenantId={RequestTenantId}, ambientTenantId={AmbientTenantId})",
+                roleName,
+                request.TenantId,
+                _tenantAccessor.TenantId);
+            return BadRequest(ApiError.Validation(
+                "Validation failed",
+                new Dictionary<string, string[]>
+                {
+                    ["tenantId"] = new[]
+                    {
+                        "Tenant ID is required for mandant users. Set tenantId in the request body or use POST /api/admin/tenants/{tenantId}/users.",
+                    },
+                }));
+        }
 
         return await CreatePlatformUserAsync(request, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>Explicit <see cref="AdminCreateUserRequest.TenantId"/> wins; else HTTP tenant context.</summary>
+    private Guid? ResolveCreateTenantId(AdminCreateUserRequest request)
+    {
+        if (request.TenantId is Guid explicitTenantId && explicitTenantId != Guid.Empty)
+            return explicitTenantId;
+        if (_tenantAccessor.TenantId is Guid ambientTenantId)
+            return ambientTenantId;
+        return null;
+    }
+
+    private static bool IsPlatformOnlyRole(string? role) =>
+        string.Equals(role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
 
     private async Task<IActionResult> CreatePlatformUserAsync(
         AdminCreateUserRequest request,

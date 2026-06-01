@@ -37,13 +37,13 @@ export function CashRegisterHardDeleteModal({
             okText={t('cashRegisters.hardDelete.confirm')}
             cancelText={t('cashRegisters.decommission.cancel')}
             okButtonProps={{ danger: true, loading: confirmLoading, disabled: !phraseOk }}
-            destroyOnClose
+            destroyOnHidden
             width={520}
         >
             <Alert
                 type="error"
                 showIcon
-                message={t('cashRegisters.hardDelete.testOnlyBanner')}
+                title={t('cashRegisters.hardDelete.testOnlyBanner')}
                 style={{ marginBottom: 16 }}
             />
             <Typography.Paragraph>

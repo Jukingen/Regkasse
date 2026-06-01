@@ -1,24 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Admin: fiyat kuralları (MVP CRUD). Backend: /api/admin/pricing-rules
  */
 import React, { useState } from 'react';
-import {
-  Button,
-  Table,
-  Space,
-  message,
-  Modal,
-  Form,
-  Input,
-  InputNumber,
-  Switch,
-  Select,
-  Tag,
-  Typography,
-  Popconfirm,
-} from 'antd';
+import { Modal, Button, Table, Space, Form, Input, InputNumber, Switch, Select, Tag, Typography, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import type { ColumnType } from 'antd/es/table';
 import {
@@ -46,6 +33,8 @@ const ACTION_OPTIONS = [
 ];
 
 export default function PricingRulesPage() {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
   const { user } = useAuth();
   const canManage = hasPermission(user, PERMISSIONS.PRODUCT_MANAGE);
@@ -236,7 +225,7 @@ export default function PricingRulesPage() {
         okButtonProps={{ loading: createMutation.isPending || updateMutation.isPending }}
         title={editing ? t('settings.pricingRules.editTitle') : t('settings.pricingRules.createTitle')}
         width={640}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label={t('settings.pricingRules.form.name')} rules={[{ required: true }]}>

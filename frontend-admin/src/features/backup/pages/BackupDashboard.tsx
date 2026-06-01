@@ -115,7 +115,7 @@ export function BackupDashboard() {
       <Alert
         type="error"
         showIcon
-        message={t("backupDr.errors.loadFailed")}
+        title={t("backupDr.errors.loadFailed")}
         description={t("backupDr.monitoring.dashboardStatsLoadFailed")}
       />
     );
@@ -186,9 +186,9 @@ function DashboardBody({
   t: (key: string, options?: Record<string, string | number>) => string;
 }) {
   return (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       {activeBackupHint ? (
-        <Alert type="info" showIcon message={t("backupDr.monitoring.header.activeHint")} />
+        <Alert type="info" showIcon title={t("backupDr.monitoring.header.activeHint")} />
       ) : null}
 
       <Row gutter={[16, 16]}>

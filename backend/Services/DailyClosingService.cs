@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,7 +47,7 @@ public sealed class DailyClosingService : IDailyClosingService
             businessDate.Year, businessDate.Month, businessDate.Day);
         var (fromUtc, toExclusive) = PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(day);
 
-        var registerQuery = _context.CashRegisters.AsNoTracking().Where(cr => cr.TenantId == tenantId);
+        var registerQuery = _context.CashRegisters.AsNoTracking().ForResolvedTenantScope().Where(cr => cr.TenantId == tenantId);
         if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
             registerQuery = registerQuery.Where(cr => cr.Id == cashRegisterId.Value);
 

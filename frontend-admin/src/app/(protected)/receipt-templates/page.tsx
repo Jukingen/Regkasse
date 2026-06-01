@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState } from 'react';
-import { Button, message, Space } from 'antd';
+import { Button, Space } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 
@@ -19,6 +20,8 @@ import { AdminDataList } from '@/components/admin-layout/AdminDataList';
 import { useI18n } from '@/i18n';
 
 export default function ReceiptTemplatesPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     // 1. URL State
     const { filters } = useReceiptTemplateFilters();
@@ -71,7 +74,7 @@ export default function ReceiptTemplatesPage() {
     });
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
 
             <AdminPageHeader
                 title={ADMIN_NAV_LABELS.receiptTemplates}

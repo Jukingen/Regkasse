@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { message } from 'antd';
+import * as antdAppBridge from '@/lib/antdAppBridge';
 import {
     invokeQueryClientErrorHandler,
     shouldSuppressPublicAuthEntry401Toast,
@@ -15,7 +15,7 @@ describe('queryErrorHandling', () => {
             shouldSuppressPublicAuthEntry401Toast({ response: { status: 401 } }),
         ).toBe(true);
 
-        const errorSpy = vi.spyOn(message, 'error');
+        const errorSpy = vi.spyOn(antdAppBridge, 'showAntdError');
         invokeQueryClientErrorHandler({ response: { status: 401 } }, { showErrorToast: true });
         expect(errorSpy).not.toHaveBeenCalled();
 
@@ -27,7 +27,7 @@ describe('queryErrorHandling', () => {
             location: { pathname: '/login' },
         } as Window);
 
-        const errorSpy = vi.spyOn(message, 'error');
+        const errorSpy = vi.spyOn(antdAppBridge, 'showAntdError');
         invokeQueryClientErrorHandler(new Error('Server unavailable'), { showErrorToast: true });
         expect(errorSpy).toHaveBeenCalledWith('Server unavailable');
 

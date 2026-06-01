@@ -1,5 +1,6 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * License overview for the admin dashboard: KPIs, activation chart, recent activity, shortcuts.
  */
@@ -7,18 +8,7 @@
 import React, { useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    Row,
-    Segmented,
-    Space,
-    Spin,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, Col, Row, Segmented, Space, Spin, Typography } from 'antd';
 import { DownloadOutlined, KeyOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
@@ -60,6 +50,8 @@ function formatPeriodLabel(iso: string, granularity: 'day' | 'week', formatLocal
 }
 
 export function LicenseDashboardSection() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const { user } = useAuth();
     const isSuperAdminUser = isSuperAdmin(user?.role);
@@ -110,7 +102,7 @@ export function LicenseDashboardSection() {
             {isSuperAdminUser ? (
                 <>
                     {chartLoadError ? (
-                        <Alert type="warning" showIcon message={chartLoadError} style={{ marginTop: 16, marginBottom: 16 }} />
+                        <Alert type="warning" showIcon title={chartLoadError} style={{ marginTop: 16, marginBottom: 16 }} />
                     ) : null}
 
                     <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
@@ -144,7 +136,7 @@ export function LicenseDashboardSection() {
                         </Col>
                         <Col xs={24} lg={9}>
                             <Card title={t('license.dashboard.quickTitle')}>
-                                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                                     <Link href="/admin/license">
                                         <Button type="primary" block icon={<PlusOutlined />}>
                                             {t('license.dashboard.quickNewLicense')}

@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect, useState } from 'react';
-import { Alert, Button, Input, Modal, Space, message } from 'antd';
+import { Modal, Alert, Button, Input, Space } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import { useGenerateTemporaryPasswordMutation } from '@/features/users/api/usersGateway';
@@ -21,6 +22,8 @@ export function PasswordViewModal({
     userEmail,
     onClose,
 }: PasswordViewModalProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [password, setPassword] = useState('');
     const generateTemporaryPasswordMutation = useGenerateTemporaryPasswordMutation();
@@ -77,9 +80,9 @@ export function PasswordViewModal({
                 </Button>,
             ]}
         >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <Alert
-                    message="Sicherheitshinweis"
+                    title="Sicherheitshinweis"
                     description={t('users.create.generatedPasswordInfo')}
                     type="warning"
                     showIcon

@@ -1,22 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    Empty,
-    Input,
-    Row,
-    Select,
-    Segmented,
-    Space,
-    Statistic,
-    Switch,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, Col, Empty, Input, Row, Select, Segmented, Space, Statistic, Switch, Typography } from 'antd';
 import {
     AppstoreOutlined,
     BarsOutlined,
@@ -117,6 +103,8 @@ function downloadCsv(filename: string, content: string): void {
 }
 
 export default function AdminCashRegistersPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -410,7 +398,7 @@ export default function AdminCashRegistersPage() {
     if (!canView) {
         return (
             <AdminPageShell>
-                <Alert type="warning" showIcon message={t('errors.forbidden.FORBIDDEN')} />
+                <Alert type="warning" showIcon title={t('errors.forbidden.FORBIDDEN')} />
             </AdminPageShell>
         );
     }
@@ -426,7 +414,7 @@ export default function AdminCashRegistersPage() {
                     ]}
                 />
                 <Card title={t('cashRegisters.pageTitle')}>
-                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                             {t('cashRegisters.adminPage.managerIntro')}
                         </Typography.Paragraph>
@@ -459,7 +447,7 @@ export default function AdminCashRegistersPage() {
             </AdminPageScopeSummary>
 
             <Card>
-                <Space direction="vertical" size="middle" style={{ width: '100%', marginBottom: 16 }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%', marginBottom: 16 }}>
                     <Space wrap align="center">
                         <Typography.Text>{t('cashRegisters.adminPage.selectTenant')}:</Typography.Text>
                         <Select
@@ -497,7 +485,7 @@ export default function AdminCashRegistersPage() {
                         <Alert
                             type="info"
                             showIcon
-                            message={t('cashRegisters.create.tenantOption', {
+                            title={t('cashRegisters.create.tenantOption', {
                                 name: selectedTenant.name,
                                 slug: selectedTenant.slug,
                             })}
@@ -541,7 +529,7 @@ export default function AdminCashRegistersPage() {
                                         title={t('cashRegisters.status.open')}
                                         value={registerSummary.open}
                                         prefix={<CheckCircleOutlined />}
-                                        valueStyle={{ color: '#389e0d' }}
+                                        styles={{ content: {  color: '#389e0d'  } }}
                                     />
                                 </Card>
                             </Col>
@@ -555,7 +543,7 @@ export default function AdminCashRegistersPage() {
                                         title={t('cashRegisters.status.closed')}
                                         value={registerSummary.closed}
                                         prefix={<LockOutlined />}
-                                        valueStyle={{ color: '#1677ff' }}
+                                        styles={{ content: {  color: '#1677ff'  } }}
                                     />
                                 </Card>
                             </Col>
@@ -569,7 +557,7 @@ export default function AdminCashRegistersPage() {
                                         title={t('cashRegisters.status.decommissioned')}
                                         value={registerSummary.decommissioned}
                                         prefix={<StopOutlined />}
-                                        valueStyle={{ color: '#cf1322' }}
+                                        styles={{ content: {  color: '#cf1322'  } }}
                                     />
                                 </Card>
                             </Col>
@@ -696,7 +684,7 @@ export default function AdminCashRegistersPage() {
                     <Alert
                         type="error"
                         showIcon
-                        message={t('cashRegisters.errors.loadFailed')}
+                        title={t('cashRegisters.errors.loadFailed')}
                         style={{ marginBottom: 16 }}
                     />
                 ) : (

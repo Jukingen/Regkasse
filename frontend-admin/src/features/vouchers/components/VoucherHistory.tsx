@@ -207,7 +207,7 @@ function VoucherHistoryLedgerBody({ voucherId, ledgerEnabled, currency }: Vouche
     }, [ledgerQuery.data, t, formatLocale, currency]);
 
     if (!ledgerEnabled) {
-        return <Alert type="info" message={t('vouchers.ledger.permissionDenied')} showIcon />;
+        return <Alert type="info" title={t('vouchers.ledger.permissionDenied')} showIcon />;
     }
 
     return (
@@ -242,7 +242,7 @@ function VoucherHistoryModalShell({ voucherId, visible, onClose }: VoucherHistor
             onCancel={onClose}
             footer={null}
             width={800}
-            destroyOnClose
+            destroyOnHidden
         >
             <Spin spinning={detailQuery.isLoading}>
                 <VoucherHistoryLedgerBody

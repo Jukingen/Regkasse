@@ -95,7 +95,7 @@ export function RestoreVerificationCard({
           type="warning"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t('backupDr.restoreVerification.realProfileBlockedTitle')}
+          title={t('backupDr.restoreVerification.realProfileBlockedTitle')}
           description={t('backupDr.restoreVerification.realProfileBlockedBody')}
         />
       ) : null}
@@ -118,7 +118,7 @@ export function RestoreVerificationCard({
                     type={alertType}
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message={t(card.titleKey)}
+                    title={t(card.titleKey)}
                     description={
                       <div>
                         <Typography.Paragraph
@@ -141,7 +141,7 @@ export function RestoreVerificationCard({
                 type="error"
                 showIcon
                 style={{ marginBottom: 12 }}
-                message={t('backupDr.restoreVerification.drillFailedProminent')}
+                title={t('backupDr.restoreVerification.drillFailedProminent')}
                 description={
                   <Typography.Text type="danger" style={{ whiteSpace: 'pre-wrap' }}>
                     {[run.failureCode, (run.failureDetail ?? '').trim()].filter(Boolean).join(' — ') || '—'}

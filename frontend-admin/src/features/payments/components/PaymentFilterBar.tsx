@@ -276,7 +276,7 @@ export function PaymentFilterBar({
             <Drawer
                 title={t('payments.filtersBar.drawerTitle')}
                 placement="right"
-                width={400}
+                size="default"
                 open={drawerOpen}
                 onClose={() => setDrawerOpen(false)}
                 extra={
@@ -285,7 +285,7 @@ export function PaymentFilterBar({
                     </Button>
                 }
             >
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                     <div>
                         <div style={{ fontWeight: 500, marginBottom: 8 }}>{t('payments.filtersBar.amountSection')}</div>
                         <Row gutter={16}>
@@ -340,7 +340,7 @@ export function PaymentFilterBar({
 
                     <div>
                         <div style={{ fontWeight: 500, marginBottom: 8 }}>{t('payments.filtersBar.customerSection')}</div>
-                        <Space direction="vertical" style={{ width: '100%' }}>
+                        <Space orientation="vertical" style={{ width: '100%' }}>
                             <Input
                                 placeholder={t('payments.filtersBar.customerName')}
                                 value={filters.customerName}
@@ -370,7 +370,7 @@ export function PaymentFilterBar({
 
                     <div>
                         <div style={{ fontWeight: 500, marginBottom: 8 }}>{t('payments.filtersBar.transactionTypeSection')}</div>
-                        <Space direction="vertical">
+                        <Space orientation="vertical">
                             <Checkbox
                                 checked={filters.isStorno === true}
                                 onChange={(e) =>

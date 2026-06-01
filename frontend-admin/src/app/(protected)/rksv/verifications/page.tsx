@@ -203,7 +203,7 @@ export default function RksvVerificationsPage() {
                     const c = r.correlationId?.trim();
                     if (!c) return <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>;
                     return (
-                        <Space direction="vertical" size={2}>
+                        <Space orientation="vertical" size={2}>
                             <Typography.Text code copyable ellipsis style={{ maxWidth: 180 }}>
                                 {c}
                             </Typography.Text>
@@ -311,7 +311,7 @@ export default function RksvVerificationsPage() {
                         return <Typography.Text type="secondary">{FORMAT_EMPTY_DISPLAY}</Typography.Text>;
                     }
                     return (
-                        <Space direction="vertical" size={4}>
+                        <Space orientation="vertical" size={4}>
                             {paymentListHref ? (
                                 <Link href={paymentListHref} target="_blank" rel="noopener noreferrer">
                                     {OPERATOR_VERIFICATIONS_COPY.deepLinkPaymentLabel}
@@ -500,7 +500,7 @@ export default function RksvVerificationsPage() {
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
                     {OPERATOR_VERIFICATIONS_COPY.expandFinanzOnlineAbgleichLead}
                 </Typography.Paragraph>
-                <Space direction="vertical" size={6}>
+                <Space orientation="vertical" size={6}>
                     <Link href={abgleichHref} target="_blank" rel="noopener noreferrer">
                         {OPERATOR_FO_SUMMARY_SCREEN_COPY.abgleichPrimaryLinkLabel}
                     </Link>
@@ -549,7 +549,7 @@ export default function RksvVerificationsPage() {
                     type="warning"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message={OPERATOR_VERIFICATIONS_COPY.pageScopeBannerMessage}
+                    title={OPERATOR_VERIFICATIONS_COPY.pageScopeBannerMessage}
                     description={OPERATOR_VERIFICATIONS_COPY.pageScopeBannerDescription}
                 />
 
@@ -557,10 +557,10 @@ export default function RksvVerificationsPage() {
                     <Alert
                         type="info"
                         showIcon
-                        message={OPERATOR_VERIFICATIONS_COPY.filteredBannerTitle}
+                        title={OPERATOR_VERIFICATIONS_COPY.filteredBannerTitle}
                         style={{ marginBottom: 12 }}
                         description={
-                            <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                            <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                                 <Space wrap align="center">
                                     <Tooltip title={adminTruthTooltip('diagnostic_support')}>
                                         <span>
@@ -629,7 +629,7 @@ export default function RksvVerificationsPage() {
                             key: 'context',
                             label: OPERATOR_VERIFICATIONS_COPY.verificationsContextCollapseTitle,
                             children: (
-                                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                                     {!useCorrelation ? (
                                         <>
                                             <div>
@@ -677,20 +677,20 @@ export default function RksvVerificationsPage() {
                     ]}
                 />
 
-                <Space direction="horizontal" wrap style={{ marginBottom: 12 }}>
-                    <Space direction="horizontal">
+                <Space orientation="horizontal" wrap style={{ marginBottom: 12 }}>
+                    <Space orientation="horizontal">
                         <Typography.Text>{tv('filters.offlineOrigin')}</Typography.Text>
                         <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
                             <Switch checked={offlineOriginOnly} onChange={setOfflineOriginOnly} />
                         </Tooltip>
                     </Space>
-                    <Space direction="horizontal">
+                    <Space orientation="horizontal">
                         <Typography.Text>{tv('filters.failedReplay')}</Typography.Text>
                         <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
                             <Switch checked={failedReplayOnly} onChange={setFailedReplayOnly} />
                         </Tooltip>
                     </Space>
-                    <Space direction="horizontal">
+                    <Space orientation="horizontal">
                         <Typography.Text>{tv('filters.suspiciousTiming')}</Typography.Text>
                         <Tooltip title={OPERATOR_VERIFICATIONS_COPY.filterSwitchClientTooltip}>
                             <Switch checked={suspiciousTimingOnly} onChange={setSuspiciousTimingOnly} />
@@ -702,7 +702,7 @@ export default function RksvVerificationsPage() {
                         type="warning"
                         showIcon
                         style={{ marginBottom: 12 }}
-                        message={OPERATOR_VERIFICATIONS_COPY.verificationsNoRowsAfterFiltersTitle}
+                        title={OPERATOR_VERIFICATIONS_COPY.verificationsNoRowsAfterFiltersTitle}
                         description={OPERATOR_VERIFICATIONS_COPY.verificationsNoRowsAfterFiltersBody(apiRows)}
                     />
                 ) : null}

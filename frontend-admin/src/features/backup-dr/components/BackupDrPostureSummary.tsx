@@ -132,7 +132,7 @@ export function BackupDrPostureSummary({
           >
             {t("backupDr.postureSummary.backupAndDrillLabel")}
           </Typography.Text>
-          <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={6} style={{ width: "100%" }}>
             <div>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 {t("backupDr.ia.columns.latestBackupRun")}:{" "}
@@ -162,7 +162,7 @@ export function BackupDrPostureSummary({
           >
             {t("backupDr.postureSummary.lkgAndModeLabel")}
           </Typography.Text>
-          <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Space orientation="vertical" size={6} style={{ width: "100%" }}>
             <div>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 {t("backupDr.ia.columns.lkgProof")}:{" "}

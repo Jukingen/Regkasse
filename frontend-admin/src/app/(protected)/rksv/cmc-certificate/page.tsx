@@ -45,7 +45,7 @@ export default function RksvCmcCertificatePage() {
                 <Alert
                     type="error"
                     showIcon
-                    message={tc('errorLoad')}
+                    title={tc('errorLoad')}
                     description={
                         <ApiErrorAlertDescription
                             t={t}
@@ -62,9 +62,9 @@ export default function RksvCmcCertificatePage() {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={tc('scopeBannerTitle')}
+                title={tc('scopeBannerTitle')}
                 description={
-                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                    <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                         <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
                             {tc('scopeBannerP1')}
                         </Typography.Paragraph>
@@ -87,7 +87,7 @@ export default function RksvCmcCertificatePage() {
             </Space>
 
             <Card size="small" title={tc('cardSnapshotTitle')}>
-                <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={12} style={{ width: '100%' }}>
                     <Descriptions
                         title={<Typography.Text strong>{tc('sectionCertCmc')}</Typography.Text>}
                         column={1}
@@ -145,9 +145,9 @@ export default function RksvCmcCertificatePage() {
             <Divider style={{ margin: '16px 0' }} />
 
             <Card size="small" title={tc('cardPlannedTitle')}>
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                    <Alert type="info" showIcon message={tc('plannedValidityTitle')} description={tc('plannedValidityDesc')} />
-                    <Alert type="info" showIcon message={tc('plannedChainTitle')} description={tc('plannedChainDesc')} />
+                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+                    <Alert type="info" showIcon title={tc('plannedValidityTitle')} description={tc('plannedValidityDesc')} />
+                    <Alert type="info" showIcon title={tc('plannedChainTitle')} description={tc('plannedChainDesc')} />
                 </Space>
             </Card>
         </>

@@ -1,11 +1,12 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * License export & summary (<c>/api/admin/licenses/*</c>). German operator copy via <c>license.reports.*</c>.
  */
 
 import React, { useState } from 'react';
-import { Alert, Button, Card, DatePicker, Descriptions, Form, Space, Spin, Switch, Typography, message } from 'antd';
+import { Alert, Button, Card, DatePicker, Descriptions, Form, Space, Spin, Switch, Typography } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -46,6 +47,8 @@ type Props = {
 };
 
 export function LicenseReportsCard({ enabledLicenseFeatures }: Props) {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const [form] = Form.useForm<FormVals>();
     const [applied, setApplied] = useState<LicenseExportReportParams>({
@@ -109,11 +112,11 @@ export function LicenseReportsCard({ enabledLicenseFeatures }: Props) {
         deploymentLicenseAllows(enabledLicenseFeatures, LICENSE_DEPLOYMENT_FEATURE.AdminRksv);
 
     return (
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Alert type="info" showIcon message={t('license.reports.scheduledEmailHint')} />
+        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+            <Alert type="info" showIcon title={t('license.reports.scheduledEmailHint')} />
 
             {!canExport ? (
-                <Alert type="warning" showIcon message={t('license.reports.exportLicenseGated')} />
+                <Alert type="warning" showIcon title={t('license.reports.exportLicenseGated')} />
             ) : null}
 
             <Card title={t('license.reports.filtersTitle')}>

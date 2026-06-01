@@ -1,7 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
+
 import { useQueryClient } from '@tanstack/react-query';
-import { message } from 'antd';
+
 import { useCallback, useEffect, useRef } from 'react';
 
 import {
@@ -32,6 +34,8 @@ function normalizeTenantSlug(value: string | null | undefined): string | null {
  * pick up the new mandant (dev localStorage, cross-tab sync, or host slug change).
  */
 export function useTenantChangeListener() {
+  const { message } = useAntdApp();
+
     const queryClient = useQueryClient();
     const { t } = useI18n();
     const lastDevSlugRef = useRef<string | null>(null);

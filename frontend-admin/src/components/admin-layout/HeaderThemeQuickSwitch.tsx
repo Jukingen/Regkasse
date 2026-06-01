@@ -32,7 +32,7 @@ export function HeaderThemeQuickSwitch() {
       menu={{ items, selectedKeys: [preferences.themeMode] }}
       trigger={['click']}
       placement="bottomRight"
-      overlayClassName="admin-header-dropdown"
+      classNames={{ root: "admin-header-dropdown" }}
       getPopupContainer={getAdminHeaderPopupContainer}
     >
       <Button

@@ -84,8 +84,8 @@ export function TenantDetailDangerZone({
             styles={{ header: { borderBottomColor: '#ffccc7' } }}
         >
             {isDeleted ? (
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    <Alert type="error" showIcon message={t('tenants.detail.settings.danger.deletedWarning')} />
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                    <Alert type="error" showIcon title={t('tenants.detail.settings.danger.deletedWarning')} />
                     <Space wrap>
                         <Button
                             icon={<UndoOutlined />}
@@ -111,7 +111,7 @@ export function TenantDetailDangerZone({
                     </Space>
                 </Space>
             ) : (
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                         {t('tenants.detail.settings.danger.softDeleteHint')}
                     </Typography.Paragraph>
@@ -122,7 +122,7 @@ export function TenantDetailDangerZone({
                         <Alert
                             type="warning"
                             showIcon
-                            message={t('tenants.detail.settings.danger.developmentHardDeleteHint')}
+                            title={t('tenants.detail.settings.danger.developmentHardDeleteHint')}
                         />
                     ) : null}
                     <Space wrap>
@@ -175,9 +175,9 @@ export function TenantDetailDangerZone({
                         /* parent toast */
                     }
                 }}
-                destroyOnClose
+                destroyOnHidden
             >
-                <Space direction="vertical" size="small">
+                <Space orientation="vertical" size="small">
                     <Typography.Text>{t('tenants.detail.settings.danger.softDeleteNoAccess')}</Typography.Text>
                     <Typography.Text type="secondary">
                         {t('tenants.detail.settings.danger.softDeleteRecoverable')}
@@ -200,7 +200,7 @@ export function TenantDetailDangerZone({
                         /* parent toast */
                     }
                 }}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Typography.Paragraph style={{ marginBottom: 0 }}>
                     {t('tenants.detail.settings.danger.restoreModalBody')}
@@ -239,17 +239,17 @@ export function TenantDetailDangerZone({
                         /* keep open */
                     }
                 }}
-                destroyOnClose
+                destroyOnHidden
             >
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     {hardDeleteMode === 'development' ? (
                         <Alert
                             type="warning"
                             showIcon
-                            message={t('tenants.detail.settings.danger.developmentHardDeleteHint')}
+                            title={t('tenants.detail.settings.danger.developmentHardDeleteHint')}
                         />
                     ) : null}
-                    <Alert type="error" showIcon message={t('tenants.confirmHardDelete.irreversible')} />
+                    <Alert type="error" showIcon title={t('tenants.confirmHardDelete.irreversible')} />
                     <Typography.Paragraph style={{ marginBottom: 0 }}>
                         {t('tenants.detail.settings.danger.hardDeleteDataLoss', { name: tenant.name })}
                     </Typography.Paragraph>

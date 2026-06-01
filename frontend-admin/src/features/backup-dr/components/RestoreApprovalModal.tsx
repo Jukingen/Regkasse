@@ -1,22 +1,12 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Second Super Admin: approve/reject manual restore with 6-digit OTP token.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Descriptions,
-  Form,
-  Input,
-  Modal,
-  Space,
-  Spin,
-  Typography,
-  message,
-} from 'antd';
+import { Modal, Alert, Button, Descriptions, Form, Input, Space, Spin, Typography } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { useManualRestoreStatusPoll } from '@/features/backup-dr/hooks/useManualRestoreStatusPoll';
 import {
@@ -57,6 +47,8 @@ export function RestoreApprovalModal({
   onClose,
   t,
 }: RestoreApprovalModalProps) {
+  const { message, modal } = useAntdApp();
+
   const queryClient = useQueryClient();
   const [token, setToken] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -109,7 +101,7 @@ export function RestoreApprovalModal({
       return;
     }
     let rejectReason = '';
-    Modal.confirm({
+    modal.confirm({
       title: t('backupDr.manualRestore.approvalModal.rejectTitle'),
       content: (
         <Input.TextArea
@@ -154,7 +146,7 @@ export function RestoreApprovalModal({
       title={t('backupDr.manualRestore.approvalModal.title')}
       open={open}
       closable={false}
-      maskClosable={false}
+      mask={{ closable: false }}
       onCancel={onClose}
       footer={
         <Space>
@@ -172,7 +164,7 @@ export function RestoreApprovalModal({
         </Space>
       }
       width={520}
-      destroyOnClose
+      destroyOnHidden
     >
       {statusQuery.isLoading && !status ? (
         <div style={{ textAlign: 'center', padding: 24 }}>
@@ -226,7 +218,7 @@ export function RestoreApprovalModal({
           type="success"
           showIcon
           style={{ marginTop: 16 }}
-          message={t('backupDr.manualRestore.approvalModal.completedTitle')}
+          title={t('backupDr.manualRestore.approvalModal.completedTitle')}
           description={status?.result ?? undefined}
         />
       ) : null}
@@ -236,7 +228,7 @@ export function RestoreApprovalModal({
           type="error"
           showIcon
           style={{ marginTop: 16 }}
-          message={t('backupDr.manualRestore.approvalModal.failedTitle')}
+          title={t('backupDr.manualRestore.approvalModal.failedTitle')}
           description={status?.result ?? status?.rejectionReason ?? undefined}
         />
       ) : null}

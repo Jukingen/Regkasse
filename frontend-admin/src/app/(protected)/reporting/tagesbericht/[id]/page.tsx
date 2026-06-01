@@ -1,21 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Tagesbericht-Detail: Snapshot, Profile (Betrieb/Buchhaltung/Compliance), Finalisieren, FinanzOnline, Korrektur.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Button,
-  Card,
-  Descriptions,
-  Radio,
-  Space,
-  Table,
-  Tag,
-  Timeline,
-  Typography,
-  message,
-} from 'antd';
+import { Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -122,6 +112,8 @@ type ReportHistoryTimelineDto = {
 };
 
 export default function TagesberichtDetailPage() {
+  const { message } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const { fiscalTooltip, resolveFiscal, joinRemediationHints } = useFiscalReportText();
   const td = useCallback((path: string) => t(`reporting.tagesbericht.detail.${path}`), [t]);
@@ -273,7 +265,7 @@ export default function TagesberichtDetailPage() {
       <FormalReportLanguageNotice />
 
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Space direction="vertical">
+        <Space orientation="vertical">
           <Typography.Text type="secondary">{td('profile.label')}</Typography.Text>
           <Radio.Group value={profile} onChange={(e) => setProfile(e.target.value)}>
             <Radio.Button value="operationalPreview">{td('profile.operational')}</Radio.Button>
@@ -449,7 +441,7 @@ export default function TagesberichtDetailPage() {
             items={historyQ.data.items.map((item) => ({
               color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
               children: (
-                <Space direction="vertical" size={2}>
+                <Space orientation="vertical" size={2}>
                   <Typography.Text strong title={backendApiTooltip}>
                     v{item.reportVersion} · {item.reportId.slice(0, 8)} · {item.reportStatus}
                   </Typography.Text>

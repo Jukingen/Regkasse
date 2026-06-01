@@ -1,22 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  DatePicker,
-  Form,
-  Input,
-  Modal,
-  Space,
-  Spin,
-  Switch,
-  Table,
-  Tabs,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { Modal, Alert, Button, DatePicker, Form, Input, Space, Spin, Switch, Table, Tabs, Tag, Typography } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -64,6 +50,8 @@ export function UserPermissionsModal({
   userRole,
   onClose,
 }: UserPermissionsModalProps) {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<string>();
   const [pendingToggle, setPendingToggle] = useState<{ permission: string; isGranted: boolean } | null>(null);
@@ -178,7 +166,7 @@ export function UserPermissionsModal({
         open={open}
         onCancel={onClose}
         width={860}
-        destroyOnClose
+        destroyOnHidden
         footer={[
           <Button key="close" onClick={onClose}>
             {t('users.permissionsModal.close')}
@@ -190,7 +178,7 @@ export function UserPermissionsModal({
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t('users.permissionsModal.superAdminTitle')}
+            title={t('users.permissionsModal.superAdminTitle')}
             description={t('users.permissionsModal.superAdminDescription')}
           />
         ) : (
@@ -198,7 +186,7 @@ export function UserPermissionsModal({
             type="info"
             showIcon
             style={{ marginBottom: 16 }}
-            message={t('users.permissionsModal.infoTitle')}
+            title={t('users.permissionsModal.infoTitle')}
             description={t('users.permissionsModal.infoDescription')}
           />
         )}
@@ -207,7 +195,7 @@ export function UserPermissionsModal({
           <Alert
             type="error"
             showIcon
-            message={t('users.permissionsModal.loadError')}
+            title={t('users.permissionsModal.loadError')}
             action={
               <Button size="small" onClick={() => void effectiveQuery.refetch()}>
                 {t('users.list.retry')}
@@ -237,7 +225,7 @@ export function UserPermissionsModal({
         }}
         onOk={() => void submitToggle()}
         confirmLoading={upsertMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
       >
         <Typography.Paragraph type="secondary">
           {pendingToggle

@@ -59,7 +59,7 @@ public sealed class ReceiptPdfService : IReceiptPdfService
             .Include(r => r.Payment!)
                 .ThenInclude(p => p!.CashRegister)
             .Where(r => r.PaymentId == paymentId)
-            .Where(r => _context.CashRegisters.Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId))
+            .Where(r => _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == r.CashRegisterId && cr.TenantId == tenantId))
             .FirstOrDefaultAsync(cancellationToken);
 
         if (receipt?.Payment == null)

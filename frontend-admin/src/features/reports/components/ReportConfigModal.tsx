@@ -46,7 +46,7 @@ export function ReportConfigModal({
             onOk={() => {
                 void form.validateFields().then((values) => onApply(values));
             }}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form form={form} layout="vertical">
                 {usesBusinessDay ? (

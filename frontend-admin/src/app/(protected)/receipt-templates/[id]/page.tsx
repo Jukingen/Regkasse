@@ -1,8 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Button, message, Spin, Alert } from 'antd';
+import { Card, Button, Spin, Alert } from 'antd';
 import { ArrowLeftOutlined, EyeOutlined } from '@ant-design/icons';
 
 import ReceiptTemplateForm from '@/features/receipt-templates/components/ReceiptTemplateForm';
@@ -26,6 +27,8 @@ function isNotFoundError(err: unknown): boolean {
 }
 
 export default function EditReceiptTemplatePage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
@@ -66,7 +69,7 @@ export default function EditReceiptTemplatePage() {
     if (!isInitialized || !canManage) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-                <Spin size="large" tip={t('receiptTemplates.page.accessCheck')} />
+                <Spin size="large" description={t('receiptTemplates.page.accessCheck')} />
             </div>
         );
     }
@@ -90,7 +93,7 @@ export default function EditReceiptTemplatePage() {
                 <Card>
                     <Alert
                         type="warning"
-                        message={t('receiptTemplates.page.templateNotFoundTitle')}
+                        title={t('receiptTemplates.page.templateNotFoundTitle')}
                         description={t('receiptTemplates.page.templateNotFoundDescription')}
                         showIcon
                         action={

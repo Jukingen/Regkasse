@@ -61,8 +61,8 @@ export function CashRegisterDetailDrawer({
             title={t('cashRegisters.detail.titleWithNumber', { number: registerNumber })}
             open={open}
             onClose={onClose}
-            width={480}
-            destroyOnClose
+            size={480}
+            destroyOnHidden
         >
             {register ? (
                 <Descriptions column={1} bordered size="small">
@@ -125,7 +125,7 @@ export function CashRegisterDetailDrawer({
                         {register.id?.trim() || FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.tseStatus')}>
-                        <Space direction="vertical" size={4}>
+                        <Space orientation="vertical" size={4}>
                             <TseHealthBadge
                                 status={
                                     tseHealthQuery.data?.status ?? enhanced?.tseHealthStatus
@@ -160,7 +160,7 @@ export function CashRegisterDetailDrawer({
                         {enhanced?.deviceInfo?.model ||
                         enhanced?.deviceInfo?.osVersion ||
                         enhanced?.deviceInfo?.appVersion ? (
-                            <Space direction="vertical" size={0}>
+                            <Space orientation="vertical" size={0}>
                                 {enhanced.deviceInfo?.model ? (
                                     <Typography.Text>
                                         {t('cashRegisters.detail.deviceModel')}:{' '}

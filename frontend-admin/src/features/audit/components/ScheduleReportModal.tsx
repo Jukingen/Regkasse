@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useState } from 'react';
-import { Form, Input, Modal, Select, message } from 'antd';
+import { Modal, Form, Input, Select } from 'antd';
 
 import type { AuditLogListParams } from '@/features/audit-logs/hooks/useAuditLogSearchParams';
 import { scheduleAuditReport, type AuditExportFormat } from '@/features/audit/api/auditAdmin';
@@ -15,6 +16,8 @@ type Props = {
 };
 
 export function ScheduleReportModal({ open, params, onClose, onScheduled }: Props) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [form] = Form.useForm();
     const [submitting, setSubmitting] = useState(false);
@@ -49,7 +52,7 @@ export function ScheduleReportModal({ open, params, onClose, onScheduled }: Prop
             onCancel={onClose}
             onOk={handleOk}
             confirmLoading={submitting}
-            destroyOnClose
+            destroyOnHidden
             okText={t('common.auditLogs.scheduleModalSubmit')}
         >
             <Form

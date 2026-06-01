@@ -38,7 +38,7 @@ export function RecentRunsTable({
           type="error"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t('backupDr.errors.partialTable')}
+          title={t('backupDr.errors.partialTable')}
           action={
             onRetry ? (
               <Button type="link" size="small" onClick={onRetry}>

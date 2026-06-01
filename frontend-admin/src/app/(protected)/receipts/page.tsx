@@ -28,7 +28,7 @@ function ReceiptsLoadingFallback() {
     const { t } = useI18n();
     return (
         <div style={{ padding: 80, textAlign: 'center' }}>
-            <Spin size="large" tip={t('receipts.list.suspenseLoading')} />
+            <Spin size="large" description={t('receipts.list.suspenseLoading')} />
         </div>
     );
 }
@@ -106,7 +106,7 @@ function ReceiptsPageContent() {
     }, [data?.page, data?.pageSize, data?.totalCount, params, formatLocale, t]);
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
                 title={ADMIN_NAV_LABELS.receipts}
                 breadcrumbs={[ADMIN_OVERVIEW_CRUMB, { title: ADMIN_NAV_LABELS.receipts }]}
@@ -130,7 +130,7 @@ function ReceiptsPageContent() {
             {isError ? (
                 <Alert
                     type="error"
-                    message={t('receipts.list.errorLoadTitle')}
+                    title={t('receipts.list.errorLoadTitle')}
                     description={getReceiptListErrorMessage(error, t('receipts.list.loadErrorFallback'))}
                     showIcon
                     action={

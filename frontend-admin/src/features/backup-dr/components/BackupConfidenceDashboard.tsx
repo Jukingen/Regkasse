@@ -41,7 +41,7 @@ export function BackupConfidenceDashboard({
   restoreStatusLabel = () => "—",
 }: BackupConfidenceDashboardProps) {
   return (
-    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+    <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
       <BackupDrDecisionStrip model={model} t={t} />
       <BackupDrProofSummaryLayers model={model} t={t} />
       <BackupDrRecentEvidenceGrid

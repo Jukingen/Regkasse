@@ -1,20 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useMemo } from 'react';
-import {
-  Alert,
-  Button,
-  Col,
-  Modal,
-  Progress,
-  Row,
-  Space,
-  Spin,
-  Statistic,
-  Table,
-  Tag,
-  message,
-} from 'antd';
+import { Modal, Alert, Button, Col, Progress, Row, Space, Spin, Statistic, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   CheckCircleOutlined,
@@ -58,6 +46,8 @@ export function BackupVerificationReport({
   open,
   onClose,
 }: BackupVerificationReportProps) {
+  const { message } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const { data: report, isLoading, isError } = useBackupVerificationReport(backupRunId, open);
 
@@ -155,7 +145,7 @@ export function BackupVerificationReport({
       open={open}
       onCancel={onClose}
       width={900}
-      destroyOnClose
+      destroyOnHidden
       footer={[
         <Button key="close" onClick={onClose}>
           {t('backupDr.verificationReport.close')}
@@ -175,7 +165,7 @@ export function BackupVerificationReport({
           <Spin />
         </div>
       ) : isError || !report ? (
-        <Alert type="error" showIcon message={t('backupDr.verificationReport.noReport')} />
+        <Alert type="error" showIcon title={t('backupDr.verificationReport.noReport')} />
       ) : (
         <>
           <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -184,12 +174,12 @@ export function BackupVerificationReport({
                 title={t('backupDr.verificationReport.score')}
                 value={report.verificationScore}
                 suffix="%"
-                valueStyle={{
+                styles={{ content: { 
                   color:
                     report.verificationScore >= 90
                       ? 'var(--ant-color-success)'
                       : 'var(--ant-color-error)',
-                }}
+                 } }}
                 prefix={<StatusIcon status={report.status} />}
               />
               <Progress percent={report.verificationScore} style={{ marginTop: 8 }} />
@@ -209,7 +199,7 @@ export function BackupVerificationReport({
           </Row>
 
           <Alert
-            message={`${t('backupDr.verificationReport.statusLabel')}: ${statusLabel}`}
+            title={`${t('backupDr.verificationReport.statusLabel')}: ${statusLabel}`}
             description={alertDescription}
             type={backupVerificationAlertType(report.verificationScore)}
             showIcon
@@ -221,7 +211,7 @@ export function BackupVerificationReport({
               type={report.logicalDumpAnalyzed ? 'success' : 'warning'}
               showIcon
               style={{ marginBottom: 16 }}
-              message={report.logicalDumpAnalysisMessage}
+              title={report.logicalDumpAnalysisMessage}
             />
           ) : null}
 

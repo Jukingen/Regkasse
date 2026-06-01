@@ -100,7 +100,7 @@ export function QuickUserModal({
             okText={t('tenants.users.quick.generate')}
             cancelText={t('common.buttons.cancel')}
             confirmLoading={confirmLoading}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form form={form} layout="vertical" onFinish={handleFinish}>
                 {showTenantSelector ? (
@@ -125,7 +125,7 @@ export function QuickUserModal({
                 <Alert
                     type="info"
                     showIcon
-                    message={t('tenants.users.quick.autoTitle')}
+                    title={t('tenants.users.quick.autoTitle')}
                     description={
                         <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
                             <li>{infoEmailExample}</li>
@@ -138,7 +138,7 @@ export function QuickUserModal({
                     <Alert
                         type="warning"
                         showIcon
-                        message={t('tenants.users.quick.assignmentRequiredAfterCreate')}
+                        title={t('tenants.users.quick.assignmentRequiredAfterCreate')}
                         style={{ marginTop: 16 }}
                     />
                 ) : null}

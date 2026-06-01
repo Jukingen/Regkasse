@@ -46,7 +46,7 @@ export function DemoImportPriceAdjustmentSection({
                 onChange={(e) => setMode(e.target.value)}
                 style={{ width: '100%' }}
             >
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Radio value="none">Keine Anpassung</Radio>
 
                     <Radio value="increasePercent">

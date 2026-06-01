@@ -335,7 +335,9 @@ public sealed class TenantUserService : ITenantUserService
             ForcePasswordChangeOnNextLogin: true,
             Success: true,
             portalUrl,
-            isQuick ? normalizedRole : null), null);
+            isQuick ? normalizedRole : null,
+            tenant.Id,
+            tenant.Slug), null);
     }
 
     private async Task LogUserCreatedAuditAsync(

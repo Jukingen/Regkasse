@@ -88,7 +88,7 @@ export function DemoImportSummaryModal({
                 </Space>
             }
         >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <Space align="start">
                     <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 22, marginTop: 2 }} />
                     <Title level={4} style={{ margin: 0 }}>
@@ -96,7 +96,7 @@ export function DemoImportSummaryModal({
                     </Title>
                 </Space>
 
-                <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                     <Text>
                         <BarChartOutlined style={{ marginRight: 8 }} />
                         {importedCount} Produkte importiert

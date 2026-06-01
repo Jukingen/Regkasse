@@ -65,7 +65,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
             <Card title={s('cardTitle')}>
                 <Alert
                     type="info"
-                    message={s('noPaymentTitle')}
+                    title={s('noPaymentTitle')}
                     description={s('noPaymentDescription')}
                 />
             </Card>
@@ -82,7 +82,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
                 <Alert
                     type="warning"
                     icon={<WifiOutlined />}
-                    message={s('offlineTitle')}
+                    title={s('offlineTitle')}
                     description={s('offlineDescription')}
                     showIcon
                 />
@@ -93,7 +93,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
     if (isLoading) {
         return (
             <Card title={s('cardTitle')}>
-                <Spin tip={s('verifyingTip')} />
+                <Spin description={s('verifyingTip')} />
             </Card>
         );
     }
@@ -103,7 +103,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
             <Card title={s('cardTitle')}>
                 <Alert
                     type="error"
-                    message={s('verificationFailed')}
+                    title={s('verificationFailed')}
                     description={(error as Error)?.message ?? s('loadDiagnosticFallback')}
                     showIcon
                 />
@@ -124,7 +124,7 @@ export default function SignatureStatusPanel({ paymentId, offlineTrace }: Signat
                     type="info"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message={s('timelineTitle')}
+                    title={s('timelineTitle')}
                     description={
                         <div style={{ fontSize: 12 }}>
                             {offlineTrace?.offlineCreatedAtUtc ? (

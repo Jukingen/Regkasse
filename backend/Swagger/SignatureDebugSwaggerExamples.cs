@@ -1,5 +1,5 @@
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace KasseAPI_Final.Swagger;
@@ -14,14 +14,13 @@ public class SignatureDebugSwaggerExamples : IOperationFilter
         if (context.ApiDescription.RelativePath?.Contains("verify-signature") == true
             && context.ApiDescription.HttpMethod == "POST")
         {
-            operation.RequestBody ??= new OpenApiRequestBody();
-            operation.RequestBody.Content ??= new Dictionary<string, OpenApiMediaType>();
-            var key = operation.RequestBody.Content.Keys.FirstOrDefault(k => k.Contains("json", StringComparison.OrdinalIgnoreCase)) ?? "application/json";
-            if (!operation.RequestBody.Content.ContainsKey(key))
-                operation.RequestBody.Content[key] = new OpenApiMediaType();
-            operation.RequestBody.Content[key].Example = new OpenApiObject
+            var requestBody = GetOrCreateRequestBody(operation);
+            var key = requestBody.Content.Keys.FirstOrDefault(k => k.Contains("json", StringComparison.OrdinalIgnoreCase)) ?? "application/json";
+            if (!requestBody.Content.ContainsKey(key))
+                requestBody.Content[key] = new OpenApiMediaType();
+            requestBody.Content[key].Example = new JsonObject
             {
-                ["compactJws"] = new OpenApiString("eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJrYXNzZW5JZCI6IktBU1NFLTAwMSIsImJlbGVnTnIiOiJBUy1LQVNTRTAwMS0yMDI1MDIyNS0xMjM0NTY3OCIsImJlbGVnRGF0dW0iOiIyNS4wMi4yMDI1IiwidWhyemVpdCI6IjE0OjMwOjAwIiwiYmV0cmFnIjoiMTIzLjQ1IiwicHJldlNpZ25hdHVyZVZhbHVlIjoiIiwidGF4RGV0YWlscyI6Int9In0.SIGNATURE_B64URL_PART")
+                ["compactJws"] = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJrYXNzZW5JZCI6IktBU1NFLTAwMSIsImJlbGVnTnIiOiJBUy1LQVNTRTAwMS0yMDI1MDIyNS0xMjM0NTY3OCIsImJlbGVnRGF0dW0iOiIyNS4wMi4yMDI1IiwidWhyemVpdCI6IjE0OjMwOjAwIiwiYmV0cmFnIjoiMTIzLjQ1IiwicHJldlNpZ25hdHVyZVZhbHVlIjoiIiwidGF4RGV0YWlscyI6Int9In0.SIGNATURE_B64URL_PART"
             };
         }
 
@@ -29,103 +28,125 @@ public class SignatureDebugSwaggerExamples : IOperationFilter
             && context.ApiDescription.HttpMethod == "GET")
         {
             operation.Responses ??= new OpenApiResponses();
-            if (!operation.Responses.TryGetValue("200", out var response))
+            var response = GetOrCreateResponse(operation.Responses, "200", "Diagnostic steps");
+            var mediaType = GetOrCreateMediaType(response, "application/json");
+            mediaType.Example = new JsonObject
             {
-                response = new OpenApiResponse { Description = "Diagnostic steps" };
-                operation.Responses.Add("200", response);
-            }
-            response.Content ??= new Dictionary<string, OpenApiMediaType>();
-            if (!response.Content.TryGetValue("application/json", out var mediaType))
-            {
-                mediaType = new OpenApiMediaType();
-                response.Content.Add("application/json", mediaType);
-            }
-            mediaType.Example = new OpenApiObject
+                ["success"] = true,
+                ["message"] = "Signature diagnostic completed",
+                ["data"] = new JsonArray
+                {
+                    new JsonObject
                     {
-                        ["success"] = new OpenApiBoolean(true),
-                        ["message"] = new OpenApiString("Signature diagnostic completed"),
-                        ["data"] = new OpenApiArray
-                        {
-                            new OpenApiObject
-                            {
-                                ["stepId"] = new OpenApiInteger(1),
-                                ["name"] = new OpenApiString("CMC match"),
-                                ["status"] = new OpenApiString("PASS"),
-                                ["evidence"] = new OpenApiString("Software mode: key provider used (no CMC)")
-                            },
-                            new OpenApiObject
-                            {
-                                ["stepId"] = new OpenApiInteger(2),
-                                ["name"] = new OpenApiString("JWS format"),
-                                ["status"] = new OpenApiString("PASS"),
-                                ["evidence"] = new OpenApiString("header.payload.signature valid")
-                            },
-                            new OpenApiObject
-                            {
-                                ["stepId"] = new OpenApiInteger(3),
-                                ["name"] = new OpenApiString("Hash"),
-                                ["status"] = new OpenApiString("PASS"),
-                                ["evidence"] = new OpenApiString("SHA-256(150 chars)")
-                            },
-                            new OpenApiObject
-                            {
-                                ["stepId"] = new OpenApiInteger(4),
-                                ["name"] = new OpenApiString("Signature verify"),
-                                ["status"] = new OpenApiString("PASS"),
-                                ["evidence"] = new OpenApiString("ES256 verification succeeded")
-                            },
-                            new OpenApiObject
-                            {
-                                ["stepId"] = new OpenApiInteger(5),
-                                ["name"] = new OpenApiString("Base64URL padding"),
-                                ["status"] = new OpenApiString("PASS"),
-                                ["evidence"] = new OpenApiString("No padding in any part")
-                            }
-                        }
-                    };
+                        ["stepId"] = 1,
+                        ["name"] = "CMC match",
+                        ["status"] = "PASS",
+                        ["evidence"] = "Software mode: key provider used (no CMC)"
+                    },
+                    new JsonObject
+                    {
+                        ["stepId"] = 2,
+                        ["name"] = "JWS format",
+                        ["status"] = "PASS",
+                        ["evidence"] = "header.payload.signature valid"
+                    },
+                    new JsonObject
+                    {
+                        ["stepId"] = 3,
+                        ["name"] = "Hash",
+                        ["status"] = "PASS",
+                        ["evidence"] = "SHA-256(150 chars)"
+                    },
+                    new JsonObject
+                    {
+                        ["stepId"] = 4,
+                        ["name"] = "Signature verify",
+                        ["status"] = "PASS",
+                        ["evidence"] = "ES256 verification succeeded"
+                    },
+                    new JsonObject
+                    {
+                        ["stepId"] = 5,
+                        ["name"] = "Base64URL padding",
+                        ["status"] = "PASS",
+                        ["evidence"] = "No padding in any part"
+                    }
+                }
+            };
         }
 
-        // POST api/Payment: Örnek response (tse, qrPayload dahil). Defansif: indexer yerine TryGetValue + Add.
         if (context.ApiDescription.RelativePath?.Contains("Payment") == true
             && context.ApiDescription.HttpMethod == "POST"
             && !context.ApiDescription.RelativePath.Contains("signature"))
         {
             operation.Responses ??= new OpenApiResponses();
-            OpenApiResponse? targetResp = null;
-            if (operation.Responses.TryGetValue("201", out targetResp)) { /* 201 varsa onu kullan */ }
-            else if (operation.Responses.TryGetValue("200", out targetResp)) { /* 200 varsa onu kullan */ }
+            OpenApiResponse targetResp;
+            if (operation.Responses.TryGetValue("201", out var existing201) && existing201 is OpenApiResponse r201)
+                targetResp = r201;
+            else if (operation.Responses.TryGetValue("200", out var existing200) && existing200 is OpenApiResponse r200)
+                targetResp = r200;
             else
             {
                 targetResp = new OpenApiResponse { Description = "Payment created" };
                 operation.Responses.Add("200", targetResp);
             }
 
-            targetResp.Content ??= new Dictionary<string, OpenApiMediaType>();
-            if (!targetResp.Content.TryGetValue("application/json", out var mediaType))
+            var mediaType = GetOrCreateMediaType(targetResp, "application/json");
+            mediaType.Example = new JsonObject
             {
-                mediaType = new OpenApiMediaType();
-                targetResp.Content.Add("application/json", mediaType);
-            }
-            mediaType.Example = new OpenApiObject
-            {
-                ["success"] = new OpenApiBoolean(true),
-                ["paymentId"] = new OpenApiString("c53521eb-0053-435a-b04e-54602578f62a"),
-                ["message"] = new OpenApiString("Payment created successfully"),
-                ["payment"] = new OpenApiObject
+                ["success"] = true,
+                ["paymentId"] = "c53521eb-0053-435a-b04e-54602578f62a",
+                ["message"] = "Payment created successfully",
+                ["payment"] = new JsonObject
                 {
-                    ["id"] = new OpenApiString("c53521eb-0053-435a-b04e-54602578f62a"),
-                    ["totalAmount"] = new OpenApiString("10.00"),
-                    ["receiptNumber"] = new OpenApiString("AT-KASSE-001-20260228-011cfa48"),
-                    ["tseSignature"] = new OpenApiString("eyJhbGci...")
+                    ["id"] = "c53521eb-0053-435a-b04e-54602578f62a",
+                    ["totalAmount"] = "10.00",
+                    ["receiptNumber"] = "AT-KASSE-001-20260228-011cfa48",
+                    ["tseSignature"] = "eyJhbGci..."
                 },
-                ["tse"] = new OpenApiObject
+                ["tse"] = new JsonObject
                 {
-                    ["tseSignature"] = new OpenApiString("eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9..."),
-                    ["qrPayload"] = new OpenApiString("_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_eyJhbGci..."),
-                    ["isDemoFiscal"] = new OpenApiBoolean(true),
-                    ["provider"] = new OpenApiString("Demo")
+                    ["tseSignature"] = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    ["qrPayload"] = "_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_eyJhbGci...",
+                    ["isDemoFiscal"] = true,
+                    ["provider"] = "Demo"
                 }
             };
         }
+    }
+
+    private static OpenApiRequestBody GetOrCreateRequestBody(OpenApiOperation operation)
+    {
+        if (operation.RequestBody is OpenApiRequestBody existing)
+            return existing;
+
+        var requestBody = new OpenApiRequestBody { Content = new Dictionary<string, OpenApiMediaType>() };
+        operation.RequestBody = requestBody;
+        return requestBody;
+    }
+
+    private static OpenApiResponse GetOrCreateResponse(OpenApiResponses responses, string statusCode, string description)
+    {
+        if (responses.TryGetValue(statusCode, out var existing) && existing is OpenApiResponse response)
+            return response;
+
+        response = new OpenApiResponse
+        {
+            Description = description,
+            Content = new Dictionary<string, OpenApiMediaType>()
+        };
+        responses.Add(statusCode, response);
+        return response;
+    }
+
+    private static OpenApiMediaType GetOrCreateMediaType(OpenApiResponse response, string contentType)
+    {
+        response.Content ??= new Dictionary<string, OpenApiMediaType>();
+        if (response.Content.TryGetValue(contentType, out var existing) && existing is OpenApiMediaType mediaType)
+            return mediaType;
+
+        mediaType = new OpenApiMediaType();
+        response.Content.Add(contentType, mediaType);
+        return mediaType;
     }
 }

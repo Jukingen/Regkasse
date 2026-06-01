@@ -54,7 +54,7 @@ export function FinanzOnlineStatusWidget({ title, dragHandleProps, onRefresh }: 
                         title="Fehlgeschlagen"
                         value={failed}
                         loading={loading}
-                        valueStyle={failed > 0 ? { color: '#cf1322' } : undefined}
+                        styles={failed > 0 ? { content: { color: '#cf1322' } } : undefined}
                     />
                 </Col>
             </Row>

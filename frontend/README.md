@@ -156,6 +156,20 @@ Full guide: `REGKASSE_AI_ONBOARDING.md`.
 - **Production:** Subdomain on API base URL (automatic).
 - **Development:** `X-Tenant-Id: {slug}` or `?tenant={slug}`.
 
+## Native Android / iOS workflow (CNG)
+
+This project uses **Continuous Native Generation (prebuild-only)**. The `android/` and `ios/` folders are **not** committed — they are generated from `app.json` when needed.
+
+| Task | Command |
+|------|---------|
+| Generate native projects | `cd frontend && npx expo prebuild` |
+| Clean regenerate | `cd frontend && npx expo prebuild --clean` |
+| Run on Android (Expo Go / dev client) | `npm run android` |
+
+After changing `plugins`, `android`, `ios`, splash, or icon entries in `app.json`, run **`npx expo prebuild --clean`** locally before native builds or EAS Build.
+
+Native folders are listed in `frontend/.gitignore`.
+
 ## Deployment Requirements
 
 - Production API base URL should use the tenant subdomain (e.g. `https://cafe.regkasse.at/api`).

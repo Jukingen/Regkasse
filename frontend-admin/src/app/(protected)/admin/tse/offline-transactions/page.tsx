@@ -1,26 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Admin: server-side non-fiscal offline payment queue (TSE replay backlog).
  * Operator copy: de-DE (Austria).
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    DatePicker,
-    Form,
-    Row,
-    Select,
-    Space,
-    Table,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Form, Row, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 import { CloudDownloadOutlined, RedoOutlined, SyncOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -66,6 +53,8 @@ function statusTag(record: AdminOfflineTransactionRowDto) {
 }
 
 export default function AdminOfflineTransactionsPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const { hasPermission } = usePermissions();
     const allowed = hasPermission(PERMISSIONS.PAYMENT_VIEW);
@@ -284,14 +273,14 @@ export default function AdminOfflineTransactionsPage() {
             <Alert
                 type="error"
                 showIcon
-                message="Keine Berechtigung"
+                title="Keine Berechtigung"
                 description="Sie benötigen «payment.view», um die Offline-Warteschlange zu sehen."
             />
         );
     }
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%', paddingBottom: 24 }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%', paddingBottom: 24 }}>
             <AdminPageHeader
                 title="Offline-Transaktionen (TSE)"
                 breadcrumbs={[adminOverviewCrumb(t), { title: 'Offline-Transaktionen (TSE)' }]}
@@ -332,7 +321,7 @@ export default function AdminOfflineTransactionsPage() {
                 <Alert
                     type="warning"
                     showIcon
-                    message="Hoher Offline-Rückstau"
+                    title="Hoher Offline-Rückstau"
                     description={`Es sind ${summaryQuery.data?.pendingCount} Zahlungen noch nicht fiskal signiert (Schwelle &gt; 10).`}
                 />
             ) : null}

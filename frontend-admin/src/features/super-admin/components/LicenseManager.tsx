@@ -1,23 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    Checkbox,
-    DatePicker,
-    Descriptions,
-    Form,
-    Input,
-    Modal,
-    Select,
-    Space,
-    Table,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Modal, Alert, Button, Card, Checkbox, DatePicker, Descriptions, Form, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { AxiosError } from 'axios';
 import dayjs from 'dayjs';
@@ -71,6 +56,8 @@ function readApiErrorMessage(error: unknown, fallback: string): string {
 }
 
 export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const [extendForm] = Form.useForm<ExtendFormValues>();
@@ -206,7 +193,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
     ];
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Card title={t('tenants.detail.license.currentTitle')} loading={licenseQuery.isLoading}>
                 {status ? (
                     <Descriptions column={{ xs: 1, sm: 2 }} size="small">
@@ -255,7 +242,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                         style={{ marginTop: 16 }}
                         type={resolvedStatus.kind === 'grace_write' ? 'warning' : resolvedStatus.kind === 'active' ? 'success' : 'error'}
                         showIcon
-                        message={getLicenseStatusMessage(resolvedStatus, 'tenant', t)}
+                        title={getLicenseStatusMessage(resolvedStatus, 'tenant', t)}
                     />
                 ) : null}
                 {consistency && !consistency.isConsistent ? (
@@ -263,7 +250,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                         type="warning"
                         showIcon
                         style={{ marginTop: 16 }}
-                        message={t('tenants.detail.license.consistencyTitle')}
+                        title={t('tenants.detail.license.consistencyTitle')}
                         description={
                             <ul style={{ margin: 0, paddingLeft: 20 }}>
                                 {consistency.warnings.map((w) => (
@@ -278,7 +265,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                         type="success"
                         showIcon
                         style={{ marginTop: 16 }}
-                        message={t('tenants.detail.license.consistencyOk')}
+                        title={t('tenants.detail.license.consistencyOk')}
                     />
                 ) : null}
                 <Space wrap style={{ marginTop: 16 }}>
@@ -353,14 +340,14 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
                 open={renewOpen}
                 onCancel={() => setRenewOpen(false)}
                 footer={null}
-                destroyOnClose
+                destroyOnHidden
             >
                 {inGracePeriod ? (
                     <Alert
                         type="warning"
                         showIcon
                         style={{ marginBottom: 16 }}
-                        message={t('tenants.detail.license.renewGraceHint')}
+                        title={t('tenants.detail.license.renewGraceHint')}
                     />
                 ) : null}
                 <Form

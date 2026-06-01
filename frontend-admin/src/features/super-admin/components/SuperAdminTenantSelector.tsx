@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, Card, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { LoginOutlined } from '@ant-design/icons';
 import Link from 'next/link';
@@ -30,6 +31,8 @@ function statusColor(status: string): string {
 }
 
 export function SuperAdminTenantSelector() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
     const [impersonationRedirecting, setImpersonationRedirecting] = useState(false);
@@ -113,11 +116,11 @@ export function SuperAdminTenantSelector() {
     return (
         <>
             {impersonationRedirecting ? <ImpersonationRedirectOverlay /> : null}
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Space orientation="vertical" size={16} style={{ width: '100%' }}>
                 <Alert
                     type="warning"
                     showIcon
-                    message={t('superadmin.noTenant.banner')}
+                    title={t('superadmin.noTenant.banner')}
                     description={t('superadmin.noTenant.message')}
                 />
 
@@ -155,7 +158,7 @@ export function SuperAdminTenantSelector() {
                     </Space>
 
                     {tenantsQuery.isError ? (
-                        <Alert type="error" showIcon message={t('superadmin.loadFailed')} />
+                        <Alert type="error" showIcon title={t('superadmin.loadFailed')} />
                     ) : (
                         <Table
                             size="small"

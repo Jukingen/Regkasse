@@ -19,7 +19,7 @@ export function RksvReminderCard() {
                 variant="borderless"
                 style={{ marginBottom: 24 }}
             >
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                     <Skeleton active paragraph={{ rows: 3 }} />
                 </Space>
             </Card>
@@ -41,7 +41,7 @@ export function RksvReminderCard() {
             >
                 <Alert
                     type="error"
-                    message="Fehler beim Laden der RKSV-Daten"
+                    title="Fehler beim Laden der RKSV-Daten"
                     description="Die RKSV-Erinnerungen konnten nicht geladen werden. Bitte versuchen Sie es später erneut."
                     showIcon
                 />
@@ -98,12 +98,12 @@ export function RksvReminderCard() {
             variant="borderless"
             style={{ marginBottom: 24 }}
         >
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 {data.missingStartbeleg > 0 ? (
                     <Alert
                         type="warning"
                         showIcon
-                        message="Startbeleg fehlt"
+                        title="Startbeleg fehlt"
                         description={`${data.missingStartbeleg} von ${data.totalRegisters} Kassen haben noch keinen Startbeleg.`}
                     />
                 ) : null}
@@ -112,7 +112,7 @@ export function RksvReminderCard() {
                     <Alert
                         type="error"
                         showIcon
-                        message="Monatsbeleg überfällig"
+                        title="Monatsbeleg überfällig"
                         description={`${data.overdueMonatsbeleg} Kassen haben den Monatsbeleg nicht rechtzeitig erstellt.`}
                     />
                 ) : null}
@@ -121,7 +121,7 @@ export function RksvReminderCard() {
                     <Alert
                         type="info"
                         showIcon
-                        message="Monatsbeleg ausstehend"
+                        title="Monatsbeleg ausstehend"
                         description={`${data.missingMonatsbeleg} Kassen benötigen einen Monatsbeleg.`}
                     />
                 ) : null}
@@ -130,7 +130,7 @@ export function RksvReminderCard() {
                     <Alert
                         type="warning"
                         showIcon
-                        message="Jahresbeleg ausstehend"
+                        title="Jahresbeleg ausstehend"
                         description={`${data.missingJahresbeleg} Kassen benötigen einen Jahresbeleg.`}
                     />
                 ) : null}
@@ -139,7 +139,7 @@ export function RksvReminderCard() {
                     <Alert
                         type="success"
                         showIcon
-                        message="Alle RKSV-Sonderbelege sind aktuell"
+                        title="Alle RKSV-Sonderbelege sind aktuell"
                         description="Alle Kassen haben die erforderlichen Startbelege, Monatsbelege und Jahresbelege."
                     />
                 ) : null}

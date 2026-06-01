@@ -1,26 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Gun sonu admin sayfasi; metinler tagesabschluss namespace, para/tarih formatLocale ile.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Descriptions,
-  Empty,
-  Input,
-  Modal,
-  Row,
-  Space,
-  Spin,
-  Table,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Descriptions, Empty, Input, Row, Space, Spin, Table, Typography } from 'antd';
 import { CalendarOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -63,6 +48,8 @@ function isUuid(v: string): boolean {
 }
 
 export default function TagesabschlussPage() {
+  const { message, modal } = useAntdApp();
+
   const queryClient = useQueryClient();
   const { t, formatLocale } = useI18n();
 
@@ -254,7 +241,7 @@ export default function TagesabschlussPage() {
         : kind === 'monthly'
           ? t('tagesabschluss.actions.modalTitleMonthly')
           : t('tagesabschluss.actions.modalTitleYearly');
-    Modal.confirm({
+    modal.confirm({
       title: modalTitle,
       content: t('tagesabschluss.actions.modalContent'),
       okText: t('tagesabschluss.actions.modalOk'),
@@ -372,12 +359,12 @@ export default function TagesabschlussPage() {
       <AdminPageScopeSummary label={t('tagesabschluss.scope.label')}>{tagesabschlussScopeSummary}</AdminPageScopeSummary>
 
       <Card title={t('tagesabschluss.card.register')}>
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        <Space orientation="vertical" style={{ width: '100%' }} size="middle">
           {canListRegisters ? (
             registersLoading ? (
               <Spin />
             ) : registerOptions.length === 0 ? (
-              <Alert type="warning" showIcon message={t('tagesabschluss.register.noRegistersTitle')} />
+              <Alert type="warning" showIcon title={t('tagesabschluss.register.noRegistersTitle')} />
             ) : (
               <div>
                 <Title level={5} style={{ marginTop: 0, marginBottom: 6 }}>
@@ -395,7 +382,7 @@ export default function TagesabschlussPage() {
             <Alert
               type="info"
               showIcon
-              message={t('tagesabschluss.register.noListTitle')}
+              title={t('tagesabschluss.register.noListTitle')}
               description={t('tagesabschluss.register.noListDescription')}
             />
           )}
@@ -418,7 +405,7 @@ export default function TagesabschlussPage() {
           ) : canCloseQuery.isError ? (
             <Alert
               type="error"
-              message={t('tagesabschluss.check.failedTitle')}
+              title={t('tagesabschluss.check.failedTitle')}
               description={getUserFacingApiErrorMessage(t, canCloseQuery.error, {
                 logContext: 'TagesabschlussCanClose',
                 fallbackKey: 'tagesabschluss.errors.unknown',
@@ -502,7 +489,7 @@ export default function TagesabschlussPage() {
             ) : statsQuery.isError ? (
               <Alert
               type="error"
-              message={t('tagesabschluss.errors.loadStatsTitle')}
+              title={t('tagesabschluss.errors.loadStatsTitle')}
               description={getUserFacingApiErrorMessage(t, statsQuery.error, {
                 logContext: 'TagesabschlussStatistics',
                 fallbackKey: 'tagesabschluss.errors.unknown',
@@ -544,7 +531,7 @@ export default function TagesabschlussPage() {
             ) : historyQuery.isError ? (
               <Alert
               type="error"
-              message={t('tagesabschluss.errors.loadHistoryTitle')}
+              title={t('tagesabschluss.errors.loadHistoryTitle')}
               description={getUserFacingApiErrorMessage(t, historyQuery.error, {
                 logContext: 'TagesabschlussHistory',
                 fallbackKey: 'tagesabschluss.errors.unknown',

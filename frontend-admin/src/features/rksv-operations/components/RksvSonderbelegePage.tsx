@@ -1,5 +1,6 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Bu ana bileşen RKSV Sonderbelege işlemlerini daha anlaşılır kart düzeninde sunar.
  */
@@ -7,23 +8,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    DatePicker,
-    Input,
-    Modal,
-    Row,
-    Select,
-    Space,
-    Table,
-    Tag,
-    Tooltip,
-    Typography,
-    message,
-} from 'antd';
+import { Modal, Alert, Button, Card, Col, DatePicker, Input, Row, Select, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -164,6 +149,8 @@ function titleWithTooltip(title: string, tooltipText: string): React.ReactNode {
 }
 
 export default function RksvSonderbelegePage() {
+  const { message, modal } = useAntdApp();
+
     const { hasPermission } = usePermissions();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
@@ -426,7 +413,7 @@ export default function RksvSonderbelegePage() {
     }, [registerId, canCreateSchlussbelegNow, reasonShort, postJson, invalidateLists]);
 
     const confirmJahresbeleg = useCallback(() => {
-        Modal.confirm({
+        modal.confirm({
             title: 'Jahresbeleg erstellen',
             content: 'Dieser Vorgang kann nicht rückgängig gemacht werden.',
             okText: 'Erstellen',
@@ -643,7 +630,7 @@ export default function RksvSonderbelegePage() {
             />
 
             <Card style={{ marginBottom: 16 }}>
-                <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                     <div>
                         <Typography.Text strong>Kasse auswählen</Typography.Text>
                         <Select
@@ -666,7 +653,7 @@ export default function RksvSonderbelegePage() {
                         <Alert
                             type={selectedRegisterIsDecommissioned ? 'warning' : 'info'}
                             showIcon
-                            message={`Betriebsstatus: ${registerBetriebsstatusDe(selectedRegisterStatus)}`}
+                            title={`Betriebsstatus: ${registerBetriebsstatusDe(selectedRegisterStatus)}`}
                             description={
                                 selectedRegisterIsDecommissioned
                                     ? 'Diese Kasse wurde bereits stillgelegt. Es können keine neuen Sonderbelege erstellt werden.'
@@ -674,18 +661,18 @@ export default function RksvSonderbelegePage() {
                             }
                         />
                     ) : (
-                        <Alert type="info" showIcon message="Bitte zuerst eine Kasse auswählen." />
+                        <Alert type="info" showIcon title="Bitte zuerst eine Kasse auswählen." />
                     )}
                 </Space>
             </Card>
 
             {isDevelopment ? (
                 <Card title="Test Helper (Demo-Modus)" style={{ marginBottom: 16 }}>
-                    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                    <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                         <Alert
                             type="warning"
                             showIcon
-                            message="Demo-Modus: Beachten Sie, dass diese Belege nur zu Testzwecken dienen und nicht für den Produktivbetrieb verwendet werden dürfen."
+                            title="Demo-Modus: Beachten Sie, dass diese Belege nur zu Testzwecken dienen und nicht für den Produktivbetrieb verwendet werden dürfen."
                         />
                         <Space wrap>
                             <Button
@@ -724,7 +711,7 @@ export default function RksvSonderbelegePage() {
                         )}
                         id="rksv-focus-startbeleg"
                     >
-                        <Space direction="vertical" style={{ width: '100%' }}>
+                        <Space orientation="vertical" style={{ width: '100%' }}>
                             <Typography.Paragraph style={{ marginBottom: 0 }}>
                                 Erster Beleg nach Kassenaktivierung. Nur einmal pro Kasse möglich.
                             </Typography.Paragraph>
@@ -740,7 +727,7 @@ export default function RksvSonderbelegePage() {
                             >
                                 Startbeleg erstellen
                             </Button>
-                            {hasStartbelegForRegister ? <Alert type="success" showIcon message="Für diese Kasse ist bereits ein Startbeleg vorhanden." /> : null}
+                            {hasStartbelegForRegister ? <Alert type="success" showIcon title="Für diese Kasse ist bereits ein Startbeleg vorhanden." /> : null}
                         </Space>
                     </Card>
                 </Col>
@@ -752,7 +739,7 @@ export default function RksvSonderbelegePage() {
                             'Für jeden Kalendermonat muss ein Monatsbeleg erstellt werden, spätestens bis zum Ende des Folgemonats. Der Monatsbeleg dient der monatlichen Kontrolle der Registrierkasse.',
                         )}
                     >
-                        <Space direction="vertical" style={{ width: '100%' }}>
+                        <Space orientation="vertical" style={{ width: '100%' }}>
                             <Typography.Paragraph style={{ marginBottom: 0 }}>
                                 Monatlicher Kontrollbeleg. Pflicht für jeden Kalendermonat.
                             </Typography.Paragraph>
@@ -769,7 +756,7 @@ export default function RksvSonderbelegePage() {
                             >
                                 {`Monatsbeleg für ${formatMonthYearDe(monatYear, monatMonth)} erstellen`}
                             </Button>
-                            {hasMonatsbelegForPeriod ? <Alert type="success" showIcon message="Monatsbeleg für den gewählten Zeitraum ist bereits vorhanden." /> : null}
+                            {hasMonatsbelegForPeriod ? <Alert type="success" showIcon title="Monatsbeleg für den gewählten Zeitraum ist bereits vorhanden." /> : null}
                         </Space>
                     </Card>
                 </Col>
@@ -781,7 +768,7 @@ export default function RksvSonderbelegePage() {
                             'Ein Jahresbeleg ist für jedes Kalenderjahr zu erstellen, spätestens bis zum 31. Jänner des Folgejahres. Der Monatsbeleg Dezember kann als Jahresbeleg verwendet werden.',
                         )}
                     >
-                        <Space direction="vertical" style={{ width: '100%' }}>
+                        <Space orientation="vertical" style={{ width: '100%' }}>
                             <Typography.Paragraph style={{ marginBottom: 0 }}>
                                 Jährlicher Kontrollbeleg. Dezember Monatsbeleg kann als Jahresbeleg dienen.
                             </Typography.Paragraph>
@@ -804,7 +791,7 @@ export default function RksvSonderbelegePage() {
                             >
                                 {`Jahresbeleg für ${jahrYear} erstellen`}
                             </Button>
-                            {hasJahresbelegForYear ? <Alert type="success" showIcon message="Jahresbeleg für das gewählte Jahr ist bereits vorhanden." /> : null}
+                            {hasJahresbelegForYear ? <Alert type="success" showIcon title="Jahresbeleg für das gewählte Jahr ist bereits vorhanden." /> : null}
                         </Space>
                     </Card>
                 </Col>
@@ -816,7 +803,7 @@ export default function RksvSonderbelegePage() {
                             'Der Nullbeleg ist ein Beleg mit Null-Betrag. Er kann zu Kontrollzwecken oder als Ersatz für den Monatsbeleg in bestimmten Ausnahmefällen (z.B. bei Umsatzsteuerbefreiung) verwendet werden.',
                         )}
                     >
-                        <Space direction="vertical" style={{ width: '100%' }}>
+                        <Space orientation="vertical" style={{ width: '100%' }}>
                             <Typography.Paragraph style={{ marginBottom: 0 }}>
                                 Der Nullbeleg wird nur bei einer Kassennachschau auf amtliche Aufforderung benötigt.
                             </Typography.Paragraph>
@@ -836,7 +823,7 @@ export default function RksvSonderbelegePage() {
                                 <Alert
                                     type="info"
                                     showIcon
-                                    message="Für diese Kasse existiert bereits mindestens ein Nullbeleg."
+                                    title="Für diese Kasse existiert bereits mindestens ein Nullbeleg."
                                 />
                             ) : null}
                         </Space>
@@ -852,19 +839,19 @@ export default function RksvSonderbelegePage() {
                         )}
                         styles={{ body: { border: '1px solid #ffccc7', borderRadius: 8, background: '#fff1f0' } }}
                     >
-                        <Space direction="vertical" style={{ width: '100%' }}>
+                        <Space orientation="vertical" style={{ width: '100%' }}>
                             <Typography.Paragraph strong style={{ color: '#a8071a', marginBottom: 0 }}>
                                 Endgültige Stilllegung der Kasse. Nach Erstellung kann die Kasse keine Zahlungen mehr annehmen.
                             </Typography.Paragraph>
                             <Alert
                                 type="warning"
                                 showIcon
-                                message='Endbeleg wird NUR bei endgültiger Außerbetriebnahme verwendet (keine Saisonpause!).'
+                                title='Endbeleg wird NUR bei endgültiger Außerbetriebnahme verwendet (keine Saisonpause!).'
                             />
                             <Alert
                                 type="error"
                                 showIcon
-                                message="Achtung: Dieser Vorgang ist dauerhaft und kann nicht rückgängig gemacht werden."
+                                title="Achtung: Dieser Vorgang ist dauerhaft und kann nicht rückgängig gemacht werden."
                             />
                             <Typography.Text type="secondary">
                                 Nur verwenden, wenn die Kasse endgültig außer Betrieb genommen wird.
@@ -876,7 +863,7 @@ export default function RksvSonderbelegePage() {
                                 <Alert
                                     type="warning"
                                     showIcon
-                                    message={
+                                    title={
                                         selectedRegisterHasOpenSession
                                             ? 'Nicht verfügbar: Es besteht eine offene Sitzung. Bitte Sitzung schließen.'
                                             : 'Nicht verfügbar: Endbeleg nur bei Kassenstatus „Geschlossen".'
@@ -893,7 +880,7 @@ export default function RksvSonderbelegePage() {
                             >
                                 Kasse stilllegen (Endbeleg)
                             </Button>
-                            {hasSchlussbelegForRegister ? <Alert type="warning" showIcon message="Für diese Kasse existiert bereits ein Schlussbeleg." /> : null}
+                            {hasSchlussbelegForRegister ? <Alert type="warning" showIcon title="Für diese Kasse existiert bereits ein Schlussbeleg." /> : null}
                         </Space>
                     </Card>
                 </Col>
@@ -901,7 +888,7 @@ export default function RksvSonderbelegePage() {
 
             <Card title="Zuletzt erstellte Sonderbelege (mit Zweck)" style={{ marginBottom: 16 }} loading={scanLoading}>
                 {recentSpecialReceipts.length === 0 ? (
-                    <Alert type="info" showIcon message="Noch keine Sonderbelege vorhanden." />
+                    <Alert type="info" showIcon title="Noch keine Sonderbelege vorhanden." />
                 ) : (
                     <Row gutter={[12, 12]}>
                         {recentSpecialReceipts.map((row) => {
@@ -920,7 +907,7 @@ export default function RksvSonderbelegePage() {
                             return (
                                 <Col xs={24} md={12} lg={8} key={row.receiptId ?? `${row.receiptNumber}-${row.issuedAt}`}>
                                     <Card size="small">
-                                        <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                                        <Space orientation="vertical" size={6} style={{ width: '100%' }}>
                                             <Space>
                                                 <Tag color={badge.color}>{badge.text}</Tag>
                                                 <Tag color="green">Erfolgreich erstellt</Tag>
@@ -966,7 +953,7 @@ export default function RksvSonderbelegePage() {
                 }
             >
                 {!registerId ? (
-                    <Alert type="info" showIcon message="Für die Timeline zuerst eine Kasse auswählen." />
+                    <Alert type="info" showIcon title="Für die Timeline zuerst eine Kasse auswählen." />
                 ) : (
                     <Row gutter={[12, 12]}>
                         {monthlyTimelineRows.map((item) => {
@@ -988,7 +975,7 @@ export default function RksvSonderbelegePage() {
                                             },
                                         }}
                                     >
-                                        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                                        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                                             <Typography.Text strong>{monthShortNameDe(item.month)}</Typography.Text>
                                             <Typography.Text>{icon}</Typography.Text>
                                             <Typography.Text type="secondary">{label}</Typography.Text>
@@ -1037,7 +1024,7 @@ export default function RksvSonderbelegePage() {
                     type="error"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message="Starke Bestätigung erforderlich"
+                    title="Starke Bestätigung erforderlich"
                     description='Gib zur Bestätigung exakt «ENDBELEG» ein. Status wird auf "Decommissioned" gesetzt.'
                 />
                 <Input

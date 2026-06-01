@@ -38,7 +38,7 @@ export function RecentRestoreDrillsTable({
           type="error"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t('backupDr.errors.partialTableRestore')}
+          title={t('backupDr.errors.partialTableRestore')}
           action={
             onRetry ? (
               <Button type="link" size="small" onClick={onRetry}>

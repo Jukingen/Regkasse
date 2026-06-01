@@ -43,7 +43,7 @@ export default function AdminPaymentStandaloneDetailPage() {
       <Alert
         type="warning"
         showIcon
-        message={t('payments.standaloneDetail.notFound')}
+        title={t('payments.standaloneDetail.notFound')}
         action={
           <Button type="primary" onClick={() => router.push('/payments')}>
             {t('payments.standaloneDetail.backToPayments')}
@@ -54,7 +54,7 @@ export default function AdminPaymentStandaloneDetailPage() {
   }
 
   if (isLoading) {
-    return <Spin style={{ display: 'block', margin: '80px auto' }} tip={t('payments.standaloneDetail.loading')} />;
+    return <Spin style={{ display: 'block', margin: '80px auto' }} description={t('payments.standaloneDetail.loading')} />;
   }
 
   if (isError && isNotFoundError(error)) {
@@ -62,7 +62,7 @@ export default function AdminPaymentStandaloneDetailPage() {
       <Alert
         type="warning"
         showIcon
-        message={t('payments.standaloneDetail.notFound')}
+        title={t('payments.standaloneDetail.notFound')}
         action={
           <Button type="primary" onClick={() => router.push('/payments')}>
             {t('payments.standaloneDetail.backToPayments')}
@@ -77,7 +77,7 @@ export default function AdminPaymentStandaloneDetailPage() {
       <Alert
         type="error"
         showIcon
-        message={t('payments.standaloneDetail.loadFailed')}
+        title={t('payments.standaloneDetail.loadFailed')}
         action={
           <Space>
             <Button onClick={() => void refetch()}>{t('payments.toolbar.retryAfterError')}</Button>
@@ -93,7 +93,7 @@ export default function AdminPaymentStandaloneDetailPage() {
       <Alert
         type="warning"
         showIcon
-        message={t('payments.standaloneDetail.notFound')}
+        title={t('payments.standaloneDetail.notFound')}
         action={<Button onClick={handleBack}>{t('payments.standaloneDetail.backToPayments')}</Button>}
       />
     );
@@ -103,7 +103,7 @@ export default function AdminPaymentStandaloneDetailPage() {
   const crumbTitle = payment.transactionId?.trim() || payment.id;
 
   return (
-    <Space direction="vertical" size="large" style={{ width: '100%' }}>
+    <Space orientation="vertical" size="large" style={{ width: '100%' }}>
       <AdminPageHeader
         title={t('payments.standaloneDetail.pageTitle')}
         breadcrumbs={[

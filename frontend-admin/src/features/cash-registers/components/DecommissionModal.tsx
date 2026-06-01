@@ -81,7 +81,7 @@ export function DecommissionModal({
                     {t('cashRegisters.decommission.confirm')}
                 </Button>,
             ]}
-            destroyOnClose
+            destroyOnHidden
             width={500}
         >
             <Typography.Paragraph strong style={{ marginBottom: 16 }}>
@@ -93,7 +93,7 @@ export function DecommissionModal({
                     type="warning"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message={t('cashRegisters.decommission.mustCloseFirst')}
+                    title={t('cashRegisters.decommission.mustCloseFirst')}
                 />
             ) : null}
 
@@ -101,7 +101,7 @@ export function DecommissionModal({
                 type="warning"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={t('cashRegisters.decommission.irreversibleWarning')}
+                title={t('cashRegisters.decommission.irreversibleWarning')}
                 description={
                     <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
                         <li>{t('cashRegisters.decommission.warningNoPayments')}</li>
@@ -115,7 +115,7 @@ export function DecommissionModal({
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={
+                title={
                     <span>
                         {t('cashRegisters.decommission.hintSchlussbeleg')}{' '}
                         <Link href="/rksv/sonderbelege?focus=schlussbeleg">

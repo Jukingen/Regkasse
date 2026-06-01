@@ -57,7 +57,7 @@ export function MetricCard({
         title={title}
         value={value}
         loading={loading}
-        valueStyle={metricValueStyle(status)}
+        styles={{ content: metricValueStyle(status) }}
         prefix={metricPrefix(status)}
       />
       {trend !== undefined ? (

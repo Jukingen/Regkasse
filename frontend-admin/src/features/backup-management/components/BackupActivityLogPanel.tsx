@@ -162,14 +162,14 @@ export function BackupActivityLogPanel() {
   );
 
   return (
-    <Space direction="vertical" size={16} style={{ width: "100%" }}>
+    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
         {t("backupDr.management.log.subtitle")}
       </Typography.Paragraph>
 
       <Card size="small" title={t("backupDr.management.log.activityTitle")}>
         {activitiesQuery.isError ? (
-          <Alert type="error" showIcon message={t("backupDr.errors.loadFailed")} />
+          <Alert type="error" showIcon title={t("backupDr.errors.loadFailed")} />
         ) : (
           <Table<ActivityDto>
             rowKey="id"
@@ -192,7 +192,7 @@ export function BackupActivityLogPanel() {
       {access.canViewAudit ? (
         <Card size="small" title={t("backupDr.management.log.auditTitle")}>
           {auditQuery.isError ? (
-            <Alert type="error" showIcon message={t("backupDr.errors.loadFailed")} />
+            <Alert type="error" showIcon title={t("backupDr.errors.loadFailed")} />
           ) : (
             <Table<AuditLogEntryDto>
               rowKey="id"
@@ -209,7 +209,7 @@ export function BackupActivityLogPanel() {
         <Alert
           type="info"
           showIcon
-          message={t("backupDr.management.log.auditRestricted")}
+          title={t("backupDr.management.log.auditRestricted")}
         />
       )}
     </Space>

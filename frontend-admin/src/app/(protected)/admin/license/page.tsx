@@ -1,5 +1,6 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * On-premise license status, activation, issuance, and issued-license audit list (German operator copy via i18n `license.*`).
  */
@@ -7,27 +8,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useSearchParams } from 'next/navigation';
-import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    Collapse,
-    Descriptions,
-    Dropdown,
-    Form,
-    Input,
-    InputNumber,
-    Modal,
-    Row,
-    Space,
-    Spin,
-    Table,
-    Tabs,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Modal, Alert, Button, Card, Col, Collapse, Descriptions, Dropdown, Form, Input, InputNumber, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
@@ -598,7 +579,7 @@ function IssuedLicensesTableCard() {
 
     return (
         <Card title={t('license.issued.title')}>
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <Input.Search
                     allowClear
                     placeholder={t('license.issued.searchPlaceholder')}
@@ -615,7 +596,7 @@ function IssuedLicensesTableCard() {
                 />
 
                 {listQuery.isError ? (
-                    <Alert type="error" showIcon message={t('license.issued.loadError')} />
+                    <Alert type="error" showIcon title={t('license.issued.loadError')} />
                 ) : (
                     <Table<IssuedLicenseListItemDto>
                         rowKey="id"
@@ -883,7 +864,7 @@ function IssuedLicensesTableCard() {
                 open={detailsLicenseId !== null}
                 width={920}
                 footer={null}
-                destroyOnClose
+                destroyOnHidden
                 onCancel={() => setDetailsLicenseId(null)}
             >
                 {detailsQuery.isFetching ? (
@@ -891,9 +872,9 @@ function IssuedLicensesTableCard() {
                         <Spin />
                     </div>
                 ) : detailsQuery.isError ? (
-                    <Alert type="error" showIcon message={t('license.issued.super.detailsLoadError')} />
+                    <Alert type="error" showIcon title={t('license.issued.super.detailsLoadError')} />
                 ) : detailsQuery.data ? (
-                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                             {t('license.issued.super.fullKeyHint')}
                         </Typography.Paragraph>
@@ -956,6 +937,8 @@ function IssuedLicensesTableCard() {
 }
 
 export default function AdminLicensePage() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const { user } = useAuth();
@@ -1052,7 +1035,7 @@ export default function AdminLicensePage() {
                         <Spin />
                     </div>
                 ) : publicStatusQuery.isError ? (
-                    <Alert type="warning" showIcon message={t('license.publicStatus.loadError')} />
+                    <Alert type="warning" showIcon title={t('license.publicStatus.loadError')} />
                 ) : publicStatusQuery.data ? (
                     <Descriptions bordered column={1} size="small">
                         <Descriptions.Item label={t('license.simpleUi.status')}>
@@ -1098,7 +1081,7 @@ export default function AdminLicensePage() {
                         <Spin />
                     </div>
                 ) : statusQuery.isError ? (
-                    <Alert type="error" showIcon message={t('common.messages.unknownError')} />
+                    <Alert type="error" showIcon title={t('common.messages.unknownError')} />
                 ) : (
                     <Row gutter={[16, 16]}>
                         <Col xs={24} lg={14}>
@@ -1147,7 +1130,7 @@ export default function AdminLicensePage() {
                                               : 'error'
                                     }
                                     showIcon
-                                    message={getLicenseStatusMessage(resolvedStatus, 'deployment', t)}
+                                    title={getLicenseStatusMessage(resolvedStatus, 'deployment', t)}
                                 />
                             ) : null}
                             {machineHash ? (
@@ -1183,7 +1166,7 @@ export default function AdminLicensePage() {
                             <Col xs={24} lg={10}>
                                 <Card type="inner" title={t('license.activation.title')}>
                                     {!canActivate ? (
-                                        <Alert type="info" showIcon message={t('license.activation.noPermission')} />
+                                        <Alert type="info" showIcon title={t('license.activation.noPermission')} />
                                     ) : (
                                         <Form
                                             form={form}

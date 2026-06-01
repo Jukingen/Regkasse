@@ -34,7 +34,7 @@ export function SuperAdminCredentialsGate({
         <Alert
             type="info"
             showIcon
-            message={t('tenants.users.superAdminOnly.credentialsTitle')}
+            title={t('tenants.users.superAdminOnly.credentialsTitle')}
             description={t('tenants.users.superAdminOnly.credentialsHint')}
         />
     );

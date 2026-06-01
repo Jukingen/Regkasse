@@ -77,7 +77,7 @@ export function OnboardingErrorModal({
             open={open && !!error}
             onCancel={onCancel}
             width={560}
-            destroyOnClose
+            destroyOnHidden
             footer={[
                 <Button key="cancel" onClick={onCancel}>
                     {t('common.buttons.cancel')}
@@ -99,7 +99,7 @@ export function OnboardingErrorModal({
         >
             {error ? (
                 <>
-                    <Alert type="error" showIcon={false} message={displayMessage} style={{ marginBottom: 16 }} />
+                    <Alert type="error" showIcon={false} title={displayMessage} style={{ marginBottom: 16 }} />
 
                     {suggestions.length > 0 ? (
                         <div>

@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Input, Modal, Select, Space, Typography, message } from 'antd';
+import { Modal, Button, Input, Select, Space, Typography } from 'antd';
 import { DeleteOutlined, SaveOutlined } from '@ant-design/icons';
 
 import type { DemoImportImageMode } from '@/features/tenants/components/demo-import/demoImportImage';
@@ -46,6 +47,8 @@ export function DemoImportProfileBar({
     overwrite,
     onApply,
 }: DemoImportProfileBarProps) {
+  const { message, modal } = useAntdApp();
+
     const [savedProfiles, setSavedProfiles] = useState<DemoImportProfile[]>(() =>
         listSavedDemoImportProfiles(tenantId),
     );
@@ -136,7 +139,7 @@ export function DemoImportProfileBar({
         const profile = savedProfiles.find((p) => p.id === selectedProfileId);
         if (!profile) return;
 
-        Modal.confirm({
+        modal.confirm({
             title: 'Profil löschen?',
             content: `„${profile.name}" wird dauerhaft entfernt.`,
             okText: 'Löschen',
@@ -215,9 +218,9 @@ export function DemoImportProfileBar({
                 onOk={handleSave}
                 okText="Speichern"
                 cancelText="Abbrechen"
-                destroyOnClose
+                destroyOnHidden
             >
-                <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                     <div>
                         <Text type="secondary" style={{ fontSize: 12 }}>
                             Name

@@ -57,7 +57,7 @@ function buildColumns(
             sorter: true,
             width: 210,
             render: (_: string, row: ReceiptListItemDto) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <Typography.Text strong ellipsis style={{ maxWidth: 200, display: 'block' }}>
                         {row.receiptNumber}
                     </Typography.Text>

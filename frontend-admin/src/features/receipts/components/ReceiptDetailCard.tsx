@@ -1,9 +1,10 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Alert, Button, Descriptions, message, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Descriptions, Space, Tag, Typography } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import type { ReceiptDetailDto } from '@/features/receipts/types/receipts';
 import { formatEUR } from '@/shared/utils/currency';
@@ -30,6 +31,8 @@ interface ReceiptDetailCardProps {
  * Üst kart: fiş meta verisi (numara, tarihler, toplamlar, imza).
  */
 export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const router = useRouter();
     const regFk = analyzeRegisterFkField(receipt.cashRegisterId);
@@ -74,7 +77,7 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                         type="warning"
                         showIcon
                         style={{ marginBottom: 8 }}
-                        message={c('registerUnsafeTitle')}
+                        title={c('registerUnsafeTitle')}
                         description={c('registerUnsafeDescription')}
                     />
                 ) : null}
@@ -203,7 +206,7 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
             </Descriptions.Item>
             <Descriptions.Item label={c('labelQrCode')} span={3}>
                 {qrRaw ? (
-                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                    <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                         <Text code style={{ fontSize: 11, wordBreak: 'break-all' }}>
                             {maskQrPayloadPreview(qrRaw)}
                         </Text>

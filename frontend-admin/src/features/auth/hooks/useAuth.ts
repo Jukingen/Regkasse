@@ -1,11 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { customInstance } from '@/lib/axios';
 import { usePostApiAuthLogout } from '@/api/generated/auth/auth';
-import { message } from 'antd';
+
 import { authStorage } from '@/features/auth/services/authStorage';
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
 import { mapMeResponseToAuthUser, type MeResponse } from '@/features/auth/utils/mapMeResponseToAuthUser';
@@ -50,6 +52,8 @@ export enum AuthStatus {
 }
 
 export const useAuth = () => {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const router = useRouter();

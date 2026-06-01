@@ -76,7 +76,7 @@ export function RegisterDetailModal({
                 </Space>
             }
             width={640}
-            destroyOnClose
+            destroyOnHidden
         >
             {register ? (
                 <Descriptions bordered column={1} size="small">
@@ -114,7 +114,7 @@ export function RegisterDetailModal({
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.lastSyncAtUtc')}>
                         {enhanced?.lastSyncAtUtc ? (
-                            <Space direction="vertical" size={0}>
+                            <Space orientation="vertical" size={0}>
                                 <Typography.Text>
                                     {formatRelativeTime(enhanced.lastSyncAtUtc, formatLocale)}
                                 </Typography.Text>
@@ -131,7 +131,7 @@ export function RegisterDetailModal({
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.deviceInfoTitle')}>
                         {deviceModel || deviceOs || deviceApp ? (
-                            <Space direction="vertical" size={0}>
+                            <Space orientation="vertical" size={0}>
                                 <Typography.Text>
                                     {deviceModel || t('cashRegisters.detail.deviceUnknown')} /{' '}
                                     {deviceOs || '—'}

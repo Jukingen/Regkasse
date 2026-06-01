@@ -1,7 +1,8 @@
 'use client';
 
+import { App } from 'antd';
 import { useCallback, useMemo } from 'react';
-import { Modal, message } from 'antd';
+
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePostApiAdminBackupTrigger } from '@/api/generated/admin-backup/admin-backup';
@@ -28,6 +29,7 @@ export function useCommandRegistry({
     closePalette,
     permissionCtx,
 }: UseCommandRegistryParams): CommandItem[] {
+    const { message, modal } = App.useApp();
     const router = useRouter();
     const queryClient = useQueryClient();
 
@@ -48,7 +50,7 @@ export function useCommandRegistry({
     });
 
     const triggerBackup = useCallback(() => {
-        Modal.confirm({
+        modal.confirm({
             title: t('commandPalette.backupConfirmTitle'),
             content: t('commandPalette.backupConfirmBody'),
             okText: t('commandPalette.backupConfirmOk'),

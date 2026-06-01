@@ -1,7 +1,7 @@
 'use client';
 
 import React, { Suspense, useCallback, useMemo, useState } from 'react';
-import { Card, Typography, Tag, Space, Button, message, Alert, Spin, Tooltip } from 'antd';
+import { Card, Typography, Tag, Space, Button, Alert, Spin, Tooltip } from 'antd';
 import { CalendarOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import type { Dayjs } from 'dayjs';
@@ -190,7 +190,7 @@ function AuditLogsPageContent() {
                     type="warning"
                     showIcon
                     style={{ marginTop: 8 }}
-                    message={t('common.auditLogs.dateRangeIncompleteTitle')}
+                    title={t('common.auditLogs.dateRangeIncompleteTitle')}
                     description={t('common.auditLogs.dateRangeIncompleteDescription')}
                 />
             ) : null}
@@ -251,11 +251,11 @@ function AuditLogsPageContent() {
             {isError ? (
                 <Alert
                     type="error"
-                    message={t('common.auditLogs.errorTitle')}
+                    title={t('common.auditLogs.errorTitle')}
                     description={getAuditListErrorMessage(error, t)}
                     showIcon
                     action={
-                        <Space direction="vertical" size="small">
+                        <Space orientation="vertical" size="small">
                             <Button size="small" onClick={() => refetch()}>
                                 {t('common.buttons.retry')}
                             </Button>
@@ -299,7 +299,7 @@ function AuditLogsLoadingFallback() {
     const { t } = useI18n();
     return (
         <div style={{ padding: 80, textAlign: 'center' }}>
-            <Spin size="large" tip={t('common.loading.data')} />
+            <Spin size="large" description={t('common.loading.data')} />
         </div>
     );
 }

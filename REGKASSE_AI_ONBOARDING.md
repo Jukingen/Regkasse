@@ -100,7 +100,7 @@ The project aims to provide a production-grade POS system that can:
 
 ### Frontend Admin
 
-- Framework: **Next.js 14**
+- Framework: **Next.js 16**
 - Routing: **Next.js App Router**
 - UI library: **Ant Design**
 - Data fetching: **TanStack Query**
@@ -1273,7 +1273,7 @@ You are working on Regkasse, a full-stack Austrian RKSV-compliant POS cash regis
 Stack:
 - Backend: ASP.NET Core / C# / EF Core / PostgreSQL
 - POS frontend: Expo React Native / TypeScript / Zustand / i18n
-- Admin frontend: Next.js 14 / Ant Design / TanStack Query / Orval generated API client
+- Admin frontend: Next.js 16 / Ant Design 6 / TanStack Query / Orval generated API client
 
 Critical domain rules:
 - Fiscal payments require TSE/RKSV signing and signature chaining.

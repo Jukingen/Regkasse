@@ -123,7 +123,7 @@ export function RecoverabilitySummaryCard({
           type="error"
           showIcon
           style={{ marginBottom: 12 }}
-          message={t("backupDr.errors.recoverabilityLoadFailed")}
+          title={t("backupDr.errors.recoverabilityLoadFailed")}
           action={
             onRetry ? (
               <Button size="small" onClick={onRetry}>

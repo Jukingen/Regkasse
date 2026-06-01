@@ -315,7 +315,7 @@ export default function FiscalExportDiagnosticsPage() {
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={t('rksvHub.fiscalExportPage.sliceVsGlobalTitle')}
+                title={t('rksvHub.fiscalExportPage.sliceVsGlobalTitle')}
                 description={
                     <span>
                         {t('rksvHub.fiscalExportPage.globalIntegrityHint')}{' '}
@@ -324,7 +324,7 @@ export default function FiscalExportDiagnosticsPage() {
                 }
             />
 
-            <Alert type="info" showIcon style={{ marginBottom: 16 }} message={t('rksvHub.fiscalExportPage.profileHelp')} />
+            <Alert type="info" showIcon style={{ marginBottom: 16 }} title={t('rksvHub.fiscalExportPage.profileHelp')} />
 
             {cashLoading ? (
                 <div style={{ textAlign: 'center', padding: 80 }}>
@@ -337,13 +337,13 @@ export default function FiscalExportDiagnosticsPage() {
                     type="error"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message={t('rksvHub.fiscalExportPage.exportFailedAlert')}
+                    title={t('rksvHub.fiscalExportPage.exportFailedAlert')}
                     description={exportError}
                 />
             ) : null}
 
             <Card size="small" style={{ marginBottom: 16 }}>
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <div>
                         <Typography.Text strong>{t('rksvHub.fiscalExportPage.profileLabel')}</Typography.Text>
                         <div style={{ marginTop: 8 }}>
@@ -425,7 +425,7 @@ export default function FiscalExportDiagnosticsPage() {
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}
-                            message={preview.exportProfile ?? 'export'}
+                            title={preview.exportProfile ?? 'export'}
                             description={
                                 <span>
                                     <Tag>{preview.exportProfile}</Tag> {preview.exportProfileIntentNotice}
@@ -438,7 +438,7 @@ export default function FiscalExportDiagnosticsPage() {
                             type="warning"
                             showIcon
                             style={{ marginBottom: 16 }}
-                            message={preview.notLegalProofNotice || t('rksvHub.fiscalExportPage.notLegalProofFallback')}
+                            title={preview.notLegalProofNotice || t('rksvHub.fiscalExportPage.notLegalProofFallback')}
                             description={t('rksvHub.fiscalExportPage.statutoryDisclaimerBody')}
                         />
                     ) : null}
@@ -477,7 +477,7 @@ export default function FiscalExportDiagnosticsPage() {
                                 type="warning"
                                 showIcon
                                 style={{ marginBottom: 12 }}
-                                message={`${preview.chainContinuityWarnings.length} Warnung(en) gefunden`}
+                                title={`${preview.chainContinuityWarnings.length} Warnung(en) gefunden`}
                             />
                             <List
                                 size="small"
@@ -494,7 +494,7 @@ export default function FiscalExportDiagnosticsPage() {
                                     type="warning"
                                     showIcon
                                     style={{ marginBottom: 12 }}
-                                    message={t('rksvHub.fiscalExportPage.lowOfflineIntentCoverageTitle')}
+                                    title={t('rksvHub.fiscalExportPage.lowOfflineIntentCoverageTitle')}
                                     description={`DeviceId: ${
                                         preview.integrity.deviceIdCoveragePercent != null
                                             ? preview.integrity.deviceIdCoveragePercent.toFixed(1) + '%'
@@ -512,7 +512,7 @@ export default function FiscalExportDiagnosticsPage() {
                                     type="warning"
                                     showIcon
                                     style={{ marginBottom: 12 }}
-                                    message={t('rksvHub.fiscalExportPage.legacyPayloadHashQualityTitle')}
+                                    title={t('rksvHub.fiscalExportPage.legacyPayloadHashQualityTitle')}
                                     description={`Mismatch ratio: ${
                                         preview.integrity.legacyPayloadHashMismatchRatioPercent != null
                                             ? preview.integrity.legacyPayloadHashMismatchRatioPercent.toFixed(1) + '%'

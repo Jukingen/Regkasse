@@ -56,7 +56,7 @@ export function ScheduleReportModal({
                     form.resetFields();
                 });
             }}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form
                 form={form}

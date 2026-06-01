@@ -37,7 +37,7 @@ export function BackupDrDataFreshnessStrip({
       type="warning"
       showIcon
       style={{ marginBottom: 0 }}
-      message={
+      title={
         <Space wrap size="small" align="center">
           <Typography.Text strong>
             {t("backupDr.dataFreshness.title")}

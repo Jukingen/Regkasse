@@ -14,7 +14,7 @@ export function FormalReportLanguageNotice() {
       type="info"
       showIcon
       style={{ marginBottom: 16 }}
-      message={t('reporting.policy.formalReportLanguageTitle')}
+      title={t('reporting.policy.formalReportLanguageTitle')}
       description={t('reporting.policy.formalReportLanguageBody')}
     />
   );

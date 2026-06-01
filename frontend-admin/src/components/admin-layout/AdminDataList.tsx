@@ -32,7 +32,7 @@ export function AdminDataList({
         return (
             <Card>
                 <div style={{ textAlign: 'center', padding: '50px 0' }}>
-                    <Spin size="large" tip={t('common.dataList.loadingTip')} />
+                    <Spin size="large" description={t('common.dataList.loadingTip')} />
                 </div>
             </Card>
         );
@@ -43,7 +43,7 @@ export function AdminDataList({
             <Card>
                 <Alert
                     type="error"
-                    message={t('common.dataList.errorLoadTitle')}
+                    title={t('common.dataList.errorLoadTitle')}
                     description={
                         error ? (
                             <ApiErrorAlertDescription

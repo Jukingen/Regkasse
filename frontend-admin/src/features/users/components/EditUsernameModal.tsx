@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Alert, Form, Input, Modal, Typography, message } from 'antd';
+import { App, Modal, Alert, Form, Input, Typography } from 'antd';
 
 import {
     useUpdateAdminUsernameMutation,
@@ -39,6 +39,8 @@ export function EditUsernameModal({
     onClose,
     onSuccess,
 }: EditUsernameModalProps) {
+  const { message } = App.useApp();
+
     const { t } = useI18n();
     const [form] = Form.useForm<FormValues>();
     const updateUsername = useUpdateAdminUsernameMutation();
@@ -105,7 +107,7 @@ export function EditUsernameModal({
             <Alert
                 type="info"
                 showIcon
-                message={t('users.username.infoTitle')}
+                title={t('users.username.infoTitle')}
                 description={t('users.username.infoDescription')}
                 style={{ marginBottom: 16 }}
             />

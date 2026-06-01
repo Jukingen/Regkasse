@@ -1,16 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useEffect, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Space,
-    Table,
-    Tag,
-    Typography,
-    Upload,
-    message,
-} from 'antd';
+import { Alert, Button, Space, Table, Tag, Typography, Upload } from 'antd';
 import type { UploadFile } from 'antd/es/upload';
 import { DownloadOutlined, InboxOutlined, UploadOutlined } from '@ant-design/icons';
 
@@ -56,6 +48,8 @@ export function DemoTemplateImportTab({
     imageMode,
     onImportSuccess,
 }: DemoTemplateImportTabProps) {
+  const { message } = useAntdApp();
+
     const [step, setStep] = useState<Step>('upload');
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const [validation, setValidation] = useState<DemoTemplateValidationResult | null>(null);
@@ -169,11 +163,11 @@ export function DemoTemplateImportTab({
     ];
 
     return (
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Alert
                 type="info"
                 showIcon
-                message="Eigene Demo-Vorlage"
+                title="Eigene Demo-Vorlage"
                 description={
                     <ol style={{ margin: '8px 0 0', paddingLeft: 20 }}>
                         <li>Demo-Vorlage herunterladen (CSV, in Excel bearbeitbar)</li>
@@ -223,7 +217,7 @@ export function DemoTemplateImportTab({
             {step === 'preview' && validation ? (
                 <>
                     {validation.parseError ? (
-                        <Alert type="error" showIcon message={validation.parseError} />
+                        <Alert type="error" showIcon title={validation.parseError} />
                     ) : (
                         <>
                             <Space wrap>
@@ -241,7 +235,7 @@ export function DemoTemplateImportTab({
                                 <Alert
                                     type={validation.isValid ? 'warning' : 'error'}
                                     showIcon
-                                    message={
+                                    title={
                                         validation.isValid
                                             ? 'Hinweise zur Datei'
                                             : 'Validierungsfehler'

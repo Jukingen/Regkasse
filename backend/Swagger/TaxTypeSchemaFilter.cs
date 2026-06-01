@@ -1,5 +1,5 @@
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using System.Text.Json.Nodes;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace KasseAPI_Final.Swagger
@@ -10,22 +10,26 @@ namespace KasseAPI_Final.Swagger
     /// </summary>
     public class TaxTypeSchemaFilter : ISchemaFilter
     {
-        public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+        public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
         {
             if (context.Type.Name != "PaymentItemRequest")
                 return;
 
-            if (schema.Properties?.TryGetValue("taxType", out var taxTypeProp) == true)
+            if (schema is not OpenApiSchema openApiSchema)
+                return;
+
+            if (openApiSchema.Properties?.TryGetValue("taxType", out var taxTypeProp) == true
+                && taxTypeProp is OpenApiSchema taxTypeSchema)
             {
-                taxTypeProp.Description = "Vergi tipi. standard(20%), reduced(10%), special(13%), zerorate(0% - Österreich 2026). "
+                taxTypeSchema.Description = "Vergi tipi. standard(20%), reduced(10%), special(13%), zerorate(0% - Österreich 2026). "
                     + "Deprecated: exempt → zerorate, int (1-4) → string tercih edilir.";
-                taxTypeProp.Enum = new List<IOpenApiAny>
-                {
-                    new OpenApiString("standard"),
-                    new OpenApiString("reduced"),
-                    new OpenApiString("special"),
-                    new OpenApiString("zerorate")
-                };
+                taxTypeSchema.Enum =
+                [
+                    JsonValue.Create("standard"),
+                    JsonValue.Create("reduced"),
+                    JsonValue.Create("special"),
+                    JsonValue.Create("zerorate")
+                ];
             }
         }
     }

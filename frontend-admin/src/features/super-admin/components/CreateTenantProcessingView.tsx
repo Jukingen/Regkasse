@@ -97,7 +97,7 @@ export function CreateTenantProcessingView({
                     type="info"
                     showIcon
                     style={{ marginTop: 16 }}
-                    message={t('tenants.create.processing.rollbackHint')}
+                    title={t('tenants.create.processing.rollbackHint')}
                 />
             ) : null}
 
@@ -106,7 +106,7 @@ export function CreateTenantProcessingView({
                     type="error"
                     showIcon
                     style={{ marginTop: 16 }}
-                    message={t('tenants.create.processing.failedTitle')}
+                    title={t('tenants.create.processing.failedTitle')}
                     description={errorMessage}
                 />
             ) : null}

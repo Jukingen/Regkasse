@@ -240,14 +240,14 @@ export function UserActivityTimeline({ userId, userName }: Props) {
     ];
 
     if (validUserId.length === 0) {
-        return <Alert type="info" message={usersCopy.emptyActivity} showIcon />;
+        return <Alert type="info" title={usersCopy.emptyActivity} showIcon />;
     }
 
     if (isError) {
         return (
             <Alert
                 type="warning"
-                message={usersCopy.errorLoadActivity}
+                title={usersCopy.errorLoadActivity}
                 description={usersCopy.errorLoadActivityHint}
                 action={
                     <Button size="small" onClick={() => refetch()}>

@@ -1,24 +1,12 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Kalıcı yedek çalıştırma modu: istenen / etkin / yapılandırma varsayılanı, Real önkoşul tanıları, onay modalları.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Checkbox,
-  Descriptions,
-  List,
-  Modal,
-  Radio,
-  Space,
-  Spin,
-  Tag,
-  Typography,
-} from 'antd';
+import { Alert, Button, Card, Checkbox, Descriptions, List, Radio, Space, Spin, Tag, Typography } from 'antd';
 import axios from 'axios';
 import {
   getBackupExecutionMode,
@@ -48,6 +36,8 @@ export interface BackupExecutionModeCardProps {
 }
 
 export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExecutionModeCardProps) {
+  const { modal } = useAntdApp();
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<BackupExecutionModeResponseDto | null>(null);
@@ -111,7 +101,7 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
         : t('backupDr.executionMode.saveConfirmTitleInherit');
 
     const content = (
-      <Space direction="vertical" size="small" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="small" style={{ width: '100%' }}>
         {wantsFake ? (
           <>
             <Typography.Paragraph style={{ marginBottom: 0 }}>
@@ -135,7 +125,7 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
       </Space>
     );
 
-    Modal.confirm({
+    modal.confirm({
       title,
       content,
       okText: t('backupDr.executionMode.saveConfirmOk'),
@@ -170,16 +160,16 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
       {loading ? (
         <Spin />
       ) : (
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           {error && (
-            <Alert type="error" showIcon message={error} closable onClose={() => setError(null)} />
+            <Alert type="error" showIcon title={error} closable onClose={() => setError(null)} />
           )}
 
           {data && isRealRequestedNonRunnableState(data) ? (
             <Alert
               type="warning"
               showIcon
-              message={t('backupDr.executionMode.realSavedButBlockedTitle')}
+              title={t('backupDr.executionMode.realSavedButBlockedTitle')}
               description={
                 <div>
                   <Typography.Paragraph style={{ marginBottom: 8 }}>
@@ -197,7 +187,7 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
             <Alert
               type="warning"
               showIcon
-              message={t('backupDr.executionMode.notRunnableTitle')}
+              title={t('backupDr.executionMode.notRunnableTitle')}
               description={
                 <ul style={{ marginBottom: 0, paddingLeft: 18 }}>
                   {(data.blockers ?? []).map((b) => (
@@ -209,11 +199,11 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
           ) : null}
 
           {data && realReadiness ? (
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="small" style={{ width: '100%' }}>
               <Alert
                 type={realReadiness.summary.alertType}
                 showIcon
-                message={realReadiness.summary.title}
+                title={realReadiness.summary.title}
                 description={realReadiness.summary.description}
               />
               <div>
@@ -236,7 +226,7 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
                     dataSource={realReadiness.diagnostics}
                     renderItem={(item) => (
                       <List.Item style={{ alignItems: 'flex-start' }}>
-                        <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                        <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                           <Space wrap size={6}>
                             <Tag color={item.tier === 'blocking' ? 'red' : 'gold'}>
                               {item.tier === 'blocking'
@@ -279,7 +269,7 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
           <Alert
             type="info"
             showIcon
-            message={t('backupDr.executionMode.meaningTitle')}
+            title={t('backupDr.executionMode.meaningTitle')}
             description={
               <ul style={{ marginBottom: 0, paddingLeft: 18 }}>
                 <li>{t('backupDr.executionMode.meaningFake')}</li>
@@ -343,7 +333,7 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
             <Alert
               type="info"
               showIcon
-              message={t('backupDr.executionMode.recommendedFallbackTitle')}
+              title={t('backupDr.executionMode.recommendedFallbackTitle')}
               description={t('backupDr.executionMode.recommendedFallbackBody', {
                 mode: labelUserFacingMode(data.recommendedFallbackUserFacingMode, t),
               })}
@@ -360,7 +350,7 @@ export function BackupExecutionModeCard({ canManage, t, onModeSaved }: BackupExe
             onChange={(e) => setSelected(e.target.value as BackupExecutionModeUiValue)}
             disabled={!canManage || saving}
           >
-            <Space direction="vertical">
+            <Space orientation="vertical">
               <Radio value="InheritFromConfiguration" disabled={inheritSelectable ? undefined : true}>
                 {t('backupDr.executionMode.optionInherit')}
               </Radio>

@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useEffect, useState } from 'react';
-import { Alert, Button, Modal, Space, Typography, message } from 'antd';
+import { Modal, Alert, Button, Space, Typography } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import type { TenantUser } from '@/features/super-admin/api/tenantUsers';
@@ -27,6 +28,8 @@ export function ResetPasswordModal({
     onClose,
     onCompleted,
 }: ResetPasswordModalProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [confirming, setConfirming] = useState(false);
     const [result, setResult] = useState<TenantUserPasswordResetResult | null>(null);
@@ -89,7 +92,7 @@ export function ResetPasswordModal({
             title={t('tenants.users.resetPassword.title')}
             open={open}
             onCancel={handleClose}
-            destroyOnClose
+            destroyOnHidden
             footer={
                 result
                     ? [
@@ -108,16 +111,16 @@ export function ResetPasswordModal({
             }
         >
             {result ? (
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Typography.Text type="secondary">{result.deliveryNote}</Typography.Text>
                     {result.forcePasswordChangeOnNextLogin ? (
-                        <Alert type="info" showIcon message={t('tenants.users.resetPassword.forceChangeHint')} />
+                        <Alert type="info" showIcon title={t('tenants.users.resetPassword.forceChangeHint')} />
                     ) : null}
                     {result.generatedPassword ? (
                         <Alert
                             type="warning"
                             showIcon
-                            message={t('users.create.generatedPasswordInfo')}
+                            title={t('users.create.generatedPasswordInfo')}
                             description={
                                 <Space>
                                     <Typography.Text code>{password}</Typography.Text>
@@ -130,7 +133,7 @@ export function ResetPasswordModal({
                     ) : null}
                 </Space>
             ) : user ? (
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Typography.Text>
                         {t('tenants.users.resetPassword.body', {
                             name: user.name,

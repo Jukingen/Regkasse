@@ -1,8 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Alert, Button, Card, Checkbox, Empty, Space, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Checkbox, Empty, Space, Tag, Typography } from 'antd';
 import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -56,6 +57,8 @@ function toCashRegisterViewItem(row: AdminCashRegisterListItem): CashRegisterVie
 }
 
 export default function KassenverwaltungPage() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -302,7 +305,7 @@ export default function KassenverwaltungPage() {
     if (!canView) {
         return (
             <AdminPageShell>
-                <Alert type="warning" showIcon message={t('errors.forbidden.FORBIDDEN')} />
+                <Alert type="warning" showIcon title={t('errors.forbidden.FORBIDDEN')} />
             </AdminPageShell>
         );
     }
@@ -376,7 +379,7 @@ export default function KassenverwaltungPage() {
                     <Alert
                         type="error"
                         showIcon
-                        message={t('cashRegisters.errors.loadFailed')}
+                        title={t('cashRegisters.errors.loadFailed')}
                         style={{ marginBottom: 16 }}
                     />
                 ) : null}
@@ -393,7 +396,7 @@ export default function KassenverwaltungPage() {
                             }
                         />
                     ) : (
-                        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                             {groupedRegisters.map((group) => (
                                 <div key={group.tenantId ?? 'unknown-tenant'}>
                                     <Space

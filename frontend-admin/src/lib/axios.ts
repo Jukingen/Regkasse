@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { message } from 'antd';
+import { showAntdError } from '@/lib/antdAppBridge';
 import { authStorage } from '@/features/auth/services/authStorage';
 import { resolveTenantSlugForApiRequest } from '@/features/auth/services/devTenant';
 import { TENANT_HTTP_HEADER } from '@/features/auth/services/tenantStorage';
@@ -123,7 +123,7 @@ const createAxiosInstance = () => {
                 if (!isBackupArtifactBlobDownload) {
                     const reasonCode = data?.reasonCode ?? mapRequiredPolicyToReasonCode(data?.requiredPolicy);
                     const userMessage = getForbiddenMessage(reasonCode, getStoredLanguage());
-                    message.error(userMessage);
+                    showAntdError(userMessage);
                 }
             }
 

@@ -33,7 +33,7 @@ export function PasswordChangeRequiredRedirect() {
         <Alert
             type="warning"
             showIcon
-            message={t('settings.changePassword.requiredBanner')}
+            title={t('settings.changePassword.requiredBanner')}
             style={{ margin: '0 16px 16px' }}
         />
     );

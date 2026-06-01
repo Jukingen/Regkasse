@@ -1,18 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useEffect, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    DatePicker,
-    Form,
-    Input,
-    List,
-    Space,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, DatePicker, Form, Input, List, Space, Typography } from 'antd';
 import dayjs from 'dayjs';
 
 import {
@@ -25,6 +15,8 @@ import { AXIOS_INSTANCE } from '@/lib/axios';
 import { useI18n } from '@/i18n';
 
 export function AuditRetentionPanel() {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const [retentionYears, setRetentionYears] = useState(7);
     const [minCutoff, setMinCutoff] = useState<string | null>(null);
@@ -87,11 +79,11 @@ export function AuditRetentionPanel() {
 
     return (
         <Card size="small" title={t('common.auditLogs.retentionCardTitle')}>
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <Alert
                     type="info"
                     showIcon
-                    message={t('common.auditLogs.retentionPolicy', { years: String(retentionYears) })}
+                    title={t('common.auditLogs.retentionPolicy', { years: String(retentionYears) })}
                     description={
                         minCutoff
                             ? t('common.auditLogs.retentionMinCutoff', {

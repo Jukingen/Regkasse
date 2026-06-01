@@ -1,28 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Super-admin wizard that decommissions all tenant registers before archiving the tenant.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import {
-    Alert,
-    Button,
-    Card,
-    Checkbox,
-    Descriptions,
-    Input,
-    List,
-    Progress,
-    Result,
-    Space,
-    Steps,
-    Table,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, Checkbox, Descriptions, Input, List, Progress, Result, Space, Steps, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
     ArrowLeftOutlined,
@@ -232,7 +217,7 @@ function DecommissionWizardStep1({
     onNext,
 }: DecommissionWizardStepProps) {
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Descriptions
                 bordered
                 size="small"
@@ -259,7 +244,7 @@ function DecommissionWizardStep1({
                 </Descriptions.Item>
             </Descriptions>
 
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 {preflightChecks.map((check) => {
                     const copy = getPreflightCopy(check, registerSummary, t);
                     const checkedValue =
@@ -280,7 +265,7 @@ function DecommissionWizardStep1({
                         >
                             <Space align="start" style={{ width: '100%' }}>
                                 {renderCheckIcon(check)}
-                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                                     <Typography.Text strong>{copy.label}</Typography.Text>
                                     <Typography.Text type="secondary">
                                         {copy.description}
@@ -335,12 +320,12 @@ function DecommissionWizardStep2({
     tenant,
 }: DecommissionWizardStepProps) {
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             {!canDecommissionCashRegisters ? (
                 <Alert
                     type="error"
                     showIcon
-                    message={t('tenants.decommission.registers.permissionDenied')}
+                    title={t('tenants.decommission.registers.permissionDenied')}
                 />
             ) : null}
 
@@ -348,7 +333,7 @@ function DecommissionWizardStep2({
                 <Alert
                     type="error"
                     showIcon
-                    message={t('tenants.decommission.registers.blockedTitle', {
+                    title={t('tenants.decommission.registers.blockedTitle', {
                         count: blockedRegisters.length,
                     })}
                     description={t('tenants.decommission.registers.blockedBody')}
@@ -359,7 +344,7 @@ function DecommissionWizardStep2({
                 <Alert
                     type="success"
                     showIcon
-                    message={t('tenants.decommission.registers.readyForArchive')}
+                    title={t('tenants.decommission.registers.readyForArchive')}
                 />
             ) : null}
 
@@ -458,7 +443,7 @@ function DecommissionWizardStep3({
     onPrevious,
 }: DecommissionWizardStepProps) {
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Typography.Title level={4} style={{ margin: 0 }}>
                 {t('tenants.decommission.export.title')}
             </Typography.Title>
@@ -469,7 +454,7 @@ function DecommissionWizardStep3({
             <Alert
                 type="info"
                 showIcon
-                message={t('tenants.decommission.export.retentionTitle')}
+                title={t('tenants.decommission.export.retentionTitle')}
                 description={t('tenants.decommission.export.retentionBody')}
             />
 
@@ -477,7 +462,7 @@ function DecommissionWizardStep3({
                 <Alert
                     type="warning"
                     showIcon
-                    message={t('tenants.decommission.export.permissionTitle')}
+                    title={t('tenants.decommission.export.permissionTitle')}
                     description={t('tenants.decommission.export.permissionBody')}
                 />
             ) : null}
@@ -513,9 +498,9 @@ function DecommissionWizardStep3({
                 <Alert
                     type="success"
                     showIcon
-                    message={t('tenants.decommission.export.readyTitle')}
+                    title={t('tenants.decommission.export.readyTitle')}
                     description={
-                        <Space direction="vertical" size="small">
+                        <Space orientation="vertical" size="small">
                             <a href={fiscalExportUrl} download={fiscalExportFileName ?? undefined}>
                                 {t('tenants.decommission.export.downloadZip')}
                             </a>
@@ -567,11 +552,11 @@ function DecommissionWizardStep4({
     onPrevious,
 }: DecommissionWizardStepProps) {
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Alert
                 type="warning"
                 showIcon
-                message={t('tenants.decommission.archive.warningTitle')}
+                title={t('tenants.decommission.archive.warningTitle')}
                 description={t('tenants.decommission.archive.warningBody')}
             />
 
@@ -657,7 +642,7 @@ function DecommissionWizardStep5({
                 </Link>,
             ]}
         >
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <Typography.Text type="secondary">
                     {t('tenants.decommission.result.archivedAt', {
                         value: archivedAtUtc
@@ -710,6 +695,8 @@ function DecommissionWizardStep5({
 }
 
 export function TenantDecommissionWizardPage() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale, textLocale } = useI18n();
     const params = useParams();
     const queryClient = useQueryClient();
@@ -1142,7 +1129,7 @@ export function TenantDecommissionWizardPage() {
             <AdminPageShell>
                 <Alert
                     type="error"
-                    message={t('tenants.accessDenied.title')}
+                    title={t('tenants.accessDenied.title')}
                     description={t('tenants.accessDenied.body')}
                 />
             </AdminPageShell>
@@ -1152,7 +1139,7 @@ export function TenantDecommissionWizardPage() {
     if (!tenantId) {
         return (
             <AdminPageShell>
-                <Alert type="error" message={t('tenants.users.errors.invalidTenant')} />
+                <Alert type="error" title={t('tenants.users.errors.invalidTenant')} />
             </AdminPageShell>
         );
     }
@@ -1191,11 +1178,11 @@ export function TenantDecommissionWizardPage() {
                 }
             />
 
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="large" style={{ width: '100%' }}>
                 <Alert
                     type="error"
                     showIcon
-                    message={t('tenants.decommission.criticalTitle')}
+                    title={t('tenants.decommission.criticalTitle')}
                     description={t('tenants.decommission.criticalBody')}
                 />
 
@@ -1203,7 +1190,7 @@ export function TenantDecommissionWizardPage() {
                     <Alert
                         type="warning"
                         showIcon
-                        message={t('tenants.decommission.alreadyArchivedTitle')}
+                        title={t('tenants.decommission.alreadyArchivedTitle')}
                         description={t('tenants.decommission.alreadyArchivedBody')}
                     />
                 ) : null}
@@ -1212,7 +1199,7 @@ export function TenantDecommissionWizardPage() {
                     <Alert
                         type="error"
                         showIcon
-                        message={t('tenants.users.errors.tenantNotFound')}
+                        title={t('tenants.users.errors.tenantNotFound')}
                     />
                 ) : null}
 
@@ -1220,7 +1207,7 @@ export function TenantDecommissionWizardPage() {
                     <Alert
                         type="error"
                         showIcon
-                        message={t('tenants.decommission.registers.loadFailed')}
+                        title={t('tenants.decommission.registers.loadFailed')}
                     />
                 ) : null}
 

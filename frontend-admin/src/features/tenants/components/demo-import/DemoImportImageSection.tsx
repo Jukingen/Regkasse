@@ -30,7 +30,7 @@ export function DemoImportImageSection({ value, onChange }: DemoImportImageSecti
             </Title>
 
             <Radio.Group value={value} onChange={(e) => onChange(e.target.value)}>
-                <Space direction="vertical" size="small">
+                <Space orientation="vertical" size="small">
                     <Radio value="categoryPlaceholder">
                         <Text>
                             Farbiges Platzhalterbild pro Kategorie{' '}

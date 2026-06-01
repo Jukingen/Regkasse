@@ -1,7 +1,19 @@
 # Regkasse Admin Panel
 
 Next.js Admin Panel for Regkasse POS System.
-Built with Ant Design, TanStack Query, and Orval.
+Built with Ant Design 6, TanStack Query, and Orval.
+
+### Updated Stack Versions
+
+| Component | Version |
+|-----------|---------|
+| Backend (.NET) | 10.0.8 |
+| EF Core | 10.0.8 |
+| Next.js | 16.2.6 |
+| React | 19.2.6 |
+| Ant Design | 6.4.3 |
+| Expo (POS) | SDK 56 |
+| React Native (POS) | 0.85.3 |
 
 ## Prerequisites
 
@@ -72,7 +84,8 @@ Code: `src/shared/config/rksvEnvironment.ts`.
 
 - **Auth**: Uses `/api/Auth/login` (Cookie-based or Token-based).
 - **Data Fetching**: TanStack Query via Orval generated hooks.
-- **UI**: Ant Design v5 with CSS-in-JS registry for SSR.
+- **UI**: Ant Design v6 with CSS-in-JS registry for SSR (`@ant-design/nextjs-registry`).
+- **Ant Design 6**: use `destroyOnHidden` (not `destroyOnClose`), `popupRender` (not `dropdownRender`); official v5→v6 codemod is not published — apply [migration guide](https://ant.design/docs/react/migration-v6) warnings as needed.
 - **i18n**: Custom `I18nProvider` + JSON catalogs; runtime namespace’ler ve dosya adı eşlemesi için `src/i18n/README.md` kaynak kabul edilir.
 
 ## User Management

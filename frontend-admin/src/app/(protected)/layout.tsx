@@ -301,7 +301,7 @@ export default function DashboardLayout({
                         onClose={() => setDrawerVisible(false)}
                         open={drawerVisible}
                         styles={{ body: { padding: 0 } }}
-                        width={250}
+                        size={250}
                     >
                         {SidebarContent}
                     </Drawer>

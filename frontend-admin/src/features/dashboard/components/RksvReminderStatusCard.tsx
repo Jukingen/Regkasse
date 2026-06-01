@@ -110,7 +110,7 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
             </Typography.Paragraph>
 
             {loadError ? (
-                <Alert type="error" showIcon message={t('dashboard.rksvReminder.status_load_failed')} style={{ marginBottom: 12 }} />
+                <Alert type="error" showIcon title={t('dashboard.rksvReminder.status_load_failed')} style={{ marginBottom: 12 }} />
             ) : null}
 
             {!loadError && !hasRegisters && !loading ? (
@@ -123,7 +123,7 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                     showIcon
                     icon={<WarningOutlined />}
                     style={{ marginBottom: 12 }}
-                    message={t('dashboard.rksvReminder.multi_register_summary', {
+                    title={t('dashboard.rksvReminder.multi_register_summary', {
                         startbeleg: summary.startbelegMissingCount,
                         jahresbeleg: summary.jahresbelegAttentionCount,
                         monatsbeleg: summary.monatsbelegAttentionCount,
@@ -147,7 +147,7 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
             ) : null}
 
             {!loadError && selectedRow?.statusError ? (
-                <Alert type="error" showIcon message={t('dashboard.rksvReminder.status_load_failed')} />
+                <Alert type="error" showIcon title={t('dashboard.rksvReminder.status_load_failed')} />
             ) : null}
 
             {selectedRow && !selectedRow.statusError && !loadError && status ? (
@@ -157,7 +157,7 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                             type="error"
                             showIcon
                             style={{ marginBottom: 12 }}
-                            message={t('dashboard.rksvReminder.startbeleg_missing_warning')}
+                            title={t('dashboard.rksvReminder.startbeleg_missing_warning')}
                             description={t('dashboard.rksvReminder.startbeleg_blocks_pos')}
                             action={
                                 <Link href={sonderbelegeHref(selectedRow.registerId, 'startbeleg')}>
@@ -174,7 +174,7 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                             type="warning"
                             showIcon
                             style={{ marginBottom: 12 }}
-                            message={t('dashboard.rksvReminder.jahresbeleg_missing_warning')}
+                            title={t('dashboard.rksvReminder.jahresbeleg_missing_warning')}
                             description={
                                 status.jahresbeleg?.daysUntilDeadline != null
                                     ? t('dashboard.rksvReminder.jahresbeleg_days_until', {
@@ -197,7 +197,7 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                             type={status.monatsbeleg?.status === 'overdue' ? 'error' : 'warning'}
                             showIcon
                             style={{ marginBottom: 12 }}
-                            message={
+                            title={
                                 status.monatsbeleg?.warningMessageDe ??
                                 t('dashboard.rksvReminder.monatsbeleg_default_warning')
                             }

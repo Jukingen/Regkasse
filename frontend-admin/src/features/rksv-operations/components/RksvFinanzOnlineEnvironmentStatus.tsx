@@ -63,7 +63,7 @@ export function RksvFinanzOnlineEnvironmentAlert({ parsed, style, devParseDebug 
       <Alert
         showIcon
         type={getRksvEnvironmentAlertType(parsed)}
-        message={t(keys.messageKey, params)}
+        title={t(keys.messageKey, params)}
         description={t(keys.descriptionKey, params)}
         style={style}
       />

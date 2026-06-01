@@ -143,7 +143,7 @@ export default function ReceiptReprintWizard({
             onCancel={onClose}
             width={760}
             footer={null}
-            destroyOnClose
+            destroyOnHidden
         >
             <Steps
                 current={step}
@@ -157,7 +157,7 @@ export default function ReceiptReprintWizard({
             />
 
             {step === 0 ? (
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     {!paymentId?.trim() ? (
                         <>
                             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
@@ -180,7 +180,7 @@ export default function ReceiptReprintWizard({
                                     {t('adminShell.operationsCenter.reprintPreviewLoading')}
                                 </Typography.Text>
                             ) : previewQuery.isError ? (
-                                <Alert type="error" showIcon message={String(previewQuery.error)} />
+                                <Alert type="error" showIcon title={String(previewQuery.error)} />
                             ) : receipt ? (
                                 <>
                                     <Descriptions bordered size="small" column={1}>
@@ -197,11 +197,11 @@ export default function ReceiptReprintWizard({
                                     <Alert
                                         type="info"
                                         showIcon
-                                        message={t('adminShell.operationsCenter.reprintPreviewNoAudit')}
+                                        title={t('adminShell.operationsCenter.reprintPreviewNoAudit')}
                                     />
                                 </>
                             ) : (
-                                <Alert type="warning" showIcon message={t('adminShell.operationsCenter.reprintPreviewEmpty')} />
+                                <Alert type="warning" showIcon title={t('adminShell.operationsCenter.reprintPreviewEmpty')} />
                             )}
                         </>
                     ) : null}
@@ -249,7 +249,7 @@ export default function ReceiptReprintWizard({
                         style={{ marginBottom: 12 }}
                         type="warning"
                         showIcon
-                        message={t('adminShell.operationsCenter.reprintRoutingSimulatedHint')}
+                        title={t('adminShell.operationsCenter.reprintRoutingSimulatedHint')}
                     />
                     <Space>
                         <Button onClick={() => setStep(0)}>{t('adminShell.operationsCenter.reprintBack')}</Button>
@@ -261,7 +261,7 @@ export default function ReceiptReprintWizard({
             ) : null}
 
             {step === 2 ? (
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Typography.Paragraph>{t('adminShell.operationsCenter.reprintConfirmIntro')}</Typography.Paragraph>
                     <Descriptions bordered size="small" column={1}>
                         <Descriptions.Item label={t('adminShell.operationsCenter.receiptNumber')}>
@@ -284,14 +284,14 @@ export default function ReceiptReprintWizard({
             ) : null}
 
             {step === 3 && result ? (
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     {result.outcome === 'Success' ? (
                         <Alert
                             type="success"
                             showIcon
-                            message={t('adminShell.operationsCenter.reprintSuccessTitle')}
+                            title={t('adminShell.operationsCenter.reprintSuccessTitle')}
                             description={
-                                <Space direction="vertical" size="small">
+                                <Space orientation="vertical" size="small">
                                     <span>
                                         {t('adminShell.operationsCenter.reprintAuditId')}:{' '}
                                         <Typography.Text code>{result.auditLogId ?? '—'}</Typography.Text>
@@ -312,9 +312,9 @@ export default function ReceiptReprintWizard({
                         <Alert
                             type="error"
                             showIcon
-                            message={t('adminShell.operationsCenter.reprintFailedTitle')}
+                            title={t('adminShell.operationsCenter.reprintFailedTitle')}
                             description={
-                                <Space direction="vertical" size="small">
+                                <Space orientation="vertical" size="small">
                                     <span>
                                         {result.errorCode} — {result.errorMessage ?? submitError}
                                     </span>

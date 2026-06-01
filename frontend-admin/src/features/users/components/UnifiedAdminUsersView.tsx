@@ -1,26 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-    Alert,
-    Avatar,
-    Badge,
-    Button,
-    Card,
-    Collapse,
-    Dropdown,
-    Empty,
-    Flex,
-    Input,
-    Popconfirm,
-    Select,
-    Space,
-    Table,
-    Tag,
-    Tooltip,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Avatar, Badge, Button, Card, Collapse, Dropdown, Empty, Flex, Input, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import dayjs from 'dayjs';
@@ -219,6 +201,8 @@ export function UnifiedAdminUsersView({
     onManagePermissions,
     onCreatePlatformUser,
 }: UnifiedAdminUsersViewProps) {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -421,21 +405,27 @@ export function UnifiedAdminUsersView({
             firstName?: string;
             lastName?: string;
             role: string;
-        }) =>
-            createFixedTenantId
-                ? createAdminUser({
-                      email: values.email.trim(),
-                      firstName: values.firstName?.trim(),
-                      lastName: values.lastName?.trim(),
-                      role: values.role,
-                      tenantId: createFixedTenantId,
-                  })
-                : createPlatformUser({
-                      email: values.email.trim(),
-                      firstName: values.firstName?.trim(),
-                      lastName: values.lastName?.trim(),
-                      role: values.role,
-                  }),
+            tenantId?: string;
+            isOwner?: boolean;
+        }) => {
+            const tenantId = values.tenantId ?? createFixedTenantId;
+            if (tenantId) {
+                return createAdminUser({
+                    email: values.email.trim(),
+                    firstName: values.firstName?.trim(),
+                    lastName: values.lastName?.trim(),
+                    role: values.role,
+                    tenantId,
+                    isOwner: values.isOwner,
+                });
+            }
+            return createPlatformUser({
+                email: values.email.trim(),
+                firstName: values.firstName?.trim(),
+                lastName: values.lastName?.trim(),
+                role: values.role,
+            });
+        },
         onSuccess: () => {
             invalidateUserLists();
         },
@@ -1062,7 +1052,7 @@ export function UnifiedAdminUsersView({
     }));
 
     return (
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                 {t('users.unified.pageIntro')}
             </Typography.Paragraph>
@@ -1120,7 +1110,7 @@ export function UnifiedAdminUsersView({
                 <Alert
                     type="error"
                     showIcon
-                    message={t('users.list.errorLoad')}
+                    title={t('users.list.errorLoad')}
                     action={
                         <Button size="small" onClick={refetchAll}>
                             {t('users.list.retry')}
@@ -1205,6 +1195,8 @@ export function UnifiedAdminUsersView({
                                 firstName: values.firstName,
                                 lastName: values.lastName,
                                 role: values.role,
+                                tenantId: values.tenantId,
+                                isOwner: values.isOwner,
                             })
                         }
                         quickMode={

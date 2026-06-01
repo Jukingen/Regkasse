@@ -1,8 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { DeleteOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button, Modal, message } from 'antd';
+import { Button } from 'antd';
 import { cleanupOrphanedDevUsers } from '@/features/users/api/devCleanup';
 import { listQueryKey } from '@/features/users/api/usersGateway';
 import { useI18n } from '@/i18n/I18nProvider';
@@ -20,6 +21,8 @@ export function DevOrphanedUsersCleanupButton({
     invalidatePlatformUsers = false,
     onTenantListRefetch,
 }: DevOrphanedUsersCleanupButtonProps) {
+  const { message, modal } = useAntdApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
 
@@ -50,7 +53,7 @@ export function DevOrphanedUsersCleanupButton({
     }
 
     const handleClick = () => {
-        Modal.confirm({
+        modal.confirm({
             title: t('users.dev.cleanupConfirmTitle'),
             content: t('users.dev.cleanupConfirmContent'),
             okText: t('users.dev.cleanupConfirmOk'),

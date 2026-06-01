@@ -55,12 +55,12 @@ namespace KasseAPI_Final.Controllers
         /// <summary>Invoices whose cash register belongs to the effective tenant (settings snapshot).</summary>
         private IQueryable<Invoice> QueryInvoicesForEffectiveTenant(Guid tenantId) =>
             _context.Invoices.Where(i =>
-                _context.CashRegisters.Any(cr => cr.Id == i.CashRegisterId && cr.TenantId == tenantId));
+                _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == i.CashRegisterId && cr.TenantId == tenantId));
 
         /// <summary>Payments whose cash register belongs to the effective tenant.</summary>
         private IQueryable<PaymentDetails> QueryPaymentsForEffectiveTenant(Guid tenantId) =>
             _context.PaymentDetails.Where(p =>
-                _context.CashRegisters.Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == tenantId));
+                _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == tenantId));
 
         // GET: api/reports/sales
         [HttpGet("sales")]
@@ -130,12 +130,12 @@ namespace KasseAPI_Final.Controllers
                     ? await _context.OrderItems
                         .Include(oi => oi.Order)
                         .Where(oi => oi.Order.OrderDate >= fromUtc && oi.Order.OrderDate < endBoundUtc && oi.Order.IsActive)
-                        .Where(oi => _context.Products.Any(pr => pr.Id == oi.ProductId && pr.TenantId == tenantId))
+                        .Where(oi => _context.Products.ForResolvedTenantScope().Any(pr => pr.Id == oi.ProductId && pr.TenantId == tenantId))
                         .ToListAsync()
                     : await _context.OrderItems
                         .Include(oi => oi.Order)
                         .Where(oi => oi.Order.OrderDate >= fromUtc && oi.Order.OrderDate <= endBoundUtc && oi.Order.IsActive)
-                        .Where(oi => _context.Products.Any(pr => pr.Id == oi.ProductId && pr.TenantId == tenantId))
+                        .Where(oi => _context.Products.ForResolvedTenantScope().Any(pr => pr.Id == oi.ProductId && pr.TenantId == tenantId))
                         .ToListAsync();
 
                 var productReport = new ProductReport

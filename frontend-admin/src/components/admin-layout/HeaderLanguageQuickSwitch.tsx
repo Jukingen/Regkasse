@@ -57,7 +57,7 @@ export function HeaderLanguageQuickSwitch() {
         }}
         trigger={['click']}
         placement="bottomRight"
-        overlayClassName="language-switcher-dropdown admin-header-dropdown"
+        classNames={{ root: "language-switcher-dropdown admin-header-dropdown" }}
         getPopupContainer={getAdminHeaderPopupContainer}
       >
         <Tooltip title={tooltipHint} placement="bottomRight" mouseEnterDelay={0.35}>

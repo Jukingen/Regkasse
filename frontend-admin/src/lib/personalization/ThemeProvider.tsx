@@ -10,7 +10,8 @@ import React, {
   type ReactNode,
 } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ConfigProvider } from 'antd';
+import { App, ConfigProvider } from 'antd';
+import { AntdAppBridgeRegistrar } from '@/lib/AntdAppBridgeRegistrar';
 import { applyDocumentDensity, applyDocumentTheme, applyReducedAnimations } from './applyDocumentTheme';
 import { antdComponentSizeForDensity } from './density';
 import { DensityProvider } from './DensityProvider';
@@ -152,9 +153,12 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   return (
     <ThemeContext.Provider value={themeContextValue}>
       <ConfigProvider theme={antdTheme} componentSize={componentSize}>
-        <DensityProvider densityMode={densityMode} setDensityMode={setDensityMode}>
-          {children}
-        </DensityProvider>
+        <App>
+          <AntdAppBridgeRegistrar />
+          <DensityProvider densityMode={densityMode} setDensityMode={setDensityMode}>
+            {children}
+          </DensityProvider>
+        </App>
       </ConfigProvider>
     </ThemeContext.Provider>
   );

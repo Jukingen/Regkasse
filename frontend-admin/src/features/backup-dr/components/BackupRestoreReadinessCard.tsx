@@ -1,22 +1,12 @@
 "use client";
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Wiederherstellbarkeit: RPO/RTO istatistikleri, drill özeti, manuel restore drill tetikleme.
  */
 
 import React, { useMemo } from "react";
-import {
-  Badge,
-  Button,
-  Card,
-  Col,
-  Divider,
-  Progress,
-  Row,
-  Statistic,
-  Typography,
-  message,
-} from "antd";
+import { Badge, Button, Card, Col, Divider, Progress, Row, Statistic, Typography } from 'antd';
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetApiAdminBackupRecoverabilitySummaryQueryKey } from "@/api/generated/admin-backup/admin-backup";
 import {
@@ -65,6 +55,8 @@ export function BackupRestoreReadinessCard({
   canManage = false,
   t,
 }: BackupRestoreReadinessCardProps) {
+  const { message } = useAntdApp();
+
   const queryClient = useQueryClient();
 
   const model = useMemo(
@@ -118,7 +110,7 @@ export function BackupRestoreReadinessCard({
             title={t("backupDr.monitoring.restoreReadiness.rpoTitle")}
             value={formatMetricNumber(model.rpoHours)}
             suffix={model.rpoHours !== null ? t("backupDr.monitoring.restoreReadiness.hoursSuffix") : undefined}
-            valueStyle={{ color: metricStatusToStatisticColor(model.rpoStatus) }}
+            styles={{ content: {  color: metricStatusToStatisticColor(model.rpoStatus)  } }}
           />
           <Progress
             percent={Math.round(model.rpoProgressPercent)}
@@ -136,7 +128,7 @@ export function BackupRestoreReadinessCard({
                 ? t("backupDr.monitoring.restoreReadiness.minutesSuffix")
                 : undefined
             }
-            valueStyle={{ color: metricStatusToStatisticColor(model.rtoStatus) }}
+            styles={{ content: {  color: metricStatusToStatisticColor(model.rtoStatus)  } }}
           />
           <Progress
             percent={Math.round(model.rtoProgressPercent)}

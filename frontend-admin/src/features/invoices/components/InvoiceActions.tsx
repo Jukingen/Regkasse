@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Descriptions, Input, Modal, Space, Tag, Tooltip, message } from 'antd';
+import { Modal, Button, Descriptions, Input, Space, Tag, Tooltip } from 'antd';
 import { DownloadOutlined, EyeOutlined, MailOutlined, PrinterOutlined } from '@ant-design/icons';
 import type { InvoiceStatus } from '@/api/generated/model';
 import { InvoiceStatus as InvoiceStatusEnum } from '@/api/generated/model';
@@ -42,6 +43,7 @@ function buildStatusMap(t: (key: string) => string): Record<number, { label: str
 }
 
 export const InvoiceActions: React.FC<InvoiceActionsProps> = ({ invoice, size = 'middle', onSuccess }) => {
+    const { message } = useAntdApp();
     const { t, formatLocale } = useI18n();
     const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
     const statusMap = useMemo(() => buildStatusMap(t), [t]);

@@ -72,7 +72,7 @@ export function MonatsbelegWidget({ enabled = true }: MonatsbelegWidgetProps) {
                 }
             >
                 <Alert
-                    message="Daten konnten nicht geladen werden"
+                    title="Daten konnten nicht geladen werden"
                     description={
                         displayError.message ||
                         'Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.'
@@ -88,7 +88,7 @@ export function MonatsbelegWidget({ enabled = true }: MonatsbelegWidgetProps) {
         return (
             <Card title="Monatsbeleg (RKSV)" bordered={false} style={{ marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 128 }}>
-                    <Spin tip="Lade Monatsbeleg-Daten…" />
+                    <Spin description="Lade Monatsbeleg-Daten…" />
                 </div>
             </Card>
         );
@@ -107,7 +107,7 @@ export function MonatsbelegWidget({ enabled = true }: MonatsbelegWidgetProps) {
                 }
             >
                 <Alert
-                    message="Keine Daten verfügbar"
+                    title="Keine Daten verfügbar"
                     description="Es wurden noch keine Kassen gefunden. Monatsbeleg-Daten erscheinen, sobald Kassen angelegt sind."
                     type="info"
                     showIcon

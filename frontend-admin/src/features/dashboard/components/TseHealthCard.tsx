@@ -84,7 +84,7 @@ export function TseHealthCard() {
             {data?.status === 'Degraded' && (
                 <Alert
                     type="warning"
-                    message="TSE eingeschränkt"
+                    title="TSE eingeschränkt"
                     description={
                         <>
                             Fehler in Folge: {data.consecutiveFailures ?? 0}.
@@ -109,7 +109,7 @@ export function TseHealthCard() {
             {data?.status === 'Offline' && (
                 <Alert
                     type="error"
-                    message="TSE offline"
+                    title="TSE offline"
                     description={
                         <>
                             Fehler in Folge: {data.consecutiveFailures ?? 0}.

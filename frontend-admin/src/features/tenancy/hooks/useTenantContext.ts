@@ -32,7 +32,15 @@ function readDevTenantOverrideActive(): boolean {
 }
 
 /**
- * Resolved tenant context for header badge, Verwaltung info card, and dev switcher labels.
+ * Read-only resolved tenant context (JWT, host subdomain, dev `dev_tenant_id`, `tenantStorage`).
+ *
+ * Used for header badge, API `X-Tenant-Id` (via {@link getEffectiveTenantSlug}), and mandant-scoped pages.
+ * Does **not** own a `switchTenant` mutator — dev switching is {@link DEV_TENANT_CHANGED_EVENT} /
+ * `HeaderDevTenantSwitch` → `localStorage` `dev_tenant_id` (slug).
+ *
+ * **User creation** uses a separate mandant source: `CreateUserModal` form `tenantId`, optional
+ * `fixedTenantId` from the users list URL filter (`?tenantId=`), or tenant-detail `useCreateUser({ fixedTenantId })`.
+ * Do not wire `useTenantContext().tenantId` into create-user payloads.
  */
 export function useTenantContext() {
     const { user } = useAuth();

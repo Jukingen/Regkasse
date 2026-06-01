@@ -47,7 +47,7 @@ export default function AdminPlatformPage() {
 
     if (!requiresTenantSelection) {
         return (
-            <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Space orientation="vertical" size={16} style={{ width: '100%' }}>
                 <TenantInfoCard />
                 <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
                     <Spin />
@@ -57,7 +57,7 @@ export default function AdminPlatformPage() {
     }
 
     return (
-        <Space direction="vertical" size={16} style={{ width: '100%' }}>
+        <Space orientation="vertical" size={16} style={{ width: '100%' }}>
             <TenantInfoCard />
             <SuperAdminTenantSelector />
         </Space>

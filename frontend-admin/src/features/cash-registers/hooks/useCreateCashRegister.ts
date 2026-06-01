@@ -1,7 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { message } from 'antd';
+
 
 import {
     cashRegisterListQueryKey,
@@ -16,6 +18,8 @@ export type UseCreateCashRegisterOptions = {
 };
 
 export function useCreateCashRegister(options: UseCreateCashRegisterOptions = {}) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const { onSuccess } = options;

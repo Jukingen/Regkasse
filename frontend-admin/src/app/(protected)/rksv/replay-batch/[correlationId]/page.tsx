@@ -154,7 +154,7 @@ export default function ReplayBatchDetailPage() {
             {error && (
                 <Alert
                     type="error"
-                    message={t('common.loadErrors.batch')}
+                    title={t('common.loadErrors.batch')}
                     description={
                         error instanceof Error ? error.message : t('common.messages.noTechnicalDetail')
                     }
@@ -165,7 +165,7 @@ export default function ReplayBatchDetailPage() {
             {data && (
                 <>
                     <Card size="small" style={{ marginBottom: 16 }}>
-                        <Space direction="vertical" size="small">
+                        <Space orientation="vertical" size="small">
                             <Typography.Text strong>{t('rksvHub.replayBatchDetail.batchOverview')}</Typography.Text>
                             <Row gutter={[12, 12]}>
                                 <Col xs={24} sm={8}>
@@ -186,9 +186,9 @@ export default function ReplayBatchDetailPage() {
                                         <Statistic
                                             title={t('rksvHub.replayBatchDetail.statFailedDuplicate')}
                                             value={data.failedOrDuplicateCount ?? 0}
-                                            valueStyle={{
+                                            styles={{ content: { 
                                                 color: (data.failedOrDuplicateCount ?? 0) > 0 ? '#cf1322' : undefined,
-                                            }}
+                                             } }}
                                         />
                                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                             {needsPerPaymentChecking
@@ -243,7 +243,7 @@ export default function ReplayBatchDetailPage() {
                     </Card>
 
                     <Card size="small" title={OPERATOR_REPLAY_COPY.investigationPathTitle} style={{ marginBottom: 16 }}>
-                        <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                        <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                 {OPERATOR_REPLAY_COPY.investigationPathIntro}
                             </Typography.Text>
@@ -327,9 +327,9 @@ export default function ReplayBatchDetailPage() {
                                     <Statistic
                                         title={t('rksvHub.replayBatchDetail.statAuditFinalFailure')}
                                         value={data.offlineFinalFailureAuditCount ?? 0}
-                                        valueStyle={{
+                                        styles={{ content: { 
                                             color: (data.offlineFinalFailureAuditCount ?? 0) > 0 ? '#cf1322' : undefined,
-                                        }}
+                                         } }}
                                     />
                                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                         {OPERATOR_REPLAY_COPY.observabilityFinalFailureFootnote}
@@ -344,7 +344,7 @@ export default function ReplayBatchDetailPage() {
                             type="info"
                             showIcon
                             style={{ marginBottom: 12 }}
-                            message={OPERATOR_REPLAY_COPY.paymentsDtoGapTitle}
+                            title={OPERATOR_REPLAY_COPY.paymentsDtoGapTitle}
                             description={
                                 <span>
                                     <Typography.Text code>ReplayBatchPaymentItemDto</Typography.Text>{' '}
@@ -356,7 +356,7 @@ export default function ReplayBatchDetailPage() {
                             type="warning"
                             showIcon
                             style={{ marginBottom: 12 }}
-                            message={t('rksvHub.replayBatchDetail.foHintBannerTitle')}
+                            title={t('rksvHub.replayBatchDetail.foHintBannerTitle')}
                             description={
                                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                     {t('rksvHub.replayBatchDetail.foHintBannerBodyBefore')}{' '}

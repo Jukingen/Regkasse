@@ -46,7 +46,7 @@ export default function CustomerList({ data, loading, onEdit, onDelete, onManage
             title: t('customers.list.columnContact'),
             key: 'contact',
             render: (_: any, record: Customer) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     {record.email && <span>{record.email}</span>}
                     {record.phone && <span style={{ fontSize: 12, color: '#888' }}>{record.phone}</span>}
                 </Space>

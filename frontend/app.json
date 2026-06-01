@@ -3,17 +3,13 @@
     "name": "Cash Register",
     "slug": "cash-register",
     "version": "1.0.0",
-    "runtimeVersion": "1.0.0",
+    "sdkVersion": "56.0.0",
+    "runtimeVersion": "56.0.0",
     "orientation": "portrait",
     "scheme": "cashregister",
     "userInterfaceStyle": "automatic",
     "description": "RKSV Compliant Cash Register for Cashiers",
-    "splash": {
-      "backgroundColor": "#ffffff"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "icon": "./assets/images/icon.png",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.registrierkasse.cashregister",
@@ -45,58 +41,47 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.registrierkasse.cashregister",
-      "usesCleartextTraffic": true,
-      "networkSecurityConfig": {
-        "domain-config": [
-          {
-            "domain": "localhost",
-            "cleartextTrafficPermitted": true
-          },
-          {
-            "domain": "192.168.1.2",
-            "cleartextTrafficPermitted": true
-          },
-          {
-            "domain": "192.168.1.100",
-            "cleartextTrafficPermitted": true
-          },
-          {
-            "domain": "192.168.0.100",
-            "cleartextTrafficPermitted": true
-          },
-          {
-            "domain": "10.0.0.100",
-            "cleartextTrafficPermitted": true
-          },
-          {
-            "domain": "172.20.10.1",
-            "cleartextTrafficPermitted": true
-          }
-        ]
-      }
+      "package": "com.registrierkasse.cashregister"
     },
     "web": {
       "bundler": "metro",
-      "output": "static"
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
       "expo-localization",
       "expo-web-browser",
       "@react-native-community/datetimepicker",
-      "expo-mail-composer"
+      "expo-mail-composer",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": ["./assets/fonts/OCRA-B.ttf"]
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "fonts": [
-      {
-        "asset": "assets/fonts/OCRA-B.ttf",
-        "family": "OCRA-B"
-      }
-    ]
+    }
   }
 }

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Form, Input, Modal, Select, Space, Switch, Tabs, Typography, message } from 'antd';
+import { App, Modal, Alert, Button, Form, Input, Select, Space, Switch, Tabs, Typography } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
@@ -12,6 +12,7 @@ import { QUICK_USER_ROLES, type CreateQuickUserResult } from '@/features/super-a
 import { getQuickUsernamePattern } from '@/features/super-admin/lib/quickUserPreview';
 import { fetchUsernameSuggestion, type CreateUserResult } from '@/features/users/api/users';
 import { TENANT_CREATE_ROLES } from '@/features/super-admin/api/tenantUsers';
+import { TenantSelector } from '@/features/users/components/TenantSelector';
 import { UserTenantAssignmentModal } from '@/features/users/components/UserTenantAssignmentModal';
 import { useTenantAssignmentModal } from '@/features/users/hooks/useTenantAssignmentModal';
 import { useI18n } from '@/i18n';
@@ -80,6 +81,8 @@ export function CreateUserModal({
     onAssignTenants,
     quickMode,
 }: CreateUserModalProps) {
+  const { message } = App.useApp();
+
     const { t } = useI18n();
     const [form] = Form.useForm<CreateUserFormValues>();
     const [quickForm] = Form.useForm<CreateUserQuickFormValues>();
@@ -116,16 +119,18 @@ export function CreateUserModal({
         [t],
     );
 
-    const tenantOptions = useMemo(
-        () =>
-            tenantRows.map((row) => ({
-                value: row.id,
-                label: t('users.create.tenantOption', { name: row.name, slug: row.slug }),
-            })),
-        [tenantRows, t],
-    );
-
     const tenantById = useMemo(() => new Map(tenantRows.map((row) => [row.id, row])), [tenantRows]);
+
+    /** Mandant list for create only (parent `useTenantList`); not the header dev tenant switcher. */
+    const createUserTenantField = showTenantPicker ? (
+        <Form.Item
+            name="tenantId"
+            label={t('users.create.tenant')}
+            rules={canDeferTenantAssignment ? [] : [{ required: true, message: t('users.create.tenantRequired') }]}
+        >
+            <TenantSelector tenants={tenantRows} loading={tenantsLoading} />
+        </Form.Item>
+    ) : null;
 
     const modalTitle = useMemo(() => {
         if (fixedTenantId) {
@@ -204,23 +209,24 @@ export function CreateUserModal({
 
     const handleFinish = async (values: CreateUserFormValues) => {
         const tenantId = fixedTenantId ?? values.tenantId;
-        const { tenantId: _tenantId, ...restValues } = values;
         if (!tenantId && !canDeferTenantAssignment) {
             form.setFields([{ name: 'tenantId', errors: [t('users.create.tenantRequired')] }]);
             return;
         }
         setSubmitting(true);
+        const usedDeferredCreate = canDeferTenantAssignment && !tenantId;
+        const submitPayload: CreateUserFormValues = {
+            email: values.email.trim(),
+            firstName: values.firstName?.trim() || undefined,
+            lastName: values.lastName?.trim() || undefined,
+            role: values.role,
+            isOwner: showOwnerToggle ? Boolean(values.isOwner) : false,
+            ...(usedDeferredCreate ? {} : tenantId ? { tenantId } : {}),
+        };
         try {
-            const result = await onSubmit({
-                ...restValues,
-                email: values.email.trim(),
-                firstName: values.firstName?.trim() || undefined,
-                lastName: values.lastName?.trim() || undefined,
-                ...(canDeferTenantAssignment ? {} : { tenantId }),
-                isOwner: showOwnerToggle ? Boolean(values.isOwner) : false,
-            });
+            const result = await onSubmit(submitPayload);
             if (result?.success && result.generatedPassword) {
-                if (canDeferTenantAssignment && onAssignTenants) {
+                if (usedDeferredCreate && onAssignTenants) {
                     if (tenantId) {
                         try {
                             await onAssignTenants(result.userId, [tenantId]);
@@ -370,21 +376,7 @@ export function CreateUserModal({
                 <Select options={roleOptions} />
             </Form.Item>
 
-            {showTenantPicker ? (
-                <Form.Item
-                    name="tenantId"
-                    label={t('users.create.tenant')}
-                    rules={canDeferTenantAssignment ? [] : [{ required: true, message: t('users.create.tenantRequired') }]}
-                >
-                    <Select
-                        showSearch
-                        optionFilterProp="label"
-                        placeholder={t('users.create.tenantPlaceholder')}
-                        loading={tenantsLoading}
-                        options={tenantOptions}
-                    />
-                </Form.Item>
-            ) : null}
+            {createUserTenantField}
 
             {showOwnerToggle ? (
                 <Form.Item name="isOwner" label={t('users.create.isOwner')} valuePropName="checked">
@@ -402,16 +394,14 @@ export function CreateUserModal({
                     label={t('users.create.tenant')}
                     rules={canDeferQuickTenantAssignment ? [] : [{ required: true, message: t('users.create.tenantRequired') }]}
                 >
-                    <Select
-                        showSearch
-                        optionFilterProp="label"
+                    <TenantSelector
+                        tenants={tenantRows}
+                        loading={tenantsLoading}
                         placeholder={
                             canDeferQuickTenantAssignment
                                 ? t('tenants.users.quick.tenantPlaceholderOptional')
                                 : t('users.create.tenantPlaceholder')
                         }
-                        loading={tenantsLoading}
-                        options={tenantOptions}
                     />
                 </Form.Item>
             ) : null}
@@ -454,14 +444,14 @@ export function CreateUserModal({
                 type="info"
                 showIcon
                 style={{ marginTop: 16 }}
-                message={t('tenants.users.quick.autoTitle')}
+                title={t('tenants.users.quick.autoTitle')}
                 description={t('tenants.users.quick.autoForceChange')}
             />
             {showTenantPicker && canDeferQuickTenantAssignment && !watchedQuickTenantId ? (
                 <Alert
                     type="warning"
                     showIcon
-                    message={t('tenants.users.quick.assignmentRequiredAfterCreate')}
+                    title={t('tenants.users.quick.assignmentRequiredAfterCreate')}
                     style={{ marginTop: 16 }}
                 />
             ) : null}
@@ -550,7 +540,7 @@ export function CreateUserModal({
                     </Button>,
                 ]}
             >
-                <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     {passwordResult?.userName ? (
                         <CredentialCopyRow
                             label={t('tenants.users.quick.result.usernameLabel')}
@@ -567,7 +557,7 @@ export function CreateUserModal({
                     <Alert
                         type="warning"
                         showIcon
-                        message={t('users.create.passwordWarningTitle')}
+                        title={t('users.create.passwordWarningTitle')}
                         description={t('users.create.generatedPasswordInfo')}
                     />
                 </Space>

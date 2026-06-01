@@ -1,13 +1,19 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace KasseAPI_Final.Services.AdminTenants;
 
 /// <summary>POST /api/admin/users — platform or tenant user (no invitation email).</summary>
 public sealed class AdminCreateUserRequest
 {
-    /// <summary>When set, creates a tenant-scoped user under this mandant.</summary>
+    /// <summary>
+    /// When set, creates a tenant-scoped user under this mandant.
+    /// Omit or null for platform <see cref="Role"/> = SuperAdmin only.
+    /// </summary>
+    [JsonPropertyName("tenantId")]
     public Guid? TenantId { get; set; }
 
+    [JsonPropertyName("isOwner")]
     public bool IsOwner { get; set; }
 
     [Required]

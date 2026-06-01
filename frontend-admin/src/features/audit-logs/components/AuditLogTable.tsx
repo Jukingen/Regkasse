@@ -103,7 +103,7 @@ export function AuditLogTable({
                         return <Typography.Text strong>{type}</Typography.Text>;
                     }
                     return (
-                        <Space direction="vertical" size={0} style={{ maxWidth: 220 }}>
+                        <Space orientation="vertical" size={0} style={{ maxWidth: 220 }}>
                             <Typography.Text strong ellipsis style={{ display: 'block' }}>
                                 {type}
                             </Typography.Text>

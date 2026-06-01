@@ -131,9 +131,9 @@ export function TenantTableActions({
                             /* keep modal open; parent shows error toast */
                         }
                     }}
-                    destroyOnClose
+                    destroyOnHidden
                 >
-                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                         <Typography.Text strong type="danger">
                             {t('tenants.confirmHardDelete.irreversible')}
                         </Typography.Text>

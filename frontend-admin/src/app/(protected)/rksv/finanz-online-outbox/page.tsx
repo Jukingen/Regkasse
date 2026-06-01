@@ -289,7 +289,7 @@ export default function FinanzOnlineOutboxPage() {
                     const hintKey =
                         r.status === 'ProtocolSuccess' ? protocolSuccessStatusHintKey(r.transportPathKind) : null;
                     return (
-                        <Space direction="vertical" size={0}>
+                        <Space orientation="vertical" size={0}>
                             <Tag color={finanzOnlineOutboxStatusTagColor(r.status, r.transportPathKind)}>
                                 {r.operatorStatusLabel ?? r.status ?? emDash}
                             </Tag>
@@ -353,7 +353,7 @@ export default function FinanzOnlineOutboxPage() {
                     const summary = r.protocolSummary?.trim();
                     if (!code && !summary) return emDash;
                     return (
-                        <Space direction="vertical" size={0}>
+                        <Space orientation="vertical" size={0}>
                             {code ? (
                                 <Typography.Text code style={{ fontSize: 11 }}>
                                     {code}
@@ -440,7 +440,7 @@ export default function FinanzOnlineOutboxPage() {
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={t('finanzOnlineOutbox.privacyAlert.title')}
+                title={t('finanzOnlineOutbox.privacyAlert.title')}
                 description={t('finanzOnlineOutbox.privacyAlert.description')}
             />
 
@@ -449,7 +449,7 @@ export default function FinanzOnlineOutboxPage() {
                     type="warning"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message={t('finanzOnlineOutbox.transportPath.bannerSimulated')}
+                    title={t('finanzOnlineOutbox.transportPath.bannerSimulated')}
                     description={
                         listData?.finanzOnlineDeveloperSimulationProfile
                             ? t('finanzOnlineOutbox.transportPath.developerScenario', {
@@ -463,7 +463,7 @@ export default function FinanzOnlineOutboxPage() {
                     type="info"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message={t('finanzOnlineOutbox.transportPath.bannerReal')}
+                    title={t('finanzOnlineOutbox.transportPath.bannerReal')}
                 />
             ) : null}
 
@@ -480,7 +480,7 @@ export default function FinanzOnlineOutboxPage() {
                         <Alert
                             type="error"
                             showIcon
-                            message={t('finanzOnlineOutbox.readiness.loadError')}
+                            title={t('finanzOnlineOutbox.readiness.loadError')}
                             description={
                                 <ApiErrorAlertDescription
                                     t={t}
@@ -547,19 +547,19 @@ export default function FinanzOnlineOutboxPage() {
                             {(readiness.findings ?? []).length === 0 ? (
                                 <Typography.Text type="secondary">—</Typography.Text>
                             ) : (
-                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                                     {(readiness.findings ?? []).map((f, i) => (
                                         <Alert
                                             key={`${f.code ?? 'finding'}-${i}`}
                                             type={readinessFindingAlertType(f.severity)}
                                             showIcon
-                                            message={
+                                            title={
                                                 <Typography.Text strong style={{ display: 'block' }}>
                                                     {finanzOnlineReadinessFindingGermanTitle(t, f.code)}
                                                 </Typography.Text>
                                             }
                                             description={
-                                                <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                                                <Space orientation="vertical" size={6} style={{ width: '100%' }}>
                                                     <Space wrap size="small">
                                                         {f.code ? <Tag>{f.code}</Tag> : null}
                                                         {f.severity ? <Tag>{f.severity}</Tag> : null}
@@ -674,7 +674,7 @@ export default function FinanzOnlineOutboxPage() {
                 <Alert
                     type="error"
                     showIcon
-                    message={t('finanzOnlineOutbox.error.listLoadTitle')}
+                    title={t('finanzOnlineOutbox.error.listLoadTitle')}
                     description={
                         <ApiErrorAlertDescription
                             t={t}
@@ -712,10 +712,10 @@ export default function FinanzOnlineOutboxPage() {
 
             <Drawer
                 title={t('finanzOnlineOutbox.drawer.title')}
-                width={640}
+                size={640}
                 open={drawerOpen}
                 onClose={closeDrawer}
-                destroyOnClose
+                destroyOnHidden
             >
                 {detailLoading && !displayRow ? (
                     <Spin />
@@ -773,7 +773,7 @@ export default function FinanzOnlineOutboxPage() {
                             type="warning"
                             showIcon
                             style={{ marginBottom: 12 }}
-                            message={t('finanzOnlineOutbox.drawer.protocolSuccessSimulatedAlert')}
+                            title={t('finanzOnlineOutbox.drawer.protocolSuccessSimulatedAlert')}
                         />
                     ) : null}
                     <Descriptions bordered size="small" column={1}>
@@ -799,7 +799,7 @@ export default function FinanzOnlineOutboxPage() {
                                 </Typography.Text>
                             }
                         >
-                            <Space direction="vertical" size={0}>
+                            <Space orientation="vertical" size={0}>
                                 <span>{displayRow.externalReferenceId ?? emDash}</span>
                                 <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                                     {t('finanzOnlineOutbox.drawer.fields.externalStatus')}:{' '}
@@ -814,7 +814,7 @@ export default function FinanzOnlineOutboxPage() {
                                 </Typography.Text>
                             }
                         >
-                            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                            <Space orientation="vertical" size={4} style={{ width: '100%' }}>
                                 <div>
                                     <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
                                         {t('finanzOnlineOutbox.drawer.fields.protocolCode')}

@@ -1,31 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * FinanzOnline Reconciliation — mixed surface: investigation (list, filters, metrics, drill-down context)
  * plus remediation (POST retry per payment). Operational truth is read path; mutations are isolated in row actions.
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-    Card,
-    Table,
-    Tag,
-    Statistic,
-    Row,
-    Col,
-    Spin,
-    Alert,
-    Button,
-    Space,
-    Select,
-    DatePicker,
-    message,
-    Typography,
-    Tooltip,
-    Descriptions,
-    Collapse,
-    Divider,
-} from 'antd';
+import { Card, Table, Tag, Statistic, Row, Col, Spin, Alert, Button, Space, Select, DatePicker, Typography, Tooltip, Descriptions, Collapse, Divider } from 'antd';
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -101,6 +83,8 @@ function statusBadgeColor(status: string | null): string {
 }
 
 export default function FinanzOnlineReconciliationPage() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
@@ -241,7 +225,7 @@ export default function FinanzOnlineReconciliationPage() {
             key: 'receiptNumber',
             width: 160,
             render: (val: string) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <Typography.Text code copyable>
                         {val || '—'}
                     </Typography.Text>
@@ -263,7 +247,7 @@ export default function FinanzOnlineReconciliationPage() {
                 const paymentId = r.paymentId ?? '';
                 if (!paymentId) return <Typography.Text type="secondary">—</Typography.Text>;
                 return (
-                    <Space direction="vertical" size={2} style={{ maxWidth: 228 }}>
+                    <Space orientation="vertical" size={2} style={{ maxWidth: 228 }}>
                         <Link href={`/payments?paymentId=${paymentId}`} target="_blank" rel="noopener noreferrer">
                             {t('finanzOnlineReconciliation.queuePage.columns.openInPayments')}
                         </Link>
@@ -284,7 +268,7 @@ export default function FinanzOnlineReconciliationPage() {
             key: 'finanzOnlineStatus',
             width: 130,
             render: (val: string | null) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <Tag color={statusBadgeColor(val)}>{val ?? '—'}</Tag>
                     <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                         {t('finanzOnlineReconciliation.queuePage.columns.legacyFoDerivedSubtitle')}
@@ -326,7 +310,7 @@ export default function FinanzOnlineReconciliationPage() {
                     return <Typography.Text type="secondary">—</Typography.Text>;
                 }
                 return (
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         {tpk?.trim() ? (
                             <Tooltip title={tpk}>
                                 <Tag color={finanzOnlineTransportPathTagColor(tpk)}>
@@ -412,7 +396,7 @@ export default function FinanzOnlineReconciliationPage() {
             key: 'foTimeline',
             width: 148,
             render: (_: unknown, r: FinanzOnlineReconciliationItemDto) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                         {t('finanzOnlineReconciliation.queuePage.columns.rowCreated')}{' '}
                         {r.createdAt && dayjs(r.createdAt).isValid()
@@ -494,14 +478,14 @@ export default function FinanzOnlineReconciliationPage() {
                 const v = viewFinanzReconciliationRegister(r);
                 if (!v.apiCashRegisterId) {
                     return (
-                        <Space direction="vertical" size={2}>
+                        <Space orientation="vertical" size={2}>
                             <Typography.Text type="secondary">—</Typography.Text>
                             <AdminTruthBadge kind="link_incomplete" />
                         </Space>
                     );
                 }
                 return (
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text
                             code
                             copyable={{ text: v.apiCashRegisterId }}
@@ -612,7 +596,7 @@ export default function FinanzOnlineReconciliationPage() {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 12 }}
-                message={t('finanzOnlineReconciliation.outboxPrimaryBanner.title')}
+                title={t('finanzOnlineReconciliation.outboxPrimaryBanner.title')}
                 description={
                     <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
                         {t('finanzOnlineReconciliation.outboxPrimaryBanner.leadBeforeLink')}{' '}
@@ -626,7 +610,7 @@ export default function FinanzOnlineReconciliationPage() {
                 type="warning"
                 showIcon
                 style={{ marginBottom: 12 }}
-                message={t('finanzOnlineReconciliation.queuePage.derivedLegacyTruthAlert.title')}
+                title={t('finanzOnlineReconciliation.queuePage.derivedLegacyTruthAlert.title')}
                 description={t('finanzOnlineReconciliation.queuePage.derivedLegacyTruthAlert.description')}
             />
 
@@ -634,16 +618,16 @@ export default function FinanzOnlineReconciliationPage() {
                 type="info"
                 showIcon
                 style={{ marginBottom: 12 }}
-                message={t('finanzOnlineReconciliation.phasedDeprecationNote')}
+                title={t('finanzOnlineReconciliation.phasedDeprecationNote')}
             />
 
             <Alert
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message={OPERATOR_FO_QUEUE_COPY.pageTopDisclaimerMessage}
+                title={OPERATOR_FO_QUEUE_COPY.pageTopDisclaimerMessage}
                 description={
-                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                    <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                         <Typography.Paragraph style={{ marginBottom: 0, fontSize: 13 }}>
                             {OPERATOR_FO_QUEUE_COPY.pageTopDisclaimerLead}
                         </Typography.Paragraph>
@@ -664,7 +648,7 @@ export default function FinanzOnlineReconciliationPage() {
                         key: 'listen-kontext',
                         label: OPERATOR_FO_QUEUE_COPY.foQueueListenKontextCollapseTitle,
                         children: (
-                            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                            <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
                                     {OPERATOR_FO_QUEUE_COPY.pagePrimaryOperationalTruthLead}
                                 </Typography.Paragraph>
@@ -677,7 +661,7 @@ export default function FinanzOnlineReconciliationPage() {
             {listError ? (
                 <Alert
                     type="error"
-                    message={t('common.loadErrors.list')}
+                    title={t('common.loadErrors.list')}
                     description={
                         listError instanceof Error ? listError.message : t('common.messages.noTechnicalDetail')
                     }
@@ -702,7 +686,7 @@ export default function FinanzOnlineReconciliationPage() {
                     type="info"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message={t('finanzOnlineReconciliation.queuePage.transportSurfaceBadge.real')}
+                    title={t('finanzOnlineReconciliation.queuePage.transportSurfaceBadge.real')}
                 />
             ) : null}
 
@@ -711,7 +695,7 @@ export default function FinanzOnlineReconciliationPage() {
                     type="warning"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message={t('finanzOnlineReconciliation.simulationBanners.transportSimActive')}
+                    title={t('finanzOnlineReconciliation.simulationBanners.transportSimActive')}
                     description={
                         listData?.finanzOnlineDeveloperSimulationProfile
                             ? t('finanzOnlineReconciliation.simulationBanners.developerScenario', {
@@ -727,9 +711,9 @@ export default function FinanzOnlineReconciliationPage() {
                     type="info"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message={OPERATOR_FO_QUEUE_COPY.urlParamRejectedCombinedTitle}
+                    title={OPERATOR_FO_QUEUE_COPY.urlParamRejectedCombinedTitle}
                     description={
-                        <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                        <Space orientation="vertical" size={6} style={{ width: '100%' }}>
                             {rejectedRegisterQueryParam ? (
                                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                     <strong>{OPERATOR_FO_QUEUE_COPY.queryRejectedRegisterTitle}:</strong>{' '}
@@ -761,7 +745,7 @@ export default function FinanzOnlineReconciliationPage() {
                             : OPERATOR_INVESTIGATION_CONTEXT_COPY.focusPaymentOnlyTitle
                     }
                 >
-                    <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                    <Space orientation="vertical" size={10} style={{ width: '100%' }}>
                         {investigationBatchCorrelationId ? (
                             <>
                                 <Typography.Text code copyable>
@@ -813,7 +797,7 @@ export default function FinanzOnlineReconciliationPage() {
                                 />
                             </>
                         ) : (
-                            <Space direction="vertical" size={6} style={{ width: '100%' }}>
+                            <Space orientation="vertical" size={6} style={{ width: '100%' }}>
                                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                     {OPERATOR_INVESTIGATION_CONTEXT_COPY.focusPaymentOnlyBody}
                                 </Typography.Text>
@@ -829,7 +813,7 @@ export default function FinanzOnlineReconciliationPage() {
             ) : null}
 
             <OperatorSummaryStrip>
-                <Space direction="vertical" size={10} style={{ width: '100%', marginBottom: 8 }}>
+                <Space orientation="vertical" size={10} style={{ width: '100%', marginBottom: 8 }}>
                     <Space wrap align="center">
                         <Tag color="geekblue">{OPERATOR_FO_QUEUE_COPY.metricsAggregatedBadge}</Tag>
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -885,7 +869,7 @@ export default function FinanzOnlineReconciliationPage() {
                             key: 'metric-hints',
                             label: OPERATOR_FO_QUEUE_COPY.foQueueMetricsHintsCollapseTitle,
                             children: (
-                                <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                                <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                                     <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
                                         {OPERATOR_FO_QUEUE_COPY.summaryReconciliationParagraph}
                                     </Typography.Paragraph>
@@ -968,7 +952,7 @@ export default function FinanzOnlineReconciliationPage() {
                 ) : items.length === 0 ? (
                     <Alert
                         type="info"
-                        message={OPERATOR_FO_QUEUE_COPY.emptyListTitle}
+                        title={OPERATOR_FO_QUEUE_COPY.emptyListTitle}
                         description={OPERATOR_FO_QUEUE_COPY.emptyListDescription}
                         showIcon
                     />
@@ -1026,7 +1010,7 @@ export default function FinanzOnlineReconciliationPage() {
                                                 type="warning"
                                                 showIcon
                                                 style={{ marginBottom: 8 }}
-                                                message={t(
+                                                title={t(
                                                     'finanzOnlineReconciliation.queuePage.expandRow.protocolSuccessSimulatedExpandNote',
                                                 )}
                                             />
@@ -1224,7 +1208,7 @@ export default function FinanzOnlineReconciliationPage() {
                                                 {OPERATOR_FO_QUEUE_COPY.expandSectionInvestigationTitle}
                                             </Typography.Text>
                                         </Divider>
-                                        <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                                        <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                                             {pid ? (
                                                 <Link
                                                     href={`/payments?paymentId=${encodeURIComponent(pid)}`}

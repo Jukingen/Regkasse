@@ -57,7 +57,7 @@ export function BulkImportResultsModal({ open, status, onClose }: Props) {
                         type={alertType}
                         showIcon
                         style={{ marginBottom: 16 }}
-                        message={
+                        title={
                             status.status === 'Cancelled'
                                 ? 'Import abgebrochen'
                                 : `${successCount} erfolgreich, ${failedCount} fehlgeschlagen (von ${totalRows} Zeilen)`

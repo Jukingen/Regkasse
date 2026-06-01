@@ -43,12 +43,12 @@ export default function TablesAdminPage() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={t('adminShell.tablesAdmin.dataHintTitle')}
+        title={t('adminShell.tablesAdmin.dataHintTitle')}
         description={t('adminShell.tablesAdmin.dataHintBody')}
       />
 
       {isError ? (
-        <Alert type="error" showIcon message={t('adminShell.tablesAdmin.loadError')} description={errMsg} />
+        <Alert type="error" showIcon title={t('adminShell.tablesAdmin.loadError')} description={errMsg} />
       ) : (
         <Card bordered={false}>
           <Table<TableInfo>

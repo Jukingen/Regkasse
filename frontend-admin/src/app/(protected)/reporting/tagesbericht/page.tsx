@@ -1,10 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Formal Tagesbericht: Liste, Erzeugung (provisorisch), Filter nach Datum und Kasse.
  */
 import React, { useMemo, useState } from 'react';
-import { Button, Card, DatePicker, Select, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Card, DatePicker, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Link from 'next/link';
@@ -46,6 +47,8 @@ function reportStatusTagLabel(s: string, t: (k: string) => string): string {
 }
 
 export default function TagesberichtListPage() {
+  const { message } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const { fiscalTooltip, resolveFiscal } = useFiscalReportText();
   const qc = useQueryClient();
@@ -132,7 +135,7 @@ export default function TagesberichtListPage() {
         render: (_: unknown, row) => {
           const hint = resolveFiscal(row.submission.operatorHintDe, row.submission.operatorHintEn);
           return (
-            <Space direction="vertical" size={0}>
+            <Space orientation="vertical" size={0}>
               <Tag>{row.submission.lifecycle}</Tag>
               {hint ? (
                 <Typography.Text type="secondary" style={{ fontSize: 12 }} title={fiscalTooltip(hint.contentLang)}>

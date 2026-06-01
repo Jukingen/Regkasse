@@ -1,11 +1,12 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * FinanzOnline/BMF submission snapshot for RKSV Startbeleg and Jahresbeleg (admin read model).
  */
 
 import React, { useCallback } from 'react';
-import { Alert, Button, Card, Descriptions, Space, Tag, Typography, message } from 'antd';
+import { Alert, Button, Card, Descriptions, Space, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -69,6 +70,8 @@ export default function RksvSpecialReceiptFinanzOnlineSubmissionCard({
     rksvSpecialReceiptKind,
     submission,
 }: RksvSpecialReceiptFinanzOnlineSubmissionCardProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const { hasPermission } = usePermissions();
     const queryClient = useQueryClient();
@@ -112,8 +115,8 @@ export default function RksvSpecialReceiptFinanzOnlineSubmissionCard({
 
     return (
         <Card title={p('cardTitle')}>
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <Alert type="info" showIcon message={p('disclaimerTitle')} description={p('disclaimerBody')} />
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                <Alert type="info" showIcon title={p('disclaimerTitle')} description={p('disclaimerBody')} />
                 <Descriptions bordered size="small" column={1}>
                     <Descriptions.Item label={p('labelStatus')}>
                         <Text>

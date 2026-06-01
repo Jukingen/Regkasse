@@ -10,7 +10,7 @@ import { useI18n } from '@/i18n';
  */
 export function AdminPageShell({ children }: { children: React.ReactNode }) {
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%', paddingBottom: 24 }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%', paddingBottom: 24 }}>
             {children}
         </Space>
     );

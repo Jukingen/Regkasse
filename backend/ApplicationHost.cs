@@ -31,6 +31,7 @@ using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final;
 using KasseAPI_Final.Tse;
+using Microsoft.OpenApi;
 using KasseAPI_Final.Swagger;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Authorization;
@@ -488,9 +489,9 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo 
-    { 
-        Title = "Kasse API", 
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Kasse API",
         Version = "v1",
         Description = "Registrierkasse API - RKSV uyumlu kasa sistemi"
     });
@@ -502,29 +503,19 @@ builder.Services.AddSwaggerGen(c =>
 
     c.DocInclusionPredicate((_, api) => !KasseAPI_Final.Swagger.LegacySwaggerPathExclusions.ShouldExclude(api.RelativePath));
     
-    // JWT authentication için Swagger konfigürasyonu
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
         Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
     });
     
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
-        }
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 

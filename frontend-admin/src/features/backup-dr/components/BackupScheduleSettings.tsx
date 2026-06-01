@@ -1,19 +1,9 @@
 "use client";
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import {
-  Alert,
-  Button,
-  Card,
-  Descriptions,
-  InputNumber,
-  Space,
-  Spin,
-  Switch,
-  Typography,
-  message,
-} from "antd";
+import { Alert, Button, Card, Descriptions, InputNumber, Space, Spin, Switch, Typography } from 'antd';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
 import { BackupSchedulePlanner } from "@/features/backup/components/BackupSchedulePlanner";
@@ -50,6 +40,8 @@ function axiosNormalizedMessage(err: unknown): string | undefined {
 }
 
 export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProps) {
+  const { message } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const queryClient = useQueryClient();
 
@@ -152,7 +144,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
   if (settingsQuery.isError) {
     return (
       <Card id="backup-dr-schedule-settings" size="small" title={t("backupDr.scheduleSettings.cardTitle")}>
-        <Alert type="error" showIcon message={t("backupDr.scheduleSettings.loadError")} />
+        <Alert type="error" showIcon title={t("backupDr.scheduleSettings.loadError")} />
       </Card>
     );
   }
@@ -173,7 +165,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
       {settingsQuery.isLoading ? (
         <Spin />
       ) : (
-        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+        <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
             {t("backupDr.scheduleSettings.cardHint")}
           </Typography.Paragraph>
@@ -185,7 +177,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
             <Alert
               type="warning"
               showIcon
-              message={t("backupDr.scheduleSettings.serverRetentionHigher", {
+              title={t("backupDr.scheduleSettings.serverRetentionHigher", {
                 days: String(serverRetentionRaw),
               })}
             />

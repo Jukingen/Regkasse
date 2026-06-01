@@ -1,7 +1,9 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
+
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { message } from 'antd';
+
 
 import type { CreateUserFormValues } from '@/features/users/components/CreateUserModal';
 import {
@@ -34,6 +36,8 @@ function toCreateUserRequest(
 }
 
 export function useCreateUser(options: UseCreateUserOptions = {}) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const { fixedTenantId, onSuccess, onError } = options;

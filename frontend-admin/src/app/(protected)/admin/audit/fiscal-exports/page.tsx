@@ -1,23 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    DatePicker,
-    Drawer,
-    Empty,
-    Flex,
-    Input,
-    Select,
-    Space,
-    Table,
-    Tag,
-    Tooltip,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Card, DatePicker, Drawer, Empty, Flex, Input, Select, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ClearOutlined, DownloadOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
@@ -99,6 +84,8 @@ function buildClientCsvFromRows(rows: FiscalExportAuditLogListItem[]): string {
 }
 
 export default function FiscalExportAuditPage() {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const { user } = useAuth();
     const permissions = user?.permissions ?? [];
@@ -386,7 +373,7 @@ export default function FiscalExportAuditPage() {
 
             <Card size="small" style={{ marginTop: 8 }}>
                 <Flex wrap="wrap" gap={12}>
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('fiscalExportAudit.filters.downloadRange')}</Typography.Text>
                         <RangePicker
                             allowEmpty={[true, true]}
@@ -399,7 +386,7 @@ export default function FiscalExportAuditPage() {
                             format="DD.MM.YYYY HH:mm"
                         />
                     </Space>
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('fiscalExportAudit.filters.exportType')}</Typography.Text>
                         <Select<FiscalExportAuditExportTypeQuery>
                             style={{ minWidth: 200 }}
@@ -411,7 +398,7 @@ export default function FiscalExportAuditPage() {
                             }}
                         />
                     </Space>
-                    <Space direction="vertical" size={4} style={{ minWidth: 260, flex: 1 }}>
+                    <Space orientation="vertical" size={4} style={{ minWidth: 260, flex: 1 }}>
                         <Typography.Text type="secondary">{t('fiscalExportAudit.filters.userSearch')}</Typography.Text>
                         <Input
                             allowClear
@@ -424,7 +411,7 @@ export default function FiscalExportAuditPage() {
             </Card>
 
             {isError ? (
-                <Alert type="error" message={errMsg} showIcon style={{ marginTop: 8 }} />
+                <Alert type="error" title={errMsg} showIcon style={{ marginTop: 8 }} />
             ) : null}
 
             <Table<FiscalExportAuditLogListItem>
@@ -449,18 +436,18 @@ export default function FiscalExportAuditPage() {
             />
 
             <Drawer
-                width={720}
+                size={720}
                 title={t('fiscalExportAudit.detail.title')}
                 open={Boolean(detailId)}
                 onClose={() => setDetailId(null)}
-                destroyOnClose
+                destroyOnHidden
             >
                 {detailLoading ? (
                     <Typography.Paragraph type="secondary">…</Typography.Paragraph>
                 ) : detailError || !detail ? (
                     <Typography.Paragraph type="danger">{t('common.messages.noTechnicalDetail')}</Typography.Paragraph>
                 ) : (
-                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+                    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                         <div>
                             <Typography.Text type="secondary">{t('fiscalExportAudit.detail.action')}</Typography.Text>
                             <div>

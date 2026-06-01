@@ -7,7 +7,7 @@ import { useI18n } from '@/i18n';
 
 function SignatureChainPageFallback() {
   const { t } = useI18n();
-  return <Spin style={{ display: 'block', margin: '80px auto' }} tip={t('common.loading.data')} />;
+  return <Spin style={{ display: 'block', margin: '80px auto' }} description={t('common.loading.data')} />;
 }
 
 /**

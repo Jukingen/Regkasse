@@ -59,14 +59,14 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
     });
 
     if (validUserId.length === 0) {
-        return <Alert type="info" message={usersCopy.emptyActivity} showIcon />;
+        return <Alert type="info" title={usersCopy.emptyActivity} showIcon />;
     }
 
     if (isError) {
         return (
             <Alert
                 type="warning"
-                message={usersCopy.errorLoadActivity}
+                title={usersCopy.errorLoadActivity}
                 action={
                     <Button size="small" onClick={() => refetch()}>
                         {usersCopy.retry}
@@ -115,7 +115,7 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
     ];
 
     return (
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             {userName && (
                 <Text type="secondary">
                     {usersCopy.activityReportFor}: {userName}
@@ -178,8 +178,8 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
                         <Statistic
                             title={usersCopy.activityReportFailedLogins}
                             value={data?.failedLoginAttempts ?? 0}
-                            valueStyle={
-                                (data?.failedLoginAttempts ?? 0) > 0 ? { color: '#cf1322' } : undefined
+                            styles={
+                                (data?.failedLoginAttempts ?? 0) > 0 ? { content: { color: '#cf1322' } } : undefined
                             }
                         />
                     </Card>

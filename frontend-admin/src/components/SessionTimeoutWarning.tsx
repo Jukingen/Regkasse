@@ -70,7 +70,7 @@ export function SessionTimeoutWarning({
             }
             open={open}
             closable={false}
-            maskClosable={false}
+            mask={{ closable: false }}
             keyboard={false}
             footer={[
                 <Button key="logout" danger icon={<LoginOutlined />} onClick={onLogout}>
@@ -99,7 +99,7 @@ export function SessionTimeoutWarning({
                 />
 
                 <Alert
-                    message={t('common.auth.sessionTimeout.alertMessage')}
+                    title={t('common.auth.sessionTimeout.alertMessage')}
                     description={t('common.auth.sessionTimeout.alertDescription')}
                     type="warning"
                     showIcon

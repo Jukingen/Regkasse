@@ -72,7 +72,7 @@ export function BackupDrDecisionStrip({
             <Alert
               type={strip.alertType}
               showIcon
-              message={t(strip.titleKey)}
+              title={t(strip.titleKey)}
               description={
                 <Typography.Paragraph style={{ marginBottom: 0 }}>
                   {t(strip.bodyKey)}

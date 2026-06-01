@@ -30,7 +30,7 @@ const CRITICAL_PATHS = [
 
 const REQUIRED_SCHEMAS = [
   'CreatePaymentRequest',
-  'AdminPaymentsListResponse',
+  'PaymentListResponse',
   'PaymentMethod',
   'BackupLatestStatusResponseDto',
   'RestoreVerificationRunResponseDto',

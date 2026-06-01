@@ -193,7 +193,7 @@ export function UserFormDrawer({
     <Drawer
       title={title}
       placement="right"
-      width={480}
+      size={480}
       open={open}
       onClose={onClose}
       destroyOnHidden
@@ -209,14 +209,14 @@ export function UserFormDrawer({
       {mode === 'edit' && (initialLoading || user == null) ? (
         // Spin tip only works in nest pattern (child required); avoid useForm-disconnected phase without Form mounted.
         <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-          <Spin spinning tip="Laden…">
+          <Spin spinning description="Laden…">
             <div style={{ minHeight: 80 }} />
           </Spin>
         </div>
       ) : mode === 'edit' && fetchError ? (
         <Alert
           type="error"
-          message={usersCopy.errorLoadUser}
+          title={usersCopy.errorLoadUser}
           description={((fetchError as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ?? (fetchError as { message?: string })?.message) ?? String(fetchError)}
           action={onRetryFetch && <Button size="small" onClick={onRetryFetch}>Erneut versuchen</Button>}
           showIcon
@@ -255,7 +255,7 @@ export function UserFormDrawer({
             <Alert
               type="info"
               showIcon
-              message={usersCopy.platformCreateHint}
+              title={usersCopy.platformCreateHint}
               style={{ marginBottom: 16 }}
             />
           ) : null}
@@ -287,7 +287,7 @@ export function UserFormDrawer({
               <Alert
                 type="info"
                 showIcon
-                message={t('users.tenants.manageHint')}
+                title={t('users.tenants.manageHint')}
                 style={{ marginBottom: 12 }}
               />
               <UserTenantSummary

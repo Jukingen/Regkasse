@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Space, Typography, message } from 'antd';
+import { useAntdApp } from '@/hooks/useAntdApp';
+import { Button, Space, Typography } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import { useI18n } from '@/i18n';
@@ -13,6 +14,8 @@ export type CredentialCopyRowProps = {
 };
 
 export function CredentialCopyRow({ label, value, monospace = true }: CredentialCopyRowProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
 
     const handleCopy = async () => {

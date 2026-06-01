@@ -69,7 +69,7 @@ export function TseHealthBadge({
     const queue = detail?.offlineQueueCount ?? offlineQueueCount;
 
     const content = (
-        <Space direction="vertical" size={4} style={{ maxWidth: 280 }}>
+        <Space orientation="vertical" size={4} style={{ maxWidth: 280 }}>
             <Typography.Text strong>{t(`cashRegisters.tseHealth.${normalized}`)}</Typography.Text>
             {detail?.lastCheckUtc ? (
                 <Typography.Text type="secondary">

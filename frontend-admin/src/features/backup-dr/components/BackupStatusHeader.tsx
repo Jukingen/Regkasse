@@ -55,7 +55,7 @@ export function BackupStatusHeader({
     <Alert
       type={headerAlertType(metricStatus)}
       showIcon
-      message={
+      title={
         <Space wrap align="center">
           <Typography.Text strong>{t("backupDr.monitoring.header.title")}</Typography.Text>
           <Tag color={mapBackupRunStatusAntdColor(st)}>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Alert, Button, Modal, Typography, message } from 'antd';
+import { App, Modal, Alert, Button, Typography } from 'antd';
 import { useCallback, useMemo, useState } from 'react';
 
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
@@ -29,6 +29,8 @@ export function TenantSwitcherNoAdminFlow({
     onClose,
     onCompleted,
 }: TenantSwitcherNoAdminFlowProps) {
+  const { message } = App.useApp();
+
     const { t } = useI18n();
     const queryClient = useQueryClient();
     const [createOpen, setCreateOpen] = useState(false);
@@ -122,7 +124,7 @@ export function TenantSwitcherNoAdminFlow({
                     <Alert
                         type="warning"
                         showIcon
-                        message={`${tenant.statusIcon} ${tenant.name} (${tenant.slug})`}
+                        title={`${tenant.statusIcon} ${tenant.name} (${tenant.slug})`}
                         description={t('adminShell.tenant.devSwitcher.noAdmin')}
                     />
                 ) : null}

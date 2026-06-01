@@ -152,7 +152,7 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
             }}
             trigger={['click']}
             placement="bottomRight"
-            overlayClassName="admin-header-dropdown"
+            classNames={{ root: "admin-header-dropdown" }}
             getPopupContainer={getAdminHeaderPopupContainer}
         >
             <Tooltip title={tooltipHint} placement="bottomRight" mouseEnterDelay={0.35}>

@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback } from 'react';
-import { Button, message } from 'antd';
+import { Button } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 
 import { useI18n } from '@/i18n';
@@ -14,6 +15,8 @@ export type CopyIconButtonProps = {
 };
 
 export function CopyIconButton({ text, ariaLabel, onCopied }: CopyIconButtonProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
 
     const copy = useCallback(async () => {

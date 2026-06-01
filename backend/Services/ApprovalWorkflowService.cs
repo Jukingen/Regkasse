@@ -94,7 +94,7 @@ public sealed class ApprovalWorkflowService : IApprovalWorkflowService
         return await _context.PaymentDetails.AsNoTracking()
             .Where(p => p.IsStorno && p.CreatedAt > cutoff)
             .Where(p => p.CreatedBy == userId || p.CashierId == userId)
-            .Where(p => _context.CashRegisters.Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == tenantId))
+            .Where(p => _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == tenantId))
             .CountAsync(cancellationToken);
     }
 }

@@ -30,7 +30,9 @@ public sealed record CreateTenantUserResultDto(
     bool ForcePasswordChangeOnNextLogin,
     bool Success,
     string? TenantPortalUrl = null,
-    string? Role = null);
+    string? Role = null,
+    Guid? TenantId = null,
+    string? TenantSlug = null);
 
 public sealed class UpdateTenantUserRoleRequest
 {

@@ -1,25 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * POS payment–based operational reports: filters, tabs (summary, period, interim X, closing Z reference), CSV export.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  DatePicker,
-  Row,
-  Select,
-  Space,
-  Spin,
-  Switch,
-  Table,
-  Tabs,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, Button, Card, Col, DatePicker, Row, Select, Space, Spin, Switch, Table, Tabs, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -65,6 +51,8 @@ function formatPaymentMethodKey(key: string | null | undefined): string {
 }
 
 export default function ReportingPage() {
+  const { message } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const searchParams = useSearchParams();
   const { hasPermission } = usePermissions();
@@ -385,7 +373,7 @@ export default function ReportingPage() {
             children: (
               <Spin spinning={!!loading}>
                 {activeSummary?.interimDisclaimer && (
-                  <Alert type="info" showIcon style={{ marginBottom: 12 }} message={activeSummary.interimDisclaimer} />
+                  <Alert type="info" showIcon style={{ marginBottom: 12 }} title={activeSummary.interimDisclaimer} />
                 )}
                 <Row gutter={16} style={{ marginBottom: 16 }}>
                   <Col xs={12} md={6}>
@@ -445,7 +433,7 @@ export default function ReportingPage() {
             label: t('adminShell.reporting.tabPeriodic'),
             children: (
               <Spin spinning={!!loading}>
-                <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                   <div>
                     <Typography.Text type="secondary">{t('adminShell.reporting.periodPreset')}</Typography.Text>
                     <Select
@@ -515,7 +503,7 @@ export default function ReportingPage() {
                     type="warning"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    message={interimQ.data.summary.interimDisclaimer}
+                    title={interimQ.data.summary.interimDisclaimer}
                   />
                 )}
                 <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -550,7 +538,7 @@ export default function ReportingPage() {
             children: (
               <Spin spinning={!!loading}>
                 {closingsQ.data?.operatorNote && (
-                  <Alert type="info" showIcon style={{ marginBottom: 12 }} message={closingsQ.data.operatorNote} />
+                  <Alert type="info" showIcon style={{ marginBottom: 12 }} title={closingsQ.data.operatorNote} />
                 )}
                 <Space style={{ marginBottom: 12 }} wrap>
                   <Typography.Text type="secondary">{t('adminShell.reporting.closingStatus')}</Typography.Text>

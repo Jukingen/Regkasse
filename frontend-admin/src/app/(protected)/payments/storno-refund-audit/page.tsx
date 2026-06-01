@@ -332,7 +332,7 @@ export default function StornoRefundAuditPage() {
                     type="error"
                     showIcon
                     style={{ marginBottom: 16 }}
-                    message={t('payments.list.loadErrorTitle')}
+                    title={t('payments.list.loadErrorTitle')}
                     description={
                         error ? (
                             <ApiErrorAlertDescription

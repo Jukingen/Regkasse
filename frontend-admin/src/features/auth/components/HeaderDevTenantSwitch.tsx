@@ -266,14 +266,14 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
             <div className="switcher-list">
                 {isLoading ? (
                     <div className="tenant-switcher-loading">
-                        <Spin size="small" tip={t('common.loading.data')} />
+                        <Spin size="small" description={t('common.loading.data')} />
                     </div>
                 ) : null}
                 {isError ? (
                     <Alert
                         type="error"
                         showIcon
-                        message={t('superadmin.loadFailed')}
+                        title={t('superadmin.loadFailed')}
                         action={
                             <Button size="small" icon={<ReloadOutlined />} onClick={() => void refetch()}>
                                 {t('adminShell.tenant.devSwitcher.retryLoad')}
@@ -351,8 +351,8 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
                 onOpenChange={handleOpenChange}
                 trigger={['click']}
                 placement="bottomRight"
-                dropdownRender={() => dropdownContent}
-                overlayClassName="tenant-switcher-dropdown admin-header-dropdown"
+                popupRender={() => dropdownContent}
+                classNames={{ root: "tenant-switcher-dropdown admin-header-dropdown" }}
                 getPopupContainer={getAdminHeaderPopupContainer}
             >
                 <Tooltip title={tooltipTitle}>

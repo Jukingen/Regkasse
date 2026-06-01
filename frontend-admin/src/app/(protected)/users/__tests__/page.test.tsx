@@ -23,8 +23,27 @@ beforeAll(() => {
 });
 import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { message } from 'antd';
 import { I18nProvider } from '@/i18n';
+
+const { mockMessageSuccess, mockMessageError } = vi.hoisted(() => ({
+  mockMessageSuccess: vi.fn(() => ({})),
+  mockMessageError: vi.fn(() => ({})),
+}));
+
+vi.mock('@/hooks/useAntdApp', () => ({
+  useAntdApp: () => ({
+    message: {
+      success: mockMessageSuccess,
+      error: mockMessageError,
+      warning: vi.fn(() => ({})),
+      info: vi.fn(() => ({})),
+      open: vi.fn(() => ({})),
+      loading: vi.fn(() => ({})),
+    },
+    modal: { confirm: vi.fn() },
+    notification: {},
+  }),
+}));
 import UsersPage from '../page';
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import type { UsersListResponse } from '@/features/users/api/usersApi';
@@ -235,8 +254,6 @@ describe('Users page', () => {
       canResetPassword: () => true,
       canProvisionTenantCredentials: true,
     });
-    vi.spyOn(message, 'success').mockImplementation((() => ({}) as any) as any);
-    vi.spyOn(message, 'error').mockImplementation((() => ({}) as any) as any);
   });
 
   describe('authorization', () => {
@@ -333,7 +350,7 @@ describe('Users page', () => {
         );
       });
       await waitFor(() => {
-        expect(message.success).toHaveBeenCalledWith('Benutzer angelegt.');
+        expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer angelegt.');
       });
     });
 
@@ -346,7 +363,7 @@ describe('Users page', () => {
       });
       fireEvent.click(screen.getByRole('button', { name: 'Submit' }));
       await waitFor(() => {
-        expect(message.error).toHaveBeenCalled();
+        expect(mockMessageError).toHaveBeenCalled();
       });
     });
   });
@@ -369,7 +386,7 @@ describe('Users page', () => {
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith('user-1', expect.objectContaining({ employeeNumber: 'EMP001', firstName: 'New', lastName: 'User', role: 'Manager' }));
       });
-      expect(message.success).toHaveBeenCalledWith('Benutzer aktualisiert.');
+      expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer aktualisiert.');
     });
 
     it('invalidates user detail query on update success so UI rehydrates from backend', async () => {
@@ -415,7 +432,7 @@ describe('Users page', () => {
       await waitFor(() => {
         expect(mockDeactivateUser).toHaveBeenCalledWith('user-1', { reason: 'Ausscheiden' });
       });
-      expect(message.success).toHaveBeenCalledWith('Benutzer deaktiviert.');
+      expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer deaktiviert.');
     });
   });
 
@@ -439,7 +456,7 @@ describe('Users page', () => {
       await waitFor(() => {
         expect(mockReactivateUser).toHaveBeenCalledWith('user-2', undefined);
       });
-      expect(message.success).toHaveBeenCalledWith('Benutzer reaktiviert.');
+      expect(mockMessageSuccess).toHaveBeenCalledWith('Benutzer reaktiviert.');
     });
   });
 
@@ -484,7 +501,7 @@ describe('Users page', () => {
       await waitFor(() => {
         expect(mockResetPassword).toHaveBeenCalledWith('user-1', { newPassword: 'newPass123' });
       });
-      expect(message.success).toHaveBeenCalledWith(
+      expect(mockMessageSuccess).toHaveBeenCalledWith(
         'Passwort wurde zurückgesetzt. Sitzungen des Benutzers wurden ungültig.'
       );
     });

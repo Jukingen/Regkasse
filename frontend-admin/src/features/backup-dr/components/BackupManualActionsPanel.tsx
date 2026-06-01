@@ -1,7 +1,9 @@
 "use client";
 
+import { useAntdApp } from '@/hooks/useAntdApp';
+
 import React, { useCallback } from "react";
-import { message } from "antd";
+
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetApiAdminBackupRecoverabilitySummaryQueryKey,
@@ -27,6 +29,8 @@ export interface BackupManualActionsPanelProps extends Omit<
 
 /** Manual enqueue controls: preserves legacy mutation invalidate + toast semantics. */
 export function BackupManualActionsPanel(props: BackupManualActionsPanelProps) {
+  const { message } = useAntdApp();
+
   const { t } = props;
   const queryClient = useQueryClient();
 

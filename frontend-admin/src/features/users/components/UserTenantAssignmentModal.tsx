@@ -87,7 +87,7 @@ export function UserTenantAssignmentModal({
                     <Typography.Text strong style={{ display: 'block', marginBottom: 8 }}>
                         {t('users.tabs.tenant.columnTenant')}
                     </Typography.Text>
-                    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                    <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                         {currentTenants.map((tenant) => (
                             <div key={tenant.id}>
                                 <Typography.Text strong>{tenant.name}</Typography.Text>
@@ -111,7 +111,7 @@ export function UserTenantAssignmentModal({
                 </>
             ) : null}
 
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 {activeTenants.length === 0 ? (
                     <Empty
                         image={Empty.PRESENTED_IMAGE_SIMPLE}

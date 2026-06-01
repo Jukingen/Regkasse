@@ -1,21 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Checkbox,
-    Collapse,
-    InputNumber,
-    Select,
-    Space,
-    Spin,
-    Steps,
-    Table,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Checkbox, Collapse, InputNumber, Select, Space, Spin, Steps, Table, Tag, Typography } from 'antd';
 import { CheckSquareOutlined } from '@ant-design/icons';
 
 import type { DemoImportCatalog } from '@/api/admin/products';
@@ -94,6 +81,8 @@ export function DemoImportCatalogWizard({
     onRequestImport,
     importLoading,
 }: DemoImportCatalogWizardProps) {
+  const { message } = useAntdApp();
+
     const [currentStep, setCurrentStep] = useState(0);
     const [selectedGroupNames, setSelectedGroupNames] = useState<Set<string>>(new Set());
     const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
@@ -236,7 +225,7 @@ export function DemoImportCatalogWizard({
     }
 
     if (isError) {
-        return <Alert type="error" showIcon message="Katalog konnte nicht geladen werden" />;
+        return <Alert type="error" showIcon title="Katalog konnte nicht geladen werden" />;
     }
 
     const previewColumns = [
@@ -326,7 +315,7 @@ export function DemoImportCatalogWizard({
     ];
 
     return (
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             <Steps
                 current={currentStep}
                 size="small"
@@ -470,7 +459,7 @@ export function DemoImportCatalogWizard({
             ) : null}
 
             {currentStep === 2 ? (
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                     <DemoImportPriceAdjustmentSection
                         value={priceAdjustment}
                         onChange={onPriceAdjustmentChange}
@@ -497,7 +486,7 @@ export function DemoImportCatalogWizard({
             ) : null}
 
             {currentStep === 3 ? (
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                     <DemoImportTaxValidation
                         catalog={catalog}
                         categoryGroups={categoryGroups}
@@ -561,11 +550,11 @@ export function DemoImportCatalogWizard({
             ) : null}
 
             {currentStep === 5 ? (
-                <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                     <Alert
                         type="info"
                         showIcon
-                        message="Bereit zum Import"
+                        title="Bereit zum Import"
                         description={
                             <>
                                 Es werden <strong>{selectedProductIds.size}</strong> Produkte in{' '}

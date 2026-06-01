@@ -43,7 +43,7 @@ function HeaderUserMenu({ userMenu, userLabel, isMobile }: HeaderUserMenuProps) 
             menu={userMenu}
             placement="bottomRight"
             trigger={['click']}
-            overlayClassName="admin-header-dropdown"
+            classNames={{ root: "admin-header-dropdown" }}
             getPopupContainer={getAdminHeaderPopupContainer}
         >
             <div className="admin-header-user-menu" role="button" tabIndex={0}>

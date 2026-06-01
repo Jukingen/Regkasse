@@ -51,7 +51,7 @@ export function InviteTenantContextBanner({ tenant, variant = 'modal' }: InviteT
                 type="info"
                 showIcon
                 icon={<MailOutlined />}
-                message={message}
+                title={message}
                 description={description}
                 style={{ marginBottom: 0 }}
             />
@@ -63,7 +63,7 @@ export function InviteTenantContextBanner({ tenant, variant = 'modal' }: InviteT
             type="info"
             showIcon
             icon={<MailOutlined />}
-            message={t('users.create.targetTenant.modalLabel')}
+            title={t('users.create.targetTenant.modalLabel')}
             description={
                 <>
                     <Typography.Text strong>

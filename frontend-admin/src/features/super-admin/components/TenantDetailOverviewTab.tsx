@@ -24,7 +24,7 @@ export function TenantDetailOverviewTab({
 }: TenantDetailOverviewTabProps) {
     const { t, formatLocale } = useI18n();
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Card title={t('tenants.detail.overview.statusCard')}>
                 <Descriptions column={{ xs: 1, sm: 2 }} size="small">
                     <Descriptions.Item label={t('tenants.columns.status')}>

@@ -27,7 +27,7 @@ export function ImpersonationBanner() {
             banner
             role="status"
             style={{ marginBottom: 12 }}
-            message={t('adminShell.impersonation.banner.title')}
+            title={t('adminShell.impersonation.banner.title')}
             description={t('adminShell.impersonation.banner.description', { name, slug })}
             action={
                 <Button size="small" onClick={() => exitImpersonation()}>

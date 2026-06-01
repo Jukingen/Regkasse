@@ -1,29 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Admin odeme listesi ve detay cekmecesi; metinler payments namespace, sayi/tarih/para formatLocale ile.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Table,
-  Card,
-  Typography,
-  Tag,
-  Space,
-  Button,
-  Drawer,
-  Descriptions,
-  Alert,
-  Statistic,
-  Row,
-  Col,
-  Input,
-  InputNumber,
-  Modal,
-  message,
-  Collapse,
-  Empty,
-} from 'antd';
+import { Table, Card, Typography, Tag, Space, Button, Drawer, Descriptions, Alert, Statistic, Row, Col, Input, InputNumber, Collapse, Empty } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -125,6 +107,8 @@ function shortId(value?: string | null): string {
 }
 
 export default function PaymentsPage() {
+  const { message, modal } = useAntdApp();
+
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t, formatLocale } = useI18n();
@@ -401,7 +385,7 @@ export default function PaymentsPage() {
             ? foColors[row.finanzOnlineStatus] || 'default'
             : 'default';
           return (
-            <Space direction="vertical" size={6} style={{ maxWidth: 292 }}>
+            <Space orientation="vertical" size={6} style={{ maxWidth: 292 }}>
               {pid ? (
                 <Typography.Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
                   {t('payments.table.paymentIdPrefix')}{' '}
@@ -448,7 +432,7 @@ export default function PaymentsPage() {
                 </Space>
               ) : null}
               {hasFo ? (
-                <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={2} style={{ width: '100%' }}>
                   <Tag color={foColor}>
                     {t('payments.table.foTagPrefix')} {finanzOnlineStatusUiLabel(row.finanzOnlineStatus)}
                   </Tag>
@@ -515,7 +499,7 @@ export default function PaymentsPage() {
         <Alert
           type="error"
           showIcon
-          message={t('payments.list.loadErrorTitle')}
+          title={t('payments.list.loadErrorTitle')}
           description={
             error ? (
               <ApiErrorAlertDescription
@@ -635,8 +619,8 @@ export default function PaymentsPage() {
         title={t('payments.drawer.title')}
         open={!!selectedPaymentId}
         onClose={() => setSelectedPaymentId(null)}
-        width={640}
-        destroyOnClose
+        size={640}
+        destroyOnHidden
       >
         {detailLoading ? (
           <Typography.Text type="secondary">{t('payments.drawer.loadingDetails')}</Typography.Text>
@@ -864,7 +848,7 @@ export default function PaymentsPage() {
               style={{ marginBottom: 16 }}
             />
 
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Space orientation="vertical" style={{ width: '100%' }} size="middle">
               <Space wrap>
                 <Button type="primary" onClick={openReceipt} disabled={!canOpenReceipt}>
                   {t('payments.detail.buttonOpenReceipt')}
@@ -876,7 +860,7 @@ export default function PaymentsPage() {
                 <Alert
                   type="error"
                   showIcon
-                  message={t('payments.detail.licenseBlockedTitle')}
+                  title={t('payments.detail.licenseBlockedTitle')}
                   description={t('payments.detail.licenseBlockedDesc')}
                 />
               ) : null}
@@ -885,18 +869,18 @@ export default function PaymentsPage() {
                 <Alert
                   type="info"
                   showIcon
-                  message={t('payments.detail.cancelPermissionTitle')}
+                  title={t('payments.detail.cancelPermissionTitle')}
                   description={t('payments.detail.cancelPermissionDesc')}
                 />
               )}
               {canCancel && (
                 <Card size="small" title={t('payments.detail.cancelCardTitle')}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
+                  <Space orientation="vertical" style={{ width: '100%' }}>
                     {paymentDetailData?.isStorno ? (
                       <Alert
                         type="info"
                         showIcon
-                        message={t('payments.cancellationModal.alreadyCancelled')}
+                        title={t('payments.cancellationModal.alreadyCancelled')}
                       />
                     ) : (
                       <Button
@@ -928,13 +912,13 @@ export default function PaymentsPage() {
                 <Alert
                   type="info"
                   showIcon
-                  message={t('payments.detail.refundPermissionTitle')}
+                  title={t('payments.detail.refundPermissionTitle')}
                   description={t('payments.detail.refundPermissionDesc')}
                 />
               )}
               {canRefund && (
                 <Card size="small" title={t('payments.detail.refundCardTitle')}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
+                  <Space orientation="vertical" style={{ width: '100%' }}>
                     <InputNumber
                       min={0.01}
                       precision={2}
@@ -957,7 +941,7 @@ export default function PaymentsPage() {
                         isPaymentBlockedByLicense
                       }
                       onClick={() =>
-                        Modal.confirm({
+                        modal.confirm({
                           title: t('payments.detail.refundModalTitle'),
                           content: t('payments.detail.refundModalContent'),
                           okText: t('payments.detail.refundOk'),
@@ -974,7 +958,7 @@ export default function PaymentsPage() {
             </Space>
           </>
         ) : (
-          <Alert type="warning" showIcon message={t('payments.drawer.noDetailData')} />
+          <Alert type="warning" showIcon title={t('payments.drawer.noDetailData')} />
         )}
       </Drawer>
     </AdminPageShell>

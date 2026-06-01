@@ -1,19 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import { useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Empty,
-    Input,
-    Popconfirm,
-    Select,
-    Space,
-    Table,
-    Tag,
-    Typography,
-    message,
-} from 'antd';
+import { Alert, Button, Empty, Input, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
     CrownOutlined,
@@ -86,6 +75,8 @@ export function TenantUsersTabCore({
     roleDisplayLabel,
     onEdit,
 }: TenantUsersTabCoreProps) {
+  const { message } = useAntdApp();
+
     const { t } = useI18n();
     const { canProvisionTenantCredentials: superAdminCredentials } = useSuperAdminPlatformPolicy();
     const isFixedTenant = Boolean(tenantId);
@@ -304,7 +295,7 @@ export function TenantUsersTabCore({
                 dataIndex: 'tenantSlug',
                 key: 'tenantSlug',
                 render: (slug: string, row) => (
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                         <Tag color="blue">{slug}</Tag>
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                             {row.tenantName}
@@ -318,7 +309,7 @@ export function TenantUsersTabCore({
                 dataIndex: 'name',
                 key: 'name',
                 render: (name: string, row) => (
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                         <span style={{ fontWeight: 600 }}>{name}</span>
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                             {row.email}
@@ -402,7 +393,7 @@ export function TenantUsersTabCore({
     const refetchList = () => (isFixedTenant ? fixedTenantUsersQuery.refetch() : scopedUsersQuery.refetch());
 
     return (
-        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             {!isFixedTenant ? (
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     {t('users.tabs.tenant.description')}
@@ -480,7 +471,7 @@ export function TenantUsersTabCore({
                 <Alert
                     type="error"
                     showIcon
-                    message={t('users.list.errorLoad')}
+                    title={t('users.list.errorLoad')}
                     action={
                         <Button size="small" onClick={() => refetchList()}>
                             {t('users.list.retry')}

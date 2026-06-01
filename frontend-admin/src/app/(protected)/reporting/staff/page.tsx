@@ -131,7 +131,7 @@ export default function StaffPerformanceReportingPage() {
             title: t('adminShell.staffPerformance.colCashier'),
             dataIndex: 'userName',
             render: (_: unknown, row) => (
-                <Space direction="vertical" size={0}>
+                <Space orientation="vertical" size={0}>
                     <Typography.Text strong>{row.userName ?? row.cashierId}</Typography.Text>
                     <Typography.Text type="secondary" style={{ fontSize: 12, fontFamily: 'monospace' }}>
                         {row.cashierId}
@@ -235,14 +235,14 @@ export default function StaffPerformanceReportingPage() {
             <Alert
                 type="warning"
                 showIcon
-                message={t('adminShell.staffPerformance.noPermission')}
+                title={t('adminShell.staffPerformance.noPermission')}
                 style={{ margin: 24 }}
             />
         );
     }
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
                 title={t('adminShell.staffPerformance.pageTitle')}
                 breadcrumbs={[
@@ -259,7 +259,7 @@ export default function StaffPerformanceReportingPage() {
 
             <Card size="small" title={t('adminShell.reporting.filtersTitle')}>
                 <Space wrap size="large" align="start">
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('adminShell.reporting.dateRange')}</Typography.Text>
                         <RangePicker
                             value={dateRange}
@@ -268,7 +268,7 @@ export default function StaffPerformanceReportingPage() {
                             }}
                         />
                     </Space>
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('adminShell.reporting.register')}</Typography.Text>
                         <Select
                             allowClear
@@ -282,7 +282,7 @@ export default function StaffPerformanceReportingPage() {
                             }))}
                         />
                     </Space>
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('adminShell.reporting.cashier')}</Typography.Text>
                         <Select
                             allowClear
@@ -297,7 +297,7 @@ export default function StaffPerformanceReportingPage() {
                             options={cashierOptions}
                         />
                     </Space>
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('adminShell.reporting.paymentMethod')}</Typography.Text>
                         <Select
                             allowClear
@@ -308,11 +308,11 @@ export default function StaffPerformanceReportingPage() {
                             options={PAYMENT_METHOD_OPTIONS.map((o) => ({ value: o.value, label: o.labelDe }))}
                         />
                     </Space>
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('adminShell.reporting.activeOnly')}</Typography.Text>
                         <Switch checked={activeOnly} onChange={setActiveOnly} />
                     </Space>
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('adminShell.staffPerformance.includePerStaffPerDay')}</Typography.Text>
                         <Switch checked={includePerStaffPerDay} onChange={setIncludePerStaffPerDay} />
                     </Space>
@@ -326,7 +326,7 @@ export default function StaffPerformanceReportingPage() {
                             key: 'rel',
                             label: t('adminShell.staffPerformance.reliabilityTitle'),
                             children: (
-                                <Space direction="vertical">
+                                <Space orientation="vertical">
                                     <Typography.Paragraph style={{ marginBottom: 0 }}>
                                         <strong>{rel.primaryDataSource}</strong> — {rel.businessTimeZone}
                                     </Typography.Paragraph>
@@ -388,7 +388,7 @@ export default function StaffPerformanceReportingPage() {
                     <Alert
                         type="warning"
                         showIcon
-                        message={t('adminShell.staffPerformance.anomaliesTitle')}
+                        title={t('adminShell.staffPerformance.anomaliesTitle')}
                         description={
                             <div>
                                 <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>

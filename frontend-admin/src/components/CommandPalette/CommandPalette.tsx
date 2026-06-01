@@ -116,7 +116,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose })
             footer={null}
             closable={false}
             width={600}
-            destroyOnClose
+            destroyOnHidden
             className={styles.commandPalette}
             title={null}
             styles={{ body: { padding: 0 } }}

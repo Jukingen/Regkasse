@@ -44,10 +44,14 @@ vi.mock('@/features/auth/services/authStorage', () => ({
     },
 }));
 
-vi.mock('antd', () => ({
-    message: {
-        info: (...args: unknown[]) => mockMessageInfo(...args),
-    },
+vi.mock('@/hooks/useAntdApp', () => ({
+    useAntdApp: () => ({
+        message: {
+            info: (...args: unknown[]) => mockMessageInfo(...args),
+        },
+        modal: { confirm: vi.fn() },
+        notification: {},
+    }),
 }));
 
 vi.mock('@/i18n', () => ({

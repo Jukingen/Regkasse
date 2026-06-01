@@ -1,22 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Monatsbericht-Detail: verknüpfte Tagesberichte, Aggregation vs. Rohdaten, Profile, Finalisierung, FinanzOnline, Korrekturkette.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Descriptions,
-  Radio,
-  Space,
-  Table,
-  Tag,
-  Timeline,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, Button, Card, Descriptions, Radio, Space, Table, Tag, Timeline, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -138,6 +127,8 @@ type ReportHistoryTimelineDto = {
 };
 
 export default function MonatsberichtDetailPage() {
+  const { message } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const { fiscalTooltip, resolveFiscal, joinRemediationHints, resolveExportProfileRow } = useFiscalReportText();
   const td = useCallback((path: string) => t(`reporting.monatsbericht.detail.${path}`), [t]);
@@ -328,7 +319,7 @@ export default function MonatsberichtDetailPage() {
         <Alert
           type="warning"
           showIcon
-          message={td('upstreamAlertTitle')}
+          title={td('upstreamAlertTitle')}
           description={
             <Typography.Text title={fiscalTooltip(upstreamNote.contentLang)}>{upstreamNote.text}</Typography.Text>
           }
@@ -337,7 +328,7 @@ export default function MonatsberichtDetailPage() {
       ) : null}
 
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Space direction="vertical">
+        <Space orientation="vertical">
           <Typography.Text type="secondary">{ts('profile.label')}</Typography.Text>
           <Radio.Group value={profile} onChange={(e) => setProfile(e.target.value)}>
             <Radio.Button value="operationalPreview">{ts('profile.operational')}</Radio.Button>
@@ -591,7 +582,7 @@ export default function MonatsberichtDetailPage() {
             items={historyQ.data.items.map((item) => ({
               color: item.isCurrentActiveVersion ? 'green' : item.reportStatus === 'Superseded' ? 'orange' : 'blue',
               children: (
-                <Space direction="vertical" size={2}>
+                <Space orientation="vertical" size={2}>
                   <Typography.Text strong title={backendApiTooltip}>
                     v{item.reportVersion} · {item.reportId.slice(0, 8)} · {item.reportStatus}
                   </Typography.Text>

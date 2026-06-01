@@ -1,26 +1,11 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Compliance user activity report — filters, summary, charts, timeline, export, schedule.
  */
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-    Alert,
-    Button,
-    Card,
-    Col,
-    DatePicker,
-    Form,
-    Input,
-    Modal,
-    Row,
-    Select,
-    Space,
-    Statistic,
-    Table,
-    Tag,
-    message,
-} from 'antd';
+import { Modal, Alert, Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Statistic, Table, Tag } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { DownloadOutlined, MailOutlined, SearchOutlined } from '@ant-design/icons';
@@ -53,6 +38,8 @@ type Props = {
 };
 
 export function UserActivityReport({ initialUserId }: Props) {
+  const { message } = useAntdApp();
+
     const { t, formatLocale } = useI18n();
     const [filters, setFilters] = useState<FilterState | null>(
         initialUserId
@@ -159,7 +146,7 @@ export function UserActivityReport({ initialUserId }: Props) {
     };
 
     return (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Card size="small">
                 <Form
                     layout="vertical"
@@ -234,12 +221,12 @@ export function UserActivityReport({ initialUserId }: Props) {
                 </Form>
             </Card>
 
-            {!filters && <Alert type="info" message={copy.noData} showIcon />}
+            {!filters && <Alert type="info" title={copy.noData} showIcon />}
 
             {isError && (
                 <Alert
                     type="error"
-                    message={copy.loadError}
+                    title={copy.loadError}
                     action={<Button size="small" onClick={() => refetch()}>{t('common.buttons.retry')}</Button>}
                 />
             )}
@@ -258,8 +245,8 @@ export function UserActivityReport({ initialUserId }: Props) {
                                 <Statistic
                                     title={copy.failedLogins}
                                     value={report.failedLoginAttempts}
-                                    valueStyle={
-                                        report.failedLoginAttempts > 0 ? { color: '#cf1322' } : undefined
+                                    styles={
+                                        report.failedLoginAttempts > 0 ? { content: { color: '#cf1322' } } : undefined
                                     }
                                 />
                             </Col>
@@ -281,7 +268,7 @@ export function UserActivityReport({ initialUserId }: Props) {
                                             ? formatDateTime(report.lastLoginAt, formatLocale)
                                             : '—'
                                     }
-                                    valueStyle={{ fontSize: 14 }}
+                                    styles={{ content: {  fontSize: 14  } }}
                                 />
                             </Col>
                         </Row>

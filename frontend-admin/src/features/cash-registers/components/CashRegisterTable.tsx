@@ -162,7 +162,7 @@ export function CashRegisterTable({
                 const offlineCount = enhanced.offlineQueueCount ?? 0;
 
                 return (
-                    <Space direction="vertical" size={4}>
+                    <Space orientation="vertical" size={4}>
                         <TseHealthBadge
                             status={enhanced.tseHealthStatus}
                             registerId={record.id}
@@ -188,7 +188,7 @@ export function CashRegisterTable({
             render: (_: unknown, record) => {
                 const enhanced = asEnhanced(record);
                 return (
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                         <Typography.Text className={styles.cellSubtle}>
                             {t('cashRegisters.detail.lastMonatsbelegUtc')}:{' '}
                             {enhanced.lastMonatsbelegUtc
@@ -220,7 +220,7 @@ export function CashRegisterTable({
                     : t('cashRegisters.detail.lastBalanceUpdate');
 
                 return (
-                    <Space direction="vertical" size={0}>
+                    <Space orientation="vertical" size={0}>
                         <Typography.Text className={styles.cellValue}>
                             {formatRelativeTime(activityAt, formatLocale)}
                         </Typography.Text>
@@ -245,7 +245,7 @@ export function CashRegisterTable({
                       key: 'balance',
                       width: 220,
                       render: (_: unknown, record: CashRegister) => (
-                          <Space direction="vertical" size={0}>
+                          <Space orientation="vertical" size={0}>
                               <Typography.Text className={styles.cellValue}>
                                   {isFiniteNumber(record.currentBalance)
                                       ? formatCurrency(record.currentBalance, formatLocale)

@@ -95,7 +95,7 @@ export function AuditDetailModal({ open, record, onClose }: Props) {
             footer={null}
             width={960}
             title={t('common.auditLogs.detailModalTitle')}
-            destroyOnClose
+            destroyOnHidden
         >
             <Descriptions size="small" column={2} bordered>
                 <Descriptions.Item label={t('common.auditLogs.table.time')}>

@@ -12,7 +12,7 @@ export const AUTH_SESSION_CLEARED_EVENT = 'rk-admin-auth-cleared';
 
 const ACCESS_TOKEN_KEY = 'rk_admin_access_token';
 const REFRESH_TOKEN_KEY = 'rk_admin_refresh_token';
-/** Must stay aligned with `ACCESS_TOKEN_COOKIE` in `src/middleware.ts` (Edge middleware cannot read localStorage). */
+/** Must stay aligned with `ACCESS_TOKEN_COOKIE` in `src/proxy.ts` (Edge proxy cannot read localStorage). */
 const ACCESS_TOKEN_COOKIE_NAME = 'rk_admin_access_token';
 let accessTokenMemory: string | null = null;
 const normalizeToken = (token: string): string => token.startsWith('Bearer ') ? token.slice(7) : token;

@@ -101,7 +101,7 @@ export default function ExtraZutatenSection({
   if (loading) {
     return (
       <div style={{ padding: '12px 0' }}>
-        <Spin tip={t('products.addonGroups.loading')} />
+        <Spin description={t('products.addonGroups.loading')} />
       </div>
     );
   }
@@ -120,7 +120,7 @@ export default function ExtraZutatenSection({
         <Alert
           type="warning"
           showIcon
-          message={t('products.addonGroups.warningTitle')}
+          title={t('products.addonGroups.warningTitle')}
           description={
             <>
               {emptySelectedGroups.map((g) => (

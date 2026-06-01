@@ -1,6 +1,6 @@
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Services;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace KasseAPI_Final.Swagger;
@@ -11,27 +11,29 @@ namespace KasseAPI_Final.Swagger;
 /// </summary>
 public sealed class TagesabschlussSchemaRequiredFilter : ISchemaFilter
 {
-    public void Apply(OpenApiSchema schema, SchemaFilterContext context)
+    public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
     {
-        if (schema.Properties == null || schema.Properties.Count == 0)
+        if (schema is not OpenApiSchema openApiSchema)
+            return;
+
+        if (openApiSchema.Properties == null || openApiSchema.Properties.Count == 0)
             return;
 
         if (context.Type == typeof(TagesabschlussResult))
         {
-            Require(schema, "success", "closingDate", "totalAmount", "totalTaxAmount", "transactionCount", "paymentsWithoutInvoiceCount");
+            Require(openApiSchema, "success", "closingDate", "totalAmount", "totalTaxAmount", "transactionCount", "paymentsWithoutInvoiceCount");
             return;
         }
 
         if (context.Type == typeof(TagesabschlussCanCloseResponse))
         {
-            Require(schema, "canClose", "paymentsWithoutInvoiceCount");
+            Require(openApiSchema, "canClose", "paymentsWithoutInvoiceCount");
             return;
         }
 
         if (context.Type == typeof(TagesabschlussStatisticsResponse))
         {
-            Require(schema, "totalClosings", "totalAmount", "totalTaxAmount", "totalTransactions", "averageDailyAmount");
-            return;
+            Require(openApiSchema, "totalClosings", "totalAmount", "totalTaxAmount", "totalTransactions", "averageDailyAmount");
         }
     }
 

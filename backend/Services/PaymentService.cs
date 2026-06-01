@@ -2601,7 +2601,7 @@ namespace KasseAPI_Final.Services
             // Query using PaymentMethodRaw - no InvalidCastException since it's varchar
             var payments = await _context.PaymentDetails
                 .Where(p => p.CreatedAt >= fromUtc && p.CreatedAt < toExclusiveUtc && p.IsActive)
-                .Where(p => _context.CashRegisters.Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == effectiveTenantId))
+                .Where(p => _context.CashRegisters.ForResolvedTenantScope().Any(cr => cr.Id == p.CashRegisterId && cr.TenantId == effectiveTenantId))
                 .ToListAsync();
 
             // Diagnostic log to confirm PaymentMethodRaw reads as string
@@ -3049,7 +3049,7 @@ namespace KasseAPI_Final.Services
         private async Task<bool> PaymentBelongsToEffectiveTenantAsync(PaymentDetails payment, CancellationToken cancellationToken = default)
         {
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
-            return await _context.CashRegisters.AsNoTracking()
+            return await _context.CashRegisters.AsNoTracking().ForResolvedTenantScope()
                 .AnyAsync(cr => cr.Id == payment.CashRegisterId && cr.TenantId == tenantId, cancellationToken);
         }
 

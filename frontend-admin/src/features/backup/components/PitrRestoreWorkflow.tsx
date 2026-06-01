@@ -1,7 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useState } from 'react';
-import { Button, Space, Tooltip, message } from 'antd';
+import { Button, Space, Tooltip } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useI18n } from '@/i18n';
@@ -28,6 +29,8 @@ export function PitrRestoreWorkflow({
   formatDt,
   formatLocale,
 }: PitrRestoreWorkflowProps) {
+  const { message } = useAntdApp();
+
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [pitrModalOpen, setPitrModalOpen] = useState(false);
@@ -64,7 +67,7 @@ export function PitrRestoreWorkflow({
   }
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <Space orientation="vertical" size={16} style={{ width: '100%' }}>
       <Tooltip title={t('backupDr.pitr.openButtonTooltip')}>
         <Button
           type="primary"

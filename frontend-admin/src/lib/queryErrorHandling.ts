@@ -1,5 +1,5 @@
 import type { AxiosError } from 'axios';
-import { message } from 'antd';
+import { showAntdError } from '@/lib/antdAppBridge';
 import { isPublicAuthEntryPath } from '@/features/auth/utils/isPublicAuthEntryPath';
 
 export function getHttpStatusFromError(error: unknown): number | undefined {
@@ -36,7 +36,7 @@ function defaultQueryErrorHandler(error: unknown): void {
             : status != null
               ? `Request failed (${status})`
               : 'Request failed';
-    message.error(toastMessage);
+    showAntdError(toastMessage);
 }
 
 export function invokeQueryClientErrorHandler(error: unknown, meta: QueryErrorHandlerMeta | undefined): void {

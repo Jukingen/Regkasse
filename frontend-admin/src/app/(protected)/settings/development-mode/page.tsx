@@ -1,19 +1,8 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useEffect, useMemo } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Form,
-  InputNumber,
-  Select,
-  Space,
-  Spin,
-  Switch,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, Button, Card, Form, InputNumber, Select, Space, Spin, Switch, Typography } from 'antd';
 import { SaveOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -77,6 +66,8 @@ function formToPut(v: DevModeFormValues): DevelopmentModeSettingsPutDto {
 }
 
 export default function DevelopmentModeSettingsPage() {
+  const { message } = useAntdApp();
+
   const { t, formatLocale } = useI18n();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<DevModeFormValues>();
@@ -164,7 +155,7 @@ export default function DevelopmentModeSettingsPage() {
         <Alert
           type="error"
           showIcon
-          message={t('developmentMode.page.loadError')}
+          title={t('developmentMode.page.loadError')}
           description={error instanceof Error ? error.message : undefined}
         />
         <Button onClick={() => refetch()}>{t('common.buttons.retry')}</Button>
@@ -180,7 +171,7 @@ export default function DevelopmentModeSettingsPage() {
         type="warning"
         showIcon
         banner
-        message={t('developmentMode.page.warning')}
+        title={t('developmentMode.page.warning')}
         style={{
           border: '1px solid #d48806',
           background: 'linear-gradient(90deg, #fff7e6 0%, #fffbe6 100%)',
@@ -188,7 +179,7 @@ export default function DevelopmentModeSettingsPage() {
       />
 
       <Card>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space orientation="vertical" size="large" style={{ width: '100%' }}>
           {data && (
             <Typography.Text type="secondary" style={{ display: 'block' }}>
               {formatUpdatedLine(data)}
@@ -216,7 +207,7 @@ export default function DevelopmentModeSettingsPage() {
 
             {enabled ? (
               <Space
-                direction="vertical"
+                orientation="vertical"
                 size="middle"
                 style={{ width: '100%', paddingLeft: 8, borderLeft: '3px solid #faad14' }}
               >

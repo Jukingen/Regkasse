@@ -186,7 +186,7 @@ export default function DailyClosingSummaryPage() {
             <Card>
                 <Typography.Paragraph type="secondary">{t('reporting.dailyClosing.intro')}</Typography.Paragraph>
                 {data?.snapshotDisclaimerDe ? (
-                    <Alert type="info" showIcon message={data.snapshotDisclaimerDe} style={{ marginBottom: 16 }} />
+                    <Alert type="info" showIcon title={data.snapshotDisclaimerDe} style={{ marginBottom: 16 }} />
                 ) : null}
                 <Space wrap align="center" style={{ marginBottom: 16 }}>
                     <span>{t('reporting.dailyClosing.dateLabel')}</span>

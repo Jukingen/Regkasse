@@ -1,22 +1,13 @@
 'use client';
 
+import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Upgrade / supersede flow: POST /api/admin/license/upgrade with row id + new expiry date, then surface key + JWT.
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import {
-    Alert,
-    Button,
-    DatePicker,
-    Descriptions,
-    Input,
-    Modal,
-    Space,
-    Typography,
-    message,
-} from 'antd';
+import { Modal, Alert, Button, DatePicker, Descriptions, Input, Space, Typography } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -67,6 +58,8 @@ export type IssuedLicenseUpgradeModalProps = {
 };
 
 export function IssuedLicenseUpgradeModal({ row, onClose }: IssuedLicenseUpgradeModalProps) {
+  const { message } = useAntdApp();
+
     const open = row !== null;
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
@@ -165,7 +158,7 @@ export function IssuedLicenseUpgradeModal({ row, onClose }: IssuedLicenseUpgrade
                         onClose();
                     }
                 }}
-                destroyOnClose
+                destroyOnHidden
                 onOk={handleFinish}
             >
                 {row ? (
@@ -215,12 +208,12 @@ export function IssuedLicenseUpgradeModal({ row, onClose }: IssuedLicenseUpgrade
                 ]}
                 onCancel={() => setOutcome(null)}
                 width={680}
-                destroyOnClose
+                destroyOnHidden
             >
                 {outcome?.licenseKey && outcome.signedJwt ? (
-                    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                        <Alert type="info" showIcon message={t('license.issued.upgrade.reActivateNotice')} />
-                        <Alert type="warning" showIcon message={t('license.issued.upgrade.resultWarning')} />
+                    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+                        <Alert type="info" showIcon title={t('license.issued.upgrade.reActivateNotice')} />
+                        <Alert type="warning" showIcon title={t('license.issued.upgrade.resultWarning')} />
                         <Descriptions bordered column={1} size="small">
                             <Descriptions.Item label={t('license.generation.result.licenseKey')}>
                                 <Space.Compact style={{ width: '100%' }}>
