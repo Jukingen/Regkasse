@@ -35,6 +35,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/reports/user-activity': PERMISSIONS.REPORT_VIEW,
   '/tables': PERMISSIONS.TABLE_VIEW,
   '/kassenverwaltung': AppPermissions.CashRegisterView,
+  '/shifts': PERMISSIONS.SHIFT_VIEW,
   '/tagesabschluss': PERMISSIONS.TSE_SIGN,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
   '/admin/audit/fiscal-exports': PERMISSIONS.AUDIT_VIEW,

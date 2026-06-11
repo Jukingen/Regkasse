@@ -656,6 +656,10 @@ builder.Services.AddScoped<ICashRegisterManagementService, CashRegisterManagemen
 builder.Services.AddScoped<ICashRegisterHealthService, CashRegisterHealthService>();
 builder.Services.AddScoped<ICashRegisterListEnrichmentService, CashRegisterListEnrichmentService>();
 builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
+builder.Services.AddScoped<IPosShiftService, PosShiftService>();
+builder.Services.AddScoped<IPosDailyClosingService, PosDailyClosingService>();
+builder.Services.AddScoped<IDailyClosingReportService, DailyClosingReportService>();
+builder.Services.AddScoped<IAdminShiftOverviewService, AdminShiftOverviewService>();
 builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
 builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();

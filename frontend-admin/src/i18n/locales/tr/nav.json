@@ -14,6 +14,7 @@
   "receiptGenerate": "Fiş önizleme",
   "tables": "Masalar",
   "kassenverwaltung": "Kasa yönetimi",
+  "shiftsOverview": "Vardiyalar ve kapanışlar",
   "auditLogs": "Denetim günlüğü",
   "fiscalExportAuditLogs": "Fiscal export denetimi",
   "offlineTransactionsAdmin": "Çevrimdışı işlemler (TSE)",

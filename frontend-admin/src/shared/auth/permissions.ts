@@ -91,6 +91,8 @@ export const PERMISSIONS = {
   VOUCHER_AUDIT_VIEW: 'voucher.audit.view',
   CUSTOMER_VIEW: 'customer.view',
   CUSTOMER_MANAGE: 'customer.manage',
+  SHIFT_VIEW: 'shift.view',
+  SHIFT_MANAGE: 'shift.manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

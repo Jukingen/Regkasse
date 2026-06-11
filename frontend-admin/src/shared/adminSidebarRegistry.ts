@@ -10,7 +10,7 @@ import { collectRksvMenuLeafKeys } from '@/shared/rksvMenuModel';
 import { FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS } from '@/shared/fiscalRksvClosingSidebar';
 import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
 import { registerRksvSidebar, type RksvSidebarRegistryAttachment } from '@/features/rksv/sidebarPlugin';
-import { AppPermissions } from '@/shared/auth/permissions';
+import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
 
 export type SidebarDomainId =
     | 'operations'
@@ -103,6 +103,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.kassenverwaltung',
         icon: 'ShopOutlined',
         permission: AppPermissions.CashRegisterView,
+    },
+    shiftsOverview: {
+        id: 'shiftsOverview',
+        menuKey: '/shifts',
+        href: '/shifts',
+        labelKey: 'nav.shiftsOverview',
+        icon: 'ClockCircleOutlined',
+        permission: PERMISSIONS.SHIFT_VIEW,
     },
     tagesabschluss: {
         id: 'tagesabschluss',
@@ -502,7 +510,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     {
         kind: 'domain',
         domain: 'operations',
-        blocks: [{ kind: 'leaves', catalogIds: ['operationsCenter', 'tables', 'kassenverwaltung'] }],
+        blocks: [{ kind: 'leaves', catalogIds: ['operationsCenter', 'tables', 'kassenverwaltung', 'shiftsOverview'] }],
     },
     {
         kind: 'domain',

@@ -1,0 +1,49 @@
+{
+  "pageTitle": "Vardiyalar ve günlük kapanışlar",
+  "intro": "Kiracı POS vardiyaları: aktif vardiyalar, geçmiş ve bağlı günlük kapanışlar (nakit sayımı + mali kapanış).",
+  "filters": {
+    "register": "Kasa",
+    "allRegisters": "Tüm kasalar",
+    "from": "Başlangıç",
+    "to": "Bitiş",
+    "refresh": "Yenile"
+  },
+  "sections": {
+    "active": "Aktif vardiyalar",
+    "history": "Vardiya geçmişi",
+    "closings": "Günlük kapanışlar"
+  },
+  "columns": {
+    "cashier": "Kasiyer",
+    "register": "Kasa",
+    "startedAt": "Başlangıç",
+    "endedAt": "Bitiş",
+    "startBalance": "Açılış bakiyesi",
+    "endBalance": "Kapanış bakiyesi",
+    "sales": "Satış",
+    "cash": "Nakit",
+    "card": "Kart",
+    "cashCount": "Sayılan nakit",
+    "difference": "Fark",
+    "status": "Durum",
+    "closingDate": "Kapanış tarihi",
+    "fiscalTotal": "Mali toplam",
+    "fiscalTax": "Mali KDV",
+    "transactions": "İşlemler",
+    "tse": "TSE",
+    "fiscalStatus": "Mali durum"
+  },
+  "status": {
+    "Active": "Aktif",
+    "Completed": "Tamamlandı",
+    "Discrepancy": "Fark"
+  },
+  "tse": {
+    "yes": "İmzalı",
+    "no": "Eksik"
+  },
+  "empty": "Kayıt yok",
+  "errors": {
+    "loadFailed": "Vardiya özeti yüklenemedi."
+  }
+}

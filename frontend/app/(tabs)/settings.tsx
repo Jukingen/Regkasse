@@ -5,6 +5,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View
 
 import { AppUpdateChecker } from '../../components/AppUpdateChecker';
 import { CashRegisterAssignmentSection } from '../../components/CashRegisterAssignmentSection';
+import { ShiftManager } from '../../components/ShiftManager';
 import LanguageSelector from '../../components/LanguageSelector';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
 import { LicenseTransferHelpSection } from '../../components/LicenseTransferHelpSection';
@@ -55,6 +56,9 @@ export default function SettingsScreen() {
       </View>
       <View style={styles.section}>
         <CashRegisterAssignmentSection />
+      </View>
+      <View style={styles.section}>
+        <ShiftManager />
       </View>
 
       <View style={styles.section}>

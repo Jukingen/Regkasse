@@ -1,0 +1,49 @@
+{
+  "pageTitle": "Shifts & daily closings",
+  "intro": "Tenant POS cashier shifts: active shifts, history, and linked daily closings (cash count + fiscal closing).",
+  "filters": {
+    "register": "Register",
+    "allRegisters": "All registers",
+    "from": "From",
+    "to": "To",
+    "refresh": "Refresh"
+  },
+  "sections": {
+    "active": "Active shifts",
+    "history": "Shift history",
+    "closings": "Daily closings"
+  },
+  "columns": {
+    "cashier": "Cashier",
+    "register": "Register",
+    "startedAt": "Started",
+    "endedAt": "Ended",
+    "startBalance": "Opening float",
+    "endBalance": "Closing float",
+    "sales": "Sales",
+    "cash": "Cash",
+    "card": "Card",
+    "cashCount": "Cash count",
+    "difference": "Difference",
+    "status": "Status",
+    "closingDate": "Closing date",
+    "fiscalTotal": "Fiscal gross",
+    "fiscalTax": "Fiscal tax",
+    "transactions": "Transactions",
+    "tse": "TSE",
+    "fiscalStatus": "Fiscal status"
+  },
+  "status": {
+    "Active": "Active",
+    "Completed": "Completed",
+    "Discrepancy": "Discrepancy"
+  },
+  "tse": {
+    "yes": "Signed",
+    "no": "Missing"
+  },
+  "empty": "No rows",
+  "errors": {
+    "loadFailed": "Could not load shift overview."
+  }
+}

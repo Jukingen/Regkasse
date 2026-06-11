@@ -14,6 +14,7 @@
   "receiptGenerate": "Belegvorschau",
   "tables": "Tische",
   "kassenverwaltung": "Kassenverwaltung",
+  "shiftsOverview": "Schichten & Abschlüsse",
   "auditLogs": "Audit-Protokoll",
   "fiscalExportAuditLogs": "Fiscal-Export Audit",
   "offlineTransactionsAdmin": "Offline-Transaktionen (TSE)",

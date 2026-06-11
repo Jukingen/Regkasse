@@ -1,0 +1,49 @@
+{
+  "pageTitle": "Schichten & Tagesabschlüsse",
+  "intro": "Operative POS-Schichten des Mandanten: aktive Schichten, Verlauf und verknüpfte Tagesabschlüsse (Kassenzählung + fiskalischer Abschluss).",
+  "filters": {
+    "register": "Kasse",
+    "allRegisters": "Alle Kassen",
+    "from": "Von",
+    "to": "Bis",
+    "refresh": "Aktualisieren"
+  },
+  "sections": {
+    "active": "Aktive Schichten",
+    "history": "Schichtverlauf",
+    "closings": "Tagesabschlüsse"
+  },
+  "columns": {
+    "cashier": "Kassierer",
+    "register": "Kasse",
+    "startedAt": "Beginn",
+    "endedAt": "Ende",
+    "startBalance": "Startbestand",
+    "endBalance": "Endbestand",
+    "sales": "Umsatz",
+    "cash": "Bar",
+    "card": "Karte",
+    "cashCount": "Gezähltes Bargeld",
+    "difference": "Differenz",
+    "status": "Status",
+    "closingDate": "Abschlussdatum",
+    "fiscalTotal": "Fiskal Brutto",
+    "fiscalTax": "Fiskal MwSt.",
+    "transactions": "Transaktionen",
+    "tse": "TSE",
+    "fiscalStatus": "Fiskalstatus"
+  },
+  "status": {
+    "Active": "Aktiv",
+    "Completed": "Abgeschlossen",
+    "Discrepancy": "Differenz"
+  },
+  "tse": {
+    "yes": "Signiert",
+    "no": "Fehlt"
+  },
+  "empty": "Keine Einträge",
+  "errors": {
+    "loadFailed": "Schichtübersicht konnte nicht geladen werden."
+  }
+}

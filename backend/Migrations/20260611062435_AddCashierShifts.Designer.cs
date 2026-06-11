@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260611062435_AddCashierShifts")]
+    partial class AddCashierShifts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1641,10 +1644,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<decimal?>("CashCount")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("cash_count");
-
                     b.Property<Guid>("CashRegisterId")
                         .HasColumnType("uuid")
                         .HasColumnName("cash_register_id");
@@ -1669,10 +1668,6 @@ namespace KasseAPI_Final.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("character varying(450)")
                         .HasColumnName("created_by");
-
-                    b.Property<Guid?>("DailyClosingId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("daily_closing_id");
 
                     b.Property<decimal>("Difference")
                         .HasColumnType("decimal(18,2)")
@@ -1734,8 +1729,6 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("updated_by");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("DailyClosingId");
 
                     b.HasIndex("CashRegisterId", "StartedAt");
 
@@ -8220,11 +8213,6 @@ namespace KasseAPI_Final.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("KasseAPI_Final.Models.DailyClosing", "DailyClosing")
-                        .WithMany()
-                        .HasForeignKey("DailyClosingId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
@@ -8232,8 +8220,6 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("CashRegister");
-
-                    b.Navigation("DailyClosing");
 
                     b.Navigation("Tenant");
                 });

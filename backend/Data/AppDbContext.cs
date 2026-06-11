@@ -64,6 +64,7 @@ namespace KasseAPI_Final.Data
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<CashRegister> CashRegisters { get; set; }
         public DbSet<CashRegisterTransaction> CashRegisterTransactions { get; set; }
+        public DbSet<CashierShift> CashierShifts { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
         public DbSet<PaymentReversalApproval> PaymentReversalApprovals { get; set; }
@@ -605,6 +606,42 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Description).IsRequired().HasMaxLength(500);
                 entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
                 entity.Property(e => e.TransactionDate).IsRequired();
+            });
+
+            builder.Entity<CashierShift>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.CashRegisterId).HasColumnName("cash_register_id").IsRequired();
+                entity.Property(e => e.CashierId).HasColumnName("cashier_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.CashierName).HasColumnName("cashier_name").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.StartBalance).HasColumnName("start_balance").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.EndBalance).HasColumnName("end_balance").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalSales).HasColumnName("total_sales").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalCash).HasColumnName("total_cash").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalCard).HasColumnName("total_card").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Difference).HasColumnName("difference").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.StartedAt).HasColumnName("started_at").HasColumnType("timestamptz");
+                entity.Property(e => e.EndedAt).HasColumnName("ended_at").HasColumnType("timestamptz");
+                entity.Property(e => e.Status).HasColumnName("status").IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Notes).HasColumnName("notes").HasColumnType("text");
+                entity.Property(e => e.DailyClosingId).HasColumnName("daily_closing_id");
+                entity.Property(e => e.CashCount).HasColumnName("cash_count").HasColumnType("decimal(18,2)");
+                entity.HasOne(e => e.DailyClosing)
+                    .WithMany()
+                    .HasForeignKey(e => e.DailyClosingId)
+                    .IsRequired(false)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.TenantId, e.CashierId, e.Status });
+                entity.HasIndex(e => new { e.CashRegisterId, e.StartedAt });
             });
 
             // Category configuration
@@ -2643,6 +2680,7 @@ namespace KasseAPI_Final.Data
 
         private static Guid? TryGetCashRegisterId(ITenantEntity entity) => entity switch
         {
+            CashierShift cs => cs.CashRegisterId,
             OfflineTransaction ot => ot.CashRegisterId,
             DailyClosing dc => dc.CashRegisterId,
             TseSignature ts => ts.CashRegisterId,
