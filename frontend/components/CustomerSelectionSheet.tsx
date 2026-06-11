@@ -11,6 +11,7 @@ import {
   Alert,
   Pressable,
 } from 'react-native';
+import { QrCustomerScanner } from '../app/components/QrCustomerScanner';
 import { customerService, type Customer } from '../services/api/customerService';
 import { SoftColors, SoftRadius, SoftSpacing, SoftTypography } from '../constants/SoftTheme';
 import { WaveLoader } from '../src/components/common/WaveLoader';
@@ -32,6 +33,7 @@ export default function CustomerSelectionSheet({
   const [listCustomers, setListCustomers] = useState<Customer[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [listFilter, setListFilter] = useState('');
+  const [scannerVisible, setScannerVisible] = useState(false);
 
   const loadList = useCallback(async () => {
     setListLoading(true);
@@ -129,6 +131,13 @@ export default function CustomerSelectionSheet({
                 <Text style={styles.primaryBtnText}>Suchen</Text>
               )}
             </Pressable>
+            <Pressable
+              style={styles.scanBtn}
+              onPress={() => setScannerVisible(true)}
+              accessibilityLabel="QR-Code scannen"
+            >
+              <Ionicons name="scan-outline" size={22} color={SoftColors.accent} />
+            </Pressable>
           </View>
           <Text style={styles.hint}>Vorteile werden bei Zahlung angewendet.</Text>
         </View>
@@ -189,6 +198,22 @@ export default function CustomerSelectionSheet({
           </View>
         )}
       </View>
+
+      <Modal
+        visible={scannerVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setScannerVisible(false)}
+      >
+        <QrCustomerScanner
+          onClose={() => setScannerVisible(false)}
+          onCustomerFound={(customer) => {
+            onSelect(customer);
+            setScannerVisible(false);
+            onClose();
+          }}
+        />
+      </Modal>
     </Modal>
   );
 }
@@ -249,6 +274,14 @@ const styles = StyleSheet.create({
     color: SoftColors.textInverse,
     fontWeight: '600',
     fontSize: 15,
+  },
+  scanBtn: {
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+    borderRadius: SoftRadius.md,
+    padding: SoftSpacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   hint: {
     ...SoftTypography.caption,

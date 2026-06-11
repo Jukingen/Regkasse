@@ -83,6 +83,13 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
     ? `<div class="rksv-url">${verificationUrl}</div>`
     : '<div class="rksv-url">RKSV-Prüfung: QR-Code oben scannen</div>';
 
+  const reversalBanner =
+    data.fiscalTraceKind === 'Storno'
+      ? '<div class="reversal-banner" style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:8px;color:#b71c1c;">STORNO BELEG</div>'
+      : data.fiscalTraceKind === 'Refund'
+        ? '<div class="reversal-banner" style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:8px;color:#e65100;">ERSTATTUNGSBELEG</div>'
+        : '';
+
   const demoLabel = isDemoFiscal ? '<div class="qr-demo-label">DEMO / NICHT FISKAL</div>' : '';
   const qrBlock = qrBase64
     ? `
@@ -130,6 +137,7 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
         </style>
       </head>
       <body>
+        ${reversalBanner}
         <div class="company-info">
           <h1>${company.name || 'Store Name'}</h1>
           <div>${company.address || ''}</div>

@@ -8,7 +8,7 @@ using KasseAPI_Final.Tenancy;
 
 namespace KasseAPI_Final.Controllers;
 
-/// <summary>POS Gutschein validation (no balance mutation).</summary>
+/// <summary>POS Gutschein validation (no balance mutation). Codes are hashed at rest; lookup via <see cref="IVoucherService"/> only.</summary>
 [ApiController]
 [Route("api/pos/vouchers")]
 [Authorize]
@@ -28,11 +28,17 @@ public class PosVoucherController : BaseController
         _tenantResolver = tenantResolver;
     }
 
-    /// <summary>Validate a voucher code for the current tenant (masked output only).</summary>
+    /// <summary>
+    /// Validate a voucher code for the current tenant.
+    /// Accepts <c>voucherCode</c> or <c>code</c> in the body. Success returns masked code only (never plaintext).
+    /// </summary>
     [HttpPost("validate")]
     [ProducesResponseType(typeof(VoucherValidateResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ValidateVoucher([FromBody] ValidateVoucherRequest request, CancellationToken cancellationToken)
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<VoucherValidateResponse>> ValidateVoucher(
+        [FromBody] ValidateVoucherRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrEmpty(userId))
@@ -50,11 +56,26 @@ public class PosVoucherController : BaseController
 
         if (!result.Ok)
         {
+            var error = MapErrorMessage(result);
             if (string.Equals(result.ErrorCode, VoucherValidateErrorCodes.NotFound, StringComparison.Ordinal))
-                return NotFound(result);
-            return BadRequest(result);
+                return NotFound(new { error, ok = false, errorCode = result.ErrorCode, message = result.Message });
+            return BadRequest(new { error, ok = false, errorCode = result.ErrorCode, message = result.Message });
         }
 
         return Ok(result);
+    }
+
+    private static string MapErrorMessage(VoucherValidateResponse result)
+    {
+        if (!string.IsNullOrWhiteSpace(result.Message))
+            return result.Message!;
+
+        return result.ErrorCode switch
+        {
+            VoucherValidateErrorCodes.Expired => "Voucher expired",
+            VoucherValidateErrorCodes.NoBalance or VoucherValidateErrorCodes.Redeemed => "Voucher already used",
+            VoucherValidateErrorCodes.NotFound => "Voucher not found",
+            _ => "Voucher validation failed",
+        };
     }
 }

@@ -1,0 +1,43 @@
+{
+  "title": "Payment history",
+  "last24h": "Last 24 hours",
+  "noPayments": "No payments in the last 24 hours",
+  "total": "Total",
+  "transactions": "Transactions",
+  "actions": {
+    "storno": "Cancel receipt",
+    "refund": "Refund",
+    "view": "View",
+    "close": "Close"
+  },
+  "reasons": {
+    "stornoTitle": "Cancellation reason",
+    "refundTitle": "Refund reason",
+    "customerRequest": "Customer request",
+    "wrongItem": "Wrong item",
+    "priceMismatch": "Price mismatch",
+    "duplicate": "Duplicate entry",
+    "technicalError": "Technical error",
+    "customerComplaint": "Customer complaint",
+    "wrongProduct": "Wrong product",
+    "qualityIssue": "Quality issue",
+    "overcharged": "Overcharged",
+    "other": "Other"
+  },
+  "errors": {
+    "paymentNotFound": "Payment not found",
+    "alreadyCancelled": "Payment has already been cancelled",
+    "stornoTimeLimitExceeded": "Cancellation is only allowed within 24 hours",
+    "reasonRequired": "Please provide a reason",
+    "refundAmountInvalid": "Invalid refund amount",
+    "approvalRequired": "Manager approval required",
+    "stornoFailed": "Cancellation could not be completed",
+    "stornoBlockedByRefunds": "Full cancellation is not allowed after partial refunds",
+    "specialReceiptNotStornoable": "Special receipts cannot be cancelled here",
+    "validationFailed": "Invalid input"
+  },
+  "messages": {
+    "stornoSuccess": "Cancellation completed successfully",
+    "refundSuccess": "Refund completed successfully"
+  }
+}

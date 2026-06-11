@@ -48,6 +48,11 @@ export interface ReceiptDTO {
 
     /** RKSV doğrulama URL'si (varsa fişte metin olarak basılır) */
     verificationUrl?: string;
+
+    /** null = normal sale; Storno | Refund reversal trace from backend. */
+    fiscalTraceKind?: string | null;
+    originalPaymentId?: string | null;
+    originalSaleReceiptId?: string | null;
 }
 
 export interface ReceiptItemDTO {

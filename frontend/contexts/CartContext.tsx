@@ -52,6 +52,8 @@ export function getCartLineTotal(item: CartItem): number {
 export interface Cart {
     items: CartItem[];
     updatedAt?: number;
+    /** Backend cart row uuid (Cart.Id) for split session start. */
+    cartRowId?: string;
     cartId?: string;
     /** Backend toplamları - FE HİÇBİR vergi/total hesaplaması yapmaz */
     subtotalGross?: number;
@@ -114,6 +116,10 @@ interface CartContextType {
     incrementModifier: (cartItemId: string, modifierId: string) => Promise<void>;
     decrementModifier: (cartItemId: string, modifierId: string) => Promise<void>;
     removeModifier: (cartItemId: string, modifierId: string) => Promise<void>;
+    /** Move selected line ids from active (or source) table to target table. */
+    splitCartItems: (sourceTable: number, targetTable: number, itemIds: string[]) => Promise<void>;
+    /** Merge all items from source table into target table. */
+    mergeTableCarts: (sourceTable: number, targetTable: number) => Promise<void>;
 
     // Helpers
     setLoading: (loading: boolean) => void;
@@ -267,6 +273,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         [tableNumber]: {
                             items: localItems,
                             updatedAt: Date.now(),
+                            cartRowId: response.Id ?? response.id,
                             cartId: response.CartId || response.cartId,
                             subtotalGross: response.SubtotalGross ?? response.subtotalGross ?? grandTotalGross,
                             subtotalNet: response.SubtotalNet ?? response.subtotalNet,
@@ -1007,6 +1014,41 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await clearCart(target);
     }, [clearCart, activeTableId]);
 
+    const splitCartItems = useCallback(async (sourceTable: number, targetTable: number, itemIds: string[]) => {
+        setLoading(true);
+        try {
+            await apiClient.post('/pos/cart/split-items', {
+                sourceTableNumber: sourceTable,
+                targetTableNumber: targetTable,
+                itemIds,
+            });
+            lastFetchedTableIdRef.current = null;
+            await fetchTableCart(sourceTable, true);
+            await fetchTableCart(targetTable, true);
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchTableCart, setLoading]);
+
+    const mergeTableCarts = useCallback(async (sourceTable: number, targetTable: number) => {
+        setLoading(true);
+        try {
+            await apiClient.post('/pos/cart/merge-tables', {
+                sourceTableNumber: sourceTable,
+                targetTableNumber: targetTable,
+            });
+            lastFetchedTableIdRef.current = null;
+            setCartsByTable(prev => {
+                const next = { ...prev };
+                delete next[sourceTable];
+                return next;
+            });
+            await fetchTableCart(targetTable, true);
+        } finally {
+            setLoading(false);
+        }
+    }, [fetchTableCart, setLoading]);
+
 
     return (
         <CartContext.Provider value={{
@@ -1037,6 +1079,8 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             incrementModifier,
             decrementModifier,
             removeModifier,
+            splitCartItems,
+            mergeTableCarts,
             setLoading,
             setError
         }}>

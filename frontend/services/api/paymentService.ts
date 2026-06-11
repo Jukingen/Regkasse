@@ -28,6 +28,10 @@ import {
 import { debugPosPaymentTrace } from '../../utils/debugPosPaymentTrace';
 import type { CustomerKind } from '../../types/customerKind';
 import { getDevelopmentModeClientSnapshot } from '../developmentModeClientCache';
+import {
+  fetchPaymentHistory,
+  parsePaymentHistoryResponse,
+} from './paymentHistoryService';
 
 export type { PendingPaymentEntry } from '../payment/pendingPaymentQueue';
 
@@ -193,14 +197,15 @@ class PaymentService {
         amount: amount != null && amount > 0 ? amount : undefined,
       });
       const d = unwrapVoucherValidateBody(raw) as Record<string, unknown> | null;
-      if (d && d.ok === true) {
+      const isValid = d?.ok === true || d?.isValid === true;
+      if (d && isValid) {
         return {
           ok: true,
           status: String(d.status ?? ''),
           remainingAmount: Number(d.remainingAmount ?? 0),
           maxRedeemableAmount: Number(d.maxRedeemableAmount ?? d.remainingAmount ?? 0),
-          expiresAtUtc: String(d.expiresAtUtc ?? ''),
-          maskedCode: String(d.maskedCode ?? ''),
+          expiresAtUtc: String(d.expiresAtUtc ?? d.expiresAt ?? ''),
+          maskedCode: String(d.maskedCode ?? d.code ?? ''),
         };
       }
       return {
@@ -559,16 +564,13 @@ class PaymentService {
     }
   }
 
-  // Ödeme geçmişi
-  async getPaymentHistory(limit: number = 50, offset: number = 0): Promise<PaymentResponse[]> {
+  // Payment history (canonical POS history API)
+  async getPaymentHistory(limit: number = 50, offset: number = 0, hours: number = 24) {
     try {
-      const response = await apiClient.get<PaymentResponse[]>(
-        `${this.baseUrl}/history?limit=${encodeURIComponent(String(limit))}&offset=${encodeURIComponent(String(offset))}`
-      );
-      return response;
+      return await fetchPaymentHistory({ limit, offset, hours });
     } catch (error) {
       console.error('Payment history fetch failed:', error);
-      return [];
+      return parsePaymentHistoryResponse(null);
     }
   }
 

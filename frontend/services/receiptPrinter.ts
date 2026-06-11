@@ -4,6 +4,13 @@ import { paymentService } from './api/paymentService';
 import printerService from './PrinterService';
 import { ReceiptDTO } from '../types/ReceiptDTO';
 import { formatReceiptHtml } from './receiptFormatter';
+import {
+  formatRefundReceiptHtml,
+  formatStornoReceiptHtml,
+  type ReversalReceiptSnapshot,
+} from './reversalReceiptFormatter';
+
+export type { ReversalReceiptSnapshot } from './reversalReceiptFormatter';
 
 /** RKSV fiş print seçenekleri */
 export interface ReceiptPrintOptions {
@@ -114,8 +121,55 @@ class ReceiptPrinter {
         timestamp: data.Signature.Timestamp || data.signature?.timestamp || '',
         qrData: data.Signature.QrData || data.signature?.qrData || ''
       } : data.signature,
-      verificationUrl: data.VerificationUrl ?? data.verificationUrl
+      verificationUrl: data.VerificationUrl ?? data.verificationUrl,
+      fiscalTraceKind: data.FiscalTraceKind ?? data.fiscalTraceKind ?? null,
+      originalPaymentId: data.OriginalPaymentId ?? data.originalPaymentId ?? null,
+      originalSaleReceiptId: data.OriginalSaleReceiptId ?? data.originalSaleReceiptId ?? null,
     };
+  }
+
+  /**
+   * Print storno receipt. When <paramref name="stornoPayment"/>.paymentId is set, prints the
+   * full RKSV fiscal beleg (QR + TSE). Otherwise prints a thermal summary slip.
+   */
+  async printStornoReceipt(
+    stornoPayment: ReversalReceiptSnapshot,
+    originalPayment: ReversalReceiptSnapshot,
+    options?: ReceiptPrintOptions
+  ): Promise<void> {
+    if (stornoPayment.paymentId) {
+      await this.print(stornoPayment.paymentId, options);
+      return;
+    }
+    const html = formatStornoReceiptHtml(stornoPayment, originalPayment);
+    await this.printHtml(html);
+  }
+
+  /**
+   * Print partial refund receipt. Uses fiscal print when paymentId is present.
+   */
+  async printRefundReceipt(
+    refundPayment: ReversalReceiptSnapshot,
+    originalPayment: ReversalReceiptSnapshot,
+    options?: ReceiptPrintOptions
+  ): Promise<void> {
+    if (refundPayment.paymentId) {
+      await this.print(refundPayment.paymentId, options);
+      return;
+    }
+    const html = formatRefundReceiptHtml(refundPayment, originalPayment);
+    await this.printHtml(html);
+  }
+
+  private async printHtml(html: string): Promise<void> {
+    if (Platform.OS === 'web') {
+      await this.printWeb(html);
+      return;
+    }
+    await Print.printAsync({
+      html,
+      width: 300,
+    });
   }
 
   /**
@@ -229,3 +283,20 @@ export async function fetchQrAsBase64(paymentId: string): Promise<string | null>
 
 export const receiptPrinter = new ReceiptPrinter();
 export default receiptPrinter;
+
+/** Convenience export matching POS call sites. */
+export async function printStornoReceipt(
+  stornoPayment: ReversalReceiptSnapshot,
+  originalPayment: ReversalReceiptSnapshot,
+  options?: ReceiptPrintOptions
+): Promise<void> {
+  return receiptPrinter.printStornoReceipt(stornoPayment, originalPayment, options);
+}
+
+export async function printRefundReceipt(
+  refundPayment: ReversalReceiptSnapshot,
+  originalPayment: ReversalReceiptSnapshot,
+  options?: ReceiptPrintOptions
+): Promise<void> {
+  return receiptPrinter.printRefundReceipt(refundPayment, originalPayment, options);
+}

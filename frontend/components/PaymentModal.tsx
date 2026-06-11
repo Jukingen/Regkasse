@@ -44,6 +44,7 @@ import { validateAmount } from '../utils/validation';
 import { usePosCashRegisterAssignment } from '../hooks/usePosCashRegisterAssignment';
 import { usePosCheckoutUiStore } from '../stores/posCheckoutUiStore';
 import { receiptPrinter } from '../services/receiptPrinter';
+import { VoucherScanner } from '../app/components/VoucherScanner';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
@@ -311,6 +312,7 @@ export default function PaymentModal({
 
   /** Gutschein: code, validate snapshot, redeem amount (must match fiscal total for single-code flow). */
   const [voucherCode, setVoucherCode] = useState('');
+  const [voucherScannerVisible, setVoucherScannerVisible] = useState(false);
   const [voucherEnabled, setVoucherEnabled] = useState(false);
   /** Gutschein: true when code has non-whitespace (inline ⚠️ when false while method is voucher). */
   const [isVoucherCodeValid, setIsVoucherCodeValid] = useState(true);
@@ -1832,30 +1834,45 @@ export default function PaymentModal({
                     </Text>
                   ) : null}
                 </View>
-                <TextInput
-                  style={styles.voucherCodeInput}
-                  value={voucherCode}
-                  onChangeText={(v) => {
-                    setVoucherCode(v);
-                    setVoucherLocalError(null);
-                    const nextTrim = v.trim();
-                    if (
-                      voucherSnapshot &&
-                      validatedVoucherCode != null &&
-                      nextTrim !== validatedVoucherCode.trim()
-                    ) {
-                      setVoucherSnapshot(null);
-                      setValidatedVoucherCode(null);
-                      voucherValidatedTotalRef.current = null;
-                      setVoucherRedeemAmountStr('');
-                    }
-                  }}
-                  placeholder={t('checkout:posFlow.payment.voucher.codeLabel')}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  editable={!voucherCheckLoading && isOnline && !paymentInteractionsLocked}
-                  accessibilityLabel={t('checkout:posFlow.payment.voucher.codeLabel')}
-                />
+                <View style={styles.voucherCodeRow}>
+                  <TextInput
+                    style={[styles.voucherCodeInput, styles.voucherCodeInputFlex]}
+                    value={voucherCode}
+                    onChangeText={(v) => {
+                      setVoucherCode(v);
+                      setVoucherLocalError(null);
+                      const nextTrim = v.trim();
+                      if (
+                        voucherSnapshot &&
+                        validatedVoucherCode != null &&
+                        nextTrim !== validatedVoucherCode.trim()
+                      ) {
+                        setVoucherSnapshot(null);
+                        setValidatedVoucherCode(null);
+                        voucherValidatedTotalRef.current = null;
+                        setVoucherRedeemAmountStr('');
+                      }
+                    }}
+                    placeholder={t('checkout:posFlow.payment.voucher.codeLabel')}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    editable={!voucherCheckLoading && isOnline && !paymentInteractionsLocked}
+                    accessibilityLabel={t('checkout:posFlow.payment.voucher.codeLabel')}
+                  />
+                  <Pressable
+                    onPress={() => setVoucherScannerVisible(true)}
+                    disabled={!isOnline || paymentInteractionsLocked}
+                    style={({ pressed }) => [
+                      styles.voucherScanBtn,
+                      (!isOnline || paymentInteractionsLocked) && styles.voucherCheckButtonDisabled,
+                      pressed && styles.voucherScanBtnPressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Gutschein scannen"
+                  >
+                    <Ionicons name="scan-outline" size={22} color={SoftColors.accent} />
+                  </Pressable>
+                </View>
                 <Pressable
                   onPress={handleVoucherCheck}
                   disabled={voucherCheckLoading || !isOnline || paymentInteractionsLocked}
@@ -2202,6 +2219,21 @@ export default function PaymentModal({
         </View>
       </View>
     </Modal>
+
+    <VoucherScanner
+      visible={voucherScannerVisible}
+      onClose={() => setVoucherScannerVisible(false)}
+      onVoucherValidated={(code, snapshot) => {
+        setVoucherCode(code);
+        setVoucherLocalError(null);
+        setVoucherSnapshot(snapshot);
+        setValidatedVoucherCode(code);
+        const maxForThisCart = computeVoucherMaxForSale(totalAmount, snapshot, true);
+        setVoucherRedeemAmountEffective(maxForThisCart);
+        voucherValidatedTotalRef.current = totalAmount;
+        setVoucherEnabled(true);
+      }}
+    />
 
     <StornoRefundSelection
       visible={stornoRefundWizardVisible}
@@ -2721,6 +2753,12 @@ const styles = StyleSheet.create({
     color: SoftColors.textPrimary,
     marginBottom: SoftSpacing.xs,
   },
+  voucherCodeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SoftSpacing.sm,
+    marginBottom: SoftSpacing.sm,
+  },
   voucherCodeInput: {
     borderWidth: 1,
     borderColor: SoftColors.border,
@@ -2728,7 +2766,20 @@ const styles = StyleSheet.create({
     padding: SoftSpacing.sm,
     ...SoftTypography.body,
     color: SoftColors.textPrimary,
-    marginBottom: SoftSpacing.sm,
+  },
+  voucherCodeInputFlex: {
+    flex: 1,
+  },
+  voucherScanBtn: {
+    borderWidth: 1,
+    borderColor: SoftColors.accent,
+    borderRadius: SoftRadius.md,
+    padding: SoftSpacing.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  voucherScanBtnPressed: {
+    opacity: 0.85,
   },
   voucherCheckButton: {
     alignSelf: 'flex-start',

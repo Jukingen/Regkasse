@@ -41,6 +41,8 @@ interface ProductListProps {
   onAddAddOn?: OnAddAddOn;
   /** Add-on grupları olan ürün tıklandığında bottom sheet aç (base + add-on'lar flat cart). */
   onOpenAddOnSheet?: (product: Product) => void;
+  /** Long-press product row (e.g. toggle cashier favorite). */
+  onLongPressProduct?: (product: Product) => void;
   showStockInfo?: boolean;
   showTaxInfo?: boolean;
   ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
@@ -57,6 +59,7 @@ export const ProductList: React.FC<ProductListProps> = ({
   onAddProduct,
   onAddAddOn,
   onOpenAddOnSheet,
+  onLongPressProduct,
   showStockInfo = false,
   showTaxInfo = true,
   ListHeaderComponent,
@@ -197,6 +200,7 @@ export const ProductList: React.FC<ProductListProps> = ({
           onAdd={onAddProduct}
           onAddAddOn={onAddAddOn}
           onOpenAddOnSheet={onOpenAddOnSheet}
+          onLongPressProduct={onLongPressProduct}
           getCategoryEmoji={getCategoryEmoji}
         />
       );

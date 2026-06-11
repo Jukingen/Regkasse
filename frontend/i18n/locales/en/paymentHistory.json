@@ -1,0 +1,60 @@
+{
+  "quickAccess": "History",
+  "title": "Payment history",
+  "last24h": "Last 24 hours",
+  "noPayments": "No payments in the last 24 hours",
+  "total": "Total",
+  "transactions": "Transactions",
+  "filters": {
+    "all": "All",
+    "storno": "Cancellations",
+    "refund": "Refunds",
+    "noResults": "No entries for this filter"
+  },
+  "actions": {
+    "storno": "Cancel receipt",
+    "refund": "Refund",
+    "view": "View",
+    "close": "Close"
+  },
+  "reasons": {
+    "stornoTitle": "Cancellation reason",
+    "refundTitle": "Refund reason",
+    "customerRequest": "Customer request",
+    "wrongItem": "Wrong item",
+    "priceMismatch": "Price mismatch",
+    "duplicate": "Duplicate entry",
+    "technicalError": "Technical error",
+    "customerComplaint": "Customer complaint",
+    "wrongProduct": "Wrong product",
+    "qualityIssue": "Quality issue",
+    "overcharged": "Overcharged",
+    "other": "Other"
+  },
+  "errors": {
+    "paymentNotFound": "Payment not found",
+    "alreadyCancelled": "Payment has already been cancelled",
+    "stornoTimeLimitExceeded": "Cancellation is only allowed within 24 hours",
+    "reasonRequired": "Please provide a reason",
+    "reasonTooShort": "Please enter at least 5 characters for the reason",
+    "refundAmountInvalid": "Invalid refund amount",
+    "approvalRequired": "Manager approval required",
+    "stornoFailed": "Cancellation could not be completed",
+    "stornoBlockedByRefunds": "Full cancellation is not allowed after partial refunds",
+    "specialReceiptNotStornoable": "Special receipts cannot be cancelled here",
+    "validationFailed": "Invalid input"
+  },
+  "messages": {
+    "stornoSuccess": "Cancellation completed successfully",
+    "refundSuccess": "Refund completed successfully"
+  },
+  "fields": {
+    "amount": "Amount",
+    "detailsNote": "Additional details (optional)"
+  },
+  "loadError": "Could not load payment history",
+  "print": {
+    "stornoFailed": "Could not print cancellation receipt",
+    "refundFailed": "Could not print refund receipt"
+  }
+}

@@ -1,9 +1,11 @@
+import 'react-native-gesture-handler';
 import 'intl-pluralrules';
 import '../src/config/devFlags';
 import { i18nReady } from '../i18n';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import React from 'react';
 import { Text, View } from 'react-native';
@@ -65,6 +67,7 @@ export default function RootLayout() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ErrorBoundary>
       <SafeAreaProvider>
         <AuthProvider>
@@ -88,5 +91,6 @@ export default function RootLayout() {
         </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
+    </GestureHandlerRootView>
   );
 }

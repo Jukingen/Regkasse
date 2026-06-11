@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace KasseAPI_Final.DTOs;
 
@@ -19,18 +20,57 @@ public static class VoucherValidateErrorCodes
 /// <summary>POS: validate Gutschein code before payment.</summary>
 public class ValidateVoucherRequest
 {
+    private string _voucherCode = string.Empty;
+
     [Required]
     [MinLength(3)]
     [MaxLength(128)]
-    public string VoucherCode { get; set; } = string.Empty;
+    [JsonPropertyName("voucherCode")]
+    public string VoucherCode
+    {
+        get => _voucherCode;
+        set => _voucherCode = (value ?? string.Empty).Trim();
+    }
+
+    /// <summary>Alias for <see cref="VoucherCode"/> (API spec: <c>code</c>).</summary>
+    [JsonPropertyName("code")]
+    public string? Code
+    {
+        set
+        {
+            if (!string.IsNullOrWhiteSpace(value) && string.IsNullOrWhiteSpace(_voucherCode))
+                _voucherCode = value.Trim();
+        }
+    }
 
     [Range(0.01, double.MaxValue)]
     public decimal? Amount { get; set; }
 }
 
+/// <summary>Compact POS validation result (subset of <see cref="VoucherValidateResponse"/>).</summary>
+public sealed class VoucherValidationResult
+{
+    public bool IsValid { get; init; }
+    public decimal RemainingAmount { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public DateTime ExpiresAt { get; init; }
+
+    public static VoucherValidationResult FromSuccess(VoucherValidateResponse response) => new()
+    {
+        IsValid = true,
+        RemainingAmount = response.RemainingAmount ?? 0,
+        Code = response.MaskedCode ?? string.Empty,
+        ExpiresAt = response.ExpiresAtUtc ?? DateTime.UtcNow,
+    };
+}
+
 public sealed class VoucherValidateResponse
 {
     public bool Ok { get; init; }
+
+    [JsonPropertyName("isValid")]
+    public bool IsValid => Ok;
+
     public string? ErrorCode { get; init; }
     public string? Message { get; init; }
 
@@ -38,7 +78,14 @@ public sealed class VoucherValidateResponse
     public decimal? RemainingAmount { get; init; }
     public decimal? MaxRedeemableAmount { get; init; }
     public DateTime? ExpiresAtUtc { get; init; }
+
+    [JsonPropertyName("expiresAt")]
+    public DateTime? ExpiresAt => ExpiresAtUtc;
+
     public string? MaskedCode { get; init; }
+
+    [JsonPropertyName("code")]
+    public string? Code => MaskedCode;
 
     public static VoucherValidateResponse Valid(
         string status,

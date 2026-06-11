@@ -1,0 +1,43 @@
+{
+  "title": "Zahlungshistorie",
+  "last24h": "Letzte 24 Stunden",
+  "noPayments": "Keine Zahlungen in den letzten 24 Stunden",
+  "total": "Gesamt",
+  "transactions": "Transaktionen",
+  "actions": {
+    "storno": "Stornieren",
+    "refund": "Rückerstatten",
+    "view": "Ansehen",
+    "close": "Schließen"
+  },
+  "reasons": {
+    "stornoTitle": "Storno Grund",
+    "refundTitle": "Rückerstattungsgrund",
+    "customerRequest": "Kundenwunsch",
+    "wrongItem": "Falscher Artikel",
+    "priceMismatch": "Preis stimmt nicht",
+    "duplicate": "Doppelte Buchung",
+    "technicalError": "Technischer Fehler",
+    "customerComplaint": "Kundenbeschwerde",
+    "wrongProduct": "Falsches Produkt",
+    "qualityIssue": "Qualitätsproblem",
+    "overcharged": "Zu viel berechnet",
+    "other": "Sonstige"
+  },
+  "errors": {
+    "paymentNotFound": "Zahlung nicht gefunden",
+    "alreadyCancelled": "Zahlung wurde bereits storniert",
+    "stornoTimeLimitExceeded": "Storno nur innerhalb 24 Stunden möglich",
+    "reasonRequired": "Bitte geben Sie einen Grund an",
+    "refundAmountInvalid": "Ungültiger Rückerstattungsbetrag",
+    "approvalRequired": "Manager-Freigabe erforderlich",
+    "stornoFailed": "Storno konnte nicht durchgeführt werden",
+    "stornoBlockedByRefunds": "Storno nach Teilrückerstattung nicht möglich",
+    "specialReceiptNotStornoable": "Sonderbelege können hier nicht storniert werden",
+    "validationFailed": "Eingabe ungültig"
+  },
+  "messages": {
+    "stornoSuccess": "Storno erfolgreich durchgeführt",
+    "refundSuccess": "Rückerstattung erfolgreich durchgeführt"
+  }
+}

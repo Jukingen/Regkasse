@@ -1,0 +1,60 @@
+{
+  "quickAccess": "Geçmiş",
+  "title": "Ödeme Geçmişi",
+  "last24h": "Son 24 Saat",
+  "noPayments": "Son 24 saatte işlem yok",
+  "total": "Toplam",
+  "transactions": "İşlem",
+  "filters": {
+    "all": "Tümü",
+    "storno": "İptaller",
+    "refund": "İadeler",
+    "noResults": "Bu filtre için kayıt yok"
+  },
+  "actions": {
+    "storno": "İptal Et",
+    "refund": "İade Yap",
+    "view": "Görüntüle",
+    "close": "Kapat"
+  },
+  "reasons": {
+    "stornoTitle": "İptal Sebebi",
+    "refundTitle": "İade Sebebi",
+    "customerRequest": "Müşteri isteği",
+    "wrongItem": "Yanlış ürün",
+    "priceMismatch": "Fiyat hatası",
+    "duplicate": "Çift giriş",
+    "technicalError": "Teknik hata",
+    "customerComplaint": "Müşteri şikayeti",
+    "wrongProduct": "Yanlış ürün",
+    "qualityIssue": "Kalite sorunu",
+    "overcharged": "Fazla ücretlendirme",
+    "other": "Diğer"
+  },
+  "errors": {
+    "paymentNotFound": "Ödeme bulunamadı",
+    "alreadyCancelled": "Ödeme zaten iptal edilmiş",
+    "stornoTimeLimitExceeded": "İptal sadece 24 saat içinde yapılabilir",
+    "reasonRequired": "Lütfen bir sebep belirtin",
+    "reasonTooShort": "Lütfen en az 5 karakterlik bir açıklama girin",
+    "refundAmountInvalid": "Geçersiz iade tutarı",
+    "approvalRequired": "Yönetici onayı gerekli",
+    "stornoFailed": "İptal işlemi başarısız",
+    "stornoBlockedByRefunds": "Kısmi iade sonrası tam iptal yapılamaz",
+    "specialReceiptNotStornoable": "Özel fişler buradan iptal edilemez",
+    "validationFailed": "Geçersiz giriş"
+  },
+  "messages": {
+    "stornoSuccess": "İptal işlemi başarılı",
+    "refundSuccess": "İade işlemi başarılı"
+  },
+  "fields": {
+    "amount": "Tutar",
+    "detailsNote": "Ek açıklama (isteğe bağlı)"
+  },
+  "loadError": "Ödeme geçmişi yüklenemedi",
+  "print": {
+    "stornoFailed": "İptal fişi yazdırılamadı",
+    "refundFailed": "İade fişi yazdırılamadı"
+  }
+}

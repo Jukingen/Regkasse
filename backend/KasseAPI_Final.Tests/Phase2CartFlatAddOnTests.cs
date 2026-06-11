@@ -6,6 +6,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Pricing;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -68,7 +69,7 @@ public class Phase2CartFlatAddOnTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver);
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver, Mock.Of<IPosCartTableOpsService>());
         SetAuth(controller);
 
         var request = new AddItemToCartRequest { ProductId = productId, Quantity = 1, TableNumber = 1 };
@@ -134,7 +135,7 @@ public class Phase2CartFlatAddOnTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver);
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver, Mock.Of<IPosCartTableOpsService>());
 
         var request = new AddItemToCartRequest
         {
@@ -216,7 +217,7 @@ public class Phase2CartFlatAddOnTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver);
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver, Mock.Of<IPosCartTableOpsService>());
         SetAuth(controller);
 
         var request = new AddItemToCartRequest
@@ -300,7 +301,7 @@ public class Phase2CartFlatAddOnTests
 
         var validation = new NoOpProductModifierValidationService();
         var logger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<CartController>();
-        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver);
+        var controller = new CartController(context, logger, validation, new PricingRuleResolver(context, TenantTestDoubles.PrimaryTenantResolver), TenantTestDoubles.PrimaryTenantResolver, Mock.Of<IPosCartTableOpsService>());
 
         SetAuth(controller);
         var result = await controller.GetCart(cartId);

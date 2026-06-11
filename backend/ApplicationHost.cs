@@ -658,6 +658,10 @@ builder.Services.AddScoped<ICashRegisterListEnrichmentService, CashRegisterListE
 builder.Services.AddScoped<IPosCashRegisterReadinessService, PosCashRegisterReadinessService>();
 builder.Services.AddScoped<IPosShiftService, PosShiftService>();
 builder.Services.AddScoped<IPosDailyClosingService, PosDailyClosingService>();
+builder.Services.AddScoped<IPosCartTableOpsService, PosCartTableOpsService>();
+builder.Services.AddScoped<IPosSplitSessionService, PosSplitSessionService>();
+builder.Services.AddScoped<IPosCustomerQrLookupService, PosCustomerQrLookupService>();
+builder.Services.AddScoped<IPaymentHistoryService, PaymentHistoryService>();
 builder.Services.AddScoped<IDailyClosingReportService, DailyClosingReportService>();
 builder.Services.AddScoped<IAdminShiftOverviewService, AdminShiftOverviewService>();
 builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();

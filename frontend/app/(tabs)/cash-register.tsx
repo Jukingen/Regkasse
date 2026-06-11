@@ -9,8 +9,7 @@
 // =============================================================================
 
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView, StyleSheet, Text, TextStyle, View, ViewStyle, Pressable, Alert } from 'react-native';
@@ -20,17 +19,21 @@ import { CartDisplay } from '../../components/CartDisplay';
 import { CartSummary } from '../../components/CartSummary';
 import { CashRegisterHeader } from '../../components/CashRegisterHeader';
 import CategoryFilter from '../../components/CategoryFilter';
+import { BillSplitMergeSheet } from '../../components/BillSplitMergeSheet';
 import CustomerSelectionSheet from '../../components/CustomerSelectionSheet';
+import { FavoritesBar } from '../../components/FavoritesBar';
 import { LicenseModeIndicator } from '../../components/LicenseModeIndicator';
 import { ModifierSelectionBottomSheet } from '../../components/ModifierSelectionBottomSheet';
 import { ProductList } from '../../components/ProductList';
 import { TableSelector } from '../../components/TableSelector';
 import { ToastContainer } from '../../components/ToastNotification';
+import { consumeMergeSheetRequest } from '../../utils/pendingPosNav';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftTypography, Space8 } from '../../constants/SoftTheme';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { POS_ENSURE_READY_ON_ENTRY } from '../../constants/posFeatureFlags';
 import { useCart, getCartDisplayTotals } from '../../contexts/CartContext';
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
+import { useFavorites } from '../../hooks/useFavorites';
 import { useCashRegister } from '../../hooks/useCashRegister';
 import { useProductsUnified } from '../../hooks/useProductsUnified';
 import { useTableOrdersRecoveryOptimized } from '../../hooks/useTableOrdersRecoveryOptimized';
@@ -193,6 +196,8 @@ function POSSummaryBlock({
   saleCustomer,
   onOpenCustomerSheet,
   onClearCustomer,
+  onOpenSplitSheet,
+  onOpenMergeSheet,
   benefitSummaryCount,
   t,
 }: {
@@ -212,6 +217,8 @@ function POSSummaryBlock({
   saleCustomer?: { id: string; name: string; customerNumber?: string } | null;
   onOpenCustomerSheet?: () => void;
   onClearCustomer?: () => void;
+  onOpenSplitSheet?: () => void;
+  onOpenMergeSheet?: () => void;
   /** Assignment count from benefit-summary; show badge when > 0. */
   benefitSummaryCount?: number | null;
   t: (key: string, options?: Record<string, string | number>) => string;
@@ -252,6 +259,22 @@ function POSSummaryBlock({
           )}
         </View>
       )}
+      {(onOpenSplitSheet || onOpenMergeSheet) && summaryTotals.itemCount > 0 ? (
+        <View style={styles.tableOpsRow}>
+          {onOpenSplitSheet ? (
+            <Pressable style={styles.tableOpsBtn} onPress={onOpenSplitSheet}>
+              <Ionicons name="git-branch-outline" size={16} color={SoftColors.accent} />
+              <Text style={styles.tableOpsBtnText}>Teilen</Text>
+            </Pressable>
+          ) : null}
+          {onOpenMergeSheet ? (
+            <Pressable style={styles.tableOpsBtn} onPress={onOpenMergeSheet}>
+              <Ionicons name="git-merge-outline" size={16} color={SoftColors.accent} />
+              <Text style={styles.tableOpsBtnText}>Zusammenführen</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       <View style={styles.criticalStrip}>
         <Text style={styles.criticalStripText} numberOfLines={1} ellipsizeMode="tail">
           {t('checkout:posFlow.summaryStrip', {
@@ -359,6 +382,9 @@ export default function CashRegisterScreen() {
   const prevMbWarningLevelRef = useRef<string | null>(null);
   const [tableSelectionLoading, setTableSelectionLoading] = useState<number | null>(null);
   const [customerSheetVisible, setCustomerSheetVisible] = useState(false);
+  const [splitMergeVisible, setSplitMergeVisible] = useState(false);
+  const [splitMergeMode, setSplitMergeMode] = useState<'split' | 'merge'>('split');
+  const { favorites, removeFavorite, toggleFavorite, isFavorite } = useFavorites();
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   /** Add-on bottom sheet: product with add-on groups; on Fertig → addItemWithAddOns (base + add-on lines). */
   const [modifierSheetProduct, setModifierSheetProduct] = useState<Product | null>(null);
@@ -392,9 +418,20 @@ export default function CashRegisterScreen() {
     setIsPaymentModalVisible,
     saleCustomer,
     setSaleCustomer,
+    splitCartItems,
+    mergeTableCarts,
   } = useCart();
 
   const posReadiness = usePosRegisterReadiness();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (consumeMergeSheetRequest()) {
+        setSplitMergeMode('merge');
+        setSplitMergeVisible(true);
+      }
+    }, [])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -431,6 +468,10 @@ export default function CashRegisterScreen() {
 
   const handleMonatsbelegNavigate = useCallback(() => {
     router.push('/(tabs)/settings' as const);
+  }, [router]);
+
+  const handleOpenPaymentHistory = useCallback(() => {
+    router.push('/(screens)/PaymentHistoryScreen' as const);
   }, [router]);
 
   // Fetch benefit-summary when sale customer changes (skip guest); request guard to avoid race.
@@ -680,6 +721,16 @@ export default function CashRegisterScreen() {
         }}
       />
 
+      <BillSplitMergeSheet
+        visible={splitMergeVisible}
+        mode={splitMergeMode}
+        activeTableId={activeTableId}
+        cartItems={cart?.items ?? []}
+        onClose={() => setSplitMergeVisible(false)}
+        onSplitItems={(target, ids) => splitCartItems(activeTableId, target, ids)}
+        onMergeTables={(source, target) => mergeTableCarts(source, target)}
+      />
+
       {/* Add-on selection bottom sheet: base + add-ons as flat cart lines */}
       {modifierSheetProduct && (
         <ModifierSelectionBottomSheet
@@ -698,6 +749,7 @@ export default function CashRegisterScreen() {
         selectedTable={activeTableId}
         recoveryLoading={recoveryLoading}
         provisioningMessage={recoveryProvisioningMessage}
+        onOpenPaymentHistory={handleOpenPaymentHistory}
       />
 
       <MonatsbelegWarningBannerStrip
@@ -722,10 +774,38 @@ export default function CashRegisterScreen() {
         onAddProduct={handleAddProduct}
         onAddAddOn={handleAddAddOn}
         onOpenAddOnSheet={setModifierSheetProduct}
+        onLongPressProduct={(product) => {
+          const wasFavorite = isFavorite(product.id);
+          void toggleFavorite(product.id)
+            .then(() => {
+              addToast(
+                'info',
+                wasFavorite ? 'Aus Favoriten entfernt' : 'Zu Favoriten hinzugefügt',
+                2000
+              );
+            })
+            .catch(() => {
+              addToast('error', 'Favorit konnte nicht gespeichert werden', 3000);
+            });
+        }}
         showStockInfo={false}
         showTaxInfo
         ListHeaderComponent={
           <>
+            <FavoritesBar
+              favorites={favorites}
+              removeFavorite={removeFavorite}
+              onProductAdded={(name) =>
+                addToast(
+                  'success',
+                  t('checkout:posFlow.toast.productAddedToTable', {
+                    name,
+                    table: activeTableId,
+                  }),
+                  2000
+                )
+              }
+            />
             {/* Table Selector */}
             <TableSelector
               selectedTable={activeTableId}
@@ -765,6 +845,16 @@ export default function CashRegisterScreen() {
             saleCustomer={saleCustomer}
             onOpenCustomerSheet={() => setCustomerSheetVisible(true)}
             onClearCustomer={() => setSaleCustomer(null)}
+            onOpenSplitSheet={() => {
+              router.push({
+                pathname: '/(screens)/SplitScreen',
+                params: { tableNumber: String(activeTableId) },
+              });
+            }}
+            onOpenMergeSheet={() => {
+              setSplitMergeMode('merge');
+              setSplitMergeVisible(true);
+            }}
             benefitSummaryCount={benefitSummaryCount}
             t={t}
           />
@@ -850,6 +940,28 @@ const styles = StyleSheet.create({
     color: SoftColors.textPrimary,
   },
 
+  tableOpsRow: {
+    flexDirection: 'row',
+    gap: SoftSpacing.sm,
+    marginBottom: SoftSpacing.xs,
+    paddingHorizontal: SoftSpacing.xs,
+  },
+  tableOpsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: SoftSpacing.xs,
+    paddingHorizontal: SoftSpacing.sm,
+    borderRadius: SoftRadius.md,
+    borderWidth: 1,
+    borderColor: SoftColors.border,
+    backgroundColor: SoftColors.bgCard,
+  },
+  tableOpsBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: SoftColors.accent,
+  },
   categorySection: {
     backgroundColor: SoftColors.bgCard,
     paddingVertical: SoftSpacing.md,

@@ -99,6 +99,39 @@ class CustomerService {
    * Get customer by customer number (e.g. for employee identification).
    * Returns null if not found or inactive (backend returns 404).
    */
+  /** POS QR scan: customer:, RK:C:, RK:CU:, regkasse://customer/, number, or email. */
+  async lookupByQrPayload(qrPayload: string): Promise<Customer | null> {
+    const trimmed = String(qrPayload ?? '').trim();
+    if (!trimmed) return null;
+    try {
+      const response = await apiClient.get<unknown>(
+        `/pos/customers/by-qr?qrData=${encodeURIComponent(trimmed)}`
+      );
+      const raw = (response as { data?: Record<string, unknown> })?.data ?? response;
+      if (!raw || typeof raw !== 'object') return null;
+      const row = raw as Record<string, unknown>;
+      return {
+        id: String(row.id ?? row.Id ?? ''),
+        name: String(row.name ?? row.Name ?? ''),
+        customerNumber: String(row.customerNumber ?? row.CustomerNumber ?? ''),
+        email: String(row.email ?? row.Email ?? ''),
+        phone: String(row.phone ?? row.Phone ?? ''),
+        loyaltyPoints: Number(row.loyaltyPoints ?? row.LoyaltyPoints ?? 0),
+        address: '',
+        taxNumber: '',
+        category: 'Regular',
+        discountPercentage: 0,
+        totalSpent: 0,
+        visitCount: 0,
+        isVip: false,
+      };
+    } catch (e: unknown) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 404) return null;
+      throw e;
+    }
+  }
+
   async getByCustomerNumber(customerNumber: string): Promise<Customer | null> {
     const trimmed = String(customerNumber ?? '').trim();
     if (!trimmed) return null;

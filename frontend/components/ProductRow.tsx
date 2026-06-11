@@ -33,6 +33,7 @@ interface ProductRowProps {
   onAddAddOn?: OnAddAddOn;
   /** When product has add-on groups, open bottom sheet (base + add-ons as flat cart). */
   onOpenAddOnSheet?: (product: Product) => void;
+  onLongPressProduct?: (product: Product) => void;
   getCategoryEmoji?: (category?: string) => string;
 }
 
@@ -63,6 +64,7 @@ function ProductRowInner({
   onAdd,
   onAddAddOn,
   onOpenAddOnSheet,
+  onLongPressProduct,
   getCategoryEmoji = () => '📦',
 }: ProductRowProps) {
   const displayLocale = useProductDisplayLocale();
@@ -100,6 +102,7 @@ function ProductRowInner({
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
       onPress={handleRowPress}
+      onLongPress={onLongPressProduct ? () => onLongPressProduct(product) : undefined}
     >
       <View style={styles.mainRow}>
         <View style={styles.thumbnail}>

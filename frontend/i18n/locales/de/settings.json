@@ -16,6 +16,11 @@
     "description": "Ausstehende Zahlungen anzeigen, erneut senden oder alle synchronisieren.",
     "open": "Warteschlange öffnen"
   },
+  "paymentHistory": {
+    "title": "Zahlungshistorie",
+    "description": "Letzte 24 Stunden: Zahlungen anzeigen, stornieren oder erstatten.",
+    "open": "Zahlungshistorie öffnen"
+  },
   "appUpdate": {
     "title": "App-Aktualisierung",
     "description": "Prüft, ob eine neuere Version der Regkasse POS App verfügbar ist, lädt die APK herunter und öffnet die Installation.",

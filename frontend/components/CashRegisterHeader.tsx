@@ -1,6 +1,6 @@
 // Compact POS header: title + sticky table/recovery bar (no large hero)
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SoftColors, SoftSpacing, SoftRadius, SoftTypography, SoftShadows } from '../constants/SoftTheme';
 import { useTranslation } from 'react-i18next';
 
@@ -9,14 +9,16 @@ interface CashRegisterHeaderProps {
   recoveryLoading: boolean;
   /** 503/TABLE_ORDERS_MISSING durumunda gösterilecek bilgi mesajı */
   provisioningMessage?: string | null;
+  onOpenPaymentHistory?: () => void;
 }
 
 export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
   selectedTable,
   recoveryLoading,
   provisioningMessage,
+  onOpenPaymentHistory,
 }) => {
-  const { t } = useTranslation(['checkout', 'common']);
+  const { t } = useTranslation(['checkout', 'common', 'paymentHistory']);
 
   return (
     <View style={styles.wrapper} accessibilityRole="header" accessibilityLabel={t('checkout:title')}>
@@ -38,6 +40,20 @@ export const CashRegisterHeader: React.FC<CashRegisterHeaderProps> = ({
             <Text style={styles.provisioningText} accessibilityElementsHidden>ℹ️</Text>
           </View>
         )}
+        {onOpenPaymentHistory ? (
+          <Pressable
+            onPress={onOpenPaymentHistory}
+            style={({ pressed }) => [styles.historyButton, pressed && styles.historyButtonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('paymentHistory:quickAccess')}
+            hitSlop={6}
+          >
+            <Text style={styles.historyButtonEmoji} accessibilityElementsHidden>
+              💰
+            </Text>
+            <Text style={styles.historyButtonText}>{t('paymentHistory:quickAccess')}</Text>
+          </Pressable>
+        ) : null}
       </View>
     </View>
   );
@@ -100,5 +116,27 @@ const styles = StyleSheet.create({
   provisioningText: {
     ...SoftTypography.caption,
     color: SoftColors.textPrimary,
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    paddingHorizontal: SoftSpacing.sm,
+    paddingVertical: SoftSpacing.xs,
+    borderRadius: SoftRadius.full,
+    minHeight: 28,
+  },
+  historyButtonPressed: {
+    opacity: 0.85,
+  },
+  historyButtonEmoji: {
+    fontSize: 14,
+  },
+  historyButtonText: {
+    ...SoftTypography.label,
+    fontSize: 12,
+    fontWeight: '700',
+    color: SoftColors.textInverse,
   },
 });

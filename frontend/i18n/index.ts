@@ -15,6 +15,7 @@ import enInvoices from './locales/en/invoices.json';
 import enLicense from './locales/en/license.json';
 import enOrders from './locales/en/orders.json';
 import enPayment from './locales/en/payment.json';
+import enPaymentHistory from './locales/en/paymentHistory.json';
 import enProducts from './locales/en/products.json';
 import enReports from './locales/en/reports.json';
 import enSettings from './locales/en/settings.json';
@@ -31,6 +32,7 @@ import deInvoices from './locales/de/invoices.json';
 import deLicense from './locales/de/license.json';
 import deOrders from './locales/de/orders.json';
 import dePayment from './locales/de/payment.json';
+import dePaymentHistory from './locales/de/paymentHistory.json';
 import deProducts from './locales/de/products.json';
 import deReports from './locales/de/reports.json';
 import deSettings from './locales/de/settings.json';
@@ -47,6 +49,7 @@ import trInvoices from './locales/tr/invoices.json';
 import trLicense from './locales/tr/license.json';
 import trOrders from './locales/tr/orders.json';
 import trPayment from './locales/tr/payment.json';
+import trPaymentHistory from './locales/tr/paymentHistory.json';
 import trProducts from './locales/tr/products.json';
 import trReports from './locales/tr/reports.json';
 import trSettings from './locales/tr/settings.json';
@@ -80,6 +83,7 @@ export const FRONTEND_REGISTERED_NAMESPACES = [
   'navigation',
   'orders',
   'payment',
+  'paymentHistory',
   'products',
   'reports',
   'settings',
@@ -99,6 +103,7 @@ export const resources = {
     navigation: enNavigation,
     orders: enOrders,
     payment: enPayment,
+    paymentHistory: enPaymentHistory,
     products: enProducts,
     reports: enReports,
     settings: enSettings,
@@ -116,6 +121,7 @@ export const resources = {
     navigation: deNavigation,
     orders: deOrders,
     payment: dePayment,
+    paymentHistory: dePaymentHistory,
     products: deProducts,
     reports: deReports,
     settings: deSettings,
@@ -133,6 +139,7 @@ export const resources = {
     navigation: trNavigation,
     orders: trOrders,
     payment: trPayment,
+    paymentHistory: trPaymentHistory,
     products: trProducts,
     reports: trReports,
     settings: trSettings,

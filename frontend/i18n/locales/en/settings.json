@@ -16,6 +16,11 @@
     "description": "View pending payments, retry them, or sync all.",
     "open": "Open Queue"
   },
+  "paymentHistory": {
+    "title": "Payment history",
+    "description": "Last 24 hours: view payments, cancel receipts, or issue refunds.",
+    "open": "Open payment history"
+  },
   "appUpdate": {
     "title": "App update",
     "description": "Checks whether a newer version of the Regkasse POS app is available, downloads the APK and opens the system installer.",

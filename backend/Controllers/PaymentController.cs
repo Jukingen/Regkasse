@@ -14,6 +14,7 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Controllers.Base;
 using KasseAPI_Final.Tse;
 using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Security;
 
 namespace KasseAPI_Final.Controllers
 {
@@ -31,6 +32,7 @@ namespace KasseAPI_Final.Controllers
     {
         private readonly IPaymentService _paymentService;
         private readonly IPaymentMethodCatalogService _paymentMethodCatalog;
+        private readonly IPaymentHistoryService _paymentHistoryService;
         private readonly SignaturePipeline _signaturePipeline;
         private readonly IAuthorizationService _authorizationService;
 
@@ -39,6 +41,7 @@ namespace KasseAPI_Final.Controllers
         public PaymentController(
             IPaymentService paymentService,
             IPaymentMethodCatalogService paymentMethodCatalog,
+            IPaymentHistoryService paymentHistoryService,
             IQrImageService qrImageService,
             SignaturePipeline signaturePipeline,
             IAuthorizationService authorizationService,
@@ -47,6 +50,7 @@ namespace KasseAPI_Final.Controllers
         {
             _paymentService = paymentService;
             _paymentMethodCatalog = paymentMethodCatalog;
+            _paymentHistoryService = paymentHistoryService;
             _qrImageService = qrImageService;
             _signaturePipeline = signaturePipeline;
             _authorizationService = authorizationService;
@@ -73,6 +77,53 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 return HandleException(ex, "Get Payment Methods");
+            }
+        }
+
+        /// <summary>
+        /// Last 24 hours of payments for the POS cash register with backend-controlled storno/refund actions.
+        /// </summary>
+        [HttpGet("history")]
+        [ProducesResponseType(typeof(PaymentHistoryResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetPaymentHistory(
+            [FromQuery] Guid? cashRegisterId,
+            [FromQuery] int hours = 24,
+            [FromQuery] string language = "de",
+            [FromQuery] int limit = 20,
+            [FromQuery] int offset = 0,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                if (string.IsNullOrEmpty(userId))
+                    return ErrorResponse("User not authenticated", 401);
+
+                var actor = new PaymentHistoryActorContext(
+                    userId,
+                    User.GetActorRole(),
+                    User.HasPermissionClaim(AppPermissions.PaymentCancel),
+                    User.HasPermissionClaim(AppPermissions.RefundCreate));
+
+                var (response, errorCode, errorMessage) = await _paymentHistoryService.GetRecentPaymentsAsync(
+                    actor,
+                    cashRegisterId,
+                    hours,
+                    language,
+                    limit,
+                    offset,
+                    cancellationToken);
+
+                if (response == null)
+                    return ErrorResponse(errorMessage ?? "Payment history unavailable", 400, new { code = errorCode });
+
+                return SuccessResponse(response, "Payment history retrieved successfully");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "Get Payment History");
             }
         }
 

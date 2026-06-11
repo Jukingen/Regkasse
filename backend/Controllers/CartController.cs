@@ -29,19 +29,22 @@ namespace KasseAPI_Final.Controllers
         private readonly IProductModifierValidationService _modifierValidation;
         private readonly IPricingRuleResolver _pricingRuleResolver;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly IPosCartTableOpsService _cartTableOps;
 
         public CartController(
             AppDbContext context,
             ILogger<CartController> logger,
             IProductModifierValidationService modifierValidation,
             IPricingRuleResolver pricingRuleResolver,
-            ISettingsTenantResolver settingsTenantResolver)
+            ISettingsTenantResolver settingsTenantResolver,
+            IPosCartTableOpsService cartTableOps)
         {
             _context = context;
             _logger = logger;
             _modifierValidation = modifierValidation;
             _pricingRuleResolver = pricingRuleResolver;
             _settingsTenantResolver = settingsTenantResolver;
+            _cartTableOps = cartTableOps;
         }
 
         // GET: api/cart/current - Belirli masadaki aktif sepeti getir
@@ -103,6 +106,7 @@ namespace KasseAPI_Final.Controllers
                     // Yeni oluşturulan sepeti döndür
                     var emptyCartResponse = new CartResponse
                     {
+                        Id = newCart.Id,
                         CartId = newCart.CartId,
                         TableNumber = newCart.TableNumber,
                         WaiterName = newCart.WaiterName,
@@ -679,6 +683,60 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error clearing cart items");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        /// <summary>Move selected cart lines from one table to another (bill split by items).</summary>
+        [HttpPost("split-items")]
+        public async Task<IActionResult> SplitCartItems([FromBody] SplitCartItemsRequest request)
+        {
+            var userId = User.GetActorUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var cart = await _cartTableOps.SplitItemsAsync(userId, request);
+                return Ok(new { message = "Cart items split successfully", cart });
+            }
+            catch (PosCartTableOpsException ex)
+            {
+                return StatusCode(ex.StatusCode, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error splitting cart items");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        /// <summary>Merge all items from source table cart into target table cart.</summary>
+        [HttpPost("merge-tables")]
+        public async Task<IActionResult> MergeTableCarts([FromBody] MergeTableCartsRequest request)
+        {
+            var userId = User.GetActorUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var cart = await _cartTableOps.MergeTablesAsync(userId, request);
+                return Ok(new { message = "Tables merged successfully", cart });
+            }
+            catch (PosCartTableOpsException ex)
+            {
+                return StatusCode(ex.StatusCode, new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error merging table carts");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }
@@ -1555,6 +1613,7 @@ namespace KasseAPI_Final.Controllers
 
             return new CartResponse
             {
+                Id = cart.Id,
                 CartId = cart.CartId,
                 TableNumber = cart.TableNumber,
                 WaiterName = cart.WaiterName,
@@ -1628,6 +1687,8 @@ namespace KasseAPI_Final.Controllers
     /// <summary>API contract: all line prices are GROSS (inkl. MwSt.).</summary>
     public class CartResponse
     {
+        /// <summary>Cart row uuid (used by split session start).</summary>
+        public Guid Id { get; set; }
         public string CartId { get; set; } = string.Empty;
         public int? TableNumber { get; set; }
         /// <summary>Display-only label (e.g. waiter). Not used for authorization; cart owner is <see cref="ActorUserId"/>.</summary>

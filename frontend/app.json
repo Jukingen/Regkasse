@@ -78,6 +78,12 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Kamera wird für Kunden-QR und Gutschein-Scan benötigt."
+        }
       ]
     ],
     "experiments": {

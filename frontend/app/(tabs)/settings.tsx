@@ -41,6 +41,9 @@ export default function SettingsScreen() {
     offlineQueueTitle: t('settings:offlineQueue.title'),
     offlineQueueDescription: t('settings:offlineQueue.description'),
     offlineQueueOpen: t('settings:offlineQueue.open'),
+    paymentHistoryTitle: t('settings:paymentHistory.title'),
+    paymentHistoryDescription: t('settings:paymentHistory.description'),
+    paymentHistoryOpen: t('settings:paymentHistory.open'),
     licenseHeading: t('license:settingsSectionTitle'),
     licenseTransferHeading: t('license:transferSectionTitle'),
   }), [t]);
@@ -114,6 +117,18 @@ export default function SettingsScreen() {
           }}
         >
           <Text style={styles.queueLinkText}>Zeitstatus aktualisieren</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{translations.paymentHistoryTitle}</Text>
+        <Text style={styles.description}>
+          {translations.paymentHistoryDescription}
+        </Text>
+        <TouchableOpacity
+          style={styles.queueLinkButton}
+          onPress={() => router.push('/(screens)/PaymentHistoryScreen' as any)}
+        >
+          <Text style={styles.queueLinkText}>{translations.paymentHistoryOpen}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.section}>

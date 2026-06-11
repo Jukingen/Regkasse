@@ -28,6 +28,7 @@ import deSuperadmin from './locales/de/superadmin.json';
 import deDashboard from './locales/de/dashboard.json';
 import deCashRegisters from './locales/de/cashRegisters.json';
 import deShifts from './locales/de/shifts.json';
+import dePaymentHistory from './locales/de/paymentHistory.json';
 import deActivityNotifications from './locales/de/activityNotifications.json';
 import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import enAdminShell from './locales/en/admin-shell.json';
@@ -60,6 +61,7 @@ import enSuperadmin from './locales/en/superadmin.json';
 import enDashboard from './locales/en/dashboard.json';
 import enCashRegisters from './locales/en/cashRegisters.json';
 import enShifts from './locales/en/shifts.json';
+import enPaymentHistory from './locales/en/paymentHistory.json';
 import enActivityNotifications from './locales/en/activityNotifications.json';
 import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import trAdminShell from './locales/tr/admin-shell.json';
@@ -92,6 +94,7 @@ import trSuperadmin from './locales/tr/superadmin.json';
 import trDashboard from './locales/tr/dashboard.json';
 import trCashRegisters from './locales/tr/cashRegisters.json';
 import trShifts from './locales/tr/shifts.json';
+import trPaymentHistory from './locales/tr/paymentHistory.json';
 import trActivityNotifications from './locales/tr/activityNotifications.json';
 import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 
@@ -138,6 +141,7 @@ const catalogs = {
     dashboard: deDashboard,
     cashRegisters: deCashRegisters,
     shifts: deShifts,
+    paymentHistory: dePaymentHistory,
     activityNotifications: deActivityNotifications,
     suspiciousAlerts: deSuspiciousAlerts,
   },
@@ -172,6 +176,7 @@ const catalogs = {
     dashboard: enDashboard,
     cashRegisters: enCashRegisters,
     shifts: enShifts,
+    paymentHistory: enPaymentHistory,
     activityNotifications: enActivityNotifications,
     suspiciousAlerts: enSuspiciousAlerts,
   },
@@ -206,6 +211,7 @@ const catalogs = {
     dashboard: trDashboard,
     cashRegisters: trCashRegisters,
     shifts: trShifts,
+    paymentHistory: trPaymentHistory,
     activityNotifications: trActivityNotifications,
     suspiciousAlerts: trSuspiciousAlerts,
   },

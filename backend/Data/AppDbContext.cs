@@ -65,6 +65,9 @@ namespace KasseAPI_Final.Data
         public DbSet<CashRegister> CashRegisters { get; set; }
         public DbSet<CashRegisterTransaction> CashRegisterTransactions { get; set; }
         public DbSet<CashierShift> CashierShifts { get; set; }
+        public DbSet<CashierFavorite> CashierFavorites { get; set; }
+        public DbSet<SplitSession> SplitSessions { get; set; }
+        public DbSet<SplitItem> SplitItems { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<PaymentDetails> PaymentDetails { get; set; }
         public DbSet<PaymentReversalApproval> PaymentReversalApprovals { get; set; }
@@ -642,6 +645,67 @@ namespace KasseAPI_Final.Data
                     .OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => new { e.TenantId, e.CashierId, e.Status });
                 entity.HasIndex(e => new { e.CashRegisterId, e.StartedAt });
+            });
+
+            builder.Entity<CashierFavorite>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.CashierId).HasColumnName("cashier_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.ProductId).HasColumnName("product_id").IsRequired();
+                entity.Property(e => e.SortOrder).HasColumnName("sort_order").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(e => new { e.TenantId, e.CashierId, e.ProductId }).IsUnique();
+                entity.HasIndex(e => new { e.TenantId, e.CashierId, e.SortOrder });
+            });
+
+            builder.Entity<SplitSession>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.OriginalCartId).HasColumnName("original_cart_id").IsRequired();
+                entity.Property(e => e.CashierId).HasColumnName("cashier_id").IsRequired().HasMaxLength(450);
+                entity.Property(e => e.IsCompleted).HasColumnName("is_completed").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.OriginalCart)
+                    .WithMany()
+                    .HasForeignKey(e => e.OriginalCartId)
+                    .HasPrincipalKey(c => c.Id)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => new { e.TenantId, e.OriginalCartId, e.IsCompleted });
+                entity.HasIndex(e => new { e.TenantId, e.CashierId, e.CreatedAt });
+            });
+
+            builder.Entity<SplitItem>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.SplitSessionId).HasColumnName("split_session_id").IsRequired();
+                entity.Property(e => e.ProductId).HasColumnName("product_id").IsRequired();
+                entity.Property(e => e.SourceCartItemId).HasColumnName("source_cart_item_id");
+                entity.Property(e => e.Quantity).HasColumnName("quantity").IsRequired();
+                entity.Property(e => e.Price).HasColumnName("price").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CustomerName).HasColumnName("customer_name").IsRequired().HasMaxLength(200);
+                entity.Property(e => e.SeatNumber).HasColumnName("seat_number").IsRequired();
+                entity.HasOne(e => e.SplitSession)
+                    .WithMany(s => s.SplitItems)
+                    .HasForeignKey(e => e.SplitSessionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.Product)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.SplitSessionId);
+                entity.HasIndex(e => new { e.SplitSessionId, e.SeatNumber });
             });
 
             // Category configuration
@@ -1803,6 +1867,7 @@ namespace KasseAPI_Final.Data
             builder.Entity<Cart>(entity =>
             {
                 entity.HasKey(e => e.CartId);
+                entity.HasAlternateKey(e => e.Id);
                 entity.Property(e => e.CartId).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.TableNumber);
                 entity.Property(e => e.WaiterName).HasMaxLength(100);
