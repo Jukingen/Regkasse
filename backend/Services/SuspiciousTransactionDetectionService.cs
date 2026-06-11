@@ -3,6 +3,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -52,22 +53,25 @@ public sealed class SuspiciousTransactionDetectionHostedService : BackgroundServ
     private async Task DetectSuspiciousTransactionsAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-        await using var db = await factory.CreateDbContextAsync(cancellationToken);
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var tenantIds = await db.Tenants
             .AsNoTracking()
             .Where(t => t.DeletedAtUtc == null && t.Status == TenantStatuses.Active)
             .Select(t => t.Id)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         foreach (var tenantId in tenantIds)
         {
             using var tenantScope = _scopeFactory.CreateScope();
+            var tenantAccessor = tenantScope.ServiceProvider.GetRequiredService<ICurrentTenantAccessor>();
+            tenantAccessor.TenantId = tenantId;
+
             var detector = tenantScope.ServiceProvider.GetRequiredService<SuspiciousTransactionDetector>();
             try
             {
-                await detector.DetectForTenantAsync(tenantId, cancellationToken);
+                await detector.DetectForTenantAsync(tenantId, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

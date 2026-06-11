@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, Skeleton } from 'antd';
 import { useLazyWhenVisible } from '@/components/ui/LazyWhenVisible';
 import { MonatsbelegWidget } from '@/features/dashboard/components/MonatsbelegWidget';
+import { RksvReminderWidget } from '@/features/rksv/components/RksvReminderWidget';
 
 type DashboardMonatsbelegSectionProps = {
     enabled: boolean;
@@ -22,7 +23,10 @@ export function DashboardMonatsbelegSection({ enabled }: DashboardMonatsbelegSec
                     <Skeleton active paragraph={{ rows: 4 }} />
                 </Card>
             ) : (
-                <MonatsbelegWidget enabled={enabled && visible} />
+                <>
+                    <RksvReminderWidget />
+                    <MonatsbelegWidget enabled={enabled && visible} />
+                </>
             )}
         </div>
     );

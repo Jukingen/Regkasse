@@ -1,0 +1,31 @@
+/** Vienna (Europe/Vienna) calendar helpers for RKSV Monatsbeleg compliance. */
+
+export function getViennaCalendarYear(now: Date = new Date()): number {
+    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric' });
+    const y = fmt.formatToParts(now).find((p) => p.type === 'year')?.value;
+    return y ? Number(y) : now.getUTCFullYear();
+}
+
+export function getViennaCalendarYearMonth(now: Date = new Date()): { year: number; month: number } {
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Vienna',
+        year: 'numeric',
+        month: '2-digit',
+    });
+    const parts = fmt.formatToParts(now);
+    const year = Number(parts.find((p) => p.type === 'year')?.value) || now.getUTCFullYear();
+    const month = Number(parts.find((p) => p.type === 'month')?.value) || 1;
+    return { year, month };
+}
+
+export function formatViennaYearMonth(year: number, month: number): string {
+    return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+/** Positive = past Vienna month, 0 = current, negative = future. */
+export function getMonthDifference(year: number, month: number, now: Date = new Date()): number {
+    const { year: viennaYear, month: viennaMonth } = getViennaCalendarYearMonth(now);
+    const currentAnchor = viennaYear * 12 + (viennaMonth - 1);
+    const targetAnchor = year * 12 + (month - 1);
+    return currentAnchor - targetAnchor;
+}

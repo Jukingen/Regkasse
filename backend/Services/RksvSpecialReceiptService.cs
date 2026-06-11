@@ -261,6 +261,28 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         return r ?? TruncateNotes($"Early: {e}");
     }
 
+    private static void ValidateMonatsbelegTargetMonth(int requestYear, int requestMonth, bool isCurrentMonth, bool forcePastMonth)
+    {
+        var (viennaYear, viennaMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        if (isCurrentMonth)
+            return;
+
+        var targetAnchor = new DateTime(requestYear, requestMonth, 1);
+        var currentAnchor = new DateTime(viennaYear, viennaMonth, 1);
+        if (targetAnchor > currentAnchor)
+        {
+            throw new InvalidOperationException(
+                $"Monatsbeleg cannot be created for a future Vienna calendar month ({requestYear}-{requestMonth:00}).");
+        }
+
+        if (!forcePastMonth)
+        {
+            throw new RksvOperationGuardException(
+                RksvGuardErrorCodes.MonatsbelegPastMonthRequiresForce,
+                $"Monatsbeleg can only be created for the current Vienna calendar month ({viennaYear}-{viennaMonth:00}), not {requestYear}-{requestMonth:00}.");
+        }
+    }
+
     private static void EnsureRegisterNotDecommissioned(CashRegister register)
     {
         if (register.Status == RegisterStatus.Decommissioned)
@@ -556,6 +578,7 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
     public async Task<CreateMonatsbelegResponse> CreateMonatsbelegAsync(
         CreateMonatsbelegRequest request,
         string actorUserId,
+        bool forcePastMonth = false,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -563,22 +586,19 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             throw new ArgumentException("Actor user id is required.", nameof(actorUserId));
 
         var (viennaYear, viennaMonth) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
-        if (request.Year != viennaYear || request.Month != viennaMonth)
-        {
-            throw new InvalidOperationException(
-                $"Monatsbeleg can only be created for the current Vienna calendar month ({viennaYear}-{viennaMonth:00}), not {request.Year}-{request.Month:00}.");
-        }
+        var isCurrentMonth = request.Year == viennaYear && request.Month == viennaMonth;
+        ValidateMonatsbelegTargetMonth(request.Year, request.Month, isCurrentMonth, forcePastMonth);
 
         var tenantIdForDecember = await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
 
         // December: Jahresbeleg flow vs separate Monatsbeleg row is controlled by tenant company settings.
-        if (viennaMonth == 12 && await GetDecemberMonatsbelegCountsAsJahresbelegAsync(tenantIdForDecember, cancellationToken).ConfigureAwait(false))
+        if (request.Month == 12 && await GetDecemberMonatsbelegCountsAsJahresbelegAsync(tenantIdForDecember, cancellationToken).ConfigureAwait(false))
         {
             var jResp = await CreateJahresbelegAsync(
                     new CreateJahresbelegRequest
                     {
                         CashRegisterId = request.CashRegisterId,
-                        Year = viennaYear,
+                        Year = request.Year,
                         Reason = request.Reason,
                         EarlyReason = null,
                     },
@@ -740,9 +760,18 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
             var qr = dto?.Signature?.QrData ?? string.Empty;
 
-            _logger.LogInformation(
-                "Monatsbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Period={Y}-{M}",
-                paymentId, receiptNumber, register.RegisterNumber, request.Year, request.Month);
+            if (forcePastMonth && !isCurrentMonth)
+            {
+                _logger.LogWarning(
+                    "Monatsbeleg created with forcePastMonth override PaymentId={PaymentId} Register={Register} Period={Y}-{M}",
+                    paymentId, register.RegisterNumber, request.Year, request.Month);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Monatsbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Period={Y}-{M}",
+                    paymentId, receiptNumber, register.RegisterNumber, request.Year, request.Month);
+            }
 
             return new CreateMonatsbelegResponse
             {

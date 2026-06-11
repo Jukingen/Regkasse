@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
@@ -12,7 +13,7 @@ namespace KasseAPI_Final.Controllers;
 
 [ApiController]
 [Route("api/pos/favorites")]
-[Authorize(Roles = $"{Roles.Cashier},{Roles.Manager}")]
+[Authorize]
 public class PosFavoritesController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -32,6 +33,10 @@ public class PosFavoritesController : ControllerBase
         var userId = User.GetActorUserId();
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
+
+        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+        if (userRole != Roles.Cashier && userRole != Roles.Manager)
+            return Ok(new List<CashierFavoriteDto>());
 
         var tenantId = _tenantAccessor.TenantId;
         if (tenantId is null)
@@ -56,6 +61,7 @@ public class PosFavoritesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = $"{Roles.Cashier},{Roles.Manager}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -112,6 +118,7 @@ public class PosFavoritesController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = $"{Roles.Cashier},{Roles.Manager}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveFavorite(Guid id, CancellationToken cancellationToken)
@@ -138,6 +145,7 @@ public class PosFavoritesController : ControllerBase
     }
 
     [HttpPut("reorder")]
+    [Authorize(Roles = $"{Roles.Cashier},{Roles.Manager}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ReorderFavorites(
         [FromBody] ReorderFavoritesRequest request,

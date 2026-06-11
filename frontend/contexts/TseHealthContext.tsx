@@ -5,16 +5,17 @@ import React, {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import { Alert } from 'react-native';
 
+import { POS_TSE_HEALTH_POLL_MS } from '../constants/posPollingIntervals';
+import { useConditionalPolling } from '../hooks/useConditionalPolling';
 import { fetchTseHealth, type TseHealthApiResponse, type TseOperationalHealthStatus } from '../services/api/tseHealthApi';
-import { getUserSettings } from '../services/api/userSettingsService';
 import { isDevSimulateTseUnavailable } from '../constants/devSimulatePosOffline';
+import { usePosRegisterReadiness } from './PosRegisterReadinessContext';
 
 export type TseBannerVariant = 'online' | 'slow' | 'offline';
 
@@ -34,7 +35,6 @@ export interface TseHealthContextValue {
 
 const TseHealthContext = createContext<TseHealthContextValue | null>(null);
 
-const POLL_MS = 10_000;
 const SLOW_MS = 3000;
 
 function normalizeBannerVariant(
@@ -49,29 +49,21 @@ function normalizeBannerVariant(
 }
 
 export function TseHealthProvider({ children }: { children: React.ReactNode }) {
+  const posReadiness = usePosRegisterReadiness();
   const [payload, setPayload] = useState<TseHealthApiResponse | null>(null);
   const [lastLatencyMs, setLastLatencyMs] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const prevQueueRef = useRef<number | null>(null);
 
-  const cashRegisterIdRef = useRef<string | null>(null);
-
-  const loadRegisterId = useCallback(async () => {
-    try {
-      const s = await getUserSettings();
-      const id = s.cashRegisterId?.trim();
-      cashRegisterIdRef.current =
-        id && id !== '00000000-0000-0000-0000-000000000000' ? id : null;
-    } catch {
-      cashRegisterIdRef.current = null;
-    }
-  }, []);
+  const cashRegisterId = useMemo(() => {
+    const id = posReadiness.data?.effectiveRegisterId?.trim();
+    return id && id !== '00000000-0000-0000-0000-000000000000' ? id : null;
+  }, [posReadiness.data?.effectiveRegisterId]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      await loadRegisterId();
-      const { body, latencyMs } = await fetchTseHealth(cashRegisterIdRef.current);
+      const { body, latencyMs } = await fetchTseHealth(cashRegisterId);
       setPayload(body);
       setLastLatencyMs(latencyMs);
 
@@ -98,13 +90,11 @@ export function TseHealthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [loadRegisterId]);
+  }, [cashRegisterId]);
 
-  useEffect(() => {
+  useConditionalPolling(() => {
     void refresh();
-    const id = setInterval(() => void refresh(), POLL_MS);
-    return () => clearInterval(id);
-  }, [refresh]);
+  }, POS_TSE_HEALTH_POLL_MS);
 
   const value = useMemo<TseHealthContextValue>(() => {
     const rawStatus = (payload?.status ?? 'Degraded') as TseOperationalHealthStatus | string;

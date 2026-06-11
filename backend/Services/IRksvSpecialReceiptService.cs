@@ -20,9 +20,11 @@ public interface IRksvSpecialReceiptService
         CancellationToken cancellationToken = default);
 
     /// <summary>RKSV Monatsbeleg: one active zero signed receipt per cash register per Vienna calendar month.</summary>
+    /// <param name="forcePastMonth">When true, allows creation for a past Vienna calendar month (admin override).</param>
     Task<CreateMonatsbelegResponse> CreateMonatsbelegAsync(
         CreateMonatsbelegRequest request,
         string actorUserId,
+        bool forcePastMonth = false,
         CancellationToken cancellationToken = default);
 
     /// <summary>

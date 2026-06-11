@@ -63,7 +63,7 @@ public sealed class LicenseController : ControllerBase
         // Same mapping in all environments so POS/admin anonymous status matches activated license
         // Optional synthetic licensing is controlled by <see cref="IDevelopmentModeService.ShouldBypassLicense"/> (Development host only).
         var s = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
-        var dto = MapPublicStatus(s);
+        var dto = LicensePublicStatusMapper.MapDeploymentStatus(s);
 
         var resolvedTenantId = ResolveMandantTenantId(tenantId);
         if (resolvedTenantId is Guid effectiveTenantId)
@@ -71,7 +71,7 @@ public sealed class LicenseController : ControllerBase
             var mandant = await _licenseService
                 .GetLicenseStatusAsync(effectiveTenantId, cancellationToken)
                 .ConfigureAwait(false);
-            dto = ApplyMandantOverlay(dto, mandant);
+            dto = LicensePublicStatusMapper.ApplyMandantOverlay(dto, mandant);
         }
 
         return Ok(dto);
@@ -269,58 +269,4 @@ public sealed class LicenseController : ControllerBase
         return fromAccessor != Guid.Empty ? fromAccessor : null;
     }
 
-    private static LicensePublicStatusDto ApplyMandantOverlay(
-        LicensePublicStatusDto deployment,
-        LicenseStatusInfo mandant)
-    {
-        return new LicensePublicStatusDto
-        {
-            LicenseType = deployment.LicenseType,
-            ValidUntil = mandant.ValidUntil ?? deployment.ValidUntil,
-            DaysRemaining = mandant.DaysRemaining,
-            Features = deployment.Features,
-            IsExpired = !mandant.CanAccess && mandant.RequiresRenewal,
-            IsValid = mandant.CanAccess,
-            Mode = deployment.Mode,
-            IsDevelopmentBypass = deployment.IsDevelopmentBypass,
-            CanAccess = mandant.CanAccess,
-            CanTransact = mandant.CanTransact,
-            StatusMessage = mandant.StatusMessage,
-            IsInGracePeriod = mandant.IsInGracePeriod,
-            GracePeriodRemaining = mandant.GracePeriodRemaining,
-            RequiresRenewal = mandant.RequiresRenewal,
-        };
-    }
-
-    private static LicensePublicStatusDto MapPublicStatus(LicenseStatusResponse s)
-    {
-        var paid = s.IsValid && !s.IsTrial;
-        var trialActive = s.IsTrial && !s.IsExpired;
-        var licenseType = paid ? "Licensed" : trialActive ? "Trial" : "Expired";
-        var isValidPublic = paid || trialActive;
-
-        IReadOnlyList<string> features;
-        if (!isValidPublic)
-            features = Array.Empty<string>();
-        else
-            features = s.EnabledFeatures is { Count: > 0 } ? s.EnabledFeatures : LicenseFeatureIds.All;
-
-        DateTime? validUntil = s.ExpiryDate.HasValue
-            ? DateTime.SpecifyKind(s.ExpiryDate.Value, DateTimeKind.Utc)
-            : null;
-
-        var mode = trialActive ? "Trial" : "Production";
-
-        return new LicensePublicStatusDto
-        {
-            LicenseType = licenseType,
-            ValidUntil = validUntil,
-            DaysRemaining = s.DaysRemaining,
-            Features = features,
-            IsExpired = s.IsExpired,
-            IsValid = isValidPublic,
-            Mode = mode,
-            IsDevelopmentBypass = s.IsDevelopmentBypass,
-        };
-    }
 }

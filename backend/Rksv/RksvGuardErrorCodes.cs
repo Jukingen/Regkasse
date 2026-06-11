@@ -16,6 +16,9 @@ public static class RksvGuardErrorCodes
 
     public const string DuplicateMonatsbeleg = "RKSV_DUPLICATE_MONATSBELEG";
 
+    /// <summary>Past Vienna month requested without <c>force=true</c> admin override.</summary>
+    public const string MonatsbelegPastMonthRequiresForce = "RKSV_MONATSBELEG_PAST_MONTH_REQUIRES_FORCE";
+
     public const string DuplicateJahresbeleg = "RKSV_DUPLICATE_JAHRESBELEG";
 
     public const string DuplicateSchlussbeleg = "RKSV_DUPLICATE_SCHLUSSBELEG";

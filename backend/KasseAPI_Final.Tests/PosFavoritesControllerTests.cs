@@ -26,13 +26,13 @@ public class PosFavoritesControllerTests
         return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(TenantId));
     }
 
-    private static PosFavoritesController CreateController(AppDbContext ctx)
+    private static PosFavoritesController CreateController(AppDbContext ctx, string role = "Cashier")
     {
         var controller = new PosFavoritesController(ctx, TenantTestDoubles.TenantAccessorReturning(TenantId));
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, CashierId),
-            new(ClaimTypes.Role, "Cashier"),
+            new(ClaimTypes.Role, role),
         };
         controller.ControllerContext = new ControllerContext
         {
@@ -75,6 +75,19 @@ public class PosFavoritesControllerTests
         Assert.Single(list);
         Assert.Equal("Latte", list[0].ProductName);
         Assert.Equal(product.Id, list[0].ProductId);
+    }
+
+    [Fact]
+    public async Task GetFavorites_ForSuperAdmin_ReturnsEmptyList()
+    {
+        await using var ctx = CreateContext();
+        var controller = CreateController(ctx, "SuperAdmin");
+
+        var result = await controller.GetFavorites(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var list = Assert.IsAssignableFrom<List<CashierFavoriteDto>>(ok.Value);
+        Assert.Empty(list);
     }
 
     [Fact]

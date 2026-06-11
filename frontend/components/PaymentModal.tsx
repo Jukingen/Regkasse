@@ -69,9 +69,9 @@ import { canShowPosStornoRefundButton } from '../utils/posStornoRefundGate';
 import { useTimeSyncStatus } from '../hooks/useTimeSyncStatus';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE } from '../constants/posTimeSyncContact';
+import { checkLicenseBeforePayment } from '../utils/checkLicenseBeforePayment';
 import {
   areLicenseChecksBypassedInDevelopment,
-  ensureLicenseAllowsCriticalAction,
   isLicenseExpiredForCriticalActions,
   isTrialLikeLicenseStatus,
 } from '../utils/licenseCriticalActionGuard';
@@ -1394,7 +1394,7 @@ export default function PaymentModal({
     if (timeSyncCritical) {
       return;
     }
-    const licenseOk = await ensureLicenseAllowsCriticalAction(licenseSnapshot, tLicense, 'payment');
+    const licenseOk = await checkLicenseBeforePayment(tLicense);
     if (!licenseOk) {
       return;
     }

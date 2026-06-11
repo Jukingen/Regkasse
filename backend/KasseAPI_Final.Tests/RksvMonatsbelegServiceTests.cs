@@ -5,6 +5,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,9 @@ public class RksvMonatsbelegServiceTests
             .UseInMemoryDatabase($"Monatsbeleg_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(
+            options,
+            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static RksvSpecialReceiptService CreateService(
@@ -185,18 +188,62 @@ public class RksvMonatsbelegServiceTests
     }
 
     [Fact]
-    public async Task CreateMonatsbelegAsync_WrongViennaMonth_Throws()
+    public async Task CreateMonatsbelegAsync_PastMonthWithoutForce_ThrowsRequiresForce()
     {
         await using var context = CreateContext();
         var (regId, service, _) = await SeedAsync(context);
-        var (y, m) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
-        var wrongYear = y == 2000 ? 2001 : y - 1;
+        var (year, month) = GetPreviousViennaMonth();
+
+        var ex = await Assert.ThrowsAsync<RksvOperationGuardException>(() =>
+            service.CreateMonatsbelegAsync(
+                new CreateMonatsbelegRequest { CashRegisterId = regId, Year = year, Month = month },
+                "u1"));
+        Assert.Equal(RksvGuardErrorCodes.MonatsbelegPastMonthRequiresForce, ex.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CreateMonatsbelegAsync_PastMonthWithForce_Succeeds()
+    {
+        await using var context = CreateContext();
+        var (regId, service, _) = await SeedAsync(context);
+        var (year, month) = GetPreviousViennaMonth();
+
+        var resp = await service.CreateMonatsbelegAsync(
+            new CreateMonatsbelegRequest { CashRegisterId = regId, Year = year, Month = month, Reason = "Admin catch-up" },
+            "u1",
+            forcePastMonth: true);
+
+        Assert.NotEqual(Guid.Empty, resp.PaymentId);
+        var row = await context.PaymentDetails.AsNoTracking()
+            .SingleAsync(p => p.Id == resp.PaymentId);
+        Assert.Equal(RksvSpecialReceiptKinds.Monatsbeleg, row.RksvSpecialReceiptKind);
+        Assert.Equal(year, row.RksvSpecialReceiptYear);
+        Assert.Equal(month, row.RksvSpecialReceiptMonth);
+    }
+
+    [Fact]
+    public async Task CreateMonatsbelegAsync_FutureMonth_ThrowsEvenWithForce()
+    {
+        await using var context = CreateContext();
+        var (regId, service, _) = await SeedAsync(context);
+        var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        var futureMonth = month == 12 ? 1 : month + 1;
+        var futureYear = month == 12 ? year + 1 : year;
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateMonatsbelegAsync(
-                new CreateMonatsbelegRequest { CashRegisterId = regId, Year = wrongYear, Month = m },
-                "u1"));
-        Assert.Contains("current Vienna calendar month", ex.Message, StringComparison.OrdinalIgnoreCase);
+                new CreateMonatsbelegRequest { CashRegisterId = regId, Year = futureYear, Month = futureMonth },
+                "u1",
+                forcePastMonth: true));
+        Assert.Contains("future Vienna calendar month", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static (int Year, int Month) GetPreviousViennaMonth()
+    {
+        var (year, month) = PostgreSqlUtcDateTime.GetViennaCurrentYearMonth();
+        if (month == 1)
+            return (year - 1, 12);
+        return (year, month - 1);
     }
 
     [Fact]

@@ -6,7 +6,6 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
-
 namespace KasseAPI_Final.Controllers;
 
 /// <summary>
@@ -19,15 +18,18 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
 {
     private readonly IRksvSpecialReceiptService _specialReceipts;
     private readonly IPosCriticalActionAuditService _posCriticalAudit;
+    private readonly IAuditLogService _auditLogService;
     private readonly ILogger<RksvSpecialReceiptsController> _logger;
 
     public RksvSpecialReceiptsController(
         IRksvSpecialReceiptService specialReceipts,
         IPosCriticalActionAuditService posCriticalAudit,
+        IAuditLogService auditLogService,
         ILogger<RksvSpecialReceiptsController> logger)
     {
         _specialReceipts = specialReceipts;
         _posCriticalAudit = posCriticalAudit;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -138,15 +140,17 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         }
     }
 
-    /// <summary>Creates RKSV Monatsbeleg (monthly zero TSE receipt for the current Vienna calendar month).</summary>
+    /// <summary>Creates RKSV Monatsbeleg (monthly zero TSE receipt for a Vienna calendar month).</summary>
+    /// <param name="force">Admin override: allow creation for a past Vienna calendar month.</param>
     [HttpPost("monatsbeleg")]
     [HasPermission(AppPermissions.RksvMonatsbelegCreate)]
     [ProducesResponseType(typeof(CreateMonatsbelegResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(MonatsbelegWarningResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CreateMonatsbelegResponse>> CreateMonatsbeleg(
         [FromBody] CreateMonatsbelegRequest request,
-        CancellationToken cancellationToken)
+        [FromQuery] bool force = false,
+        CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
@@ -155,10 +159,57 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
 
+        var monthDiff = MonatsbelegPastMonthPolicy.ComputeMonthDiff(request.Year, request.Month);
+        var isPastMonth = monthDiff > 0;
+
+        if (isPastMonth && !force)
+        {
+            await AuditSpecialBlockedAsync(
+                userId,
+                request.CashRegisterId,
+                "monatsbeleg",
+                RksvGuardErrorCodes.MonatsbelegPastMonthRequiresForce,
+                cancellationToken);
+            return BadRequest(new MonatsbelegWarningResponse
+            {
+                RequiresForce = true,
+                WarningMessage = MonatsbelegPastMonthPolicy.BuildWarningMessage(monthDiff),
+                Severity = MonatsbelegPastMonthPolicy.ResolveSeverity(monthDiff),
+                CanForce = true,
+                MonthDiff = monthDiff,
+            });
+        }
+
         try
         {
-            var result = await _specialReceipts.CreateMonatsbelegAsync(request, userId, cancellationToken);
+            var result = await _specialReceipts.CreateMonatsbelegAsync(request, userId, force, cancellationToken);
             await AuditSpecialSuccessAsync(userId, request.CashRegisterId, "monatsbeleg", result.PaymentId, cancellationToken);
+            if (isPastMonth)
+            {
+                _logger.LogWarning(
+                    "Monatsbeleg for past month {Year}-{Month} created with force=true. User: {UserId}, MonthDiff: {MonthDiff}",
+                    request.Year,
+                    request.Month,
+                    userId,
+                    monthDiff);
+                await _auditLogService.LogSystemOperationAsync(
+                    "MonatsbelegPastMonthCreated",
+                    AuditLogEntityTypes.POS_CRITICAL,
+                    userId,
+                    User.GetActorRole() ?? "Unknown",
+                    description: $"Monatsbeleg für {request.Year}-{request.Month:00} ({monthDiff} months back) erstellt",
+                    requestData: new
+                    {
+                        request.CashRegisterId,
+                        request.Year,
+                        request.Month,
+                        MonthDiff = monthDiff,
+                        Force = force,
+                    },
+                    responseData: new { result.PaymentId, result.ReceiptNumber },
+                    entityId: result.PaymentId).ConfigureAwait(false);
+            }
+
             return Ok(result);
         }
         catch (RksvOperationGuardException ex)

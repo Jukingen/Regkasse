@@ -1,7 +1,7 @@
 'use client';
 
 import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useCallback, useMemo, type ReactNode } from 'react';
+import React, { useCallback, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Alert, Button, Card, Progress, Space, Table, Tag, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
@@ -12,7 +12,18 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { MissingMonth } from '@/features/dashboard/api/monatsbelegStatus';
 import { customInstance } from '@/lib/axios';
 import { useQueryClient } from '@tanstack/react-query';
+import { monatsbelegQueryKeys } from '@/features/rksv/hooks/useMonatsbeleg';
 import { isDemoAutoSuggestMonatsbelegEnabled } from '@/shared/config/demoMonatsbelegFeature';
+import { MonatsbelegPastMonthsAlert } from '@/features/rksv/components/MonatsbelegPastMonthsAlert';
+import { PastMonthsMonatsbelegModal } from '@/features/rksv/components/PastMonthsMonatsbelegModal';
+import {
+    collectPastMissingMonatsbelege,
+    countPastMissingMonatsbelege,
+} from '@/features/rksv/utils/monatsbelegMissingMonths';
+import {
+    formatViennaYearMonth,
+    getViennaCalendarYearMonth,
+} from '@/shared/utils/viennaCalendar';
 
 const germanMonthYearFormatter = new Intl.DateTimeFormat('de-DE', {
     month: 'long',
@@ -71,12 +82,6 @@ function getYearlyProgress(missingMonths: MissingMonth[] | undefined): { complet
     return { completed, total, percent };
 }
 
-function getNextMissingMonthLabel(nextRequiredMonth: string | null | undefined): string {
-    const parsed = parseYearMonth(nextRequiredMonth);
-    if (!parsed) return 'nächsten Monat';
-    return formatMonthYear(parsed.year, parsed.month);
-}
-
 export type MonatsbelegComplianceTableProps = {
     rows: RegisterMonatsbelegRow[];
     loading: boolean;
@@ -102,42 +107,40 @@ export function MonatsbelegComplianceTable({
     const queryClient = useQueryClient();
     const canMonatsbeleg = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
     const demoAutoSuggestEnabled = isDemoAutoSuggestMonatsbelegEnabled();
+    const [pastMonthsModalOpen, setPastMonthsModalOpen] = useState(false);
 
-    const createMissingMonatsbelegeForTest = useCallback(async (record: RegisterMonatsbelegRow) => {
-        const missingMonths = record.status?.missingMonths ?? [];
-        if (missingMonths.length === 0) {
-            message.info('Keine fehlenden Monate für diese Kasse.');
+    const overviewItems = useMemo(
+        () => rows.map((row) => ({ cashRegisterId: row.registerId, status: row.status })),
+        [rows],
+    );
+    const otherMissingCount = useMemo(() => countPastMissingMonatsbelege(overviewItems), [overviewItems]);
+    const pastMissingEntries = useMemo(() => collectPastMissingMonatsbelege(overviewItems), [overviewItems]);
+
+    const createCurrentMonthMonatsbelegForTest = useCallback(async (record: RegisterMonatsbelegRow) => {
+        const { year, month } = getViennaCalendarYearMonth();
+        if (record.status?.currentMonthExists) {
+            message.info('Monatsbeleg für aktuellen Monat bereits vorhanden');
             return;
         }
 
-        const failedMonths: string[] = [];
-        for (const missingMonth of missingMonths) {
-            try {
-                await customInstance({
-                    url: '/api/rksv/special-receipts/monatsbeleg',
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    data: {
-                        cashRegisterId: record.registerId,
-                        year: missingMonth.year,
-                        month: missingMonth.month,
-                        reason: 'Demo Sammeltest Monatsbeleg',
-                    },
-                });
-            } catch {
-                failedMonths.push(formatMonthYear(missingMonth.year, missingMonth.month));
-            }
+        try {
+            await customInstance({
+                url: '/api/rksv/special-receipts/monatsbeleg',
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                data: {
+                    cashRegisterId: record.registerId,
+                    year,
+                    month,
+                    reason: 'Demo Monatsbeleg aktueller Monat',
+                },
+            });
+            await queryClient.invalidateQueries({ queryKey: monatsbelegQueryKeys.statusOverview });
+            message.success(`Monatsbeleg für ${formatViennaYearMonth(year, month)} erfolgreich erstellt`);
+        } catch {
+            message.error('Monatsbeleg für den aktuellen Monat konnte nicht erstellt werden.');
         }
-
-        await queryClient.invalidateQueries({ queryKey: ['rksv', 'monatsbeleg-status', record.registerId] });
-
-        if (failedMonths.length === 0) {
-            message.success('Alle fehlenden Monate wurden als Test erstellt.');
-            return;
-        }
-
-        message.warning(`Einige Monate konnten nicht erstellt werden: ${failedMonths.join(', ')}`);
-    }, [queryClient]);
+    }, [message, queryClient]);
 
     const columns: ColumnsType<RegisterMonatsbelegRow> = useMemo(
         () => [
@@ -207,21 +210,25 @@ export function MonatsbelegComplianceTable({
                         return <Typography.Text type="secondary">Keine Berechtigung</Typography.Text>;
                     }
 
-                    const nextMissingMonthLabel = getNextMissingMonthLabel(record.status?.nextRequiredMonth);
+                    const { year: viennaYear, month: viennaMonth } = getViennaCalendarYearMonth();
+                    const currentMonthLabel = formatMonthYear(viennaYear, viennaMonth);
+                    const currentMonthMissing = record.status?.currentMonthExists === false;
                     return (
                         <Space orientation="vertical" size={8}>
-                            <Link href={`/rksv/sonderbelege?registerId=${encodeURIComponent(record.registerId)}`}>
-                                <Button type="primary" size="small">
-                                    Monatsbeleg für {nextMissingMonthLabel} erstellen
+                            <Link
+                                href={`/rksv/sonderbelege?registerId=${encodeURIComponent(record.registerId)}&kind=monatsbeleg`}
+                            >
+                                <Button type="primary" size="small" disabled={!currentMonthMissing}>
+                                    Monatsbeleg für {currentMonthLabel} erstellen
                                 </Button>
                             </Link>
                             {demoAutoSuggestEnabled ? (
                                 <Button
                                     size="small"
-                                    onClick={() => void createMissingMonatsbelegeForTest(record)}
-                                    disabled={!record.status?.missingMonths?.length}
+                                    onClick={() => void createCurrentMonthMonatsbelegForTest(record)}
+                                    disabled={!currentMonthMissing}
                                 >
-                                    Alle fehlenden Monate als Test erstellen
+                                    Monatsbeleg für aktuellen Monat als Test erstellen
                                 </Button>
                             ) : null}
                         </Space>
@@ -229,7 +236,7 @@ export function MonatsbelegComplianceTable({
                 },
             },
         ],
-        [canMonatsbeleg, createMissingMonatsbelegeForTest, demoAutoSuggestEnabled],
+        [canMonatsbeleg, createCurrentMonthMonatsbelegForTest, demoAutoSuggestEnabled],
     );
 
     return (
@@ -252,6 +259,12 @@ export function MonatsbelegComplianceTable({
                 </Space>
             }
         >
+            <MonatsbelegPastMonthsAlert
+                otherMissingCount={otherMissingCount}
+                canCreate={canMonatsbeleg}
+                onManagePastMonths={() => setPastMonthsModalOpen(true)}
+            />
+
             {demoAutoSuggestEnabled ? (
                 <Alert
                     type="info"
@@ -282,6 +295,15 @@ export function MonatsbelegComplianceTable({
                 columns={columns}
                 dataSource={rows}
                 locale={{ emptyText: 'Keine Kassen gefunden.' }}
+            />
+
+            <PastMonthsMonatsbelegModal
+                open={pastMonthsModalOpen}
+                entries={pastMissingEntries}
+                onClose={() => setPastMonthsModalOpen(false)}
+                onCreated={() => {
+                    if (onRefresh) void onRefresh();
+                }}
             />
         </Card>
     );

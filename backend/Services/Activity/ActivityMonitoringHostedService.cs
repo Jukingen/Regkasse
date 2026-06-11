@@ -52,8 +52,7 @@ public sealed class ActivityMonitoringHostedService : BackgroundService
     private async Task RunCycleAsync(CancellationToken cancellationToken)
     {
         using var scope = _scopeFactory.CreateScope();
-        var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-        await using var db = await factory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var activity = scope.ServiceProvider.GetRequiredService<IActivityEventService>();
 
         var threshold = Math.Max(1, _options.CurrentValue.OfflineQueueAlertThreshold);

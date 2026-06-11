@@ -44,6 +44,13 @@ public sealed class PosCashRegisterReadinessService : IPosCashRegisterReadinessS
     }
 
     /// <inheritdoc />
+    public Task<PosCashRegisterContextDto> GetReadinessSnapshotForPosAsync(
+        string userId,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default) =>
+        BuildReadOnlyContextAsync(userId, cancellationToken);
+
+    /// <inheritdoc />
     public async Task<PosCashRegisterContextDto> EnsureReadyForPosAsync(
         string userId,
         ClaimsPrincipal principal,

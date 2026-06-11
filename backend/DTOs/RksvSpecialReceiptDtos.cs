@@ -66,6 +66,19 @@ public sealed class CreateMonatsbelegResponse
     public string QrData { get; set; } = string.Empty;
 }
 
+/// <summary>Returned when a past Vienna calendar month is requested without <c>force=true</c>.</summary>
+public sealed class MonatsbelegWarningResponse
+{
+    public bool RequiresForce { get; set; }
+    public string WarningMessage { get; set; } = string.Empty;
+
+    /// <summary>Client hint: <c>info</c>, <c>warning</c>, or <c>error</c> based on how far back the target month is.</summary>
+    public string Severity { get; set; } = "warning";
+
+    public bool CanForce { get; set; }
+    public int MonthDiff { get; set; }
+}
+
 /// <summary>RKSV Jahresbeleg (annual zero signed receipt; Vienna calendar year).</summary>
 public sealed class CreateJahresbelegRequest
 {

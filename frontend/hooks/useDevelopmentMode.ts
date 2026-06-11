@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
+import { POS_DEVELOPMENT_MODE_POLL_MS } from '../constants/posPollingIntervals';
+import { useConditionalPolling } from './useConditionalPolling';
 import { apiClient } from '../services/api/config';
 import {
   setDevelopmentModeClientSnapshot,
@@ -7,8 +9,6 @@ import {
 } from '../services/developmentModeClientCache';
 
 export type { DevelopmentModeSettings } from '../services/developmentModeClientCache';
-
-const POLL_MS = 30_000;
 
 export function useDevelopmentMode() {
   const [settings, setSettings] = useState<DevelopmentModeSettings | null>(null);
@@ -27,11 +27,9 @@ export function useDevelopmentMode() {
     }
   }, []);
 
-  useEffect(() => {
+  useConditionalPolling(() => {
     void refetch();
-    const id = setInterval(() => void refetch(), POLL_MS);
-    return () => clearInterval(id);
-  }, [refetch]);
+  }, POS_DEVELOPMENT_MODE_POLL_MS);
 
   return { settings, isLoading, refetch };
 }

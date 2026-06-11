@@ -6,6 +6,7 @@ import { postEnsurePosCashRegisterReady } from '../services/api/posCashRegisterR
 import type { PosCashRegisterContextDto } from '../utils/posCashRegisterReadinessParse';
 
 import { useAuth } from './AuthContext';
+import { usePosStatusOverview } from './PosStatusOverviewContext';
 
 export type PosRegisterReadinessContextValue = {
   data: PosCashRegisterContextDto | null;
@@ -33,11 +34,15 @@ export function usePosRegisterReadiness(): PosRegisterReadinessContextValue {
 
 export function PosRegisterReadinessProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user } = useAuth();
+  const { cashRegister: overviewRegister } = usePosStatusOverview();
+  const overviewRegisterRef = useRef(overviewRegister);
+  overviewRegisterRef.current = overviewRegister;
   const [data, setData] = useState<PosCashRegisterContextDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [token, setToken] = useState(0);
   const refreshWaitersRef = useRef<(() => void)[]>([]);
+  const ensureReadyInFlightRef = useRef(false);
 
   const refresh = useCallback(() => {
     setToken((n) => n + 1);
@@ -53,6 +58,11 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
   );
 
   useEffect(() => {
+    if (!overviewRegister || ensureReadyInFlightRef.current || loading) return;
+    setData(overviewRegister);
+  }, [overviewRegister, loading]);
+
+  useEffect(() => {
     if (!POS_ENSURE_READY_ON_ENTRY || !isAuthenticated || !user?.id) {
       setData(null);
       setLoading(false);
@@ -64,10 +74,9 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
     }
 
     let cancelled = false;
+    ensureReadyInFlightRef.current = true;
     setLoading(true);
     setError(null);
-    // Drop stale nextAction/effectiveRegisterId while a new ensure-ready runs so payment gate is not stuck on
-    // pre-assignment states after a successful PUT /user/settings cash-register (see usePosCashRegisterAssignment).
     setData(null);
 
     void (async () => {
@@ -79,9 +88,10 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e : new Error(String(e)));
-          setData(null);
+          setData(overviewRegisterRef.current ?? null);
         }
       } finally {
+        ensureReadyInFlightRef.current = false;
         if (!cancelled) {
           setLoading(false);
         }
@@ -95,6 +105,7 @@ export function PosRegisterReadinessProvider({ children }: { children: React.Rea
 
     return () => {
       cancelled = true;
+      ensureReadyInFlightRef.current = false;
     };
   }, [isAuthenticated, user?.id, token]);
 

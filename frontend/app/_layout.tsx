@@ -15,6 +15,9 @@ import { ThemeProvider } from '../contexts/ThemeContext';
 import { AppStateProvider } from '../contexts/AppStateContext';
 import { CartProvider } from '../contexts/CartContext';
 import { DevelopmentModeProvider } from '../contexts/DevelopmentModeContext';
+import { LicenseStatusProvider } from '../contexts/LicenseStatusContext';
+import { MandantLicenseWarningProvider } from '../contexts/MandantLicenseWarningContext';
+import { PosStatusOverviewProvider } from '../contexts/PosStatusOverviewContext';
 import { useMemoryMonitor } from '../hooks/useMemoryOptimization';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
@@ -71,6 +74,9 @@ export default function RootLayout() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <AuthProvider>
+          <PosStatusOverviewProvider>
+          <LicenseStatusProvider>
+            <MandantLicenseWarningProvider>
           <SystemProvider>
             <ThemeProvider>
               <AppStateProvider>
@@ -88,6 +94,9 @@ export default function RootLayout() {
               </AppStateProvider>
             </ThemeProvider>
           </SystemProvider>
+            </MandantLicenseWarningProvider>
+          </LicenseStatusProvider>
+          </PosStatusOverviewProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>

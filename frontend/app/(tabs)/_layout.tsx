@@ -20,6 +20,8 @@ import { ToastContainer } from '../../components/ToastNotification';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
 import { subscribeOfflineSyncComplete } from '../../services/payment/offlineQueueSyncNotifier';
+import { POS_HEALTH_POLL_MS } from '../../constants/posPollingIntervals';
+import { useConditionalPolling } from '../../hooks/useConditionalPolling';
 import { TAB_BAR_HEIGHT } from '../../constants/breakpoints';
 import { SoftColors, SoftShadows, SoftSpacing } from '../../constants/SoftTheme';
 import { useDevelopmentModeContext } from '../../contexts/DevelopmentModeContext';
@@ -278,22 +280,13 @@ export default function TabLayout() {
         return unsub;
     }, [t]);
 
-    // OPTIMIZATION: Auth status kontrolünü daha az sıklıkta yap (ref avoids stale closure from [] deps).
-    useEffect(() => {
-        if (!user || !isAuthenticated) {
-            return;
-        }
-
-        void checkAuthStatusRef.current();
-
-        const interval = setInterval(() => {
+    useConditionalPolling(
+        () => {
             void checkAuthStatusRef.current();
-        }, 5 * 60 * 1000); // 5 dakika
-
-        return () => {
-            clearInterval(interval);
-        };
-    }, [isAuthenticated, user?.id]);
+        },
+        POS_HEALTH_POLL_MS,
+        Boolean(isAuthenticated && user?.id),
+    );
 
     if (!isAuthReady || isLoading) {
         return (

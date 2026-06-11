@@ -9,7 +9,7 @@ export type LicenseStatusReadModel = {
   isLoading: boolean;
 };
 
-const POLL_MS = 60_000;
+const POLL_MS = 5 * 60 * 1000;
 
 const DEFAULT_STATE: LicenseStatusReadModel = {
   licenseType: 'Trial',

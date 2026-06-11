@@ -14,4 +14,12 @@ public interface IPosCashRegisterReadinessService
         string userId,
         ClaimsPrincipal principal,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Read-only readiness snapshot for polling (<c>GET /api/pos/status/overview</c>). Does not auto-open or persist assignment.
+    /// </summary>
+    Task<PosCashRegisterContextDto> GetReadinessSnapshotForPosAsync(
+        string userId,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken = default);
 }

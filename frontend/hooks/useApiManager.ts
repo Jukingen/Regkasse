@@ -9,6 +9,9 @@ import { notifyOfflineSyncComplete } from '../services/payment/offlineQueueSyncN
 import { useAuth } from '../contexts/AuthContext';
 import { sessionManager } from '../services/session/sessionManager';
 import { isDevSimulatePosNetworkOffline } from '../constants/devSimulatePosOffline';
+import { POS_HEALTH_POLL_MS } from '../constants/posPollingIntervals';
+import { subscribeForegroundPolling } from './useConditionalPolling';
+import { notifyPosStatusReconnectRefresh } from '../services/pos/posStatusOverviewSyncNotifier';
 
 // API çağrı durumu
 interface ApiCallStatus {
@@ -67,8 +70,7 @@ export const useApiManager = () => {
     const now = Date.now();
     const lastCheck = stateRef.current.lastTokenCheck;
 
-    // 5 dakikada bir kontrol et
-    if (now - lastCheck < 5 * 60 * 1000) {
+    if (now - lastCheck < POS_HEALTH_POLL_MS) {
       return false; // Henüz kontrol edilmedi
     }
 
@@ -134,8 +136,12 @@ export const useApiManager = () => {
         clearTimeout(timeoutId);
 
         const ok = response.ok;
+        const wasOffline = !stateRef.current.isOnline;
         updateState({ isOnline: ok });
         if (ok) {
+          if (wasOffline) {
+            notifyPosStatusReconnectRefresh();
+          }
           void paymentService
             .syncPendingPaymentQueue()
             .then(({ processed, failed }) => {
@@ -342,19 +348,19 @@ export const useApiManager = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (globalThis as any).__apiManagerIntervalsInitialized__ = true;
 
-      const tokenCheckInterval = setInterval(async () => {
-        await checkTokenExpiry();
-      }, 5 * 60 * 1000); // 5 dakika
-
-      const onlineCheckInterval = setInterval(async () => {
-        await checkOnlineStatus();
-      }, 5 * 60 * 1000); // 5 dakika (Reduced from 30s to prevent spam)
+      const stopTokenPolling = subscribeForegroundPolling(() => {
+        void checkTokenExpiry();
+      }, POS_HEALTH_POLL_MS);
+      const stopOnlinePolling = subscribeForegroundPolling(() => {
+        void checkOnlineStatus();
+      }, POS_HEALTH_POLL_MS);
 
       // Store on globalThis for cleanup on HMR if needed
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).__apiManagerTokenInterval__ = tokenCheckInterval;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (globalThis as any).__apiManagerOnlineInterval__ = onlineCheckInterval;
+      (globalThis as any).__apiManagerPollingCleanup__ = () => {
+        stopTokenPolling();
+        stopOnlinePolling();
+      };
     }
 
     return () => {

@@ -22,6 +22,10 @@ import {
   shouldRetainOptimisticCashRegisterAfterPersistFailure,
 } from '../utils/cashRegisterAssignmentPersistPolicy';
 import { shouldFetchPosSelectableRegisterList } from '../utils/posRegisterAssignmentFetchPolicy';
+import {
+  getCachedPosSettingsSnapshot,
+  usePosStatusOverview,
+} from '../contexts/PosStatusOverviewContext';
 
 /**
  * Builds the `CashRegisterId` sent on POS payment: merges ensure-ready (when enabled), GET /user/settings (read-only;
@@ -34,6 +38,7 @@ import { shouldFetchPosSelectableRegisterList } from '../utils/posRegisterAssign
  */
 export function usePosCashRegisterAssignment(enabled: boolean) {
   const posReadiness = usePosRegisterReadiness();
+  const { settingsVersion } = usePosStatusOverview();
   const [cashRegisterId, setCashRegisterId] = useState<string | null>(null);
   const [cashRegisterResolved, setCashRegisterResolved] = useState(false);
   const [registerPicklist, setRegisterPicklist] = useState<CashRegisterSelectableRow[]>([]);
@@ -82,24 +87,34 @@ export function usePosCashRegisterAssignment(enabled: boolean) {
     setCashRegisterResolved(false);
     setSettingsLoadFailed(false);
     debugPosPaymentTrace('settings_load_start', { enabled });
+
+    const applySettingsId = (rawId: string | null | undefined) => {
+      const id = rawId?.trim();
+      const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
+      setCashRegisterId(invalid ? null : id);
+      setSettingsLoadFailed(false);
+      debugPosPaymentTrace('settings_loaded', {
+        cashRegisterId: invalid ? null : id,
+        source: 'overview_or_get',
+      });
+    };
+
+    const cached = getCachedPosSettingsSnapshot();
+    if (cached) {
+      applySettingsId(cached.cashRegisterId);
+      setCashRegisterResolved(true);
+      return;
+    }
+
     getUserSettings()
-      .then((s) => {
-        const id = s.cashRegisterId?.trim();
-        const invalid = !id || id === '00000000-0000-0000-0000-000000000000';
-        setCashRegisterId(invalid ? null : id);
-        setSettingsLoadFailed(false);
-        debugPosPaymentTrace('settings_loaded', {
-          cashRegisterId: invalid ? null : id,
-          userId: s.userId,
-        });
-      })
+      .then((s) => applySettingsId(s.cashRegisterId))
       .catch((e) => {
         debugPosPaymentTrace('settings_load_error', { message: e instanceof Error ? e.message : String(e) });
         setCashRegisterId(null);
         setSettingsLoadFailed(true);
       })
       .finally(() => setCashRegisterResolved(true));
-  }, [enabled, settingsRetryToken]);
+  }, [enabled, settingsRetryToken, settingsVersion]);
 
   useEffect(() => {
     if (!enabled) return;

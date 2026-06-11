@@ -31,22 +31,28 @@ import {
     rksvFinanzOnlineSubmissionStatusTagColor,
 } from '@/features/receipts/utils/rksvFinanzOnlineSubmissionUi';
 
-function getViennaCalendarYear(now: Date = new Date()): number {
-    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Vienna', year: 'numeric' });
-    const y = fmt.formatToParts(now).find((p) => p.type === 'year')?.value;
-    return y ? Number(y) : now.getUTCFullYear();
-}
+import { CreateMonatsbelegModal } from '@/features/rksv/components/CreateMonatsbelegModal';
+import { monatsbelegQueryKeys, useCashRegisterMonatsbeleg } from '@/features/rksv/hooks/useMonatsbeleg';
+import {
+    getMonthDifference,
+    getViennaCalendarYear,
+    getViennaCalendarYearMonth,
+} from '@/shared/utils/viennaCalendar';
 
-function getViennaCalendarYearMonth(now: Date = new Date()): { year: number; month: number } {
-    const fmt = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Europe/Vienna',
-        year: 'numeric',
-        month: '2-digit',
-    });
-    const parts = fmt.formatToParts(now);
-    const year = Number(parts.find((p) => p.type === 'year')?.value) || now.getUTCFullYear();
-    const month = Number(parts.find((p) => p.type === 'month')?.value) || 1;
-    return { year, month };
+type MissingMonatsbelegTableRow = {
+    key: string;
+    year: number;
+    month: number;
+    isMissing: boolean;
+    isOverdue: boolean;
+    monthDiff: number;
+};
+
+function monatsbelegDelaySeverity(monthDiff: number): { label: string; color: string } {
+    if (monthDiff <= 0) return { label: 'Aktuell', color: 'green' };
+    if (monthDiff <= 1) return { label: 'Info', color: 'blue' };
+    if (monthDiff <= 6) return { label: 'Warnung', color: 'orange' };
+    return { label: 'Achtung', color: 'red' };
 }
 
 function formatMonthYearDe(year: number, month: number): string {
@@ -178,6 +184,9 @@ export default function RksvSonderbelegePage() {
 
     const [schlussModalOpen, setSchlussModalOpen] = useState(false);
     const [schlussConfirmText, setSchlussConfirmText] = useState('');
+    const [monatsbelegModalOpen, setMonatsbelegModalOpen] = useState(false);
+    const [selectedMonatsbelegYear, setSelectedMonatsbelegYear] = useState(viennaYear);
+    const [selectedMonatsbelegMonth, setSelectedMonatsbelegMonth] = useState(viennaMonth);
 
     useEffect(() => {
         const q = searchParams.get('registerId')?.trim();
@@ -186,12 +195,21 @@ export default function RksvSonderbelegePage() {
 
     useEffect(() => {
         const focus = searchParams.get('focus')?.trim();
-        if (focus !== 'startbeleg' && focus !== 'schlussbeleg') return;
-        const id = focus === 'startbeleg' ? 'rksv-focus-startbeleg' : 'rksv-focus-schlussbeleg';
+        if (focus !== 'startbeleg' && focus !== 'schlussbeleg' && focus !== 'monatsbeleg') return;
+        const id =
+            focus === 'startbeleg'
+                ? 'rksv-focus-startbeleg'
+                : focus === 'schlussbeleg'
+                  ? 'rksv-focus-schlussbeleg'
+                  : 'rksv-missing-monatsbelege';
         requestAnimationFrame(() => {
             document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     }, [searchParams]);
+
+    const monatsbelegStatusQuery = useCashRegisterMonatsbeleg(registerId ?? '', {
+        enabled: Boolean(registerId?.trim()),
+    });
 
     const SONDERBELEG_RECEIPT_SCAN_PAGE_SIZE = 100;
 
@@ -224,6 +242,8 @@ export default function RksvSonderbelegePage() {
 
     const monatYear = monatPeriod.year();
     const monatMonth = monatPeriod.month() + 1;
+    const monatMonthDiff = getMonthDifference(monatYear, monatMonth);
+    const monatIsFutureMonth = monatMonthDiff < 0;
     const jahrYear = jahrPeriod.year();
 
     const hasStartbelegForRegister = useMemo(
@@ -292,6 +312,69 @@ export default function RksvSonderbelegePage() {
         await queryClient.invalidateQueries({ queryKey: ['/api/Receipts/list'] });
     }, [queryClient]);
 
+    const refetchMonatsbelegData = useCallback(async () => {
+        await invalidateLists();
+        await queryClient.invalidateQueries({ queryKey: monatsbelegQueryKeys.statusOverview });
+        if (registerId?.trim()) {
+            await queryClient.invalidateQueries({
+                queryKey: monatsbelegQueryKeys.registerStatus(registerId.trim()),
+            });
+            await monatsbelegStatusQuery.refetch();
+        }
+    }, [invalidateLists, monatsbelegStatusQuery, queryClient, registerId]);
+
+    const missingMonatsbelegRows = useMemo((): MissingMonatsbelegTableRow[] => {
+        const apiMissing = monatsbelegStatusQuery.data?.missingMonths ?? [];
+        if (apiMissing.length > 0) {
+            return apiMissing
+                .map((entry) => ({
+                    key: `${entry.year}-${String(entry.month).padStart(2, '0')}`,
+                    year: entry.year,
+                    month: entry.month,
+                    isMissing: true,
+                    isOverdue: entry.isOverdue,
+                    monthDiff: getMonthDifference(entry.year, entry.month),
+                }))
+                .sort((a, b) => {
+                    const anchorA = a.year * 12 + (a.month - 1);
+                    const anchorB = b.year * 12 + (b.month - 1);
+                    return anchorA - anchorB;
+                });
+        }
+
+        return monthlyTimelineRows
+            .filter((row) => row.status === 'missing')
+            .map((row) => ({
+                key: `${monatYear}-${String(row.month).padStart(2, '0')}`,
+                year: monatYear,
+                month: row.month,
+                isMissing: true,
+                isOverdue: getMonthDifference(monatYear, row.month) > 0,
+                monthDiff: getMonthDifference(monatYear, row.month),
+            }));
+    }, [monatsbelegStatusQuery.data?.missingMonths, monatYear, monthlyTimelineRows]);
+
+    const openMissingMonatsbelegModal = useCallback(
+        (year: number, month: number) => {
+            if (!registerId) {
+                message.warning('Bitte eine Kasse wählen.');
+                return;
+            }
+            if (!canMonat) {
+                message.warning('Sie haben keine Berechtigung für diese Aktion.');
+                return;
+            }
+            if (getMonthDifference(year, month) < 0) {
+                message.error('Monatsbeleg kann nicht für einen zukünftigen Kalendermonat erstellt werden.');
+                return;
+            }
+            setSelectedMonatsbelegYear(year);
+            setSelectedMonatsbelegMonth(month);
+            setMonatsbelegModalOpen(true);
+        },
+        [registerId, canMonat, message],
+    );
+
     const registerOptions = useMemo(
         () =>
             registers
@@ -350,25 +433,9 @@ export default function RksvSonderbelegePage() {
         }
     }, [registerId, reasonShort, postJson, invalidateLists]);
 
-    const onMonatsbeleg = useCallback(async () => {
-        if (!registerId) return message.warning('Bitte eine Kasse wählen.');
-        setBusy('monat');
-        try {
-            await postJson('/api/rksv/special-receipts/monatsbeleg', {
-                cashRegisterId: registerId,
-                year: monatYear,
-                month: monatMonth,
-                reason: reasonShort.trim() || 'Admin Monatsbeleg',
-            });
-            message.success('Monatsbeleg erstellt.');
-            await invalidateLists();
-        } catch (e: unknown) {
-            const err = e as { response?: { data?: { message?: string } }; message?: string };
-            message.error(String(err?.response?.data?.message ?? err?.message ?? 'Fehler'));
-        } finally {
-            setBusy(null);
-        }
-    }, [registerId, monatYear, monatMonth, reasonShort, postJson, invalidateLists]);
+    const openMonatsbelegModal = useCallback(() => {
+        openMissingMonatsbelegModal(monatYear, monatMonth);
+    }, [monatYear, monatMonth, openMissingMonatsbelegModal]);
 
     const onJahresbeleg = useCallback(async () => {
         if (!registerId) return message.warning('Bitte eine Kasse wählen.');
@@ -455,45 +522,35 @@ export default function RksvSonderbelegePage() {
             return;
         }
 
-        const missingMonths = Array.from({ length: viennaMonth }, (_, i) => i + 1).filter((month) => {
-            return !registerScopedReceipts.some(
-                (row) =>
-                    isKind(row, 'monatsbeleg') &&
-                    Number(row.rksvSpecialReceiptYear ?? 0) === viennaYear &&
-                    Number(row.rksvSpecialReceiptMonth ?? 0) === month,
-            );
-        });
+        const hasCurrentMonthMonatsbeleg = registerScopedReceipts.some(
+            (row) =>
+                isKind(row, 'monatsbeleg') &&
+                Number(row.rksvSpecialReceiptYear ?? 0) === viennaYear &&
+                Number(row.rksvSpecialReceiptMonth ?? 0) === viennaMonth,
+        );
 
-        if (missingMonths.length === 0) {
-            message.info('Für das aktuelle Jahr fehlen keine Monatsbelege.');
+        if (hasCurrentMonthMonatsbeleg) {
+            message.info('Monatsbeleg für aktuellen Monat bereits vorhanden');
             return;
         }
 
         setBusy('demo-bulk');
-        let success = 0;
-        let failed = 0;
-        for (const month of missingMonths) {
-            try {
-                await postJson('/api/rksv/special-receipts/monatsbeleg', {
-                    cashRegisterId: registerId,
-                    year: viennaYear,
-                    month,
-                    reason: 'Demo Helper: Bulk Monatsbelege',
-                });
-                success += 1;
-            } catch {
-                failed += 1;
-            }
+        try {
+            await postJson('/api/rksv/special-receipts/monatsbeleg', {
+                cashRegisterId: registerId,
+                year: viennaYear,
+                month: viennaMonth,
+                reason: 'Demo Helper: Monatsbeleg aktueller Monat',
+            });
+            await invalidateLists();
+            message.success(`Monatsbeleg für ${formatMonthYearDe(viennaYear, viennaMonth)} erstellt.`);
+        } catch (e: unknown) {
+            const err = e as { response?: { data?: { message?: string } }; message?: string };
+            message.error(String(err?.response?.data?.message ?? err?.message ?? 'Fehler'));
+        } finally {
+            setBusy(null);
         }
-
-        await invalidateLists();
-        if (failed === 0) {
-            message.success(`${success} fehlende Monatsbelege wurden erstellt.`);
-        } else {
-            message.warning(`${success} Monatsbelege erstellt, ${failed} fehlgeschlagen.`);
-        }
-        setBusy(null);
-    }, [registerId, viennaMonth, registerScopedReceipts, viennaYear, postJson, invalidateLists]);
+    }, [registerId, registerScopedReceipts, viennaYear, viennaMonth, postJson, invalidateLists, message]);
 
     const onCreateDemoNullbelegForCurrentMonth = useCallback(async () => {
         if (!registerId) {
@@ -618,6 +675,65 @@ export default function RksvSonderbelegePage() {
 
     const actionDisabledBase = !registerId || busy !== null || selectedRegisterIsDecommissioned;
 
+    const missingMonatsbelegColumns: ColumnsType<MissingMonatsbelegTableRow> = useMemo(
+        () => [
+            {
+                title: 'Periode',
+                key: 'period',
+                render: (_, record) => formatMonthYearDe(record.year, record.month),
+            },
+            {
+                title: 'Rückstand',
+                key: 'delay',
+                width: 160,
+                render: (_, record) => {
+                    const severity = monatsbelegDelaySeverity(record.monthDiff);
+                    return (
+                        <Space size={6}>
+                            <Tag color={severity.color}>{severity.label}</Tag>
+                            {record.monthDiff > 0 ? (
+                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    {record.monthDiff} {record.monthDiff === 1 ? 'Monat' : 'Monate'}
+                                </Typography.Text>
+                            ) : (
+                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                    aktueller Monat
+                                </Typography.Text>
+                            )}
+                        </Space>
+                    );
+                },
+            },
+            {
+                title: 'Status',
+                key: 'status',
+                width: 120,
+                render: (_, record) =>
+                    record.isOverdue ? <Tag color="red">Überfällig</Tag> : <Tag color="orange">Fehlt</Tag>,
+            },
+            {
+                title: 'Aktion',
+                key: 'action',
+                width: 160,
+                render: (_, record) => (
+                    <Space>
+                        {record.isMissing ? (
+                            <Button
+                                type="primary"
+                                size="small"
+                                disabled={actionDisabledBase || !canMonat}
+                                onClick={() => openMissingMonatsbelegModal(record.year, record.month)}
+                            >
+                                Jetzt erstellen
+                            </Button>
+                        ) : null}
+                    </Space>
+                ),
+            },
+        ],
+        [actionDisabledBase, canMonat, openMissingMonatsbelegModal],
+    );
+
     return (
         <>
             <AdminPageHeader
@@ -680,7 +796,7 @@ export default function RksvSonderbelegePage() {
                                 loading={busy === 'demo-bulk'}
                                 disabled={!registerId || busy !== null}
                             >
-                                Alle fehlenden Monatsbelege für das aktuelle Jahr erstellen
+                                Monatsbeleg für aktuellen Monat erstellen
                             </Button>
                             <Button
                                 onClick={() => void onCreateDemoNullbelegForCurrentMonth()}
@@ -746,12 +862,31 @@ export default function RksvSonderbelegePage() {
                             <Typography.Text type="secondary">
                                 Empfohlen: Monatsbeleg direkt nach Monatsende erstellen.
                             </Typography.Text>
-                            <DatePicker picker="month" value={monatPeriod} onChange={(v) => v && setMonatPeriod(v)} style={{ width: '100%' }} />
+                            <DatePicker
+                                picker="month"
+                                value={monatPeriod}
+                                onChange={(v) => v && setMonatPeriod(v)}
+                                disabledDate={(current) => {
+                                    if (!current) return false;
+                                    const y = current.year();
+                                    const m = current.month() + 1;
+                                    return getMonthDifference(y, m) < 0;
+                                }}
+                                style={{ width: '100%' }}
+                            />
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                                Aktueller und vergangene Kalendermonate (Europe/Vienna) sind möglich. Vergangene Monate
+                                erfordern eine Bestätigung.
+                            </Typography.Text>
                             <Button
                                 type="primary"
-                                onClick={() => void onMonatsbeleg()}
-                                disabled={actionDisabledBase || hasMonatsbelegForPeriod || !canMonat}
-                                loading={busy === 'monat'}
+                                onClick={openMonatsbelegModal}
+                                disabled={
+                                    actionDisabledBase ||
+                                    hasMonatsbelegForPeriod ||
+                                    !canMonat ||
+                                    monatIsFutureMonth
+                                }
                                 block
                             >
                                 {`Monatsbeleg für ${formatMonthYearDe(monatYear, monatMonth)} erstellen`}
@@ -942,6 +1077,41 @@ export default function RksvSonderbelegePage() {
             </Card>
 
             <Card
+                id="rksv-missing-monatsbelege"
+                title="Fehlende Monatsbelege"
+                style={{ marginBottom: 16 }}
+                loading={Boolean(registerId) && monatsbelegStatusQuery.isLoading}
+            >
+                {!registerId ? (
+                    <Alert type="info" showIcon title="Bitte zuerst eine Kasse auswählen." />
+                ) : (
+                    <Space orientation="vertical" style={{ width: '100%' }} size="middle">
+                        <Alert
+                            type="info"
+                            showIcon
+                            title="Hinweise zu vergangenen Monatsbelegen"
+                            description={
+                                <ul style={{ marginBottom: 0, paddingLeft: 20 }}>
+                                    <li>Aktueller Monat: direkt erstellbar</li>
+                                    <li>1 Monat zurück: Info-Hinweis</li>
+                                    <li>2–6 Monate zurück: Warnung, Bestätigung erforderlich</li>
+                                    <li>Über 6 Monate: erhöhtes Risiko, Audit-Log</li>
+                                </ul>
+                            }
+                        />
+                        <Table<MissingMonatsbelegTableRow>
+                            rowKey="key"
+                            size="small"
+                            pagination={missingMonatsbelegRows.length > 12 ? { pageSize: 12 } : false}
+                            columns={missingMonatsbelegColumns}
+                            dataSource={missingMonatsbelegRows}
+                            locale={{ emptyText: 'Keine fehlenden Monatsbelege für diese Kasse.' }}
+                        />
+                    </Space>
+                )}
+            </Card>
+
+            <Card
                 title={`Monatsbeleg Timeline ${monatYear}`}
                 style={{ marginBottom: 16 }}
                 extra={
@@ -1002,6 +1172,21 @@ export default function RksvSonderbelegePage() {
                     }}
                 />
             </Card>
+
+            {registerId ? (
+                <CreateMonatsbelegModal
+                    open={monatsbelegModalOpen}
+                    cashRegisterId={registerId}
+                    year={selectedMonatsbelegYear}
+                    month={selectedMonatsbelegMonth}
+                    reason={reasonShort.trim() || 'Admin Monatsbeleg'}
+                    onClose={() => setMonatsbelegModalOpen(false)}
+                    onSuccess={() => {
+                        void refetchMonatsbelegData();
+                        setMonatsbelegModalOpen(false);
+                    }}
+                />
+            ) : null}
 
             <Modal
                 title="Kasse stilllegen (Endbeleg)"
