@@ -5,7 +5,7 @@
  * Option labels use fixed endonyms (Deutsch / English / Türkçe). Does not change formal report content resolution.
  */
 import { useMemo } from 'react';
-import { Button, Dropdown, Tooltip } from 'antd';
+import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { CheckOutlined, GlobalOutlined } from '@ant-design/icons';
 import { useI18n, type TextLocale } from '@/i18n';
@@ -44,7 +44,6 @@ export function HeaderLanguageQuickSwitch() {
   };
 
   const ariaLabel = t('adminShell.header.languageSelectAria');
-  const tooltipHint = t('adminShell.header.languageSelectHint');
 
   return (
     <fieldset style={{ border: 'none', margin: 0, padding: 0, minWidth: 0, display: 'inline-flex' }}>
@@ -60,19 +59,17 @@ export function HeaderLanguageQuickSwitch() {
         classNames={{ root: "language-switcher-dropdown admin-header-dropdown" }}
         getPopupContainer={getAdminHeaderPopupContainer}
       >
-        <Tooltip title={tooltipHint} placement="bottomRight" mouseEnterDelay={0.35}>
-          <span className="language-trigger-wrap">
-            <Button
-              type="text"
-              className="language-trigger"
-              icon={<GlobalOutlined />}
-              aria-label={ariaLabel}
-              data-testid="admin-header-language-select"
-            >
-              <span className="language-code">{textLocale.toUpperCase()}</span>
-            </Button>
-          </span>
-        </Tooltip>
+        <span className="language-trigger-wrap">
+          <Button
+            type="text"
+            className="language-trigger"
+            icon={<GlobalOutlined />}
+            aria-label={ariaLabel}
+            data-testid="admin-header-language-select"
+          >
+            <span className="language-code">{textLocale.toUpperCase()}</span>
+          </Button>
+        </span>
       </Dropdown>
     </fieldset>
   );

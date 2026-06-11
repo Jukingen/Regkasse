@@ -5,7 +5,6 @@
  */
 
 import { LoadingOutlined, WarningOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
 
 import {
     useDeploymentLicenseStatus,
@@ -90,18 +89,10 @@ export function LicenseStatusIndicator({ compact: _compact = false }: LicenseSta
 
     if (isLoading) {
         return (
-            <Tooltip
-                title={t('license.badge.loading')}
-                placement="bottom"
-                mouseEnterDelay={0.2}
-            >
-                <span className="license-badge-tooltip-trigger">
-                    <div className="license-badge loading" aria-busy="true" aria-live="polite">
-                        <LoadingOutlined className="license-icon" spin aria-hidden />
-                        <span className="license-text">{t('license.badge.loading')}</span>
-                    </div>
-                </span>
-            </Tooltip>
+            <div className="license-badge loading" aria-busy="true" aria-live="polite">
+                <LoadingOutlined className="license-icon" spin aria-hidden />
+                <span className="license-text">{t('license.badge.loading')}</span>
+            </div>
         );
     }
 
@@ -124,14 +115,10 @@ export function LicenseStatusIndicator({ compact: _compact = false }: LicenseSta
     const statusText = getStatusText(criticalStatus);
 
     return (
-        <Tooltip title={criticalStatus.status.message} placement="bottom" mouseEnterDelay={0.2}>
-            <span className="license-badge-tooltip-trigger">
-                <div className={`license-badge ${statusClass}`} aria-label={statusText}>
-                    <WarningOutlined className="license-icon" aria-hidden />
-                    <span className="license-text">{statusText}</span>
-                </div>
-            </span>
-        </Tooltip>
+        <div className={`license-badge ${statusClass}`} aria-label={statusText}>
+            <WarningOutlined className="license-icon" aria-hidden />
+            <span className="license-text">{statusText}</span>
+        </div>
     );
 }
 

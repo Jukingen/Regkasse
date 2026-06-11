@@ -46,7 +46,12 @@ function HeaderUserMenu({ userMenu, userLabel, isMobile }: HeaderUserMenuProps) 
             classNames={{ root: "admin-header-dropdown" }}
             getPopupContainer={getAdminHeaderPopupContainer}
         >
-            <div className="admin-header-user-menu" role="button" tabIndex={0}>
+            <div
+                className="admin-header-user-menu"
+                role="button"
+                tabIndex={0}
+                aria-label={typeof userLabel === 'string' ? userLabel : undefined}
+            >
                 <Avatar size="small" icon={<UserOutlined />} />
                 {!isMobile ? <span className="admin-header-user-label">{userLabel}</span> : null}
             </div>

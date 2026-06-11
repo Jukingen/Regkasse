@@ -14,7 +14,6 @@ import {
     Input,
     Spin,
     Tag,
-    Tooltip,
     Typography,
 } from 'antd';
 import type { InputRef } from 'antd';
@@ -24,7 +23,6 @@ import { TenantSwitcherNoAdminFlow } from '@/features/auth/components/TenantSwit
 import { useHeaderTenantSwitcher } from '@/features/auth/components/HeaderTenantSwitcherContext';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { isLocalDevHostname } from '@/features/auth/services/devTenant';
 import {
     dedupeAdminTenantsById,
     getTenantSwitcherLicenseBadge,
@@ -33,6 +31,7 @@ import {
     tenantHeaderShowsNoAdminWarning,
 } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
+import { persistCashRegisterOnTenantSwitch } from '@/features/tenancy/services/persistCashRegisterOnTenantSwitch';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
     filterTenantSwitcherItems,
@@ -122,18 +121,14 @@ function TenantSwitcherItem({ tenant, isActiveTenant, onSwitch }: TenantSwitcher
                     </Tag>
                 ) : null}
                 {showNoAdmin ? (
-                    <Tooltip title={t('adminShell.tenant.devSwitcher.noAdminPillTooltip')}>
-                        <WarningOutlined
-                            className="warning-icon"
-                            aria-label={t('adminShell.tenant.devSwitcher.noAdminPill')}
-                        />
-                    </Tooltip>
+                    <WarningOutlined
+                        className="warning-icon"
+                        aria-label={t('adminShell.tenant.devSwitcher.noAdminPill')}
+                    />
                 ) : null}
-                <Tooltip title={licenseBadge.tooltip}>
-                    <Tag color={licenseBadge.color} className="tenant-switcher-license-tag">
-                        {licenseBadge.label}
-                    </Tag>
-                </Tooltip>
+                <Tag color={licenseBadge.color} className="tenant-switcher-license-tag">
+                    {licenseBadge.label}
+                </Tag>
             </div>
         </div>
     );
@@ -173,19 +168,12 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     const isFiltering = searchQuery.length > 0;
     const normalizedCurrentId = currentTenantId?.trim().toLowerCase() ?? '';
 
-    const hostHint = useMemo(() => {
-        if (typeof window === 'undefined') return null;
-        const host = window.location.hostname;
-        if (!isLocalDevHostname(host)) return null;
-        return host;
-    }, []);
-
     const applySlugSwitch = useCallback((slug: string) => {
         persistTenantSlugAndRefresh(slug);
     }, []);
 
     const requestSwitch = useCallback(
-        (tenant: TenantListItemForSwitcher) => {
+        async (tenant: TenantListItemForSwitcher) => {
             if (isSuperAdminUser && tenantNeedsNoAdminWarning(tenant)) {
                 setOpen(false);
                 setSearch('');
@@ -194,6 +182,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
             }
             setOpen(false);
             setSearch('');
+            await persistCashRegisterOnTenantSwitch(tenant.id);
             applySlugSwitch(tenant.slug);
         },
         [isSuperAdminUser, applySlugSwitch, setOpen],
@@ -221,9 +210,6 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
     }
 
     const switchLabel = t('common.tenant.switchTenant');
-    const tooltipTitle = hostHint
-        ? t('adminShell.tenant.devSwitcher.tooltipHost', { host: hostHint })
-        : t('adminShell.tenant.devSwitcher.tooltipSuperAdmin');
 
     const dropdownContent = (
         <div
@@ -355,20 +341,18 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
                 classNames={{ root: "tenant-switcher-dropdown admin-header-dropdown" }}
                 getPopupContainer={getAdminHeaderPopupContainer}
             >
-                <Tooltip title={tooltipTitle}>
-                    <span className="tenant-switcher-trigger-wrap">
-                        <Button
-                            size="small"
-                            loading={isLoading}
-                            className={`tenant-switcher-trigger${compact ? ' tenant-switcher-compact-trigger' : ''}`}
-                            icon={<SwapOutlined />}
-                            aria-label={t('adminShell.tenant.devSwitcher.ariaLabel')}
-                            aria-expanded={open}
-                        >
-                            <span className="trigger-text">{switchLabel}</span>
-                        </Button>
-                    </span>
-                </Tooltip>
+                <span className="tenant-switcher-trigger-wrap">
+                    <Button
+                        size="small"
+                        loading={isLoading}
+                        className={`tenant-switcher-trigger${compact ? ' tenant-switcher-compact-trigger' : ''}`}
+                        icon={<SwapOutlined />}
+                        aria-label={t('adminShell.tenant.devSwitcher.ariaLabel')}
+                        aria-expanded={open}
+                    >
+                        <span className="trigger-text">{switchLabel}</span>
+                    </Button>
+                </span>
             </Dropdown>
             <TenantSwitcherNoAdminFlow
                 tenant={noAdminTenant}

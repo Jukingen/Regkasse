@@ -40,7 +40,6 @@ export function HeaderThemeQuickSwitch() {
         className="admin-header-icon-btn"
         aria-label={ariaLabel}
         icon={<BgColorsOutlined />}
-        title={ariaLabel}
       />
     </Dropdown>
   );

@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Dropdown, Tag, Tooltip } from 'antd';
+import { useCallback, useMemo, useState } from 'react';
+import { Button, Dropdown, Tag } from 'antd';
 import type { MenuProps } from 'antd';
 import { ShopOutlined, SwapOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
@@ -13,6 +13,7 @@ import {
     writeQuickCashRegisterId,
 } from '@/features/cash-registers/constants/quickSwitch';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { useCashRegisters } from '@/features/cash-registers/hooks/useCashRegisters';
 import {
     REGISTER_STATUS,
     rawRegisterStatus,
@@ -33,24 +34,33 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
     const { canViewCashRegisters } = usePermissions();
     const { tenantId, isSuperAdminUser, requiresTenantSelection } = useCurrentTenant();
 
-    const [activeRegisterId, setActiveRegisterId] = useState<string | null>(null);
-
-    useEffect(() => {
-        setActiveRegisterId(readQuickCashRegisterId());
-    }, []);
-
     const listAllTenants = isSuperAdminUser && !tenantId && !requiresTenantSelection;
+    const listEnabled =
+        canViewCashRegisters && (isSuperAdminUser ? !requiresTenantSelection : Boolean(tenantId));
 
-    const { registers, isLoading } = useAdminCashRegisterList({
-        tenantId: tenantId ?? undefined,
-        allowAllTenants: listAllTenants,
-        enabled: canViewCashRegisters && (isSuperAdminUser ? !requiresTenantSelection : Boolean(tenantId)),
+    const tenantScoped = useCashRegisters(tenantId ?? undefined, {
+        enabled: listEnabled && !listAllTenants,
+        syncQuickSwitch: true,
+    });
+
+    const allTenantsList = useAdminCashRegisterList({
+        allowAllTenants: true,
+        enabled: listEnabled && listAllTenants,
         pageSize: 50,
     });
 
+    const registers = listAllTenants ? allTenantsList.registers : tenantScoped.registers;
+    const isLoading = listAllTenants ? allTenantsList.isLoading : tenantScoped.isLoading;
+
+    const [allTenantsRegisterId, setAllTenantsRegisterId] = useState<string | null>(() =>
+        readQuickCashRegisterId(),
+    );
+
+    const selectedRegisterId = listAllTenants ? allTenantsRegisterId : tenantScoped.selectedRegisterId;
+
     const activeRegister = useMemo(
-        () => registers.find((row) => row.id === activeRegisterId) ?? null,
-        [activeRegisterId, registers],
+        () => registers.find((row) => row.id === selectedRegisterId) ?? null,
+        [registers, selectedRegisterId],
     );
 
     const statusShortLabel = useCallback(
@@ -72,10 +82,12 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
     const navigateToRegister = useCallback(
         (register: AdminCashRegisterListItem) => {
             writeQuickCashRegisterId(register.id);
-            setActiveRegisterId(register.id);
+            if (listAllTenants) {
+                setAllTenantsRegisterId(register.id);
+            }
             router.push(`/kassenverwaltung?${FA_QUICK_CASH_REGISTER_QUERY_PARAM}=${encodeURIComponent(register.id)}`);
         },
-        [router],
+        [listAllTenants, router],
     );
 
     const menuItems: MenuProps['items'] = useMemo(() => {
@@ -140,7 +152,6 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
     }
 
     const ariaLabel = t('adminShell.header.cashRegisterQuickSwitchAria');
-    const tooltipHint = t('adminShell.header.cashRegisterQuickSwitchHint');
     const buttonLabel = activeRegister?.registerNumber ?? t('adminShell.header.cashRegisterQuickSwitchLabel');
 
     return (
@@ -148,32 +159,30 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
             menu={{
                 items: menuItems,
                 onClick: handleMenuClick,
-                selectedKeys: activeRegisterId ? [activeRegisterId] : [],
+                selectedKeys: selectedRegisterId ? [selectedRegisterId] : [],
             }}
             trigger={['click']}
             placement="bottomRight"
-            classNames={{ root: "admin-header-dropdown" }}
+            classNames={{ root: 'admin-header-dropdown' }}
             getPopupContainer={getAdminHeaderPopupContainer}
         >
-            <Tooltip title={tooltipHint} placement="bottomRight" mouseEnterDelay={0.35}>
-                <span className="cash-register-quick-switch-trigger-wrap">
-                    <Button
-                        type="text"
-                        className="cash-register-quick-switch-trigger"
-                        icon={<ShopOutlined />}
-                        loading={isLoading}
-                        aria-label={ariaLabel}
-                        data-testid="admin-header-cash-register-quick-switch"
-                    >
-                        {!isMobile ? (
-                            <>
-                                <span className="cash-register-quick-switch-label">{buttonLabel}</span>
-                                <SwapOutlined aria-hidden />
-                            </>
-                        ) : null}
-                    </Button>
-                </span>
-            </Tooltip>
+            <span className="cash-register-quick-switch-trigger-wrap">
+                <Button
+                    type="text"
+                    className="cash-register-quick-switch-trigger"
+                    icon={<ShopOutlined />}
+                    loading={isLoading}
+                    aria-label={ariaLabel}
+                    data-testid="admin-header-cash-register-quick-switch"
+                >
+                    {!isMobile ? (
+                        <>
+                            <span className="cash-register-quick-switch-label">{buttonLabel}</span>
+                            <SwapOutlined aria-hidden />
+                        </>
+                    ) : null}
+                </Button>
+            </span>
         </Dropdown>
     );
 }

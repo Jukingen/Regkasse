@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, type KeyboardEvent } from 'react';
 import { BankOutlined, DownOutlined } from '@ant-design/icons';
-import { Tag, Tooltip } from 'antd';
+import { Tag } from 'antd';
 import { useRouter } from 'next/navigation';
 
 import { useHeaderTenantSwitcher } from '@/features/auth/components/HeaderTenantSwitcherContext';
@@ -17,7 +17,6 @@ export type TenantBadgeProps = {
 
 type TenantBadgeViewModel = {
     displayName: string;
-    tooltipText: string;
     navigatesToTenants: boolean;
     iconClassName: string;
 };
@@ -25,62 +24,44 @@ type TenantBadgeViewModel = {
 function buildTenantBadgeViewModel(input: {
     t: (key: string, params?: Record<string, string | number>) => string;
     tenantSlug: string | null | undefined;
-    tenantId: string | null | undefined;
     tenantName: string | null | undefined;
     isSuperAdminPlatformMode: boolean;
     isPlatformAdminHost: boolean;
     isImpersonating: boolean;
-    isDevTenantOverride: boolean;
 }): TenantBadgeViewModel {
     const {
         t,
         tenantSlug,
-        tenantId,
         tenantName,
         isSuperAdminPlatformMode,
         isPlatformAdminHost,
         isImpersonating,
-        isDevTenantOverride,
     } = input;
 
-    const tooltipParts: string[] = [];
     let displayName: string;
     let iconClassName = 'tenant-badge-icon';
     let navigatesToTenants = false;
 
     if (isSuperAdminPlatformMode) {
         displayName = t('adminShell.tenant.badgeSuperAdminMode');
-        tooltipParts.push(t('adminShell.tenant.superAdminModeBanner'));
-        tooltipParts.push(t('license.badge.superAdminMode.tooltip'));
         iconClassName = 'tenant-badge-icon tenant-badge-icon-super-admin';
         navigatesToTenants = !isImpersonating;
     } else if (isPlatformAdminHost && tenantSlug === 'admin') {
         displayName = t('adminShell.tenant.badgePlatformAdmin');
-        tooltipParts.push(t('adminShell.tenant.badgePlatformAdminTooltip'));
         iconClassName = 'tenant-badge-icon tenant-badge-icon-platform';
         navigatesToTenants = !isImpersonating;
     } else {
         const slugForLabel = tenantSlug ?? '—';
         const resolvedName = tenantName?.trim();
         displayName = resolvedName || slugForLabel;
-        tooltipParts.push(t('common.tenant.tenantDescription'));
-        tooltipParts.push(t('common.tenant.activeCompanyTooltip'));
-        if (resolvedName && resolvedName !== slugForLabel) {
-            tooltipParts.push(`${t('adminShell.tenant.info.slug')}: ${slugForLabel}`);
-        }
-        tooltipParts.push(t('adminShell.tenant.badge.tooltip', { id: tenantId?.trim() || '—' }));
     }
 
     if (isImpersonating) {
         iconClassName = 'tenant-badge-icon tenant-badge-icon-impersonating';
-        tooltipParts.push(t('adminShell.tenant.badgeImpersonatingTooltip'));
-    } else if (isDevTenantOverride) {
-        tooltipParts.push(t('adminShell.tenant.badgeDevOverrideTooltip'));
     }
 
     return {
         displayName,
-        tooltipText: tooltipParts.join(' · '),
         navigatesToTenants,
         iconClassName,
     };
@@ -93,13 +74,11 @@ export function TenantBadge({ compact = false }: TenantBadgeProps) {
     const devSwitcherAvailable = shouldShowHeaderDevTenantSwitch() && switcher.isAvailable;
     const {
         tenantSlug,
-        tenantId,
         tenantName,
         hasAuthToken,
         isSuperAdminPlatformMode,
         isPlatformAdminHost,
         isImpersonating,
-        isDevTenantOverride,
     } = useCurrentTenant();
 
     const view = useMemo(
@@ -107,22 +86,18 @@ export function TenantBadge({ compact = false }: TenantBadgeProps) {
             buildTenantBadgeViewModel({
                 t,
                 tenantSlug,
-                tenantId,
                 tenantName,
                 isSuperAdminPlatformMode,
                 isPlatformAdminHost,
                 isImpersonating,
-                isDevTenantOverride,
             }),
         [
             t,
             tenantSlug,
-            tenantId,
             tenantName,
             isSuperAdminPlatformMode,
             isPlatformAdminHost,
             isImpersonating,
-            isDevTenantOverride,
         ],
     );
 
@@ -185,22 +160,16 @@ export function TenantBadge({ compact = false }: TenantBadgeProps) {
                     </Tag>
                 ) : null}
                 {isDevelopment() ? (
-                    <Tooltip title={t('adminShell.tenant.badgeDevModeTooltip')}>
-                        <Tag color="orange" className="tenant-badge-dev-mode-tag">
-                            {t('adminShell.tenant.badgeDevModeTag')}
-                        </Tag>
-                    </Tooltip>
+                    <Tag color="orange" className="tenant-badge-dev-mode-tag">
+                        {t('adminShell.tenant.badgeDevModeTag')}
+                    </Tag>
                 ) : null}
             </div>
             <DownOutlined className="tenant-badge-chevron" aria-hidden />
         </div>
     );
 
-    return (
-        <Tooltip title={view.tooltipText} placement="bottom" mouseEnterDelay={0.35}>
-            <span className="tenant-badge-tooltip-trigger">{badge}</span>
-        </Tooltip>
-    );
+    return badge;
 }
 
 /** @deprecated Use `TenantBadge` */
