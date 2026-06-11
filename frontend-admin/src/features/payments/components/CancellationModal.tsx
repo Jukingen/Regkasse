@@ -43,7 +43,14 @@ function riskTagColor(risk: CancellationReasonRisk): string {
     }
 }
 
-export function CancellationModal({
+export function CancellationModal(props: CancellationModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <CancellationModalContent {...props} />;
+}
+
+function CancellationModalContent({
     payment,
     open,
     onClose,
@@ -183,7 +190,7 @@ export function CancellationModal({
                 danger: step === 'form',
                 disabled: disabled || (step === 'approval' && waitTimeSeconds <= 0),
             }}
-            destroyOnHidden
+            forceRender
             width={520}
         >
             <Alert

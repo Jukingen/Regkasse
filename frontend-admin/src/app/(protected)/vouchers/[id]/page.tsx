@@ -64,10 +64,33 @@ function statusColor(status: string): string {
 }
 
 export default function AdminVoucherDetailPage() {
-  const { message } = useAntdApp();
-
   const params = useParams();
   const id = typeof params?.id === 'string' ? params.id : '';
+  const { t } = useI18n();
+  const { hasPermission } = usePermissions();
+  const canRead = hasPermission(PERMISSIONS.VOUCHER_READ);
+
+  if (!canRead) {
+    return (
+      <AdminPageShell>
+        <Alert type="error" title={t('vouchers.list.permissionDenied')} showIcon />
+      </AdminPageShell>
+    );
+  }
+
+  if (!id) {
+    return (
+      <AdminPageShell>
+        <Alert type="error" title={t('vouchers.errors.loadFailed')} showIcon />
+      </AdminPageShell>
+    );
+  }
+
+  return <AdminVoucherDetailContent id={id} />;
+}
+
+function AdminVoucherDetailContent({ id }: { id: string }) {
+  const { message } = useAntdApp();
   const { t, formatLocale } = useI18n();
   const { hasPermission } = usePermissions();
   const canRead = hasPermission(PERMISSIONS.VOUCHER_READ);
@@ -122,22 +145,6 @@ export default function AdminVoucherDetailPage() {
         void message.error(t('vouchers.errors.verifyFailed'));
       });
   };
-
-  if (!canRead) {
-    return (
-      <AdminPageShell>
-        <Alert type="error" title={t('vouchers.list.permissionDenied')} showIcon />
-      </AdminPageShell>
-    );
-  }
-
-  if (!id) {
-    return (
-      <AdminPageShell>
-        <Alert type="error" title={t('vouchers.errors.loadFailed')} showIcon />
-      </AdminPageShell>
-    );
-  }
 
   return (
     <AdminPageShell>

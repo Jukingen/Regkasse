@@ -17,4 +17,6 @@ export interface TenantUserDto {
   role?: string | null;
   /** @nullable */
   userId?: string | null;
+  /** @nullable */
+  userName?: string | null;
 }

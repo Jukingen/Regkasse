@@ -5,13 +5,20 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { CancellationReasonCode } from './cancellationReasonCode';
 
 export interface CancelPaymentRequest {
+  /** @nullable */
+  approvalToken?: string | null;
   /**
    * @maxLength 64
    * @nullable
    */
   idempotencyKey?: string | null;
-  /** @minLength 1 */
+  /**
+   * @minLength 5
+   * @maxLength 500
+   */
   reason: string;
+  reasonCode: CancellationReasonCode;
 }

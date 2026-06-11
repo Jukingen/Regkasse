@@ -1,9 +1,12 @@
 using System.Text;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -59,6 +62,36 @@ public sealed class LicenseMiddlewareTests
         return await reader.ReadToEndAsync();
     }
 
+    private static IHostEnvironment CreateHostEnvironment(bool isDevelopment) =>
+        Mock.Of<IHostEnvironment>(e => e.EnvironmentName == (isDevelopment ? Environments.Development : Environments.Production));
+
+    private static IOptions<TseOptions> CreateTseOptions(string tseMode = "Device") =>
+        Options.Create(new TseOptions { TseMode = tseMode });
+
+    private static IDevelopmentModeService CreateDevelopmentMode(bool bypassLicense = false) =>
+        Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == bypassLicense);
+
+    private static IOptions<LicenseOptions> CreateLicenseOptions(bool enabled = true) =>
+        Options.Create(new LicenseOptions { Enabled = enabled });
+
+    private static Task InvokeMiddlewareAsync(
+        LicenseMiddleware sut,
+        DefaultHttpContext context,
+        Mock<ILicenseService> licenseService,
+        bool isDevelopment = false,
+        string tseMode = "Device",
+        bool bypassLicense = false,
+        bool licenseEnabled = true) =>
+        sut.InvokeAsync(
+            context,
+            licenseService.Object,
+            new DeploymentLicenseValidator(),
+            CreateTenantAccessor(),
+            CreateHostEnvironment(isDevelopment),
+            CreateTseOptions(tseMode),
+            CreateLicenseOptions(licenseEnabled),
+            CreateDevelopmentMode(bypassLicense));
+
     [Fact]
     public async Task InvokeAsync_DeploymentGraceReadOnly_BlocksWriteRoutes()
     {
@@ -72,11 +105,7 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            licenseService.Object,
-            new DeploymentLicenseValidator(),
-            CreateTenantAccessor());
+        await InvokeMiddlewareAsync(sut, context, licenseService);
 
         var body = await ReadBodyAsync(context);
         Assert.False(nextCalled);
@@ -97,11 +126,7 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            licenseService.Object,
-            new DeploymentLicenseValidator(),
-            CreateTenantAccessor());
+        await InvokeMiddlewareAsync(sut, context, licenseService);
 
         Assert.True(nextCalled);
     }
@@ -114,11 +139,7 @@ public sealed class LicenseMiddlewareTests
         var blockedContext = CreateContext("/api/auth/login", HttpMethods.Post);
         var sut = new LicenseMiddleware(_ => Task.CompletedTask);
 
-        await sut.InvokeAsync(
-            blockedContext,
-            licenseService.Object,
-            new DeploymentLicenseValidator(),
-            CreateTenantAccessor());
+        await InvokeMiddlewareAsync(sut, blockedContext, licenseService);
 
         var blockedBody = await ReadBodyAsync(blockedContext);
         Assert.Equal(StatusCodes.Status403Forbidden, blockedContext.Response.StatusCode);
@@ -132,13 +153,31 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await allowedSut.InvokeAsync(
-            allowedContext,
-            licenseService.Object,
-            new DeploymentLicenseValidator(),
-            CreateTenantAccessor());
+        await InvokeMiddlewareAsync(allowedSut, allowedContext, licenseService);
 
         Assert.True(nextCalled);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Development_SkipsAllLicenseEnforcement()
+    {
+        var snapshot = new LicenseStatusResponse(false, false, true, 0, Now.AddDays(-70), "machine");
+        var tenantStatus = new LicenseStatusInfo { CanAccess = false };
+        var licenseService = CreateLicenseService(snapshot, tenantStatus);
+        var context = CreateContext("/api/admin/products", HttpMethods.Post);
+        var nextCalled = false;
+        var sut = new LicenseMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeMiddlewareAsync(sut, context, licenseService, isDevelopment: true);
+
+        Assert.True(nextCalled);
+        licenseService.Verify(
+            x => x.ValidateAsync(It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -161,11 +200,7 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            licenseService.Object,
-            new DeploymentLicenseValidator(),
-            CreateTenantAccessor());
+        await InvokeMiddlewareAsync(sut, context, licenseService);
 
         var body = await ReadBodyAsync(context);
         Assert.False(nextCalled);
@@ -197,11 +232,7 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            licenseService.Object,
-            new DeploymentLicenseValidator(),
-            CreateTenantAccessor());
+        await InvokeMiddlewareAsync(sut, context, licenseService);
 
         Assert.True(nextCalled);
         Assert.Equal(tenantStatus.StatusMessage, context.Response.Headers[LicenseMiddleware.LicenseStatusHeaderName].ToString());
@@ -223,11 +254,7 @@ public sealed class LicenseMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            licenseService.Object,
-            new DeploymentLicenseValidator(),
-            CreateTenantAccessor());
+        await InvokeMiddlewareAsync(sut, context, licenseService);
 
         Assert.True(nextCalled);
         licenseService.Verify(

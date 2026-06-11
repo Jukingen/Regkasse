@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KasseAPI_Final.Models.Export;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Tse;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -94,7 +95,19 @@ internal static class RksvDepPrueftoolFixtureGenerator
         });
         File.WriteAllText(cryptoPath, cryptoJson);
 
-        return new PrueftoolFixturePaths(depPath, cryptoPath, compactJwss.Count);
+        var qrCodes = new List<string>(compactJwss.Count);
+        foreach (var jws in compactJwss)
+        {
+            if (!RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(jws, out var qr))
+                throw new InvalidOperationException("Failed to build BMF §9 QR wire format from fixture JWS.");
+            qrCodes.Add(qr);
+        }
+
+        var qrRepPath = Path.Combine(outputDirectory, "qr-code-rep.json");
+        var qrRepJson = JsonSerializer.Serialize(qrCodes, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(qrRepPath, qrRepJson);
+
+        return new PrueftoolFixturePaths(depPath, cryptoPath, qrRepPath, compactJwss.Count);
     }
 
     /// <summary>One-time helper to emit a valid PKCS#8 for embedding in <see cref="FixedPrueftoolTseKeyProvider"/>.</summary>
@@ -104,7 +117,11 @@ internal static class RksvDepPrueftoolFixtureGenerator
         return Convert.ToBase64String(ecdsa.ExportPkcs8PrivateKey());
     }
 
-    internal sealed record PrueftoolFixturePaths(string DepExportPath, string CryptoMaterialPath, int ReceiptCount);
+    internal sealed record PrueftoolFixturePaths(
+        string DepExportPath,
+        string CryptoMaterialPath,
+        string QrCodeRepPath,
+        int ReceiptCount);
 
     private sealed class CryptographicMaterialContainerDto
     {

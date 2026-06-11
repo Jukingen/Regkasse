@@ -7,14 +7,26 @@
  */
 
 export type GetApiAdminPaymentsParams = {
-startDate?: string;
-endDate?: string;
+StartDate?: string;
+EndDate?: string;
+MinAmount?: number;
+MaxAmount?: number;
+PaymentMethods?: string[];
+Statuses?: string[];
+CashRegisterId?: string;
+CustomerName?: string;
+CustomerEmail?: string;
+CashierId?: string;
+ReceiptNumber?: string;
+IsStorno?: boolean;
+IsRefund?: boolean;
+Page?: number;
+PageSize?: number;
+SortBy?: string;
+SortDirection?: string;
 method?: string;
 status?: string;
-cashRegisterId?: string;
-isStorno?: boolean;
-isRefund?: boolean;
-stornoReason?: string;
 pageNumber?: number;
 pageSize?: number;
+stornoReason?: string;
 };

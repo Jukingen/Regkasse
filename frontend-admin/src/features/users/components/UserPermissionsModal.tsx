@@ -43,7 +43,12 @@ function groupCatalogByGroup(catalog: PermissionCatalogItemDto[]): Map<string, P
   return map;
 }
 
-export function UserPermissionsModal({
+export function UserPermissionsModal(props: UserPermissionsModalProps) {
+  if (!props.open) return null;
+  return <UserPermissionsModalContent {...props} />;
+}
+
+function UserPermissionsModalContent({
   open,
   userId,
   userName,
@@ -55,7 +60,6 @@ export function UserPermissionsModal({
   const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<string>();
   const [pendingToggle, setPendingToggle] = useState<{ permission: string; isGranted: boolean } | null>(null);
-  const [overrideForm] = Form.useForm<OverrideFormValues>();
 
   const targetIsSuperAdmin = isSuperAdmin(userRole ?? undefined);
   const readOnly = targetIsSuperAdmin;
@@ -137,24 +141,24 @@ export function UserPermissionsModal({
     t,
   ]);
 
-  const submitToggle = useCallback(async () => {
-    if (!pendingToggle) return;
-    try {
-      const values = await overrideForm.validateFields();
-      await upsertMutation.mutateAsync({
-        permission: pendingToggle.permission,
-        isGranted: pendingToggle.isGranted,
-        reason: values.reason?.trim() || t('users.permissionsModal.defaultReason'),
-        expiresAt: values.expiresAt ? values.expiresAt.toISOString() : null,
-      });
-      message.success(t('users.permissionsModal.updateSuccess'));
-      setPendingToggle(null);
-      overrideForm.resetFields();
-    } catch (err) {
-      if (err && typeof err === 'object' && 'errorFields' in err) return;
-      message.error(t('users.permissionsModal.updateError'));
-    }
-  }, [pendingToggle, overrideForm, upsertMutation, t]);
+  const handleOverrideConfirm = useCallback(
+    async (values: OverrideFormValues) => {
+      if (!pendingToggle) return;
+      try {
+        await upsertMutation.mutateAsync({
+          permission: pendingToggle.permission,
+          isGranted: pendingToggle.isGranted,
+          reason: values.reason?.trim() || t('users.permissionsModal.defaultReason'),
+          expiresAt: values.expiresAt ? values.expiresAt.toISOString() : null,
+        });
+        message.success(t('users.permissionsModal.updateSuccess'));
+        setPendingToggle(null);
+      } catch {
+        message.error(t('users.permissionsModal.updateError'));
+      }
+    },
+    [pendingToggle, upsertMutation, t, message],
+  );
 
   const loading = effectiveQuery.isLoading || catalogQuery.isLoading;
   const error = effectiveQuery.isError || catalogQuery.isError;
@@ -166,7 +170,6 @@ export function UserPermissionsModal({
         open={open}
         onCancel={onClose}
         width={860}
-        destroyOnHidden
         footer={[
           <Button key="close" onClick={onClose}>
             {t('users.permissionsModal.close')}
@@ -216,37 +219,73 @@ export function UserPermissionsModal({
         )}
       </Modal>
 
-      <Modal
-        title={t('users.permissionsModal.confirmTitle')}
-        open={pendingToggle != null}
-        onCancel={() => {
-          setPendingToggle(null);
-          overrideForm.resetFields();
-        }}
-        onOk={() => void submitToggle()}
-        confirmLoading={upsertMutation.isPending}
-        destroyOnHidden
-      >
-        <Typography.Paragraph type="secondary">
-          {pendingToggle
-            ? t('users.permissionsModal.confirmBody', {
-                permission: resolvePermissionDisplayLabel(pendingToggle.permission, t),
-                status: pendingToggle.isGranted
-                  ? t('users.permissionsModal.statusGranted')
-                  : t('users.permissionsModal.statusDenied'),
-              })
-            : null}
-        </Typography.Paragraph>
-        <Form form={overrideForm} layout="vertical">
-          <Form.Item name="reason" label={t('users.permissionsModal.reasonLabel')}>
-            <Input.TextArea rows={2} maxLength={500} />
-          </Form.Item>
-          <Form.Item name="expiresAt" label={t('users.permissionsModal.expiresLabel')}>
-            <DatePicker className="w-full" format="DD.MM.YYYY" />
-          </Form.Item>
-        </Form>
-      </Modal>
+      {pendingToggle ? (
+        <PermissionOverrideConfirmModal
+          pendingToggle={pendingToggle}
+          onCancel={() => setPendingToggle(null)}
+          onConfirm={handleOverrideConfirm}
+          confirmLoading={upsertMutation.isPending}
+          t={t}
+        />
+      ) : null}
     </>
+  );
+}
+
+type PermissionOverrideConfirmModalProps = {
+  pendingToggle: { permission: string; isGranted: boolean };
+  onCancel: () => void;
+  onConfirm: (values: OverrideFormValues) => Promise<void>;
+  confirmLoading?: boolean;
+  t: (key: string, options?: Record<string, string | number>) => string;
+};
+
+function PermissionOverrideConfirmModal({
+  pendingToggle,
+  onCancel,
+  onConfirm,
+  confirmLoading,
+  t,
+}: PermissionOverrideConfirmModalProps) {
+  const [form] = Form.useForm<OverrideFormValues>();
+
+  const handleOk = () => {
+    void form
+      .validateFields()
+      .then((values) => onConfirm(values))
+      .catch(() => { /* validation shown on form */ });
+  };
+
+  const handleCancel = () => {
+    form.resetFields();
+    onCancel();
+  };
+
+  return (
+    <Modal
+      title={t('users.permissionsModal.confirmTitle')}
+      open
+      onCancel={handleCancel}
+      onOk={handleOk}
+      confirmLoading={confirmLoading}
+    >
+      <Typography.Paragraph type="secondary">
+        {t('users.permissionsModal.confirmBody', {
+          permission: resolvePermissionDisplayLabel(pendingToggle.permission, t),
+          status: pendingToggle.isGranted
+            ? t('users.permissionsModal.statusGranted')
+            : t('users.permissionsModal.statusDenied'),
+        })}
+      </Typography.Paragraph>
+      <Form form={form} layout="vertical">
+        <Form.Item name="reason" label={t('users.permissionsModal.reasonLabel')}>
+          <Input.TextArea rows={2} maxLength={500} />
+        </Form.Item>
+        <Form.Item name="expiresAt" label={t('users.permissionsModal.expiresLabel')}>
+          <DatePicker className="w-full" format="DD.MM.YYYY" />
+        </Form.Item>
+      </Form>
+    </Modal>
   );
 }
 

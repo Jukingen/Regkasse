@@ -1,8 +1,11 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.AdminTenants;
 
@@ -42,19 +45,31 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
     private readonly ILicenseIssuanceService _licenseIssuance;
     private readonly ILicenseReminderEmailSender _licenseReminderEmailSender;
     private readonly ILogger<AdminTenantLicenseService> _logger;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly TseOptions _tseOptions;
+    private readonly LicenseOptions _licenseOptions;
+    private readonly IDevelopmentModeService _developmentModeService;
 
     public AdminTenantLicenseService(
         AppDbContext db,
         ILicenseSyncService licenseSync,
         ILicenseIssuanceService licenseIssuance,
         ILicenseReminderEmailSender licenseReminderEmailSender,
-        ILogger<AdminTenantLicenseService> logger)
+        ILogger<AdminTenantLicenseService> logger,
+        IHostEnvironment hostEnvironment,
+        IOptions<TseOptions> tseOptions,
+        IOptions<LicenseOptions> licenseOptions,
+        IDevelopmentModeService developmentModeService)
     {
         _db = db;
         _licenseSync = licenseSync;
         _licenseIssuance = licenseIssuance;
         _licenseReminderEmailSender = licenseReminderEmailSender;
         _logger = logger;
+        _hostEnvironment = hostEnvironment;
+        _tseOptions = tseOptions.Value;
+        _licenseOptions = licenseOptions.Value;
+        _developmentModeService = developmentModeService;
     }
 
     public async Task<TenantLicenseOverviewDto?> GetOverviewAsync(
@@ -549,16 +564,32 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
             : LicenseFeatureIds.ParseJsonArrayOrDefault(issued.FeaturesJson);
     }
 
-    private static TenantLicenseStatusDto BuildStatus(
+    private TenantLicenseStatusDto BuildStatus(
         Tenant tenant,
         IReadOnlyList<TenantLicenseHistoryItemDto> history,
         IReadOnlyList<string> features)
     {
+        _ = history;
+
+        if (LicenseEnforcementPolicy.ShouldDisableEnforcement(
+                _hostEnvironment,
+                _tseOptions,
+                _developmentModeService,
+                _licenseOptions))
+        {
+            return new TenantLicenseStatusDto(
+                "active",
+                tenant.LicenseKey,
+                tenant.LicenseValidUntilUtc,
+                999,
+                InferTier(features),
+                features);
+        }
+
         var (days, kind) = TenantLicenseStatusMapper.ComputeKindAndDays(
             tenant.LicenseValidUntilUtc,
             tenant.LicenseKey);
 
-        _ = history;
         return new TenantLicenseStatusDto(
             kind,
             tenant.LicenseKey,

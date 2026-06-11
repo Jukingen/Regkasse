@@ -80,6 +80,36 @@ export function LicenseGenerationCard({
     enabledLicenseFeatures,
     prefill,
 }: Props) {
+    const { t } = useI18n();
+
+    if (!canGenerate) {
+        return (
+            <Card type="inner" title={t('license.generation.title')}>
+                <Alert type="info" showIcon title={t('license.generation.noPermission')} />
+            </Card>
+        );
+    }
+
+    if (!deploymentLicenseAllows(enabledLicenseFeatures, LICENSE_DEPLOYMENT_FEATURE.AdminLicenseManage)) {
+        return (
+            <Card type="inner" title={t('license.generation.title')}>
+                <Alert type="warning" showIcon title={t('license.generation.featureNotIncluded')} />
+            </Card>
+        );
+    }
+
+    return (
+        <LicenseGenerationFormCard
+            machineFingerprint={machineFingerprint}
+            prefill={prefill}
+        />
+    );
+}
+
+function LicenseGenerationFormCard({
+    machineFingerprint,
+    prefill,
+}: Pick<Props, 'machineFingerprint' | 'prefill'>) {
   const { message } = useAntdApp();
 
     const { t, formatLocale } = useI18n();
@@ -93,7 +123,10 @@ export function LicenseGenerationCard({
     const tomorrow = useMemo(() => dayjs().add(1, 'day').startOf('day'), []);
 
     useEffect(() => {
-        const nextMachineHash = prefill?.machineHashHex?.trim().toLowerCase();
+        if (!prefill) {
+            return;
+        }
+        const nextMachineHash = prefill.machineHashHex?.trim().toLowerCase();
         if (!nextMachineHash) {
             return;
         }
@@ -148,22 +181,6 @@ export function LicenseGenerationCard({
             message.error(serverMsg);
         },
     });
-
-    if (!canGenerate) {
-        return (
-            <Card type="inner" title={t('license.generation.title')}>
-                <Alert type="info" showIcon title={t('license.generation.noPermission')} />
-            </Card>
-        );
-    }
-
-    if (!deploymentLicenseAllows(enabledLicenseFeatures, LICENSE_DEPLOYMENT_FEATURE.AdminLicenseManage)) {
-        return (
-            <Card type="inner" title={t('license.generation.title')}>
-                <Alert type="warning" showIcon title={t('license.generation.featureNotIncluded')} />
-            </Card>
-        );
-    }
 
     const onFinish = (values: FormValues) => {
         const customerName = values.customerName?.trim() ?? '';
@@ -387,6 +404,7 @@ function IssuedLicenseResult({
     formatLocale: string;
     machineFingerprint: string;
 }) {
+    const { message } = useAntdApp();
     const { t } = useI18n();
     const jwt = pickJwt(issued);
 
@@ -518,6 +536,7 @@ async function copyTextToClipboard(value: string): Promise<boolean> {
 }
 
 function CopyableMono({ value, multiline = false }: { value: string; multiline?: boolean }) {
+    const { message } = useAntdApp();
     const { t } = useI18n();
 
     const onCopy = async () => {

@@ -74,6 +74,7 @@ namespace KasseAPI_Final.Services
         private readonly IHostEnvironment? _hostEnvironment;
         private readonly IOptionsMonitor<DevelopmentOptions>? _developmentOptions;
         private readonly IDevelopmentModeService? _developmentModeService;
+        private readonly LicenseOptions? _licenseOptions;
         private readonly IPaymentReversalApprovalService _reversalApproval;
 
         public PaymentService(
@@ -109,6 +110,7 @@ namespace KasseAPI_Final.Services
             IHostEnvironment? hostEnvironment = null,
             IOptionsMonitor<DevelopmentOptions>? developmentOptions = null,
             IDevelopmentModeService? developmentModeService = null,
+            IOptions<LicenseOptions>? licenseOptions = null,
             IPaymentReversalApprovalService? reversalApproval = null)
         {
             _context = context;
@@ -143,6 +145,7 @@ namespace KasseAPI_Final.Services
             _hostEnvironment = hostEnvironment;
             _developmentOptions = developmentOptions;
             _developmentModeService = developmentModeService;
+            _licenseOptions = licenseOptions?.Value;
             _reversalApproval = reversalApproval ?? NoOpPaymentReversalApprovalService.Instance;
         }
 
@@ -172,6 +175,15 @@ namespace KasseAPI_Final.Services
         {
             if (_licenseService is null)
                 return;
+
+            if (LicenseEnforcementPolicy.ShouldDisableEnforcement(
+                    _hostEnvironment,
+                    _tseOptions,
+                    _developmentModeService,
+                    _licenseOptions))
+            {
+                return;
+            }
 
             var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
             if (tenantId == Guid.Empty)
@@ -1388,14 +1400,12 @@ namespace KasseAPI_Final.Services
         /// QR payload (RKSV belegdaten veya NON_FISCAL_DEMO) ve demo/fiscal flag'leri üretir.
         /// tseRequired=false: Açık NON_FISCAL marker ile UI yanlışlıkla fiskal sanmasın.
         /// </summary>
-        private async Task<(string QrPayload, bool IsDemoFiscal, string TseProvider)> BuildQrPayloadAndFlagsAsync(PaymentDetails payment, bool tseRequired)
+        private Task<(string QrPayload, bool IsDemoFiscal, string TseProvider)> BuildQrPayloadAndFlagsAsync(
+            PaymentDetails payment,
+            bool tseRequired)
         {
             var isDemoFiscal = !tseRequired || _tseOptions.UseSoftTseWhenNoDevice;
             var tseProvider = tseRequired ? (_tseOptions.UseSoftTseWhenNoDevice ? "Demo" : "Device") : "None";
-            var kassenId = await _context.CashRegisters.AsNoTracking()
-                .Where(r => r.Id == payment.CashRegisterId)
-                .Select(r => r.RegisterNumber)
-                .FirstOrDefaultAsync() ?? "";
             var receiptNumber = payment.ReceiptNumber ?? "";
             var createdAt = payment.CreatedAt;
             var totalAmount = payment.TotalAmount;
@@ -1405,9 +1415,13 @@ namespace KasseAPI_Final.Services
             string qrPayload;
             if (!string.IsNullOrEmpty(signatureValue))
             {
-                var certInfo = await _tseService.GetTseCertificateInfoAsync(kassenId);
-                var certSerial = certInfo.CertificateNumber ?? "DEMO-CERT";
-                qrPayload = $"_R1-AT1_{kassenId}_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{formattedTotalAmount}_0.00_{certSerial}_{signatureValue}";
+                if (!RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(signatureValue, out qrPayload))
+                {
+                    _logger.LogWarning(
+                        "Unable to build RKSV §9 QR payload from compact JWS for payment {PaymentId}",
+                        payment.Id);
+                    qrPayload = string.Empty;
+                }
             }
             else
             {
@@ -1415,7 +1429,7 @@ namespace KasseAPI_Final.Services
                 qrPayload = $"NON_FISCAL_DEMO_{receiptNumber}_{createdAt:yyyy-MM-ddTHH:mm:ss}_{formattedTotalAmount}";
             }
 
-            return (qrPayload, isDemoFiscal, tseProvider);
+            return Task.FromResult((qrPayload, isDemoFiscal, tseProvider));
         }
 
         /// <summary>

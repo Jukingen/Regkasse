@@ -30,7 +30,10 @@ import type {
   RoleWithPermissionsDto,
   UpdateRolePermissionsRequest,
   UpdateUserRequest,
+  UpsertUserPermissionOverrideRequest,
+  UserEffectivePermissionsDto,
   UserInfo,
+  UserPermissionOverrideDto,
   UsersListResponse
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -558,6 +561,218 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiUserManagementIdReactivateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiUserManagementIdPermissionsOverrides = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserPermissionOverrideDto[]>(
+      {url: `/api/UserManagement/${id}/permissions/overrides`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiUserManagementIdPermissionsOverridesQueryKey = (id: string,) => {
+    return [`/api/UserManagement/${id}/permissions/overrides`] as const;
+    }
+
+    
+export const getGetApiUserManagementIdPermissionsOverridesQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementIdPermissionsOverridesQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>> = ({ signal }) => getApiUserManagementIdPermissionsOverrides(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiUserManagementIdPermissionsOverridesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>>
+export type GetApiUserManagementIdPermissionsOverridesQueryError = unknown
+
+export const useGetApiUserManagementIdPermissionsOverrides = <TData = Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsOverrides>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiUserManagementIdPermissionsOverridesQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiUserManagementIdPermissionsOverrides = (
+    id: string,
+    upsertUserPermissionOverrideRequest: UpsertUserPermissionOverrideRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<UserPermissionOverrideDto>(
+      {url: `/api/UserManagement/${id}/permissions/overrides`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: upsertUserPermissionOverrideRequest
+    },
+      options);
+    }
+  
+
+
+export const getPutApiUserManagementIdPermissionsOverridesMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementIdPermissionsOverrides>>, TError,{id: string;data: UpsertUserPermissionOverrideRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementIdPermissionsOverrides>>, TError,{id: string;data: UpsertUserPermissionOverrideRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiUserManagementIdPermissionsOverrides>>, {id: string;data: UpsertUserPermissionOverrideRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  putApiUserManagementIdPermissionsOverrides(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiUserManagementIdPermissionsOverridesMutationResult = NonNullable<Awaited<ReturnType<typeof putApiUserManagementIdPermissionsOverrides>>>
+    export type PutApiUserManagementIdPermissionsOverridesMutationBody = UpsertUserPermissionOverrideRequest
+    export type PutApiUserManagementIdPermissionsOverridesMutationError = unknown
+
+    export const usePutApiUserManagementIdPermissionsOverrides = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiUserManagementIdPermissionsOverrides>>, TError,{id: string;data: UpsertUserPermissionOverrideRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiUserManagementIdPermissionsOverrides>>,
+        TError,
+        {id: string;data: UpsertUserPermissionOverrideRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiUserManagementIdPermissionsOverridesMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiUserManagementIdPermissionsEffective = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserEffectivePermissionsDto>(
+      {url: `/api/UserManagement/${id}/permissions/effective`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiUserManagementIdPermissionsEffectiveQueryKey = (id: string,) => {
+    return [`/api/UserManagement/${id}/permissions/effective`] as const;
+    }
+
+    
+export const getGetApiUserManagementIdPermissionsEffectiveQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementIdPermissionsEffectiveQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>> = ({ signal }) => getApiUserManagementIdPermissionsEffective(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiUserManagementIdPermissionsEffectiveQueryResult = NonNullable<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>>
+export type GetApiUserManagementIdPermissionsEffectiveQueryError = unknown
+
+export const useGetApiUserManagementIdPermissionsEffective = <TData = Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementIdPermissionsEffective>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiUserManagementIdPermissionsEffectiveQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const deleteApiUserManagementIdPermissionsOverridesOverrideId = (
+    id: string,
+    overrideId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/UserManagement/${id}/permissions/overrides/${overrideId}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiUserManagementIdPermissionsOverridesOverrideIdMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>, TError,{id: string;overrideId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>, TError,{id: string;overrideId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>, {id: string;overrideId: string}> = (props) => {
+          const {id,overrideId} = props ?? {};
+
+          return  deleteApiUserManagementIdPermissionsOverridesOverrideId(id,overrideId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiUserManagementIdPermissionsOverridesOverrideIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>>
+    
+    export type DeleteApiUserManagementIdPermissionsOverridesOverrideIdMutationError = unknown
+
+    export const useDeleteApiUserManagementIdPermissionsOverridesOverrideId = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>, TError,{id: string;overrideId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiUserManagementIdPermissionsOverridesOverrideId>>,
+        TError,
+        {id: string;overrideId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiUserManagementIdPermissionsOverridesOverrideIdMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

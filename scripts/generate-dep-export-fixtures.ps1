@@ -26,14 +26,17 @@ finally {
 
 $dep = Join-Path $OutputDir "dep-export.json"
 $crypto = Join-Path $OutputDir "crypto-material.json"
+$qrRep = Join-Path $OutputDir "qr-code-rep.json"
 
-if (-not (Test-Path $dep) -or -not (Test-Path $crypto)) {
-    Write-Error "Expected fixture files were not created: $dep , $crypto"
+if (-not (Test-Path $dep) -or -not (Test-Path $crypto) -or -not (Test-Path $qrRep)) {
+    Write-Error "Expected fixture files were not created: $dep , $crypto , $qrRep"
 }
 
 Write-Host "Fixtures ready:" -ForegroundColor Green
 Write-Host "  $dep"
 Write-Host "  $crypto"
+Write-Host "  $qrRep"
 Write-Host ""
 Write-Host "Verify (requires JDK 17+):" -ForegroundColor Yellow
 Write-Host "  .\scripts\verify-rksv-dep-export.ps1 -UseFixtures"
+Write-Host "  .\scripts\verify-rksv-receipt-qr.ps1 -UseFixtures"

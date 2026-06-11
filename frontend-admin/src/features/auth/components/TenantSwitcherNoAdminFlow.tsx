@@ -14,6 +14,7 @@ import { useCreateUser } from '@/features/users/hooks/useCreateUser';
 import { getApiAdminTenantsQueryKey } from '@/features/tenancy/api/getApiAdminTenants';
 import type { TenantListItemForSwitcher } from '@/features/tenancy/hooks/useTenantListForSwitcher';
 import { persistTenantSlugAndRefresh } from '@/features/tenancy/services/setTenantAndRefresh';
+import { persistCashRegisterOnTenantSwitch } from '@/features/tenancy/services/persistCashRegisterOnTenantSwitch';
 import { useI18n } from '@/i18n';
 
 export type TenantSwitcherNoAdminFlowProps = {
@@ -73,19 +74,21 @@ export function TenantSwitcherNoAdminFlow({
         },
     });
 
-    const handleCreateComplete = useCallback(() => {
+    const handleCreateComplete = useCallback(async () => {
         setCreateOpen(false);
         closeAll();
         onCompleted?.();
         if (tenant) {
+            await persistCashRegisterOnTenantSwitch(tenant.id);
             persistTenantSlugAndRefresh(tenant.slug);
         }
     }, [closeAll, onCompleted, tenant]);
 
-    const handleSwitchDev = useCallback(() => {
+    const handleSwitchDev = useCallback(async () => {
         if (!tenant) return;
         closeAll();
         onCompleted?.();
+        await persistCashRegisterOnTenantSwitch(tenant.id);
         persistTenantSlugAndRefresh(tenant.slug);
     }, [tenant, closeAll, onCompleted]);
 

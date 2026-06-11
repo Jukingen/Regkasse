@@ -12,4 +12,9 @@ export interface CreateQuickTenantUserRequest {
    * @maxLength 64
    */
   role: string;
+  /**
+   * @maxLength 256
+   * @nullable
+   */
+  userName?: string | null;
 }

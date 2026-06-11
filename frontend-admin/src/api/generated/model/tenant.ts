@@ -29,6 +29,9 @@ export interface Tenant {
   email?: string | null;
   id?: string;
   isActive?: boolean;
+  /** @nullable */
+  licenseGracePeriodStartedAt?: string | null;
+  licenseGracePeriodUsedDays?: number;
   /**
    * @maxLength 100
    * @nullable

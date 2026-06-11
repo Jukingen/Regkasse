@@ -1,8 +1,11 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -53,11 +56,27 @@ public sealed class AuthServiceTests
         resolver.Setup(x => x.ResolveSnapshotForLoginAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AuthTenantSnapshot(TenantId.ToString("D"), "Locked Tenant", "locked-tenant", null, null));
 
-        var sut = new AuthService(db, resolver.Object);
+        var sut = CreateAuthService(db, resolver.Object);
         var result = await sut.ResolveLoginTenantAccessAsync("u1", isSuperAdmin: false, CancellationToken.None);
 
         Assert.False(result.Allowed);
         Assert.Equal(LoginTenantBlockedException.CodeTenantLicenseLockdown, result.Code);
+    }
+
+    [Fact]
+    public async Task ResolveLoginTenantAccessAsync_AllowsLoginInDevelopmentDuringTenantLockdown()
+    {
+        await using var db = CreateDb();
+        await SeedMembershipAsync(db, Now.AddDays(-120));
+
+        var resolver = new Mock<ILoginTenantResolver>();
+        resolver.Setup(x => x.ResolveSnapshotForLoginAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AuthTenantSnapshot(TenantId.ToString("D"), "Locked Tenant", "locked-tenant", null, null));
+
+        var sut = CreateAuthService(db, resolver.Object, isDevelopment: true);
+        var result = await sut.ResolveLoginTenantAccessAsync("u1", isSuperAdmin: false, CancellationToken.None);
+
+        Assert.True(result.Allowed);
     }
 
     [Fact]
@@ -70,10 +89,24 @@ public sealed class AuthServiceTests
         resolver.Setup(x => x.ResolveSnapshotForLoginAsync("u1", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new AuthTenantSnapshot(TenantId.ToString("D"), "Locked Tenant", "locked-tenant", null, null));
 
-        var sut = new AuthService(db, resolver.Object);
+        var sut = CreateAuthService(db, resolver.Object);
         var result = await sut.ResolveLoginTenantAccessAsync("u1", isSuperAdmin: true, CancellationToken.None);
 
         Assert.True(result.Allowed);
         Assert.NotNull(result.Snapshot);
+    }
+
+    private static AuthService CreateAuthService(
+        AppDbContext db,
+        ILoginTenantResolver resolver,
+        bool isDevelopment = false,
+        string tseMode = "Device")
+    {
+        var env = Mock.Of<IHostEnvironment>(e =>
+            e.EnvironmentName == (isDevelopment ? Environments.Development : Environments.Production));
+        var tseOptions = Options.Create(new TseOptions { TseMode = tseMode });
+        var devMode = Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false);
+        var licenseOptions = Options.Create(new KasseAPI_Final.Configuration.LicenseOptions { Enabled = true });
+        return new AuthService(db, resolver, env, tseOptions, devMode, licenseOptions);
     }
 }

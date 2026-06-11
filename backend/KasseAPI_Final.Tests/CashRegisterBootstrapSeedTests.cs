@@ -78,6 +78,7 @@ public class CashRegisterBootstrapSeedTests
             Assert.Equal("Hauptkasse", r.Location);
             Assert.Null(r.CurrentUserId);
             Assert.True(r.IsActive);
+            Assert.True(r.IsDefaultForTenant);
         });
         Assert.DoesNotContain(registers, r => r.TenantId == SuspendedTenantId);
     }

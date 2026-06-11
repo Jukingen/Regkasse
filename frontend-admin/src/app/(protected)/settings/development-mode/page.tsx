@@ -66,22 +66,77 @@ function formToPut(v: DevModeFormValues): DevelopmentModeSettingsPutDto {
 }
 
 export default function DevelopmentModeSettingsPage() {
-  const { message } = useAntdApp();
-
-  const { t, formatLocale } = useI18n();
-  const queryClient = useQueryClient();
-  const [form] = Form.useForm<DevModeFormValues>();
-
-  const enabled = Form.useWatch('enabled', form);
-
+  const { t } = useI18n();
   const { data, isLoading, isError, error, refetch, isFetching } = useQuery({
     queryKey: developmentModeSettingsQueryKey,
     queryFn: fetchDevelopmentModeSettings,
     staleTime: 30_000,
   });
 
+  const breadcrumbs = [
+    adminOverviewCrumb(t),
+    { title: t(ADMIN_NAV_LABEL_KEYS.settingsHub), href: '/settings' },
+    { title: t(ADMIN_NAV_LABEL_KEYS.developmentMode), href: '/settings/development-mode' },
+  ];
+
+  if (isLoading && !data) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AdminPageHeader title={t('developmentMode.page.title')} breadcrumbs={breadcrumbs} />
+        <Card>
+          <div style={{ textAlign: 'center', padding: 48 }}>
+            <Spin size="large" />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <AdminPageHeader title={t('developmentMode.page.title')} breadcrumbs={breadcrumbs} />
+        <Alert
+          type="error"
+          showIcon
+          title={t('developmentMode.page.loadError')}
+          description={error instanceof Error ? error.message : undefined}
+        />
+        <Button onClick={() => refetch()}>{t('common.buttons.retry')}</Button>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return (
+    <DevelopmentModeSettingsForm
+      data={data}
+      breadcrumbs={breadcrumbs}
+      isFetching={isFetching}
+    />
+  );
+}
+
+function DevelopmentModeSettingsForm({
+  data,
+  breadcrumbs,
+  isFetching,
+}: {
+  data: DevelopmentModeSettingsDto;
+  breadcrumbs: { title: string; href?: string }[];
+  isFetching: boolean;
+}) {
+  const { message } = useAntdApp();
+  const { t, formatLocale } = useI18n();
+  const queryClient = useQueryClient();
+  const [form] = Form.useForm<DevModeFormValues>();
+  const enabled = Form.useWatch('enabled', form);
+
   useEffect(() => {
-    if (data) form.setFieldsValue(dtoToForm(data));
+    form.setFieldsValue(dtoToForm(data));
   }, [data, form]);
 
   const featureOptions = useMemo(
@@ -129,40 +184,6 @@ export default function DevelopmentModeSettingsPage() {
     message.info(t('developmentMode.page.resetHint'));
   };
 
-  const breadcrumbs = [
-    adminOverviewCrumb(t),
-    { title: t(ADMIN_NAV_LABEL_KEYS.settingsHub), href: '/settings' },
-    { title: t(ADMIN_NAV_LABEL_KEYS.developmentMode), href: '/settings/development-mode' },
-  ];
-
-  if (isLoading && !data) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <AdminPageHeader title={t('developmentMode.page.title')} breadcrumbs={breadcrumbs} />
-        <Card>
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <Spin size="large" />
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <AdminPageHeader title={t('developmentMode.page.title')} breadcrumbs={breadcrumbs} />
-        <Alert
-          type="error"
-          showIcon
-          title={t('developmentMode.page.loadError')}
-          description={error instanceof Error ? error.message : undefined}
-        />
-        <Button onClick={() => refetch()}>{t('common.buttons.retry')}</Button>
-      </div>
-    );
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <AdminPageHeader title={t('developmentMode.page.title')} breadcrumbs={breadcrumbs} />
@@ -180,11 +201,9 @@ export default function DevelopmentModeSettingsPage() {
 
       <Card>
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-          {data && (
-            <Typography.Text type="secondary" style={{ display: 'block' }}>
-              {formatUpdatedLine(data)}
-            </Typography.Text>
-          )}
+          <Typography.Text type="secondary" style={{ display: 'block' }}>
+            {formatUpdatedLine(data)}
+          </Typography.Text>
 
           <Form<DevModeFormValues>
             form={form}

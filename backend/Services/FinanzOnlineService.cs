@@ -572,7 +572,7 @@ namespace KasseAPI_Final.Services
         }
 
         /// <summary>
-        /// Receipt QrCodePayload nadiren DEP satırı ile aynıdır; yalnızca şema desenine uyan metin RKDB için kullanılır.
+        /// Receipt QrCodePayload includes trailing compact JWS, so it does not match the RKDB beleg DEP segment pattern alone.
         /// </summary>
         private async Task<FinanzOnlineRkdbBelegpruefungCommand?> TryResolveRkdbBelegpruefungAsync(Invoice invoice)
         {

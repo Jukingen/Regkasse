@@ -35,6 +35,7 @@ namespace KasseAPI_Final.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ICashRegisterShiftService _cashRegisterShift;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly ICashRegisterManagementService _cashRegisterManagement;
         private readonly ICashRegisterListEnrichmentService _enrichment;
 
@@ -44,6 +45,7 @@ namespace KasseAPI_Final.Controllers
             UserManager<ApplicationUser> userManager,
             ICashRegisterShiftService cashRegisterShift,
             ISettingsTenantResolver settingsTenantResolver,
+            ICurrentTenantAccessor tenantAccessor,
             ICashRegisterManagementService cashRegisterManagement,
             ICashRegisterListEnrichmentService enrichment)
         {
@@ -52,6 +54,7 @@ namespace KasseAPI_Final.Controllers
             _userManager = userManager;
             _cashRegisterShift = cashRegisterShift;
             _settingsTenantResolver = settingsTenantResolver;
+            _tenantAccessor = tenantAccessor;
             _cashRegisterManagement = cashRegisterManagement;
             _enrichment = enrichment;
         }
@@ -108,6 +111,39 @@ namespace KasseAPI_Final.Controllers
             {
                 _logger.LogError(ex, "Kasalar getirilirken bir hata oluştu");
                 return StatusCode(500, new { message = "Kasalar getirilirken bir hata oluştu", error = ex.Message });
+            }
+        }
+
+        /// <summary>Active registers for the selected mandant; default register is listed first.</summary>
+        [HasPermission(AppPermissions.CashRegisterView)]
+        [HttpGet("by-tenant")]
+        [ProducesResponseType(typeof(IReadOnlyList<CashRegisterDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<IReadOnlyList<CashRegisterDto>>> GetCashRegistersByTenant(
+            CancellationToken cancellationToken)
+        {
+            if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+                return BadRequest(new { message = "No tenant selected" });
+
+            try
+            {
+                var registers = await _context.CashRegisters
+                    .AsNoTracking()
+                    .Include(r => r.Tenant)
+                    .Where(r => r.TenantId == tenantId && r.IsActive)
+                    .OrderByDescending(r => r.IsDefaultForTenant)
+                    .ThenBy(r => r.RegisterNumber)
+                    .ToListAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                var dtos = registers.Select(MapToCashRegisterDto).ToList();
+                await _enrichment.ApplyAsync(dtos, registers, cancellationToken).ConfigureAwait(false);
+                return Ok(dtos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Cash registers by tenant list failed for TenantId={TenantId}", tenantId);
+                return StatusCode(500, new { message = "Failed to load cash registers", error = ex.Message });
             }
         }
 
@@ -328,6 +364,30 @@ namespace KasseAPI_Final.Controllers
                 return StatusCode(500, new { message = "İşlemler getirilirken bir hata oluştu", error = ex.Message });
             }
         }
+
+        private static CashRegisterDto MapToCashRegisterDto(CashRegister register) =>
+            new()
+            {
+                Id = register.Id,
+                TenantId = register.TenantId,
+                TenantName = register.Tenant?.Name,
+                TenantSlug = register.Tenant?.Slug,
+                RegisterNumber = register.RegisterNumber,
+                Location = register.Location,
+                Status = register.Status,
+                StartingBalance = register.StartingBalance,
+                CurrentBalance = register.CurrentBalance,
+                LastBalanceUpdate = register.LastBalanceUpdate,
+                CurrentUserId = register.CurrentUserId,
+                IsActive = register.IsActive,
+                IsDefaultForTenant = register.IsDefaultForTenant,
+                DecommissionedAtUtc = register.DecommissionedAtUtc,
+                DecommissionReason = register.DecommissionReason,
+                CreatedAt = register.CreatedAt,
+                CreatedBy = register.CreatedBy,
+                UpdatedAt = register.UpdatedAt,
+                UpdatedBy = register.UpdatedBy,
+            };
     }
 
     // DTOs

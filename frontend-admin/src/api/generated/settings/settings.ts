@@ -27,9 +27,11 @@ import type {
   PutApiSettingsTaxRatesBodyOne,
   PutApiSettingsTaxRatesBodyThree,
   PutApiSettingsTaxRatesBodyTwo,
+  SessionSettingsDto,
   SystemSettings,
   UpdateCashRegisterSettingsRequest,
   UpdateNotificationSettingsRequest,
+  UpdateSessionSettingsRequest,
   UpdateSettingsRequest
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -141,6 +143,112 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiSettingsSession = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<SessionSettingsDto>(
+      {url: `/api/Settings/session`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiSettingsSessionQueryKey = () => {
+    return [`/api/Settings/session`] as const;
+    }
+
+    
+export const getGetApiSettingsSessionQueryOptions = <TData = Awaited<ReturnType<typeof getApiSettingsSession>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsSession>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiSettingsSessionQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiSettingsSession>>> = ({ signal }) => getApiSettingsSession(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsSession>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiSettingsSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getApiSettingsSession>>>
+export type GetApiSettingsSessionQueryError = unknown
+
+export const useGetApiSettingsSession = <TData = Awaited<ReturnType<typeof getApiSettingsSession>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiSettingsSession>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiSettingsSessionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiSettingsSession = (
+    updateSessionSettingsRequest: UpdateSessionSettingsRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Settings/session`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: updateSessionSettingsRequest
+    },
+      options);
+    }
+  
+
+
+export const getPutApiSettingsSessionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsSession>>, TError,{data: UpdateSessionSettingsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsSession>>, TError,{data: UpdateSessionSettingsRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiSettingsSession>>, {data: UpdateSessionSettingsRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiSettingsSession(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiSettingsSessionMutationResult = NonNullable<Awaited<ReturnType<typeof putApiSettingsSession>>>
+    export type PutApiSettingsSessionMutationBody = UpdateSessionSettingsRequest
+    export type PutApiSettingsSessionMutationError = unknown
+
+    export const usePutApiSettingsSession = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsSession>>, TError,{data: UpdateSessionSettingsRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiSettingsSession>>,
+        TError,
+        {data: UpdateSessionSettingsRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiSettingsSessionMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

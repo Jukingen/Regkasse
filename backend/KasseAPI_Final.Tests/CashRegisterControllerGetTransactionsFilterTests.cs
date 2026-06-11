@@ -52,6 +52,7 @@ public sealed class CashRegisterControllerGetTransactionsFilterTests
             CreateTestUserManager(),
             shift,
             TenantTestDoubles.PrimaryTenantResolver,
+            TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
             Mock.Of<ICashRegisterManagementService>(),
             Mock.Of<ICashRegisterListEnrichmentService>());
         c.ControllerContext = new ControllerContext

@@ -30,7 +30,11 @@ public partial class PaymentService
         if (IsVoucherPaymentForOfflineQueue(request))
             throw new InvalidOperationException("Voucher payments cannot be processed offline.");
 
-        var max = Math.Clamp(_tseOptions.MaxOfflineTransactionsPerCashRegister, 1, 10000);
+        var max = LicenseEnforcementPolicy.GetMaxOfflineTransactionsPerCashRegister(
+            _hostEnvironment,
+            _tseOptions,
+            _developmentModeService,
+            _licenseOptions);
         var pendingCount = await _context.OfflineTransactions.CountAsync(x =>
                 x.CashRegisterId == resolvedCashRegisterId &&
                 x.Status == OfflineTransactionStatus.NonFiscalPending)

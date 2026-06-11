@@ -94,6 +94,7 @@ public static class CashRegisterBootstrapSeed
                 Status = RegisterStatus.Closed,
                 CurrentUserId = null,
                 IsActive = true,
+                IsDefaultForTenant = true,
                 CreatedAt = now,
                 UpdatedAt = now
             })

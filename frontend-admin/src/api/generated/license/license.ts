@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query'
 import type {
   ActivateLicenseRequest,
+  GetApiLicenseStatusParams,
   LicenseActivationResult,
   LicenseFeaturesDto,
   LicensePublicStatusDto
@@ -31,33 +32,34 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 export const getApiLicenseStatus = (
-    
+    params?: GetApiLicenseStatusParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
       return customInstance<LicensePublicStatusDto>(
-      {url: `/api/license/status`, method: 'GET', signal
+      {url: `/api/license/status`, method: 'GET',
+        params, signal
     },
       options);
     }
   
 
-export const getGetApiLicenseStatusQueryKey = () => {
-    return [`/api/license/status`] as const;
+export const getGetApiLicenseStatusQueryKey = (params?: GetApiLicenseStatusParams,) => {
+    return [`/api/license/status`, ...(params ? [params]: [])] as const;
     }
 
     
-export const getGetApiLicenseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiLicenseStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiLicenseStatus>>, TError = unknown>(params?: GetApiLicenseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseStatusQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetApiLicenseStatusQueryKey(params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseStatus>>> = ({ signal }) => getApiLicenseStatus(requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiLicenseStatus>>> = ({ signal }) => getApiLicenseStatus(params, requestOptions, signal);
 
       
 
@@ -70,11 +72,11 @@ export type GetApiLicenseStatusQueryResult = NonNullable<Awaited<ReturnType<type
 export type GetApiLicenseStatusQueryError = unknown
 
 export const useGetApiLicenseStatus = <TData = Awaited<ReturnType<typeof getApiLicenseStatus>>, TError = unknown>(
-  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+ params?: GetApiLicenseStatusParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiLicenseStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetApiLicenseStatusQueryOptions(options)
+  const queryOptions = getGetApiLicenseStatusQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

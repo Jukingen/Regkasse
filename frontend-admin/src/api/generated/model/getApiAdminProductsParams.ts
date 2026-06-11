@@ -5,8 +5,28 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { StockFilterType } from './stockFilterType';
 
 export type GetApiAdminProductsParams = {
+SearchTerm?: string;
+SearchInName?: boolean;
+SearchInDescription?: boolean;
+SearchInBarcode?: boolean;
+MinPrice?: number;
+MaxPrice?: number;
+StockStatus?: StockFilterType;
+MinStock?: number;
+MaxStock?: number;
+TaxTypes?: number[];
+CategoryIds?: string[];
+IsActive?: boolean;
+IsTaxable?: boolean;
+CreatedFrom?: string;
+CreatedTo?: string;
+SortBy?: string;
+SortDirection?: string;
+Page?: number;
+PageSize?: number;
 pageNumber?: number;
 pageSize?: number;
 categoryId?: string;

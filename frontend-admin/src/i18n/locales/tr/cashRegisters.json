@@ -154,6 +154,7 @@
     "loadError": "Yükleme hatası",
     "loadErrorTooltip": "Kasa listesi yüklenemedi",
     "empty": "Kasa yok",
-    "mandantHeader": "Kiracı: {{name}} ({{slug}})"
+    "mandantHeader": "Kiracı: {{name}} ({{slug}})",
+    "defaultTag": "Varsayılan"
   }
 }

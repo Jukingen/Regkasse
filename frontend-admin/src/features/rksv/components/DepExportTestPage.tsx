@@ -93,11 +93,136 @@ function formatRegisterLabel(registerNumber?: string, location?: string, id?: st
     return id ? `${id.slice(0, 8)}…` : '—';
 }
 
+type DepExportSchedulesTabProps = {
+    tp: (path: string) => string;
+    formatLocale: string;
+    selectedRegisterId?: string;
+    schedules: DepExportScheduleItem[] | undefined;
+    schedulesLoading: boolean;
+    onRefetchSchedules: () => Promise<unknown>;
+};
+
+function DepExportSchedulesTab({
+    tp,
+    formatLocale,
+    selectedRegisterId,
+    schedules,
+    schedulesLoading,
+    onRefetchSchedules,
+}: DepExportSchedulesTabProps) {
+    const { message } = useAntdApp();
+    const queryClient = useQueryClient();
+    const [scheduleForm] = Form.useForm<ScheduleFormValues>();
+    const [scheduleSaving, setScheduleSaving] = useState(false);
+
+    const handleScheduleExport = async (values: ScheduleFormValues) => {
+        if (!selectedRegisterId) {
+            message.warning(tp('selectRegisterWarning'));
+            return;
+        }
+
+        setScheduleSaving(true);
+        try {
+            await createDepExportSchedule({
+                cashRegisterId: selectedRegisterId,
+                scheduleType: values.scheduleType,
+                dayOfMonth: DEFAULT_SCHEDULE_DAY_OF_MONTH,
+                timeOfDay: DEFAULT_SCHEDULE_TIME_OF_DAY,
+                recipientEmails: values.recipientEmails?.trim() || null,
+            });
+            scheduleForm.resetFields();
+            await onRefetchSchedules();
+            void queryClient.invalidateQueries({ queryKey: depExportSchedulesQueryKey });
+            message.success(tp('scheduleCreated'));
+        } catch {
+            message.error(tp('scheduleCreateFailed'));
+        } finally {
+            setScheduleSaving(false);
+        }
+    };
+
+    const handleDeactivateSchedule = async (scheduleId: string) => {
+        try {
+            await deactivateDepExportSchedule(scheduleId);
+            await onRefetchSchedules();
+            message.success(tp('scheduleDeactivated'));
+        } catch {
+            message.error(tp('scheduleDeactivateFailed'));
+        }
+    };
+
+    const scheduleColumns: ColumnsType<DepExportScheduleItem> = [
+        { title: tp('scheduleColumnType'), dataIndex: 'scheduleType', key: 'scheduleType' },
+        {
+            title: tp('scheduleColumnNextRun'),
+            dataIndex: 'nextRunAt',
+            key: 'nextRunAt',
+            render: (v: string | null | undefined) =>
+                v ? formatDateTime(v, formatLocale) : '—',
+        },
+        {
+            title: tp('scheduleRecipientsPlaceholder'),
+            dataIndex: 'recipientEmails',
+            key: 'recipientEmails',
+            render: (v: string | null | undefined) => v ?? '—',
+        },
+        {
+            title: tp('historyColumnActions'),
+            key: 'actions',
+            render: (_, row) => (
+                <Button size="small" danger onClick={() => void handleDeactivateSchedule(row.id)}>
+                    {tp('scheduleDeactivateButton')}
+                </Button>
+            ),
+        },
+    ];
+
+    return (
+        <Card size="small">
+            <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+                <Alert type="info" showIcon title={tp('scheduleTitle')} description={tp('scheduleDescription')} />
+                <Form
+                    form={scheduleForm}
+                    layout="vertical"
+                    onFinish={(values) => void handleScheduleExport(values)}
+                    initialValues={{ scheduleType: 'Monthly' }}
+                >
+                    <Form.Item name="scheduleType" label={tp('schedulePeriodPlaceholder')}>
+                        <Select
+                            placeholder={tp('schedulePeriodPlaceholder')}
+                            options={[
+                                { value: 'Daily', label: tp('scheduleTypeDaily') },
+                                { value: 'Weekly', label: tp('scheduleTypeWeekly') },
+                                { value: 'Monthly', label: tp('scheduleTypeMonthly') },
+                                { value: 'Yearly', label: tp('scheduleTypeYearly') },
+                            ]}
+                        />
+                    </Form.Item>
+                    <Form.Item name="recipientEmails" label={tp('scheduleRecipientsPlaceholder')}>
+                        <Input placeholder={tp('scheduleRecipientsPlaceholder')} />
+                    </Form.Item>
+                    <Form.Item>
+                        <Button type="primary" htmlType="submit" loading={scheduleSaving} disabled={!selectedRegisterId}>
+                            {tp('scheduleSubmitButton')}
+                        </Button>
+                    </Form.Item>
+                </Form>
+                {schedulesLoading ? (
+                    <Spin />
+                ) : schedules?.length ? (
+                    <Table rowKey="id" size="small" pagination={false} dataSource={schedules} columns={scheduleColumns} />
+                ) : (
+                    <Empty description={tp('scheduleEmpty')} />
+                )}
+            </Space>
+        </Card>
+    );
+}
+
 export function DepExportTestPage() {
     const { t, formatLocale } = useI18n();
     const { message } = useAntdApp();
     const queryClient = useQueryClient();
-    const [scheduleForm] = Form.useForm<ScheduleFormValues>();
     const tp = useCallback((path: string) => t(`rksvHub.depExportPage.${path}`), [t]);
 
     const [selectedRegisterId, setSelectedRegisterId] = useState<string | undefined>();
@@ -111,7 +236,6 @@ export function DepExportTestPage() {
     const [cryptoMaterial, setCryptoMaterial] = useState<CryptoMaterial | null>(null);
     const [activeTab, setActiveTab] = useState('export');
     const [historyPage, setHistoryPage] = useState(1);
-    const [scheduleSaving, setScheduleSaving] = useState(false);
     const [viewingHistory, setViewingHistory] = useState<DepExportHistoryItem | null>(null);
     const [viewingHistoryId, setViewingHistoryId] = useState<string | null>(null);
 
@@ -235,32 +359,6 @@ export function DepExportTestPage() {
         message.info(tp('historyParamsLoaded'));
     };
 
-    const handleScheduleExport = async (values: ScheduleFormValues) => {
-        if (!selectedRegisterId) {
-            message.warning(tp('selectRegisterWarning'));
-            return;
-        }
-
-        setScheduleSaving(true);
-        try {
-            await createDepExportSchedule({
-                cashRegisterId: selectedRegisterId,
-                scheduleType: values.scheduleType,
-                dayOfMonth: DEFAULT_SCHEDULE_DAY_OF_MONTH,
-                timeOfDay: DEFAULT_SCHEDULE_TIME_OF_DAY,
-                recipientEmails: values.recipientEmails?.trim() || null,
-            });
-            scheduleForm.resetFields();
-            await refetchSchedules();
-            void queryClient.invalidateQueries({ queryKey: depExportSchedulesQueryKey });
-            message.success(tp('scheduleCreated'));
-        } catch {
-            message.error(tp('scheduleCreateFailed'));
-        } finally {
-            setScheduleSaving(false);
-        }
-    };
-
     const downloadExport = async (row: DepExportHistoryItem) => {
         if (!row.hasStoredFile) {
             message.info(tp('historyDownloadUnavailable'));
@@ -290,16 +388,6 @@ export function DepExportTestPage() {
         const color =
             status === 'Completed' ? 'green' : status === 'Failed' ? 'red' : status === 'Processing' ? 'blue' : 'default';
         return <Tag color={color}>{status}</Tag>;
-    };
-
-    const handleDeactivateSchedule = async (scheduleId: string) => {
-        try {
-            await deactivateDepExportSchedule(scheduleId);
-            await refetchSchedules();
-            message.success(tp('scheduleDeactivated'));
-        } catch {
-            message.error(tp('scheduleDeactivateFailed'));
-        }
     };
 
     const historyColumns: ColumnsType<DepExportHistoryItem> = [
@@ -350,32 +438,6 @@ export function DepExportTestPage() {
                         onClick={() => void viewExport(row.id)}
                     />
                 </Space>
-            ),
-        },
-    ];
-
-    const scheduleColumns: ColumnsType<DepExportScheduleItem> = [
-        { title: tp('scheduleColumnType'), dataIndex: 'scheduleType', key: 'scheduleType' },
-        {
-            title: tp('scheduleColumnNextRun'),
-            dataIndex: 'nextRunAt',
-            key: 'nextRunAt',
-            render: (v: string | null | undefined) =>
-                v ? formatDateTime(v, formatLocale) : '—',
-        },
-        {
-            title: tp('scheduleRecipientsPlaceholder'),
-            dataIndex: 'recipientEmails',
-            key: 'recipientEmails',
-            render: (v: string | null | undefined) => v ?? '—',
-        },
-        {
-            title: tp('historyColumnActions'),
-            key: 'actions',
-            render: (_, row) => (
-                <Button size="small" danger onClick={() => void handleDeactivateSchedule(row.id)}>
-                    {tp('scheduleDeactivateButton')}
-                </Button>
             ),
         },
     ];
@@ -595,53 +657,25 @@ export function DepExportTestPage() {
         </Card>
     );
 
-    const schedulesTab = (
-        <Card size="small">
-            <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-                <Alert type="info" showIcon title={tp('scheduleTitle')} description={tp('scheduleDescription')} />
-                <Form
-                    form={scheduleForm}
-                    layout="vertical"
-                    onFinish={(values) => void handleScheduleExport(values)}
-                    initialValues={{ scheduleType: 'Monthly' }}
-                >
-                    <Form.Item name="scheduleType" label={tp('schedulePeriodPlaceholder')}>
-                        <Select
-                            placeholder={tp('schedulePeriodPlaceholder')}
-                            options={[
-                                { value: 'Daily', label: tp('scheduleTypeDaily') },
-                                { value: 'Weekly', label: tp('scheduleTypeWeekly') },
-                                { value: 'Monthly', label: tp('scheduleTypeMonthly') },
-                                { value: 'Yearly', label: tp('scheduleTypeYearly') },
-                            ]}
-                        />
-                    </Form.Item>
-                    <Form.Item name="recipientEmails" label={tp('scheduleRecipientsPlaceholder')}>
-                        <Input placeholder={tp('scheduleRecipientsPlaceholder')} />
-                    </Form.Item>
-                    <Form.Item>
-                        <Button type="primary" htmlType="submit" loading={scheduleSaving} disabled={!selectedRegisterId}>
-                            {tp('scheduleSubmitButton')}
-                        </Button>
-                    </Form.Item>
-                </Form>
-                {schedulesLoading ? (
-                    <Spin />
-                ) : schedules?.length ? (
-                    <Table rowKey="id" size="small" pagination={false} dataSource={schedules} columns={scheduleColumns} />
-                ) : (
-                    <Empty description={tp('scheduleEmpty')} />
-                )}
-            </Space>
-        </Card>
-    );
-
     const tabItems = [
         { key: 'export', label: tp('tabExport'), children: exportTab },
         { key: 'verify', label: tp('tabVerify'), children: verifyTab },
         { key: 'certificate', label: tp('tabCertificate'), children: certificateTab },
         { key: 'history', label: tp('tabHistory'), children: historyTab },
-        { key: 'schedule', label: tp('tabSchedules'), children: schedulesTab },
+        {
+            key: 'schedule',
+            label: tp('tabSchedules'),
+            children: (
+                <DepExportSchedulesTab
+                    tp={tp}
+                    formatLocale={formatLocale}
+                    selectedRegisterId={selectedRegisterId}
+                    schedules={schedules}
+                    schedulesLoading={schedulesLoading}
+                    onRefetchSchedules={refetchSchedules}
+                />
+            ),
+        },
     ];
 
     return (

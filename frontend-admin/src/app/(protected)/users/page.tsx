@@ -6,8 +6,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  * Table: name, email, role, branch, status, last login, actions.
  * Filters: role, status, branch, search. Drawer create/edit, deactivate (reason), reactivate, activity timeline tab.
  */
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Modal, Card, Typography, Tag, Space, Button, Select, Form, Input, Alert, Empty, Flex, Tooltip, Descriptions } from 'antd';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { Modal, Card, Typography, Tag, Space, Button, Select, Alert, Empty, Flex, Tooltip, Descriptions } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -54,6 +54,11 @@ import { UsersTable } from '@/features/users/components/UsersTable';
 import { UserFormDrawer, type UserFormSubmitValues } from '@/features/users/components/UserFormDrawer';
 import { RoleManagementDrawer } from '@/features/users/components/RoleManagementDrawer';
 import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
+import {
+    CreateRoleModal,
+    DeactivateUserModal,
+    ResetPasswordUserModal,
+} from '@/features/users/components/UsersPageActionModals';
 import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
 import { createUsersFormRules } from '@/features/users/constants/validation';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
@@ -222,35 +227,39 @@ export default function UsersPage() {
 
     useEffect(() => {
         if (isSuperAdminLayout && pathname === '/users') {
-            const search = typeof window !== 'undefined' ? window.location.search : '';
-            router.replace(`/admin/users${search}`);
+            const params = new URLSearchParams(
+                typeof window !== 'undefined' ? window.location.search : '',
+            );
+            params.delete('create');
+            params.delete('platform');
+            const search = params.toString();
+            router.replace(`/admin/users${search ? `?${search}` : ''}`);
         }
     }, [isSuperAdminLayout, pathname, router]);
 
-    /** Deep links from global command palette (`?create=1`, `?userId=`). */
+    /** Strip command-palette query params; user detail deep link only — never auto-open create modal. */
+    const paletteDeepLinkHandledRef = useRef(false);
     useEffect(() => {
         if (!policy.canView) return;
         const create = searchParams.get('create');
-        const platform = searchParams.get('platform');
         const userId = searchParams.get('userId')?.trim();
         const hasPaletteParams = create === '1' || Boolean(userId);
-        if (!hasPaletteParams) return;
+        if (!hasPaletteParams) {
+            paletteDeepLinkHandledRef.current = false;
+            return;
+        }
+        if (paletteDeepLinkHandledRef.current) return;
+        paletteDeepLinkHandledRef.current = true;
 
         const basePath = pathname?.startsWith('/admin/users') ? '/admin/users' : '/users';
-
-        if (create === '1' && policy.canCreate) {
-            setCreatePlatformMode(platform === '1' && isSuperAdminLayout);
-            setCreateOpen(true);
-        }
+        router.replace(basePath, { scroll: false });
 
         if (userId) {
             void getUserById(userId)
                 .then((u) => setDetailUser(u))
                 .catch(() => message.error(usersCopy.errorLoadUser));
         }
-
-        router.replace(basePath);
-    }, [searchParams, policy.canView, policy.canCreate, isSuperAdminLayout, pathname, router, t]);
+    }, [searchParams, policy.canView, pathname, router, message]);
 
     const queryClient = useQueryClient();
     const listParams = useMemo(
@@ -371,11 +380,16 @@ export default function UsersPage() {
         [t],
     );
 
-    const [deactivateForm] = Form.useForm();
-    const [resetPasswordForm] = Form.useForm();
-    const [createRoleForm] = Form.useForm<{ name: string }>();
-
     const [createPlatformMode, setCreatePlatformMode] = useState(false);
+
+    useEffect(() => {
+        setCreateOpen(false);
+        setCreatePlatformMode(false);
+        return () => {
+            setCreateOpen(false);
+            setCreatePlatformMode(false);
+        };
+    }, [pathname]);
 
     const invalidateAllUserLists = () => {
         void queryClient.invalidateQueries({ queryKey: listQueryKey });
@@ -419,7 +433,7 @@ export default function UsersPage() {
             invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setResetPasswordUser(null);
-            resetPasswordForm.resetFields();
+            setResetPasswordValidationError(null);
         },
         onError: (e: unknown) => {
             const err = e as { response?: { status?: number; data?: { errors?: Record<string, string[]> } } };
@@ -442,7 +456,6 @@ export default function UsersPage() {
 
             if (is400) {
                 setResetPasswordValidationError(displayMessage);
-                resetPasswordForm.setFields([{ name: 'newPassword', errors: [displayMessage] }]);
             } else {
                 message.error(normalized.message);
             }
@@ -455,7 +468,6 @@ export default function UsersPage() {
             invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setDeactivateUserRecord(null);
-            deactivateForm.resetFields();
         },
         onError: (e: unknown) => {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
@@ -480,7 +492,6 @@ export default function UsersPage() {
             queryClient.invalidateQueries({ queryKey: rolesQueryKey });
             queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
             setCreateRoleOpen(false);
-            createRoleForm.resetFields();
         },
         onError: (e: unknown) => {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
@@ -509,13 +520,6 @@ export default function UsersPage() {
             message.error(normalizeError(e, usersCopy.errorDeleteRole).message);
         },
     });
-    useEffect(() => {
-        if (resetPasswordUser) {
-            resetPasswordForm.resetFields();
-            setResetPasswordValidationError(null);
-        }
-    }, [resetPasswordUser, resetPasswordForm]);
-
     const handleCreate = (values: CreateUserRequest | UpdateUserRequest) => {
         if (!policy.canCreate) {
             message.error(usersCopy.noPermission);
@@ -557,18 +561,13 @@ export default function UsersPage() {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
         }
     };
-    const handleDeactivate = () => {
+    const handleDeactivateConfirm = (reason: string) => {
         if (!deactivateUserRecord?.id) return;
         if (!policy.canDeactivate) {
             message.error(usersCopy.noPermission);
             return;
         }
-        deactivateForm.validateFields().then(
-            (values: { reason: string }) => {
-                deactivateMutation.mutate({ id: deactivateUserRecord.id!, reason: values.reason });
-            },
-            () => { /* validation errors shown on form */ }
-        );
+        deactivateMutation.mutate({ id: deactivateUserRecord.id, reason });
     };
     const handleReactivate = () => {
         if (!reactivateUserRecord?.id) return;
@@ -578,29 +577,24 @@ export default function UsersPage() {
         }
         reactivateMutation.mutate(reactivateUserRecord.id);
     };
-    const handleResetPassword = () => {
+    const handleResetPasswordConfirm = (newPassword: string) => {
         if (!resetPasswordUser?.id) return;
         if (!policy.canResetPassword(resetPasswordUser.role)) {
             message.error(usersCopy.noPermission);
             return;
         }
-        resetPasswordForm.validateFields()
-            .then((values: { newPassword: string }) => {
-                resetPasswordMutation.mutate({ id: resetPasswordUser.id!, data: { newPassword: values.newPassword } });
-            })
-            .catch(() => { /* validasyon hatası; form alanları zaten hata gösterir */ });
+        resetPasswordMutation.mutate({ id: resetPasswordUser.id, data: { newPassword } });
     };
-    const handleCreateRole = () => {
+    const handleCreateRoleConfirm = (name: string) => {
         if (!policy.canCreateRole) {
             message.error(usersCopy.noPermission);
             return;
         }
-        createRoleForm.validateFields()
-            .then((values: { name: string }) => {
-                createRoleMutation.mutate({ name: values.name.trim() });
-            })
-            .catch(() => { /* validasyon hatası */ });
+        createRoleMutation.mutate({ name });
     };
+    const handleClearResetPasswordValidationError = useCallback(() => {
+        setResetPasswordValidationError(null);
+    }, []);
 
     const handleRoleManagementRetry = () => {
         refetchRolesWithPerms();
@@ -894,34 +888,38 @@ export default function UsersPage() {
                 </>
             )}
 
-            <UserFormDrawer
-                open={createOpen}
-                onClose={() => {
-                    setCreateOpen(false);
-                    setCreatePlatformMode(false);
-                }}
-                mode="create"
-                createVariant={createPlatformMode ? 'platform' : 'default'}
-                roleOptions={roleOptions}
-                rolesLoading={rolesLoading}
-                onSubmit={handleCreate}
-                loading={createMutation.isPending}
-            />
-            <UserFormDrawer
-                key={editUserId ?? 'edit'}
-                open={!!editUserId}
-                onClose={() => setEditUserId(null)}
-                mode="edit"
-                user={editUserFull ?? undefined}
-                initialLoading={!!editUserId && editUserLoading}
-                fetchError={editUserError ? (editUserFetchError ?? null) : null}
-                onRetryFetch={refetchEditUser}
-                roleOptions={roleOptions}
-                rolesLoading={rolesLoading}
-                onSubmit={handleEdit}
-                loading={updateMutation.isPending || updateUserTenantsMutation.isPending}
-                canManageTenants={isSuperAdminLayout}
-            />
+            {createOpen ? (
+                <UserFormDrawer
+                    open
+                    onClose={() => {
+                        setCreateOpen(false);
+                        setCreatePlatformMode(false);
+                    }}
+                    mode="create"
+                    createVariant={createPlatformMode ? 'platform' : 'default'}
+                    roleOptions={roleOptions}
+                    rolesLoading={rolesLoading}
+                    onSubmit={handleCreate}
+                    loading={createMutation.isPending}
+                />
+            ) : null}
+            {editUserId ? (
+                <UserFormDrawer
+                    key={editUserId}
+                    open
+                    onClose={() => setEditUserId(null)}
+                    mode="edit"
+                    user={editUserFull ?? undefined}
+                    initialLoading={editUserLoading}
+                    fetchError={editUserError ? (editUserFetchError ?? null) : null}
+                    onRetryFetch={refetchEditUser}
+                    roleOptions={roleOptions}
+                    rolesLoading={rolesLoading}
+                    onSubmit={handleEdit}
+                    loading={updateMutation.isPending || updateUserTenantsMutation.isPending}
+                    canManageTenants={isSuperAdminLayout}
+                />
+            ) : null}
 
             <UserDetailDrawer
                 open={!!detailUser}
@@ -945,27 +943,15 @@ export default function UsersPage() {
                 />
             ) : null}
 
-            <Modal
-                title={usersCopy.deactivateUser}
-                open={!!deactivateUserRecord}
-                onOk={handleDeactivate}
-                onCancel={() => { setDeactivateUserRecord(null); deactivateForm.resetFields(); }}
-                okText={usersCopy.okDeactivate}
-                okButtonProps={{ danger: true }}
-                confirmLoading={deactivateMutation.isPending}
-                destroyOnHidden
-            >
-                {deactivateUserRecord && (
-                    <p style={{ marginBottom: 16 }}>
-                        <strong>{fullName(deactivateUserRecord)}</strong> ({deactivateUserRecord.email ?? deactivateUserRecord.userName}) {usersCopy.confirmDeactivate}
-                    </p>
-                )}
-                <Form form={deactivateForm} layout="vertical">
-                    <Form.Item name="reason" label={usersCopy.reasonRequired} rules={modalRules.reason}>
-                        <Input.TextArea rows={3} placeholder={usersCopy.reasonPlaceholder} maxLength={500} showCount />
-                    </Form.Item>
-                </Form>
-            </Modal>
+            {deactivateUserRecord ? (
+                <DeactivateUserModal
+                    user={deactivateUserRecord}
+                    onCancel={() => setDeactivateUserRecord(null)}
+                    onConfirm={handleDeactivateConfirm}
+                    confirmLoading={deactivateMutation.isPending}
+                    reasonRules={modalRules.reason}
+                />
+            ) : null}
 
             <Modal
                 title={usersCopy.reactivateUser}
@@ -983,58 +969,29 @@ export default function UsersPage() {
                 )}
             </Modal>
 
-            <Modal
-                title={usersCopy.resetPasswordUser}
-                open={!!resetPasswordUser}
-                onOk={handleResetPassword}
-                onCancel={() => { setResetPasswordUser(null); setResetPasswordValidationError(null); resetPasswordForm.resetFields(); }}
-                okText={usersCopy.save}
-                confirmLoading={resetPasswordMutation.isPending}
-                destroyOnHidden
-            >
-                {resetPasswordUser && (
-                    <>
-                        <p style={{ marginBottom: 8 }}>
-                            <strong>{fullName(resetPasswordUser)}</strong> ({resetPasswordUser.userName})
-                        </p>
-                        <Alert
-                            type="info"
-                            title={usersCopy.resetPasswordSecurityNote}
-                            showIcon
-                            style={{ marginBottom: 16 }}
-                        />
-                        {resetPasswordValidationError && (
-                            <Alert
-                                type="error"
-                                title={resetPasswordValidationError}
-                                showIcon
-                                style={{ marginBottom: 16 }}
-                            />
-                        )}
-                        <Form form={resetPasswordForm} layout="vertical">
-                            <Form.Item name="newPassword" label={usersCopy.newPassword} rules={modalRules.newPassword}>
-                                <Input.Password placeholder="••••••••" autoComplete="new-password" />
-                            </Form.Item>
-                        </Form>
-                    </>
-                )}
-            </Modal>
+            {resetPasswordUser ? (
+                <ResetPasswordUserModal
+                    user={resetPasswordUser}
+                    onCancel={() => {
+                        setResetPasswordUser(null);
+                        setResetPasswordValidationError(null);
+                    }}
+                    onConfirm={handleResetPasswordConfirm}
+                    confirmLoading={resetPasswordMutation.isPending}
+                    passwordRules={modalRules.newPassword}
+                    validationError={resetPasswordValidationError}
+                    onClearValidationError={handleClearResetPasswordValidationError}
+                />
+            ) : null}
 
-            <Modal
-                title={usersCopy.createRole}
-                open={createRoleOpen}
-                onOk={handleCreateRole}
-                onCancel={() => { setCreateRoleOpen(false); createRoleForm.resetFields(); }}
-                okText={usersCopy.save}
-                confirmLoading={createRoleMutation.isPending}
-                destroyOnHidden
-            >
-                <Form form={createRoleForm} layout="vertical">
-                    <Form.Item name="name" label={usersCopy.roleName} rules={modalRules.roleName}>
-                        <Input placeholder="z. B. Manager" maxLength={50} showCount autoComplete="off" />
-                    </Form.Item>
-                </Form>
-            </Modal>
+            {createRoleOpen ? (
+                <CreateRoleModal
+                    onCancel={() => setCreateRoleOpen(false)}
+                    onConfirm={handleCreateRoleConfirm}
+                    confirmLoading={createRoleMutation.isPending}
+                    roleNameRules={modalRules.roleName}
+                />
+            ) : null}
 
             <RoleManagementDrawer
                 open={roleManagementDrawerOpen}

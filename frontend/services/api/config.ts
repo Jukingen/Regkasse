@@ -178,8 +178,22 @@ function translateKnownTurkishApiErrorMessages(data: unknown): void {
     const body = data as Record<string, unknown>;
     const msg = body.message;
     if (typeof msg !== 'string') return;
-    if (msg.includes('Kullanıcı bulunamadı')) {
-        body.message = msg.split('Kullanıcı bulunamadı').join('Benutzer nicht gefunden');
+
+    const turkishToGerman: Array<[string, string]> = [
+        ['Kullanıcı bulunamadı', 'Benutzername oder E-Mail nicht gefunden.'],
+        ['Geçersiz şifre', 'Falsches Passwort. Bitte versuchen Sie es erneut.'],
+        ['Hesap aktif değil', 'Ihr Konto ist gesperrt. Bitte kontaktieren Sie Ihren Administrator.'],
+        [
+            'Bu kullanıcı bu uygulama için yetkili değil.',
+            'Sie haben keine Berechtigung für die POS-App. Bitte kontaktieren Sie Ihren Administrator.',
+        ],
+    ];
+
+    for (const [turkish, german] of turkishToGerman) {
+        if (msg.includes(turkish)) {
+            body.message = msg.split(turkish).join(german);
+            return;
+        }
     }
 }
 

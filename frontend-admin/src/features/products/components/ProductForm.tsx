@@ -25,7 +25,14 @@ interface ProductFormProps {
 
 const { TextArea } = Input;
 
-export default function ProductForm({
+export default function ProductForm(props: ProductFormProps) {
+    if (!props.visible) {
+        return null;
+    }
+    return <ProductFormContent {...props} />;
+}
+
+function ProductFormContent({
     visible,
     initialValues,
     onCancel,
@@ -249,7 +256,7 @@ export default function ProductForm({
                 disabled: !!initialValues && modifierGroupsLoading,
             }}
             width={600}
-            destroyOnHidden
+            forceRender
             okText={t('common.buttons.save')}
             cancelText={t('common.buttons.cancel')}
         >

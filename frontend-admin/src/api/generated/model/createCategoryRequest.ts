@@ -5,6 +5,7 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { RksvProductCategory } from './rksvProductCategory';
 
 export interface CreateCategoryRequest {
   /**
@@ -13,24 +14,31 @@ export interface CreateCategoryRequest {
    */
   color?: string | null;
   /**
+   * @minimum 0
+   * @maximum 100
+   */
+  defaultTaxRate?: number;
+  /**
    * @maxLength 500
    * @nullable
    */
   description?: string | null;
+  fiscalCategory?: RksvProductCategory;
   /**
    * @maxLength 50
    * @nullable
    */
   icon?: string | null;
   /**
+   * @maxLength 100
+   * @nullable
+   */
+  key?: string | null;
+  /**
    * @minLength 1
    * @maxLength 100
    */
   name: string;
   sortOrder?: number;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
   vatRate?: number;
 }

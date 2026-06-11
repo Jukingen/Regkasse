@@ -13,6 +13,11 @@ export interface UpdateCategoryRequest {
    */
   color?: string | null;
   /**
+   * @minimum 0
+   * @maximum 100
+   */
+  defaultTaxRate?: number;
+  /**
    * @maxLength 500
    * @nullable
    */
@@ -28,9 +33,5 @@ export interface UpdateCategoryRequest {
    */
   name: string;
   sortOrder?: number;
-  /**
-   * @minimum 0
-   * @maximum 100
-   */
   vatRate?: number;
 }

@@ -29,7 +29,14 @@ export type QuickUserModalProps = {
     onSubmit: (values: QuickUserFormValues) => void;
 };
 
-export function QuickUserModal({
+export function QuickUserModal(props: QuickUserModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <QuickUserModalContent {...props} />;
+}
+
+function QuickUserModalContent({
     open,
     confirmLoading,
     tenantId: fixedTenantId,
@@ -100,7 +107,7 @@ export function QuickUserModal({
             okText={t('tenants.users.quick.generate')}
             cancelText={t('common.buttons.cancel')}
             confirmLoading={confirmLoading}
-            destroyOnHidden
+            forceRender
         >
             <Form form={form} layout="vertical" onFinish={handleFinish}>
                 {showTenantSelector ? (

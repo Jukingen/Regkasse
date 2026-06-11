@@ -1,10 +1,13 @@
 using System.Net.Mime;
 using System.Text.Json;
 using KasseAPI_Final;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Middleware
 {
@@ -30,8 +33,22 @@ namespace KasseAPI_Final.Middleware
             HttpContext context,
             ILicenseService licenseService,
             DeploymentLicenseValidator deploymentLicenseValidator,
-            ICurrentTenantAccessor tenantAccessor)
+            ICurrentTenantAccessor tenantAccessor,
+            IHostEnvironment environment,
+            IOptions<TseOptions> tseOptions,
+            IOptions<LicenseOptions> licenseOptions,
+            IDevelopmentModeService developmentMode)
         {
+            if (LicenseEnforcementPolicy.ShouldDisableEnforcement(
+                    environment,
+                    tseOptions.Value,
+                    developmentMode,
+                    licenseOptions.Value))
+            {
+                await _next(context).ConfigureAwait(false);
+                return;
+            }
+
             await licenseService.ValidateAsync(context.RequestAborted).ConfigureAwait(false);
             var deploymentSnapshot = licenseService.GetDeploymentStatus();
             var deploymentStatus = deploymentLicenseValidator.GetStatus(deploymentSnapshot);

@@ -6,8 +6,9 @@ using KasseAPI_Final.Rksv;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Strict minimal parser for QR strings produced by <see cref="PaymentService"/> / <see cref="ReceiptService"/>:
-/// <c>_R1-AT1_{kassenId}_{receiptNumber}_{timestamp}_{gross}_{secondAmt}_{certSerial}_{compactJws}</c>.
+/// Strict parser for QR strings produced by <see cref="PaymentService"/> / <see cref="ReceiptService"/>:
+/// BMF §9 machine code + compact JWS (<see cref="RksvQrPayloadLayout.StandardRksvV1"/>), with legacy
+/// <see cref="RksvQrPayloadLayout.InternalCompact"/> still accepted for stored receipts.
 /// </summary>
 public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadFormatValidator
 {
@@ -52,9 +53,9 @@ public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadF
         }
 
         var p = parseResult.Payload;
-        if (p.Layout != RksvQrPayloadLayout.InternalCompact)
+        if (p.Layout is not (RksvQrPayloadLayout.StandardRksvV1 or RksvQrPayloadLayout.InternalCompact))
         {
-            errors.Add("This validator only accepts the internal compact RKSV QR layout.");
+            errors.Add("Unsupported RKSV QR layout; expected BMF §9 (standard) or legacy internal compact.");
             return Fail(errors);
         }
 
@@ -73,6 +74,30 @@ public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadF
                      out _))
             errors.Add("Timestamp must be ISO 8601 'yyyy-MM-ddTHH:mm:ss'.");
 
+        if (string.IsNullOrWhiteSpace(p.CertificateSerial))
+            errors.Add("Certificate serial segment is empty.");
+
+        if (string.IsNullOrWhiteSpace(p.Signature))
+            errors.Add("Signature (compact JWS) segment is missing.");
+
+        if (p.Layout == RksvQrPayloadLayout.InternalCompact)
+            ValidateInternalCompactAmounts(p, errors);
+        else
+            ValidateStandardTaxBuckets(p, errors);
+
+        if (errors.Count > 0)
+            return Fail(errors);
+
+        return new RksvValidateReceiptQrResponse
+        {
+            IsValidFormat = true,
+            Parsed = BuildParsedDto(p),
+            Errors = new List<string>()
+        };
+    }
+
+    private static void ValidateInternalCompactAmounts(RksvQrPayload p, List<string> errors)
+    {
         var total1 = p.TaxBuckets.FirstOrDefault(b => b.Code == RksvQrParser.InternalCompactPrimaryCode)?.Amount ?? "";
         var total2 = p.TaxBuckets.FirstOrDefault(b => b.Code == RksvQrParser.InternalCompactSecondaryCode)?.Amount ?? "";
 
@@ -85,35 +110,70 @@ public sealed class RksvReceiptQrPayloadFormatValidator : IRksvReceiptQrPayloadF
             errors.Add("Second total segment is empty.");
         else if (!DecimalSegmentRegex.IsMatch(total2.Trim()))
             errors.Add("Second total segment must be a decimal with at most two fractional digits.");
+    }
 
-        if (string.IsNullOrWhiteSpace(p.CertificateSerial))
-            errors.Add("Certificate serial segment is empty.");
-
-        if (string.IsNullOrWhiteSpace(p.Signature))
-            errors.Add("Signature (compact JWS) segment is missing.");
-
-        if (errors.Count > 0)
-            return Fail(errors);
-
-        var normalizedTotal1 = NormalizeDecimalSegment(total1);
-        var normalizedTotal2 = NormalizeDecimalSegment(total2);
-
-        return new RksvValidateReceiptQrResponse
+    private static void ValidateStandardTaxBuckets(RksvQrPayload p, List<string> errors)
+    {
+        if (p.TaxBuckets.Count != 5)
         {
-            IsValidFormat = true,
-            Parsed = new RksvValidateReceiptQrParsedDto
+            errors.Add("BMF §9 QR layout must include five tax bucket gross amounts.");
+            return;
+        }
+
+        foreach (var bucket in p.TaxBuckets)
+        {
+            if (string.IsNullOrWhiteSpace(bucket.Amount))
+                errors.Add($"Tax bucket '{bucket.Code}' is empty.");
+            else if (!DecimalSegmentRegex.IsMatch(bucket.Amount.Trim()))
+                errors.Add($"Tax bucket '{bucket.Code}' must be a decimal with at most two fractional digits.");
+        }
+
+        if (string.IsNullOrWhiteSpace(p.EncryptedTurnoverCounter))
+            errors.Add("Encrypted turnover counter segment is empty.");
+
+        if (string.IsNullOrWhiteSpace(p.PreviousSignature))
+            errors.Add("Previous signature chaining segment is empty.");
+    }
+
+    private static RksvValidateReceiptQrParsedDto BuildParsedDto(RksvQrPayload p)
+    {
+        if (p.Layout == RksvQrPayloadLayout.InternalCompact)
+        {
+            var total1 = p.TaxBuckets.First(b => b.Code == RksvQrParser.InternalCompactPrimaryCode).Amount;
+            var total2 = p.TaxBuckets.First(b => b.Code == RksvQrParser.InternalCompactSecondaryCode).Amount;
+            return new RksvValidateReceiptQrParsedDto
             {
                 ReceiptNumber = p.ReceiptNumber,
                 Timestamp = p.Timestamp,
                 Totals = new RksvValidateReceiptQrTotalsDto
                 {
-                    GrossTotal = normalizedTotal1,
-                    SecondAmount = normalizedTotal2
+                    GrossTotal = NormalizeDecimalSegment(total1),
+                    SecondAmount = NormalizeDecimalSegment(total2),
                 },
                 CertificateSerial = p.CertificateSerial.Trim(),
-                PreviousSignature = p.PreviousSignature
+                PreviousSignature = p.PreviousSignature,
+            };
+        }
+
+        decimal grossSum = 0m;
+        foreach (var bucket in p.TaxBuckets)
+        {
+            var normalized = NormalizeDecimalSegment(bucket.Amount);
+            if (decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out var amount))
+                grossSum += amount;
+        }
+
+        return new RksvValidateReceiptQrParsedDto
+        {
+            ReceiptNumber = p.ReceiptNumber,
+            Timestamp = p.Timestamp,
+            Totals = new RksvValidateReceiptQrTotalsDto
+            {
+                GrossTotal = grossSum.ToString("F2", CultureInfo.InvariantCulture),
+                SecondAmount = "0.00",
             },
-            Errors = new List<string>()
+            CertificateSerial = p.CertificateSerial.Trim(),
+            PreviousSignature = p.PreviousSignature,
         };
     }
 

@@ -25,6 +25,14 @@ internal static class TenantTestDoubles
         return m.Object;
     }
 
+    public static ICurrentTenantAccessor TenantAccessorReturning(Guid? tenantId) =>
+        new MutableTenantAccessor(tenantId);
+
+    internal sealed class MutableTenantAccessor(Guid? tenantId) : ICurrentTenantAccessor
+    {
+        public Guid? TenantId { get; set; } = tenantId;
+    }
+
     public static ICompanyProfileProvider CompanyProfileProviderReturning(CompanyProfileOptions profile)
     {
         var m = new Mock<ICompanyProfileProvider>();

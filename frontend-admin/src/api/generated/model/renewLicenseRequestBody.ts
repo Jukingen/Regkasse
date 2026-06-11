@@ -7,10 +7,19 @@
  */
 
 export interface RenewLicenseRequestBody {
+  /**
+   * @minimum 1
+   * @maximum 120
+   * @nullable
+   */
+  additionalMonths?: number | null;
   /** @nullable */
   issuedLicenseId?: string | null;
   /** @nullable */
   licenseKey?: string | null;
-  /** @minLength 1 */
-  newExpiryDate: string;
+  /** @nullable */
+  newExpiryDate?: string | null;
+  paymentConfirmed?: boolean;
+  /** @nullable */
+  tenantId?: string | null;
 }

@@ -15,11 +15,86 @@ namespace KasseAPI_Final.Tse
 
         private readonly ITseKeyProvider _keyProvider;
         private readonly ILogger<SignaturePipeline> _logger;
+        private readonly IBelegdatenPayloadBuilder? _belegdatenPayloadBuilder;
 
         public SignaturePipeline(ITseKeyProvider keyProvider, ILogger<SignaturePipeline> logger)
+            : this(keyProvider, logger, belegdatenPayloadBuilder: null)
+        {
+        }
+
+        public SignaturePipeline(
+            ITseKeyProvider keyProvider,
+            ILogger<SignaturePipeline> logger,
+            IBelegdatenPayloadBuilder? belegdatenPayloadBuilder)
         {
             _keyProvider = keyProvider;
             _logger = logger;
+            _belegdatenPayloadBuilder = belegdatenPayloadBuilder;
+        }
+
+        /// <summary>RKSV §9 Abs. 5 compressed machine-readable signing input.</summary>
+        public static string GetMachineCode(BelegdatenPayload payload) =>
+            RksvMachineCodeBuilder.BuildDataToBeSigned(payload);
+
+        /// <summary>Extracts the signed machine code embedded in a compact JWS payload segment.</summary>
+        public static bool TryGetMachineCodeFromCompactJws(string? compactJws, out string machineCode)
+        {
+            machineCode = string.Empty;
+            if (string.IsNullOrWhiteSpace(compactJws))
+                return false;
+
+            var trimmed = compactJws.Trim();
+            var parts = trimmed.Split('.');
+            if (parts.Length != 3)
+                return false;
+
+            foreach (var part in parts)
+            {
+                if (string.IsNullOrEmpty(part) || part.Contains('='))
+                    return false;
+            }
+
+            try
+            {
+                var payloadBytes = TseCryptoHelper.FromBase64UrlNoPadding(parts[1]);
+                machineCode = Encoding.UTF8.GetString(payloadBytes);
+            }
+            catch
+            {
+                return false;
+            }
+
+            return machineCode.StartsWith("_R1-", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Returns the RKSV §9 machine code for a receipt. Prefer the value stored inside the signed compact JWS;
+        /// otherwise reconstructs Belegdaten from persisted payment context.
+        /// </summary>
+        public async Task<string> GetMachineCodeForReceiptAsync(
+            Guid cashRegisterId,
+            string receiptNumber,
+            DateTime issuedAt,
+            CancellationToken cancellationToken = default)
+        {
+            if (_belegdatenPayloadBuilder == null)
+            {
+                throw new InvalidOperationException(
+                    "IBelegdatenPayloadBuilder is required for GetMachineCodeForReceiptAsync.");
+            }
+
+            var compactJws = await _belegdatenPayloadBuilder
+                .TryGetCompactJwsAsync(cashRegisterId, receiptNumber, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (TryGetMachineCodeFromCompactJws(compactJws, out var storedMachineCode))
+                return storedMachineCode;
+
+            var payload = await _belegdatenPayloadBuilder
+                .BuildAsync(cashRegisterId, receiptNumber, issuedAt, cancellationToken)
+                .ConfigureAwait(false);
+
+            return GetMachineCode(payload);
         }
 
         /// <summary>
@@ -37,7 +112,7 @@ namespace KasseAPI_Final.Tse
             _logger.LogDebug("SignaturePipeline.Sign correlationId={CorrelationId}, step=header_encoded", correlationId);
 
             // RKSV Abs. 5: JWS payload = compressed machine code (not raw JSON)
-            var machineCode = RksvMachineCodeBuilder.BuildDataToBeSigned(payload);
+            var machineCode = GetMachineCode(payload);
             var payloadBytes = Encoding.UTF8.GetBytes(machineCode);
             var payloadB64 = TseCryptoHelper.ToBase64UrlNoPadding(payloadBytes);
             _logger.LogDebug("SignaturePipeline.Sign correlationId={CorrelationId}, step=payload_encoded", correlationId);

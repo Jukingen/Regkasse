@@ -1,3 +1,4 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
@@ -6,7 +7,9 @@ using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -21,6 +24,55 @@ public sealed class AdminTenantLicenseServiceTests
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+    }
+
+    private static AdminTenantLicenseService CreateService(
+        AppDbContext db,
+        ILicenseReminderEmailSender? reminderSender = null) =>
+        new(
+            db,
+            Mock.Of<ILicenseSyncService>(),
+            Mock.Of<ILicenseIssuanceService>(),
+            reminderSender ?? Mock.Of<ILicenseReminderEmailSender>(),
+            Mock.Of<ILogger<AdminTenantLicenseService>>(),
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production),
+            Options.Create(new TseOptions { TseMode = "Device" }),
+            Options.Create(new LicenseOptions { Enabled = true }),
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false));
+
+    [Fact]
+    public async Task GetOverviewAsync_InDevelopment_ReturnsActiveForExpiredTenant()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Expired Dev",
+            Slug = "expired-dev",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            LicenseValidUntilUtc = DateTime.UtcNow.AddDays(-120),
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = new AdminTenantLicenseService(
+            db,
+            Mock.Of<ILicenseSyncService>(),
+            Mock.Of<ILicenseIssuanceService>(),
+            Mock.Of<ILicenseReminderEmailSender>(),
+            Mock.Of<ILogger<AdminTenantLicenseService>>(),
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            Options.Create(new TseOptions { TseMode = "Device" }),
+            Options.Create(new LicenseOptions { Enabled = false }),
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false));
+
+        var overview = await service.GetOverviewAsync(tenantId);
+
+        Assert.NotNull(overview);
+        Assert.Equal("active", overview!.Status.Kind);
+        Assert.Equal(999, overview.Status.DaysRemaining);
     }
 
     [Fact]
@@ -39,17 +91,12 @@ public sealed class AdminTenantLicenseServiceTests
         });
         await db.SaveChangesAsync();
 
-        var service = new AdminTenantLicenseService(
-            db,
-            Mock.Of<ILicenseSyncService>(),
-            Mock.Of<ILicenseIssuanceService>(),
-            Mock.Of<ILicenseReminderEmailSender>(),
-            Mock.Of<ILogger<AdminTenantLicenseService>>());
+        var service = CreateService(db);
         var (result, error) = await service.ActivateTrialAsync(tenantId, "actor");
 
         Assert.Null(error);
         Assert.NotNull(result);
-        Assert.Equal("trial", result!.Status.Kind);
+        Assert.Equal("active", result!.Status.Kind);
         Assert.NotNull(result.Status.ValidUntilUtc);
         Assert.True(result.Status.DaysRemaining is > 0 and <= 30);
     }
@@ -72,12 +119,7 @@ public sealed class AdminTenantLicenseServiceTests
         });
         await db.SaveChangesAsync();
 
-        var service = new AdminTenantLicenseService(
-            db,
-            Mock.Of<ILicenseSyncService>(),
-            Mock.Of<ILicenseIssuanceService>(),
-            Mock.Of<ILicenseReminderEmailSender>(),
-            Mock.Of<ILogger<AdminTenantLicenseService>>());
+        var service = CreateService(db);
 
         var (check, error) = await service.CheckDeploymentConsistencyAsync(tenantId);
 
@@ -120,12 +162,7 @@ public sealed class AdminTenantLicenseServiceTests
         });
         await db.SaveChangesAsync();
 
-        var service = new AdminTenantLicenseService(
-            db,
-            Mock.Of<ILicenseSyncService>(),
-            Mock.Of<ILicenseIssuanceService>(),
-            Mock.Of<ILicenseReminderEmailSender>(),
-            Mock.Of<ILogger<AdminTenantLicenseService>>());
+        var service = CreateService(db);
 
         var (check, error) = await service.CheckDeploymentConsistencyAsync(tenantId);
 
@@ -182,12 +219,7 @@ public sealed class AdminTenantLicenseServiceTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var service = new AdminTenantLicenseService(
-            db,
-            Mock.Of<ILicenseSyncService>(),
-            Mock.Of<ILicenseIssuanceService>(),
-            reminderSender.Object,
-            Mock.Of<ILogger<AdminTenantLicenseService>>());
+        var service = CreateService(db, reminderSender.Object);
 
         var (result, error) = await service.SendReminderEmailAsync(tenantId, "actor");
 

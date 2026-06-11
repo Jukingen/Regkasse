@@ -9,8 +9,13 @@
 export interface LoginModel {
   /** @nullable */
   clientApp?: string | null;
-  /** @nullable */
+  /**
+   * @deprecated
+   * @nullable
+   */
   email?: string | null;
+  /** @nullable */
+  loginIdentifier?: string | null;
   /** @nullable */
   password?: string | null;
 }

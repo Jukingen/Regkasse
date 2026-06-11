@@ -17,17 +17,9 @@ import { useCreateAdminVoucher, type CreateAdminVoucherResponse } from '@/api/ad
 dayjs.extend(utc);
 
 export default function AdminVoucherCreatePage() {
-  const { message } = useAntdApp();
-
   const { t } = useI18n();
-  const router = useRouter();
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission(PERMISSIONS.VOUCHER_CREATE);
-  const [form] = Form.useForm();
-  const createMutation = useCreateAdminVoucher();
-  const [success, setSuccess] = useState<CreateAdminVoucherResponse | null>(null);
-
-  const expiryMode = Form.useWatch('expiryMode', form) as string | undefined;
 
   if (!canCreate) {
     return (
@@ -36,6 +28,18 @@ export default function AdminVoucherCreatePage() {
       </AdminPageShell>
     );
   }
+
+  return <VoucherCreateForm />;
+}
+
+function VoucherCreateForm() {
+  const { message } = useAntdApp();
+  const { t } = useI18n();
+  const router = useRouter();
+  const [form] = Form.useForm();
+  const createMutation = useCreateAdminVoucher();
+  const [success, setSuccess] = useState<CreateAdminVoucherResponse | null>(null);
+  const expiryMode = Form.useWatch('expiryMode', form) as string | undefined;
 
   const handleSubmit = async () => {
     try {

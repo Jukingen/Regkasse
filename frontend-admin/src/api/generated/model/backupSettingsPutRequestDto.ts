@@ -5,13 +5,12 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { BackupSettingsPutRequestDtoSchedule } from './backupSettingsPutRequestDtoSchedule';
+import type { BackupScheduleConfigurationDto } from './backupScheduleConfigurationDto';
 
 export interface BackupSettingsPutRequestDto {
   enabled?: boolean;
   retentionDays?: number;
-  /** @nullable */
-  schedule?: BackupSettingsPutRequestDtoSchedule;
+  schedule?: BackupScheduleConfigurationDto;
   /** @nullable */
   scheduleCron?: string | null;
 }

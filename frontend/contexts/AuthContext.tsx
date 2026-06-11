@@ -15,8 +15,8 @@ import * as authService from '../services/api/authService';
 import { applyStoredApiBaseUrl, hydrateDevTenantApiBaseUrl, resetApiBaseUrlToConfigured } from '../services/api/config';
 import { sessionManager } from '../services/session/sessionManager';
 import { tenantStorage, type TenantBootstrap } from '../services/tenant/tenantStorage';
-import { handleAPIError } from '../services/errorService';
-import { isAuthError, AuthAppError } from '../features/auth/authErrors';
+import { AuthAppError } from '../features/auth/authErrors';
+import { createLoginFailedError, handleLoginError } from '../utils/loginErrorHandler';
 import { getUserSettingsAfterLogin } from '../services/api/userSettingsService';
 import { checkLicenseStatus } from '../services/api/licenseStatusService';
 import { authTrace } from '../utils/authTrace';
@@ -172,6 +172,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     isAuthReady: boolean; // ✅ Added
+    error: string | null;
     login: (loginIdentifier: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
     checkAuthStatus: () => Promise<void>;
@@ -187,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthReady, setIsAuthReady] = useState(false); // ✅ Added
     const [justLoggedIn, setJustLoggedIn] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [, setLastActivity] = useState<number>(Date.now());
 
     const inactivityTimerRef = React.useRef<NodeJS.Timeout | null>(null); // legacy timer ref (logout paths)
@@ -665,6 +667,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const login = useCallback(async (loginIdentifier: string, password: string) => {
         authDevLog('Login function called with loginIdentifier:', loginIdentifier); // Debug log
         try {
+            setError(null);
             setIsLoading(true);
             setJustLoggedIn(true); // Login başladığında flag'i set et
             authDevLog('Making login API request...'); // Debug log
@@ -828,17 +831,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // State'lerin doğru set edildiğini kontrol et
             authDevLog('State set, checking...'); // Debug log
             authDevLog('Current state values:', { isAuthenticated, user }); // Debug log
+            setError(null);
             authDevLog('Login process completed, navigation will be handled by useEffect'); // Debug log
-        } catch (error: unknown) {
-            authDevError('Login failed:', error);
+        } catch (err: unknown) {
             setJustLoggedIn(false);
-
-            if (isAuthError(error)) {
-                throw error;
-            }
-
-            const apiError = handleAPIError(error);
-            throw new Error(apiError.message);
+            const loginFailure = handleLoginError(err);
+            setError(loginFailure.userMessage);
+            console.error('[Login Technical]', loginFailure.technicalMessage || err);
+            throw createLoginFailedError(loginFailure);
         } finally {
             setIsLoading(false);
         }
@@ -924,10 +924,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         isLoading,
         isAuthReady,
+        error,
         login,
         logout,
         checkAuthStatus: stableCheckAuthStatus
-    }), [user, isAuthenticated, isLoading, isAuthReady, login, logout, stableCheckAuthStatus]);
+    }), [user, isAuthenticated, isLoading, isAuthReady, error, login, logout, stableCheckAuthStatus]);
 
     return (
         <AuthContext.Provider value={contextValue}>

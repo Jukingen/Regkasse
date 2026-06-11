@@ -5,15 +5,25 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { RefundReasonCode } from './refundReasonCode';
 
 export interface RefundPaymentRequest {
-  /** @minimum 0.01 */
+  /**
+   * @minimum 0.01
+   * @maximum 1.7976931348623157e+308
+   */
   amount: number;
+  /** @nullable */
+  approvalToken?: string | null;
   /**
    * @maxLength 64
    * @nullable
    */
   idempotencyKey?: string | null;
-  /** @minLength 1 */
+  /**
+   * @minLength 5
+   * @maxLength 500
+   */
   reason: string;
+  reasonCode: RefundReasonCode;
 }

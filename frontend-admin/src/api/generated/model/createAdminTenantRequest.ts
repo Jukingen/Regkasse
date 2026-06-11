@@ -25,6 +25,7 @@ export interface CreateAdminTenantRequest {
    */
   email?: string | null;
   grantTrialLicense?: boolean;
+  importDemoMenu?: boolean;
   /**
    * @maxLength 100
    * @nullable

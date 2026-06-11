@@ -78,6 +78,7 @@ export interface SystemSettings {
    */
   invoicePrefix?: string | null;
   isActive?: boolean;
+  keepCartAfterTimeout?: boolean;
   /** @nullable */
   lastBackup?: string | null;
   /**
@@ -95,6 +96,17 @@ export interface SystemSettings {
    * @nullable
    */
   receiptTemplate?: string | null;
+  sessionIdleTimeoutEnabled?: boolean;
+  /**
+   * @minimum 5
+   * @maximum 480
+   */
+  sessionTimeoutMinutes?: number;
+  /**
+   * @minimum 1
+   * @maximum 60
+   */
+  sessionWarningBeforeTimeoutMinutes?: number;
   smsNotifications?: boolean;
   /** @nullable */
   smsSettings?: SystemSettingsSmsSettings;

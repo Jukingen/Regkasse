@@ -18,7 +18,14 @@ interface CategoryFormProps {
     loading?: boolean;
 }
 
-export default function CategoryForm({
+export default function CategoryForm(props: CategoryFormProps) {
+    if (!props.visible) {
+        return null;
+    }
+    return <CategoryFormContent {...props} />;
+}
+
+function CategoryFormContent({
     visible,
     initialValues,
     onCancel,
@@ -80,7 +87,7 @@ export default function CategoryForm({
             confirmLoading={loading}
             okText={t('common.buttons.save')}
             cancelText={t('common.buttons.cancel')}
-            destroyOnHidden
+            forceRender
         >
             <Form
                 form={form}

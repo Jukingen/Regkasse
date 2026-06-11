@@ -67,6 +67,12 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
                 $"Register number {registerNumber} already exists for this tenant.");
         }
 
+        var tenantHasDefault = await _db.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .AnyAsync(r => r.TenantId == tenantId && r.IsDefaultForTenant, cancellationToken)
+            .ConfigureAwait(false);
+
         var now = DateTime.UtcNow;
         var register = new CashRegister
         {
@@ -80,6 +86,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             CreatedAt = now,
             CreatedBy = actorUserId,
             IsActive = true,
+            IsDefaultForTenant = !tenantHasDefault,
         };
 
         _db.CashRegisters.Add(register);
@@ -114,6 +121,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
 
         var ordered = query
             .OrderBy(r => r.Tenant != null ? r.Tenant.Name : string.Empty)
+            .ThenByDescending(r => r.IsDefaultForTenant)
             .ThenBy(r => r.RegisterNumber);
         var totalCount = await ordered.CountAsync(cancellationToken).ConfigureAwait(false);
         var items = await ordered
@@ -471,6 +479,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
             LastBalanceUpdate = register.LastBalanceUpdate,
             CurrentUserId = register.CurrentUserId,
             IsActive = register.IsActive,
+            IsDefaultForTenant = register.IsDefaultForTenant,
             DecommissionedAtUtc = register.DecommissionedAtUtc,
             DecommissionReason = register.DecommissionReason,
             CreatedAt = register.CreatedAt,

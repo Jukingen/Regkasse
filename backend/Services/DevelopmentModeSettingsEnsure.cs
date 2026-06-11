@@ -13,20 +13,7 @@ internal static class DevelopmentModeSettingsEnsure
                 .ConfigureAwait(false))
             return;
 
-        db.DevelopmentModeSettings.Add(new DevelopmentModeSettings
-        {
-            Id = DevelopmentModeSettings.SingletonId,
-            Enabled = false,
-            BypassLicense = false,
-            BypassNtpCheck = false,
-            BypassTseCheck = false,
-            SimulateOffline = false,
-            ForceOnline = false,
-            ValidDays = 365,
-            Features = [],
-            UpdatedAtUtc = DateTime.UtcNow,
-            UpdatedByUserId = null,
-        });
+        db.DevelopmentModeSettings.Add(DevelopmentModeSettings.CreateDefaultSingleton());
 
         try
         {

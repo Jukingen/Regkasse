@@ -31,6 +31,7 @@ using KasseAPI_Final.Services.Vouchers;
 using KasseAPI_Final.Data.Repositories;
 using KasseAPI_Final;
 using KasseAPI_Final.Tse;
+using KasseAPI_Final.Tse.Fiskaly;
 using Microsoft.OpenApi;
 using KasseAPI_Final.Swagger;
 using KasseAPI_Final.Middleware;
@@ -168,6 +169,7 @@ builder.Services.Configure<CashRegisterComplianceOptions>(
     builder.Configuration.GetSection(CashRegisterComplianceOptions.SectionName));
 builder.Services.Configure<InventoryOptions>(builder.Configuration.GetSection(InventoryOptions.SectionName));
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
+builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
 builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<AuditRetentionOptions>(builder.Configuration.GetSection(AuditRetentionOptions.SectionName));
 builder.Services.Configure<FinanzOnlineConnectivityOptions>(builder.Configuration.GetSection(FinanzOnlineConnectivityOptions.SectionName));
@@ -190,6 +192,16 @@ builder.Services.Configure<OfflineVoucherEncryptionOptions>(
 builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
 builder.Services.Configure<LicenseSettingsOptions>(builder.Configuration.GetSection(LicenseSettingsOptions.SectionName));
 builder.Services.AddSingleton<IPostConfigureOptions<LicenseOptions>, LicenseOptionsFromFilesPostConfigure>();
+
+if (isDevelopment)
+{
+    builder.Services.Configure<LicenseOptions>(options => options.Enabled = false);
+    builder.Services.Configure<TseOptions>(options =>
+    {
+        options.OfflineModeEnabled = true;
+        options.MaxOfflineTransactionsPerCashRegister = LicenseEnforcementPolicy.MaxOfflineTransactionsUnlimited;
+    });
+}
 builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
 builder.Services.Configure<EmailSmtpOptions>(builder.Configuration.GetSection(EmailSmtpOptions.SectionName));
 builder.Services.AddActivityServices(builder.Configuration);
@@ -520,7 +532,23 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // RKSV SignaturePipeline (Checklist 1-5)
-builder.Services.AddSingleton<ITseKeyProvider, SoftwareTseKeyProvider>();
+// Use hardware TSE (fiskaly) in production; software TSE for dev/test.
+if (builder.Environment.IsProduction())
+{
+    builder.Services.AddHttpClient<IFiskalyClient, FiskalyHttpClient>((sp, client) =>
+    {
+        var options = sp.GetRequiredService<IOptions<FiskalyOptions>>().Value;
+        if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+            client.BaseAddress = new Uri(options.BaseUrl.TrimEnd('/') + "/");
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
+    builder.Services.AddSingleton<ITseKeyProvider, FiskalyTseKeyProvider>();
+}
+else
+{
+    builder.Services.AddSingleton<ITseKeyProvider, SoftwareTseKeyProvider>();
+}
+builder.Services.AddScoped<IBelegdatenPayloadBuilder, ReceiptBelegdatenPayloadBuilder>();
 builder.Services.AddScoped<SignaturePipeline>();
 
 // Closing-flow signing: Fake (dev, no hardware) vs Real (SignaturePipeline + TSE device readiness)

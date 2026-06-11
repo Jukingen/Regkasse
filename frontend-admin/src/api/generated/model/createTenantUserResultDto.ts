@@ -19,4 +19,6 @@ export interface CreateTenantUserResultDto {
   tenantPortalUrl?: string | null;
   /** @nullable */
   userId?: string | null;
+  /** @nullable */
+  userName?: string | null;
 }

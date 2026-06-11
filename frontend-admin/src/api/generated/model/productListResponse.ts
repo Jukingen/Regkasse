@@ -5,12 +5,16 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
-import type { ProductListResponseData } from './productListResponseData';
+import type { ProductFilterSummaryDto } from './productFilterSummaryDto';
+import type { ProductAvailableFiltersDto } from './productAvailableFiltersDto';
+import type { ProductListDto } from './productListDto';
 
 export interface ProductListResponse {
-  data?: ProductListResponseData;
+  activeFilters?: ProductFilterSummaryDto;
+  availableFilters?: ProductAvailableFiltersDto;
   /** @nullable */
-  message?: string | null;
-  success?: boolean;
-  timestamp?: string;
+  items?: ProductListDto[] | null;
+  page?: number;
+  pageSize?: number;
+  totalCount?: number;
 }

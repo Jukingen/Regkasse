@@ -21,7 +21,14 @@ export type AddExistingUserModalProps = {
     onSubmit: (values: AddExistingUserFormValues) => void;
 };
 
-export function AddExistingUserModal({
+export function AddExistingUserModal(props: AddExistingUserModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <AddExistingUserModalContent {...props} />;
+}
+
+function AddExistingUserModalContent({
     open,
     confirmLoading,
     loadingUsers,
@@ -33,8 +40,8 @@ export function AddExistingUserModal({
     const [form] = Form.useForm<AddExistingUserFormValues>();
 
     useEffect(() => {
-        if (!open) form.resetFields();
-    }, [open, form]);
+        form.resetFields();
+    }, [form]);
 
     return (
         <Modal
@@ -43,7 +50,7 @@ export function AddExistingUserModal({
             onCancel={onClose}
             onOk={() => form.submit()}
             confirmLoading={confirmLoading}
-            destroyOnHidden
+            forceRender
         >
             <Form
                 form={form}

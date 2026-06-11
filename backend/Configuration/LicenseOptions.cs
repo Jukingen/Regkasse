@@ -7,6 +7,12 @@ public sealed class LicenseOptions
 {
     public const string SectionName = "License";
 
+    /// <summary>
+    /// When <c>false</c>, mandant/deployment license enforcement (middleware, payments, login lockdown) is skipped.
+    /// Intended for Development hosts; production should keep <c>true</c>.
+    /// </summary>
+    public bool Enabled { get; set; } = true;
+
     /// <summary>RSA public key (PEM) used to verify offline activation JWT (RS256).</summary>
     public string? OfflineVerificationPublicKeyPem { get; set; }
 

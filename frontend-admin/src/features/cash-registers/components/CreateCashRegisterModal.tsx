@@ -25,7 +25,14 @@ export type CreateCashRegisterModalProps = {
     onSuccess?: () => void;
 };
 
-export function CreateCashRegisterModal({
+export function CreateCashRegisterModal(props: CreateCashRegisterModalProps) {
+    if (!props.visible) {
+        return null;
+    }
+    return <CreateCashRegisterModalContent {...props} />;
+}
+
+function CreateCashRegisterModalContent({
     visible,
     tenantId: fixedTenantId,
     onClose,
@@ -101,7 +108,7 @@ export function CreateCashRegisterModal({
             okText={t('cashRegisters.create.confirm')}
             cancelText={t('cashRegisters.create.cancel')}
             confirmLoading={createMutation.isPending}
-            destroyOnHidden
+            forceRender
             width={480}
         >
             <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark="optional">

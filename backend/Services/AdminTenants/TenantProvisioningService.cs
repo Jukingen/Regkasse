@@ -78,6 +78,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
             Status = RegisterStatus.Closed,
             CreatedAt = now,
             IsActive = true,
+            IsDefaultForTenant = true,
         };
         _db.CashRegisters.Add(cashRegister);
 

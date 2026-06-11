@@ -28,10 +28,16 @@ export interface BackupRunResponseDto {
   /** @nullable */
   completedAt?: string | null;
   /** @nullable */
+  compressionRatio?: number | null;
+  /** @nullable */
   configSnapshotJson?: string | null;
   /** @nullable */
   correlationId?: string | null;
   duplicatePrevented?: boolean;
+  /** @nullable */
+  durationFormatted?: string | null;
+  /** @nullable */
+  durationSeconds?: number | null;
   /** @nullable */
   failureCode?: string | null;
   /** @nullable */
@@ -52,6 +58,10 @@ export interface BackupRunResponseDto {
   /** @nullable */
   startedAt?: string | null;
   status?: BackupRunStatus;
+  /** @nullable */
+  totalSizeBytes?: number | null;
+  /** @nullable */
+  totalSizeFormatted?: string | null;
   triggerSource?: BackupTriggerSource;
   /** @nullable */
   verifications?: BackupVerificationResponseDto[] | null;

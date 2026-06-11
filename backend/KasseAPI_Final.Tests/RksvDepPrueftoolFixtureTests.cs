@@ -22,6 +22,7 @@ public sealed class RksvDepPrueftoolFixtureTests
 
         Assert.True(File.Exists(paths.DepExportPath));
         Assert.True(File.Exists(paths.CryptoMaterialPath));
+        Assert.True(File.Exists(paths.QrCodeRepPath));
         Assert.Equal(3, paths.ReceiptCount);
 
         var dep = File.ReadAllText(paths.DepExportPath);

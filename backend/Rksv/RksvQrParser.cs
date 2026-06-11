@@ -5,10 +5,18 @@ using KasseAPI_Final.Tse;
 namespace KasseAPI_Final.Rksv;
 
 /// <summary>
-/// Pure RKSV QR string parser (no DB, no signature cryptography). Supports Regkasse compact layout and a 11+JWS standard-style layout.
+/// Pure RKSV QR string parser (no DB, no signature cryptography).
+/// Prefers BMF §9 <see cref="RksvQrPayloadLayout.StandardRksvV1"/> (11 body fields + JWS),
+/// with legacy <see cref="RksvQrPayloadLayout.InternalCompact"/> fallback during transition.
 /// </summary>
 public static class RksvQrParser
 {
+    /// <summary>Body field count for BMF §9 machine code after the algorithm prefix.</summary>
+    public const int StandardRksvV1BodySegmentCount = 11;
+
+    /// <summary>Body field count for legacy internal compact QR.</summary>
+    public const int InternalCompactBodySegmentCount = 6;
+
     /// <summary>RKSV standard five gross bucket codes (positions 4–8 in <see cref="RksvQrPayloadLayout.StandardRksvV1"/>).</summary>
     public static readonly IReadOnlyList<string> StandardTaxBucketCodes = new[]
     {
@@ -23,6 +31,20 @@ public static class RksvQrParser
         @"^_((?<algo>R1-AT\d+))_(?<remainder>.+)$",
         RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+    /// <summary>
+    /// Returns true when the payload can be split into 11 RKSV §9 body segments followed by a compact JWS.
+    /// </summary>
+    public static bool IsStandardRksvV1Format(string? qrPayload) =>
+        TryResolvePrefix(qrPayload, out _, out var remainder)
+        && TrySplitBodyAndJws(remainder, StandardRksvV1BodySegmentCount, out _, out _, out _);
+
+    /// <summary>
+    /// Returns true when the payload can be split into 6 legacy internal-compact body segments followed by a compact JWS.
+    /// </summary>
+    public static bool IsInternalCompactFormat(string? qrPayload) =>
+        TryResolvePrefix(qrPayload, out _, out var remainder)
+        && TrySplitBodyAndJws(remainder, InternalCompactBodySegmentCount, out _, out _, out _);
+
     /// <summary>Parses an RKSV-style QR payload into <see cref="RksvQrPayload"/> or returns errors.</summary>
     public static RksvQrParseResult Parse(string? payload)
     {
@@ -33,43 +55,37 @@ public static class RksvQrParser
             return RksvQrParseResult.Fail(errors);
         }
 
-        var trimmed = payload.Trim();
-        var prefixMatch = PrefixRegex.Match(trimmed);
-        if (!prefixMatch.Success)
+        if (!TryResolvePrefix(payload, out var algorithmId, out var remainder))
         {
             errors.Add("Payload must start with '_R1-AT{version}_' (RKSV machine-readable prefix).");
             return RksvQrParseResult.Fail(errors);
         }
 
-        var algorithmId = prefixMatch.Groups["algo"].Value;
-        var remainder = prefixMatch.Groups["remainder"].Value;
         if (string.IsNullOrEmpty(remainder))
         {
             errors.Add("Payload is missing fields after algorithm id.");
             return RksvQrParseResult.Fail(errors);
         }
 
-        if (!TrySplitBodyAndJws(remainder, out var body, out var signature, out var splitError))
+        // Prefer BMF §9 (11 body segments + compact JWS) during transition.
+        if (TrySplitBodyAndJws(remainder, StandardRksvV1BodySegmentCount, out var standardBody, out var standardSignature, out _))
         {
-            errors.Add(splitError);
-            return RksvQrParseResult.Fail(errors);
+            if (!IsJwsShell(standardSignature, out var jwsErrors))
+                return RksvQrParseResult.Fail(jwsErrors);
+
+            return ParseStandardRksvV1(algorithmId, standardBody, standardSignature);
         }
 
-        if (!IsJwsShell(signature, out var jwsErrors))
+        // Legacy internal compact (6 body segments + compact JWS).
+        if (TrySplitBodyAndJws(remainder, InternalCompactBodySegmentCount, out var compactBody, out var compactSignature, out var splitError))
         {
-            errors.AddRange(jwsErrors);
-            return RksvQrParseResult.Fail(errors);
+            if (!IsJwsShell(compactSignature, out var jwsErrors))
+                return RksvQrParseResult.Fail(jwsErrors);
+
+            return ParseInternalCompact(algorithmId, compactBody, compactSignature);
         }
 
-        var bodyParts = body.Split('_');
-        if (bodyParts.Length == 6)
-            return BuildInternalCompact(algorithmId, bodyParts, signature, errors);
-
-        if (bodyParts.Length == 11)
-            return BuildStandardRksvV1(algorithmId, bodyParts, signature, errors);
-
-        errors.Add(
-            $"Unsupported field layout: expected 6 body segments (internal compact) or 11 (standard RKSV-style) before signature, found {bodyParts.Length}.");
+        errors.Add(splitError);
         return RksvQrParseResult.Fail(errors);
     }
 
@@ -82,12 +98,36 @@ public static class RksvQrParser
         throw new RksvQrParseException(r.Errors);
     }
 
-    private static RksvQrParseResult BuildInternalCompact(
-        string algorithmId,
-        string[] bodyParts,
-        string signature,
-        List<string> errors)
+    private static bool TryResolvePrefix(string? payload, out string algorithmId, out string remainder)
     {
+        algorithmId = string.Empty;
+        remainder = string.Empty;
+        if (string.IsNullOrWhiteSpace(payload))
+            return false;
+
+        var prefixMatch = PrefixRegex.Match(payload.Trim());
+        if (!prefixMatch.Success)
+            return false;
+
+        algorithmId = prefixMatch.Groups["algo"].Value;
+        remainder = prefixMatch.Groups["remainder"].Value;
+        return true;
+    }
+
+    private static RksvQrParseResult ParseInternalCompact(
+        string algorithmId,
+        string body,
+        string signature)
+    {
+        var errors = new List<string>();
+        var bodyParts = body.Split('_');
+        if (bodyParts.Length != InternalCompactBodySegmentCount)
+        {
+            errors.Add(
+                $"Legacy internal compact layout expected {InternalCompactBodySegmentCount} body segments, found {bodyParts.Length}.");
+            return RksvQrParseResult.Fail(errors);
+        }
+
         var kassen = bodyParts[0];
         var beleg = bodyParts[1];
         var ts = bodyParts[2];
@@ -126,12 +166,20 @@ public static class RksvQrParser
         });
     }
 
-    private static RksvQrParseResult BuildStandardRksvV1(
+    private static RksvQrParseResult ParseStandardRksvV1(
         string algorithmId,
-        string[] bodyParts,
-        string signature,
-        List<string> errors)
+        string body,
+        string signature)
     {
+        var errors = new List<string>();
+        var bodyParts = body.Split('_');
+        if (bodyParts.Length != StandardRksvV1BodySegmentCount)
+        {
+            errors.Add(
+                $"BMF §9 layout expected {StandardRksvV1BodySegmentCount} body segments, found {bodyParts.Length}.");
+            return RksvQrParseResult.Fail(errors);
+        }
+
         var kassen = bodyParts[0];
         var beleg = bodyParts[1];
         var ts = bodyParts[2];
@@ -209,10 +257,15 @@ public static class RksvQrParser
     }
 
     /// <summary>
-    /// Finds compact JWS by trying each underscore split: body must have 6 or 11 segments, JWS must have three parts,
-    /// and the JWT header must Base64URL-decode to JSON. The rightmost qualifying underscore wins.
+    /// Finds compact JWS by scanning underscore splits right-to-left. Only accepts splits whose body has
+    /// exactly <paramref name="requiredBodySegmentCount"/> underscore-separated fields.
     /// </summary>
-    private static bool TrySplitBodyAndJws(string remainder, out string body, out string jws, out string error)
+    private static bool TrySplitBodyAndJws(
+        string remainder,
+        int requiredBodySegmentCount,
+        out string body,
+        out string jws,
+        out string error)
     {
         body = string.Empty;
         jws = string.Empty;
@@ -237,8 +290,7 @@ public static class RksvQrParser
             if (string.IsNullOrEmpty(candidateBody))
                 continue;
 
-            var n = candidateBody.Split('_').Length;
-            if (n is not (6 or 11))
+            if (candidateBody.Split('_').Length != requiredBodySegmentCount)
                 continue;
 
             body = candidateBody;
@@ -246,7 +298,8 @@ public static class RksvQrParser
             return true;
         }
 
-        error = "Payload must contain a compact JWS (three dot-separated segments) after exactly 6 or 11 underscore-separated body fields.";
+        error =
+            $"Payload must contain a compact JWS (three dot-separated segments) after exactly {requiredBodySegmentCount} underscore-separated body fields.";
         return false;
     }
 }

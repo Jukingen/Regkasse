@@ -25,4 +25,6 @@ export interface AdminTenantUserRowDto {
   tenantSlug?: string | null;
   /** @nullable */
   userId?: string | null;
+  /** @nullable */
+  userName?: string | null;
 }

@@ -15,7 +15,11 @@ export interface BackupArtifactResponseDto {
   /** @nullable */
   contentHashSha256?: string | null;
   /** @nullable */
+  createdAt?: string | null;
+  /** @nullable */
   externalRedactedLocator?: string | null;
+  /** @nullable */
+  formattedSize?: string | null;
   id?: string;
   isFilePresentForDownload?: boolean;
   lifecycleState?: BackupArtifactLifecycleState;

@@ -7,16 +7,25 @@
  */
 
 export interface LicensePublicStatusDto {
+  /** @nullable */
+  canAccess?: boolean | null;
+  /** @nullable */
+  canTransact?: boolean | null;
   daysRemaining?: number;
   /** @nullable */
   features?: string[] | null;
+  gracePeriodRemaining?: number;
   isDevelopmentBypass?: boolean;
   isExpired?: boolean;
+  isInGracePeriod?: boolean;
   isValid?: boolean;
   /** @nullable */
   licenseType?: string | null;
   /** @nullable */
   mode?: string | null;
+  requiresRenewal?: boolean;
+  /** @nullable */
+  statusMessage?: string | null;
   /** @nullable */
   validUntil?: string | null;
 }

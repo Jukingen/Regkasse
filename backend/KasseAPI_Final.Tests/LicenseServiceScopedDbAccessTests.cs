@@ -68,6 +68,7 @@ public sealed class LicenseServiceScopedDbAccessTests
             Mock.Of<IActivityEventPublisher>(),
             logger.Object,
             hostEnvironment.Object,
+            Options.Create(new TseOptions { TseMode = "Device" }),
             developmentOptions.Object,
             developmentMode.Object);
 

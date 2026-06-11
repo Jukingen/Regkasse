@@ -21,7 +21,14 @@ export type ReportConfigModalProps = {
     onApply: (values: ReportConfigValues) => void;
 };
 
-export function ReportConfigModal({
+export function ReportConfigModal(props: ReportConfigModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <ReportConfigModalContent {...props} />;
+}
+
+function ReportConfigModalContent({
     open,
     reportKey,
     initial,
@@ -33,8 +40,8 @@ export function ReportConfigModal({
     const [form] = Form.useForm<ReportConfigValues>();
 
     useEffect(() => {
-        if (open) form.setFieldsValue(initial);
-    }, [open, initial, form]);
+        form.setFieldsValue(initial);
+    }, [initial, form]);
 
     const usesBusinessDay = reportKey === 'reconciliation';
 
@@ -46,7 +53,7 @@ export function ReportConfigModal({
             onOk={() => {
                 void form.validateFields().then((values) => onApply(values));
             }}
-            destroyOnHidden
+            forceRender
         >
             <Form form={form} layout="vertical">
                 {usesBusinessDay ? (

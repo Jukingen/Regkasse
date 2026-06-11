@@ -183,6 +183,7 @@
     "loadError": "Load failed",
     "loadErrorTooltip": "Could not load cash registers",
     "empty": "No registers available",
-    "mandantHeader": "Tenant: {{name}} ({{slug}})"
+    "mandantHeader": "Tenant: {{name}} ({{slug}})",
+    "defaultTag": "Default"
   }
 }

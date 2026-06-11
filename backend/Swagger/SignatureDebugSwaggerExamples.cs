@@ -107,7 +107,7 @@ public class SignatureDebugSwaggerExamples : IOperationFilter
                 ["tse"] = new JsonObject
                 {
                     ["tseSignature"] = "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...",
-                    ["qrPayload"] = "_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_eyJhbGci...",
+                    ["qrPayload"] = "_R1-AT1_KASSE-001_AT-KASSE-001-20260228-011cfa48_2026-02-28T18:52:48_10,00_0,00_0,00_0,00_0,00_ENC_TURNOVER_CERT_PREVSIG_eyJhbGci...",
                     ["isDemoFiscal"] = true,
                     ["provider"] = "Demo"
                 }

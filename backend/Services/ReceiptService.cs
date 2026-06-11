@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using Microsoft.EntityFrameworkCore;
@@ -125,7 +126,7 @@ namespace KasseAPI_Final.Services
                 ?? await GetLastSignatureValueForCashRegisterAsync(payment.CashRegisterId);
 
             var certInfo = await _tseService.GetTseCertificateInfoAsync(registerNumber);
-            var qrPayload = string.IsNullOrEmpty(signatureValue) ? string.Empty : $"_R1-AT1_{registerNumber}_{payment.ReceiptNumber}_{payment.CreatedAt:s}_{payment.TotalAmount:0.00}_0.00_{certInfo.CertificateNumber}_{signatureValue}";
+            var qrPayload = BuildReceiptQrPayload(signatureValue);
 
             // 5. Create Entity
             var newReceipt = new Receipt
@@ -261,7 +262,7 @@ namespace KasseAPI_Final.Services
             var signatureValue = payment.TseSignature ?? string.Empty;
             var prevSignatureValue = payment.PrevSignatureValueUsed ?? await GetLastSignatureValueForCashRegisterAsync(payment.CashRegisterId);
             var certInfo = await _tseService.GetTseCertificateInfoAsync(registerNumberCtx);
-            var qrPayload = string.IsNullOrEmpty(signatureValue) ? string.Empty : $"_R1-AT1_{registerNumberCtx}_{payment.ReceiptNumber}_{payment.CreatedAt:s}_{payment.TotalAmount:0.00}_0.00_{certInfo.CertificateNumber}_{signatureValue}";
+            var qrPayload = BuildReceiptQrPayload(signatureValue);
 
             var newReceipt = new Receipt
             {
@@ -505,8 +506,8 @@ namespace KasseAPI_Final.Services
                 Timestamp = receipt.IssuedAt.ToString("yyyy-MM-ddTHH:mm:ss"),
                 PrevSignatureValue = receipt.PrevSignatureValue ?? "",
                 SignatureValue = receipt.SignatureValue ?? "",
-                QrData = receipt.QrCodePayload ?? ""
             };
+            signature.QrData = ResolveQrDataForPrinting(receipt);
 
             var pay = receipt.Payment;
             var traceKind = pay?.IsStorno == true ? "Storno" : pay?.IsRefund == true ? "Refund" : null;
@@ -623,6 +624,25 @@ namespace KasseAPI_Final.Services
                 Signature = signature,
                 FooterText = companyProfile.FooterText
             };
+        }
+
+        /// <summary>
+        /// BMF §9 QR wire format from compact JWS (same builder as <see cref="PaymentService"/>).
+        /// </summary>
+        private static string BuildReceiptQrPayload(string? compactJws) =>
+            RksvReceiptQrPayloadBuilder.BuildFromCompactJwsOrNull(compactJws) ?? string.Empty;
+
+        /// <summary>
+        /// Prefer freshly built §9 QR from the stored signature so reprints stay DEP-aligned;
+        /// fall back to persisted <see cref="Receipt.QrCodePayload"/> for legacy rows.
+        /// </summary>
+        private static string ResolveQrDataForPrinting(Receipt receipt)
+        {
+            var fromSignature = RksvReceiptQrPayloadBuilder.BuildFromCompactJwsOrNull(receipt.SignatureValue);
+            if (!string.IsNullOrEmpty(fromSignature))
+                return fromSignature;
+
+            return receipt.QrCodePayload ?? string.Empty;
         }
 
     }

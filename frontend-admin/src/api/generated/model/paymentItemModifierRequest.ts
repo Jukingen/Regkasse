@@ -12,6 +12,7 @@ export interface PaymentItemModifierRequest {
   modifierId: string;
   /**
    * @minimum 0
+   * @maximum 1.7976931348623157e+308
    * @nullable
    */
   priceDelta?: number | null;

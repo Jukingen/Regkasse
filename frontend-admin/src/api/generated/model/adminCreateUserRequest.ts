@@ -52,7 +52,7 @@ export interface AdminCreateUserRequest {
   /** @nullable */
   tenantId?: string | null;
   /**
-   * @maxLength 50
+   * @maxLength 256
    * @nullable
    */
   userName?: string | null;

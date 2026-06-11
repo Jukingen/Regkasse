@@ -19,6 +19,7 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  ForgotUsernameRequest,
   LoginModel,
   RefreshTokenModel,
   RegisterModel
@@ -29,7 +30,107 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
-export const postApiAuthLogin = (
+export const postApiAuthRefreshSession = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Auth/refresh-session`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAuthRefreshSessionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRefreshSession>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRefreshSession>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAuthRefreshSession>>, void> = () => {
+          
+
+          return  postApiAuthRefreshSession(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAuthRefreshSessionMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAuthRefreshSession>>>
+    
+    export type PostApiAuthRefreshSessionMutationError = unknown
+
+    export const usePostApiAuthRefreshSession = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthRefreshSession>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAuthRefreshSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAuthRefreshSessionMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAuthForgotUsername = (
+    forgotUsernameRequest: ForgotUsernameRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Auth/forgot-username`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: forgotUsernameRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAuthForgotUsernameMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthForgotUsername>>, TError,{data: ForgotUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAuthForgotUsername>>, TError,{data: ForgotUsernameRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAuthForgotUsername>>, {data: ForgotUsernameRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAuthForgotUsername(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAuthForgotUsernameMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAuthForgotUsername>>>
+    export type PostApiAuthForgotUsernameMutationBody = ForgotUsernameRequest
+    export type PostApiAuthForgotUsernameMutationError = unknown
+
+    export const usePostApiAuthForgotUsername = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAuthForgotUsername>>, TError,{data: ForgotUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAuthForgotUsername>>,
+        TError,
+        {data: ForgotUsernameRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAuthForgotUsernameMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAuthLogin = (
     loginModel: LoginModel,
  options?: SecondParameter<typeof customInstance>,) => {
       

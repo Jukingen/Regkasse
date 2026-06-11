@@ -52,6 +52,38 @@ const sampleTenants = [
 ] as const;
 
 describe('CreateUserModal', () => {
+    it('does not render the create form when open is false', () => {
+        renderModal(
+            <CreateUserModal
+                open={false}
+                isSuperAdmin
+                tenantRows={[...sampleTenants]}
+                onClose={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('calls onClose when cancel button is clicked', () => {
+        const onClose = vi.fn();
+
+        renderModal(
+            <CreateUserModal
+                open
+                isSuperAdmin
+                tenantRows={[...sampleTenants]}
+                onClose={onClose}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: /Abbrechen/i }));
+
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
+
     it('shows modal mandant selector when super admin has no fixed tenant (not header switcher)', () => {
         renderModal(
             <CreateUserModal

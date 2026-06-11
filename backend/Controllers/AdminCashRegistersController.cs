@@ -4,6 +4,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.AdminCashRegisters;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,17 +20,20 @@ public sealed class AdminCashRegistersController : ControllerBase
     private readonly ICashRegisterDecommissionService _decommission;
     private readonly ICashRegisterManagementService _cashRegisterManagement;
     private readonly ICashRegisterListEnrichmentService _enrichment;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<AdminCashRegistersController> _logger;
 
     public AdminCashRegistersController(
         ICashRegisterDecommissionService decommission,
         ICashRegisterManagementService cashRegisterManagement,
         ICashRegisterListEnrichmentService enrichment,
+        ICurrentTenantAccessor tenantAccessor,
         ILogger<AdminCashRegistersController> logger)
     {
         _decommission = decommission;
         _cashRegisterManagement = cashRegisterManagement;
         _enrichment = enrichment;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
     }
 
@@ -94,6 +98,49 @@ public sealed class AdminCashRegistersController : ControllerBase
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>Active registers for the selected mandant; default register is listed first.</summary>
+    [HttpGet("by-tenant")]
+    [HasPermission(AppPermissions.CashRegisterView)]
+    [ProducesResponseType(typeof(IReadOnlyList<CashRegisterDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IReadOnlyList<CashRegisterDto>>> ListByTenant(
+        CancellationToken cancellationToken = default)
+    {
+        if (_tenantAccessor.TenantId is not Guid tenantId || tenantId == Guid.Empty)
+            return BadRequest(new { message = "No tenant selected" });
+
+        var actorIsSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+
+        try
+        {
+            var result = await _cashRegisterManagement.ListAsync(
+                tenantId,
+                nameof(RegisterStatus.Decommissioned),
+                actorIsSuperAdmin,
+                page: 1,
+                pageSize: 100,
+                cancellationToken).ConfigureAwait(false);
+
+            var items = result.Items.Where(r => r.IsActive).ToList();
+            return Ok(items);
+        }
+        catch (UnauthorizedAccessException ex) when (ex.Message.Contains("other tenants", StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Cash register by-tenant list rejected: missing tenant context");
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Tenant not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(new { message = ex.Message });
         }
     }
 
@@ -378,6 +425,7 @@ public sealed class AdminCashRegistersController : ControllerBase
             LastBalanceUpdate = register.LastBalanceUpdate,
             CurrentUserId = register.CurrentUserId,
             IsActive = register.IsActive,
+            IsDefaultForTenant = register.IsDefaultForTenant,
             DecommissionedAtUtc = register.DecommissionedAtUtc,
             DecommissionReason = register.DecommissionReason,
             CreatedAt = register.CreatedAt,

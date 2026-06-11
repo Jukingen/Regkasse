@@ -64,6 +64,10 @@ namespace KasseAPI_Final.Models
         [MaxLength(450)]
         public string? DecommissionReason { get; set; }
 
+        /// <summary>Preferred register for Admin FA when a mandant is selected (at most one per tenant).</summary>
+        [Column("is_default_for_tenant")]
+        public bool IsDefaultForTenant { get; set; }
+
         // Navigation properties
         [ForeignKey(nameof(TenantId))]
         public virtual Tenant? Tenant { get; set; }

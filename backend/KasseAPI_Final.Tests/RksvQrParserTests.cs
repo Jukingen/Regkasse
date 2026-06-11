@@ -1,10 +1,62 @@
 using KasseAPI_Final.Rksv;
+using KasseAPI_Final.Tse;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
 public sealed class RksvQrParserTests
 {
+    private static readonly byte[] DevAesKey = new SoftwareTseKeyProvider().GetTurnoverCounterAesKeyBytes()!;
+
+    [Fact]
+    public void IsStandardRksvV1Format_DetectsBmfLayout()
+    {
+        var jws = "eyJhbGciOiJFUzI1NiJ9.e30.cc";
+        var s =
+            "_R1-AT1_K1_AT-K1-20200101-1_2020-01-01T00:00:00_1.00_2.00_3.00_4.00_5.00_ENC9_CERT8_PREV7_" + jws;
+
+        Assert.True(RksvQrParser.IsStandardRksvV1Format(s));
+        Assert.False(RksvQrParser.IsInternalCompactFormat(s));
+    }
+
+    [Fact]
+    public void IsInternalCompactFormat_DetectsLegacyLayout()
+    {
+        var jws = "eyJhbGciOiJFUzI1NiJ9.eyJrYXNzZW5JZCI6IjEifQ.signature";
+        var s =
+            $"_R1-AT1_KASSE-001_AT-KASSE-001-20260228-00000001_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_{jws}";
+
+        Assert.False(RksvQrParser.IsStandardRksvV1Format(s));
+        Assert.True(RksvQrParser.IsInternalCompactFormat(s));
+    }
+
+    [Fact]
+    public void Parse_SignedBmfQr_PrefersStandardRksvV1()
+    {
+        var keyProvider = new SoftwareTseKeyProvider();
+        var pipeline = new SignaturePipeline(keyProvider, NullLogger<SignaturePipeline>.Instance);
+        var beleg = BelegdatenPayloadBuilder.Build(
+            "KASSE-001",
+            "AT-KASSE-001-20260228-00000001",
+            new DateTime(2026, 2, 28, 16, 52, 48, DateTimeKind.Utc),
+            new RksvTaxSetAmounts { Normal = 10.00m },
+            1000,
+            null,
+            keyProvider.GetCertificateSerialNumber()!,
+            DevAesKey);
+        var jws = pipeline.Sign(beleg, "parser-test");
+        Assert.True(RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(jws, out var qr));
+
+        var r = RksvQrParser.Parse(qr);
+
+        Assert.True(r.Success);
+        Assert.Equal(RksvQrPayloadLayout.StandardRksvV1, r.Payload!.Layout);
+        Assert.Equal(5, r.Payload.TaxBuckets.Count);
+        Assert.NotNull(r.Payload.EncryptedTurnoverCounter);
+        Assert.NotNull(r.Payload.PreviousSignature);
+    }
+
     [Fact]
     public void Parse_InternalCompact_ReturnsPayload()
     {

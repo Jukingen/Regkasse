@@ -203,20 +203,7 @@ public sealed class DevelopmentModeService : IDevelopmentModeService, IDisposabl
     }
 
     private static DevelopmentModeSettings InactiveDefaults() =>
-        new()
-        {
-            Id = DevelopmentModeSettings.SingletonId,
-            Enabled = false,
-            BypassLicense = false,
-            BypassNtpCheck = false,
-            BypassTseCheck = false,
-            SimulateOffline = false,
-            ForceOnline = false,
-            ValidDays = 365,
-            Features = [],
-            UpdatedAtUtc = DateTime.UtcNow,
-            UpdatedByUserId = null,
-        };
+        DevelopmentModeSettings.CreateDefaultSingleton();
 
     private static DevelopmentModeSettings Clone(DevelopmentModeSettings s) =>
         new()

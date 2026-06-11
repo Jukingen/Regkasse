@@ -3,7 +3,7 @@ using KasseAPI_Final.DTOs;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Validates internal RKSV receipt QR wire format (<c>_R1-AT1_...</c>) without cryptographic verification or DB access.
+/// Validates RKSV receipt QR wire format (BMF §9 standard or legacy internal compact) without cryptographic verification or DB access.
 /// </summary>
 public interface IRksvReceiptQrPayloadFormatValidator
 {

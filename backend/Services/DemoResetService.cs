@@ -91,6 +91,7 @@ public sealed class DemoResetService : IDemoResetService
                 CreatedBy = "demo-reset",
                 UpdatedBy = "demo-reset",
                 IsActive = true,
+                IsDefaultForTenant = true,
             };
             _db.CashRegisters.Add(register);
             _logger.LogInformation("Default cash register recreated: {RegisterNumber}.", register.RegisterNumber);

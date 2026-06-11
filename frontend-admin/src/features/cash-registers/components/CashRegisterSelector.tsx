@@ -1,14 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Select, Space, Tooltip, Typography } from 'antd';
+import { Select, Space, Tag, Tooltip, Typography } from 'antd';
 import type { SelectProps } from 'antd';
 import { ShopOutlined } from '@ant-design/icons';
 
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { useCashRegisters } from '@/features/cash-registers/hooks/useCashRegisters';
+import {
+    readQuickCashRegisterId,
+    writeQuickCashRegisterId,
+} from '@/features/cash-registers/constants/quickSwitch';
 import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
+import { pickCashRegisterOnTenantSwitch } from '@/features/cash-registers/utils/pickPreferredCashRegister';
 import { useI18n } from '@/i18n';
 
 export type CashRegisterSelectorProps = {
@@ -25,6 +31,23 @@ export type CashRegisterSelectorProps = {
     className?: string;
 };
 
+function resolveAutoSelectedRegisterId(
+    registers: AdminCashRegisterListItem[],
+    tenantId: string,
+): string | null {
+    const saved = readQuickCashRegisterId();
+    if (
+        saved &&
+        registers.some(
+            (row) => row.id === saved && (!row.tenantId || row.tenantId === tenantId),
+        )
+    ) {
+        return saved;
+    }
+
+    return pickCashRegisterOnTenantSwitch(registers, tenantId);
+}
+
 export function CashRegisterSelector({
     value,
     onChange,
@@ -39,6 +62,7 @@ export function CashRegisterSelector({
     const { t } = useI18n();
     const { tenantId: currentTenantId, isSuperAdminUser, tenantName, tenantSlug } = useCurrentTenant();
     const [pickedTenantId, setPickedTenantId] = useState<string | undefined>();
+    const [internalRegisterId, setInternalRegisterId] = useState<string | undefined>();
 
     const showMandantPicker = isSuperAdminUser && showTenantPicker && !propTenantId;
     const { tenants, isLoading: tenantsLoading } = useTenantList({
@@ -57,11 +81,59 @@ export function CashRegisterSelector({
 
     const listAllTenants = isSuperAdminUser && !effectiveTenantId;
 
-    const { registers, isLoading, error } = useAdminCashRegisterList({
+    const tenantScopedQuery = useCashRegisters(effectiveTenantId, {
+        enabled: (isSuperAdminUser || Boolean(effectiveTenantId)) && !listAllTenants && Boolean(effectiveTenantId),
+    });
+
+    const allTenantsQuery = useAdminCashRegisterList({
         tenantId: effectiveTenantId,
         allowAllTenants: listAllTenants,
-        enabled: isSuperAdminUser || Boolean(effectiveTenantId),
+        enabled: (isSuperAdminUser || Boolean(effectiveTenantId)) && listAllTenants,
     });
+
+    const registers = listAllTenants ? allTenantsQuery.registers : tenantScopedQuery.registers;
+    const isLoading = listAllTenants ? allTenantsQuery.isLoading : tenantScopedQuery.isLoading;
+    const error = listAllTenants ? allTenantsQuery.error : tenantScopedQuery.error;
+
+    const isControlled = value !== undefined;
+    const displayValue = isControlled ? value : internalRegisterId;
+
+    useEffect(() => {
+        if (isControlled) {
+            return;
+        }
+        setInternalRegisterId(undefined);
+    }, [effectiveTenantId, isControlled]);
+
+    useEffect(() => {
+        if (isControlled || isLoading || listAllTenants || !effectiveTenantId) {
+            return;
+        }
+
+        const nextId = resolveAutoSelectedRegisterId(registers, effectiveTenantId);
+        if (nextId === internalRegisterId) {
+            return;
+        }
+
+        setInternalRegisterId(nextId ?? undefined);
+        if (nextId) {
+            writeQuickCashRegisterId(nextId);
+            const selected = registers.find((row) => row.id === nextId);
+            if (selected) {
+                onChange?.(selected.id, selected.registerNumber, selected.tenantId);
+            }
+        } else {
+            writeQuickCashRegisterId(null);
+        }
+    }, [
+        effectiveTenantId,
+        internalRegisterId,
+        isControlled,
+        isLoading,
+        listAllTenants,
+        onChange,
+        registers,
+    ]);
 
     const tenantById = useMemo(
         () => new Map(tenants.map((row) => [row.id, row])),
@@ -97,6 +169,7 @@ export function CashRegisterSelector({
                 value: register.id,
                 label: register.registerNumber,
                 register,
+                isDefault: register.isDefaultForTenant === true,
             })),
         [registers],
     );
@@ -104,14 +177,25 @@ export function CashRegisterSelector({
     const handleRegisterChange = useCallback(
         (selectedId: string | undefined) => {
             if (!selectedId) {
+                if (!isControlled) {
+                    setInternalRegisterId(undefined);
+                }
+                writeQuickCashRegisterId(null);
                 return;
             }
+
             const selected = registers.find((row) => row.id === selectedId);
-            if (selected) {
-                onChange?.(selected.id, selected.registerNumber, selected.tenantId);
+            if (!selected) {
+                return;
             }
+
+            if (!isControlled) {
+                setInternalRegisterId(selectedId);
+            }
+            writeQuickCashRegisterId(selectedId);
+            onChange?.(selected.id, selected.registerNumber, selected.tenantId);
         },
-        [onChange, registers],
+        [isControlled, onChange, registers],
     );
 
     const filterRegisterOption = useCallback((input: string, option?: { register?: AdminCashRegisterListItem }) => {
@@ -139,15 +223,22 @@ export function CashRegisterSelector({
                         gap: 8,
                     }}
                 >
-                    <span>
-                        <ShopOutlined style={{ marginRight: 8, color: '#1677ff' }} />
-                        {register.registerNumber}
-                        {mandant ? (
-                            <Typography.Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
-                                {mandant.slug}
-                            </Typography.Text>
+                    <Space size={8}>
+                        <span>
+                            <ShopOutlined style={{ marginRight: 8, color: '#1677ff' }} />
+                            {register.registerNumber}
+                            {mandant ? (
+                                <Typography.Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                                    {mandant.slug}
+                                </Typography.Text>
+                            ) : null}
+                        </span>
+                        {register.isDefaultForTenant ? (
+                            <Tag color="blue" variant="filled">
+                                {t('cashRegisters.selector.defaultTag')}
+                            </Tag>
                         ) : null}
-                    </span>
+                    </Space>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {register.location?.trim() || t('cashRegisters.selector.noLocation')}
                     </Typography.Text>
@@ -188,7 +279,7 @@ export function CashRegisterSelector({
             <Select
                 className={className}
                 style={style}
-                value={value}
+                value={displayValue}
                 onChange={handleRegisterChange}
                 placeholder={placeholder ?? t('cashRegisters.selector.placeholder')}
                 allowClear={allowClear}

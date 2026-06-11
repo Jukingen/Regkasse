@@ -95,6 +95,7 @@ export function CreateUserModal({
     const [quickSubmitting, setQuickSubmitting] = useState(false);
     const [activeTab, setActiveTab] = useState<'normal' | 'quick'>('normal');
     const tenantAssignmentModal = useTenantAssignmentModal();
+    const { visible: tenantAssignmentVisible, closeModal: closeTenantAssignmentModal } = tenantAssignmentModal;
 
     const showTenantPicker = isSuperAdmin && !fixedTenantId;
     const canDeferTenantAssignment = showTenantPicker && !fixedTenantId && allowDeferredTenantAssignment && !!onAssignTenants;
@@ -148,10 +149,12 @@ export function CreateUserModal({
         if (!open) {
             form.resetFields();
             quickForm.resetFields();
+            setPasswordResult(null);
+            setTenantAssignmentResult(null);
+            closeTenantAssignmentModal();
+            setQuickResult(null);
             setActiveTab('normal');
             setPassword('');
-            setTenantAssignmentResult(null);
-            tenantAssignmentModal.closeModal();
             return;
         }
         form.setFieldsValue({
@@ -164,7 +167,8 @@ export function CreateUserModal({
             role: 'Manager',
             ...(fixedTenantId ? { tenantId: fixedTenantId } : {}),
         });
-    }, [open, form, quickForm, fixedTenantId, initialValues]);
+        setActiveTab('normal');
+    }, [open, form, quickForm, fixedTenantId, initialValues, closeTenantAssignmentModal]);
 
     useEffect(() => {
         if (passwordResult?.generatedPassword) {
@@ -175,8 +179,10 @@ export function CreateUserModal({
         setPassword('');
     }, [passwordResult]);
 
-    const watchedQuickRole = Form.useWatch('role', quickForm) ?? 'Manager';
-    const watchedQuickTenantId = Form.useWatch('tenantId', quickForm) ?? fixedTenantId;
+    const createFormModalOpen = open && !passwordResult && !quickResult && !tenantAssignmentVisible;
+    const quickFormConnected = createFormModalOpen && Boolean(quickMode) ? quickForm : undefined;
+    const watchedQuickRole = Form.useWatch('role', quickFormConnected) ?? 'Manager';
+    const watchedQuickTenantId = Form.useWatch('tenantId', quickFormConnected) ?? fixedTenantId;
     const quickPreviewTenant = watchedQuickTenantId ? tenantById.get(watchedQuickTenantId) : undefined;
     const quickPreviewSlug = quickPreviewTenant?.slug ?? (canDeferQuickTenantAssignment ? 'platform' : 'tenant');
     const quickPreviewName = quickPreviewTenant?.name ?? fixedTenantId ?? '';
@@ -199,11 +205,14 @@ export function CreateUserModal({
     });
 
     const handleClose = () => {
+        form.resetFields();
+        quickForm.resetFields();
         setPasswordResult(null);
         setTenantAssignmentResult(null);
         tenantAssignmentModal.closeModal();
         setQuickResult(null);
         setActiveTab('normal');
+        setPassword('');
         onClose();
     };
 
@@ -462,10 +471,12 @@ export function CreateUserModal({
         <>
             <Modal
                 title={modalTitle}
-                open={open && !passwordResult && !quickResult && !tenantAssignmentModal.visible}
+                open={createFormModalOpen}
                 onCancel={handleClose}
+                closable
+                maskClosable
                 width={600}
-                destroyOnHidden
+                forceRender
                 footer={[
                     <Button key="cancel" onClick={handleClose}>
                         {t('common.buttons.cancel')}
@@ -508,7 +519,7 @@ export function CreateUserModal({
                 )}
             </Modal>
 
-            {tenantAssignmentModal.visible && tenantAssignmentResult ? (
+            {open && tenantAssignmentVisible && tenantAssignmentResult ? (
                 <UserTenantAssignmentModal
                     open
                     userEmail={tenantAssignmentModal.userEmail}
@@ -528,8 +539,10 @@ export function CreateUserModal({
 
             <Modal
                 title={t('users.create.success')}
-                open={!!passwordResult}
+                open={open && !!passwordResult}
                 onCancel={closePasswordModal}
+                closable
+                maskClosable
                 destroyOnHidden
                 footer={[
                     <Button key="copy" type="primary" icon={<CopyOutlined />} onClick={() => void copyPassword()}>
@@ -565,7 +578,7 @@ export function CreateUserModal({
 
             {quickMode ? (
                 <QuickUserSuccessModal
-                    open={!!quickResult}
+                    open={open && !!quickResult}
                     result={quickResult}
                     role={watchedQuickRole}
                     tenantName={quickPreviewName}

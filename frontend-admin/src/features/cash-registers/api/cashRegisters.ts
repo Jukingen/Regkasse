@@ -55,6 +55,7 @@ export type AdminCashRegisterListItem = {
     currentUserId?: string | null;
     currentCashierName?: string | null;
     isActive?: boolean;
+    isDefaultForTenant?: boolean;
     decommissionedAtUtc?: string | null;
     decommissionReason?: string | null;
     createdAt?: string;
@@ -93,6 +94,17 @@ export const adminCashRegisterListQueryKey = (params?: ListAdminCashRegistersPar
         params?.excludeStatus ?? '__none__',
         params?.pageSize ?? 100,
     ] as const;
+
+export const cashRegisterByTenantQueryKey = (tenantId?: string) =>
+    ['cash-registers', 'by-tenant', tenantId ?? '__none__'] as const;
+
+export async function listCashRegistersByTenant(): Promise<AdminCashRegisterListItem[]> {
+    const data = await customInstance<AdminCashRegisterListItem[]>({
+        url: '/api/admin/cash-registers/by-tenant',
+        method: 'GET',
+    });
+    return data ?? [];
+}
 
 export async function listAdminCashRegisters(
     params?: ListAdminCashRegistersParams,

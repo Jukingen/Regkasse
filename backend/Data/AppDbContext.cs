@@ -588,6 +588,9 @@ namespace KasseAPI_Final.Data
                     .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasIndex(e => new { e.TenantId, e.RegisterNumber }).IsUnique();
+                entity.HasIndex(e => e.TenantId)
+                    .IsUnique()
+                    .HasFilter("\"is_default_for_tenant\" = true");
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.CurrentUserId);
             });
@@ -2127,15 +2130,15 @@ namespace KasseAPI_Final.Data
                 entity.HasData(new global::KasseAPI_Final.Models.DevelopmentModeSettings
                 {
                     Id = global::KasseAPI_Final.Models.DevelopmentModeSettings.SingletonId,
-                    Enabled = false,
-                    BypassLicense = false,
-                    BypassNtpCheck = false,
-                    BypassTseCheck = false,
+                    Enabled = true,
+                    BypassLicense = true,
+                    BypassNtpCheck = true,
+                    BypassTseCheck = true,
                     SimulateOffline = false,
-                    ForceOnline = false,
+                    ForceOnline = true,
                     ValidDays = 365,
                     Features = [],
-                    UpdatedAtUtc = new DateTime(2026, 5, 14, 12, 0, 0, DateTimeKind.Utc),
+                    UpdatedAtUtc = new DateTime(2026, 6, 11, 12, 0, 0, DateTimeKind.Utc),
                     UpdatedByUserId = null,
                 });
             });

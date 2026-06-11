@@ -70,6 +70,7 @@ public class CashRegisterControllerCreateTests
             CreateTestUserManager(),
             Mock.Of<ICashRegisterShiftService>(),
             tenantResolver ?? TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId),
+            TenantTestDoubles.TenantAccessorReturning(PrimaryTenantId),
             new CashRegisterManagementService(
                 ctx,
                 tenantResolver ?? TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId),

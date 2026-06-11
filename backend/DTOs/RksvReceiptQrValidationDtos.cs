@@ -11,14 +11,14 @@ public sealed class RksvValidateReceiptQrRequest
     public string QrPayload { get; set; } = string.Empty;
 }
 
-/// <summary>Structured parse result for a valid RKSV-style receipt QR payload (internal format).</summary>
+/// <summary>Structured parse result for a valid RKSV-style receipt QR payload (BMF §9 standard or legacy internal compact).</summary>
 public sealed class RksvValidateReceiptQrParsedDto
 {
     public string ReceiptNumber { get; set; } = string.Empty;
     public string Timestamp { get; set; } = string.Empty;
     public RksvValidateReceiptQrTotalsDto Totals { get; set; } = new();
     public string CertificateSerial { get; set; } = string.Empty;
-    /// <summary>Previous chain signature when present in QR; current internal QR format does not include this segment.</summary>
+    /// <summary>Previous chain signature segment when present (BMF §9 layout).</summary>
     public string? PreviousSignature { get; set; }
 }
 

@@ -18,7 +18,14 @@ export type DecommissionModalProps = {
     confirmLoading?: boolean;
 };
 
-export function DecommissionModal({
+export function DecommissionModal(props: DecommissionModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <DecommissionModalContent {...props} />;
+}
+
+function DecommissionModalContent({
     open,
     register,
     reason,
@@ -81,7 +88,7 @@ export function DecommissionModal({
                     {t('cashRegisters.decommission.confirm')}
                 </Button>,
             ]}
-            destroyOnHidden
+            forceRender
             width={500}
         >
             <Typography.Paragraph strong style={{ marginBottom: 16 }}>

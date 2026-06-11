@@ -1,8 +1,11 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Auth;
 
@@ -16,11 +19,25 @@ public sealed class AuthService : IAuthService
 
     private readonly AppDbContext _db;
     private readonly ILoginTenantResolver _loginTenantResolver;
+    private readonly IHostEnvironment _hostEnvironment;
+    private readonly TseOptions _tseOptions;
+    private readonly IDevelopmentModeService _developmentMode;
+    private readonly LicenseOptions _licenseOptions;
 
-    public AuthService(AppDbContext db, ILoginTenantResolver loginTenantResolver)
+    public AuthService(
+        AppDbContext db,
+        ILoginTenantResolver loginTenantResolver,
+        IHostEnvironment hostEnvironment,
+        IOptions<TseOptions> tseOptions,
+        IDevelopmentModeService developmentMode,
+        IOptions<LicenseOptions> licenseOptions)
     {
         _db = db;
         _loginTenantResolver = loginTenantResolver;
+        _hostEnvironment = hostEnvironment;
+        _tseOptions = tseOptions.Value;
+        _developmentMode = developmentMode;
+        _licenseOptions = licenseOptions.Value;
     }
 
     public async Task<LoginTenantAccessResult> ResolveLoginTenantAccessAsync(
@@ -68,7 +85,13 @@ public sealed class AuthService : IAuthService
                     LoginTenantBlockedException.CodeTenantDisabled);
             }
 
-            if (!isSuperAdmin && tenant != null)
+            if (!isSuperAdmin
+                && tenant != null
+                && !LicenseEnforcementPolicy.ShouldDisableEnforcement(
+                    _hostEnvironment,
+                    _tseOptions,
+                    _developmentMode,
+                    _licenseOptions))
             {
                 var permissions = TenantLicenseValidator.GetPermissions(tenant.LicenseValidUntilUtc, isSuperAdmin: false);
                 if (!permissions.CanAccess)

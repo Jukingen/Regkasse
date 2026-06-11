@@ -50,6 +50,7 @@ public sealed class AdminCashRegistersListTests
             Mock.Of<ICashRegisterDecommissionService>(),
             management,
             enrichment,
+            TenantTestDoubles.TenantAccessorReturning(TenantAId),
             NullLogger<AdminCashRegistersController>.Instance);
 
         controller.ControllerContext = new ControllerContext

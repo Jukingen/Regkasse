@@ -1,10 +1,14 @@
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Middleware;
 
@@ -29,7 +33,11 @@ public sealed class TenantOperationalGateMiddleware
         ICurrentTenantAccessor tenantAccessor,
         AppDbContext db,
         ILogger<TenantOperationalGateMiddleware> logger,
-        TenantLicenseValidator tenantLicenseValidator)
+        TenantLicenseValidator tenantLicenseValidator,
+        IHostEnvironment environment,
+        IOptions<TseOptions> tseOptions,
+        IOptions<LicenseOptions> licenseOptions,
+        IDevelopmentModeService developmentMode)
     {
         if (ShouldSkip(context.Request.Path) || tenantAccessor.TenantId is not Guid tenantId)
         {
@@ -80,6 +88,16 @@ public sealed class TenantOperationalGateMiddleware
                 code = "TENANT_NOT_ACTIVE",
                 tenantName = row.Name,
             }).ConfigureAwait(false);
+            return;
+        }
+
+        if (LicenseEnforcementPolicy.ShouldDisableEnforcement(
+                environment,
+                tseOptions.Value,
+                developmentMode,
+                licenseOptions.Value))
+        {
+            await _next(context).ConfigureAwait(false);
             return;
         }
 

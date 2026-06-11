@@ -1,14 +1,18 @@
 using System.Security.Claims;
 using System.Text;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 
@@ -63,6 +67,37 @@ public sealed class TenantOperationalGateMiddlewareTests
         return await reader.ReadToEndAsync();
     }
 
+    private static IHostEnvironment CreateHostEnvironment(bool isDevelopment) =>
+        Mock.Of<IHostEnvironment>(e => e.EnvironmentName == (isDevelopment ? Environments.Development : Environments.Production));
+
+    private static IOptions<TseOptions> CreateTseOptions(string tseMode = "Device") =>
+        Options.Create(new TseOptions { TseMode = tseMode });
+
+    private static IDevelopmentModeService CreateDevelopmentMode(bool bypassLicense = false) =>
+        Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == bypassLicense);
+
+    private static IOptions<LicenseOptions> CreateLicenseOptions(bool enabled = true) =>
+        Options.Create(new LicenseOptions { Enabled = enabled });
+
+    private static Task InvokeGateAsync(
+        TenantOperationalGateMiddleware sut,
+        HttpContext context,
+        ICurrentTenantAccessor accessor,
+        AppDbContext db,
+        bool isDevelopment = false,
+        string tseMode = "Device",
+        bool licenseEnabled = true) =>
+        sut.InvokeAsync(
+            context,
+            accessor,
+            db,
+            Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
+            new TenantLicenseValidator(),
+            CreateHostEnvironment(isDevelopment),
+            CreateTseOptions(tseMode),
+            CreateLicenseOptions(licenseEnabled),
+            CreateDevelopmentMode());
+
     [Fact]
     public async Task InvokeAsync_LockdownAfterGrace_BlocksNonUserManagementWrites()
     {
@@ -78,12 +113,7 @@ public sealed class TenantOperationalGateMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            accessor,
-            db,
-            Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
-            new TenantLicenseValidator());
+        await InvokeGateAsync(sut, context, accessor, db);
 
         var body = await ReadBodyAsync(context);
         Assert.False(nextCalled);
@@ -106,12 +136,7 @@ public sealed class TenantOperationalGateMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            accessor,
-            db,
-            Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
-            new TenantLicenseValidator());
+        await InvokeGateAsync(sut, context, accessor, db);
 
         var body = await ReadBodyAsync(context);
         Assert.False(nextCalled);
@@ -134,12 +159,7 @@ public sealed class TenantOperationalGateMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            accessor,
-            db,
-            Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
-            new TenantLicenseValidator());
+        await InvokeGateAsync(sut, context, accessor, db);
 
         Assert.True(nextCalled);
         Assert.Equal("expired_grace", context.Response.Headers[TenantOperationalGateMiddleware.TenantLicenseWarningHeaderName].ToString());
@@ -159,12 +179,11 @@ public sealed class TenantOperationalGateMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
+        await InvokeGateAsync(
+            sut,
             normalContext,
             new CurrentTenantAccessor { TenantId = TenantId },
-            db,
-            Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
-            new TenantLicenseValidator());
+            db);
         Assert.True(nextCalled);
     }
 
@@ -177,12 +196,11 @@ public sealed class TenantOperationalGateMiddlewareTests
         var normalContext = CreateHttpContext("/api/admin/products", HttpMethods.Post);
         var sut = new TenantOperationalGateMiddleware(_ => Task.CompletedTask);
 
-        await sut.InvokeAsync(
+        await InvokeGateAsync(
+            sut,
             normalContext,
             new CurrentTenantAccessor { TenantId = TenantId },
-            db,
-            Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
-            new TenantLicenseValidator());
+            db);
         var normalBody = await ReadBodyAsync(normalContext);
         Assert.Equal(StatusCodes.Status403Forbidden, normalContext.Response.StatusCode);
         Assert.Contains("LICENSE_EXPIRED_WRITE_BLOCKED", normalBody, StringComparison.Ordinal);
@@ -194,12 +212,11 @@ public sealed class TenantOperationalGateMiddlewareTests
             nextCalled = true;
             return Task.CompletedTask;
         });
-        await superSut.InvokeAsync(
+        await InvokeGateAsync(
+            superSut,
             superContext,
             new CurrentTenantAccessor { TenantId = TenantId },
-            db,
-            Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
-            new TenantLicenseValidator());
+            db);
         Assert.True(nextCalled);
     }
 
@@ -218,12 +235,27 @@ public sealed class TenantOperationalGateMiddlewareTests
             return Task.CompletedTask;
         });
 
-        await sut.InvokeAsync(
-            context,
-            accessor,
-            db,
-            Mock.Of<ILogger<TenantOperationalGateMiddleware>>(),
-            new TenantLicenseValidator());
+        await InvokeGateAsync(sut, context, accessor, db);
+
+        Assert.True(nextCalled);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Development_SkipsTenantLicenseEnforcement()
+    {
+        await using var db = CreateDb();
+        await SeedTenantAsync(db, Now.AddDays(-120));
+
+        var accessor = new CurrentTenantAccessor { TenantId = TenantId };
+        var context = CreateHttpContext("/api/admin/products", HttpMethods.Post);
+        var nextCalled = false;
+        var sut = new TenantOperationalGateMiddleware(_ =>
+        {
+            nextCalled = true;
+            return Task.CompletedTask;
+        });
+
+        await InvokeGateAsync(sut, context, accessor, db, isDevelopment: true);
 
         Assert.True(nextCalled);
     }

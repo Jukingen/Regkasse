@@ -24,7 +24,10 @@ export class AuthAppError extends Error {
 }
 
 export function isAuthError(error: unknown): error is AuthAppError {
-  return error instanceof AuthAppError;
+  if (error instanceof AuthAppError) return true;
+  if (!error || typeof error !== 'object') return false;
+  const candidate = error as Record<string, unknown>;
+  return candidate.name === 'AuthAppError' && typeof candidate.code === 'string';
 }
 
 // --- Normalization ---
@@ -75,6 +78,73 @@ const AUTH_ERROR_I18N_KEYS: Record<AuthErrorCode, string> = {
   SESSION_EXPIRED: 'auth:errors.sessionExpired',
   UNKNOWN_AUTH_ERROR: 'auth:errors.unknownError',
 };
+
+/** Normalizes any login failure into a typed AuthAppError. */
+export function toAuthError(error: unknown): AuthAppError {
+  if (error instanceof AuthAppError) return error;
+  if (isAuthError(error)) {
+    return new AuthAppError(error.code, error.status, error.backendMessage);
+  }
+  return normalizeLoginError(error);
+}
+
+function mapInvalidCredentialsMessage(backendMessage?: string): string {
+  if (!backendMessage) {
+    return i18n.t('auth:errors.invalidCredentials');
+  }
+
+  const lower = backendMessage.toLowerCase();
+  if (
+    lower.includes('şifre') ||
+    lower.includes('password') ||
+    lower.includes('passwort')
+  ) {
+    return i18n.t('auth:errors.wrongPassword');
+  }
+  if (
+    lower.includes('bulunamadı') ||
+    lower.includes('not found') ||
+    lower.includes('benutzer nicht')
+  ) {
+    return i18n.t('auth:errors.userNotFound');
+  }
+  if (
+    lower.includes('aktif değil') ||
+    lower.includes('gesperrt') ||
+    lower.includes('inactive') ||
+    lower.includes('locked') ||
+    lower.includes('deaktiviert')
+  ) {
+    return i18n.t('auth:errors.accountInactive');
+  }
+
+  return i18n.t('auth:errors.invalidCredentials');
+}
+
+/** POS login UI: always returns a short German user message (never stack traces). */
+export function resolveLoginErrorMessage(error: unknown): string {
+  const authError = toAuthError(error);
+
+  switch (authError.code) {
+    case 'INVALID_CREDENTIALS':
+      return mapInvalidCredentialsMessage(authError.backendMessage);
+    case 'POS_UNAUTHORIZED_USER':
+      return i18n.t('auth:errors.posUnauthorized');
+    case 'LICENSE_ACCESS_DENIED':
+      return i18n.t('auth:errors.licenseAccessDenied');
+    case 'NETWORK_ERROR':
+      return i18n.t('auth:errors.networkError');
+    case 'SESSION_EXPIRED':
+      return i18n.t('auth:errors.sessionExpired');
+    case 'UNKNOWN_AUTH_ERROR':
+      if (authError.status === 500) {
+        return i18n.t('auth:errors.serverError');
+      }
+      return i18n.t('auth:errors.unknownError');
+    default:
+      return i18n.t('auth:errors.unknownError');
+  }
+}
 
 /** AuthAppError ise önce backendMessage döner; yoksa i18n. Code verilirse sadece i18n. */
 export function getAuthErrorMessage(errorOrCode: AuthAppError | AuthErrorCode): string {

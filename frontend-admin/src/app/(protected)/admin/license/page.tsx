@@ -88,6 +88,7 @@ async function copyTextToClipboard(value: string): Promise<boolean> {
 }
 
 function IssuedLicensesTableCard() {
+    const { message } = useAntdApp();
     const { t, formatLocale } = useI18n();
     const { user } = useAuth();
     const queryClient = useQueryClient();

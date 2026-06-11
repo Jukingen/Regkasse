@@ -19,6 +19,9 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  ActivitiesListResponseDto,
+  ActivitiesUnreadCountDto,
+  ActivityDto,
   AddAdminTenantUserRequest,
   AdminCashRegisterCapabilitiesDto,
   AdminCategoryProductDto,
@@ -30,9 +33,7 @@ import type {
   AdminOfflineTransactionsSummaryDto,
   AdminOperationsSummaryResponse,
   AdminPatchUserRequest,
-  AdminPaymentActionResponse,
   AdminPaymentDetailDto,
-  AdminPaymentsListResponse,
   AdminReactivateRequest,
   AdminTemporaryPasswordResponse,
   AdminTenantCashRegisterDto,
@@ -40,6 +41,7 @@ import type {
   AdminTenantListItemDto,
   AdminTenantUserRowDto,
   AdminTimeSyncStatusDto,
+  AdminUpdateUsernameResponse,
   AdminUserActivityResponse,
   AdminUserDto,
   AdminUserTenantMembershipDto,
@@ -48,6 +50,11 @@ import type {
   AdminVoucherListResponse,
   AnalyzeRequest,
   ApiError,
+  AuditExportJobStatusDto,
+  AuditExportRequest,
+  AuditReportScheduleResponse,
+  AuditRetentionInfoResponse,
+  BackupDashboardStatsResponseDto,
   BackupExecutionModePutRequestDto,
   BackupExecutionModeResponseDto,
   BackupHistoryResponseDto,
@@ -59,14 +66,21 @@ import type {
   BackupSettingsResponseDto,
   BackupTriggerRequestDto,
   BackupTriggerResponseDto,
+  BackupVerificationReportDto,
   BackupVerificationResponseDto,
   BenefitAssignment,
   BenefitDefinition,
+  BulkImportJobStatusDto,
+  BulkImportPreviewResponseDto,
+  BulkImportStartResponseDto,
   CancelAdminVoucherRequest,
   CancelLicenseRequestBody,
   CancelPaymentRequest,
+  CancellationResponse,
   CashRegisterDto,
-  Category,
+  CashRegisterTseHealthDto,
+  CategoryDemoResetResultDto,
+  CategoryDto,
   CreateAdminTenantRequest,
   CreateAdminVoucherRequest,
   CreateAdminVoucherResponse,
@@ -81,8 +95,16 @@ import type {
   CreateTenantUserRequest,
   CreateTenantUserResultDto,
   DailyClosingSummaryDto,
+  DailyReconciliationReportDto,
+  DashboardPreferencesResponseDto,
+  DashboardWidgetCatalogItemDto,
   DecommissionCashRegisterRequest,
   DecommissionCashRegisterResponse,
+  DemoImportCatalogDto,
+  DemoImportJobStartResponseDto,
+  DemoImportJobStatusDto,
+  DemoImportRequest,
+  DemoTemplateValidationResultDto,
   DevelopmentModeSettingsPutRequestDto,
   DevelopmentModeSettingsResponseDto,
   ExtendLicenseRequestBody,
@@ -101,6 +123,7 @@ import type {
   FiscalExportGenerateRequestDto,
   GenerateLicenseRequestBody,
   GenerateLicenseResponse,
+  GetApiAdminActivitiesParams,
   GetApiAdminAuditFiscalExportLogsExportParams,
   GetApiAdminAuditFiscalExportLogsParams,
   GetApiAdminBackupRunsParams,
@@ -114,6 +137,7 @@ import type {
   GetApiAdminLicenseActivationAttemptsParams,
   GetApiAdminLicenseDashboardActivationSeriesParams,
   GetApiAdminLicenseDashboardRecentActivityParams,
+  GetApiAdminLicenseHistoryParams,
   GetApiAdminLicenseListParams,
   GetApiAdminLicenseTenantsParams,
   GetApiAdminLicensesExportCsvParams,
@@ -125,21 +149,37 @@ import type {
   GetApiAdminOfflineTransactionsExportFailedParams,
   GetApiAdminOfflineTransactionsParams,
   GetApiAdminOperationsSummaryParams,
+  GetApiAdminPaymentsAlertsParams,
+  GetApiAdminPaymentsIdReversalPolicyParams,
   GetApiAdminPaymentsParams,
   GetApiAdminPaymentsStatisticsParams,
+  GetApiAdminPaymentsTrendsParams,
   GetApiAdminProductsParams,
   GetApiAdminProductsSearchParams,
   GetApiAdminReportsDailyClosingParams,
+  GetApiAdminReportsDailyReconciliationParams,
+  GetApiAdminReportsOfflineRecoveryParams,
+  GetApiAdminReportsPeakHoursParams,
+  GetApiAdminReportsProductMovementParams,
+  GetApiAdminReportsReportTypeExportParams,
+  GetApiAdminReportsTseContinuityParams,
+  GetApiAdminReportsUserActivityExportParams,
+  GetApiAdminReportsUserActivityParams,
+  GetApiAdminReportsUserPerformanceParams,
+  GetApiAdminRestoreHistoryParams,
   GetApiAdminRestoreVerificationRunsParams,
   GetApiAdminRksvComplianceReportParams,
   GetApiAdminTenantsParams,
   GetApiAdminTenantsSlugAvailabilityParams,
   GetApiAdminTenantsSlugSuggestionsParams,
   GetApiAdminUsersIdActivityParams,
+  GetApiAdminUsersIdActivityReportParams,
   GetApiAdminUsersParams,
+  GetApiAdminUsersUsernameSuggestionsParams,
   GetApiAdminVouchersParams,
   HardDeleteAdminTenantRequest,
   HardDeleteCashRegisterRequest,
+  ImportResult,
   IncidentInvestigationResponse,
   IntegrityReportDto,
   IssuedLicenseDetailResponse,
@@ -151,9 +191,12 @@ import type {
   LicenseDashboardStatsDto,
   LicenseDashboardSummaryResponse,
   LicenseRenewalInfoResponse,
+  LicenseRenewalResult,
   LicenseReportSummaryDto,
   LicenseStatusResponse,
   LicenseTransferRequestInfoResponse,
+  MandantLicenseHistoryResponse,
+  NotificationConfig,
   NtpAdminConfigurationDto,
   NtpAdminConfigurationUpdateDto,
   OfflineIntentCoverageResponse,
@@ -161,20 +204,42 @@ import type {
   OfflinePayloadHashAnalyzeResult,
   OfflinePayloadHashRepairResult,
   OfflinePayloadHashRiskResponse,
+  OfflineRecoveryReportDto,
+  OperationalReportScheduleResponse,
+  PaymentListResponse,
   PaymentMethodDefinitionAdminDto,
+  PaymentReversalPolicyDto,
   PaymentStatistics,
+  PeakHoursReportDto,
+  PitrAvailabilityResponseDto,
+  PostApiAdminProductsDemoTemplateImportBody,
+  PostApiAdminProductsDemoTemplatePreviewBody,
+  PostApiAdminProductsDemoTemplatePreviewParams,
   PostApiAdminProductsIdImageBody,
+  PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody,
+  PostApiAdminUsersBulkImportBody,
+  PostApiAdminUsersBulkImportPreviewBody,
+  PostApiAdminUsersBulkImportPreviewParams,
   PricingRuleAdminDto,
   PrintRoutingOptionsResponse,
   ProblemDetails,
   Product,
+  ProductListResponse,
+  ProductMovementReportDto,
   ReceiptReprintRequest,
   ReceiptReprintResponse,
   RefundPaymentRequest,
+  RefundResponse,
   RenewLicenseRequestBody,
+  RenewTenantLicenseRequest,
   RepairRequest,
   ReplayBatchDetailResponse,
+  RestoreApprovalRequest,
+  RestorePointValidationResultDto,
   RestoreProofMilestonesResponseDto,
+  RestoreRequest,
+  RestoreRequestHistoryResponse,
+  RestoreRequestStatus,
   RestoreVerificationHistoryResponseDto,
   RestoreVerificationManualTriggerRequestDto,
   RestoreVerificationReadinessResponseDto,
@@ -184,9 +249,17 @@ import type {
   RevokeLicenseRequestBody,
   RksvEvidenceBundleRequestDto,
   RksvExportDisclaimerResponseDto,
+  SaveDashboardPreferencesRequestDto,
+  SaveUserPreferencesRequestDto,
+  ScheduleAuditReportRequest,
+  ScheduleOperationalReportRequest,
+  ScheduleUserActivityReportRequest,
+  ScheduleUserActivityReportResponse,
   SetProductModifierGroupsRequest,
   SetTenantLicenseTierRequest,
+  SuspiciousAlertsListResponseDto,
   SystemTimeSyncLogEntryDto,
+  TenantDecommissionChecksDto,
   TenantImpersonationResponseDto,
   TenantLicenseConsistencyDto,
   TenantLicenseDto,
@@ -199,6 +272,8 @@ import type {
   TenantUserPasswordResetResultDto,
   TimeSyncDriftSummaryDto,
   TransferLicenseRequestBody,
+  TrendAnalysisResponse,
+  TseChainContinuityReportDto,
   UpdateAdminTenantRequest,
   UpdateAdminTenantUserRequest,
   UpdateBenefitAssignmentRequest,
@@ -210,7 +285,14 @@ import type {
   UpdateStockRequest,
   UpdateTenantUserRoleRequest,
   UpdateUserTenantsRequest,
+  UpdateUsernameRequest,
   UpgradeLicenseRequestBody,
+  UserActivityReportDto,
+  UserPerformanceReportDto,
+  UserPreferencesResponseDto,
+  UserUsernameHistoryDto,
+  UsernameSuggestionResponse,
+  ValidatePitrRestorePointRequestDto,
   VerifyAdminVoucherCodeRequest,
   VerifyAdminVoucherCodeResponse
 } from '.././model'
@@ -220,7 +302,852 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
-export const getApiAdminBackofficePrintRoutingOptions = (
+export const getApiAdminActivities = (
+    params?: GetApiAdminActivitiesParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ActivitiesListResponseDto>(
+      {url: `/api/admin/activities`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminActivitiesQueryKey = (params?: GetApiAdminActivitiesParams,) => {
+    return [`/api/admin/activities`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminActivitiesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminActivities>>, TError = unknown>(params?: GetApiAdminActivitiesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminActivitiesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminActivities>>> = ({ signal }) => getApiAdminActivities(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminActivitiesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminActivities>>>
+export type GetApiAdminActivitiesQueryError = unknown
+
+export const useGetApiAdminActivities = <TData = Awaited<ReturnType<typeof getApiAdminActivities>>, TError = unknown>(
+ params?: GetApiAdminActivitiesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivities>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminActivitiesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminActivitiesStream = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/activities/stream`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminActivitiesStreamQueryKey = () => {
+    return [`/api/admin/activities/stream`] as const;
+    }
+
+    
+export const getGetApiAdminActivitiesStreamQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminActivitiesStream>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesStream>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminActivitiesStreamQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminActivitiesStream>>> = ({ signal }) => getApiAdminActivitiesStream(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesStream>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminActivitiesStreamQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminActivitiesStream>>>
+export type GetApiAdminActivitiesStreamQueryError = unknown
+
+export const useGetApiAdminActivitiesStream = <TData = Awaited<ReturnType<typeof getApiAdminActivitiesStream>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesStream>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminActivitiesStreamQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminActivitiesUnreadCount = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ActivitiesUnreadCountDto>(
+      {url: `/api/admin/activities/unread-count`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminActivitiesUnreadCountQueryKey = () => {
+    return [`/api/admin/activities/unread-count`] as const;
+    }
+
+    
+export const getGetApiAdminActivitiesUnreadCountQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminActivitiesUnreadCount>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesUnreadCount>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminActivitiesUnreadCountQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminActivitiesUnreadCount>>> = ({ signal }) => getApiAdminActivitiesUnreadCount(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesUnreadCount>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminActivitiesUnreadCountQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminActivitiesUnreadCount>>>
+export type GetApiAdminActivitiesUnreadCountQueryError = unknown
+
+export const useGetApiAdminActivitiesUnreadCount = <TData = Awaited<ReturnType<typeof getApiAdminActivitiesUnreadCount>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesUnreadCount>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminActivitiesUnreadCountQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminActivitiesNotificationConfig = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<NotificationConfig>(
+      {url: `/api/admin/activities/notification-config`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminActivitiesNotificationConfigQueryKey = () => {
+    return [`/api/admin/activities/notification-config`] as const;
+    }
+
+    
+export const getGetApiAdminActivitiesNotificationConfigQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminActivitiesNotificationConfig>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesNotificationConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminActivitiesNotificationConfigQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminActivitiesNotificationConfig>>> = ({ signal }) => getApiAdminActivitiesNotificationConfig(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesNotificationConfig>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminActivitiesNotificationConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminActivitiesNotificationConfig>>>
+export type GetApiAdminActivitiesNotificationConfigQueryError = unknown
+
+export const useGetApiAdminActivitiesNotificationConfig = <TData = Awaited<ReturnType<typeof getApiAdminActivitiesNotificationConfig>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminActivitiesNotificationConfig>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminActivitiesNotificationConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminActivitiesNotificationConfig = (
+    notificationConfig: NotificationConfig,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<NotificationConfig>(
+      {url: `/api/admin/activities/notification-config`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: notificationConfig
+    },
+      options);
+    }
+  
+
+
+export const getPutApiAdminActivitiesNotificationConfigMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminActivitiesNotificationConfig>>, TError,{data: NotificationConfig}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminActivitiesNotificationConfig>>, TError,{data: NotificationConfig}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminActivitiesNotificationConfig>>, {data: NotificationConfig}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminActivitiesNotificationConfig(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminActivitiesNotificationConfigMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminActivitiesNotificationConfig>>>
+    export type PutApiAdminActivitiesNotificationConfigMutationBody = NotificationConfig
+    export type PutApiAdminActivitiesNotificationConfigMutationError = unknown
+
+    export const usePutApiAdminActivitiesNotificationConfig = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminActivitiesNotificationConfig>>, TError,{data: NotificationConfig}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminActivitiesNotificationConfig>>,
+        TError,
+        {data: NotificationConfig},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminActivitiesNotificationConfigMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminActivitiesIdRead = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ActivityDto>(
+      {url: `/api/admin/activities/${id}/read`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminActivitiesIdReadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminActivitiesIdRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminActivitiesIdRead>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminActivitiesIdRead>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiAdminActivitiesIdRead(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminActivitiesIdReadMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminActivitiesIdRead>>>
+    
+    export type PostApiAdminActivitiesIdReadMutationError = unknown
+
+    export const usePostApiAdminActivitiesIdRead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminActivitiesIdRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminActivitiesIdRead>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminActivitiesIdReadMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminActivitiesMarkAllRead = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/activities/mark-all-read`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminActivitiesMarkAllReadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminActivitiesMarkAllRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminActivitiesMarkAllRead>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminActivitiesMarkAllRead>>, void> = () => {
+          
+
+          return  postApiAdminActivitiesMarkAllRead(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminActivitiesMarkAllReadMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminActivitiesMarkAllRead>>>
+    
+    export type PostApiAdminActivitiesMarkAllReadMutationError = unknown
+
+    export const usePostApiAdminActivitiesMarkAllRead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminActivitiesMarkAllRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminActivitiesMarkAllRead>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminActivitiesMarkAllReadMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const deleteApiAdminActivitiesId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/activities/${id}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiAdminActivitiesIdMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminActivitiesId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminActivitiesId>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAdminActivitiesId>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteApiAdminActivitiesId(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAdminActivitiesIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminActivitiesId>>>
+    
+    export type DeleteApiAdminActivitiesIdMutationError = unknown
+
+    export const useDeleteApiAdminActivitiesId = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminActivitiesId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAdminActivitiesId>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAdminActivitiesIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminAuditRetention = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AuditRetentionInfoResponse>(
+      {url: `/api/admin/audit/retention`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminAuditRetentionQueryKey = () => {
+    return [`/api/admin/audit/retention`] as const;
+    }
+
+    
+export const getGetApiAdminAuditRetentionQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminAuditRetention>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditRetention>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminAuditRetentionQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminAuditRetention>>> = ({ signal }) => getApiAdminAuditRetention(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditRetention>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminAuditRetentionQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditRetention>>>
+export type GetApiAdminAuditRetentionQueryError = unknown
+
+export const useGetApiAdminAuditRetention = <TData = Awaited<ReturnType<typeof getApiAdminAuditRetention>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditRetention>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminAuditRetentionQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminAuditExport = (
+    auditExportRequest: AuditExportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/audit/export`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: auditExportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminAuditExportMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditExport>>, TError,{data: AuditExportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditExport>>, TError,{data: AuditExportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminAuditExport>>, {data: AuditExportRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminAuditExport(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminAuditExportMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminAuditExport>>>
+    export type PostApiAdminAuditExportMutationBody = AuditExportRequest
+    export type PostApiAdminAuditExportMutationError = unknown
+
+    export const usePostApiAdminAuditExport = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditExport>>, TError,{data: AuditExportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminAuditExport>>,
+        TError,
+        {data: AuditExportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminAuditExportMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminAuditExportJobsJobId = (
+    jobId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AuditExportJobStatusDto>(
+      {url: `/api/admin/audit/export/jobs/${jobId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminAuditExportJobsJobIdQueryKey = (jobId: string,) => {
+    return [`/api/admin/audit/export/jobs/${jobId}`] as const;
+    }
+
+    
+export const getGetApiAdminAuditExportJobsJobIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobId>>, TError = unknown>(jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminAuditExportJobsJobIdQueryKey(jobId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobId>>> = ({ signal }) => getApiAdminAuditExportJobsJobId(jobId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(jobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminAuditExportJobsJobIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobId>>>
+export type GetApiAdminAuditExportJobsJobIdQueryError = unknown
+
+export const useGetApiAdminAuditExportJobsJobId = <TData = Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobId>>, TError = unknown>(
+ jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminAuditExportJobsJobIdQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminAuditExportJobsJobIdDownload = (
+    jobId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/audit/export/jobs/${jobId}/download`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminAuditExportJobsJobIdDownloadQueryKey = (jobId: string,) => {
+    return [`/api/admin/audit/export/jobs/${jobId}/download`] as const;
+    }
+
+    
+export const getGetApiAdminAuditExportJobsJobIdDownloadQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobIdDownload>>, TError = unknown>(jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminAuditExportJobsJobIdDownloadQueryKey(jobId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobIdDownload>>> = ({ signal }) => getApiAdminAuditExportJobsJobIdDownload(jobId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(jobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobIdDownload>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminAuditExportJobsJobIdDownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobIdDownload>>>
+export type GetApiAdminAuditExportJobsJobIdDownloadQueryError = unknown
+
+export const useGetApiAdminAuditExportJobsJobIdDownload = <TData = Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobIdDownload>>, TError = unknown>(
+ jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditExportJobsJobIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminAuditExportJobsJobIdDownloadQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminAuditScheduleReport = (
+    scheduleAuditReportRequest: ScheduleAuditReportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AuditReportScheduleResponse>(
+      {url: `/api/admin/audit/schedule-report`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: scheduleAuditReportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminAuditScheduleReportMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditScheduleReport>>, TError,{data: ScheduleAuditReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditScheduleReport>>, TError,{data: ScheduleAuditReportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminAuditScheduleReport>>, {data: ScheduleAuditReportRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminAuditScheduleReport(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminAuditScheduleReportMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminAuditScheduleReport>>>
+    export type PostApiAdminAuditScheduleReportMutationBody = ScheduleAuditReportRequest
+    export type PostApiAdminAuditScheduleReportMutationError = unknown
+
+    export const usePostApiAdminAuditScheduleReport = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminAuditScheduleReport>>, TError,{data: ScheduleAuditReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminAuditScheduleReport>>,
+        TError,
+        {data: ScheduleAuditReportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminAuditScheduleReportMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminAuditSchedules = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AuditReportScheduleResponse[]>(
+      {url: `/api/admin/audit/schedules`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminAuditSchedulesQueryKey = () => {
+    return [`/api/admin/audit/schedules`] as const;
+    }
+
+    
+export const getGetApiAdminAuditSchedulesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminAuditSchedules>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditSchedules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminAuditSchedulesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminAuditSchedules>>> = ({ signal }) => getApiAdminAuditSchedules(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditSchedules>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminAuditSchedulesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditSchedules>>>
+export type GetApiAdminAuditSchedulesQueryError = unknown
+
+export const useGetApiAdminAuditSchedules = <TData = Awaited<ReturnType<typeof getApiAdminAuditSchedules>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditSchedules>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminAuditSchedulesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminAuditSchedulesId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AuditReportScheduleResponse>(
+      {url: `/api/admin/audit/schedules/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminAuditSchedulesIdQueryKey = (id: string,) => {
+    return [`/api/admin/audit/schedules/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminAuditSchedulesIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminAuditSchedulesId>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditSchedulesId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminAuditSchedulesIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminAuditSchedulesId>>> = ({ signal }) => getApiAdminAuditSchedulesId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditSchedulesId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminAuditSchedulesIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminAuditSchedulesId>>>
+export type GetApiAdminAuditSchedulesIdQueryError = unknown
+
+export const useGetApiAdminAuditSchedulesId = <TData = Awaited<ReturnType<typeof getApiAdminAuditSchedulesId>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminAuditSchedulesId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminAuditSchedulesIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const deleteApiAdminAuditSchedulesId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/audit/schedules/${id}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiAdminAuditSchedulesIdMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminAuditSchedulesId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminAuditSchedulesId>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAdminAuditSchedulesId>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteApiAdminAuditSchedulesId(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAdminAuditSchedulesIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminAuditSchedulesId>>>
+    
+    export type DeleteApiAdminAuditSchedulesIdMutationError = unknown
+
+    export const useDeleteApiAdminAuditSchedulesId = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminAuditSchedulesId>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAdminAuditSchedulesId>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAdminAuditSchedulesIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBackofficePrintRoutingOptions = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -539,6 +1466,61 @@ export const useGetApiAdminBackupScheduleStatus = <TData = Awaited<ReturnType<ty
 
 
 
+export const getApiAdminBackupDashboardStats = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupDashboardStatsResponseDto>(
+      {url: `/api/admin/backup/dashboard/stats`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupDashboardStatsQueryKey = () => {
+    return [`/api/admin/backup/dashboard/stats`] as const;
+    }
+
+    
+export const getGetApiAdminBackupDashboardStatsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupDashboardStatsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>> = ({ signal }) => getApiAdminBackupDashboardStats(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupDashboardStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>>
+export type GetApiAdminBackupDashboardStatsQueryError = unknown
+
+export const useGetApiAdminBackupDashboardStats = <TData = Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupDashboardStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupDashboardStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const getApiAdminBackupStatusLatest = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
@@ -708,7 +1690,113 @@ export const useGetApiAdminBackupRecoverabilitySummary = <TData = Awaited<Return
 
 
 
-export const getApiAdminBackupRuns = (
+export const getApiAdminBackupPitrAvailability = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PitrAvailabilityResponseDto>(
+      {url: `/api/admin/backup/pitr/availability`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupPitrAvailabilityQueryKey = () => {
+    return [`/api/admin/backup/pitr/availability`] as const;
+    }
+
+    
+export const getGetApiAdminBackupPitrAvailabilityQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupPitrAvailabilityQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>> = ({ signal }) => getApiAdminBackupPitrAvailability(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupPitrAvailabilityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>>
+export type GetApiAdminBackupPitrAvailabilityQueryError = ProblemDetails
+
+export const useGetApiAdminBackupPitrAvailability = <TData = Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupPitrAvailability>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupPitrAvailabilityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminBackupPitrValidate = (
+    validatePitrRestorePointRequestDto: ValidatePitrRestorePointRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<RestorePointValidationResultDto>(
+      {url: `/api/admin/backup/pitr/validate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: validatePitrRestorePointRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupPitrValidateMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrValidate>>, TError,{data: ValidatePitrRestorePointRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrValidate>>, TError,{data: ValidatePitrRestorePointRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupPitrValidate>>, {data: ValidatePitrRestorePointRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminBackupPitrValidate(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupPitrValidateMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupPitrValidate>>>
+    export type PostApiAdminBackupPitrValidateMutationBody = ValidatePitrRestorePointRequestDto
+    export type PostApiAdminBackupPitrValidateMutationError = ProblemDetails
+
+    export const usePostApiAdminBackupPitrValidate = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupPitrValidate>>, TError,{data: ValidatePitrRestorePointRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupPitrValidate>>,
+        TError,
+        {data: ValidatePitrRestorePointRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupPitrValidateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBackupRuns = (
     params?: GetApiAdminBackupRunsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -809,6 +1897,61 @@ export const useGetApiAdminBackupRunsId = <TData = Awaited<ReturnType<typeof get
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminBackupRunsIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBackupRunsIdVerificationReport = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupVerificationReportDto>(
+      {url: `/api/admin/backup/runs/${id}/verification-report`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupRunsIdVerificationReportQueryKey = (id: string,) => {
+    return [`/api/admin/backup/runs/${id}/verification-report`] as const;
+    }
+
+    
+export const getGetApiAdminBackupRunsIdVerificationReportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupRunsIdVerificationReportQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>> = ({ signal }) => getApiAdminBackupRunsIdVerificationReport(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupRunsIdVerificationReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>>
+export type GetApiAdminBackupRunsIdVerificationReportQueryError = ProblemDetails
+
+export const useGetApiAdminBackupRunsIdVerificationReport = <TData = Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupRunsIdVerificationReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupRunsIdVerificationReportQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1132,6 +2275,61 @@ export const useGetApiAdminTenantsTenantIdCashRegistersCount = <TData = Awaited<
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminTenantsTenantIdCashRegistersCountQueryOptions(tenantId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminCashRegistersIdTseHealth = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<CashRegisterTseHealthDto>(
+      {url: `/api/admin/cash-registers/${id}/tse-health`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminCashRegistersIdTseHealthQueryKey = (id: string,) => {
+    return [`/api/admin/cash-registers/${id}/tse-health`] as const;
+    }
+
+    
+export const getGetApiAdminCashRegistersIdTseHealthQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminCashRegistersIdTseHealthQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>> = ({ signal }) => getApiAdminCashRegistersIdTseHealth(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminCashRegistersIdTseHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>>
+export type GetApiAdminCashRegistersIdTseHealthQueryError = ProblemDetails
+
+export const useGetApiAdminCashRegistersIdTseHealth = <TData = Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminCashRegistersIdTseHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminCashRegistersIdTseHealthQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1526,6 +2724,453 @@ export const usePutApiAdminDevelopmentModeSettings = <TError = ProblemDetails | 
       > => {
 
       const mutationOptions = getPutApiAdminDevelopmentModeSettingsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminReportsDailyReconciliation = (
+    params?: GetApiAdminReportsDailyReconciliationParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DailyReconciliationReportDto>(
+      {url: `/api/admin/reports/daily-reconciliation`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsDailyReconciliationQueryKey = (params?: GetApiAdminReportsDailyReconciliationParams,) => {
+    return [`/api/admin/reports/daily-reconciliation`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsDailyReconciliationQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsDailyReconciliation>>, TError = unknown>(params?: GetApiAdminReportsDailyReconciliationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsDailyReconciliation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsDailyReconciliationQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsDailyReconciliation>>> = ({ signal }) => getApiAdminReportsDailyReconciliation(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsDailyReconciliation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsDailyReconciliationQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsDailyReconciliation>>>
+export type GetApiAdminReportsDailyReconciliationQueryError = unknown
+
+export const useGetApiAdminReportsDailyReconciliation = <TData = Awaited<ReturnType<typeof getApiAdminReportsDailyReconciliation>>, TError = unknown>(
+ params?: GetApiAdminReportsDailyReconciliationParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsDailyReconciliation>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsDailyReconciliationQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsTseContinuity = (
+    params?: GetApiAdminReportsTseContinuityParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<TseChainContinuityReportDto>(
+      {url: `/api/admin/reports/tse-continuity`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsTseContinuityQueryKey = (params?: GetApiAdminReportsTseContinuityParams,) => {
+    return [`/api/admin/reports/tse-continuity`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsTseContinuityQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsTseContinuity>>, TError = unknown>(params?: GetApiAdminReportsTseContinuityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsTseContinuity>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsTseContinuityQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsTseContinuity>>> = ({ signal }) => getApiAdminReportsTseContinuity(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsTseContinuity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsTseContinuityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsTseContinuity>>>
+export type GetApiAdminReportsTseContinuityQueryError = unknown
+
+export const useGetApiAdminReportsTseContinuity = <TData = Awaited<ReturnType<typeof getApiAdminReportsTseContinuity>>, TError = unknown>(
+ params?: GetApiAdminReportsTseContinuityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsTseContinuity>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsTseContinuityQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsOfflineRecovery = (
+    params?: GetApiAdminReportsOfflineRecoveryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<OfflineRecoveryReportDto>(
+      {url: `/api/admin/reports/offline-recovery`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsOfflineRecoveryQueryKey = (params?: GetApiAdminReportsOfflineRecoveryParams,) => {
+    return [`/api/admin/reports/offline-recovery`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsOfflineRecoveryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsOfflineRecovery>>, TError = unknown>(params?: GetApiAdminReportsOfflineRecoveryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsOfflineRecovery>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsOfflineRecoveryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsOfflineRecovery>>> = ({ signal }) => getApiAdminReportsOfflineRecovery(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsOfflineRecovery>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsOfflineRecoveryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsOfflineRecovery>>>
+export type GetApiAdminReportsOfflineRecoveryQueryError = unknown
+
+export const useGetApiAdminReportsOfflineRecovery = <TData = Awaited<ReturnType<typeof getApiAdminReportsOfflineRecovery>>, TError = unknown>(
+ params?: GetApiAdminReportsOfflineRecoveryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsOfflineRecovery>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsOfflineRecoveryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsUserPerformance = (
+    params?: GetApiAdminReportsUserPerformanceParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserPerformanceReportDto>(
+      {url: `/api/admin/reports/user-performance`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsUserPerformanceQueryKey = (params?: GetApiAdminReportsUserPerformanceParams,) => {
+    return [`/api/admin/reports/user-performance`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsUserPerformanceQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsUserPerformance>>, TError = unknown>(params?: GetApiAdminReportsUserPerformanceParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserPerformance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsUserPerformanceQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsUserPerformance>>> = ({ signal }) => getApiAdminReportsUserPerformance(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserPerformance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsUserPerformanceQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsUserPerformance>>>
+export type GetApiAdminReportsUserPerformanceQueryError = unknown
+
+export const useGetApiAdminReportsUserPerformance = <TData = Awaited<ReturnType<typeof getApiAdminReportsUserPerformance>>, TError = unknown>(
+ params?: GetApiAdminReportsUserPerformanceParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserPerformance>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsUserPerformanceQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsPeakHours = (
+    params?: GetApiAdminReportsPeakHoursParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PeakHoursReportDto>(
+      {url: `/api/admin/reports/peak-hours`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsPeakHoursQueryKey = (params?: GetApiAdminReportsPeakHoursParams,) => {
+    return [`/api/admin/reports/peak-hours`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsPeakHoursQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsPeakHours>>, TError = unknown>(params?: GetApiAdminReportsPeakHoursParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPeakHours>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsPeakHoursQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsPeakHours>>> = ({ signal }) => getApiAdminReportsPeakHours(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPeakHours>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsPeakHoursQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsPeakHours>>>
+export type GetApiAdminReportsPeakHoursQueryError = unknown
+
+export const useGetApiAdminReportsPeakHours = <TData = Awaited<ReturnType<typeof getApiAdminReportsPeakHours>>, TError = unknown>(
+ params?: GetApiAdminReportsPeakHoursParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsPeakHours>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsPeakHoursQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsProductMovement = (
+    params?: GetApiAdminReportsProductMovementParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<ProductMovementReportDto>(
+      {url: `/api/admin/reports/product-movement`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsProductMovementQueryKey = (params?: GetApiAdminReportsProductMovementParams,) => {
+    return [`/api/admin/reports/product-movement`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsProductMovementQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsProductMovement>>, TError = unknown>(params?: GetApiAdminReportsProductMovementParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsProductMovement>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsProductMovementQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsProductMovement>>> = ({ signal }) => getApiAdminReportsProductMovement(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsProductMovement>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsProductMovementQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsProductMovement>>>
+export type GetApiAdminReportsProductMovementQueryError = unknown
+
+export const useGetApiAdminReportsProductMovement = <TData = Awaited<ReturnType<typeof getApiAdminReportsProductMovement>>, TError = unknown>(
+ params?: GetApiAdminReportsProductMovementParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsProductMovement>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsProductMovementQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsReportTypeExport = (
+    reportType: string,
+    params?: GetApiAdminReportsReportTypeExportParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/reports/${reportType}/export`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsReportTypeExportQueryKey = (reportType: string,
+    params?: GetApiAdminReportsReportTypeExportParams,) => {
+    return [`/api/admin/reports/${reportType}/export`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsReportTypeExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsReportTypeExport>>, TError = unknown>(reportType: string,
+    params?: GetApiAdminReportsReportTypeExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsReportTypeExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsReportTypeExportQueryKey(reportType,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsReportTypeExport>>> = ({ signal }) => getApiAdminReportsReportTypeExport(reportType,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(reportType), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsReportTypeExport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsReportTypeExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsReportTypeExport>>>
+export type GetApiAdminReportsReportTypeExportQueryError = unknown
+
+export const useGetApiAdminReportsReportTypeExport = <TData = Awaited<ReturnType<typeof getApiAdminReportsReportTypeExport>>, TError = unknown>(
+ reportType: string,
+    params?: GetApiAdminReportsReportTypeExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsReportTypeExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsReportTypeExportQueryOptions(reportType,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminReportsSchedule = (
+    scheduleOperationalReportRequest: ScheduleOperationalReportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<OperationalReportScheduleResponse>(
+      {url: `/api/admin/reports/schedule`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: scheduleOperationalReportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminReportsScheduleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminReportsSchedule>>, TError,{data: ScheduleOperationalReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminReportsSchedule>>, TError,{data: ScheduleOperationalReportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminReportsSchedule>>, {data: ScheduleOperationalReportRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminReportsSchedule(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminReportsScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminReportsSchedule>>>
+    export type PostApiAdminReportsScheduleMutationBody = ScheduleOperationalReportRequest
+    export type PostApiAdminReportsScheduleMutationError = unknown
+
+    export const usePostApiAdminReportsSchedule = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminReportsSchedule>>, TError,{data: ScheduleOperationalReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminReportsSchedule>>,
+        TError,
+        {data: ScheduleOperationalReportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminReportsScheduleMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -2347,7 +3992,7 @@ export const postApiAdminLicenseRenew = (
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<GenerateLicenseResponse>(
+      return customInstance<void>(
       {url: `/api/admin/license/renew`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: renewLicenseRequestBody
@@ -3079,7 +4724,63 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminLicensesExportCsv = (
+    export const getApiAdminLicenseHistory = (
+    params?: GetApiAdminLicenseHistoryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<MandantLicenseHistoryResponse>(
+      {url: `/api/admin/license/history`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminLicenseHistoryQueryKey = (params?: GetApiAdminLicenseHistoryParams,) => {
+    return [`/api/admin/license/history`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminLicenseHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminLicenseHistory>>, TError = ProblemDetails>(params?: GetApiAdminLicenseHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminLicenseHistoryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminLicenseHistory>>> = ({ signal }) => getApiAdminLicenseHistory(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminLicenseHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminLicenseHistory>>>
+export type GetApiAdminLicenseHistoryQueryError = ProblemDetails
+
+export const useGetApiAdminLicenseHistory = <TData = Awaited<ReturnType<typeof getApiAdminLicenseHistory>>, TError = ProblemDetails>(
+ params?: GetApiAdminLicenseHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminLicenseHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminLicenseHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminLicensesExportCsv = (
     params?: GetApiAdminLicensesExportCsvParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -3574,7 +5275,7 @@ export const getApiAdminPayments = (
 ) => {
       
       
-      return customInstance<AdminPaymentsListResponse>(
+      return customInstance<PaymentListResponse>(
       {url: `/api/admin/payments`, method: 'GET',
         params, signal
     },
@@ -3847,13 +5548,174 @@ export const useGetApiAdminPaymentsStatistics = <TData = Awaited<ReturnType<type
 
 
 
+export const getApiAdminPaymentsAlerts = (
+    params?: GetApiAdminPaymentsAlertsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<SuspiciousAlertsListResponseDto>(
+      {url: `/api/admin/payments/alerts`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminPaymentsAlertsQueryKey = (params?: GetApiAdminPaymentsAlertsParams,) => {
+    return [`/api/admin/payments/alerts`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminPaymentsAlertsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>, TError = unknown>(params?: GetApiAdminPaymentsAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminPaymentsAlertsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>> = ({ signal }) => getApiAdminPaymentsAlerts(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminPaymentsAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>>
+export type GetApiAdminPaymentsAlertsQueryError = unknown
+
+export const useGetApiAdminPaymentsAlerts = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>, TError = unknown>(
+ params?: GetApiAdminPaymentsAlertsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsAlerts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminPaymentsAlertsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminPaymentsAlertsIdRead = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/payments/alerts/${id}/read`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminPaymentsAlertsIdReadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminPaymentsAlertsIdRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminPaymentsAlertsIdRead>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminPaymentsAlertsIdRead>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiAdminPaymentsAlertsIdRead(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminPaymentsAlertsIdReadMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminPaymentsAlertsIdRead>>>
+    
+    export type PostApiAdminPaymentsAlertsIdReadMutationError = unknown
+
+    export const usePostApiAdminPaymentsAlertsIdRead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminPaymentsAlertsIdRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminPaymentsAlertsIdRead>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminPaymentsAlertsIdReadMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminPaymentsTrends = (
+    params?: GetApiAdminPaymentsTrendsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<TrendAnalysisResponse>(
+      {url: `/api/admin/payments/trends`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminPaymentsTrendsQueryKey = (params?: GetApiAdminPaymentsTrendsParams,) => {
+    return [`/api/admin/payments/trends`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminPaymentsTrendsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>, TError = unknown>(params?: GetApiAdminPaymentsTrendsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminPaymentsTrendsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>> = ({ signal }) => getApiAdminPaymentsTrends(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminPaymentsTrendsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>>
+export type GetApiAdminPaymentsTrendsQueryError = unknown
+
+export const useGetApiAdminPaymentsTrends = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>, TError = unknown>(
+ params?: GetApiAdminPaymentsTrendsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsTrends>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminPaymentsTrendsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
 export const postApiAdminPaymentsIdCancel = (
     id: string,
     cancelPaymentRequest: CancelPaymentRequest,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<AdminPaymentActionResponse>(
+      return customInstance<CancellationResponse>(
       {url: `/api/admin/payments/${id}/cancel`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: cancelPaymentRequest
@@ -3905,7 +5767,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<AdminPaymentActionResponse>(
+      return customInstance<RefundResponse>(
       {url: `/api/admin/payments/${id}/refund`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: refundPaymentRequest
@@ -3951,7 +5813,67 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminPricingRules = (
+    export const getApiAdminPaymentsIdReversalPolicy = (
+    id: string,
+    params?: GetApiAdminPaymentsIdReversalPolicyParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<PaymentReversalPolicyDto>(
+      {url: `/api/admin/payments/${id}/reversal-policy`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminPaymentsIdReversalPolicyQueryKey = (id: string,
+    params?: GetApiAdminPaymentsIdReversalPolicyParams,) => {
+    return [`/api/admin/payments/${id}/reversal-policy`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminPaymentsIdReversalPolicyQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsIdReversalPolicy>>, TError = unknown>(id: string,
+    params?: GetApiAdminPaymentsIdReversalPolicyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsIdReversalPolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminPaymentsIdReversalPolicyQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminPaymentsIdReversalPolicy>>> = ({ signal }) => getApiAdminPaymentsIdReversalPolicy(id,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsIdReversalPolicy>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminPaymentsIdReversalPolicyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminPaymentsIdReversalPolicy>>>
+export type GetApiAdminPaymentsIdReversalPolicyQueryError = unknown
+
+export const useGetApiAdminPaymentsIdReversalPolicy = <TData = Awaited<ReturnType<typeof getApiAdminPaymentsIdReversalPolicy>>, TError = unknown>(
+ id: string,
+    params?: GetApiAdminPaymentsIdReversalPolicyParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminPaymentsIdReversalPolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminPaymentsIdReversalPolicyQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminPricingRules = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -4213,13 +6135,119 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const getApiAdminProductsDemoCatalog = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DemoImportCatalogDto>(
+      {url: `/api/admin/products/demo/catalog`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminProductsDemoCatalogQueryKey = () => {
+    return [`/api/admin/products/demo/catalog`] as const;
+    }
+
+    
+export const getGetApiAdminProductsDemoCatalogQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminProductsDemoCatalogQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>> = ({ signal }) => getApiAdminProductsDemoCatalog(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminProductsDemoCatalogQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>>
+export type GetApiAdminProductsDemoCatalogQueryError = unknown
+
+export const useGetApiAdminProductsDemoCatalog = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoCatalog>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminProductsDemoCatalogQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminProductsDemoImport = (
+    demoImportRequest: DemoImportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ImportResult>(
+      {url: `/api/admin/products/demo/import`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: demoImportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminProductsDemoImportMutationOptions = <TError = ProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoImport>>, TError,{data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoImport>>, TError,{data: DemoImportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminProductsDemoImport>>, {data: DemoImportRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminProductsDemoImport(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminProductsDemoImportMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminProductsDemoImport>>>
+    export type PostApiAdminProductsDemoImportMutationBody = DemoImportRequest
+    export type PostApiAdminProductsDemoImportMutationError = ProblemDetails | void
+
+    export const usePostApiAdminProductsDemoImport = <TError = ProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoImport>>, TError,{data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminProductsDemoImport>>,
+        TError,
+        {data: DemoImportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminProductsDemoImportMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const getApiAdminProducts = (
     params?: GetApiAdminProductsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<void>(
+      return customInstance<ProductListResponse>(
       {url: `/api/admin/products`, method: 'GET',
         params, signal
     },
@@ -4232,7 +6260,7 @@ export const getGetApiAdminProductsQueryKey = (params?: GetApiAdminProductsParam
     }
 
     
-export const getGetApiAdminProductsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminProducts>>, TError = unknown>(params?: GetApiAdminProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetApiAdminProductsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminProducts>>, TError = ProblemDetails>(params?: GetApiAdminProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -4251,9 +6279,9 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetApiAdminProductsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProducts>>>
-export type GetApiAdminProductsQueryError = unknown
+export type GetApiAdminProductsQueryError = ProblemDetails
 
-export const useGetApiAdminProducts = <TData = Awaited<ReturnType<typeof getApiAdminProducts>>, TError = unknown>(
+export const useGetApiAdminProducts = <TData = Awaited<ReturnType<typeof getApiAdminProducts>>, TError = ProblemDetails>(
  params?: GetApiAdminProductsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProducts>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
@@ -4747,7 +6775,721 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminRestoreVerificationReadiness = (
+    export const postApiAdminProductsDemoImportJobs = (
+    demoImportRequest: DemoImportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<DemoImportJobStartResponseDto>(
+      {url: `/api/admin/products/demo/import/jobs`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: demoImportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminProductsDemoImportJobsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoImportJobs>>, TError,{data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoImportJobs>>, TError,{data: DemoImportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminProductsDemoImportJobs>>, {data: DemoImportRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminProductsDemoImportJobs(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminProductsDemoImportJobsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminProductsDemoImportJobs>>>
+    export type PostApiAdminProductsDemoImportJobsMutationBody = DemoImportRequest
+    export type PostApiAdminProductsDemoImportJobsMutationError = ProblemDetails
+
+    export const usePostApiAdminProductsDemoImportJobs = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoImportJobs>>, TError,{data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminProductsDemoImportJobs>>,
+        TError,
+        {data: DemoImportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminProductsDemoImportJobsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminProductsDemoImportJobsJobId = (
+    jobId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DemoImportJobStatusDto>(
+      {url: `/api/admin/products/demo/import/jobs/${jobId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminProductsDemoImportJobsJobIdQueryKey = (jobId: string,) => {
+    return [`/api/admin/products/demo/import/jobs/${jobId}`] as const;
+    }
+
+    
+export const getGetApiAdminProductsDemoImportJobsJobIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>, TError = ProblemDetails>(jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminProductsDemoImportJobsJobIdQueryKey(jobId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>> = ({ signal }) => getApiAdminProductsDemoImportJobsJobId(jobId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(jobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminProductsDemoImportJobsJobIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>>
+export type GetApiAdminProductsDemoImportJobsJobIdQueryError = ProblemDetails
+
+export const useGetApiAdminProductsDemoImportJobsJobId = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>, TError = ProblemDetails>(
+ jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminProductsDemoImportJobsJobIdQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const deleteApiAdminProductsDemoImportJobsJobId = (
+    jobId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/products/demo/import/jobs/${jobId}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiAdminProductsDemoImportJobsJobIdMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminProductsDemoImportJobsJobId>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminProductsDemoImportJobsJobId>>, TError,{jobId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAdminProductsDemoImportJobsJobId>>, {jobId: string}> = (props) => {
+          const {jobId} = props ?? {};
+
+          return  deleteApiAdminProductsDemoImportJobsJobId(jobId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAdminProductsDemoImportJobsJobIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminProductsDemoImportJobsJobId>>>
+    
+    export type DeleteApiAdminProductsDemoImportJobsJobIdMutationError = ProblemDetails
+
+    export const useDeleteApiAdminProductsDemoImportJobsJobId = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminProductsDemoImportJobsJobId>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAdminProductsDemoImportJobsJobId>>,
+        TError,
+        {jobId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAdminProductsDemoImportJobsJobIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminProductsDemoTemplate = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/products/demo/template`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminProductsDemoTemplateQueryKey = () => {
+    return [`/api/admin/products/demo/template`] as const;
+    }
+
+    
+export const getGetApiAdminProductsDemoTemplateQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminProductsDemoTemplateQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>> = ({ signal }) => getApiAdminProductsDemoTemplate(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminProductsDemoTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>>
+export type GetApiAdminProductsDemoTemplateQueryError = unknown
+
+export const useGetApiAdminProductsDemoTemplate = <TData = Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminProductsDemoTemplate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminProductsDemoTemplateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminProductsDemoTemplatePreview = (
+    postApiAdminProductsDemoTemplatePreviewBody: PostApiAdminProductsDemoTemplatePreviewBody,
+    params?: PostApiAdminProductsDemoTemplatePreviewParams,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      const formData = new FormData();
+if(postApiAdminProductsDemoTemplatePreviewBody.file !== undefined) {
+ formData.append('file', postApiAdminProductsDemoTemplatePreviewBody.file)
+ }
+
+      return customInstance<DemoTemplateValidationResultDto>(
+      {url: `/api/admin/products/demo/template/preview`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData,
+        params
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminProductsDemoTemplatePreviewMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplatePreview>>, TError,{data: PostApiAdminProductsDemoTemplatePreviewBody;params?: PostApiAdminProductsDemoTemplatePreviewParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplatePreview>>, TError,{data: PostApiAdminProductsDemoTemplatePreviewBody;params?: PostApiAdminProductsDemoTemplatePreviewParams}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplatePreview>>, {data: PostApiAdminProductsDemoTemplatePreviewBody;params?: PostApiAdminProductsDemoTemplatePreviewParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  postApiAdminProductsDemoTemplatePreview(data,params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminProductsDemoTemplatePreviewMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplatePreview>>>
+    export type PostApiAdminProductsDemoTemplatePreviewMutationBody = PostApiAdminProductsDemoTemplatePreviewBody
+    export type PostApiAdminProductsDemoTemplatePreviewMutationError = unknown
+
+    export const usePostApiAdminProductsDemoTemplatePreview = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplatePreview>>, TError,{data: PostApiAdminProductsDemoTemplatePreviewBody;params?: PostApiAdminProductsDemoTemplatePreviewParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminProductsDemoTemplatePreview>>,
+        TError,
+        {data: PostApiAdminProductsDemoTemplatePreviewBody;params?: PostApiAdminProductsDemoTemplatePreviewParams},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminProductsDemoTemplatePreviewMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminProductsDemoTemplateImport = (
+    postApiAdminProductsDemoTemplateImportBody: PostApiAdminProductsDemoTemplateImportBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      const formData = new FormData();
+if(postApiAdminProductsDemoTemplateImportBody.file !== undefined) {
+ formData.append('file', postApiAdminProductsDemoTemplateImportBody.file)
+ }
+if(postApiAdminProductsDemoTemplateImportBody.overwriteExisting !== undefined) {
+ formData.append('overwriteExisting', postApiAdminProductsDemoTemplateImportBody.overwriteExisting.toString())
+ }
+if(postApiAdminProductsDemoTemplateImportBody.priceAdjustmentMode !== undefined) {
+ formData.append('priceAdjustmentMode', postApiAdminProductsDemoTemplateImportBody.priceAdjustmentMode)
+ }
+if(postApiAdminProductsDemoTemplateImportBody.priceAdjustmentPercent !== undefined) {
+ formData.append('priceAdjustmentPercent', postApiAdminProductsDemoTemplateImportBody.priceAdjustmentPercent.toString())
+ }
+if(postApiAdminProductsDemoTemplateImportBody.priceRoundIncrement !== undefined) {
+ formData.append('priceRoundIncrement', postApiAdminProductsDemoTemplateImportBody.priceRoundIncrement.toString())
+ }
+if(postApiAdminProductsDemoTemplateImportBody.imageMode !== undefined) {
+ formData.append('imageMode', postApiAdminProductsDemoTemplateImportBody.imageMode)
+ }
+
+      return customInstance<ImportResult>(
+      {url: `/api/admin/products/demo/template/import`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminProductsDemoTemplateImportMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplateImport>>, TError,{data: PostApiAdminProductsDemoTemplateImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplateImport>>, TError,{data: PostApiAdminProductsDemoTemplateImportBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplateImport>>, {data: PostApiAdminProductsDemoTemplateImportBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminProductsDemoTemplateImport(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminProductsDemoTemplateImportMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplateImport>>>
+    export type PostApiAdminProductsDemoTemplateImportMutationBody = PostApiAdminProductsDemoTemplateImportBody
+    export type PostApiAdminProductsDemoTemplateImportMutationError = ProblemDetails
+
+    export const usePostApiAdminProductsDemoTemplateImport = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminProductsDemoTemplateImport>>, TError,{data: PostApiAdminProductsDemoTemplateImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminProductsDemoTemplateImport>>,
+        TError,
+        {data: PostApiAdminProductsDemoTemplateImportBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminProductsDemoTemplateImportMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminReportsUserActivity = (
+    params?: GetApiAdminReportsUserActivityParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserActivityReportDto>(
+      {url: `/api/admin/reports/user-activity`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsUserActivityQueryKey = (params?: GetApiAdminReportsUserActivityParams,) => {
+    return [`/api/admin/reports/user-activity`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsUserActivityQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>, TError = ProblemDetails>(params?: GetApiAdminReportsUserActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsUserActivityQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>> = ({ signal }) => getApiAdminReportsUserActivity(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsUserActivityQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>>
+export type GetApiAdminReportsUserActivityQueryError = ProblemDetails
+
+export const useGetApiAdminReportsUserActivity = <TData = Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>, TError = ProblemDetails>(
+ params?: GetApiAdminReportsUserActivityParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserActivity>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsUserActivityQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminReportsUserActivityExport = (
+    params?: GetApiAdminReportsUserActivityExportParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/reports/user-activity/export`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminReportsUserActivityExportQueryKey = (params?: GetApiAdminReportsUserActivityExportParams,) => {
+    return [`/api/admin/reports/user-activity/export`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminReportsUserActivityExportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>, TError = unknown>(params?: GetApiAdminReportsUserActivityExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminReportsUserActivityExportQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>> = ({ signal }) => getApiAdminReportsUserActivityExport(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminReportsUserActivityExportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>>
+export type GetApiAdminReportsUserActivityExportQueryError = unknown
+
+export const useGetApiAdminReportsUserActivityExport = <TData = Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>, TError = unknown>(
+ params?: GetApiAdminReportsUserActivityExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminReportsUserActivityExport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminReportsUserActivityExportQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminReportsUserActivitySchedule = (
+    scheduleUserActivityReportRequest: ScheduleUserActivityReportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ScheduleUserActivityReportResponse>(
+      {url: `/api/admin/reports/user-activity/schedule`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: scheduleUserActivityReportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminReportsUserActivityScheduleMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminReportsUserActivitySchedule>>, TError,{data: ScheduleUserActivityReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminReportsUserActivitySchedule>>, TError,{data: ScheduleUserActivityReportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminReportsUserActivitySchedule>>, {data: ScheduleUserActivityReportRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminReportsUserActivitySchedule(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminReportsUserActivityScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminReportsUserActivitySchedule>>>
+    export type PostApiAdminReportsUserActivityScheduleMutationBody = ScheduleUserActivityReportRequest
+    export type PostApiAdminReportsUserActivityScheduleMutationError = unknown
+
+    export const usePostApiAdminReportsUserActivitySchedule = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminReportsUserActivitySchedule>>, TError,{data: ScheduleUserActivityReportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminReportsUserActivitySchedule>>,
+        TError,
+        {data: ScheduleUserActivityReportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminReportsUserActivityScheduleMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminRestoreRequest = (
+    restoreRequest: RestoreRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<RestoreRequestStatus>(
+      {url: `/api/admin/restore/request`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: restoreRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminRestoreRequestMutationOptions = <TError = ProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreRequest>>, TError,{data: RestoreRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreRequest>>, TError,{data: RestoreRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminRestoreRequest>>, {data: RestoreRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminRestoreRequest(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminRestoreRequestMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminRestoreRequest>>>
+    export type PostApiAdminRestoreRequestMutationBody = RestoreRequest
+    export type PostApiAdminRestoreRequestMutationError = ProblemDetails | void
+
+    export const usePostApiAdminRestoreRequest = <TError = ProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreRequest>>, TError,{data: RestoreRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminRestoreRequest>>,
+        TError,
+        {data: RestoreRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminRestoreRequestMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminRestoreApproveRequestId = (
+    requestId: string,
+    restoreApprovalRequest: RestoreApprovalRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<RestoreRequestStatus>(
+      {url: `/api/admin/restore/approve/${requestId}`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: restoreApprovalRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminRestoreApproveRequestIdMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreApproveRequestId>>, TError,{requestId: string;data: RestoreApprovalRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreApproveRequestId>>, TError,{requestId: string;data: RestoreApprovalRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminRestoreApproveRequestId>>, {requestId: string;data: RestoreApprovalRequest}> = (props) => {
+          const {requestId,data} = props ?? {};
+
+          return  postApiAdminRestoreApproveRequestId(requestId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminRestoreApproveRequestIdMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminRestoreApproveRequestId>>>
+    export type PostApiAdminRestoreApproveRequestIdMutationBody = RestoreApprovalRequest
+    export type PostApiAdminRestoreApproveRequestIdMutationError = ProblemDetails
+
+    export const usePostApiAdminRestoreApproveRequestId = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminRestoreApproveRequestId>>, TError,{requestId: string;data: RestoreApprovalRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminRestoreApproveRequestId>>,
+        TError,
+        {requestId: string;data: RestoreApprovalRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminRestoreApproveRequestIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminRestoreRequestRequestId = (
+    requestId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<RestoreRequestStatus>(
+      {url: `/api/admin/restore/request/${requestId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminRestoreRequestRequestIdQueryKey = (requestId: string,) => {
+    return [`/api/admin/restore/request/${requestId}`] as const;
+    }
+
+    
+export const getGetApiAdminRestoreRequestRequestIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>, TError = ProblemDetails>(requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRestoreRequestRequestIdQueryKey(requestId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>> = ({ signal }) => getApiAdminRestoreRequestRequestId(requestId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(requestId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRestoreRequestRequestIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>>
+export type GetApiAdminRestoreRequestRequestIdQueryError = ProblemDetails
+
+export const useGetApiAdminRestoreRequestRequestId = <TData = Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>, TError = ProblemDetails>(
+ requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreRequestRequestId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRestoreRequestRequestIdQueryOptions(requestId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminRestoreHistory = (
+    params?: GetApiAdminRestoreHistoryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<RestoreRequestHistoryResponse>(
+      {url: `/api/admin/restore/history`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminRestoreHistoryQueryKey = (params?: GetApiAdminRestoreHistoryParams,) => {
+    return [`/api/admin/restore/history`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminRestoreHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminRestoreHistory>>, TError = unknown>(params?: GetApiAdminRestoreHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminRestoreHistoryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminRestoreHistory>>> = ({ signal }) => getApiAdminRestoreHistory(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminRestoreHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminRestoreHistory>>>
+export type GetApiAdminRestoreHistoryQueryError = unknown
+
+export const useGetApiAdminRestoreHistory = <TData = Awaited<ReturnType<typeof getApiAdminRestoreHistory>>, TError = unknown>(
+ params?: GetApiAdminRestoreHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminRestoreHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminRestoreHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminRestoreVerificationReadiness = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -5665,6 +8407,58 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const postApiAdminTenantsTenantIdLicenseRenew = (
+    tenantId: string,
+    renewTenantLicenseRequest: RenewTenantLicenseRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<LicenseRenewalResult>(
+      {url: `/api/admin/tenants/${tenantId}/license/renew`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: renewTenantLicenseRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminTenantsTenantIdLicenseRenewMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseRenew>>, TError,{tenantId: string;data: RenewTenantLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseRenew>>, TError,{tenantId: string;data: RenewTenantLicenseRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseRenew>>, {tenantId: string;data: RenewTenantLicenseRequest}> = (props) => {
+          const {tenantId,data} = props ?? {};
+
+          return  postApiAdminTenantsTenantIdLicenseRenew(tenantId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminTenantsTenantIdLicenseRenewMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseRenew>>>
+    export type PostApiAdminTenantsTenantIdLicenseRenewMutationBody = RenewTenantLicenseRequest
+    export type PostApiAdminTenantsTenantIdLicenseRenewMutationError = ProblemDetails
+
+    export const usePostApiAdminTenantsTenantIdLicenseRenew = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseRenew>>, TError,{tenantId: string;data: RenewTenantLicenseRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdLicenseRenew>>,
+        TError,
+        {tenantId: string;data: RenewTenantLicenseRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminTenantsTenantIdLicenseRenewMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const postApiAdminTenantsTenantIdLicenseReminder = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6294,7 +9088,292 @@ export const useGetApiAdminTenantsTenantIdCashRegisters = <TData = Awaited<Retur
 
 
 
-export const deleteApiAdminTenantsTenantIdPermanent = (
+export const getApiAdminTenantsTenantIdDecommissionChecks = (
+    tenantId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<TenantDecommissionChecksDto>(
+      {url: `/api/admin/tenants/${tenantId}/decommission-checks`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminTenantsTenantIdDecommissionChecksQueryKey = (tenantId: string,) => {
+    return [`/api/admin/tenants/${tenantId}/decommission-checks`] as const;
+    }
+
+    
+export const getGetApiAdminTenantsTenantIdDecommissionChecksQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>, TError = ProblemDetails>(tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTenantsTenantIdDecommissionChecksQueryKey(tenantId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>> = ({ signal }) => getApiAdminTenantsTenantIdDecommissionChecks(tenantId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(tenantId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminTenantsTenantIdDecommissionChecksQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>>
+export type GetApiAdminTenantsTenantIdDecommissionChecksQueryError = ProblemDetails
+
+export const useGetApiAdminTenantsTenantIdDecommissionChecks = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>, TError = ProblemDetails>(
+ tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDecommissionChecks>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminTenantsTenantIdDecommissionChecksQueryOptions(tenantId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminTenantsTenantIdDemoProductsImport = (
+    tenantId: string,
+    demoImportRequest: DemoImportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ImportResult>(
+      {url: `/api/admin/tenants/${tenantId}/demo-products/import`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: demoImportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminTenantsTenantIdDemoProductsImportMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImport>>, TError,{tenantId: string;data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImport>>, TError,{tenantId: string;data: DemoImportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImport>>, {tenantId: string;data: DemoImportRequest}> = (props) => {
+          const {tenantId,data} = props ?? {};
+
+          return  postApiAdminTenantsTenantIdDemoProductsImport(tenantId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminTenantsTenantIdDemoProductsImportMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImport>>>
+    export type PostApiAdminTenantsTenantIdDemoProductsImportMutationBody = DemoImportRequest
+    export type PostApiAdminTenantsTenantIdDemoProductsImportMutationError = ProblemDetails
+
+    export const usePostApiAdminTenantsTenantIdDemoProductsImport = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImport>>, TError,{tenantId: string;data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImport>>,
+        TError,
+        {tenantId: string;data: DemoImportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminTenantsTenantIdDemoProductsImportMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminTenantsTenantIdDemoProductsImportJobs = (
+    tenantId: string,
+    demoImportRequest: DemoImportRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<DemoImportJobStartResponseDto>(
+      {url: `/api/admin/tenants/${tenantId}/demo-products/import/jobs`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: demoImportRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminTenantsTenantIdDemoProductsImportJobsMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImportJobs>>, TError,{tenantId: string;data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImportJobs>>, TError,{tenantId: string;data: DemoImportRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImportJobs>>, {tenantId: string;data: DemoImportRequest}> = (props) => {
+          const {tenantId,data} = props ?? {};
+
+          return  postApiAdminTenantsTenantIdDemoProductsImportJobs(tenantId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminTenantsTenantIdDemoProductsImportJobsMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImportJobs>>>
+    export type PostApiAdminTenantsTenantIdDemoProductsImportJobsMutationBody = DemoImportRequest
+    export type PostApiAdminTenantsTenantIdDemoProductsImportJobsMutationError = ProblemDetails
+
+    export const usePostApiAdminTenantsTenantIdDemoProductsImportJobs = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImportJobs>>, TError,{tenantId: string;data: DemoImportRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsImportJobs>>,
+        TError,
+        {tenantId: string;data: DemoImportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminTenantsTenantIdDemoProductsImportJobsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminTenantsDemoProductsImportJobsJobId = (
+    jobId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DemoImportJobStatusDto>(
+      {url: `/api/admin/tenants/demo-products/import/jobs/${jobId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminTenantsDemoProductsImportJobsJobIdQueryKey = (jobId: string,) => {
+    return [`/api/admin/tenants/demo-products/import/jobs/${jobId}`] as const;
+    }
+
+    
+export const getGetApiAdminTenantsDemoProductsImportJobsJobIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>, TError = ProblemDetails>(jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTenantsDemoProductsImportJobsJobIdQueryKey(jobId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>> = ({ signal }) => getApiAdminTenantsDemoProductsImportJobsJobId(jobId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(jobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminTenantsDemoProductsImportJobsJobIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>>
+export type GetApiAdminTenantsDemoProductsImportJobsJobIdQueryError = ProblemDetails
+
+export const useGetApiAdminTenantsDemoProductsImportJobsJobId = <TData = Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>, TError = ProblemDetails>(
+ jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsDemoProductsImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminTenantsDemoProductsImportJobsJobIdQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminTenantsTenantIdDemoProductsTemplateImport = (
+    tenantId: string,
+    postApiAdminTenantsTenantIdDemoProductsTemplateImportBody: PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      const formData = new FormData();
+if(postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.file !== undefined) {
+ formData.append('file', postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.file)
+ }
+if(postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.overwriteExisting !== undefined) {
+ formData.append('overwriteExisting', postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.overwriteExisting.toString())
+ }
+if(postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.priceAdjustmentMode !== undefined) {
+ formData.append('priceAdjustmentMode', postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.priceAdjustmentMode)
+ }
+if(postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.priceAdjustmentPercent !== undefined) {
+ formData.append('priceAdjustmentPercent', postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.priceAdjustmentPercent.toString())
+ }
+if(postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.priceRoundIncrement !== undefined) {
+ formData.append('priceRoundIncrement', postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.priceRoundIncrement.toString())
+ }
+if(postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.imageMode !== undefined) {
+ formData.append('imageMode', postApiAdminTenantsTenantIdDemoProductsTemplateImportBody.imageMode)
+ }
+
+      return customInstance<ImportResult>(
+      {url: `/api/admin/tenants/${tenantId}/demo-products/template/import`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminTenantsTenantIdDemoProductsTemplateImportMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsTemplateImport>>, TError,{tenantId: string;data: PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsTemplateImport>>, TError,{tenantId: string;data: PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsTemplateImport>>, {tenantId: string;data: PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody}> = (props) => {
+          const {tenantId,data} = props ?? {};
+
+          return  postApiAdminTenantsTenantIdDemoProductsTemplateImport(tenantId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminTenantsTenantIdDemoProductsTemplateImportMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsTemplateImport>>>
+    export type PostApiAdminTenantsTenantIdDemoProductsTemplateImportMutationBody = PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody
+    export type PostApiAdminTenantsTenantIdDemoProductsTemplateImportMutationError = ProblemDetails
+
+    export const usePostApiAdminTenantsTenantIdDemoProductsTemplateImport = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsTemplateImport>>, TError,{tenantId: string;data: PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDemoProductsTemplateImport>>,
+        TError,
+        {tenantId: string;data: PostApiAdminTenantsTenantIdDemoProductsTemplateImportBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminTenantsTenantIdDemoProductsTemplateImportMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const deleteApiAdminTenantsTenantIdPermanent = (
     tenantId: string,
     hardDeleteAdminTenantRequest: HardDeleteAdminTenantRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6346,6 +9425,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
+    export const deleteApiAdminTenantsTenantIdHard = (
+    tenantId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/tenants/${tenantId}/hard`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiAdminTenantsTenantIdHardMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdHard>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdHard>>, TError,{tenantId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdHard>>, {tenantId: string}> = (props) => {
+          const {tenantId} = props ?? {};
+
+          return  deleteApiAdminTenantsTenantIdHard(tenantId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAdminTenantsTenantIdHardMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdHard>>>
+    
+    export type DeleteApiAdminTenantsTenantIdHardMutationError = ProblemDetails
+
+    export const useDeleteApiAdminTenantsTenantIdHard = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdHard>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdHard>>,
+        TError,
+        {tenantId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAdminTenantsTenantIdHardMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
     export const postApiAdminTenantsTenantIdRestore = (
     tenantId: string,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -6392,6 +9520,55 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminTenantsTenantIdRestoreMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminTenantsTenantIdDecommission = (
+    tenantId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/tenants/${tenantId}/decommission`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminTenantsTenantIdDecommissionMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDecommission>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDecommission>>, TError,{tenantId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDecommission>>, {tenantId: string}> = (props) => {
+          const {tenantId} = props ?? {};
+
+          return  postApiAdminTenantsTenantIdDecommission(tenantId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminTenantsTenantIdDecommissionMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDecommission>>>
+    
+    export type PostApiAdminTenantsTenantIdDecommissionMutationError = ProblemDetails
+
+    export const usePostApiAdminTenantsTenantIdDecommission = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDecommission>>, TError,{tenantId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminTenantsTenantIdDecommission>>,
+        TError,
+        {tenantId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminTenantsTenantIdDecommissionMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -6861,7 +10038,393 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminUsers = (
+    export const getApiAdminUsersIdActivityReport = (
+    id: string,
+    params?: GetApiAdminUsersIdActivityReportParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserActivityReportDto>(
+      {url: `/api/admin/users/${id}/activity-report`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminUsersIdActivityReportQueryKey = (id: string,
+    params?: GetApiAdminUsersIdActivityReportParams,) => {
+    return [`/api/admin/users/${id}/activity-report`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminUsersIdActivityReportQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminUsersIdActivityReport>>, TError = ApiError>(id: string,
+    params?: GetApiAdminUsersIdActivityReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdActivityReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminUsersIdActivityReportQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminUsersIdActivityReport>>> = ({ signal }) => getApiAdminUsersIdActivityReport(id,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdActivityReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminUsersIdActivityReportQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersIdActivityReport>>>
+export type GetApiAdminUsersIdActivityReportQueryError = ApiError
+
+export const useGetApiAdminUsersIdActivityReport = <TData = Awaited<ReturnType<typeof getApiAdminUsersIdActivityReport>>, TError = ApiError>(
+ id: string,
+    params?: GetApiAdminUsersIdActivityReportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdActivityReport>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminUsersIdActivityReportQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminUsersBulkImportTemplate = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/users/bulk-import/template`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminUsersBulkImportTemplateQueryKey = () => {
+    return [`/api/admin/users/bulk-import/template`] as const;
+    }
+
+    
+export const getGetApiAdminUsersBulkImportTemplateQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminUsersBulkImportTemplateQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>> = ({ signal }) => getApiAdminUsersBulkImportTemplate(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminUsersBulkImportTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>>
+export type GetApiAdminUsersBulkImportTemplateQueryError = unknown
+
+export const useGetApiAdminUsersBulkImportTemplate = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportTemplate>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminUsersBulkImportTemplateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminUsersBulkImportPreview = (
+    postApiAdminUsersBulkImportPreviewBody: PostApiAdminUsersBulkImportPreviewBody,
+    params?: PostApiAdminUsersBulkImportPreviewParams,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      const formData = new FormData();
+if(postApiAdminUsersBulkImportPreviewBody.file !== undefined) {
+ formData.append('file', postApiAdminUsersBulkImportPreviewBody.file)
+ }
+
+      return customInstance<BulkImportPreviewResponseDto>(
+      {url: `/api/admin/users/bulk-import/preview`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData,
+        params
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminUsersBulkImportPreviewMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersBulkImportPreview>>, TError,{data: PostApiAdminUsersBulkImportPreviewBody;params?: PostApiAdminUsersBulkImportPreviewParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersBulkImportPreview>>, TError,{data: PostApiAdminUsersBulkImportPreviewBody;params?: PostApiAdminUsersBulkImportPreviewParams}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminUsersBulkImportPreview>>, {data: PostApiAdminUsersBulkImportPreviewBody;params?: PostApiAdminUsersBulkImportPreviewParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  postApiAdminUsersBulkImportPreview(data,params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminUsersBulkImportPreviewMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminUsersBulkImportPreview>>>
+    export type PostApiAdminUsersBulkImportPreviewMutationBody = PostApiAdminUsersBulkImportPreviewBody
+    export type PostApiAdminUsersBulkImportPreviewMutationError = unknown
+
+    export const usePostApiAdminUsersBulkImportPreview = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersBulkImportPreview>>, TError,{data: PostApiAdminUsersBulkImportPreviewBody;params?: PostApiAdminUsersBulkImportPreviewParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminUsersBulkImportPreview>>,
+        TError,
+        {data: PostApiAdminUsersBulkImportPreviewBody;params?: PostApiAdminUsersBulkImportPreviewParams},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminUsersBulkImportPreviewMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminUsersBulkImport = (
+    postApiAdminUsersBulkImportBody: PostApiAdminUsersBulkImportBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      const formData = new FormData();
+if(postApiAdminUsersBulkImportBody.file !== undefined) {
+ formData.append('file', postApiAdminUsersBulkImportBody.file)
+ }
+
+      return customInstance<BulkImportStartResponseDto>(
+      {url: `/api/admin/users/bulk-import`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminUsersBulkImportMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersBulkImport>>, TError,{data: PostApiAdminUsersBulkImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersBulkImport>>, TError,{data: PostApiAdminUsersBulkImportBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminUsersBulkImport>>, {data: PostApiAdminUsersBulkImportBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminUsersBulkImport(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminUsersBulkImportMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminUsersBulkImport>>>
+    export type PostApiAdminUsersBulkImportMutationBody = PostApiAdminUsersBulkImportBody
+    export type PostApiAdminUsersBulkImportMutationError = ProblemDetails
+
+    export const usePostApiAdminUsersBulkImport = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminUsersBulkImport>>, TError,{data: PostApiAdminUsersBulkImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminUsersBulkImport>>,
+        TError,
+        {data: PostApiAdminUsersBulkImportBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminUsersBulkImportMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminUsersBulkImportJobsJobId = (
+    jobId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BulkImportJobStatusDto>(
+      {url: `/api/admin/users/bulk-import/jobs/${jobId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminUsersBulkImportJobsJobIdQueryKey = (jobId: string,) => {
+    return [`/api/admin/users/bulk-import/jobs/${jobId}`] as const;
+    }
+
+    
+export const getGetApiAdminUsersBulkImportJobsJobIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>, TError = ProblemDetails>(jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminUsersBulkImportJobsJobIdQueryKey(jobId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>> = ({ signal }) => getApiAdminUsersBulkImportJobsJobId(jobId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(jobId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminUsersBulkImportJobsJobIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>>
+export type GetApiAdminUsersBulkImportJobsJobIdQueryError = ProblemDetails
+
+export const useGetApiAdminUsersBulkImportJobsJobId = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>, TError = ProblemDetails>(
+ jobId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportJobsJobId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminUsersBulkImportJobsJobIdQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const deleteApiAdminUsersBulkImportJobsJobId = (
+    jobId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/users/bulk-import/jobs/${jobId}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteApiAdminUsersBulkImportJobsJobIdMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminUsersBulkImportJobsJobId>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminUsersBulkImportJobsJobId>>, TError,{jobId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteApiAdminUsersBulkImportJobsJobId>>, {jobId: string}> = (props) => {
+          const {jobId} = props ?? {};
+
+          return  deleteApiAdminUsersBulkImportJobsJobId(jobId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteApiAdminUsersBulkImportJobsJobIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminUsersBulkImportJobsJobId>>>
+    
+    export type DeleteApiAdminUsersBulkImportJobsJobIdMutationError = ProblemDetails
+
+    export const useDeleteApiAdminUsersBulkImportJobsJobId = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminUsersBulkImportJobsJobId>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteApiAdminUsersBulkImportJobsJobId>>,
+        TError,
+        {jobId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteApiAdminUsersBulkImportJobsJobIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminUsersBulkImportResultsResultId = (
+    resultId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<unknown>(
+      {url: `/api/admin/users/bulk-import/results/${resultId}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminUsersBulkImportResultsResultIdQueryKey = (resultId: string,) => {
+    return [`/api/admin/users/bulk-import/results/${resultId}`] as const;
+    }
+
+    
+export const getGetApiAdminUsersBulkImportResultsResultIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>, TError = ProblemDetails>(resultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminUsersBulkImportResultsResultIdQueryKey(resultId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>> = ({ signal }) => getApiAdminUsersBulkImportResultsResultId(resultId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(resultId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminUsersBulkImportResultsResultIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>>
+export type GetApiAdminUsersBulkImportResultsResultIdQueryError = ProblemDetails
+
+export const useGetApiAdminUsersBulkImportResultsResultId = <TData = Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>, TError = ProblemDetails>(
+ resultId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersBulkImportResultsResultId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminUsersBulkImportResultsResultIdQueryOptions(resultId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminUsers = (
     params?: GetApiAdminUsersParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -6968,7 +10531,63 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminUsersId = (
+    export const getApiAdminUsersUsernameSuggestions = (
+    params?: GetApiAdminUsersUsernameSuggestionsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UsernameSuggestionResponse>(
+      {url: `/api/admin/users/username-suggestions`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminUsersUsernameSuggestionsQueryKey = (params?: GetApiAdminUsersUsernameSuggestionsParams,) => {
+    return [`/api/admin/users/username-suggestions`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminUsersUsernameSuggestionsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>, TError = ApiError>(params?: GetApiAdminUsersUsernameSuggestionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminUsersUsernameSuggestionsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>> = ({ signal }) => getApiAdminUsersUsernameSuggestions(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminUsersUsernameSuggestionsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>>
+export type GetApiAdminUsersUsernameSuggestionsQueryError = ApiError
+
+export const useGetApiAdminUsersUsernameSuggestions = <TData = Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>, TError = ApiError>(
+ params?: GetApiAdminUsersUsernameSuggestionsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersUsernameSuggestions>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminUsersUsernameSuggestionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminUsersId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -7283,6 +10902,113 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminUsersIdReactivateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminUsersIdUsernameHistory = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserUsernameHistoryDto[]>(
+      {url: `/api/admin/users/${id}/username-history`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminUsersIdUsernameHistoryQueryKey = (id: string,) => {
+    return [`/api/admin/users/${id}/username-history`] as const;
+    }
+
+    
+export const getGetApiAdminUsersIdUsernameHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>, TError = ApiError>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminUsersIdUsernameHistoryQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>> = ({ signal }) => getApiAdminUsersIdUsernameHistory(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminUsersIdUsernameHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>>
+export type GetApiAdminUsersIdUsernameHistoryQueryError = ApiError
+
+export const useGetApiAdminUsersIdUsernameHistory = <TData = Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>, TError = ApiError>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUsersIdUsernameHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminUsersIdUsernameHistoryQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const patchApiAdminUsersIdUsername = (
+    id: string,
+    updateUsernameRequest: UpdateUsernameRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<AdminUpdateUsernameResponse>(
+      {url: `/api/admin/users/${id}/username`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: updateUsernameRequest
+    },
+      options);
+    }
+  
+
+
+export const getPatchApiAdminUsersIdUsernameMutationOptions = <TError = ApiError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminUsersIdUsername>>, TError,{id: string;data: UpdateUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminUsersIdUsername>>, TError,{id: string;data: UpdateUsernameRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchApiAdminUsersIdUsername>>, {id: string;data: UpdateUsernameRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  patchApiAdminUsersIdUsername(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchApiAdminUsersIdUsernameMutationResult = NonNullable<Awaited<ReturnType<typeof patchApiAdminUsersIdUsername>>>
+    export type PatchApiAdminUsersIdUsernameMutationBody = UpdateUsernameRequest
+    export type PatchApiAdminUsersIdUsernameMutationError = ApiError
+
+    export const usePatchApiAdminUsersIdUsername = <TError = ApiError,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiAdminUsersIdUsername>>, TError,{id: string;data: UpdateUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof patchApiAdminUsersIdUsername>>,
+        TError,
+        {id: string;data: UpdateUsernameRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPatchApiAdminUsersIdUsernameMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -8298,7 +12024,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 ) => {
       
       
-      return customInstance<Category[]>(
+      return customInstance<CategoryDto[]>(
       {url: `/api/admin/categories`, method: 'GET', signal
     },
       options);
@@ -8352,7 +12078,7 @@ export const postApiAdminCategories = (
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<Category>(
+      return customInstance<CategoryDto>(
       {url: `/api/admin/categories`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: createCategoryRequest
@@ -8404,7 +12130,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 ) => {
       
       
-      return customInstance<Category>(
+      return customInstance<CategoryDto>(
       {url: `/api/admin/categories/${id}`, method: 'GET', signal
     },
       options);
@@ -8615,7 +12341,7 @@ export const getApiAdminCategoriesSearch = (
 ) => {
       
       
-      return customInstance<Category[]>(
+      return customInstance<CategoryDto[]>(
       {url: `/api/admin/categories/search`, method: 'GET',
         params, signal
     },
@@ -8665,7 +12391,217 @@ export const useGetApiAdminCategoriesSearch = <TData = Awaited<ReturnType<typeof
 
 
 
-export const postApiAdminDemoReset = (
+export const postApiAdminCategoriesResetDemoNames = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<CategoryDemoResetResultDto>(
+      {url: `/api/admin/categories/reset-demo-names`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminCategoriesResetDemoNamesMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCategoriesResetDemoNames>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCategoriesResetDemoNames>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminCategoriesResetDemoNames>>, void> = () => {
+          
+
+          return  postApiAdminCategoriesResetDemoNames(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminCategoriesResetDemoNamesMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminCategoriesResetDemoNames>>>
+    
+    export type PostApiAdminCategoriesResetDemoNamesMutationError = unknown
+
+    export const usePostApiAdminCategoriesResetDemoNames = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminCategoriesResetDemoNames>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminCategoriesResetDemoNames>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminCategoriesResetDemoNamesMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminDashboardWidgets = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DashboardWidgetCatalogItemDto[]>(
+      {url: `/api/admin/dashboard/widgets`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminDashboardWidgetsQueryKey = () => {
+    return [`/api/admin/dashboard/widgets`] as const;
+    }
+
+    
+export const getGetApiAdminDashboardWidgetsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminDashboardWidgetsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>> = ({ signal }) => getApiAdminDashboardWidgets(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminDashboardWidgetsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>>
+export type GetApiAdminDashboardWidgetsQueryError = unknown
+
+export const useGetApiAdminDashboardWidgets = <TData = Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDashboardWidgets>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminDashboardWidgetsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminDashboardPreferences = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<DashboardPreferencesResponseDto>(
+      {url: `/api/admin/dashboard/preferences`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminDashboardPreferencesQueryKey = () => {
+    return [`/api/admin/dashboard/preferences`] as const;
+    }
+
+    
+export const getGetApiAdminDashboardPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminDashboardPreferencesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>> = ({ signal }) => getApiAdminDashboardPreferences(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminDashboardPreferencesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>>
+export type GetApiAdminDashboardPreferencesQueryError = unknown
+
+export const useGetApiAdminDashboardPreferences = <TData = Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminDashboardPreferences>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminDashboardPreferencesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminDashboardPreferences = (
+    saveDashboardPreferencesRequestDto: SaveDashboardPreferencesRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<DashboardPreferencesResponseDto>(
+      {url: `/api/admin/dashboard/preferences`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: saveDashboardPreferencesRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminDashboardPreferencesMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDashboardPreferences>>, TError,{data: SaveDashboardPreferencesRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDashboardPreferences>>, TError,{data: SaveDashboardPreferencesRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminDashboardPreferences>>, {data: SaveDashboardPreferencesRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminDashboardPreferences(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminDashboardPreferencesMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminDashboardPreferences>>>
+    export type PostApiAdminDashboardPreferencesMutationBody = SaveDashboardPreferencesRequestDto
+    export type PostApiAdminDashboardPreferencesMutationError = unknown
+
+    export const usePostApiAdminDashboardPreferences = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminDashboardPreferences>>, TError,{data: SaveDashboardPreferencesRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminDashboardPreferences>>,
+        TError,
+        {data: SaveDashboardPreferencesRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminDashboardPreferencesMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminDemoReset = (
     
  options?: SecondParameter<typeof customInstance>,) => {
       
@@ -10236,3 +14172,110 @@ export const useGetApiAdminReplayBatchCorrelationId = <TData = Awaited<ReturnTyp
 
 
 
+export const getApiAdminUserPreferences = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserPreferencesResponseDto>(
+      {url: `/api/admin/user/preferences`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminUserPreferencesQueryKey = () => {
+    return [`/api/admin/user/preferences`] as const;
+    }
+
+    
+export const getGetApiAdminUserPreferencesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminUserPreferences>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUserPreferences>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminUserPreferencesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminUserPreferences>>> = ({ signal }) => getApiAdminUserPreferences(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUserPreferences>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminUserPreferencesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminUserPreferences>>>
+export type GetApiAdminUserPreferencesQueryError = unknown
+
+export const useGetApiAdminUserPreferences = <TData = Awaited<ReturnType<typeof getApiAdminUserPreferences>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminUserPreferences>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminUserPreferencesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const putApiAdminUserPreferences = (
+    saveUserPreferencesRequestDto: SaveUserPreferencesRequestDto,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<UserPreferencesResponseDto>(
+      {url: `/api/admin/user/preferences`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: saveUserPreferencesRequestDto
+    },
+      options);
+    }
+  
+
+
+export const getPutApiAdminUserPreferencesMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminUserPreferences>>, TError,{data: SaveUserPreferencesRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiAdminUserPreferences>>, TError,{data: SaveUserPreferencesRequestDto}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiAdminUserPreferences>>, {data: SaveUserPreferencesRequestDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putApiAdminUserPreferences(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutApiAdminUserPreferencesMutationResult = NonNullable<Awaited<ReturnType<typeof putApiAdminUserPreferences>>>
+    export type PutApiAdminUserPreferencesMutationBody = SaveUserPreferencesRequestDto
+    export type PutApiAdminUserPreferencesMutationError = ProblemDetails
+
+    export const usePutApiAdminUserPreferences = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiAdminUserPreferences>>, TError,{data: SaveUserPreferencesRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putApiAdminUserPreferences>>,
+        TError,
+        {data: SaveUserPreferencesRequestDto},
+        TContext
+      > => {
+
+      const mutationOptions = getPutApiAdminUserPreferencesMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    

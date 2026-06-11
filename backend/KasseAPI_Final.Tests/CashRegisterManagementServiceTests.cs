@@ -85,6 +85,7 @@ public sealed class CashRegisterManagementServiceTests
         Assert.Equal("KASSE-001", register.RegisterNumber);
         Assert.Equal(PrimaryTenantId, register.TenantId);
         Assert.Equal("actor-1", register.CreatedBy);
+        Assert.True(register.IsDefaultForTenant);
 
         audit.Verify(
             a => a.LogEntityChangeAsync(
@@ -100,6 +101,34 @@ public sealed class CashRegisterManagementServiceTests
                 AuditLogStatus.Success,
                 null),
             Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTenantAlreadyHasDefault_DoesNotMarkNewRegisterAsDefault()
+    {
+        await using var ctx = CreateContext();
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = PrimaryTenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0m,
+            CurrentBalance = 0m,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            IsDefaultForTenant = true,
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx, TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId));
+
+        var register = await svc.CreateAsync(
+            new CreateCashRegisterRequest { RegisterNumber = "KASSE-002", Location = "Bar" },
+            "actor-1",
+            "Manager",
+            actorIsSuperAdmin: false);
+
+        Assert.False(register.IsDefaultForTenant);
     }
 
     [Fact]

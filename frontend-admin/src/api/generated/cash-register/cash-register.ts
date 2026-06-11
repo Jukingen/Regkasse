@@ -21,6 +21,7 @@ import type {
 import type {
   CloseCashRegisterModel,
   CreateCashRegisterRequest,
+  EnhancedCashRegisterDto,
   GetApiCashRegisterIdTransactionsParams,
   OpenCashRegisterModel
 } from '.././model'
@@ -28,6 +29,61 @@ import { customInstance } from '../../../lib/axios';
 
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
+
+
+export const getApiCashRegisterEnhanced = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<EnhancedCashRegisterDto[]>(
+      {url: `/api/CashRegister/enhanced`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiCashRegisterEnhancedQueryKey = () => {
+    return [`/api/CashRegister/enhanced`] as const;
+    }
+
+    
+export const getGetApiCashRegisterEnhancedQueryOptions = <TData = Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCashRegisterEnhancedQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>> = ({ signal }) => getApiCashRegisterEnhanced(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiCashRegisterEnhancedQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>>
+export type GetApiCashRegisterEnhancedQueryError = unknown
+
+export const useGetApiCashRegisterEnhanced = <TData = Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterEnhanced>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiCashRegisterEnhancedQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
 
 
 export const getApiCashRegister = (

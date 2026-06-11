@@ -25,7 +25,7 @@ import {
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 import { BulkImportModal } from '@/features/users/components/BulkImportModal';
 import { CreateUserModal } from '@/features/users/components/CreateUserModal';
@@ -205,6 +205,7 @@ export function UnifiedAdminUsersView({
 
     const { t, formatLocale } = useI18n();
     const router = useRouter();
+    const pathname = usePathname();
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
 
@@ -222,6 +223,11 @@ export function UnifiedAdminUsersView({
     const [resetRow, setResetRow] = useState<TenantUserRow | null>(null);
     const [passwordRow, setPasswordRow] = useState<UnifiedAdminUserRow | null>(null);
     const [usernameEditUser, setUsernameEditUser] = useState<UserInfo | null>(null);
+
+    useEffect(() => {
+        setCreateOpen(false);
+        return () => setCreateOpen(false);
+    }, [pathname]);
 
     useEffect(() => {
         setSelectedTenant(

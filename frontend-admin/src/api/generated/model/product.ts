@@ -22,7 +22,10 @@ export interface Product {
   category: string;
   categoryId?: string;
   categoryNavigation?: Category;
-  /** @minimum 0 */
+  /**
+   * @minimum 0
+   * @maximum 1.7976931348623157e+308
+   */
   cost?: number;
   createdAt: string;
   /**
@@ -32,6 +35,12 @@ export interface Product {
   createdBy?: string | null;
   /** @nullable */
   description?: string | null;
+  /** @nullable */
+  descriptionDe?: string | null;
+  /** @nullable */
+  descriptionEn?: string | null;
+  /** @nullable */
+  descriptionTr?: string | null;
   /**
    * @maxLength 10
    * @nullable
@@ -47,6 +56,12 @@ export interface Product {
   /**
    * @minimum 0
    * @maximum 2147483647
+   * @nullable
+   */
+  maxStockLevel?: number | null;
+  /**
+   * @minimum 0
+   * @maximum 2147483647
    */
   minStockLevel: number;
   /** @nullable */
@@ -56,7 +71,25 @@ export interface Product {
    * @maxLength 200
    */
   name: string;
-  /** @minimum 0 */
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  nameDe?: string | null;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  nameEn?: string | null;
+  /**
+   * @maxLength 200
+   * @nullable
+   */
+  nameTr?: string | null;
+  /**
+   * @minimum 0
+   * @maximum 1.7976931348623157e+308
+   */
   price: number;
   /**
    * @maxLength 50

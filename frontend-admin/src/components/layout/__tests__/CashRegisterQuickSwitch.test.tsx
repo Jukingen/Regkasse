@@ -9,6 +9,7 @@ import { CashRegisterQuickSwitch } from '@/components/layout/CashRegisterQuickSw
 const mockPush = vi.fn();
 const mockUseCurrentTenant = vi.fn();
 const mockUseAdminCashRegisterList = vi.fn();
+const mockUseCashRegisters = vi.fn();
 const mockUsePermissions = vi.fn();
 
 vi.mock('next/navigation', () => ({
@@ -21,6 +22,10 @@ vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
 
 vi.mock('@/features/cash-registers/hooks/useAdminCashRegisterList', () => ({
     useAdminCashRegisterList: (opts: unknown) => mockUseAdminCashRegisterList(opts),
+}));
+
+vi.mock('@/features/cash-registers/hooks/useCashRegisters', () => ({
+    useCashRegisters: (tenantId: unknown, opts: unknown) => mockUseCashRegisters(tenantId, opts),
 }));
 
 vi.mock('@/shared/auth/usePermissions', () => ({
@@ -64,6 +69,10 @@ beforeEach(() => {
         requiresTenantSelection: false,
     });
     mockUseAdminCashRegisterList.mockReturnValue({
+        registers: [],
+        isLoading: false,
+    });
+    mockUseCashRegisters.mockReturnValue({
         registers: [
             {
                 id: 'reg-1',
@@ -73,6 +82,8 @@ beforeEach(() => {
                 status: 2,
             },
         ],
+        defaultRegister: null,
+        selectedRegisterId: 'reg-1',
         isLoading: false,
     });
 });
@@ -81,7 +92,7 @@ describe('CashRegisterQuickSwitch', () => {
     it('renders when registers are available', () => {
         renderSwitch();
         expect(screen.getByTestId('admin-header-cash-register-quick-switch')).toBeInTheDocument();
-        expect(screen.getByText('Kasse wechseln')).toBeInTheDocument();
+        expect(screen.getByText('KASSE-001')).toBeInTheDocument();
     });
 
     it('hides when user lacks cash register view permission', () => {
@@ -98,5 +109,46 @@ describe('CashRegisterQuickSwitch', () => {
         });
         renderSwitch();
         expect(screen.queryByTestId('admin-header-cash-register-quick-switch')).not.toBeInTheDocument();
+    });
+
+    it('auto-selects the tenant default register in session storage', async () => {
+        mockUseCashRegisters.mockReturnValue({
+            registers: [
+                {
+                    id: 'reg-default',
+                    tenantId: 'tenant-a',
+                    registerNumber: 'KASSE-001',
+                    location: 'Theke',
+                    status: 2,
+                    isDefaultForTenant: true,
+                },
+                {
+                    id: 'reg-other',
+                    tenantId: 'tenant-a',
+                    registerNumber: 'KASSE-002',
+                    location: 'Bar',
+                    status: 1,
+                    isDefaultForTenant: false,
+                },
+            ],
+            defaultRegister: {
+                id: 'reg-default',
+                tenantId: 'tenant-a',
+                registerNumber: 'KASSE-001',
+                location: 'Theke',
+                status: 2,
+                isDefaultForTenant: true,
+            },
+            selectedRegisterId: 'reg-default',
+            isLoading: false,
+        });
+
+        renderSwitch();
+
+        expect(screen.getByText('KASSE-001')).toBeInTheDocument();
+        expect(mockUseCashRegisters).toHaveBeenCalledWith(
+            'tenant-a',
+            expect.objectContaining({ syncQuickSwitch: true }),
+        );
     });
 });

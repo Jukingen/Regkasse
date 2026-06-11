@@ -31,7 +31,14 @@ export type EditUsernameModalProps = {
     onSuccess: (result: UpdateAdminUsernameResponse) => void;
 };
 
-export function EditUsernameModal({
+export function EditUsernameModal(props: EditUsernameModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <EditUsernameModalContent {...props} />;
+}
+
+function EditUsernameModalContent({
     open,
     userId,
     currentUsername,
@@ -102,7 +109,7 @@ export function EditUsernameModal({
             okText={t('common.buttons.save')}
             cancelText={t('common.buttons.cancel')}
             confirmLoading={updateUsername.isPending}
-            destroyOnHidden
+            forceRender
         >
             <Alert
                 type="info"

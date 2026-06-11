@@ -183,6 +183,7 @@
     "loadError": "Fehler beim Laden",
     "loadErrorTooltip": "Kassenliste konnte nicht geladen werden",
     "empty": "Keine Kassen vorhanden",
-    "mandantHeader": "Mandant: {{name}} ({{slug}})"
+    "mandantHeader": "Mandant: {{name}} ({{slug}})",
+    "defaultTag": "Standard"
   }
 }

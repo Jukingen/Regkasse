@@ -14,7 +14,14 @@ export type BulkDecommissionModalProps = {
     confirmLoading?: boolean;
 };
 
-export function BulkDecommissionModal({
+export function BulkDecommissionModal(props: BulkDecommissionModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <BulkDecommissionModalContent {...props} />;
+}
+
+function BulkDecommissionModalContent({
     open,
     registers,
     onCancel,
@@ -55,7 +62,7 @@ export function BulkDecommissionModal({
             okText={t('cashRegisters.bulk.decommissionConfirm')}
             cancelText={t('cashRegisters.decommission.cancel')}
             okButtonProps={{ danger: true, loading: confirmLoading, disabled: eligible.length === 0 }}
-            destroyOnHidden
+            forceRender
         >
             <Alert
                 type="warning"

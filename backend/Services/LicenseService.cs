@@ -255,6 +255,7 @@ public sealed class LicenseService : ILicenseService
     private readonly IActivityEventPublisher _activityPublisher;
     private readonly ILogger<LicenseService> _logger;
     private readonly IHostEnvironment _hostEnvironment;
+    private readonly TseOptions _tseOptions;
     private readonly IOptionsMonitor<DevelopmentOptions> _developmentOptions;
     private readonly IDevelopmentModeService _developmentModeService;
 
@@ -271,6 +272,7 @@ public sealed class LicenseService : ILicenseService
         IActivityEventPublisher activityPublisher,
         ILogger<LicenseService> logger,
         IHostEnvironment hostEnvironment,
+        IOptions<TseOptions> tseOptions,
         IOptionsMonitor<DevelopmentOptions> developmentOptions,
         IDevelopmentModeService developmentModeService)
     {
@@ -281,6 +283,7 @@ public sealed class LicenseService : ILicenseService
         _activityPublisher = activityPublisher;
         _logger = logger;
         _hostEnvironment = hostEnvironment;
+        _tseOptions = tseOptions.Value;
         _developmentOptions = developmentOptions;
         _developmentModeService = developmentModeService;
     }
@@ -535,16 +538,18 @@ public sealed class LicenseService : ILicenseService
         CancellationToken cancellationToken = default)
     {
         if (OpenApiExportMode.IsEnabled)
+            return CreateUnlimitedMandantLicenseStatus("Aktive Lizenz");
+
+        if (LicenseEnforcementPolicy.ShouldDisableEnforcement(
+                _hostEnvironment,
+                _tseOptions,
+                _developmentModeService,
+                _options.Value))
         {
-            return new LicenseStatusInfo
-            {
-                IsActive = true,
-                CanAccess = true,
-                CanTransact = true,
-                DaysRemaining = 999,
-                IsInGracePeriod = false,
-                StatusMessage = "Aktive Lizenz",
-            };
+            return CreateUnlimitedMandantLicenseStatus(
+                _hostEnvironment.IsDevelopment()
+                    ? "Development Mode - Unlimited Access"
+                    : "Demo Mode - Unlimited Access");
         }
 
         return await WithDbContextAsync(async (db, ct) =>
@@ -561,6 +566,20 @@ public sealed class LicenseService : ILicenseService
             return BuildTenantLicenseStatusInfo(tenant);
         }, cancellationToken).ConfigureAwait(false);
     }
+
+    internal static LicenseStatusInfo CreateUnlimitedMandantLicenseStatus(string statusMessage) =>
+        new()
+        {
+            IsActive = true,
+            CanAccess = true,
+            CanTransact = true,
+            DaysRemaining = 999,
+            DaysOverdue = 0,
+            IsInGracePeriod = false,
+            GracePeriodRemaining = 0,
+            RequiresRenewal = false,
+            StatusMessage = statusMessage,
+        };
 
     internal static LicenseStatusInfo BuildTenantLicenseStatusInfo(Tenant tenant)
     {
@@ -1191,10 +1210,15 @@ public sealed class LicenseService : ILicenseService
     /// </summary>
     private LicenseStatusResponse ApplyDevelopmentLicenseBypassIfNeeded(LicenseStatusResponse snapshot)
     {
-        if (OpenApiExportMode.IsEnabled || !_developmentModeService.ShouldBypassLicense())
+        if (OpenApiExportMode.IsEnabled
+            || !LicenseEnforcementPolicy.ShouldDisableEnforcement(
+                _hostEnvironment,
+                _tseOptions,
+                _developmentModeService,
+                _options.Value))
             return snapshot;
 
-        _logger.LogWarning("Development mode active: {BypassType} bypassed", "License");
+        _logger.LogDebug("License enforcement bypass active for deployment status snapshot");
 
         var days = _developmentModeService.GetValidDays();
         var validUntil = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(days), DateTimeKind.Utc);

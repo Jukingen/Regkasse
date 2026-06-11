@@ -327,7 +327,7 @@ public static class RksvComplianceReportPdfGenerator
         IReadOnlyList<RksvComplianceQrValidationItemDto> rows,
         CultureInfo inv)
     {
-        SectionHeader(col, "5) QR payload validation (RKSV internal _R1-AT1_ format)");
+        SectionHeader(col, "5) QR payload validation (RKSV BMF §9 / legacy _R1-AT1_ format)");
         if (rows.Count == 0)
         {
             col.Item().Text("All QR payloads in scope passed the format-only validation.").Italic();

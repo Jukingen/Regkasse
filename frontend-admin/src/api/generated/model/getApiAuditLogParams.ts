@@ -11,11 +11,15 @@ export type GetApiAuditLogParams = {
 startDate?: string;
 endDate?: string;
 userId?: string;
+targetUserId?: string;
 userRole?: string;
 action?: string;
 entityType?: string;
 entityId?: string;
+ipAddress?: string;
 status?: AuditLogStatus;
+statusOutcome?: string;
+hasChanges?: boolean;
 page?: number;
 pageSize?: number;
 };

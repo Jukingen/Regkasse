@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { storage } from '../../utils/storage';
 import { useAuth } from '../../contexts/AuthContext';
-import { isAuthError, getAuthErrorMessage } from '../../features/auth/authErrors';
+import { getLoginFailure } from '@/utils/loginErrorHandler';
 import { useTranslation } from 'react-i18next';
 
 import { WaveLoader } from '../../src/components/common/WaveLoader';
@@ -36,7 +36,7 @@ export default function LoginScreen() {
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
-  const [loginError, setLoginError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const passwordInputRef = useRef<TextInput>(null);
 
@@ -91,33 +91,23 @@ export default function LoginScreen() {
     try {
       setIsLoading(true);
       setErrors({});
-      setLoginError(null);
+      setError(null);
       await login(loginIdentifier, password);
 
       const trimmed = loginIdentifier.trim();
       await storage.setItem(LAST_USERNAME_KEY, trimmed);
       await storage.setItem(SAVED_LOGIN_IDENTIFIER_KEY, trimmed);
       await storage.removeItem(LEGACY_SAVED_USERNAME_KEY);
-    } catch (error: unknown) {
-      console.error('Login failed:', error);
+    } catch (err: unknown) {
+      const { userMessage, technicalMessage, errorCode } = getLoginFailure(err);
+      setError(userMessage);
+      console.error('[Login Technical]', technicalMessage || err);
 
-      if (isAuthError(error)) {
-        const msg = getAuthErrorMessage(error);
-
-        if (error.code === 'INVALID_CREDENTIALS') {
-          setErrors({ loginIdentifier: msg });
-          setLoginError(msg);
-        } else {
-          setLoginError(msg);
-        }
-
-        if (error.code === 'POS_UNAUTHORIZED_USER' || error.code === 'INVALID_CREDENTIALS') {
-          setPassword('');
-        }
-      } else {
-        const msg = error instanceof Error ? error.message : t('loginError');
-        setLoginError(msg);
-        setErrors({ loginIdentifier: msg });
+      if (errorCode === 'INVALID_CREDENTIALS') {
+        setErrors({ loginIdentifier: userMessage });
+        setPassword('');
+      } else if (errorCode === 'POS_UNAUTHORIZED_USER') {
+        setPassword('');
       }
     } finally {
       setIsLoading(false);
@@ -156,9 +146,9 @@ export default function LoginScreen() {
             <View style={styles.formContainer}>
               <Text style={styles.loginTitle}>{t('loginTitle')}</Text>
 
-              {loginError && (
-                <View style={styles.errorBanner}>
-                  <Text style={styles.errorBannerText}>{loginError}</Text>
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorBannerText}>❌ {error}</Text>
                 </View>
               )}
 
@@ -171,7 +161,7 @@ export default function LoginScreen() {
                   value={loginIdentifier}
                   onChangeText={(text) => {
                     setLoginIdentifier(text);
-                    setLoginError(null);
+                    setError(null);
                     setErrors((prev) => ({ ...prev, loginIdentifier: undefined }));
                   }}
                   autoCapitalize="none"
@@ -197,7 +187,7 @@ export default function LoginScreen() {
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
-                    setLoginError(null);
+                    setError(null);
                     setErrors((prev) => ({ ...prev, password: undefined }));
                   }}
                   secureTextEntry
@@ -287,7 +277,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#DDD',
   },
-  errorBanner: {
+  errorContainer: {
     width: '100%',
     backgroundColor: '#FDF2F2',
     borderWidth: 1,

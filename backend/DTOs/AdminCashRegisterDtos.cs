@@ -69,6 +69,7 @@ public sealed class CashRegisterDto
     public DateTime LastBalanceUpdate { get; init; }
     public string? CurrentUserId { get; init; }
     public bool IsActive { get; init; }
+    public bool IsDefaultForTenant { get; init; }
     public DateTime? DecommissionedAtUtc { get; init; }
     public string? DecommissionReason { get; init; }
     public DateTime CreatedAt { get; init; }

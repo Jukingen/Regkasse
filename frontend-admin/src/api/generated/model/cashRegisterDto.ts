@@ -5,6 +5,7 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { CashRegisterDeviceInfoDto } from './cashRegisterDeviceInfoDto';
 import type { RegisterStatus } from './registerStatus';
 
 export interface CashRegisterDto {
@@ -13,16 +14,26 @@ export interface CashRegisterDto {
   createdBy?: string | null;
   currentBalance?: number;
   /** @nullable */
+  currentCashierName?: string | null;
+  /** @nullable */
   currentUserId?: string | null;
   /** @nullable */
   decommissionedAtUtc?: string | null;
   /** @nullable */
   decommissionReason?: string | null;
+  deviceInfo?: CashRegisterDeviceInfoDto;
   id?: string;
   isActive?: boolean;
   lastBalanceUpdate?: string;
   /** @nullable */
+  lastJahresbelegUtc?: string | null;
+  /** @nullable */
+  lastMonatsbelegUtc?: string | null;
+  /** @nullable */
+  lastSyncAtUtc?: string | null;
+  /** @nullable */
   location?: string | null;
+  offlineQueueCount?: number;
   /** @nullable */
   registerNumber?: string | null;
   startingBalance?: number;
@@ -32,6 +43,8 @@ export interface CashRegisterDto {
   tenantName?: string | null;
   /** @nullable */
   tenantSlug?: string | null;
+  /** @nullable */
+  tseHealthStatus?: string | null;
   /** @nullable */
   updatedAt?: string | null;
   /** @nullable */

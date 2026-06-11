@@ -1,4 +1,7 @@
+using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tse;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -6,9 +9,39 @@ namespace KasseAPI_Final.Tests;
 public sealed class RksvReceiptQrPayloadFormatValidatorTests
 {
     private readonly RksvReceiptQrPayloadFormatValidator _sut = new();
+    private static readonly byte[] DevAesKey = new SoftwareTseKeyProvider().GetTurnoverCounterAesKeyBytes()!;
 
     [Fact]
-    public void Validate_ValidPayload_ReturnsTrueWithParsed()
+    public void Validate_StandardRksvV1Payload_ReturnsTrueWithParsed()
+    {
+        var keyProvider = new SoftwareTseKeyProvider();
+        var pipeline = new SignaturePipeline(keyProvider, NullLogger<SignaturePipeline>.Instance);
+        var beleg = BelegdatenPayloadBuilder.Build(
+            "KASSE-001",
+            "AT-KASSE-001-20260228-00000001",
+            new DateTime(2026, 2, 28, 16, 52, 48, DateTimeKind.Utc),
+            new RksvTaxSetAmounts { Normal = 10.00m },
+            1000,
+            null,
+            keyProvider.GetCertificateSerialNumber()!,
+            DevAesKey);
+        var jws = pipeline.Sign(beleg, "validator-test");
+        Assert.True(RksvReceiptQrPayloadBuilder.TryBuildFromCompactJws(jws, out var qr));
+
+        var r = _sut.Validate(qr);
+
+        Assert.True(r.IsValidFormat);
+        Assert.NotNull(r.Parsed);
+        Assert.Empty(r.Errors);
+        Assert.Equal("AT-KASSE-001-20260228-00000001", r.Parsed!.ReceiptNumber);
+        Assert.Equal("10.00", r.Parsed.Totals.GrossTotal);
+        Assert.Equal("0.00", r.Parsed.Totals.SecondAmount);
+        Assert.False(string.IsNullOrWhiteSpace(r.Parsed.CertificateSerial));
+        Assert.False(string.IsNullOrWhiteSpace(r.Parsed.PreviousSignature));
+    }
+
+    [Fact]
+    public void Validate_LegacyInternalCompactPayload_StillAccepted()
     {
         var jws = "eyJhbGciOiJFUzI1NiJ9.eyJrYXNzZW5JZCI6IjEifQ.signature";
         var qr = $"_R1-AT1_KASSE-001_AT-KASSE-001-20260228-00000001_2026-02-28T17:52:48_10.00_0.00_SW-TEST-abc12345_{jws}";
