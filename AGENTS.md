@@ -9,7 +9,7 @@ This repository is a POS monorepo. Prefer safe, incremental improvements over br
 - For medium or large tasks, also read **`REGKASSE_AI_ONBOARDING.md`** and relevant docs under `ai/`.
 - Keep this file valid Markdown (closed code fences, proper headings); broken formatting reduces what agents can parse reliably.
 
-**Last updated:** 2026-05-31
+**Last updated:** 2026-06-11
 
 ## Language Rules
 Follow these language rules strictly:
@@ -273,6 +273,74 @@ Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `Ca
 ### Storno Flows
 - Must supply `OriginalReceiptId` and a `StornoReason` where contract requires them
 - Do not conflate with partial refund
+
+### DEP §7 Export (Datenerfassungsprotokoll / Signaturjournal)
+
+**Status:** ✅ Implemented (F1–F5 complete)
+
+**Features:**
+- BMF-compliant JSON export with `Belege-Gruppe` structure
+- Certificate grouping by thumbprint
+- Includes all receipt types (normal, special, daily closings)
+- Compact JWS signatures (not QR payload)
+- RKSV §9 `BelegdatenPayload` machine code (`_R1-AT1_…`) for Prüftool receipt verification
+- Chronological ordering
+
+**Purpose:** Betriebsprüfung (tax audit) compliant export of signed receipt data per cash register and period.
+
+**Technical rules:**
+
+1. **Format:** BMF JSON schema with `Belege-Gruppe` structure (`RksvDepExportRootDto`; property names via `[JsonPropertyName]` — e.g. `Belege-Gruppe`, `Belege-kompakt`)
+2. **Signature format:** Compact JWS (`header.payload.signature`), **not** QR payload
+3. **Grouping:** All receipts signed with the same certificate thumbprint in one `Belege-Gruppe`
+4. **Order:** Chronological by issue date/time (`IssuedAt`), then `SequenceNumber` (BelegNr seq or closing date)
+5. **Included items:**
+   - Normal payment receipts (`payment_details`, `RksvSpecialReceiptKind` null)
+   - Special receipts: `Startbeleg`, `Monatsbeleg`, `Jahresbeleg`, `Schlussbeleg`, `Nullbeleg` (when `includeSpecialReceipts=true`)
+   - Daily closings (`DailyClosings.TseSignature`, when `includeDailyClosings=true`; filter by `ClosingDate`)
+6. **Certificate chain:** Leaf signing cert + issuer CA chain (`Zertifizierungsstellen`), DER Base64 per group
+7. **Excluded:** Rows without TSE signature or invalid compact JWS (not exactly three segments)
+8. **Thumbprint storage:** `payment_details.certificate_thumbprint`, `DailyClosings.certificate_thumbprint` (stamped at sign time; legacy rows fall back to active TSE cert)
+
+**Implementation status:**
+
+| Phase | Scope | Status |
+|-------|--------|--------|
+| F1 | Controller + service + DTO skeleton | Done |
+| F2 | Certificate grouping + CA chain | Done |
+| F3 | Special receipts + daily closings | Done |
+| F4 | Prüftool test script (`scripts/verify-rksv-dep-export.ps1`) | Done |
+| F5 | Full RKSV §9 `BelegdatenPayload` Prüftool compliance | Done |
+
+**Key files:** `AdminRksvDepExportController`, `RksvDepExportService`, `RksvDepExportDtos`, `ITseKeyProvider`, `TseCertificateChainBuilder`, `BelegdatenPayload`, `BelegdatenPayloadBuilder`, `RksvMachineCodeBuilder`, `SignaturePipeline`, `TseService`
+
+**API:** `GET /api/admin/rksv/dep-export` (Admin only)
+
+| Parameter | Required | Default | Notes |
+|-----------|----------|---------|-------|
+| `cashRegisterId` | Yes | — | Target register UUID |
+| `fromUtc` | Yes | — | Period start (UTC) |
+| `toUtc` | Yes | — | Period end (UTC); max 366 days |
+| `includeSpecialReceipts` | No | `true` | Sonderbelege |
+| `includeDailyClosings` | No | `true` | Tagesabschluss signatures |
+
+**Permission required:** `ReportExport` + `AuditView` (`AppPermissions.ReportExport` / `report.export`, `AppPermissions.AuditView` / `audit.view`).
+
+**Auth:** JWT + tenant context. Cross-tenant / missing tenant → HTTP 404. All DEP exports MUST be logged in audit log (`RksvDepExportJson`).
+
+**Testing:**
+
+```bash
+cd backend && dotnet test --filter "RksvDepExportServiceTests"
+```
+
+```powershell
+.\scripts\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
+```
+
+Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1.1.1.jar`.
+
+**Developer guide:** `docs/DEP_EXPORT_DEVELOPMENT.md`
 
 ## Backup & Restore Rules
 

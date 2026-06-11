@@ -21,6 +21,19 @@ function isRequestCanceled(error: unknown): boolean {
     return (error as { code?: string })?.code === 'ERR_CANCELED';
 }
 
+/** Expected read-only / grace license enforcement — not an application fault. */
+function isExpectedLicenseWriteBlock403(
+    status: number | undefined,
+    data: { error?: string; code?: string; message?: string } | undefined,
+    serverMessage: string | null,
+): boolean {
+    if (status !== 403) return false;
+    const errorToken = typeof data?.error === 'string' ? data.error : '';
+    const codeToken = typeof data?.code === 'string' ? data.code : '';
+    const haystack = `${errorToken} ${codeToken} ${serverMessage ?? ''}`.toLowerCase();
+    return haystack.includes('license') || haystack.includes('lizenz');
+}
+
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 const baseURL = configuredBaseUrl || (isDev ? 'http://localhost:5184' : '');
 
@@ -106,7 +119,12 @@ const createAxiosInstance = () => {
                 if (status === 401) {
                     technicalConsole.devDebug('[API] 401 Unauthorized');
                 } else if (status != null) {
-                    technicalConsole.error(`[API] HTTP ${status} ${url}`, serverMessage ?? data ?? fallbackMessage);
+                    const logPayload = serverMessage ?? data ?? fallbackMessage;
+                    if (isExpectedLicenseWriteBlock403(status, data, serverMessage)) {
+                        technicalConsole.warn(`[API] HTTP ${status} ${url} (license read-only)`, logPayload);
+                    } else {
+                        technicalConsole.error(`[API] HTTP ${status} ${url}`, logPayload);
+                    }
                 } else if (!isRequestCanceled(error)) {
                     technicalConsole.error('[API] Network or client error', {
                         url: url || undefined,

@@ -1,0 +1,106 @@
+{
+  "verificationId" : "RKSV_DEP_EXPORT",
+  "version" : 1,
+  "verificationName" : "Zusammenfassung der Ergebnisse der RKSV-DEP-Export Prüfungen pro Beleg (Datei \"i_DEP.json\")",
+  "verificationTextualDescription" : "Es wird die Richtigkeit des exportierten RKSV-DEP pro Beleg überprüft: Abfolge der Belege, Entwicklung des verschlüsselten Umsatzzählers, Verkettung der Belege, chronologische Reihenfolge, nur eine Kasse pro RKSV-DEP-Export, nur ein Systemtyp pro RKSV-DEP-Export. Es handelt sich um ein Hilfsmodul das die Ergebnisse dieser Prüfungen pro Beleg zusammenfasst (z.B. \"0001_dep.json\").",
+  "verificationState" : "FAIL",
+  "verificationResultDetailedMessage" : "Am Beginn des exportierten RKSV-DEP befindet sich kein gültiger Startbeleg.",
+  "input" : {
+    "AUTH_LEVEL" : "PRUEFTOOL_DEP",
+    "TURNOVER_SUM" : "NULL",
+    "SYSTEM_TYPE_INITIAL" : "OPEN",
+    "TIMEOFRECEIPT" : "2016-03-13T05:59:10.000",
+    "RECEIPT_PREV" : "_R1-AT100_CASHBOX-DEMO-1_CASHBOX-DEMO-1-Receipt-ID-83_2016-03-12T04:58:09_0,00_0,00_0,00_0,00_0,00_j+6GA9wh_17a63e9bda072bca_M2/NUX3IAeo=_cl7+d5Y0fgIVfz6epwa0mw4HvtyYkUD9t/ICPuwWdhbTAlWfOMWLLc8+ujO2kmeoRtV2apolFszHvq0tnCnkQA==",
+    "RECEIPT_SIGNED" : "true",
+    "DECRYPTED_TURNOVER_VALUE" : "NULL",
+    "CASHBOX_ID_INITIAL" : "CASHBOX-DEMO-1",
+    "SIGNED_PENULT" : "true",
+    "SIGNED_PREV" : "true",
+    "STATE_SIGDEVICE_AUSFALL_MARKER" : "NULL",
+    "RECEIPT" : "_R1-AT100_CASHBOX-DEMO-1_CASHBOX-DEMO-1-Receipt-ID-84_2016-03-13T05:59:10_0,00_0,00_0,00_0,00_0,00_olcKEjQj_615562946960d7e6_pgzrCj0yBjs=_yeuKHvRAsHePtzUj4p4+reqUFNjTlL36YJnmyl8dDs6xfZ75Fg8WLTEM8ScWbE1RF44FrLMDFd4yCU5E7NhlVg==",
+    "KNOWN_RECEIPT_IDS" : "_CASHBOX-DEMO-1-Receipt-ID-82_CASHBOX-DEMO-1-Receipt-ID-83",
+    "RK_SUITE_ID" : "R1",
+    "SYSTEM_TYPE" : "OPEN",
+    "TYPE_RECEIPT" : "NULL",
+    "STATE_SIGDEVICE_AUSFALL_REPORTED" : "NULL",
+    "CASHBOX_ID" : "CASHBOX-DEMO-1",
+    "TYPE_RECEIPT_PREV" : "NULL",
+    "STATE_SIGDEVICE_TIMEOFRECEIPT" : "IN_BETRIEB"
+  },
+  "output" : {
+    "SOFTFAIL" : "false"
+  },
+  "verificationTimestamp" : "2026-06-11T04:46:41.042+02:00",
+  "verificationResultList" : [ {
+    "verificationId" : "DEP_ONLY_ONE_CASHBOX_ID",
+    "version" : 1,
+    "verificationName" : "Eine Kasse pro RKSV-DEP Export",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft, ob die Entwicklung des verschlüsselten Umsatzzählers mit den Belegbeträgen übereinstimmt.",
+    "verificationState" : "PASS",
+    "input" : {
+      "CASHBOX_ID_INITIAL" : "CASHBOX-DEMO-1",
+      "CASHBOX_ID" : "CASHBOX-DEMO-1"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.042+02:00"
+  }, {
+    "verificationId" : "DEP_ONLY_ONE_SYTEM_TYPE",
+    "version" : 1,
+    "verificationName" : "Vermischung der Systeme",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft ob Signatureinrichtungen aus dem geschlossenen Gesamtsystem (AT0) und Signatur/Siegelerstellungseinheiten vermischt werden. Es kann nur ein System-Typ im exportieren RKSV-DEP abgebildet werden.",
+    "verificationState" : "PASS",
+    "input" : {
+      "SYSTEM_TYPE_INITIAL" : "OPEN",
+      "SYSTEM_TYPE" : "OPEN"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.042+02:00"
+  }, {
+    "verificationId" : "DEP_UNIQUE_RECEIPT_ID",
+    "version" : 1,
+    "verificationName" : "Belegnummer – Mehrfachverwendung",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft ob die selbe Belegnummer mehrfach im RKSV-DEP-Export vorkommt.",
+    "verificationState" : "PASS",
+    "input" : {
+      "KNOWN_RECEIPT_IDS" : "_CASHBOX-DEMO-1-Receipt-ID-82_CASHBOX-DEMO-1-Receipt-ID-83",
+      "RECEIPT_IDENTIFIER" : "CASHBOX-DEMO-1-Receipt-ID-84"
+    },
+    "output" : {
+      "KNOWN_RECEIPT_IDS" : "_CASHBOX-DEMO-1-Receipt-ID-82_CASHBOX-DEMO-1-Receipt-ID-83_CASHBOX-DEMO-1-Receipt-ID-84"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.042+02:00"
+  }, {
+    "verificationId" : "DEP_TURNOVER_COMPARE",
+    "version" : 1,
+    "verificationName" : "Entwicklung des Umsatzzählers",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft, ob die Entwicklung des verschlüsselten Umsatzzählers mit den Belegbeträgen übereinstimmt.",
+    "verificationState" : "PASS",
+    "input" : {
+      "DECRYPTED_TURNOVER_VALUE" : "NULL",
+      "TURNOVER_SUM" : "NULL",
+      "SUM_TAX_SET_ERMAESSIGT2" : "0,00",
+      "SUM_TAX_SET_ERMAESSIGT1" : "0,00",
+      "SUM_TAX_SET_NORMAL" : "0,00",
+      "TYPE_RECEIPT" : "NULL",
+      "SUM_TAX_SET_NULL" : "0,00",
+      "SUM_TAX_SET_BESONDERS" : "0,00"
+    },
+    "output" : {
+      "TURNOVER_SUM" : "NULL"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.042+02:00"
+  }, {
+    "verificationId" : "DEP_STATE",
+    "version" : 1,
+    "verificationName" : "Abfolge von Belegen im RKSV-DEP",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft, ob die Abfolge der Belege im exportierten DEP korrekt ist: Position des Startbeleges, Position des Sammelbeleges nach dem Ausfall der Signatureinrichtung.",
+    "verificationState" : "FAIL",
+    "verificationResultDetailedMessage" : "Am Beginn des exportierten RKSV-DEP befindet sich kein gültiger Startbeleg.",
+    "input" : {
+      "SIGNED_PENULT" : "true",
+      "AUTH_LEVEL" : "PRUEFTOOL_DEP",
+      "SIGNED_PREV" : "true",
+      "TYPE_RECEIPT" : "NULL",
+      "TYPE_RECEIPT_PREV" : "NULL"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.042+02:00"
+  } ]
+}

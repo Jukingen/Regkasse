@@ -1,9 +1,10 @@
 using KasseAPI_Final.Models.Export;
+using KasseAPI_Final.Tse;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
 
-public class FiscalExportChainContinuityTests
+public sealed class FiscalExportChainContinuityTests
 {
     [Fact]
     public void BuildWarnings_EmptyOrSingle_ReturnsEmpty()
@@ -18,11 +19,13 @@ public class FiscalExportChainContinuityTests
     [Fact]
     public void BuildWarnings_ContinuousChain_ReturnsEmpty()
     {
+        const string sig1 = "eyJhbGci.eyJkYXRh.c2ln";
+        const string sig2 = "eyJhbGci.eyJkYXRh.c2lnMg";
         var links = new List<FiscalReceiptChainLinkDto>
         {
-            new() { ReceiptNumber = "1", SignatureValue = "sig1", PrevSignatureValue = "" },
-            new() { ReceiptNumber = "2", SignatureValue = "sig2", PrevSignatureValue = "sig1" },
-            new() { ReceiptNumber = "3", SignatureValue = "sig3", PrevSignatureValue = "sig2" }
+            new() { ReceiptNumber = "1", SignatureValue = sig1, PrevSignatureValue = "" },
+            new() { ReceiptNumber = "2", SignatureValue = sig2, PrevSignatureValue = RksvChainingValue.Compute(sig1, string.Empty) },
+            new() { ReceiptNumber = "3", SignatureValue = "sig3", PrevSignatureValue = RksvChainingValue.Compute(sig2, string.Empty) }
         };
         Assert.Empty(FiscalExportChainContinuity.BuildWarnings(links));
     }

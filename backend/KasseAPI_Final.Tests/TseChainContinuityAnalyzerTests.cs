@@ -1,4 +1,5 @@
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tse;
 using Xunit;
 
 namespace KasseAPI_Final.Tests;
@@ -43,7 +44,7 @@ public sealed class TseChainContinuityAnalyzerTests
                 ReceiptNumber = "AT-K1-20260527-3",
                 CreatedAtUtc = t0.AddMinutes(5),
                 SignatureValue = "sig-c",
-                PrevSignatureValue = "wrong-prev",
+                PrevSignatureValue = "wrong-prev-not-rksv-chain",
                 ParsedSequence = 3,
                 ParsedSequenceDateYmd = "20260527",
             },

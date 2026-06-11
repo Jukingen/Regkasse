@@ -1,0 +1,9 @@
+{
+  "verificationId" : "VERIFICATION_FROM_APP",
+  "version" : 1,
+  "verificationName" : "Prüfergebnis",
+  "verificationTextualDescription" : "Es wird die vollständige Belegprüfung durchgeführt. Das Ergebnis enthält nur mehr die wesentlichen Informationen und wird an die App zurückgegeben.",
+  "verificationState" : "FAIL",
+  "verificationResultDetailedMessage" : "Der vorliegende Beleg weist Fehler auf. Bitte beachten Sie die detaillierte Fehlermeldung zu diesem Beleg in FinanzOnline unter dem Punkt: Eingaben > Registrierkassen > Liste aller übermittelten Belege.",
+  "verificationTimestamp" : "2026-06-11T04:46:41.007+02:00"
+}

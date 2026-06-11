@@ -801,6 +801,11 @@ builder.Services.AddScoped<KasseAPI_Final.Filters.RequireDisclaimerAcknowledgmen
 builder.Services.AddSingleton<IFiscalExportDownloadTicketStore, FiscalExportDownloadTicketStore>();
 builder.Services.AddSingleton<IDisclaimerService, DisclaimerService>();
 builder.Services.AddScoped<IFiscalExportService, FiscalExportService>();
+builder.Services.AddScoped<IRksvDepExportService, RksvDepExportService>();
+builder.Services.AddScoped<IRksvSignatureVerifyService, RksvSignatureVerifyService>();
+builder.Services.AddScoped<IDepExportHistoryService, DepExportHistoryService>();
+builder.Services.AddScoped<IDepExportScheduler, DepExportScheduler>();
+builder.Services.AddHostedService<DepExportSchedulerHostedService>();
 builder.Services.AddScoped<ILegalExportCompletenessService, LegalExportCompletenessService>();
 builder.Services.AddScoped<IActorDisplayNameResolver, ActorDisplayNameResolver>();
 builder.Services.AddScoped<IUserUniquenessValidationService, UserUniquenessValidationService>();

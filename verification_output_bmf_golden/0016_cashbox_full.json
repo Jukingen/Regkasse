@@ -1,0 +1,278 @@
+{
+  "verificationId" : "VERIFICATION_FROM_CASHBOX",
+  "version" : 1,
+  "verificationName" : "Prüfergebnis - Kasse",
+  "verificationTextualDescription" : "Bei der Belegprüfung wird untersucht, ob die Vorgaben der RKSV in Bezug auf den maschinenlesbaren Code am Beleg und auf die meldepflichtigen Metadaten der Sicherheitseinrichtung befolgt werden. Im Fehlerfall sind die genauen Fehlerinformationen nachfolgend angeführt.",
+  "verificationState" : "FAIL",
+  "verificationResultDetailedMessage" : "Der vorliegende Beleg weist Fehler im maschinenlesbaren Code auf. Die Fehlerursachen sind nachfolgend angeführt:",
+  "verificationTimestamp" : "2026-06-11T04:46:40.642+02:00",
+  "verificationResultList" : [ {
+    "verificationId" : "CONSTRAINTS_PRE_DB",
+    "version" : 1,
+    "verificationName" : "Minimalanforderungen an den maschinenlesbaren Code vor Detailprüfungen",
+    "verificationTextualDescription" : "In diesem Modul und den dazugehörigen Submodulen werden verschiedene Minimalanforderungen an den maschinenlesbaren Code überprüft bevor weitere Detailprüfungen durchgeführt werden.",
+    "verificationState" : "PASS",
+    "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+    "verificationResultList" : [ {
+      "verificationId" : "BASICCONSTRAINTS",
+      "version" : 1,
+      "verificationName" : "Minimale Formatanforderungen an den maschinenlesbaren Code",
+      "verificationTextualDescription" : "In diesem Modul und den dazugehörigen Submodulen werden die minimalen Formatanforderungen an den maschinenlesbaren Code überprüft.",
+      "verificationState" : "PASS",
+      "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+      "verificationResultList" : [ {
+        "verificationId" : "BASICCONSTRAINTS_RECEIPT_LENGTH",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Länge des maschinenlesbaren Codes",
+        "verificationTextualDescription" : "Es wird überprüft ob der maschinenlesbare Code eine Länge von minimal 100 bis maximal 1000 Zeichen hat.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      }, {
+        "verificationId" : "BASICCONSTRAINTS_NUMBER_OF_ELEMENTS",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: 13 Elemente im maschinenlesbaren Code vorhanden",
+        "verificationTextualDescription" : "Es wird überprüft ob 13 Elemente (Trennung durch _) im maschinenlesbaren Code vorhanden sind.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      } ]
+    }, {
+      "verificationId" : "RKSUITE",
+      "version" : 1,
+      "verificationName" : "Überprüfung des Registrierkassenalgorithmuskennzeichen",
+      "verificationTextualDescription" : "Es wird überprüft ob das erste Element des maschinenlesbaren Codes - das Registrierkassenalgorithmuskennzeichen - korrekt formatiert ist.",
+      "verificationState" : "PASS",
+      "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+      "verificationResultList" : [ {
+        "verificationId" : "FORMAT_RK_STRING",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Registrierkassenalgorithmuskennzeichen",
+        "verificationTextualDescription" : "Es wird überprüft ob das erste Element des maschinenlesbaren Codes - das Registrierkassenalgorithmuskennzeichen - korrekt formatiert ist.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      } ]
+    }, {
+      "verificationId" : "FORMAT_SERIAL_NUMBER",
+      "version" : 1,
+      "verificationName" : "Formatprüfung: Seriennummer/Ordnungsbegriff im maschinenlesbaren Code",
+      "verificationTextualDescription" : "Es wird das Format der im maschinenlesbaren Code angegeben Seriennummer des Zertifikats oder des angegebenen Ordnungsbegriffs des Unternehmens/Key-ID (geschlossenes System) überprüft.",
+      "verificationState" : "PASS",
+      "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+      "verificationResultList" : [ {
+        "verificationId" : "FORMAT_HEX_CHARS",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Für die Seriennummer des Zertifikats wurde die korrekte Hexadezimaldarstellung verwendet.",
+        "verificationTextualDescription" : "Es wird überprüft ob die Seriennummer des Zertifikats mit der korrekten Hexadezimaldarstellung kodiert ist. Diese Prüfung wird nur durchgeführt, wenn es sich um kein geschlossenes Gesamtsystem handelt.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      } ]
+    }, {
+      "verificationId" : "FORMAT_CHECK_TIMEANDDATE",
+      "version" : 1,
+      "verificationName" : "Formatprüfung: Format des Belegerstellungszeitpunktes",
+      "verificationTextualDescription" : "Es wird überprüft ob der Belegerstellungszeitpunkt im korrekten Format im maschinenlesbaren Code abgebildet ist.",
+      "verificationState" : "PASS",
+      "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+    }, {
+      "verificationId" : "TIMEOFRECEIPT_WITHIN_PERIOD",
+      "version" : 1,
+      "verificationName" : "Belegerstellungzeitpunkt innerhalb des gültigen Prüfzeitraums",
+      "verificationTextualDescription" : "Es wird überprüft ob der Belegerstellungszeitpunkt innerhalb des gültigen Prüfzeitraums liegt. Der Belegerstellungszeitpunkt muss größer oder gleich dem 01.09.2015 sein und darf nicht in der Zukunft liegen.",
+      "verificationState" : "PASS",
+      "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+    } ]
+  }, {
+    "verificationId" : "MATCH_COMPANY",
+    "version" : 1,
+    "verificationName" : "Überprüfung ob angemeldetes Unternehmen mit Unternehmen des Belegs übereinstimmt",
+    "verificationTextualDescription" : "Es wird überprüft ob das angemeldete Unternehmen mit dem Unternehmen, das den Beleg ausgestellt hat, übereinstimmt. Das Ergebnis sagt aus ob das angemeldete Unternehmen berechtigt ist den vorliegenden Beleg zu prüfen.",
+    "verificationState" : "PASS",
+    "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+  }, {
+    "verificationId" : "EXISTS_CASHBOX",
+    "version" : 1,
+    "verificationName" : "Überprüfung ob Kasse in FinanzOnline registriert wurde",
+    "verificationTextualDescription" : "Es wird überprüft ob die Kasse in FinanzOnline registriert wurde bzw. die Kassenidentifikationsnummer korrekt erfasst wurde.",
+    "verificationState" : "PASS",
+    "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+  }, {
+    "verificationId" : "RECEIPT_FULL",
+    "version" : 1,
+    "verificationName" : "Detailprüfung des maschinenlesbaren Codes",
+    "verificationTextualDescription" : "Dieses Modul und die dazugehörigen Submodule überprüfen die Gültigkeit des Belegs. Dabei werden sowohl Formatprüfungen, kryptographische Prüfungen (verschlüsselter Umsatzzähler, Signatur) als auch Prüfungen im Zusammenhang mit dem Status der Kasse bzw. der Signatur-/Siegelerstellungseinheit durchgeführt.",
+    "verificationState" : "FAIL",
+    "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+    "verificationResultList" : [ {
+      "verificationId" : "FORMAT",
+      "version" : 1,
+      "verificationName" : "Detailformatprüfung des maschinenlesbaren Codes",
+      "verificationTextualDescription" : "Dieses Modul und die dazugehörigen Submodule überprüfen die Korrektheit des Formats der Elemente des maschinenlesbaren Codes.",
+      "verificationState" : "PASS",
+      "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+      "verificationResultList" : [ {
+        "verificationId" : "RKSUITE",
+        "version" : 1,
+        "verificationName" : "Überprüfung des Registrierkassenalgorithmuskennzeichen",
+        "verificationTextualDescription" : "Es wird überprüft ob das erste Element des maschinenlesbaren Codes - das Registrierkassenalgorithmuskennzeichen - korrekt formatiert ist.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+        "verificationResultList" : [ {
+          "verificationId" : "FORMAT_RK_STRING",
+          "version" : 1,
+          "verificationName" : "Formatprüfung: Registrierkassenalgorithmuskennzeichen",
+          "verificationTextualDescription" : "Es wird überprüft ob das erste Element des maschinenlesbaren Codes - das Registrierkassenalgorithmuskennzeichen - korrekt formatiert ist.",
+          "verificationState" : "PASS",
+          "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+        } ]
+      }, {
+        "verificationId" : "FORMAT_CHECK_TIMEANDDATE",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Format des Belegerstellungszeitpunktes",
+        "verificationTextualDescription" : "Es wird überprüft ob der Belegerstellungszeitpunkt im korrekten Format im maschinenlesbaren Code abgebildet ist.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      }, {
+        "verificationId" : "FORMAT_TAX_SET",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Steuersatz",
+        "verificationTextualDescription" : "Es wird überprüft ob der jeweilige Steuersatz im maschinenlesbaren Code im korrekten Format gespeichert wurde.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      }, {
+        "verificationId" : "FORMAT_TAX_SET",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Steuersatz",
+        "verificationTextualDescription" : "Es wird überprüft ob der jeweilige Steuersatz im maschinenlesbaren Code im korrekten Format gespeichert wurde.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      }, {
+        "verificationId" : "FORMAT_TAX_SET",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Steuersatz",
+        "verificationTextualDescription" : "Es wird überprüft ob der jeweilige Steuersatz im maschinenlesbaren Code im korrekten Format gespeichert wurde.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      }, {
+        "verificationId" : "FORMAT_TAX_SET",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Steuersatz",
+        "verificationTextualDescription" : "Es wird überprüft ob der jeweilige Steuersatz im maschinenlesbaren Code im korrekten Format gespeichert wurde.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      }, {
+        "verificationId" : "FORMAT_TAX_SET",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Steuersatz",
+        "verificationTextualDescription" : "Es wird überprüft ob der jeweilige Steuersatz im maschinenlesbaren Code im korrekten Format gespeichert wurde.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+      }, {
+        "verificationId" : "FORMAT_ENCRYPTED_TURN_OVER_VALUE_BASE64",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: verschlüsselter Umsatzzähler (BASE64-Kodierung)",
+        "verificationTextualDescription" : "In diesem Modul und den dazugehörigen Submodulen werden unterschiedliche Prüfungen im Zusammenhang mit der BASE64-Kodierung (gültige Zeichen, Länge) des Umsatzzählers durchgeführt.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+        "verificationResultList" : [ {
+          "verificationId" : "FORMAT_BASE64_DECODE_ENCODE",
+          "version" : 1,
+          "verificationName" : "Formatprüfung: BASE64 Dekodierung/Kodierung",
+          "verificationTextualDescription" : "In diesem Modul wird überprüft ob die Dekodierung eines BASE64-Werts und die anschließende Kodierung wieder den Ausgangswert ergibt.",
+          "verificationState" : "PASS",
+          "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+          "verificationResultList" : [ {
+            "verificationId" : "FORMAT_BASE64_CHARS",
+            "version" : 1,
+            "verificationName" : "Formatprüfung: Gültige BASE64-Zeichen",
+            "verificationTextualDescription" : "Es wird in diesem Modul überprüft ob die gegebene Zeichenkette nur Zeichen beinhaltet die für die BASE64-Kodierung verwendet werden dürfen.",
+            "verificationState" : "PASS",
+            "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00"
+          } ]
+        } ]
+      }, {
+        "verificationId" : "FORMAT_SERIAL_NUMBER",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Seriennummer/Ordnungsbegriff im maschinenlesbaren Code",
+        "verificationTextualDescription" : "Es wird das Format der im maschinenlesbaren Code angegeben Seriennummer des Zertifikats oder des angegebenen Ordnungsbegriffs des Unternehmens/Key-ID (geschlossenes System) überprüft.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.643+02:00",
+        "verificationResultList" : [ {
+          "verificationId" : "FORMAT_HEX_CHARS",
+          "version" : 1,
+          "verificationName" : "Formatprüfung: Für die Seriennummer des Zertifikats wurde die korrekte Hexadezimaldarstellung verwendet.",
+          "verificationTextualDescription" : "Es wird überprüft ob die Seriennummer des Zertifikats mit der korrekten Hexadezimaldarstellung kodiert ist. Diese Prüfung wird nur durchgeführt, wenn es sich um kein geschlossenes Gesamtsystem handelt.",
+          "verificationState" : "PASS",
+          "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00"
+        } ]
+      }, {
+        "verificationId" : "FORMAT_CHAIN_VALUE_PREVIOUS_RECEIPT_BASE64",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Verkettungswert",
+        "verificationTextualDescription" : "In diesem Modul und den dazugehörigen Submodulen werden unterschiedliche Prüfungen im Zusammenhang mit der BASE64-Kodierung (gültige Zeichen, Länge) des Verkettungswerts durchgeführt.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00",
+        "verificationResultList" : [ {
+          "verificationId" : "FORMAT_BASE64_DECODE_ENCODE",
+          "version" : 1,
+          "verificationName" : "Formatprüfung: BASE64 Dekodierung/Kodierung",
+          "verificationTextualDescription" : "In diesem Modul wird überprüft ob die Dekodierung eines BASE64-Werts und die anschließende Kodierung wieder den Ausgangswert ergibt.",
+          "verificationState" : "PASS",
+          "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00",
+          "verificationResultList" : [ {
+            "verificationId" : "FORMAT_BASE64_CHARS",
+            "version" : 1,
+            "verificationName" : "Formatprüfung: Gültige BASE64-Zeichen",
+            "verificationTextualDescription" : "Es wird in diesem Modul überprüft ob die gegebene Zeichenkette nur Zeichen beinhaltet die für die BASE64-Kodierung verwendet werden dürfen.",
+            "verificationState" : "PASS",
+            "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00"
+          } ]
+        } ]
+      }, {
+        "verificationId" : "FORMAT_SIGNATURE_BASE64",
+        "version" : 1,
+        "verificationName" : "Formatprüfung: Signaturwert",
+        "verificationTextualDescription" : "In diesem Modul und den dazugehörigen Submodulen werden unterschiedliche Prüfungen im Zusammenhang mit der BASE64-Kodierung (gültige Zeichen, Länge) des Signaturwerts durchgeführt.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00",
+        "verificationResultList" : [ {
+          "verificationId" : "FORMAT_BASE64_DECODE_ENCODE",
+          "version" : 1,
+          "verificationName" : "Formatprüfung: BASE64 Dekodierung/Kodierung",
+          "verificationTextualDescription" : "In diesem Modul wird überprüft ob die Dekodierung eines BASE64-Werts und die anschließende Kodierung wieder den Ausgangswert ergibt.",
+          "verificationState" : "PASS",
+          "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00",
+          "verificationResultList" : [ {
+            "verificationId" : "FORMAT_BASE64_CHARS",
+            "version" : 1,
+            "verificationName" : "Formatprüfung: Gültige BASE64-Zeichen",
+            "verificationTextualDescription" : "Es wird in diesem Modul überprüft ob die gegebene Zeichenkette nur Zeichen beinhaltet die für die BASE64-Kodierung verwendet werden dürfen.",
+            "verificationState" : "PASS",
+            "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00"
+          } ]
+        } ]
+      } ]
+    }, {
+      "verificationId" : "CRYPTO",
+      "version" : 1,
+      "verificationName" : "Kryptographische Prüfungen",
+      "verificationTextualDescription" : "In diesem Modul und den dazugehörigen Submodulen werden die kryptographische Validität des Umsatzzählers und des Signaturwerts überprüft. Für den Umsatzzähler kann eine detaillierte Prüfung nur beim Startbeleg durchgeführt werden, da nur in diesem Fall der entschlüsselte Wert bekannt ist (Umsatzzähler = 0).",
+      "verificationState" : "FAIL",
+      "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00",
+      "verificationResultList" : [ {
+        "verificationId" : "CRYPTO_SIGNATURE",
+        "version" : 1,
+        "verificationName" : "Kryptographie: Überprüfung der kryptographischen Gültigkeit der Signatur",
+        "verificationTextualDescription" : "In diesem Modul wird die kryptographische Gültigkeit der Signatur mit Hilfe des öffentlichen Schlüssels überprüft.",
+        "verificationState" : "PASS",
+        "verificationTimestamp" : "2026-06-11T04:46:40.644+02:00"
+      }, {
+        "verificationId" : "CRYPTO_TURNOVER_COUNTER",
+        "version" : 1,
+        "verificationName" : "Kryptographie: Entschlüsselung des Umsatzzählers",
+        "verificationTextualDescription" : "Es wird die Entschlüsselung des Umsatzzählers überprüft. Eine Aussage über die Korrektheit kann nur beim Startbeleg durchgeführt werden, da nur in diesem Fall der entschlüsselte Wert bekannt ist (Umsatzzähler = 0).",
+        "verificationState" : "FAIL",
+        "verificationResultDetailedMessage" : "Der Umsatzzähler konnte nicht entschlüsselt werden.",
+        "verificationTimestamp" : "2026-06-11T04:46:40.647+02:00"
+      } ]
+    } ]
+  } ]
+}

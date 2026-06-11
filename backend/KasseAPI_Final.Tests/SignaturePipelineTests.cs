@@ -16,23 +16,25 @@ namespace KasseAPI_Final.Tests;
 public class SignaturePipelineTests
 {
     private readonly Mock<ILogger<SignaturePipeline>> _loggerMock = new();
+    private static readonly byte[] DevAesKey = new SoftwareTseKeyProvider().GetTurnoverCounterAesKeyBytes()!;
+
+    private static BelegdatenPayload SamplePayload(SoftwareTseKeyProvider keyProvider, string? prevJws = null) =>
+        BelegdatenPayloadBuilder.Build(
+            "KASSE-001",
+            "AT-KASSE001-20250225-12345678",
+            new DateTime(2025, 2, 25, 13, 30, 0, DateTimeKind.Utc),
+            new RksvTaxSetAmounts { Normal = 123.45m },
+            12345,
+            prevJws,
+            keyProvider.GetCertificateSerialNumber()!,
+            DevAesKey);
 
     [Fact]
     public void ValidFlow_ShouldPass()
     {
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, _loggerMock.Object);
-
-        var payload = new BelegdatenPayload
-        {
-            KassenId = "KASSE-001",
-            BelegNr = "AT-KASSE001-20250225-12345678",
-            BelegDatum = "25.02.2025",
-            Uhrzeit = "14:30:00",
-            Betrag = "123.45",
-            PrevSignatureValue = "",
-            TaxDetails = "{}"
-        };
+        var payload = SamplePayload(keyProvider);
 
         var compactJws = pipeline.Sign(payload, "test-correlation-1");
         Assert.NotNull(compactJws);
@@ -50,18 +52,7 @@ public class SignaturePipelineTests
         var verifierProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(signerProvider, _loggerMock.Object);
 
-        var payload = new BelegdatenPayload
-        {
-            KassenId = "KASSE-001",
-            BelegNr = "BELEG-002",
-            BelegDatum = "25.02.2025",
-            Uhrzeit = "14:30:00",
-            Betrag = "100.00",
-            PrevSignatureValue = "",
-            TaxDetails = "{}"
-        };
-
-        var compactJws = pipeline.Sign(payload);
+        var compactJws = pipeline.Sign(SamplePayload(signerProvider));
         var valid = pipeline.Verify(compactJws, verifierProvider.GetPublicKey());
         Assert.False(valid);
     }
@@ -72,18 +63,7 @@ public class SignaturePipelineTests
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, _loggerMock.Object);
 
-        var payload = new BelegdatenPayload
-        {
-            KassenId = "KASSE-001",
-            BelegNr = "BELEG-001",
-            BelegDatum = "25.02.2025",
-            Uhrzeit = "14:30:00",
-            Betrag = "100.00",
-            PrevSignatureValue = "",
-            TaxDetails = "{}"
-        };
-
-        var compactJws = pipeline.Sign(payload);
+        var compactJws = pipeline.Sign(SamplePayload(keyProvider));
         var parts = compactJws.Split('.');
         var corruptedJws = parts[0] + "." + "CORRUPTED_PAYLOAD" + "." + parts[2];
 
@@ -97,20 +77,9 @@ public class SignaturePipelineTests
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, _loggerMock.Object);
 
-        var payload = new BelegdatenPayload
-        {
-            KassenId = "KASSE-001",
-            BelegNr = "BELEG-001",
-            BelegDatum = "25.02.2025",
-            Uhrzeit = "14:30:00",
-            Betrag = "100.00",
-            PrevSignatureValue = "",
-            TaxDetails = "{}"
-        };
-
-        var compactJws = pipeline.Sign(payload);
+        var compactJws = pipeline.Sign(SamplePayload(keyProvider));
         var parts = compactJws.Split('.');
-        var paddedSignature = parts[2] + "=="; // Base64 padding ekle
+        var paddedSignature = parts[2] + "==";
 
         var ex = Assert.Throws<TsePipelineException>(() =>
             pipeline.Verify(parts[0] + "." + parts[1] + "." + paddedSignature, keyProvider.GetPublicKey()));
@@ -128,26 +97,13 @@ public class SignaturePipelineTests
         Assert.Equal("INVALID_SIGNATURE_FORMAT", ex.ErrorCode);
     }
 
-    /// <summary>
-    /// VerifyDiagnostic: Valid JWS returns 5 steps, all PASS.
-    /// </summary>
     [Fact]
     public void VerifyDiagnostic_ValidJws_AllStepsPass()
     {
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, _loggerMock.Object);
 
-        var payload = new BelegdatenPayload
-        {
-            KassenId = "KASSE-001",
-            BelegNr = "AT-KASSE001-20250225-12345678",
-            BelegDatum = "25.02.2025",
-            Uhrzeit = "14:30:00",
-            Betrag = "100.00",
-            PrevSignatureValue = "",
-            TaxDetails = "{}"
-        };
-        var compactJws = pipeline.Sign(payload);
+        var compactJws = pipeline.Sign(SamplePayload(keyProvider));
 
         var steps = pipeline.VerifyDiagnostic(compactJws);
         Assert.Equal(5, steps.Count);
@@ -159,9 +115,6 @@ public class SignaturePipelineTests
         Assert.Contains(steps, s => s.Name == "Base64URL padding");
     }
 
-    /// <summary>
-    /// VerifyDiagnostic: Empty input returns FAILs.
-    /// </summary>
     [Fact]
     public void VerifyDiagnostic_EmptyInput_AllFail()
     {
@@ -177,9 +130,6 @@ public class SignaturePipelineTests
         Assert.Equal("FAIL", steps[4].Status);
     }
 
-    /// <summary>
-    /// VerifyDiagnostic: Invalid JWS format (2 parts) returns FAIL for step 2.
-    /// </summary>
     [Fact]
     public void VerifyDiagnostic_InvalidJwsFormat_Step2Fail()
     {
@@ -192,26 +142,13 @@ public class SignaturePipelineTests
         Assert.Contains("3 parts", step2.Evidence ?? "");
     }
 
-    /// <summary>
-    /// VerifyDiagnostic: Base64URL padding returns FAIL for step 5.
-    /// </summary>
     [Fact]
     public void VerifyDiagnostic_PaddingInPart_Step5Fail()
     {
         var keyProvider = new SoftwareTseKeyProvider();
         var pipeline = new SignaturePipeline(keyProvider, _loggerMock.Object);
 
-        var payload = new BelegdatenPayload
-        {
-            KassenId = "K",
-            BelegNr = "B",
-            BelegDatum = "01.01.2025",
-            Uhrzeit = "00:00:00",
-            Betrag = "0",
-            PrevSignatureValue = "",
-            TaxDetails = "{}"
-        };
-        var compactJws = pipeline.Sign(payload);
+        var compactJws = pipeline.Sign(SamplePayload(keyProvider));
         var parts = compactJws.Split('.');
         var paddedJws = $"{parts[0]}.{parts[1]}.{parts[2]}==";
 

@@ -127,6 +127,10 @@
         "message": "The server license expired {{days}} day(s) ago. Please renew it within the next {{remaining}} day(s) before more write operations are disabled."
       }
     },
+    "readOnly": {
+      "title": "License expired - read-only mode",
+      "message": "Your license has expired. You can view data but cannot make changes. Please contact your administrator for renewal."
+    },
     "actions": {
       "renewTenant": "Renew tenant license",
       "openDeployment": "Open server license"

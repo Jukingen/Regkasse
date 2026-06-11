@@ -137,6 +137,7 @@ namespace KasseAPI_Final.Services
             var kId = registerNumber.Trim();
             string compactJws = string.Empty;
             string prevSig = string.Empty;
+            string sigVorigerBeleg = string.Empty;
             var phase = "init";
 
             var ownTransaction = dbTransaction == null;
@@ -145,20 +146,28 @@ namespace KasseAPI_Final.Services
             try
             {
                 phase = "ensure_chain_row_lock";
-                var (prevSigLocked, _) = await EnsureChainRowAndLockAsync(dbTransaction!, cashRegisterId);
+                var (prevSigLocked, _, turnoverCents) = await EnsureChainRowAndLockAsync(dbTransaction!, cashRegisterId);
                 prevSig = prevSignatureValue ?? prevSigLocked;
 
                 phase = "build_beleg_payload";
-                var payload = new BelegdatenPayload
-                {
-                    KassenId = kId,
-                    BelegNr = invoiceNumber,
-                    BelegDatum = ts.ToString("dd.MM.yyyy"),
-                    Uhrzeit = ts.ToString("HH:mm:ss"),
-                    Betrag = totalAmount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                    PrevSignatureValue = prevSig,
-                    TaxDetails = taxDetailsJson ?? "{}"
-                };
+                var taxSets = BelegdatenPayloadBuilder.MapTaxSets(taxDetailsJson, totalAmount);
+                var newTurnoverCents = turnoverCents + taxSets.TotalGrossCents;
+                var aesKey = _keyProvider.GetTurnoverCounterAesKeyBytes()
+                    ?? throw new InvalidOperationException("Turnover counter AES key is not configured.");
+                var certSerial = _keyProvider.GetCertificateSerialNumber() ?? "UNKNOWN";
+
+                var payload = BelegdatenPayloadBuilder.Build(
+                    kId,
+                    invoiceNumber,
+                    ts,
+                    taxSets,
+                    newTurnoverCents,
+                    string.IsNullOrEmpty(prevSig) ? null : prevSig,
+                    certSerial,
+                    aesKey,
+                    updateTurnoverCounter: taxSets.TotalGrossCents != 0);
+
+                sigVorigerBeleg = payload.SigVorigerBeleg;
 
                 phase = "pipeline_sign_compact_jws";
                 compactJws = _pipeline.Sign(payload, correlationId);
@@ -178,7 +187,11 @@ namespace KasseAPI_Final.Services
 
                 _context.TseSignatures.Add(tseSignature);
                 phase = "update_signature_chain_state";
-                await UpdateChainWithNewSignatureAsync(dbTransaction!, cashRegisterId, compactJws);
+                await UpdateChainWithNewSignatureAsync(
+                    dbTransaction!,
+                    cashRegisterId,
+                    compactJws,
+                    newTurnoverCents);
                 phase = "save_changes";
                 await _context.SaveChangesAsync();
                 if (ownTransaction)
@@ -204,11 +217,11 @@ namespace KasseAPI_Final.Services
             }
 
             _logger.LogInformation("CreateInvoiceSignatureAsync completed, correlationId={CorrelationId}", correlationId);
-            return new TseSignatureResult(compactJws, prevSig);
+            return new TseSignatureResult(compactJws, sigVorigerBeleg, _keyProvider.GetCurrentCertificateThumbprint());
         }
 
-        /// <summary>Ensures a row exists for the register UUID, locks it (FOR UPDATE), and returns current last signature and counter.</summary>
-        private async Task<(string prevSignature, int lastCounter)> EnsureChainRowAndLockAsync(IDbContextTransaction transaction, Guid cashRegisterId)
+        /// <summary>Ensures a row exists for the register UUID, locks it (FOR UPDATE), and returns current chain state.</summary>
+        private async Task<(string prevSignature, int lastCounter, long turnoverCents)> EnsureChainRowAndLockAsync(IDbContextTransaction transaction, Guid cashRegisterId)
         {
             var conn = _context.Database.GetDbConnection();
             if (conn.State != ConnectionState.Open)
@@ -217,8 +230,8 @@ namespace KasseAPI_Final.Services
             await using var ensureCmd = conn.CreateCommand();
             ensureCmd.Transaction = transaction.GetDbTransaction();
             ensureCmd.CommandText = """
-                INSERT INTO signature_chain_state (id, cash_register_id, last_signature, last_counter, updated_at)
-                VALUES (gen_random_uuid(), @p0, NULL, 0, NOW())
+                INSERT INTO signature_chain_state (id, cash_register_id, last_signature, last_counter, last_turnover_counter_cents, updated_at)
+                VALUES (gen_random_uuid(), @p0, NULL, 0, 0, NOW())
                 ON CONFLICT (cash_register_id) DO NOTHING
                 """;
             var p0 = ensureCmd.CreateParameter();
@@ -230,7 +243,7 @@ namespace KasseAPI_Final.Services
             await using var selectCmd = conn.CreateCommand();
             selectCmd.Transaction = transaction.GetDbTransaction();
             selectCmd.CommandText = """
-                SELECT last_signature, last_counter FROM signature_chain_state WHERE cash_register_id = @p0 FOR UPDATE
+                SELECT last_signature, last_counter, last_turnover_counter_cents FROM signature_chain_state WHERE cash_register_id = @p0 FOR UPDATE
                 """;
             var p1 = selectCmd.CreateParameter();
             p1.ParameterName = "@p0";
@@ -239,17 +252,23 @@ namespace KasseAPI_Final.Services
             using var reader = await selectCmd.ExecuteReaderAsync();
             string? prevSignature = null;
             var lastCounter = 0;
+            long turnoverCents = 0;
             if (await reader.ReadAsync())
             {
                 prevSignature = reader.IsDBNull(0) ? null : reader.GetString(0);
                 lastCounter = reader.GetInt32(1);
+                turnoverCents = reader.IsDBNull(2) ? 0L : reader.GetInt64(2);
             }
             await reader.CloseAsync();
-            return (prevSignature ?? string.Empty, lastCounter);
+            return (prevSignature ?? string.Empty, lastCounter, turnoverCents);
         }
 
         /// <summary>Updates the chain state with the new signature. Call within the same transaction after generating the signature.</summary>
-        private async Task UpdateChainWithNewSignatureAsync(IDbContextTransaction transaction, Guid cashRegisterId, string newSignature)
+        private async Task UpdateChainWithNewSignatureAsync(
+            IDbContextTransaction transaction,
+            Guid cashRegisterId,
+            string newSignature,
+            long newTurnoverCounterCents)
         {
             var conn = _context.Database.GetDbConnection();
             if (conn.State != ConnectionState.Open)
@@ -257,7 +276,12 @@ namespace KasseAPI_Final.Services
             await using var cmd = conn.CreateCommand();
             cmd.Transaction = transaction.GetDbTransaction();
             cmd.CommandText = """
-                UPDATE signature_chain_state SET last_signature = @p0, last_counter = last_counter + 1, updated_at = NOW() WHERE cash_register_id = @p1
+                UPDATE signature_chain_state
+                SET last_signature = @p0,
+                    last_counter = last_counter + 1,
+                    last_turnover_counter_cents = @p2,
+                    updated_at = NOW()
+                WHERE cash_register_id = @p1
                 """;
             var p0 = cmd.CreateParameter();
             p0.ParameterName = "@p0";
@@ -267,7 +291,41 @@ namespace KasseAPI_Final.Services
             p1.ParameterName = "@p1";
             p1.Value = cashRegisterId;
             cmd.Parameters.Add(p1);
+            var p2 = cmd.CreateParameter();
+            p2.ParameterName = "@p2";
+            p2.Value = newTurnoverCounterCents;
+            cmd.Parameters.Add(p2);
             await cmd.ExecuteNonQueryAsync();
+        }
+
+        private (BelegdatenPayload Payload, long NewTurnoverCents) BuildClosingPayload(
+            string kassenId,
+            string belegnummer,
+            DateTime closingDate,
+            decimal totalAmount,
+            string? previousCompactJws,
+            long turnoverCents,
+            bool incrementTurnover)
+        {
+            var taxSets = totalAmount == 0m
+                ? RksvTaxSetAmounts.Zero
+                : new RksvTaxSetAmounts { Normal = totalAmount };
+            var newTurnover = incrementTurnover ? turnoverCents + taxSets.TotalGrossCents : turnoverCents;
+            var aesKey = _keyProvider.GetTurnoverCounterAesKeyBytes()
+                ?? throw new InvalidOperationException("Turnover counter AES key is not configured.");
+            var certSerial = _keyProvider.GetCertificateSerialNumber() ?? "UNKNOWN";
+            var ts = closingDate.Date.AddHours(23).AddMinutes(59).AddSeconds(59);
+            var payload = BelegdatenPayloadBuilder.Build(
+                kassenId,
+                belegnummer,
+                DateTime.SpecifyKind(ts, DateTimeKind.Utc),
+                taxSets,
+                newTurnover,
+                string.IsNullOrEmpty(previousCompactJws) ? null : previousCompactJws,
+                certSerial,
+                aesKey,
+                updateTurnoverCounter: incrementTurnover && taxSets.TotalGrossCents != 0);
+            return (payload, newTurnover);
         }
 
         public async Task<string> CreateDailyClosingSignatureAsync(Guid cashRegisterId, string registerNumber, DateTime closingDate, decimal totalAmount, int transactionCount)
@@ -282,18 +340,10 @@ namespace KasseAPI_Final.Services
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var (prevSig, _) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
+                var (prevSig, _, turnoverCents) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
                 var correlationId = Guid.NewGuid().ToString("N")[..12];
-                var payload = new BelegdatenPayload
-                {
-                    KassenId = kId,
-                    BelegNr = $"DAILY_{closingDate:yyyyMMdd}",
-                    BelegDatum = closingDate.ToString("dd.MM.yyyy"),
-                    Uhrzeit = "23:59:59",
-                    Betrag = totalAmount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                    PrevSignatureValue = prevSig,
-                    TaxDetails = "{}"
-                };
+                var belegNr = $"DAILY_{closingDate:yyyyMMdd}";
+                var (payload, newTurnover) = BuildClosingPayload(kId, belegNr, closingDate, totalAmount, prevSig, turnoverCents, incrementTurnover: true);
                 var signResult = await _tseProvider.SignAsync(payload, correlationId);
                 var compactJws = signResult.CompactJws;
                 _context.TseSignatures.Add(new TseSignature
@@ -301,13 +351,13 @@ namespace KasseAPI_Final.Services
                     Id = Guid.NewGuid(),
                     Signature = compactJws,
                     CashRegisterId = cashRegisterId,
-                    InvoiceNumber = $"DAILY_{closingDate:yyyyMMdd}",
+                    InvoiceNumber = belegNr,
                     Amount = totalAmount,
                     CreatedAt = DateTime.UtcNow,
                     SignatureType = "DailyClosing",
                     CertificateNumber = signResult.CertificateSerialNumber
                 });
-                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws);
+                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws, newTurnover);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return compactJws;
@@ -331,18 +381,10 @@ namespace KasseAPI_Final.Services
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var (prevSig, _) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
+                var (prevSig, _, turnoverCents) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
                 var correlationId = Guid.NewGuid().ToString("N")[..12];
-                var payload = new BelegdatenPayload
-                {
-                    KassenId = kId,
-                    BelegNr = $"MONTHLY_{closingDate:yyyyMM}",
-                    BelegDatum = closingDate.ToString("dd.MM.yyyy"),
-                    Uhrzeit = "23:59:59",
-                    Betrag = totalAmount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                    PrevSignatureValue = prevSig,
-                    TaxDetails = "{}"
-                };
+                var belegNr = $"MONTHLY_{closingDate:yyyyMM}";
+                var (payload, newTurnover) = BuildClosingPayload(kId, belegNr, closingDate, totalAmount, prevSig, turnoverCents, incrementTurnover: true);
                 var signResult = await _tseProvider.SignAsync(payload, correlationId);
                 var compactJws = signResult.CompactJws;
                 _context.TseSignatures.Add(new TseSignature
@@ -350,13 +392,13 @@ namespace KasseAPI_Final.Services
                     Id = Guid.NewGuid(),
                     Signature = compactJws,
                     CashRegisterId = cashRegisterId,
-                    InvoiceNumber = $"MONTHLY_{closingDate:yyyyMM}",
+                    InvoiceNumber = belegNr,
                     Amount = totalAmount,
                     CreatedAt = DateTime.UtcNow,
                     SignatureType = "MonthlyClosing",
                     CertificateNumber = signResult.CertificateSerialNumber
                 });
-                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws);
+                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws, newTurnover);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return compactJws;
@@ -380,18 +422,10 @@ namespace KasseAPI_Final.Services
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var (prevSig, _) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
+                var (prevSig, _, turnoverCents) = await EnsureChainRowAndLockAsync(transaction, cashRegisterId);
                 var correlationId = Guid.NewGuid().ToString("N")[..12];
-                var payload = new BelegdatenPayload
-                {
-                    KassenId = kId,
-                    BelegNr = $"YEARLY_{closingDate:yyyy}",
-                    BelegDatum = closingDate.ToString("dd.MM.yyyy"),
-                    Uhrzeit = "23:59:59",
-                    Betrag = totalAmount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-                    PrevSignatureValue = prevSig,
-                    TaxDetails = "{}"
-                };
+                var belegNr = $"YEARLY_{closingDate:yyyy}";
+                var (payload, newTurnover) = BuildClosingPayload(kId, belegNr, closingDate, totalAmount, prevSig, turnoverCents, incrementTurnover: true);
                 var signResult = await _tseProvider.SignAsync(payload, correlationId);
                 var compactJws = signResult.CompactJws;
                 _context.TseSignatures.Add(new TseSignature
@@ -399,13 +433,13 @@ namespace KasseAPI_Final.Services
                     Id = Guid.NewGuid(),
                     Signature = compactJws,
                     CashRegisterId = cashRegisterId,
-                    InvoiceNumber = $"YEARLY_{closingDate:yyyy}",
+                    InvoiceNumber = belegNr,
                     Amount = totalAmount,
                     CreatedAt = DateTime.UtcNow,
                     SignatureType = "YearlyClosing",
                     CertificateNumber = signResult.CertificateSerialNumber
                 });
-                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws);
+                await UpdateChainWithNewSignatureAsync(transaction, cashRegisterId, compactJws, newTurnover);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return compactJws;

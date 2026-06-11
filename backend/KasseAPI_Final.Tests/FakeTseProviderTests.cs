@@ -6,6 +6,19 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class FakeTseProviderTests
 {
+    private static readonly byte[] DevAesKey = new SoftwareTseKeyProvider().GetTurnoverCounterAesKeyBytes()!;
+
+    private static BelegdatenPayload BuildPayload(string prevChain = "prev-chain") =>
+        BelegdatenPayloadBuilder.Build(
+            "K1",
+            "MONTHLY_202503",
+            new DateTime(2025, 3, 1, 22, 59, 59, DateTimeKind.Utc),
+            new RksvTaxSetAmounts { Normal = 100.00m },
+            10000,
+            null,
+            "SIM-TEST",
+            DevAesKey);
+
     [Fact]
     public async Task IsReadyAsync_AlwaysTrue()
     {
@@ -17,16 +30,7 @@ public sealed class FakeTseProviderTests
     public async Task SignAsync_IsDeterministic_AndProducesLongCompactString()
     {
         var p = new FakeTseProvider(NullLogger<FakeTseProvider>.Instance);
-        var payload = new BelegdatenPayload
-        {
-            KassenId = "K1",
-            BelegNr = "MONTHLY_202503",
-            BelegDatum = "01.03.2025",
-            Uhrzeit = "23:59:59",
-            Betrag = "100.00",
-            PrevSignatureValue = "prev-chain",
-            TaxDetails = "{}"
-        };
+        var payload = BuildPayload();
 
         var a = await p.SignAsync(payload, "corr123");
         var b = await p.SignAsync(payload, "corr123");
@@ -42,17 +46,13 @@ public sealed class FakeTseProviderTests
     [Fact]
     public void BuildDeterministicPseudoJws_ChangesWithPrevSignature()
     {
-        var p1 = new BelegdatenPayload
-        {
-            KassenId = "K1",
-            BelegNr = "Y",
-            BelegDatum = "01.01.2025",
-            Uhrzeit = "23:59:59",
-            Betrag = "1.00",
-            PrevSignatureValue = "A",
-            TaxDetails = "{}"
-        };
-        var p2 = new BelegdatenPayload { KassenId = p1.KassenId, BelegNr = p1.BelegNr, BelegDatum = p1.BelegDatum, Uhrzeit = p1.Uhrzeit, Betrag = p1.Betrag, PrevSignatureValue = "B", TaxDetails = "{}" };
+        var keyProvider = new SoftwareTseKeyProvider();
+        var p1 = BelegdatenPayloadBuilder.Build(
+            "K1", "Y", new DateTime(2025, 1, 1, 22, 59, 59, DateTimeKind.Utc),
+            new RksvTaxSetAmounts { Normal = 1.00m }, 100, null, "SIM", DevAesKey);
+        var p2 = BelegdatenPayloadBuilder.Build(
+            "K1", "Y", new DateTime(2025, 1, 1, 22, 59, 59, DateTimeKind.Utc),
+            new RksvTaxSetAmounts { Normal = 1.00m }, 100, "prev-jws", "SIM", DevAesKey);
 
         var j1 = FakeTseProvider.BuildDeterministicPseudoJws(p1, "c");
         var j2 = FakeTseProvider.BuildDeterministicPseudoJws(p2, "c");

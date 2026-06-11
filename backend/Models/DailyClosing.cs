@@ -45,6 +45,11 @@ namespace KasseAPI_Final.Models
         [Column(TypeName = "text")]
         public string TseSignature { get; set; } = string.Empty;
 
+        /// <summary>SHA-1 thumbprint of the TSE signing certificate used for <see cref="TseSignature"/> (DEP grouping).</summary>
+        [MaxLength(64)]
+        [Column("certificate_thumbprint")]
+        public string? CertificateThumbprint { get; set; }
+
         // RKSV verification normalization (Phase 1) - nullable
         [MaxLength(50)]
         public string? SignatureFormat { get; set; }

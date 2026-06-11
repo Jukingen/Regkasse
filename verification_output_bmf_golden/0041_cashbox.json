@@ -1,0 +1,9 @@
+{
+  "verificationId" : "VERIFICATION_FROM_CASHBOX",
+  "version" : 1,
+  "verificationName" : "Prüfergebnis - Kasse",
+  "verificationTextualDescription" : "Bei der Belegprüfung wird untersucht, ob die Vorgaben der RKSV in Bezug auf den maschinenlesbaren Code am Beleg und auf die meldepflichtigen Metadaten der Sicherheitseinrichtung befolgt werden. Im Fehlerfall sind die genauen Fehlerinformationen nachfolgend angeführt.",
+  "verificationState" : "PASS",
+  "verificationResultDetailedMessage" : "Der vorliegende Beleg wurde gesetzeskonform von einer erfolgreich in Betrieb genommenen Registrierkasse erstellt.",
+  "verificationTimestamp" : "2026-06-11T04:46:40.777+02:00"
+}

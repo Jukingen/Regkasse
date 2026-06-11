@@ -320,6 +320,7 @@ export function RksvOperationsDashboard() {
       { href: '/rksv/payload-hash-conflicts', title: t('rksvHub.moreTools.payloadHash') },
       { href: '/rksv/finanz-online-queue', title: t('rksvHub.moreTools.queueLegacy') },
       { href: '/rksv/fiscal-export-diagnostics', title: t('rksvHub.moreTools.fiscalExport') },
+      { href: '/admin/rksv/dep-export', title: t('rksvHub.moreTools.depExport') },
       { href: '/rksv/integrity', title: t('rksvHub.moreTools.integrity') },
       { href: '/rksv/offline-intent-coverage', title: t('rksvHub.moreTools.offlineCoverage') },
       { href: '/rksv/verifications', title: t('rksvHub.moreTools.verifications') },

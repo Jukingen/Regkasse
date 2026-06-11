@@ -1041,6 +1041,7 @@ namespace KasseAPI_Final.Services
                                     DbTransaction: transaction));
                             payment.TseSignature = sigResult.CompactJws;
                             payment.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
+                            payment.CertificateThumbprint = sigResult.CertificateThumbprint;
                             _logger.LogInformation("TSE signature generated for payment {PaymentId}", payment.Id);
                         }
                         catch (Exception ex)
@@ -1963,6 +1964,7 @@ namespace KasseAPI_Final.Services
 
                 storno.TseSignature = sigResult.CompactJws;
                 storno.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
+                storno.CertificateThumbprint = sigResult.CertificateThumbprint;
                 _logger.LogInformation("TSE signature generated for storno {StornoId} BelegNr {BelegNr}", stornoId, stornoBelegNr);
 
                 stornoInvoiceId = Guid.NewGuid();
@@ -2415,6 +2417,7 @@ namespace KasseAPI_Final.Services
 
                     refund.TseSignature = sigResult.CompactJws;
                     refund.PrevSignatureValueUsed = sigResult.PrevSignatureValueUsed;
+                    refund.CertificateThumbprint = sigResult.CertificateThumbprint;
                     _logger.LogInformation("TSE signature generated for refund {RefundId} BelegNr {BelegNr}", refundId, refundBelegNr);
 
                     refundInvoiceId = Guid.NewGuid();

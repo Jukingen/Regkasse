@@ -1,0 +1,106 @@
+{
+  "verificationId" : "RKSV_DEP_EXPORT",
+  "version" : 1,
+  "verificationName" : "Zusammenfassung der Ergebnisse der RKSV-DEP-Export Prüfungen pro Beleg (Datei \"i_DEP.json\")",
+  "verificationTextualDescription" : "Es wird die Richtigkeit des exportierten RKSV-DEP pro Beleg überprüft: Abfolge der Belege, Entwicklung des verschlüsselten Umsatzzählers, Verkettung der Belege, chronologische Reihenfolge, nur eine Kasse pro RKSV-DEP-Export, nur ein Systemtyp pro RKSV-DEP-Export. Es handelt sich um ein Hilfsmodul das die Ergebnisse dieser Prüfungen pro Beleg zusammenfasst (z.B. \"0001_dep.json\").",
+  "verificationState" : "FAIL",
+  "verificationResultDetailedMessage" : "Am Beginn des exportierten RKSV-DEP befindet sich kein gültiger Startbeleg.",
+  "input" : {
+    "AUTH_LEVEL" : "PRUEFTOOL_DEP",
+    "TURNOVER_SUM" : "NULL",
+    "SYSTEM_TYPE_INITIAL" : "OPEN",
+    "TIMEOFRECEIPT" : "2016-04-14T13:30:41.000",
+    "RECEIPT_PREV" : "_R1-AT100_CASHBOX-DEMO-1_CASHBOX-DEMO-1-Receipt-ID-114_2016-04-13T12:29:40_-8,13_0,60_168,45_139,03_60,22_hwvsEFgT_615562946960d7e6_guwHwpaxDl8=_U2ljaGVyaGVpdHNlaW5yaWNodHVuZyBhdXNnZWZhbGxlbg==",
+    "RECEIPT_SIGNED" : "true",
+    "DECRYPTED_TURNOVER_VALUE" : "NULL",
+    "CASHBOX_ID_INITIAL" : "CASHBOX-DEMO-1",
+    "SIGNED_PENULT" : "false",
+    "SIGNED_PREV" : "false",
+    "STATE_SIGDEVICE_AUSFALL_MARKER" : "NULL",
+    "RECEIPT" : "_R1-AT100_CASHBOX-DEMO-1_CASHBOX-DEMO-1-Receipt-ID-115_2016-04-14T13:30:41_0,00_0,00_0,00_0,00_0,00_DlRVZJIH_59204d7f788286c5_HZW1VCbold8=_v6X3I7JKO8wovQW7O6PJTiUHlpbCOzwQeHkoSj5UZrLfWgP0PvR67TdTj4NPh58K4Cy0/lvyGbH96IE+Jwd/aw==",
+    "KNOWN_RECEIPT_IDS" : "_CASHBOX-DEMO-1-Receipt-ID-82_CASHBOX-DEMO-1-Receipt-ID-83_CASHBOX-DEMO-1-Receipt-ID-84_CASHBOX-DEMO-1-Receipt-ID-85_CASHBOX-DEMO-1-Receipt-ID-86_CASHBOX-DEMO-1-Receipt-ID-87_CASHBOX-DEMO-1-Receipt-ID-88_CASHBOX-DEMO-1-Receipt-ID-89_CASHBOX-DEMO-1-Receipt-ID-90_CASHBOX-DEMO-1-Receipt-ID-91_CASHBOX-DEMO-1-Receipt-ID-92_CASHBOX-DEMO-1-Receipt-ID-93_CASHBOX-DEMO-1-Receipt-ID-94_CASHBOX-DEMO-1-Receipt-ID-95_CASHBOX-DEMO-1-Receipt-ID-96_CASHBOX-DEMO-1-Receipt-ID-97_CASHBOX-DEMO-1-Receipt-ID-98_CASHBOX-DEMO-1-Receipt-ID-99_CASHBOX-DEMO-1-Receipt-ID-100_CASHBOX-DEMO-1-Receipt-ID-101_CASHBOX-DEMO-1-Receipt-ID-102_CASHBOX-DEMO-1-Receipt-ID-103_CASHBOX-DEMO-1-Receipt-ID-104_CASHBOX-DEMO-1-Receipt-ID-105_CASHBOX-DEMO-1-Receipt-ID-106_CASHBOX-DEMO-1-Receipt-ID-107_CASHBOX-DEMO-1-Receipt-ID-108_CASHBOX-DEMO-1-Receipt-ID-109_CASHBOX-DEMO-1-Receipt-ID-110_CASHBOX-DEMO-1-Receipt-ID-111_CASHBOX-DEMO-1-Receipt-ID-112_CASHBOX-DEMO-1-Receipt-ID-113_CASHBOX-DEMO-1-Receipt-ID-114",
+    "RK_SUITE_ID" : "R1",
+    "SYSTEM_TYPE" : "OPEN",
+    "TYPE_RECEIPT" : "NULL",
+    "STATE_SIGDEVICE_AUSFALL_REPORTED" : "NULL",
+    "CASHBOX_ID" : "CASHBOX-DEMO-1",
+    "TYPE_RECEIPT_PREV" : "NULL",
+    "STATE_SIGDEVICE_TIMEOFRECEIPT" : "IN_BETRIEB"
+  },
+  "output" : {
+    "SOFTFAIL" : "false"
+  },
+  "verificationTimestamp" : "2026-06-11T04:46:41.166+02:00",
+  "verificationResultList" : [ {
+    "verificationId" : "DEP_ONLY_ONE_CASHBOX_ID",
+    "version" : 1,
+    "verificationName" : "Eine Kasse pro RKSV-DEP Export",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft, ob die Entwicklung des verschlüsselten Umsatzzählers mit den Belegbeträgen übereinstimmt.",
+    "verificationState" : "PASS",
+    "input" : {
+      "CASHBOX_ID_INITIAL" : "CASHBOX-DEMO-1",
+      "CASHBOX_ID" : "CASHBOX-DEMO-1"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.166+02:00"
+  }, {
+    "verificationId" : "DEP_ONLY_ONE_SYTEM_TYPE",
+    "version" : 1,
+    "verificationName" : "Vermischung der Systeme",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft ob Signatureinrichtungen aus dem geschlossenen Gesamtsystem (AT0) und Signatur/Siegelerstellungseinheiten vermischt werden. Es kann nur ein System-Typ im exportieren RKSV-DEP abgebildet werden.",
+    "verificationState" : "PASS",
+    "input" : {
+      "SYSTEM_TYPE_INITIAL" : "OPEN",
+      "SYSTEM_TYPE" : "OPEN"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.166+02:00"
+  }, {
+    "verificationId" : "DEP_UNIQUE_RECEIPT_ID",
+    "version" : 1,
+    "verificationName" : "Belegnummer – Mehrfachverwendung",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft ob die selbe Belegnummer mehrfach im RKSV-DEP-Export vorkommt.",
+    "verificationState" : "PASS",
+    "input" : {
+      "KNOWN_RECEIPT_IDS" : "_CASHBOX-DEMO-1-Receipt-ID-82_CASHBOX-DEMO-1-Receipt-ID-83_CASHBOX-DEMO-1-Receipt-ID-84_CASHBOX-DEMO-1-Receipt-ID-85_CASHBOX-DEMO-1-Receipt-ID-86_CASHBOX-DEMO-1-Receipt-ID-87_CASHBOX-DEMO-1-Receipt-ID-88_CASHBOX-DEMO-1-Receipt-ID-89_CASHBOX-DEMO-1-Receipt-ID-90_CASHBOX-DEMO-1-Receipt-ID-91_CASHBOX-DEMO-1-Receipt-ID-92_CASHBOX-DEMO-1-Receipt-ID-93_CASHBOX-DEMO-1-Receipt-ID-94_CASHBOX-DEMO-1-Receipt-ID-95_CASHBOX-DEMO-1-Receipt-ID-96_CASHBOX-DEMO-1-Receipt-ID-97_CASHBOX-DEMO-1-Receipt-ID-98_CASHBOX-DEMO-1-Receipt-ID-99_CASHBOX-DEMO-1-Receipt-ID-100_CASHBOX-DEMO-1-Receipt-ID-101_CASHBOX-DEMO-1-Receipt-ID-102_CASHBOX-DEMO-1-Receipt-ID-103_CASHBOX-DEMO-1-Receipt-ID-104_CASHBOX-DEMO-1-Receipt-ID-105_CASHBOX-DEMO-1-Receipt-ID-106_CASHBOX-DEMO-1-Receipt-ID-107_CASHBOX-DEMO-1-Receipt-ID-108_CASHBOX-DEMO-1-Receipt-ID-109_CASHBOX-DEMO-1-Receipt-ID-110_CASHBOX-DEMO-1-Receipt-ID-111_CASHBOX-DEMO-1-Receipt-ID-112_CASHBOX-DEMO-1-Receipt-ID-113_CASHBOX-DEMO-1-Receipt-ID-114",
+      "RECEIPT_IDENTIFIER" : "CASHBOX-DEMO-1-Receipt-ID-115"
+    },
+    "output" : {
+      "KNOWN_RECEIPT_IDS" : "_CASHBOX-DEMO-1-Receipt-ID-82_CASHBOX-DEMO-1-Receipt-ID-83_CASHBOX-DEMO-1-Receipt-ID-84_CASHBOX-DEMO-1-Receipt-ID-85_CASHBOX-DEMO-1-Receipt-ID-86_CASHBOX-DEMO-1-Receipt-ID-87_CASHBOX-DEMO-1-Receipt-ID-88_CASHBOX-DEMO-1-Receipt-ID-89_CASHBOX-DEMO-1-Receipt-ID-90_CASHBOX-DEMO-1-Receipt-ID-91_CASHBOX-DEMO-1-Receipt-ID-92_CASHBOX-DEMO-1-Receipt-ID-93_CASHBOX-DEMO-1-Receipt-ID-94_CASHBOX-DEMO-1-Receipt-ID-95_CASHBOX-DEMO-1-Receipt-ID-96_CASHBOX-DEMO-1-Receipt-ID-97_CASHBOX-DEMO-1-Receipt-ID-98_CASHBOX-DEMO-1-Receipt-ID-99_CASHBOX-DEMO-1-Receipt-ID-100_CASHBOX-DEMO-1-Receipt-ID-101_CASHBOX-DEMO-1-Receipt-ID-102_CASHBOX-DEMO-1-Receipt-ID-103_CASHBOX-DEMO-1-Receipt-ID-104_CASHBOX-DEMO-1-Receipt-ID-105_CASHBOX-DEMO-1-Receipt-ID-106_CASHBOX-DEMO-1-Receipt-ID-107_CASHBOX-DEMO-1-Receipt-ID-108_CASHBOX-DEMO-1-Receipt-ID-109_CASHBOX-DEMO-1-Receipt-ID-110_CASHBOX-DEMO-1-Receipt-ID-111_CASHBOX-DEMO-1-Receipt-ID-112_CASHBOX-DEMO-1-Receipt-ID-113_CASHBOX-DEMO-1-Receipt-ID-114_CASHBOX-DEMO-1-Receipt-ID-115"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.166+02:00"
+  }, {
+    "verificationId" : "DEP_TURNOVER_COMPARE",
+    "version" : 1,
+    "verificationName" : "Entwicklung des Umsatzzählers",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft, ob die Entwicklung des verschlüsselten Umsatzzählers mit den Belegbeträgen übereinstimmt.",
+    "verificationState" : "PASS",
+    "input" : {
+      "DECRYPTED_TURNOVER_VALUE" : "NULL",
+      "TURNOVER_SUM" : "NULL",
+      "SUM_TAX_SET_ERMAESSIGT2" : "0,00",
+      "SUM_TAX_SET_ERMAESSIGT1" : "0,00",
+      "SUM_TAX_SET_NORMAL" : "0,00",
+      "TYPE_RECEIPT" : "NULL",
+      "SUM_TAX_SET_NULL" : "0,00",
+      "SUM_TAX_SET_BESONDERS" : "0,00"
+    },
+    "output" : {
+      "TURNOVER_SUM" : "NULL"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.166+02:00"
+  }, {
+    "verificationId" : "DEP_STATE",
+    "version" : 1,
+    "verificationName" : "Abfolge von Belegen im RKSV-DEP",
+    "verificationTextualDescription" : "In diesem Modul wird überprüft, ob die Abfolge der Belege im exportierten DEP korrekt ist: Position des Startbeleges, Position des Sammelbeleges nach dem Ausfall der Signatureinrichtung.",
+    "verificationState" : "FAIL",
+    "verificationResultDetailedMessage" : "Am Beginn des exportierten RKSV-DEP befindet sich kein gültiger Startbeleg.",
+    "input" : {
+      "SIGNED_PENULT" : "false",
+      "AUTH_LEVEL" : "PRUEFTOOL_DEP",
+      "SIGNED_PREV" : "false",
+      "TYPE_RECEIPT" : "NULL",
+      "TYPE_RECEIPT_PREV" : "NULL"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.166+02:00"
+  } ]
+}

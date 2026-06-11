@@ -408,6 +408,20 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.superAdminCashRegisters',
         icon: 'ShopOutlined',
     },
+    rksvTestsDepExport: {
+        id: 'rksvTestsDepExport',
+        menuKey: '/admin/rksv/dep-export',
+        href: '/admin/rksv/dep-export',
+        labelKey: 'nav.rksvTestsDepExport',
+        icon: 'SafetyCertificateOutlined',
+    },
+    rksvTestsSignatureVerify: {
+        id: 'rksvTestsSignatureVerify',
+        menuKey: '/admin/rksv/signature-verify',
+        href: '/admin/rksv/signature-verify',
+        labelKey: 'nav.rksvTestsSignatureVerify',
+        icon: 'SafetyCertificateOutlined',
+    },
 };
 
 export const SIDEBAR_DOMAIN_GROUP_META: Record<
@@ -550,6 +564,13 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 icon: 'SafetyOutlined',
             },
             { kind: 'leaves', catalogIds: ['auditLogs', 'fiscalExportAuditLogs', 'offlineTransactionsAdmin'] },
+            {
+                kind: 'nested',
+                menuKey: '/admin/rksv',
+                labelKey: 'nav.rksvTestsHub',
+                icon: 'SafetyCertificateOutlined',
+                catalogIds: ['rksvTestsDepExport', 'rksvTestsSignatureVerify'],
+            },
             {
                 kind: 'rksvHub',
                 menuKey: '/rksv',

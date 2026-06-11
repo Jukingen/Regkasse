@@ -95,6 +95,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/audit-logs',
         '/admin/audit/fiscal-exports',
         '/admin/tse',
+        '/admin/rksv',
         '/rksv',
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: [
@@ -179,6 +180,9 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
         p === '/admin/license'
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
+    }
+    if (p === '/admin/rksv' || p.startsWith('/admin/rksv/')) {
+        keys.push('/admin/rksv');
     }
     return keys;
 }

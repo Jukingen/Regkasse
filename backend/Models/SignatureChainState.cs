@@ -32,6 +32,11 @@ namespace KasseAPI_Final.Models
         [Column("last_counter")]
         public int LastCounter { get; set; }
 
+        /// <summary>Cumulative gross turnover in Euro cents (RKSV Umsatzzähler plaintext).</summary>
+        [Required]
+        [Column("last_turnover_counter_cents")]
+        public long LastTurnoverCounterCents { get; set; }
+
         [Required]
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

@@ -56,7 +56,7 @@ function chainStatusTag(status: string | undefined, t: (key: string) => string) 
   return <Tag color="error">{status ?? t('rksvHub.signatureChainPage.statusUnknown')}</Tag>;
 }
 
-export default function RksvSignatureChainVerification() {
+export default function RksvSignatureChainVerification({ embedded = false }: { embedded?: boolean }) {
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const highlightReceiptId = searchParams.get('receiptId') ?? undefined;
@@ -224,14 +224,16 @@ export default function RksvSignatureChainVerification() {
 
   return (
     <div className="rksv-signature-chain-page">
-      <AdminPageHeader
-        title={t('rksvHub.signatureChainPage.title')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: t(ADMIN_NAV_GROUP_LABEL_KEYS.rksv), href: '/rksv' },
-          { title: t('rksvHub.signatureChainPage.breadcrumb') },
-        ]}
-      />
+      {!embedded ? (
+        <AdminPageHeader
+          title={t('rksvHub.signatureChainPage.title')}
+          breadcrumbs={[
+            adminOverviewCrumb(t),
+            { title: t(ADMIN_NAV_GROUP_LABEL_KEYS.rksv), href: '/rksv' },
+            { title: t('rksvHub.signatureChainPage.breadcrumb') },
+          ]}
+        />
+      ) : null}
 
       <Alert
         type="warning"

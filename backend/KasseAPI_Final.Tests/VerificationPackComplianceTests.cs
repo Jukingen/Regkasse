@@ -165,6 +165,7 @@ public sealed class VerificationPackComplianceTests
             ctx,
             tseMock.Object,
             new FakeTseProvider(NullLogger<FakeTseProvider>.Instance),
+            new SoftwareTseKeyProvider(),
             finanz.Object,
             Options.Create(new TseOptions { AllowSimulatedDailyClosing = true, Mode = "Fake" }),
             hostEnv.Object,

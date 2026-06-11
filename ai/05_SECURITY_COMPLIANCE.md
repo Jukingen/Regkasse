@@ -3,6 +3,7 @@
 ## Yasal / uyumluluk iddiası (kritik)
 - Bu repodaki dokümantasyon veya kod yorumları **yasal uyumluluk garantisi vermez**. Özellikle BMF/FinanzOnline kabulü, TSE donanım onayı veya resmi DEP/RKSV beyanı iddia edilmez.
 - **Fiscal export** (`GET /api/admin/fiscal-export`, `FiscalExportService`): paketler açık **“not legal proof”** uyarısı taşır; tanılama, iç analiz ve operasyonel el değişimi içindir; resmi RKSV kanıtı veya FinanzOnline yerine geçen belge değildir (`REGKASSE_AI_ONBOARDING.md`).
+- **DEP §7 export** (`GET /api/admin/rksv/dep-export`, `RksvDepExportService`): BMF Signaturjournal formatı (F1–F5 tamamlandı); Prüftool ile doğrulanabilir hedeflenir ancak yine de yasal kabul garantisi verilmez. Resmi fiscal export’tan ayrıdır; `docs/DEP_EXPORT_DEVELOPMENT.md`.
 
 ## Multi-Tenant Architecture
 

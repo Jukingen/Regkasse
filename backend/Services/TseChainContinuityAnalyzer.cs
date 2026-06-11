@@ -1,4 +1,5 @@
 using KasseAPI_Final.Models.Reports;
+using KasseAPI_Final.Tse;
 
 namespace KasseAPI_Final.Services;
 
@@ -39,7 +40,7 @@ internal static class TseChainContinuityAnalyzer
         foreach (var r in signed)
         {
             var actualPrev = r.PrevSignatureValue ?? string.Empty;
-            if (previousSig != null && !string.Equals(actualPrev, previousSig, StringComparison.Ordinal))
+            if (previousSig != null && !string.Equals(actualPrev, RksvChainingValue.Compute(previousSig, registerNumber ?? string.Empty), StringComparison.Ordinal))
             {
                 chainBreaks.Add(new TseChainBreakDto
                 {

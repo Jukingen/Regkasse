@@ -193,6 +193,38 @@ Singleton called `IDbContextFactory<AppDbContext>.CreateDbContext()` without a s
 
 Use design-time ctor + single `[ActivatorUtilitiesConstructor]` runtime ctor. See `Data/AppDbContext.cs`.
 
+## RKSV / TSE
+
+Fiscal signing, special receipts (Startbeleg, Monatsbeleg, etc.), TSE chain continuity, and FinanzOnline outbox live under `Services/`, `Tse/`, and `Controllers/`. See `ai/05_SECURITY_COMPLIANCE.md` and `AGENTS.md` (Fiscal Rules).
+
+### DEP §7 Export
+
+**Status:** ✅ Implemented (F1–F5 complete)
+
+BMF-compliant DEP (Datenerfassungsprotokoll / Signaturjournal) export for tax audits: `Belege-Gruppe` JSON, certificate grouping, normal + special receipts + daily closings, compact JWS (not QR), RKSV §9 machine-code payload for Prüftool.
+
+**Endpoint:** `GET /api/admin/rksv/dep-export`
+
+**Permissions:** `ReportExport` + `AuditView` (audit log entry `RksvDepExportJson` on every export).
+
+**Query parameters:** `cashRegisterId`, `fromUtc`, `toUtc`, `includeSpecialReceipts` (default `true`), `includeDailyClosings` (default `true`).
+
+**Example:**
+
+```bash
+curl -H "Authorization: Bearer {token}" \
+     -H "X-Tenant-Id: {tenant}" \
+     "http://localhost:5184/api/admin/rksv/dep-export?cashRegisterId={guid}&fromUtc=2026-01-01T00:00:00Z&toUtc=2026-01-31T23:59:59Z"
+```
+
+**Verification with BMF Prüftool:**
+
+```powershell
+.\scripts\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"
+```
+
+Implementation: `Controllers/AdminRksvDepExportController.cs`, `Services/RksvDepExportService.cs`, `Tse/BelegdatenPayload*.cs`, `Tse/SignaturePipeline.cs`. Full guide: `docs/DEP_EXPORT_DEVELOPMENT.md`.
+
 ## Further reading
 
 - `docs/MULTI_TENANT.md` (architecture, setup, API, troubleshooting)

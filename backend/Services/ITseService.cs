@@ -50,5 +50,8 @@ namespace KasseAPI_Final.Services
         public string Status { get; set; } = string.Empty; // Valid, Expired, Revoked
     }
 
-    public record TseSignatureResult(string CompactJws, string PrevSignatureValueUsed);
+    public record TseSignatureResult(
+        string CompactJws,
+        string PrevSignatureValueUsed,
+        string? CertificateThumbprint = null);
 }

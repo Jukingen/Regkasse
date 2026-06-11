@@ -29,8 +29,8 @@ namespace KasseAPI_Final.Tse
         public Task<TseSignResult> SignAsync(BelegdatenPayload payload, string correlationId, CancellationToken cancellationToken = default)
         {
             var compact = BuildDeterministicPseudoJws(payload, correlationId);
-            _logger.LogDebug("FakeTseProvider signed belegNr={BelegNr}, correlationId={CorrelationId}, length={Length}",
-                payload.BelegNr, correlationId, compact.Length);
+            _logger.LogDebug("FakeTseProvider signed belegnummer={Belegnummer}, correlationId={CorrelationId}, length={Length}",
+                payload.Belegnummer, correlationId, compact.Length);
             return Task.FromResult(new TseSignResult(compact, FakeCertificateSerial));
         }
 
@@ -43,7 +43,7 @@ namespace KasseAPI_Final.Tse
             var header = ToBase64Url("""{"alg":"SIM","typ":"JWT"}""");
             var body = ToBase64Url(payloadJson);
 
-            var seed = $"{correlationId}|{payload.PrevSignatureValue}|{payload.BelegNr}|{payload.Betrag}|{payload.KassenId}";
+            var seed = $"{correlationId}|{payload.SigVorigerBeleg}|{payload.Belegnummer}|{payload.BetragSatzNormal}|{payload.KassenId}";
             var hash = SHA256.HashData(Encoding.UTF8.GetBytes(seed));
             var sigCore = ToBase64Url(hash);
             // Repeat to simulate long RSA/ECDSA JWS third segment (DB varchar stress)

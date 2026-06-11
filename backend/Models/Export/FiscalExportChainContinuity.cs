@@ -1,3 +1,5 @@
+using KasseAPI_Final.Tse;
+
 namespace KasseAPI_Final.Models.Export;
 
 /// <summary>
@@ -19,10 +21,11 @@ public static class FiscalExportChainContinuity
             var currPrev = chainLinks[i].PrevSignatureValue ?? string.Empty;
             if (string.IsNullOrEmpty(prevSig) && string.IsNullOrEmpty(currPrev))
                 continue;
-            if (!string.Equals(prevSig, currPrev, StringComparison.Ordinal))
+            var expectedPrev = RksvChainingValue.Compute(prevSig, string.Empty);
+            if (!string.Equals(expectedPrev, currPrev, StringComparison.Ordinal))
             {
                 warnings.Add(
-                    $"Receipt {chainLinks[i].ReceiptNumber}: PrevSignatureValue does not match previous receipt SignatureValue in export order.");
+                    $"Receipt {chainLinks[i].ReceiptNumber}: Sig-Voriger-Beleg does not match chained hash of previous receipt JWS in export order.");
             }
         }
 

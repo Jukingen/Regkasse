@@ -86,6 +86,15 @@ export function formatPercent(
   });
 }
 
+export function formatBytes(bytes: number, formatLocale: string): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return FORMAT_EMPTY_DISPLAY;
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'] as const;
+  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+  const value = bytes / 1024 ** exponent;
+  return `${value.toLocaleString(formatLocale, { maximumFractionDigits: exponent === 0 ? 0 : 1 })} ${units[exponent]}`;
+}
+
 export function createIntlFormatters(formatLocale: string) {
   return {
     formatCurrency: (value: number, opts?: FormatCurrencyOptions) => formatCurrency(value, formatLocale, opts),
@@ -95,6 +104,7 @@ export function createIntlFormatters(formatLocale: string) {
       formatDateTime(input, formatLocale, opts),
     formatNumber: (value: number, opts?: Intl.NumberFormatOptions) => formatNumber(value, formatLocale, opts),
     formatPercent: (value: number, opts?: FormatPercentOptions) => formatPercent(value, formatLocale, opts),
+    formatBytes: (bytes: number) => formatBytes(bytes, formatLocale),
     formatLocale,
   };
 }

@@ -77,23 +77,7 @@ export function LicenseExpiryBanner() {
                     />
                 );
             case 'grace_readonly':
-                return (
-                    <Alert
-                        type="error"
-                        banner
-                        showIcon
-                        style={{ marginBottom: 12 }}
-                        title="Mandantenlizenz abgelaufen - System gesperrt"
-                        description={renderBannerDescription(
-                            <>
-                                Ihre Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen abgelaufen.
-                                Das System ist im Lockdown-Modus. Bitte verlaengern Sie die Lizenz oder kontaktieren
-                                Sie Ihren Administrator.
-                            </>,
-                            renderTenantRenewAction(),
-                        )}
-                    />
-                );
+                return null;
             case 'lockdown':
                 return (
                     <Alert
@@ -151,24 +135,7 @@ export function LicenseExpiryBanner() {
                     />
                 );
             case 'grace_readonly':
-                return (
-                    <Alert
-                        type="error"
-                        banner
-                        showIcon
-                        style={{ marginBottom: 12 }}
-                        title="Deployment-Lizenz abgelaufen - Nur-Lesen-Modus"
-                        description={renderBannerDescription(
-                            <>
-                                Die Deployment-Lizenz ist seit <strong>{license.daysExpired}</strong> Tagen
-                                abgelaufen. Schreiboperationen sind deaktiviert, lesende Zugriffe bleiben verfuegbar.
-                                Bitte verlaengern Sie die Lizenz innerhalb der naechsten{' '}
-                                <strong>{Math.max(0, 60 - license.daysExpired)}</strong> Tage.
-                            </>,
-                            renderDeploymentRenewAction(),
-                        )}
-                    />
-                );
+                return null;
             case 'lockdown':
                 return (
                     <Alert

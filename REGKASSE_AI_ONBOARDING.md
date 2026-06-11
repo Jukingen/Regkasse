@@ -701,7 +701,9 @@ Do not claim legal completeness or guaranteed FinanzOnline acceptance.
 
 ### DEP / export
 
-Fiscal export builds JSON (optional CSV) packages for diagnostics, accounting handoff, and internal analysis. Every profile carries an explicit **not legal proof** notice in the payload (`NotLegalProofNotice` / documented as `notLegalProofNotice` in onboarding lists). This is **not** an official DEP substitute or legal RKSV attestation—see `FiscalExportService` and admin fiscal-export endpoints.
+**Official DEP §7 export (Signaturjournal):** ✅ Implemented (F1–F5). Admin endpoint `GET /api/admin/rksv/dep-export` produces BMF `Belege-Gruppe` JSON with compact JWS signatures grouped by certificate thumbprint. RKSV §9 signing uses BMF machine code (`_R1-AT1_…`) via `BelegdatenPayload` / `SignaturePipeline`. Verify with `scripts/verify-rksv-dep-export.ps1` (JDK 17+, BMF Prüftool JAR). Guide: `docs/DEP_EXPORT_DEVELOPMENT.md`; rules: `AGENTS.md` → Fiscal Rules → DEP §7 Export.
+
+**Diagnostic fiscal export (not official DEP):** Fiscal export builds JSON (optional CSV) packages for diagnostics, accounting handoff, and internal analysis. Every profile carries an explicit **not legal proof** notice in the payload (`NotLegalProofNotice` / documented as `notLegalProofNotice` in onboarding lists). This is **not** an official DEP substitute or legal RKSV attestation—see `FiscalExportService` and admin fiscal-export endpoints.
 
 **Disclaimer acknowledgment (when enabled):** `FiscalExportOptions.RequireDisclaimerAcknowledgment` gates generate/download actions until the client sends `X-Disclaimer-Acknowledged: true` (see `RequireDisclaimerAcknowledgmentFilter`, `FiscalExportDisclaimerHeaders`). Operators obtain disclaimer text via `GET /api/admin/fiscal-export/disclaimer` (`FiscalExportDisclaimerPaths`); failed attempts without the header may be logged.
 

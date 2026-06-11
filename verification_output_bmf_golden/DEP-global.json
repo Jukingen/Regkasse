@@ -1,0 +1,52 @@
+{
+  "verificationId" : "DEP_MAIN",
+  "version" : 1,
+  "verificationName" : "Zusammenfassung der Ergebnisse aller RKSV-DEP-Export Prüfungen (Datei \"DEP-global.json\")",
+  "verificationTextualDescription" : "Dieses Hilfsmodul prüft ob alle globalen RKSV-DEP Prüfungen ein positives Prüfresultat ergeben: Korrektheit der Basiseigenschaften bzw. des JSON-FORMATs des RKSV-DEP-Export sowie eine Zusammenfassung ob alle RKSV-DEP-Export Prüfungen pro Beleg korrekt sind (siehe Datei \"DEP-global.json\")",
+  "verificationState" : "FAIL",
+  "input" : {
+    "AUTH_LEVEL" : "PRUEFTOOL_DEP",
+    "CASHBOX_ID_INITIAL" : "CASHBOX-DEMO-1",
+    "AUTH_CODE" : "-",
+    "SYSTEM_TYPE_INITIAL" : "OPEN",
+    "DEP_INPUT_FILE" : "C:\\Users\\Juke\\local-projects\\Regkasse\\backend\\Tests\\_bmf_example\\dep-export.json",
+    "USER_ID" : "-",
+    "DEP_OUTPUT_FOLDER" : "C:\\Users\\Juke\\local-projects\\Regkasse\\verification_output_bmf_golden"
+  },
+  "output" : {
+    "DEP_OUTPUT_META" : "{\"DepPhase\":\"\",\"FirstReceiptId\":\"CASHBOX-DEMO-1-Receipt-ID-82\",\"LastReceiptId\":\"CASHBOX-DEMO-1-Receipt-ID-161\",\"FirstCashboxId\":\"CASHBOX-DEMO-1\",\"DepPhaseEndDate\":\"\",\"NumberOfReceipts\":\"80\",\"FirstReceiptTimestamp\":\"2016-03-11T03:57:08.000\",\"LastReceiptTimestamp\":\"2016-06-01T12:17:27.000\"}"
+  },
+  "verificationTimestamp" : "2026-06-11T04:46:41.021+02:00",
+  "verificationResultList" : [ {
+    "verificationId" : "DEP_BASICCONSTRAINTS",
+    "version" : 1,
+    "verificationName" : "Basisanforderungen an RKSV-DEP",
+    "verificationTextualDescription" : "Es wird überprüft ob die Basisanforderungen an das RKSV-DEP-Export Format korrekt abgebildet sind.",
+    "verificationState" : "PASS",
+    "input" : {
+      "DEP_ATLEAST_ONE_ENTRY" : "true"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.023+02:00"
+  }, {
+    "verificationId" : "DEP_JSON_FORMAT",
+    "version" : 1,
+    "verificationName" : "RKSV-DEP-Export JSON Format Prüfung",
+    "verificationTextualDescription" : "Es wird überprüft ob die Inhalte der RKSV-DEP-Export Datei korrekt formatiert sind (JSON-Format-Prüfung).",
+    "verificationState" : "PASS",
+    "input" : {
+      "DEP_JSON_NUMBER_RECEIPTS" : "80",
+      "DEP_JSON_FORMAT_VALID" : "true"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.423+02:00"
+  }, {
+    "verificationId" : "DEP_RECEIPT_LIST",
+    "version" : 1,
+    "verificationName" : "Zusammenfassung der Ergebnisse der RKSV-DEP-Export Prüfungen pro Beleg (Datei \"DEP-global.json\")",
+    "verificationTextualDescription" : "Dieses Hilfsmodul fass die Ergebnisse der RKSV_DEP_EXPORT Prüfungen zusammen (siehe Datei \"DEP-global.json\"). Äquivalent zum Modul RKSV_DEP_EXPORT (siehe Datei \"i_DEP.json\").",
+    "verificationState" : "FAIL",
+    "input" : {
+      "DEP_RESULT_OF_LIST" : "false"
+    },
+    "verificationTimestamp" : "2026-06-11T04:46:41.423+02:00"
+  } ]
+}

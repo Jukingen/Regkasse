@@ -40,6 +40,7 @@ import { CommandPaletteShell } from '@/components/CommandPalette';
 import { PasswordChangeRequiredRedirect } from '@/features/auth/components/PasswordChangeRequiredRedirect';
 import { AppLayout } from '@/components/AppLayout';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
+import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
 import { AdminDesktopSiderResizeHandle } from '@/components/admin-layout/AdminDesktopSiderResizeHandle';
 import {
     ADMIN_SIDER_WIDTH_MAX,
@@ -334,6 +335,7 @@ export default function DashboardLayout({
                         >
                             <PasswordChangeRequiredRedirect />
                             <LicenseExpiryBanner />
+                            <ReadOnlyBanner />
                             <ImpersonationBanner />
                             <SuperAdminModeBanner />
                             <VerwaltungTenantContextGate />

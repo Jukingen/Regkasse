@@ -1,0 +1,34 @@
+{
+  "verificationId" : "VERIFICATION_FROM_CASHBOX",
+  "version" : 1,
+  "verificationName" : "Prüfergebnis - Kasse",
+  "verificationTextualDescription" : "Bei der Belegprüfung wird untersucht, ob die Vorgaben der RKSV in Bezug auf den maschinenlesbaren Code am Beleg und auf die meldepflichtigen Metadaten der Sicherheitseinrichtung befolgt werden. Im Fehlerfall sind die genauen Fehlerinformationen nachfolgend angeführt.",
+  "verificationState" : "FAIL",
+  "verificationResultDetailedMessage" : "Der vorliegende Beleg weist Fehler im maschinenlesbaren Code auf. Die Fehlerursachen sind nachfolgend angeführt:",
+  "verificationTimestamp" : "2026-06-11T04:46:40.799+02:00",
+  "verificationResultList" : [ {
+    "verificationId" : "RECEIPT_FULL",
+    "version" : 1,
+    "verificationName" : "Detailprüfung des maschinenlesbaren Codes",
+    "verificationTextualDescription" : "Dieses Modul und die dazugehörigen Submodule überprüfen die Gültigkeit des Belegs. Dabei werden sowohl Formatprüfungen, kryptographische Prüfungen (verschlüsselter Umsatzzähler, Signatur) als auch Prüfungen im Zusammenhang mit dem Status der Kasse bzw. der Signatur-/Siegelerstellungseinheit durchgeführt.",
+    "verificationState" : "FAIL",
+    "verificationTimestamp" : "2026-06-11T04:46:40.800+02:00",
+    "verificationResultList" : [ {
+      "verificationId" : "CRYPTO",
+      "version" : 1,
+      "verificationName" : "Kryptographische Prüfungen",
+      "verificationTextualDescription" : "In diesem Modul und den dazugehörigen Submodulen werden die kryptographische Validität des Umsatzzählers und des Signaturwerts überprüft. Für den Umsatzzähler kann eine detaillierte Prüfung nur beim Startbeleg durchgeführt werden, da nur in diesem Fall der entschlüsselte Wert bekannt ist (Umsatzzähler = 0).",
+      "verificationState" : "FAIL",
+      "verificationTimestamp" : "2026-06-11T04:46:40.800+02:00",
+      "verificationResultList" : [ {
+        "verificationId" : "CRYPTO_TURNOVER_COUNTER",
+        "version" : 1,
+        "verificationName" : "Kryptographie: Entschlüsselung des Umsatzzählers",
+        "verificationTextualDescription" : "Es wird die Entschlüsselung des Umsatzzählers überprüft. Eine Aussage über die Korrektheit kann nur beim Startbeleg durchgeführt werden, da nur in diesem Fall der entschlüsselte Wert bekannt ist (Umsatzzähler = 0).",
+        "verificationState" : "FAIL",
+        "verificationResultDetailedMessage" : "Der Umsatzzähler konnte nicht entschlüsselt werden.",
+        "verificationTimestamp" : "2026-06-11T04:46:40.804+02:00"
+      } ]
+    } ]
+  } ]
+}

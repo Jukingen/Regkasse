@@ -17,7 +17,7 @@ namespace KasseAPI_Final.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
@@ -162,7 +162,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId", "Severity");
 
-                    b.ToTable("activity_events");
+                    b.ToTable("activity_events", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ActivityEventRead", b =>
@@ -182,7 +182,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("ActivityEventId", "UserId");
 
-                    b.ToTable("activity_event_reads");
+                    b.ToTable("activity_event_reads", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.AddOnGroupProduct", b =>
@@ -657,7 +657,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId", "IsActive", "NextRunUtc");
 
-                    b.ToTable("audit_report_schedules");
+                    b.ToTable("audit_report_schedules", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.AuthSession", b =>
@@ -1134,7 +1134,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("CustomerId", "ValidFrom", "ValidTo");
 
-                    b.ToTable("benefit_assignments");
+                    b.ToTable("benefit_assignments", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.BenefitDailyUsage", b =>
@@ -1172,7 +1172,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("CustomerId", "BenefitDefinitionId", "UsageDate")
                         .IsUnique();
 
-                    b.ToTable("benefit_daily_usage");
+                    b.ToTable("benefit_daily_usage", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.BenefitDefinition", b =>
@@ -1252,7 +1252,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("benefit_definitions");
+                    b.ToTable("benefit_definitions", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Cart", b =>
@@ -1323,7 +1323,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("carts");
+                    b.ToTable("carts", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CartItem", b =>
@@ -1383,7 +1383,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("CartId");
 
-                    b.ToTable("cart_items");
+                    b.ToTable("cart_items", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CartItemModifier", b =>
@@ -1523,7 +1523,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId", "RegisterNumber")
                         .IsUnique();
 
-                    b.ToTable("cash_registers");
+                    b.ToTable("cash_registers", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterSettings", b =>
@@ -1562,7 +1562,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("TenantId");
 
-                    b.ToTable("cash_register_settings");
+                    b.ToTable("cash_register_settings", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CashRegisterTransaction", b =>
@@ -1623,7 +1623,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("cash_register_transactions");
+                    b.ToTable("cash_register_transactions", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Category", b =>
@@ -1711,7 +1711,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId", "Key")
                         .IsUnique();
 
-                    b.ToTable("categories");
+                    b.ToTable("categories", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CompanySettings", b =>
@@ -1943,7 +1943,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId", "CompanyVatNumber")
                         .IsUnique();
 
-                    b.ToTable("company_settings");
+                    b.ToTable("company_settings", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Customer", b =>
@@ -2071,7 +2071,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TaxNumber")
                         .IsUnique();
 
-                    b.ToTable("customers");
+                    b.ToTable("customers", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.DailyClosing", b =>
@@ -2083,6 +2083,11 @@ namespace KasseAPI_Final.Migrations
                     b.Property<Guid>("CashRegisterId")
                         .HasMaxLength(50)
                         .HasColumnType("uuid");
+
+                    b.Property<string>("CertificateThumbprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("certificate_thumbprint");
 
                     b.Property<DateTime>("ClosingDate")
                         .HasColumnType("timestamp with time zone");
@@ -2159,13 +2164,16 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CertificateThumbprint")
+                        .HasFilter("\"certificate_thumbprint\" IS NOT NULL");
+
                     b.HasIndex("TenantId");
 
                     b.HasIndex("UserId");
 
                     b.HasIndex("CashRegisterId", "ClosingDate", "ClosingType");
 
-                    b.ToTable("DailyClosings");
+                    b.ToTable("DailyClosings", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.DashboardPreferences", b =>
@@ -2198,7 +2206,155 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("UserId", "TenantId")
                         .IsUnique();
 
-                    b.ToTable("dashboard_preferences");
+                    b.ToTable("dashboard_preferences", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("error_message");
+
+                    b.Property<DateTime>("ExportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("exported_at");
+
+                    b.Property<string>("ExportedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("exported_by_user_id");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)")
+                        .HasColumnName("file_name");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size_bytes");
+
+                    b.Property<DateTime>("FromUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("from_utc");
+
+                    b.Property<int>("GroupCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("group_count");
+
+                    b.Property<bool>("IncludeDailyClosings")
+                        .HasColumnType("boolean")
+                        .HasColumnName("include_daily_closings");
+
+                    b.Property<bool>("IncludeSpecialReceipts")
+                        .HasColumnType("boolean")
+                        .HasColumnName("include_special_receipts");
+
+                    b.Property<Guid?>("ScheduleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("schedule_id");
+
+                    b.Property<int>("SignatureCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("signature_count");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StoragePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("storage_path");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("ToUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("to_utc");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ScheduleId")
+                        .HasFilter("\"schedule_id\" IS NOT NULL");
+
+                    b.HasIndex("TenantId", "CashRegisterId", "ExportedAt");
+
+                    b.ToTable("dep_export_history", (string)null);
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.DepExportSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int>("DayOfMonth")
+                        .HasColumnType("integer")
+                        .HasColumnName("day_of_month");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime>("LastRunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_run_at");
+
+                    b.Property<DateTime?>("NextRunAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_run_at");
+
+                    b.Property<string>("RecipientEmails")
+                        .HasColumnType("text")
+                        .HasColumnName("recipient_emails");
+
+                    b.Property<string>("ScheduleType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("schedule_type");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TimeOfDay")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("time_of_day");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("TenantId", "IsActive", "NextRunAt");
+
+                    b.ToTable("dep_export_schedules", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.DevelopmentModeSettings", b =>
@@ -2332,7 +2488,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("ErrorType", "OccurredAt");
 
-                    b.ToTable("FinanzOnlineErrors");
+                    b.ToTable("FinanzOnlineErrors", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.FinanzOnlineOutboxMessage", b =>
@@ -2471,7 +2627,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId", "BranchId", "MessageType", "BusinessKey", "PayloadHash", "Mode")
                         .IsUnique();
 
-                    b.ToTable("finanz_online_outbox_messages");
+                    b.ToTable("finanz_online_outbox_messages", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.FinanzOnlineSubmission", b =>
@@ -2514,7 +2670,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("FinanzOnlineSubmissions");
+                    b.ToTable("FinanzOnlineSubmissions", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.GeneratedReceipt", b =>
@@ -2576,7 +2732,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TemplateType");
 
-                    b.ToTable("generated_receipts");
+                    b.ToTable("generated_receipts", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.InventoryItem", b =>
@@ -2642,7 +2798,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("ProductId")
                         .IsUnique();
 
-                    b.ToTable("inventory");
+                    b.ToTable("inventory", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.InventoryTransaction", b =>
@@ -2709,7 +2865,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TransactionType");
 
-                    b.ToTable("inventory_transactions");
+                    b.ToTable("inventory_transactions", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Invoice", b =>
@@ -2921,7 +3077,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("Status", "InvoiceDate")
                         .IsDescending(false, true);
 
-                    b.ToTable("invoices");
+                    b.ToTable("invoices", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.IssuedLicense", b =>
@@ -3214,7 +3370,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("legal_holds");
+                    b.ToTable("legal_holds", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.LicenseActivationAttempt", b =>
@@ -3375,7 +3531,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId")
                         .IsUnique();
 
-                    b.ToTable("localization_settings");
+                    b.ToTable("localization_settings", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.MonatsberichtReport", b =>
@@ -3757,7 +3913,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId", "IsActive", "NextRunUtc");
 
-                    b.ToTable("operational_report_schedules");
+                    b.ToTable("operational_report_schedules", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Order", b =>
@@ -3852,7 +4008,7 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique()
                         .HasFilter("\"idempotency_key\" IS NOT NULL");
 
-                    b.ToTable("orders");
+                    b.ToTable("orders", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OrderItem", b =>
@@ -3931,7 +4087,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("order_items");
+                    b.ToTable("order_items", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentDetails", b =>
@@ -3963,6 +4119,11 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CertificateThumbprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("certificate_thumbprint");
 
                     b.Property<string>("CorrelationId")
                         .HasMaxLength(100)
@@ -4166,6 +4327,9 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("ix_payment_details_startbeleg_per_register")
                         .HasFilter("\"rksv_special_receipt_kind\" = 'Startbeleg' AND \"is_active\" = true");
 
+                    b.HasIndex("CertificateThumbprint")
+                        .HasFilter("\"certificate_thumbprint\" IS NOT NULL");
+
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("CustomerId");
@@ -4204,7 +4368,7 @@ namespace KasseAPI_Final.Migrations
                         .HasDatabaseName("ix_payment_details_monatsbeleg_per_register_month")
                         .HasFilter("\"rksv_special_receipt_kind\" = 'Monatsbeleg' AND \"is_active\" = true");
 
-                    b.ToTable("payment_details");
+                    b.ToTable("payment_details", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentLogEntry", b =>
@@ -4331,7 +4495,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("PaymentLogs");
+                    b.ToTable("PaymentLogs", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentMethodDefinition", b =>
@@ -4415,7 +4579,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId", "Code")
                         .IsUnique();
 
-                    b.ToTable("payment_method_definitions");
+                    b.ToTable("payment_method_definitions", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentMetrics", b =>
@@ -4503,7 +4667,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PaymentMetrics");
+                    b.ToTable("PaymentMetrics", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentReversalApproval", b =>
@@ -4734,7 +4898,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("InvoiceId");
 
-                    b.ToTable("PaymentSessions");
+                    b.ToTable("PaymentSessions", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.PeriodenberichtRun", b =>
@@ -4931,7 +5095,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("IsActive", "ValidFromDate", "ValidToDate");
 
-                    b.ToTable("pricing_rules");
+                    b.ToTable("pricing_rules", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Product", b =>
@@ -5309,7 +5473,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("receipts");
+                    b.ToTable("receipts", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ReceiptItem", b =>
@@ -5372,7 +5536,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("receipt_items");
+                    b.ToTable("receipt_items", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ReceiptSequence", b =>
@@ -5403,7 +5567,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("CashRegisterId", "SequenceDate")
                         .IsUnique();
 
-                    b.ToTable("receipt_sequences");
+                    b.ToTable("receipt_sequences", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ReceiptTaxLine", b =>
@@ -5447,7 +5611,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("receipt_tax_lines");
+                    b.ToTable("receipt_tax_lines", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.ReceiptTemplate", b =>
@@ -5542,7 +5706,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TemplateType");
 
-                    b.ToTable("receipt_templates");
+                    b.ToTable("receipt_templates", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.RefreshToken", b =>
@@ -6032,7 +6196,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("CashRegisterId", "Kind");
 
-                    b.ToTable("rksv_special_receipt_finanz_online_submissions");
+                    b.ToTable("rksv_special_receipt_finanz_online_submissions", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SignatureChainState", b =>
@@ -6054,6 +6218,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("text")
                         .HasColumnName("last_signature");
 
+                    b.Property<long>("LastTurnoverCounterCents")
+                        .HasColumnType("bigint")
+                        .HasColumnName("last_turnover_counter_cents");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
@@ -6069,7 +6237,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.ToTable("signature_chain_state");
+                    b.ToTable("signature_chain_state", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SuspiciousTransactionAlert", b =>
@@ -6312,7 +6480,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("TenantId", "CompanyTaxNumber")
                         .IsUnique();
 
-                    b.ToTable("system_settings");
+                    b.ToTable("system_settings", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.SystemTimeSyncLog", b =>
@@ -6459,7 +6627,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("table_orders");
+                    b.ToTable("table_orders", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TableOrderItem", b =>
@@ -6536,7 +6704,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("TableOrderId");
 
-                    b.ToTable("table_order_items");
+                    b.ToTable("table_order_items", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TableOrderItemModifier", b =>
@@ -6819,7 +6987,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("TenantId");
 
-                    b.ToTable("tenant_notification_configs");
+                    b.ToTable("tenant_notification_configs", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseDevice", b =>
@@ -6970,7 +7138,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("tse_health_audit_logs");
+                    b.ToTable("tse_health_audit_logs", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.TseSignature", b =>
@@ -7057,7 +7225,7 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("CashRegisterId", "CreatedAt");
 
-                    b.ToTable("TseSignatures");
+                    b.ToTable("TseSignatures", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.UserPermissionOverride", b =>
@@ -7169,7 +7337,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("user_preferences");
+                    b.ToTable("user_preferences", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.UserSettings", b =>
@@ -7296,7 +7464,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("UserSettings");
+                    b.ToTable("UserSettings", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.UserTenantMembership", b =>

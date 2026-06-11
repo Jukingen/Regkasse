@@ -111,6 +111,8 @@ namespace KasseAPI_Final.Data
         public DbSet<UserPreferences> UserPreferences { get; set; }
         public DbSet<AuditReportSchedule> AuditReportSchedules { get; set; }
         public DbSet<OperationalReportSchedule> OperationalReportSchedules { get; set; }
+        public DbSet<DepExportHistory> DepExportHistories { get; set; }
+        public DbSet<DepExportSchedule> DepExportSchedules { get; set; }
         public DbSet<ActivityEvent> ActivityEvents { get; set; }
         public DbSet<ActivityEventRead> ActivityEventReads { get; set; }
         public DbSet<TenantNotificationConfig> TenantNotificationConfigs { get; set; }
@@ -714,6 +716,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CancellationReason).HasColumnType("text");
                 entity.Property(e => e.TransactionId).HasMaxLength(100);
                 entity.Property(e => e.TseSignature).IsRequired().HasColumnType("text");
+                entity.Property(e => e.CertificateThumbprint)
+                    .HasMaxLength(64)
+                    .HasColumnName("certificate_thumbprint");
+                entity.HasIndex(e => e.CertificateThumbprint)
+                    .HasFilter("\"certificate_thumbprint\" IS NOT NULL");
                 entity.Property(e => e.PrevSignatureValueUsed).HasColumnType("text");
                 entity.Property(e => e.JwsHeader).HasColumnType("text");
                 entity.Property(e => e.JwsPayload).HasColumnType("text");
@@ -1525,6 +1532,11 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TotalAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TotalTaxAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.TseSignature).IsRequired().HasColumnType("text");
+                entity.Property(e => e.CertificateThumbprint)
+                    .HasMaxLength(64)
+                    .HasColumnName("certificate_thumbprint");
+                entity.HasIndex(e => e.CertificateThumbprint)
+                    .HasFilter("\"certificate_thumbprint\" IS NOT NULL");
                 entity.Property(e => e.JwsHeader).HasColumnType("text");
                 entity.Property(e => e.JwsPayload).HasColumnType("text");
                 entity.Property(e => e.JwsSignature).HasColumnType("text");
@@ -1986,6 +1998,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.CashRegisterId).IsRequired().HasColumnName("cash_register_id");
                 entity.Property(e => e.LastSignature).HasColumnType("text");
                 entity.Property(e => e.LastCounter).IsRequired();
+                entity.Property(e => e.LastTurnoverCounterCents).IsRequired().HasColumnName("last_turnover_counter_cents");
                 entity.Property(e => e.UpdatedAt).IsRequired();
             });
 
@@ -2027,6 +2040,39 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.IsActive).IsRequired();
                 entity.Property(e => e.CreatedAtUtc).IsRequired();
                 entity.HasIndex(e => new { e.TenantId, e.IsActive, e.NextRunUtc });
+            });
+
+            builder.Entity<DepExportHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.CashRegisterId).IsRequired();
+                entity.Property(e => e.FromUtc).IsRequired();
+                entity.Property(e => e.ToUtc).IsRequired();
+                entity.Property(e => e.ExportedAt).IsRequired();
+                entity.Property(e => e.ExportedByUserId).IsRequired().HasMaxLength(450);
+                entity.Property(e => e.FileName).IsRequired().HasMaxLength(260);
+                entity.Property(e => e.FileSizeBytes).IsRequired();
+                entity.Property(e => e.SignatureCount).IsRequired();
+                entity.Property(e => e.GroupCount).IsRequired();
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(32);
+                entity.Property(e => e.StoragePath).HasMaxLength(500);
+                entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.ExportedAt });
+                entity.HasIndex(e => e.ScheduleId).HasFilter("\"schedule_id\" IS NOT NULL");
+            });
+
+            builder.Entity<DepExportSchedule>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).IsRequired();
+                entity.Property(e => e.CashRegisterId).IsRequired();
+                entity.Property(e => e.ScheduleType).IsRequired().HasMaxLength(16);
+                entity.Property(e => e.DayOfMonth).IsRequired();
+                entity.Property(e => e.TimeOfDay).IsRequired().HasMaxLength(5);
+                entity.Property(e => e.IsActive).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasIndex(e => new { e.TenantId, e.IsActive, e.NextRunAt });
+                entity.HasIndex(e => e.CashRegisterId);
             });
 
             builder.Entity<BackupRuntimeExecutionPreference>(entity =>

@@ -32,6 +32,7 @@ namespace KasseAPI_Final.Services
         private readonly AppDbContext _context;
         private readonly ITseService _tseService;
         private readonly ITseProvider _tseProvider;
+        private readonly ITseKeyProvider _tseKeyProvider;
         private readonly IFinanzOnlineService _finanzOnlineService;
         private readonly TseOptions _tseOptions;
         private readonly IHostEnvironment _hostEnvironment;
@@ -41,6 +42,7 @@ namespace KasseAPI_Final.Services
             AppDbContext context,
             ITseService tseService,
             ITseProvider tseProvider,
+            ITseKeyProvider tseKeyProvider,
             IFinanzOnlineService finanzOnlineService,
             IOptions<TseOptions> tseOptions,
             IHostEnvironment hostEnvironment,
@@ -48,6 +50,7 @@ namespace KasseAPI_Final.Services
         {
             _context = context;
             _tseService = tseService;
+            _tseKeyProvider = tseKeyProvider;
             _tseProvider = tseProvider;
             _finanzOnlineService = finanzOnlineService;
             _tseOptions = tseOptions.Value;
@@ -163,6 +166,7 @@ namespace KasseAPI_Final.Services
                     TotalTaxAmount = totalTaxAmount,
                     TransactionCount = transactionCount,
                     TseSignature = tseSignature,
+                    CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
                     Status = "Completed",
                     CreatedAt = DateTime.UtcNow
                 };
@@ -273,6 +277,7 @@ namespace KasseAPI_Final.Services
                     TotalTaxAmount = totalTaxAmount,
                     TransactionCount = transactionCount,
                     TseSignature = tseSignature,
+                    CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
                     Status = "Completed",
                     CreatedAt = DateTime.UtcNow
                 };
@@ -364,6 +369,7 @@ namespace KasseAPI_Final.Services
                     TotalTaxAmount = totalTaxAmount,
                     TransactionCount = transactionCount,
                     TseSignature = tseSignature,
+                    CertificateThumbprint = _tseKeyProvider.GetCurrentCertificateThumbprint(),
                     Status = "Completed",
                     CreatedAt = DateTime.UtcNow
                 };

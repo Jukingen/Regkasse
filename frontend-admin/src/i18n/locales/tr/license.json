@@ -127,6 +127,10 @@
         "message": "Sunucu lisansı {{days}} gün önce sona erdi. Daha fazla yazma işlemi kapanmadan önce lütfen önümüzdeki {{remaining}} gün içinde lisansı yenileyin."
       }
     },
+    "readOnly": {
+      "title": "Lisans süresi doldu - salt okunur mod",
+      "message": "Lisansınızın süresi doldu. Verileri görüntüleyebilirsiniz ancak düzenleyemezsiniz. Yenileme için lütfen yöneticinizle iletişime geçin."
+    },
     "actions": {
       "renewTenant": "Kiracı lisansını yenile",
       "openDeployment": "Sunucu lisansını aç"

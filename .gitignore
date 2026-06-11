@@ -255,3 +255,10 @@ backend/UpdateDatabase.cs
 **/license_private.pem
 **/license_public.pem
 !**/*.example.pem
+# BMF Prüftool — local JARs, JAR extract scratch, run output (see backend/Tests/README.md)
+verification_output/
+backend/Tests/lib/
+backend/Tests/*.jar
+backend/Tests/_jar_*/
+backend/Tests/_bmf_example/
+# Committed: backend/Tests/fixtures/prueftool/*.json + README.md

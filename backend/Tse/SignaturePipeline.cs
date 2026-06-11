@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 namespace KasseAPI_Final.Tse
@@ -11,14 +10,11 @@ namespace KasseAPI_Final.Tse
     /// </summary>
     public class SignaturePipeline
     {
+        /// <summary>BMF RKSV JWS protected header — <c>{"alg":"ES256"}</c> only (no <c>typ</c> claim).</summary>
+        private static readonly byte[] RksvJwsHeaderUtf8 = "{\"alg\":\"ES256\"}"u8.ToArray();
+
         private readonly ITseKeyProvider _keyProvider;
         private readonly ILogger<SignaturePipeline> _logger;
-
-        private static readonly JsonSerializerOptions DeterministicOptions = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
-        };
 
         public SignaturePipeline(ITseKeyProvider keyProvider, ILogger<SignaturePipeline> logger)
         {
@@ -36,34 +32,36 @@ namespace KasseAPI_Final.Tse
             correlationId ??= Guid.NewGuid().ToString("N")[..12];
             _logger.LogInformation("SignaturePipeline.Sign started, correlationId={CorrelationId}, step=init", correlationId);
 
-            // Checklist 2: JWS Header
-            var header = new { alg = "ES256", typ = "JWT" };
-            var headerJson = JsonSerializer.SerializeToUtf8Bytes(header);
-            var headerB64 = TseCryptoHelper.ToBase64UrlNoPadding(headerJson);
+            // Checklist 2: BMF JWS protected header (Detailspezifikation Prozess 3.1)
+            var headerB64 = TseCryptoHelper.ToBase64UrlNoPadding(RksvJwsHeaderUtf8);
             _logger.LogDebug("SignaturePipeline.Sign correlationId={CorrelationId}, step=header_encoded", correlationId);
 
-            // Checklist 2: Payload deterministik sıralama
-            var payloadJson = JsonSerializer.SerializeToUtf8Bytes(payload, DeterministicOptions);
-            var payloadB64 = TseCryptoHelper.ToBase64UrlNoPadding(payloadJson);
+            // RKSV Abs. 5: JWS payload = compressed machine code (not raw JSON)
+            var machineCode = RksvMachineCodeBuilder.BuildDataToBeSigned(payload);
+            var payloadBytes = Encoding.UTF8.GetBytes(machineCode);
+            var payloadB64 = TseCryptoHelper.ToBase64UrlNoPadding(payloadBytes);
             _logger.LogDebug("SignaturePipeline.Sign correlationId={CorrelationId}, step=payload_encoded", correlationId);
 
             // signingInput = header + "." + payload
             var signingInput = $"{headerB64}.{payloadB64}";
             _logger.LogInformation("SignaturePipeline.Sign correlationId={CorrelationId}, step=signing_input_ready", correlationId);
 
-            // Checklist 3: SHA-256 hash on signingInput
-            var hashBytes = TseCryptoHelper.Sha256Hash(signingInput);
+            // Checklist 3–4: SHA256withECDSA (Java/BMF parity) → raw R||S 64 byte
+            var signingInputBytes = Encoding.UTF8.GetBytes(signingInput);
             _logger.LogDebug("SignaturePipeline.Sign correlationId={CorrelationId}, step=sha256_done", correlationId);
 
-            // Checklist 4: ES256 sign (ECDSA P-256) - raw R||S 64 byte
             var key = _keyProvider.GetSigningKey();
             byte[] rawSignature;
             try
             {
-                rawSignature = key.SignHash(hashBytes, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+                rawSignature = key.SignData(
+                    signingInputBytes,
+                    HashAlgorithmName.SHA256,
+                    DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
             }
             catch
             {
+                var hashBytes = TseCryptoHelper.Sha256Hash(signingInputBytes);
                 var derBytes = key.SignHash(hashBytes);
                 rawSignature = derBytes.Length == 64 ? derBytes : ConvertDerToRawRs(derBytes);
             }
@@ -108,7 +106,6 @@ namespace KasseAPI_Final.Tse
             steps.Add(new SignatureDiagnosticStep(5, "Base64URL padding", step5Status, step5Evidence));
 
             byte[]? signatureBytes = null;
-            byte[]? hashBytes = null;
             var signingInput = parts.Length >= 2 ? $"{parts[0]}.{parts[1]}" : string.Empty;
 
             // Step 3: Hash
@@ -117,7 +114,7 @@ namespace KasseAPI_Final.Tse
                 try
                 {
                     signatureBytes = TseCryptoHelper.FromBase64UrlNoPadding(parts[2]);
-                    hashBytes = TseCryptoHelper.Sha256Hash(signingInput);
+                    _ = TseCryptoHelper.Sha256Hash(signingInput);
                     steps.Add(new SignatureDiagnosticStep(3, "Hash", "PASS", $"SHA-256({signingInput.Length} chars)"));
                 }
                 catch (Exception ex)
@@ -132,13 +129,18 @@ namespace KasseAPI_Final.Tse
 
             // Step 4: Signature verify
             var publicKey = GetPublicKeyForVerify();
-            if (publicKey != null && signatureBytes != null && hashBytes != null)
+            if (publicKey != null && signatureBytes != null && !string.IsNullOrEmpty(signingInput))
             {
                 try
                 {
+                    var signingInputBytes = Encoding.UTF8.GetBytes(signingInput);
                     var valid = signatureBytes.Length == 64
-                        ? publicKey.VerifyHash(hashBytes, signatureBytes, DSASignatureFormat.IeeeP1363FixedFieldConcatenation)
-                        : publicKey.VerifyHash(hashBytes, signatureBytes);
+                        ? publicKey.VerifyData(
+                            signingInputBytes,
+                            signatureBytes,
+                            HashAlgorithmName.SHA256,
+                            DSASignatureFormat.IeeeP1363FixedFieldConcatenation)
+                        : publicKey.VerifyData(signingInputBytes, signatureBytes, HashAlgorithmName.SHA256);
                     steps.Add(new SignatureDiagnosticStep(4, "Signature verify", valid ? "PASS" : "FAIL",
                         valid ? "ES256 verification succeeded" : "ES256 verification failed"));
                 }
@@ -254,21 +256,23 @@ namespace KasseAPI_Final.Tse
                 throw;
             }
 
-            // raw R||S 64 byte veya DER
-            byte[] hashBytes;
+            bool valid;
             try
             {
-                hashBytes = TseCryptoHelper.Sha256Hash(signingInput);
+                var signingInputBytes = Encoding.UTF8.GetBytes(signingInput);
+                valid = signatureBytes.Length == 64
+                    ? publicKey.VerifyData(
+                        signingInputBytes,
+                        signatureBytes,
+                        HashAlgorithmName.SHA256,
+                        DSASignatureFormat.IeeeP1363FixedFieldConcatenation)
+                    : publicKey.VerifyData(signingInputBytes, signatureBytes, HashAlgorithmName.SHA256);
             }
             catch
             {
                 _logger.LogWarning("SignaturePipeline.Verify correlationId={CorrelationId}, step=fail, reason=corrupted_payload", correlationId);
                 throw new TsePipelineException("INVALID_SIGNATURE_FORMAT", "Corrupted payload");
             }
-
-            bool valid = signatureBytes.Length == 64
-                ? publicKey.VerifyHash(hashBytes, signatureBytes, DSASignatureFormat.IeeeP1363FixedFieldConcatenation)
-                : publicKey.VerifyHash(hashBytes, signatureBytes);
 
             _logger.LogInformation("SignaturePipeline.Verify completed, correlationId={CorrelationId}, step=done, valid={Valid}", correlationId, valid);
             return valid;

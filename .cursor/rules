@@ -13,6 +13,25 @@ Detaylı tam sürüm kural seti: `/.cursorrules`.
 - Tenant Isolation - Query filters, 404 semantics
 - Singleton + EF Pattern - Always use `IServiceScopeFactory`
 
+### RKSV DEP §7 Export Rules (Updated)
+
+**Status:** ✅ Implemented (F1–F5 complete)
+
+- DEP export MUST include all RKSV §9 fields (5 tax rates, turnover counter)
+- Signatures MUST be compact JWS with 3 parts (`header.payload.signature`)
+- JWS payload MUST be RKSV §9 machine code (`_R1-AT1_…`), not legacy JSON or QR payload
+- DEP export MUST use `Belege-Gruppe` JSON structure with certificate grouping by thumbprint
+- Certificate thumbprint MUST be stored in `payment_details.certificate_thumbprint` (and `DailyClosings.certificate_thumbprint` for Tagesabschluss)
+- Certificate chain MUST be included (leaf + CA) per `Belege-Gruppe`
+- Receipts MUST be ordered chronologically by `IssuedAt` then `SequenceNumber`
+- Special receipts (Startbeleg, Monatsbeleg, Jahresbeleg, Schlussbeleg, Nullbeleg) MUST be included when `includeSpecialReceipts=true` (default `true`)
+- Daily closings MUST be included when `includeDailyClosings=true` (default `true`)
+- Permission `ReportExport` + `AuditView` required
+- All DEP exports MUST be audited with `RksvDepExportJson` action
+- API: `GET /api/admin/rksv/dep-export`
+- Prüftool: `.\scripts\verify-rksv-dep-export.ps1 -DepExportPath "./dep-export.json" -CryptoMaterialPath "./crypto-material.json"`
+- Guides: `docs/DEP_EXPORT_DEVELOPMENT.md`, `docs/DEP_EXPORT_COMPLETION.md`; canonical rules: `AGENTS.md`
+
 ## TSE Offline Mode
 - Max **50** offline transactions per cash register
 - When limit reached, POS must block new offline transactions
@@ -90,4 +109,5 @@ curl -X POST http://localhost:5184/api/admin/activities/{id}/read \
 ```
 
 ## Last Updated
+- 2026-06-11 - RKSV DEP §7 export complete (F1–F5: BelegdatenPayload / Prüftool compliance)
 - 2025-05-28 - Added username login, backup system, activity feed, multi-tenant rules

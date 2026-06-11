@@ -127,6 +127,10 @@
         "message": "Die Server-Lizenz ist seit {{days}} Tagen abgelaufen. Bitte verlängern Sie die Lizenz in den nächsten {{remaining}} Tagen, bevor weitere Schreiboperationen deaktiviert werden."
       }
     },
+    "readOnly": {
+      "title": "Lizenz abgelaufen - Nur-Lese Modus",
+      "message": "Ihre Lizenz ist abgelaufen. Sie können Daten nur anzeigen, aber nicht bearbeiten. Bitte kontaktieren Sie Ihren Administrator für eine Verlängerung."
+    },
     "actions": {
       "renewTenant": "Lizenz jetzt verlängern",
       "openDeployment": "Server-Lizenz öffnen"
