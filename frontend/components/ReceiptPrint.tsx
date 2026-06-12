@@ -50,9 +50,11 @@ const ReceiptPrint: React.FC<ReceiptPrintProps> = ({
       <View style={styles.receipt}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.companyName}>{invoice.customerDetails?.companyName || 'DEMO GMBH'}</Text>
-          <Text style={styles.address}>{invoice.customerDetails?.address || 'Hauptstraße 1, 1010 Wien'}</Text>
-          <Text style={styles.taxNumber}>{invoice.customerDetails?.taxNumber || 'UID: ATU12345678'}</Text>
+          <Text style={styles.companyName}>{invoice.customerDetails?.companyName || ''}</Text>
+          <Text style={styles.address}>{invoice.customerDetails?.address || ''}</Text>
+          <Text style={styles.taxNumber}>
+            {invoice.customerDetails?.taxNumber ? `UID: ${invoice.customerDetails.taxNumber}` : ''}
+          </Text>
         </View>
 
         <View style={styles.separator} />

@@ -3,7 +3,7 @@
     "collapseTitle": "Bereiche & Verweise",
     "intro": "Diese Seiten gehören zur Backoffice-Konfiguration, sind aber fachlich getrennt:",
     "rowSystem": "System (global): Steuersätze, Backup, Benachrichtigungen — API `GET/PUT /api/Settings` (SystemSettings). Aktuell keine eigene Admin-Oberfläche.",
-    "rowCompany": "Firma & Fiskal (Mandant): Stammdaten, FinanzOnline, TSE-Defaults — diese Seite (`/api/CompanySettings`).",
+    "rowCompany": "Firma & Fiskal (Mandant): Stammdaten, FinanzOnline, TSE-Defaults — `/api/company/settings` (Alias: `/api/CompanySettings`).",
     "rowUser": "Benutzer: POS-/Kassen-Präferenzen — `GET/PUT /api/user/settings` (UserSettings), nicht Mandanten-weit.",
     "rowReceipt": "Belegvorlagen & Texte — Kasse & Belege → Belegvorlagen (`/receipt-templates`).",
     "rowRksv": "RKSV-Betrieb (Outbox, Integrität, Diagnose) — Menü RKSV, nicht unter Firmeneinstellungen.",
@@ -18,6 +18,28 @@
     "empty": "Es wurden keine Firmeneinstellungen zurückgegeben.",
     "saveChanges": "Änderungen speichern",
     "saveFailed": "Speichern fehlgeschlagen."
+  },
+  "companyPage": {
+    "pageTitle": "Firmenstammdaten",
+    "cardTitle": "Firmenstammdaten",
+    "saveSuccess": "Firmenstammdaten wurden aktualisiert.",
+    "rksvInfoTitle": "RKSV-Konformität",
+    "rksvInfoDescription": "Firmenname, Adresse und UID erscheinen auf allen Belegen und Rechnungen. Diese Angaben sind nach RKSV gesetzlich vorgeschrieben.",
+    "requiredFieldsTitle": "Pflichtfelder (RKSV)",
+    "requiredFieldsDescription": "Diese Felder sind für die fiskalische Konformität erforderlich.",
+    "optionalSectionTitle": "Optionale Angaben",
+    "phone": "Telefon",
+    "email": "E-Mail",
+    "receiptFooter": "Beleg-Fußzeile",
+    "placeholderCompanyName": "z. B. Mustafa's Cafe GmbH",
+    "placeholderAddress": "Wien, Hauptstraße 123",
+    "placeholderPhone": "+43 123 456789",
+    "placeholderEmail": "info@cafe.at",
+    "placeholderWebsite": "https://www.cafe.at",
+    "placeholderReceiptFooter": "Vielen Dank für Ihren Besuch!",
+    "reset": "Zurücksetzen",
+    "advancedHint": "FinanzOnline, TSE, Lokalisierung und Passwort finden Sie unter",
+    "advancedLink": "Fiskal- & Integrationseinstellungen"
   },
   "display": {
     "emptyValue": "—"

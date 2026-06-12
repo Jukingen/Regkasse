@@ -44,6 +44,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/users': PERMISSIONS.USER_VIEW,
   '/admin/users': PERMISSIONS.USER_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/company': PERMISSIONS.SETTINGS_VIEW,
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,

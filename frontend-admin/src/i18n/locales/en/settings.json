@@ -3,7 +3,7 @@
     "collapseTitle": "Areas & links",
     "intro": "These pages are all back-office configuration but belong to different domains:",
     "rowSystem": "System (global): tax rates, backup, notifications — API `GET/PUT /api/Settings` (SystemSettings). No dedicated admin UI yet.",
-    "rowCompany": "Company & fiscal (tenant): master data, FinanzOnline, TSE defaults — this area (`/api/CompanySettings`).",
+    "rowCompany": "Company & fiscal (tenant): master data, FinanzOnline, TSE defaults — `/api/company/settings` (alias: `/api/CompanySettings`).",
     "rowUser": "User: POS / register preferences — `GET/PUT /api/user/settings` (UserSettings), not tenant-wide.",
     "rowReceipt": "Receipt templates & copy — Kasse & Belege → Receipt templates (`/receipt-templates`).",
     "rowRksv": "RKSV operations (outbox, integrity, diagnostics) — RKSV menu, not under company settings.",
@@ -18,6 +18,28 @@
     "empty": "No company settings were returned.",
     "saveChanges": "Save changes",
     "saveFailed": "Saving failed."
+  },
+  "companyPage": {
+    "pageTitle": "Company information",
+    "cardTitle": "Company information",
+    "saveSuccess": "Company information has been updated.",
+    "rksvInfoTitle": "RKSV compliance",
+    "rksvInfoDescription": "Company name, address, and tax number appear on all receipts and invoices. These fields are required under Austrian RKSV law.",
+    "requiredFieldsTitle": "Required fields (RKSV)",
+    "requiredFieldsDescription": "These fields are mandatory for fiscal compliance.",
+    "optionalSectionTitle": "Optional information",
+    "phone": "Phone",
+    "email": "Email",
+    "receiptFooter": "Receipt footer text",
+    "placeholderCompanyName": "e.g. Mustafa's Cafe GmbH",
+    "placeholderAddress": "Vienna, Hauptstraße 123",
+    "placeholderPhone": "+43 123 456789",
+    "placeholderEmail": "info@cafe.at",
+    "placeholderWebsite": "https://www.cafe.at",
+    "placeholderReceiptFooter": "Thank you for your visit!",
+    "reset": "Reset",
+    "advancedHint": "FinanzOnline, TSE, localization, and password settings are on the",
+    "advancedLink": "fiscal & integration settings page"
   },
   "display": {
     "emptyValue": "—"

@@ -29,5 +29,8 @@ export const API_PATHS = {
         /** GET - Debug: categories and products info */
         DEBUG: '/pos/debug/categories-products',
     },
-    // Future: CART, AUTH, INVOICE, etc.
+    COMPANY: {
+        /** GET - RKSV §8 company header for receipts (tenant-scoped; alias: /pos/company-profile) */
+        INFO: '/pos/company',
+    },
 } as const;

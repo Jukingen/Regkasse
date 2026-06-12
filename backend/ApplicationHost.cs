@@ -644,6 +644,7 @@ builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi 
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // Watermarked receipt reprint PDF (no new TSE signing); routes: GET api/admin/payments/{id}/reprint-pdf and .../reprint.
 builder.Services.AddScoped<IReceiptPdfService, ReceiptPdfService>();
+builder.Services.AddScoped<IInvoiceService, InvoiceService>();
 builder.Services.AddScoped<IInvoicePdfService, InvoicePdfService>();
 builder.Services.AddScoped<IInvoiceEmailService, InvoiceEmailService>();
 // builder.Services.AddScoped<IPrinterService, PrinterService>(); // Geçici olarak devre dışı - ReceiptService bağımlılığı nedeniyle

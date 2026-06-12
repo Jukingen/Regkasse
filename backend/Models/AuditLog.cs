@@ -159,6 +159,9 @@ namespace KasseAPI_Final.Models
         public const string INVOICE_PRINT = "INVOICE_PRINT";
         public const string INVOICE_RESENT = "INVOICE_RESENT";
 
+        // Company / tenant settings
+        public const string COMPANY_SETTINGS_UPDATE = "COMPANY_SETTINGS_UPDATE";
+
         // Receipt operations
         public const string RECEIPT_PRINTED = "RECEIPT_PRINTED";
         public const string RECEIPT_SAVED = "RECEIPT_SAVED";
@@ -305,6 +308,8 @@ namespace KasseAPI_Final.Models
             public const string CASH_REGISTER = "CashRegister";
 
             public const string CATEGORY = "Category";
+
+            public const string COMPANY_SETTINGS = "CompanySettings";
 
             public const string MANUAL_RESTORE_REQUEST = "ManualRestoreRequest";
         }

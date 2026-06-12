@@ -22,6 +22,11 @@ namespace KasseAPI_Final.Services
         Task<ReceiptDTO> CreateReceiptFromPaymentAsync(Guid paymentId);
         /// <summary>Sprint 2: Builds Receipt + Items + TaxLines from payment and adds to context without saving. Caller must SaveChanges. Receipt includes totals, tax breakdown, signature, QR payload.</summary>
         Task AddReceiptFromPaymentToContextAsync(PaymentDetails payment);
+        /// <summary>
+        /// RKSV receipt DTO from payment: persisted receipt when present, otherwise ephemeral build (no DB insert).
+        /// Company header prefers <see cref="PaymentDetails"/> snapshot, then live <see cref="CompanySettings"/>.
+        /// </summary>
+        Task<ReceiptDTO> GenerateReceiptAsync(PaymentDetails payment);
         Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo);
     }
 
@@ -245,23 +250,60 @@ namespace KasseAPI_Final.Services
         }
 
         /// <inheritdoc />
+        public async Task<ReceiptDTO> GenerateReceiptAsync(PaymentDetails payment)
+        {
+            ArgumentNullException.ThrowIfNull(payment);
+
+            var persisted = await GetReceiptByPaymentIdAsync(payment.Id).ConfigureAwait(false);
+            if (persisted != null)
+                return persisted;
+
+            var registerNumberCtx = await ResolveRegisterNumberAsync(payment.CashRegisterId).ConfigureAwait(false);
+            var signatureValue = payment.TseSignature ?? string.Empty;
+            var prevSignatureValue = payment.PrevSignatureValueUsed
+                ?? await GetLastSignatureValueForCashRegisterAsync(payment.CashRegisterId).ConfigureAwait(false);
+            var certInfo = await _tseService.GetTseCertificateInfoAsync(registerNumberCtx).ConfigureAwait(false);
+            var qrPayload = BuildReceiptQrPayload(signatureValue);
+
+            var receipt = new Receipt
+            {
+                ReceiptId = Guid.NewGuid(),
+                PaymentId = payment.Id,
+                ReceiptNumber = payment.ReceiptNumber ?? $"TEMP-{payment.Id.ToString()[..8]}",
+                IssuedAt = payment.CreatedAt,
+                CashierId = payment.CashierId,
+                CashRegisterId = payment.CashRegisterId,
+                SubTotal = payment.TotalAmount - payment.TaxAmount,
+                TaxTotal = payment.TaxAmount,
+                GrandTotal = payment.TotalAmount,
+                QrCodePayload = qrPayload,
+                SignatureValue = signatureValue,
+                PrevSignatureValue = prevSignatureValue,
+                CreatedAt = DateTime.UtcNow,
+                Payment = payment,
+            };
+
+            ApplyPaymentItemsToReceipt(receipt, payment);
+
+            var signatureDto = new ReceiptSignatureDTO
+            {
+                Algorithm = "ES256",
+                SerialNumber = certInfo.CertificateNumber,
+                Timestamp = payment.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss"),
+                PrevSignatureValue = prevSignatureValue,
+                SignatureValue = signatureValue,
+                QrData = qrPayload,
+            };
+
+            return await MapToDtoAsync(receipt, signatureDto).ConfigureAwait(false);
+        }
+
+        /// <inheritdoc />
         public async Task AddReceiptFromPaymentToContextAsync(PaymentDetails payment)
         {
-            var items = new List<PaymentItem>();
-            try
-            {
-                if (payment.PaymentItems != null && payment.PaymentItems.RootElement.ValueKind != JsonValueKind.Undefined)
-                    items = JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to deserialize items for payment {PaymentId}", payment.Id);
-            }
-
             var registerNumberCtx = await ResolveRegisterNumberAsync(payment.CashRegisterId);
             var signatureValue = payment.TseSignature ?? string.Empty;
             var prevSignatureValue = payment.PrevSignatureValueUsed ?? await GetLastSignatureValueForCashRegisterAsync(payment.CashRegisterId);
-            var certInfo = await _tseService.GetTseCertificateInfoAsync(registerNumberCtx);
             var qrPayload = BuildReceiptQrPayload(signatureValue);
 
             var newReceipt = new Receipt
@@ -281,6 +323,14 @@ namespace KasseAPI_Final.Services
                 CreatedAt = DateTime.UtcNow
             };
 
+            ApplyPaymentItemsToReceipt(newReceipt, payment);
+            _context.Receipts.Add(newReceipt);
+        }
+
+        private void ApplyPaymentItemsToReceipt(Receipt receipt, PaymentDetails payment)
+        {
+            var items = DeserializePaymentItems(payment);
+
             var receiptItems = new List<ReceiptItem>();
             var taxLineInputs = new List<(int TaxType, decimal TaxRate, decimal LineNet, decimal LineTax, decimal LineGross)>();
             foreach (var i in items)
@@ -293,7 +343,7 @@ namespace KasseAPI_Final.Services
                 receiptItems.Add(new ReceiptItem
                 {
                     ItemId = productItemId,
-                    ReceiptId = newReceipt.ReceiptId,
+                    ReceiptId = receipt.ReceiptId,
                     ProductName = i.ProductName,
                     Quantity = i.Quantity,
                     UnitPrice = i.UnitPrice,
@@ -312,7 +362,7 @@ namespace KasseAPI_Final.Services
                         receiptItems.Add(new ReceiptItem
                         {
                             ItemId = Guid.NewGuid(),
-                            ReceiptId = newReceipt.ReceiptId,
+                            ReceiptId = receipt.ReceiptId,
                             ProductName = "+ " + m.Name,
                             Quantity = i.Quantity,
                             UnitPrice = m.UnitPrice,
@@ -327,12 +377,13 @@ namespace KasseAPI_Final.Services
                     }
                 }
             }
-            newReceipt.Items = receiptItems;
-            newReceipt.SubTotal = receiptItems.Sum(x => x.LineNet);
-            newReceipt.TaxTotal = receiptItems.Sum(x => x.VatAmount);
-            newReceipt.GrandTotal = receiptItems.Sum(x => x.TotalPrice);
 
-            var taxGroups = taxLineInputs
+            receipt.Items = receiptItems;
+            receipt.SubTotal = receiptItems.Sum(x => x.LineNet);
+            receipt.TaxTotal = receiptItems.Sum(x => x.VatAmount);
+            receipt.GrandTotal = receiptItems.Sum(x => x.TotalPrice);
+
+            receipt.TaxLines = taxLineInputs
                 .GroupBy(x => new { x.TaxType, x.TaxRate })
                 .Select(g => new ReceiptTaxLine
                 {
@@ -346,9 +397,41 @@ namespace KasseAPI_Final.Services
                 .OrderBy(t => t.TaxRate)
                 .ThenBy(t => t.TaxType)
                 .ToList();
-            newReceipt.TaxLines = taxGroups;
+        }
 
-            _context.Receipts.Add(newReceipt);
+        private List<PaymentItem> DeserializePaymentItems(PaymentDetails payment)
+        {
+            try
+            {
+                if (payment.PaymentItems != null && payment.PaymentItems.RootElement.ValueKind != JsonValueKind.Undefined)
+                    return JsonSerializer.Deserialize<List<PaymentItem>>(payment.PaymentItems.RootElement.GetRawText()) ?? new List<PaymentItem>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize items for payment {PaymentId}", payment.Id);
+            }
+
+            return new List<PaymentItem>();
+        }
+
+        /// <summary>RKSV §8 company header: payment snapshot first, then live tenant settings (no hardcoded defaults).</summary>
+        private async Task<(string Name, string Address, string TaxNumber, string Footer)> ResolveReceiptCompanyContextAsync(
+            PaymentDetails? payment)
+        {
+            var liveProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
+            var (name, address, taxNumber) = CompanyProfileMapper.ResolveForDisplay(payment, liveProfile);
+
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync().ConfigureAwait(false);
+            var settings = await _context.CompanySettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.TenantId == tenantId)
+                .ConfigureAwait(false);
+
+            var footer = settings?.CompanyDescription;
+            if (string.IsNullOrWhiteSpace(footer))
+                footer = liveProfile.FooterText;
+
+            return (name, address, taxNumber, footer ?? string.Empty);
         }
 
         public async Task<PagedResult<ReceiptListItemDto>> GetReceiptListAsync(int page, int pageSize, string? sort, string? receiptNumber, string? cashRegisterId, string? cashierId, DateTime? issuedFrom, DateTime? issuedTo)
@@ -475,7 +558,6 @@ namespace KasseAPI_Final.Services
 
         private async Task<ReceiptDTO> MapToDtoAsync(Receipt receipt, ReceiptSignatureDTO? explicitSig = null)
         {
-            var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync().ConfigureAwait(false);
             var cashierIdStr = receipt.CashierId ?? string.Empty;
             string? cashierDisplay = null;
             if (!string.IsNullOrEmpty(cashierIdStr))
@@ -486,17 +568,20 @@ namespace KasseAPI_Final.Services
                     cashierDisplay = n;
             }
 
+            var (companyName, companyAddress, companyTaxNumber, footerText) =
+                await ResolveReceiptCompanyContextAsync(receipt.Payment).ConfigureAwait(false);
+
             var header = new ReceiptHeaderDTO
             {
-                ShopName = companyProfile.CompanyName,
-                Address = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}"
+                ShopName = companyName,
+                Address = companyAddress
             };
 
             var company = new ReceiptCompanyDTO
             {
-                Name = companyProfile.CompanyName,
-                Address = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}",
-                TaxNumber = receipt.Payment?.Steuernummer ?? companyProfile.TaxNumber
+                Name = companyName,
+                Address = companyAddress,
+                TaxNumber = companyTaxNumber
             };
 
             var signature = explicitSig ?? new ReceiptSignatureDTO
@@ -622,7 +707,7 @@ namespace KasseAPI_Final.Services
                 },
                 
                 Signature = signature,
-                FooterText = companyProfile.FooterText
+                FooterText = footerText
             };
         }
 

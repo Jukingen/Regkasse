@@ -29,7 +29,7 @@ const SETTINGS_TAB_META: Record<
     SettingsAreaRoutePath,
     { labelKey: string; Icon: ComponentType }
 > = {
-    '/settings': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
+    '/settings/company': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
     '/settings/session': { labelKey: ADMIN_NAV_LABEL_KEYS.sessionSettings, Icon: ClockCircleOutlined },
     '/settings/personalization': { labelKey: ADMIN_NAV_LABEL_KEYS.personalization, Icon: BgColorsOutlined },
     '/settings/payment-methods': { labelKey: ADMIN_NAV_LABEL_KEYS.paymentMethods, Icon: CreditCardOutlined },
@@ -64,7 +64,7 @@ export function SettingsSecondaryNav() {
     for (const route of sorted) {
       if (pathname === route || pathname.startsWith(`${route}/`)) return [route];
     }
-    return ['/settings'];
+    return ['/settings/company'];
   }, [pathname]);
 
   return (

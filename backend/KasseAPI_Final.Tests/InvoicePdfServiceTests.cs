@@ -130,7 +130,7 @@ public sealed class InvoicePdfServiceTests
         email ??= CreateEmailMock(emailConfigured).Object;
         audit ??= Mock.Of<IAuditLogService>();
 
-        return new InvoicePdfService(
+        var invoiceService = new InvoiceService(
             db,
             TenantTestDoubles.CompanyProfileProviderReturning(new CompanyProfileOptions
             {
@@ -140,6 +140,11 @@ public sealed class InvoicePdfServiceTests
                 ZipCode = "1010",
                 City = "Wien",
             }),
+            TenantTestDoubles.PrimaryTenantResolver);
+
+        return new InvoicePdfService(
+            db,
+            invoiceService,
             email,
             audit,
             new HttpContextAccessor(),

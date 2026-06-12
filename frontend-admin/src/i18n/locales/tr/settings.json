@@ -3,7 +3,7 @@
     "collapseTitle": "Alanlar ve baglantilar",
     "intro": "Bu sayfalar backoffice yapilandirmasidir; fakat farkli bounded context'lere aittir:",
     "rowSystem": "Sistem (global): vergi oranlari, yedekleme, bildirimler — API `GET/PUT /api/Settings` (SystemSettings). Ayri admin arayuzu yok.",
-    "rowCompany": "Sirket ve mali (tenant): ana veri, FinanzOnline, TSE varsayilanlari — bu bolge (`/api/CompanySettings`).",
+    "rowCompany": "Sirket ve mali (tenant): ana veri, FinanzOnline, TSE varsayilanlari — `/api/company/settings` (eski: `/api/CompanySettings`).",
     "rowUser": "Kullanici: POS / kasa tercihleri — `GET/PUT /api/user/settings` (UserSettings), tenant geneli degil.",
     "rowReceipt": "Fis sablonlari ve metinler — Kasse & Belege → Fis sablonlari (`/receipt-templates`).",
     "rowRksv": "RKSV operasyonu (outbox, butunluk, tani) — RKSV menusu, sirket ayarlari altinda degil.",
@@ -18,6 +18,28 @@
     "empty": "Hiç şirket ayarı dönmedi.",
     "saveChanges": "Değişiklikleri kaydet",
     "saveFailed": "Kaydetme başarısız oldu."
+  },
+  "companyPage": {
+    "pageTitle": "Firma bilgileri",
+    "cardTitle": "Firma bilgileri",
+    "saveSuccess": "Firma bilgileri güncellendi.",
+    "rksvInfoTitle": "RKSV uyumu",
+    "rksvInfoDescription": "Firma adı, adres ve vergi numarası tüm fiş ve faturalarda görünür. Bu bilgiler Avusturya RKSV mevzuatı gereği zorunludur.",
+    "requiredFieldsTitle": "Zorunlu alanlar (RKSV)",
+    "requiredFieldsDescription": "Bu alanlar mali uyumluluk için zorunludur.",
+    "optionalSectionTitle": "İsteğe bağlı bilgiler",
+    "phone": "Telefon",
+    "email": "E-posta",
+    "receiptFooter": "Fiş alt bilgisi",
+    "placeholderCompanyName": "örn. Mustafa's Cafe GmbH",
+    "placeholderAddress": "Viyana, Hauptstraße 123",
+    "placeholderPhone": "+43 123 456789",
+    "placeholderEmail": "info@cafe.at",
+    "placeholderWebsite": "https://www.cafe.at",
+    "placeholderReceiptFooter": "Teşekkür ederiz!",
+    "reset": "Sıfırla",
+    "advancedHint": "FinanzOnline, TSE, yerelleştirme ve şifre ayarları için",
+    "advancedLink": "mali ve entegrasyon ayarları sayfasına gidin"
   },
   "display": {
     "emptyValue": "—"

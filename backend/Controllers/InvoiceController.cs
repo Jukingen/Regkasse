@@ -24,6 +24,7 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly ILogger<InvoiceController> _logger;
         private readonly ICompanyProfileProvider _companyProfileProvider;
+        private readonly IInvoiceService _invoiceService;
         private readonly IReceiptSequenceService _receiptSequenceService;
         private readonly ITseService _tseService;
         private readonly IInvoicePdfService _invoicePdfService;
@@ -32,6 +33,7 @@ namespace KasseAPI_Final.Controllers
             AppDbContext context,
             ILogger<InvoiceController> logger,
             ICompanyProfileProvider companyProfileProvider,
+            IInvoiceService invoiceService,
             IReceiptSequenceService receiptSequenceService,
             ITseService tseService,
             IInvoicePdfService invoicePdfService)
@@ -39,6 +41,7 @@ namespace KasseAPI_Final.Controllers
             _context = context;
             _logger = logger;
             _companyProfileProvider = companyProfileProvider;
+            _invoiceService = invoiceService;
             _receiptSequenceService = receiptSequenceService;
             _tseService = tseService;
             _invoicePdfService = invoicePdfService;
@@ -395,49 +398,16 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(HttpContext.RequestAborted);
                 var invoice = await _context.Invoices.FindAsync(id);
 
                 if (invoice == null || !invoice.IsActive)
                 {
-                    var posInvoice = await _context.PaymentDetails.FindAsync(id);
-                    if (posInvoice == null || !posInvoice.IsActive)
-                    {
+                    var posPayment = await _context.PaymentDetails.FindAsync(id);
+                    if (posPayment == null || !posPayment.IsActive)
                         return NotFound("Fatura bulunamadı");
-                    }
 
-                    var kassenFromReg = await _context.CashRegisters.AsNoTracking()
-                        .Where(r => r.Id == posInvoice.CashRegisterId)
-                        .Select(r => r.RegisterNumber)
-                        .FirstOrDefaultAsync() ?? "";
-
-                    invoice = new Invoice
-                    {
-                        Id = posInvoice.Id,
-                        InvoiceNumber = posInvoice.ReceiptNumber,
-                        InvoiceDate = posInvoice.CreatedAt,
-                        DueDate = posInvoice.CreatedAt,
-                        Status = InvoiceStatus.Paid,
-                        Subtotal = posInvoice.TotalAmount - posInvoice.TaxAmount,
-                        TaxAmount = posInvoice.TaxAmount,
-                        TotalAmount = posInvoice.TotalAmount,
-                        PaidAmount = posInvoice.TotalAmount,
-                        RemainingAmount = 0,
-                        CustomerName = posInvoice.CustomerName,
-                        CustomerTaxNumber = posInvoice.Steuernummer,
-                        CompanyName = companyProfile.CompanyName ?? string.Empty, // Filled from CompanyProfile
-                        CompanyTaxNumber = companyProfile.TaxNumber ?? string.Empty,
-                        CompanyAddress = $"{companyProfile.Street} {companyProfile.ZipCode} {companyProfile.City}".Trim(),
-                        TseSignature = posInvoice.TseSignature,
-                        KassenId = kassenFromReg,
-                        CashRegisterId = posInvoice.CashRegisterId,
-                        TseTimestamp = posInvoice.TseTimestamp,
-                        PaymentMethod = posInvoice.PaymentMethod,
-                        InvoiceItems = posInvoice.PaymentItems,
-                        TaxDetails = posInvoice.TaxDetails,
-                        IsActive = true,
-                        InvoiceDataProvenance = "DerivedFromPayment"
-                    };
+                    invoice = await _invoiceService.ResolveInvoiceFromPaymentAsync(
+                        posPayment, HttpContext.RequestAborted);
                 }
 
                 return Ok(invoice);
@@ -891,9 +861,6 @@ namespace KasseAPI_Final.Controllers
 
             try
             {
-                var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(HttpContext.RequestAborted);
-                var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
-
                 // Load only active payments with a ReceiptNumber (real POS transactions)
                 var payments = await _context.PaymentDetails
                     .AsNoTracking()
@@ -936,6 +903,8 @@ namespace KasseAPI_Final.Controllers
                             continue;
                         }
 
+                        var derived = await _invoiceService.ResolveInvoiceFromPaymentAsync(
+                            payment, HttpContext.RequestAborted);
                         var invoice = new Invoice
                         {
                             Id = Guid.NewGuid(),
@@ -943,28 +912,30 @@ namespace KasseAPI_Final.Controllers
                             InvoiceNumber = string.IsNullOrEmpty(payment.ReceiptNumber)
                                 ? $"BF-{payment.Id:N}"
                                 : payment.ReceiptNumber,
-                            InvoiceDate = payment.CreatedAt,
-                            DueDate = payment.CreatedAt,
-                            Status = InvoiceStatus.Paid,
-                            Subtotal = payment.TotalAmount - payment.TaxAmount,
-                            TaxAmount = payment.TaxAmount,
-                            TotalAmount = payment.TotalAmount,
-                            PaidAmount = payment.TotalAmount,
-                            RemainingAmount = 0,
-                            CustomerName = payment.CustomerName,
-                            CustomerTaxNumber = payment.Steuernummer,
-                            CompanyName = companyProfile.CompanyName,
-                            CompanyTaxNumber = companyProfile.TaxNumber,
-                            CompanyAddress = companyAddress,
-                            TseSignature = payment.TseSignature ?? string.Empty,
+                            InvoiceDate = derived.InvoiceDate,
+                            DueDate = derived.DueDate,
+                            Status = derived.Status,
+                            Subtotal = derived.Subtotal,
+                            TaxAmount = derived.TaxAmount,
+                            TotalAmount = derived.TotalAmount,
+                            PaidAmount = derived.PaidAmount,
+                            RemainingAmount = derived.RemainingAmount,
+                            CustomerName = derived.CustomerName,
+                            CustomerTaxNumber = derived.CustomerTaxNumber,
+                            CompanyName = derived.CompanyName,
+                            CompanyTaxNumber = derived.CompanyTaxNumber,
+                            CompanyAddress = derived.CompanyAddress,
+                            CompanyPhone = derived.CompanyPhone,
+                            CompanyEmail = derived.CompanyEmail,
+                            TseSignature = derived.TseSignature,
                             KassenId = regNum,
-                            TseTimestamp = payment.TseTimestamp,
-                            CashRegisterId = payment.CashRegisterId,
-                            PaymentMethod = payment.PaymentMethod,
-                            PaymentReference = payment.TransactionId,
-                            PaymentDate = payment.CreatedAt,
-                            InvoiceItems = payment.PaymentItems,
-                            TaxDetails = payment.TaxDetails,
+                            TseTimestamp = derived.TseTimestamp,
+                            CashRegisterId = derived.CashRegisterId,
+                            PaymentMethod = derived.PaymentMethod,
+                            PaymentReference = derived.PaymentReference,
+                            PaymentDate = derived.PaymentDate,
+                            InvoiceItems = derived.InvoiceItems,
+                            TaxDetails = derived.TaxDetails,
                             CreatedAt = DateTime.UtcNow,
                             IsActive = true
                         };

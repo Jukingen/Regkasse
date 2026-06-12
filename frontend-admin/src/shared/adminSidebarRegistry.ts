@@ -340,8 +340,8 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     },
     companySettings: {
         id: 'companySettings',
-        menuKey: '/settings',
-        href: '/settings',
+        menuKey: '/settings/company',
+        href: '/settings/company',
         labelKey: 'nav.companySettings',
         icon: 'ShopOutlined',
     },

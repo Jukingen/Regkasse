@@ -8,7 +8,7 @@
  * - Group open-state: `ADMIN_SIDEBAR_GROUP_ROUTES[grp-verwaltung]` includes these after `/users`.
  */
 export const SETTINGS_AREA_ROUTE_PATHS = [
-    '/settings',
+    '/settings/company',
     '/settings/session',
     '/settings/personalization',
     '/settings/payment-methods',

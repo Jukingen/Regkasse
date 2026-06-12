@@ -174,8 +174,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedBy = actorUserId,
                 IsActive = true,
             };
+            CompanyProfileMapper.ApplySnapshot(payment, companyProfile);
 
-            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
+            var companyAddress = payment.CompanyAddress
+                ?? $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -191,8 +193,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = companyProfile.CompanyName,
-                CompanyTaxNumber = companyProfile.TaxNumber,
+                CompanyName = payment.CompanyName ?? companyProfile.CompanyName,
+                CompanyTaxNumber = payment.Steuernummer,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,
@@ -483,8 +485,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedBy = actorUserId,
                 IsActive = true,
             };
+            CompanyProfileMapper.ApplySnapshot(payment, companyProfile);
 
-            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
+            var companyAddress = payment.CompanyAddress
+                ?? $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -500,8 +504,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = companyProfile.CompanyName,
-                CompanyTaxNumber = companyProfile.TaxNumber,
+                CompanyName = payment.CompanyName ?? companyProfile.CompanyName,
+                CompanyTaxNumber = payment.Steuernummer,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,
@@ -708,8 +712,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedBy = actorUserId,
                 IsActive = true,
             };
+            CompanyProfileMapper.ApplySnapshot(payment, companyProfile);
 
-            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
+            var companyAddress = payment.CompanyAddress
+                ?? $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -725,8 +731,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = companyProfile.CompanyName,
-                CompanyTaxNumber = companyProfile.TaxNumber,
+                CompanyName = payment.CompanyName ?? companyProfile.CompanyName,
+                CompanyTaxNumber = payment.Steuernummer,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,
@@ -920,8 +926,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedBy = actorUserId,
                 IsActive = true,
             };
+            CompanyProfileMapper.ApplySnapshot(payment, companyProfile);
 
-            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
+            var companyAddress = payment.CompanyAddress
+                ?? $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -937,8 +945,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = companyProfile.CompanyName,
-                CompanyTaxNumber = companyProfile.TaxNumber,
+                CompanyName = payment.CompanyName ?? companyProfile.CompanyName,
+                CompanyTaxNumber = payment.Steuernummer,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,
@@ -1139,8 +1147,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 CreatedBy = actorUserId,
                 IsActive = true,
             };
+            CompanyProfileMapper.ApplySnapshot(payment, companyProfile);
 
-            var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
+            var companyAddress = payment.CompanyAddress
+                ?? $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
             var invoice = new Invoice
             {
                 Id = Guid.NewGuid(),
@@ -1156,8 +1166,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RemainingAmount = 0m,
                 CustomerName = guest.Name,
                 CustomerTaxNumber = payment.Steuernummer,
-                CompanyName = companyProfile.CompanyName,
-                CompanyTaxNumber = companyProfile.TaxNumber,
+                CompanyName = payment.CompanyName ?? companyProfile.CompanyName,
+                CompanyTaxNumber = payment.Steuernummer,
                 CompanyAddress = companyAddress,
                 TseSignature = payment.TseSignature,
                 KassenId = register.RegisterNumber,

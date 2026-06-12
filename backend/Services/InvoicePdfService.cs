@@ -14,7 +14,7 @@ namespace KasseAPI_Final.Services;
 public sealed class InvoicePdfService : IInvoicePdfService
 {
     private readonly AppDbContext _context;
-    private readonly ICompanyProfileProvider _companyProfileProvider;
+    private readonly IInvoiceService _invoiceService;
     private readonly IInvoiceEmailService _invoiceEmailService;
     private readonly IAuditLogService _auditLogService;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -27,14 +27,14 @@ public sealed class InvoicePdfService : IInvoicePdfService
 
     public InvoicePdfService(
         AppDbContext context,
-        ICompanyProfileProvider companyProfileProvider,
+        IInvoiceService invoiceService,
         IInvoiceEmailService invoiceEmailService,
         IAuditLogService auditLogService,
         IHttpContextAccessor httpContextAccessor,
         ILogger<InvoicePdfService> logger)
     {
         _context = context;
-        _companyProfileProvider = companyProfileProvider;
+        _invoiceService = invoiceService;
         _invoiceEmailService = invoiceEmailService;
         _auditLogService = auditLogService;
         _httpContextAccessor = httpContextAccessor;
@@ -123,48 +123,15 @@ public sealed class InvoicePdfService : IInvoicePdfService
         if (invoice != null)
             return invoice;
 
-        var posInvoice = await _context.PaymentDetails
+        var posPayment = await _context.PaymentDetails
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id && p.IsActive, cancellationToken)
             .ConfigureAwait(false);
 
-        if (posInvoice == null)
+        if (posPayment == null)
             throw new KeyNotFoundException($"Invoice {id} not found.");
 
-        var companyProfile = await _companyProfileProvider.GetCompanyProfileAsync(cancellationToken).ConfigureAwait(false);
-        var kassenId = await _context.CashRegisters.AsNoTracking()
-            .Where(r => r.Id == posInvoice.CashRegisterId)
-            .Select(r => r.RegisterNumber)
-            .FirstOrDefaultAsync(cancellationToken)
-            .ConfigureAwait(false) ?? string.Empty;
-
-        return new Invoice
-        {
-            Id = posInvoice.Id,
-            InvoiceNumber = posInvoice.ReceiptNumber,
-            InvoiceDate = posInvoice.CreatedAt,
-            DueDate = posInvoice.CreatedAt,
-            Status = InvoiceStatus.Paid,
-            Subtotal = posInvoice.TotalAmount - posInvoice.TaxAmount,
-            TaxAmount = posInvoice.TaxAmount,
-            TotalAmount = posInvoice.TotalAmount,
-            PaidAmount = posInvoice.TotalAmount,
-            RemainingAmount = 0,
-            CustomerName = posInvoice.CustomerName,
-            CustomerTaxNumber = posInvoice.Steuernummer,
-            CompanyName = companyProfile.CompanyName ?? string.Empty,
-            CompanyTaxNumber = companyProfile.TaxNumber ?? string.Empty,
-            CompanyAddress = $"{companyProfile.Street} {companyProfile.ZipCode} {companyProfile.City}".Trim(),
-            TseSignature = posInvoice.TseSignature,
-            KassenId = kassenId,
-            CashRegisterId = posInvoice.CashRegisterId,
-            TseTimestamp = posInvoice.TseTimestamp,
-            PaymentMethod = posInvoice.PaymentMethod,
-            InvoiceItems = posInvoice.PaymentItems,
-            TaxDetails = posInvoice.TaxDetails,
-            IsActive = true,
-            InvoiceDataProvenance = "DerivedFromPayment",
-        };
+        return await _invoiceService.ResolveInvoiceFromPaymentAsync(posPayment, cancellationToken).ConfigureAwait(false);
     }
 
     private static byte[] BuildPdf(Invoice invoice, bool copy)

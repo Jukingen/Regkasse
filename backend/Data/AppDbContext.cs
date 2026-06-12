@@ -831,6 +831,8 @@ namespace KasseAPI_Final.Data
                     .HasColumnName("certificate_thumbprint");
                 entity.HasIndex(e => e.CertificateThumbprint)
                     .HasFilter("\"certificate_thumbprint\" IS NOT NULL");
+                entity.Property(e => e.CompanyName).HasMaxLength(100);
+                entity.Property(e => e.CompanyAddress).HasMaxLength(200);
                 entity.Property(e => e.PrevSignatureValueUsed).HasColumnType("text");
                 entity.Property(e => e.JwsHeader).HasColumnType("text");
                 entity.Property(e => e.JwsPayload).HasColumnType("text");

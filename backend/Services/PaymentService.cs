@@ -1077,6 +1077,9 @@ namespace KasseAPI_Final.Services
                         TableNumber = request.TableNumber,
                         CashierId = userId,
                         Steuernummer = effectiveSteuernummer,
+                        CompanyName = companyProfile.CompanyName,
+                        CompanyAddress = CompanyProfileMapper.FormatCompanyAddress(
+                            companyProfile.Street, companyProfile.ZipCode, companyProfile.City),
                         CashRegisterId = cashRegisterId,
                         TseTimestamp = DateTime.UtcNow,
                         IsPrinted = false,
@@ -1129,7 +1132,9 @@ namespace KasseAPI_Final.Services
                         }
                     }
 
-                    var companyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}";
+                    var companyAddress = payment.CompanyAddress
+                        ?? CompanyProfileMapper.FormatCompanyAddress(
+                            companyProfile.Street, companyProfile.ZipCode, companyProfile.City);
 
                     posInvoice = new Invoice
                     {
@@ -1146,8 +1151,8 @@ namespace KasseAPI_Final.Services
                         RemainingAmount = 0,
                         CustomerName = payment.CustomerName,
                         CustomerTaxNumber = payment.Steuernummer,
-                        CompanyName = companyProfile.CompanyName,
-                        CompanyTaxNumber = companyProfile.TaxNumber,
+                        CompanyName = payment.CompanyName ?? companyProfile.CompanyName,
+                        CompanyTaxNumber = payment.Steuernummer,
                         CompanyAddress = companyAddress,
                         TseSignature = payment.TseSignature ?? string.Empty,
                         KassenId = registerNumber,
@@ -2010,6 +2015,7 @@ namespace KasseAPI_Final.Services
                     ReceiptNumber = stornoBelegNr,
                     CancelIdempotencyKey = cancelIdempotencyKey
                 };
+                CompanyProfileMapper.CopySnapshotFromOriginal(storno, payment, companyProfile);
 
                 TseSignatureResult sigResult;
                 try
@@ -2057,9 +2063,9 @@ namespace KasseAPI_Final.Services
                     RemainingAmount = 0,
                     CustomerName = storno.CustomerName,
                     CustomerTaxNumber = payment.Steuernummer,
-                    CompanyName = companyProfile.CompanyName,
-                    CompanyTaxNumber = companyProfile.TaxNumber,
-                    CompanyAddress = companyAddress,
+                    CompanyName = storno.CompanyName ?? companyProfile.CompanyName,
+                    CompanyTaxNumber = storno.Steuernummer,
+                    CompanyAddress = storno.CompanyAddress ?? companyAddress,
                     TseSignature = storno.TseSignature ?? string.Empty,
                     KassenId = registerNumber,
                     TseTimestamp = storno.TseTimestamp,
@@ -2463,6 +2469,7 @@ namespace KasseAPI_Final.Services
                         ReceiptNumber = refundBelegNr,
                         IdempotencyKey = refundKey
                     };
+                    CompanyProfileMapper.CopySnapshotFromOriginal(refund, payment, companyProfile);
 
                     TseSignatureResult sigResult;
                     try
@@ -2510,9 +2517,9 @@ namespace KasseAPI_Final.Services
                         RemainingAmount = 0,
                         CustomerName = refund.CustomerName,
                         CustomerTaxNumber = payment.Steuernummer,
-                        CompanyName = companyProfile.CompanyName,
-                        CompanyTaxNumber = companyProfile.TaxNumber,
-                        CompanyAddress = companyAddress,
+                        CompanyName = refund.CompanyName ?? companyProfile.CompanyName,
+                        CompanyTaxNumber = refund.Steuernummer,
+                        CompanyAddress = refund.CompanyAddress ?? companyAddress,
                         TseSignature = refund.TseSignature ?? string.Empty,
                         KassenId = refundRegisterNumber,
                         TseTimestamp = refund.TseTimestamp,
@@ -2866,9 +2873,11 @@ namespace KasseAPI_Final.Services
                     PaidAmount = payment.TotalAmount,
                     RemainingAmount = 0,
                     CustomerName = payment.CustomerName,
-                    CompanyName = companyProfile.CompanyName,
-                    CompanyTaxNumber = companyProfile.TaxNumber,
-                    CompanyAddress = $"{companyProfile.Street}, {companyProfile.ZipCode} {companyProfile.City}",
+                    CompanyName = payment.CompanyName ?? companyProfile.CompanyName,
+                    CompanyTaxNumber = payment.Steuernummer,
+                    CompanyAddress = payment.CompanyAddress
+                        ?? CompanyProfileMapper.FormatCompanyAddress(
+                            companyProfile.Street, companyProfile.ZipCode, companyProfile.City),
                     TseSignature = payment.TseSignature,
                     KassenId = (await _context.CashRegisters.AsNoTracking().FirstOrDefaultAsync(r => r.Id == payment.CashRegisterId))?.RegisterNumber
                         ?? throw new InvalidOperationException("Cash register not found for FinanzOnline submit."),

@@ -116,4 +116,39 @@ internal static class CompanyProfileMapper
             city = rest[(space + 1)..].Trim();
         }
     }
+
+    /// <summary>Freeze RKSV §8 company header fields on a payment at transaction time.</summary>
+    public static void ApplySnapshot(PaymentDetails payment, CompanyProfileOptions profile)
+    {
+        payment.CompanyName = profile.CompanyName;
+        payment.CompanyAddress = FormatCompanyAddress(profile.Street, profile.ZipCode, profile.City);
+    }
+
+    /// <summary>Copy company snapshot from original payment (storno/refund); fall back to live profile for legacy rows.</summary>
+    public static void CopySnapshotFromOriginal(PaymentDetails target, PaymentDetails original, CompanyProfileOptions fallbackProfile)
+    {
+        target.CompanyName = !string.IsNullOrWhiteSpace(original.CompanyName)
+            ? original.CompanyName
+            : fallbackProfile.CompanyName;
+        target.CompanyAddress = !string.IsNullOrWhiteSpace(original.CompanyAddress)
+            ? original.CompanyAddress
+            : FormatCompanyAddress(fallbackProfile.Street, fallbackProfile.ZipCode, fallbackProfile.City);
+    }
+
+    /// <summary>Resolve RKSV §8 company block for receipt DTO (snapshot preferred over live settings).</summary>
+    public static (string Name, string Address, string TaxNumber) ResolveForDisplay(
+        PaymentDetails? payment,
+        CompanyProfileOptions liveProfile)
+    {
+        var name = !string.IsNullOrWhiteSpace(payment?.CompanyName)
+            ? payment!.CompanyName!
+            : liveProfile.CompanyName;
+        var address = !string.IsNullOrWhiteSpace(payment?.CompanyAddress)
+            ? payment!.CompanyAddress!
+            : FormatCompanyAddress(liveProfile.Street, liveProfile.ZipCode, liveProfile.City);
+        var taxNumber = !string.IsNullOrWhiteSpace(payment?.Steuernummer)
+            ? payment!.Steuernummer
+            : liveProfile.TaxNumber;
+        return (name, address, taxNumber);
+    }
 }

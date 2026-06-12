@@ -57,6 +57,14 @@ namespace KasseAPI_Final.Models
         [MaxLength(12)]
         [RegularExpression(@"^ATU\d{8}$", ErrorMessage = "Steuernummer formatı ATU12345678 olmalıdır")]
         public string Steuernummer { get; set; } = string.Empty; // Vergi numarası (ATU12345678)
+
+        /// <summary>RKSV §8 snapshot: Unternehmensbezeichnung at payment time (from <see cref="CompanySettings"/>).</summary>
+        [MaxLength(100)]
+        public string? CompanyName { get; set; }
+
+        /// <summary>RKSV §8 snapshot: Sitz der gewerblichen Betriebsstätte at payment time (from <see cref="CompanySettings"/>).</summary>
+        [MaxLength(200)]
+        public string? CompanyAddress { get; set; }
         
         /// <summary>FK to cash_registers. Required; no Guid.Empty. Fiscal display id (Kassen-ID) comes from CashRegister.RegisterNumber.</summary>
         [Required]

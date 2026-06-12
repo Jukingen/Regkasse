@@ -3,6 +3,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace KasseAPI_Final.Models
 {
+    /// <summary>
+    /// Tenant-wide company master data (single source of truth for POS receipts, invoices, and FinanzOnline).
+    /// RKSV §8 mandatory receipt fields are mapped from <see cref="CompanyName"/>, <see cref="CompanyAddress"/>,
+    /// and <see cref="CompanyTaxNumber"/>; values are snapshotted onto each <see cref="PaymentDetails"/> at sale time.
+    /// </summary>
     [Table("company_settings")]
     public class CompanySettings : BaseEntity, ITenantEntity
     {
@@ -12,10 +17,12 @@ namespace KasseAPI_Final.Models
 
         public virtual Tenant? Tenant { get; set; }
 
+        /// <summary>RKSV §8 — Firmenname / Unternehmensbezeichnung.</summary>
         [Required]
         [MaxLength(100)]
         public string CompanyName { get; set; } = string.Empty;
 
+        /// <summary>RKSV §8 — Firmenadresse / Sitz der gewerblichen Betriebsstätte.</summary>
         [Required]
         [MaxLength(200)]
         public string CompanyAddress { get; set; } = string.Empty;
@@ -30,6 +37,7 @@ namespace KasseAPI_Final.Models
         [MaxLength(100)]
         public string? CompanyWebsite { get; set; }
 
+        /// <summary>RKSV §8 — UID (Umsatzsteuer-Identifikationsnummer), format ATU12345678.</summary>
         [Required]
         [MaxLength(20)]
         public string CompanyTaxNumber { get; set; } = string.Empty;
