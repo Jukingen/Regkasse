@@ -112,7 +112,7 @@ function fiscalRksvClosingLeaves(t: (key: string) => string): NonNullable<MenuPr
                         <AdminSidebarLeafLink href={item.href}>
                             <span className={sidebarStyles.fiscalClosingLeafLinkInner}>
                                 <span className={sidebarStyles.fiscalClosingLeafText}>{text}</span>
-                                <Tag className={sidebarStyles.fiscalClosingBadge} bordered={false}>
+                                <Tag className={sidebarStyles.fiscalClosingBadge} variant="filled">
                                     {badgeText}
                                 </Tag>
                             </span>

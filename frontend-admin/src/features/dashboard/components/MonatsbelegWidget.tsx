@@ -63,7 +63,7 @@ export function MonatsbelegWidget({ enabled = true }: MonatsbelegWidgetProps) {
         return (
             <Card
                 title="Monatsbeleg (RKSV)"
-                bordered={false}
+                variant="borderless"
                 style={{ marginBottom: 24 }}
                 extra={
                     <Button icon={<ReloadOutlined />} onClick={handleRetry} size="small" loading={isFetching}>
@@ -86,7 +86,7 @@ export function MonatsbelegWidget({ enabled = true }: MonatsbelegWidgetProps) {
 
     if (isLoading) {
         return (
-            <Card title="Monatsbeleg (RKSV)" bordered={false} style={{ marginBottom: 24 }}>
+            <Card title="Monatsbeleg (RKSV)" variant="borderless" style={{ marginBottom: 24 }}>
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 128 }}>
                     <Spin description="Lade Monatsbeleg-Daten…" />
                 </div>
@@ -98,7 +98,7 @@ export function MonatsbelegWidget({ enabled = true }: MonatsbelegWidgetProps) {
         return (
             <Card
                 title="Monatsbeleg (RKSV)"
-                bordered={false}
+                variant="borderless"
                 style={{ marginBottom: 24 }}
                 extra={
                     <Button icon={<ReloadOutlined />} onClick={handleRetry} size="small" loading={isFetching}>

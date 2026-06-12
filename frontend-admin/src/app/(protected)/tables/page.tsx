@@ -50,7 +50,7 @@ export default function TablesAdminPage() {
       {isError ? (
         <Alert type="error" showIcon title={t('adminShell.tablesAdmin.loadError')} description={errMsg} />
       ) : (
-        <Card bordered={false}>
+        <Card variant="borderless">
           <Table<TableInfo>
             rowKey="id"
             loading={isLoading}

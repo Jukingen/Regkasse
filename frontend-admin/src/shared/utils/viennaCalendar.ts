@@ -29,3 +29,24 @@ export function getMonthDifference(year: number, month: number, now: Date = new 
     const targetAnchor = year * 12 + (month - 1);
     return currentAnchor - targetAnchor;
 }
+
+/** Compares an ISO UTC timestamp to the current Vienna calendar date. */
+export function isSameViennaCalendarDay(isoUtc: string | null | undefined, now: Date = new Date()): boolean {
+    if (!isoUtc?.trim()) {
+        return false;
+    }
+
+    const parsed = new Date(isoUtc);
+    if (Number.isNaN(parsed.getTime())) {
+        return false;
+    }
+
+    const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Vienna',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+
+    return fmt.format(parsed) === fmt.format(now);
+}

@@ -76,6 +76,7 @@ namespace KasseAPI_Final.Services
         private readonly IDevelopmentModeService? _developmentModeService;
         private readonly LicenseOptions? _licenseOptions;
         private readonly IPaymentReversalApprovalService _reversalApproval;
+        private readonly ICardPaymentService? _cardPaymentService;
 
         public PaymentService(
             AppDbContext context,
@@ -111,7 +112,8 @@ namespace KasseAPI_Final.Services
             IOptionsMonitor<DevelopmentOptions>? developmentOptions = null,
             IDevelopmentModeService? developmentModeService = null,
             IOptions<LicenseOptions>? licenseOptions = null,
-            IPaymentReversalApprovalService? reversalApproval = null)
+            IPaymentReversalApprovalService? reversalApproval = null,
+            ICardPaymentService? cardPaymentService = null)
         {
             _context = context;
             _paymentRepository = paymentRepository;
@@ -147,6 +149,7 @@ namespace KasseAPI_Final.Services
             _developmentModeService = developmentModeService;
             _licenseOptions = licenseOptions?.Value;
             _reversalApproval = reversalApproval ?? NoOpPaymentReversalApprovalService.Instance;
+            _cardPaymentService = cardPaymentService;
         }
 
         /// <summary>
@@ -884,6 +887,52 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
+                CardPaymentTransaction? validatedCardTransaction = null;
+                if (IsCardLegacyPayment(methodResolution.LegacyRaw) && _cardPaymentService != null)
+                {
+                    var cardIntentId = request.Payment.CardPaymentIntentId;
+                    if (cardIntentId.HasValue && cardIntentId.Value != Guid.Empty)
+                    {
+                        var (cardOk, cardTxn, cardErrCode, cardErrMsg) = await _cardPaymentService
+                            .ValidateForFiscalPaymentAsync(cardIntentId.Value, totalAmount, cashRegisterId)
+                            .ConfigureAwait(false);
+                        if (!cardOk)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = cardErrMsg ?? "Card payment intent validation failed.",
+                                Errors = { cardErrMsg ?? "Card payment intent validation failed." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = cardErrCode ?? "CARD_INTENT_INVALID"
+                            };
+                        }
+
+                        validatedCardTransaction = cardTxn;
+                    }
+                    else
+                    {
+                        var (cardOk, _, cardErrCode, cardErrMsg) = await _cardPaymentService
+                            .ValidateForFiscalPaymentAsync(Guid.Empty, totalAmount, cashRegisterId)
+                            .ConfigureAwait(false);
+                        if (!cardOk)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = cardErrMsg ?? "Card payment requires a confirmed card payment intent.",
+                                Errors = { cardErrMsg ?? "Card payment requires a confirmed card payment intent." },
+                                IsDeterministicFailure = true,
+                                DiagnosticCode = cardErrCode ?? "CARD_INTENT_REQUIRED"
+                            };
+                        }
+                    }
+                }
+
                 var isVoucherMethodResolved = IsVoucherLegacyPayment(methodResolution.LegacyRaw);
                 var expectedVoucherTotal = decimal.Round(totalAmount, 2, MidpointRounding.AwayFromZero);
                 if (!isVoucherMethodResolved && hasVoucherPayload)
@@ -1034,7 +1083,9 @@ namespace KasseAPI_Final.Services
                         IdempotencyKey = idempotencyKey,
                         OfflineTransactionId = offlineTransactionId,
                         OfflineReplayBatchCorrelationId = offlineReplayBatchCorrelationId,
-                        TimeSyncWarning = timeSyncWarningForPayment
+                        TimeSyncWarning = timeSyncWarningForPayment,
+                        TransactionId = validatedCardTransaction?.GatewayTransactionId,
+                        Provider = validatedCardTransaction?.Gateway
                     };
 
                     // TSE imzası oluştur (eğer gerekliyse). External call; if it fails we rollback the transaction (no DB changes committed yet).
@@ -1270,6 +1321,13 @@ namespace KasseAPI_Final.Services
                         createdPayment.Id, customer.Id, createdInvoice.Id);
 
                     await DispatchPostCommitComplianceAsync(createdPayment, createdInvoice, userId, offlineReplayBatchCorrelationId, effectiveTseRequired);
+
+                    if (_cardPaymentService != null
+                        && request.Payment.CardPaymentIntentId is Guid cardIntentId
+                        && cardIntentId != Guid.Empty)
+                    {
+                        await _cardPaymentService.LinkToPaymentAsync(cardIntentId, createdPayment.Id).ConfigureAwait(false);
+                    }
 
                     var (qrPayload, isDemoFiscal, tseProvider) = await BuildQrPayloadAndFlagsAsync(createdPayment, effectiveTseRequired);
                     return new PaymentResult

@@ -18,6 +18,7 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { normalizeCashRegisterList } from '@/features/cash-registers/normalizers';
+import { CashRegisterShiftRksvGuide } from '@/features/cash-registers/components/CashRegisterShiftRksvGuide';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import { CashRegisterTenantSelector } from '@/features/cash-registers/components/CashRegisterTenantSelector';
 import { CreateCashRegisterModal } from '@/features/cash-registers/components/CreateCashRegisterModal';
@@ -321,6 +322,8 @@ export default function KassenverwaltungPage() {
                     {t('cashRegisters.pageIntro')}
                 </Typography.Paragraph>
             </AdminPageScopeSummary>
+
+            <CashRegisterShiftRksvGuide />
 
             <Card>
                 <Space style={{ marginBottom: 16 }} wrap align="center">

@@ -26,6 +26,7 @@ import {
     type DemoImportPriceAdjustmentState,
 } from '@/features/tenants/components/demo-import/priceAdjustment';
 import { buildImportRequest } from '@/features/tenants/components/demo-import/utils';
+import { CATEGORY_GROUPS, enrichGroupsWithCatalog } from '@/features/tenants/components/demo-import/categoryGroups';
 import { DemoImportSummaryModal } from '@/features/tenants/components/demo-import/DemoImportSummaryModal';
 
 export type DemoImportModalProps = {
@@ -88,6 +89,7 @@ export function DemoImportModal({ open, tenantId, tenantName, tenantSlug, onClos
     };
 
     const handleWizardImport = async (draft: {
+        selectedGroupNames: Set<string>;
         selectedProductIds: Set<string>;
         productOverrides: import('@/api/admin/products').DemoImportProductOverride[];
     }) => {
@@ -96,7 +98,20 @@ export function DemoImportModal({ open, tenantId, tenantName, tenantSlug, onClos
             return;
         }
 
-        const request = buildImportRequest(catalogQuery.data, draft.selectedProductIds, overwrite);
+        const categoryGroups = enrichGroupsWithCatalog(
+            CATEGORY_GROUPS,
+            new Map(catalogQuery.data.categories.map((category) => [category.name, category.productCount])),
+        );
+
+        const request = buildImportRequest(
+            catalogQuery.data,
+            draft.selectedProductIds,
+            overwrite,
+            {
+                selectedGroupNames: draft.selectedGroupNames,
+                categoryGroups,
+            },
+        );
         const apiRequest = {
             ...request,
             ...toPriceAdjustmentRequest(priceAdjustment),

@@ -53,6 +53,10 @@
     "detailsNote": "Zusätzliche Details (optional)"
   },
   "loadError": "Zahlungshistorie konnte nicht geladen werden",
+  "preparingRegister": "Kasse wird vorbereitet…",
+  "noRegisterTitle": "Keine Kasse ausgewählt",
+  "noRegister": "Bitte starten Sie zuerst eine Schicht oder wählen Sie eine Kasse aus.",
+  "selectRegister": "Kasse auswählen",
   "print": {
     "stornoFailed": "Storno-Beleg konnte nicht gedruckt werden",
     "refundFailed": "Erstattungsbeleg konnte nicht gedruckt werden"

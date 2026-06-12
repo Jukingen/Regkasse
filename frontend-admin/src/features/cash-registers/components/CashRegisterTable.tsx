@@ -2,16 +2,13 @@
 
 import type { Key } from 'react';
 import {
-    CheckCircleOutlined,
     CloudSyncOutlined,
     EnvironmentOutlined,
     EyeOutlined,
     FileProtectOutlined,
-    LockOutlined,
     MinusCircleOutlined,
     SafetyOutlined,
     StopOutlined,
-    ToolOutlined,
     ShopOutlined,
     UserOutlined,
 } from '@ant-design/icons';
@@ -20,6 +17,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { CashRegister } from '@/api/generated/model';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { CashRegisterQuickActions } from '@/features/cash-registers/components/CashRegisterQuickActions';
+import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
@@ -27,7 +25,6 @@ import {
     canDecommissionRegister,
     isDecommissionedRegister,
     rawRegisterStatus,
-    registerStatusTagColor,
 } from '@/features/cash-registers/utils/registerStatus';
 import styles from './CashRegisterTable.module.css';
 
@@ -51,7 +48,8 @@ export type CashRegisterTableProps = {
     /** Total registers before visibility filter (decommissioned hidden). */
     totalRegisterCount?: number;
     canDecommission: boolean;
-    statusLabel: (status: number | undefined) => string;
+    /** @deprecated Use localized labels inside CashRegisterStatusBadge. */
+    statusLabel?: (status: number | undefined) => string;
     rowClassName?: (record: CashRegister) => string;
     selectedRowKeys?: Key[];
     onSelectionChange?: (keys: Key[], rows: CashRegister[]) => void;
@@ -63,23 +61,6 @@ function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);
 }
 
-function getStatusIcon(status: number | undefined) {
-    switch (status) {
-        case 2:
-            return <CheckCircleOutlined />;
-        case 1:
-            return <LockOutlined />;
-        case 3:
-            return <ToolOutlined />;
-        case 4:
-            return <MinusCircleOutlined />;
-        case 5:
-            return <StopOutlined />;
-        default:
-            return <MinusCircleOutlined />;
-    }
-}
-
 export function CashRegisterTable({
     registers,
     loading,
@@ -87,7 +68,6 @@ export function CashRegisterTable({
     canManage = false,
     totalRegisterCount = 0,
     canDecommission,
-    statusLabel,
     rowClassName,
     selectedRowKeys,
     onSelectionChange,
@@ -138,12 +118,9 @@ export function CashRegisterTable({
             key: 'status',
             width: 180,
             render: (_: unknown, record) => {
-                const status = rawRegisterStatus(record);
                 return (
                     <div className={styles.statusCell}>
-                        <Tag color={registerStatusTagColor(status)} icon={getStatusIcon(status)}>
-                            {statusLabel(status)}
-                        </Tag>
+                        <CashRegisterStatusBadge register={record} useIcon />
                         <Typography.Text className={styles.cellSubtle}>
                             {record.isActive === false
                                 ? t('common.categories.table.inactive')

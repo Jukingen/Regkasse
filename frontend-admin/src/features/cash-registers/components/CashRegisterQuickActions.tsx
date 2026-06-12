@@ -8,7 +8,7 @@ import {
     LockOutlined,
     UnlockOutlined,
 } from '@ant-design/icons';
-import { Dropdown } from 'antd';
+import { Dropdown, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { CashRegister } from '@/api/generated/model';
@@ -138,11 +138,21 @@ export function CashRegisterQuickActions({
         return null;
     }
 
-    return (
+    const dropdown = (
         <Dropdown menu={{ items }} trigger={['click']}>
             <a onClick={(e) => e.preventDefault()}>
                 {t('cashRegisters.actions.quickActions')} <DownOutlined />
             </a>
         </Dropdown>
     );
+
+    if (canManage && isClosed) {
+        return (
+            <Tooltip title={t('cashRegisters.shiftGuidance.openActionTooltip')}>
+                {dropdown}
+            </Tooltip>
+        );
+    }
+
+    return dropdown;
 }

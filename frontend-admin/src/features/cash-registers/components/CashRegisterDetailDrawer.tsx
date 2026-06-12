@@ -9,17 +9,15 @@ import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
 import { getCashRegisterTseHealth } from '@/features/cash-registers/api/cashRegisters';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
-import {
-    rawRegisterStatus,
-    readDecommissionMeta,
-    registerStatusEmoji,
-    registerStatusTagColor,
-} from '@/features/cash-registers/utils/registerStatus';
+import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
+import { CashRegisterStatusContextAlert } from '@/features/cash-registers/components/CashRegisterStatusContextAlert';
+import { rawRegisterStatus, readDecommissionMeta } from '@/features/cash-registers/utils/registerStatus';
 export type CashRegisterDetailDrawerProps = {
     open: boolean;
     register: CashRegister | null;
     onClose: () => void;
-    statusLabel: (status: number | undefined) => string;
+    /** @deprecated Use CashRegisterStatusBadge. */
+    statusLabel?: (status: number | undefined) => string;
     onHardDelete?: () => void;
     showHardDelete?: boolean;
 };
@@ -28,7 +26,6 @@ export function CashRegisterDetailDrawer({
     open,
     register,
     onClose,
-    statusLabel,
     onHardDelete,
     showHardDelete,
 }: CashRegisterDetailDrawerProps) {
@@ -65,6 +62,9 @@ export function CashRegisterDetailDrawer({
             destroyOnHidden
         >
             {register ? (
+                <CashRegisterStatusContextAlert register={register} showOpenPrerequisites />
+            ) : null}
+            {register ? (
                 <Descriptions column={1} bordered size="small">
                     <Descriptions.Item label={t('cashRegisters.detail.location')}>
                         {register.location?.trim() || FORMAT_EMPTY_DISPLAY}
@@ -73,9 +73,7 @@ export function CashRegisterDetailDrawer({
                         {register.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.columns.status')}>
-                        <Tag color={registerStatusTagColor(status)}>
-                            {registerStatusEmoji(status)} {statusLabel(status)}
-                        </Tag>
+                        <CashRegisterStatusBadge register={register} />
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.createdAt')}>
                         {register.createdAt

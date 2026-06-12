@@ -182,6 +182,9 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>Optional multi-voucher split; amounts must sum to the fiscal sale total when method is voucher.</summary>
         public List<VoucherRedemptionRequestItem>? VoucherRedemptions { get; set; }
+
+        /// <summary>Confirmed card payment intent id when method is card (Stripe-ready two-step flow).</summary>
+        public Guid? CardPaymentIntentId { get; set; }
     }
     
     /// <summary>

@@ -80,6 +80,8 @@ export interface PaymentRequest {
     voucherCode?: string;
     /** Multi-voucher split; amounts must sum to fiscal total when used instead of voucherCode. */
     voucherRedemptions?: VoucherRedemptionPayloadItem[];
+    /** Confirmed card payment intent when method is card. */
+    cardPaymentIntentId?: string;
   };
   tableNumber: number;
   totalAmount: number;
@@ -565,9 +567,14 @@ class PaymentService {
   }
 
   // Payment history (canonical POS history API)
-  async getPaymentHistory(limit: number = 50, offset: number = 0, hours: number = 24) {
+  async getPaymentHistory(
+    limit: number = 50,
+    offset: number = 0,
+    hours: number = 24,
+    cashRegisterId?: string | null
+  ) {
     try {
-      return await fetchPaymentHistory({ limit, offset, hours });
+      return await fetchPaymentHistory({ limit, offset, hours, cashRegisterId });
     } catch (error) {
       console.error('Payment history fetch failed:', error);
       return parsePaymentHistoryResponse(null);

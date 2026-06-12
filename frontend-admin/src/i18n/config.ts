@@ -29,6 +29,7 @@ import deDashboard from './locales/de/dashboard.json';
 import deCashRegisters from './locales/de/cashRegisters.json';
 import deShifts from './locales/de/shifts.json';
 import dePaymentHistory from './locales/de/paymentHistory.json';
+import deCardTransactions from './locales/de/cardTransactions.json';
 import deActivityNotifications from './locales/de/activityNotifications.json';
 import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
 import enAdminShell from './locales/en/admin-shell.json';
@@ -62,6 +63,7 @@ import enDashboard from './locales/en/dashboard.json';
 import enCashRegisters from './locales/en/cashRegisters.json';
 import enShifts from './locales/en/shifts.json';
 import enPaymentHistory from './locales/en/paymentHistory.json';
+import enCardTransactions from './locales/en/cardTransactions.json';
 import enActivityNotifications from './locales/en/activityNotifications.json';
 import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
 import trAdminShell from './locales/tr/admin-shell.json';
@@ -95,6 +97,7 @@ import trDashboard from './locales/tr/dashboard.json';
 import trCashRegisters from './locales/tr/cashRegisters.json';
 import trShifts from './locales/tr/shifts.json';
 import trPaymentHistory from './locales/tr/paymentHistory.json';
+import trCardTransactions from './locales/tr/cardTransactions.json';
 import trActivityNotifications from './locales/tr/activityNotifications.json';
 import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
 
@@ -142,6 +145,7 @@ const catalogs = {
     cashRegisters: deCashRegisters,
     shifts: deShifts,
     paymentHistory: dePaymentHistory,
+    cardTransactions: deCardTransactions,
     activityNotifications: deActivityNotifications,
     suspiciousAlerts: deSuspiciousAlerts,
   },
@@ -177,6 +181,7 @@ const catalogs = {
     cashRegisters: enCashRegisters,
     shifts: enShifts,
     paymentHistory: enPaymentHistory,
+    cardTransactions: enCardTransactions,
     activityNotifications: enActivityNotifications,
     suspiciousAlerts: enSuspiciousAlerts,
   },
@@ -212,6 +217,7 @@ const catalogs = {
     cashRegisters: trCashRegisters,
     shifts: trShifts,
     paymentHistory: trPaymentHistory,
+    cardTransactions: trCardTransactions,
     activityNotifications: trActivityNotifications,
     suspiciousAlerts: trSuspiciousAlerts,
   },

@@ -19,6 +19,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/orders': PERMISSIONS.ORDER_VIEW,
   '/payments': PERMISSIONS.PAYMENT_VIEW,
   '/payments/trends': PERMISSIONS.PAYMENT_VIEW,
+  '/payments/card-transactions': PERMISSIONS.PAYMENT_VIEW,
+  '/admin/payments/card-transactions': PERMISSIONS.PAYMENT_VIEW,
   '/payments/storno-refund-audit': PERMISSIONS.PAYMENT_VIEW,
   '/admin/tse/offline-transactions': PERMISSIONS.PAYMENT_VIEW,
   '/vouchers/new': PERMISSIONS.VOUCHER_CREATE,

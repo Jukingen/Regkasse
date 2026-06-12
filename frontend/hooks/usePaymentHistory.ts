@@ -25,6 +25,17 @@ function readApiErrorMessage(error: unknown): string {
   return 'Zahlungshistorie konnte nicht geladen werden';
 }
 
+function isPaymentHistoryNoRegisterError(error: unknown): boolean {
+  const e = error as { response?: { status?: number; data?: unknown } } | null;
+  if (e?.response?.status !== 400) return false;
+  const data = e.response.data;
+  if (!data || typeof data !== 'object') return false;
+  const record = data as Record<string, unknown>;
+  const details = record.details;
+  if (!details || typeof details !== 'object') return false;
+  return (details as Record<string, unknown>).code === 'POS_PAYMENT_HISTORY_NO_REGISTER';
+}
+
 export type UsePaymentHistoryOptions = {
   hours?: number;
   limit?: number;
@@ -39,7 +50,8 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
   const hours = options.hours ?? 24;
   const limit = options.limit ?? 20;
   const offset = options.offset ?? 0;
-  const enabled = options.enabled !== false;
+  const cashRegisterId = options.cashRegisterId?.trim() || null;
+  const shouldFetch = options.enabled !== false && Boolean(cashRegisterId);
 
   const [data, setData] = useState<PaymentHistoryResponse | null>(null);
   const [payments, setPayments] = useState<PaymentHistoryItem[]>([]);
@@ -49,22 +61,35 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
 
   const refresh = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!enabled) return null;
+      if (!shouldFetch) {
+        setData(null);
+        setPayments([]);
+        setError(null);
+        return null;
+      }
+
       if (opts?.silent) setIsRefetching(true);
       else setIsLoading(true);
+      setError(null);
+
       try {
         const result = await fetchPaymentHistory({
           hours,
           language,
           limit,
           offset,
-          cashRegisterId: options.cashRegisterId,
+          cashRegisterId,
         });
         setData(result);
         setPayments(result.payments);
-        setError(null);
         return result;
       } catch (e) {
+        if (isPaymentHistoryNoRegisterError(e)) {
+          setData(null);
+          setPayments([]);
+          setError(null);
+          return null;
+        }
         setError(readApiErrorMessage(e));
         return null;
       } finally {
@@ -72,7 +97,7 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
         setIsRefetching(false);
       }
     },
-    [enabled, hours, language, limit, offset, options.cashRegisterId]
+    [shouldFetch, hours, language, limit, offset, cashRegisterId]
   );
 
   useEffect(() => {
@@ -86,6 +111,7 @@ export function usePaymentHistory(options: UsePaymentHistoryOptions = {}) {
     isRefetching,
     error,
     refresh,
+    refetch: refresh,
     hours,
     language,
   };

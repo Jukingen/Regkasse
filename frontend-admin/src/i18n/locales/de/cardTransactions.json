@@ -1,0 +1,41 @@
+{
+  "title": "Kartentransaktionen",
+  "empty": "Keine Kartentransaktionen im gewählten Zeitraum",
+  "filters": {
+    "status": "Status",
+    "register": "Kasse"
+  },
+  "actions": {
+    "refresh": "Aktualisieren",
+    "detail": "Details"
+  },
+  "columns": {
+    "createdAt": "Erstellt",
+    "amount": "Betrag",
+    "status": "Status",
+    "card": "Karte",
+    "gateway": "Gateway",
+    "register": "Kasse",
+    "receipt": "Beleg",
+    "transactionId": "Transaktions-ID",
+    "actions": "Aktion"
+  },
+  "status": {
+    "Created": "Erstellt",
+    "Pending": "Ausstehend",
+    "Succeeded": "Erfolgreich",
+    "Failed": "Fehlgeschlagen",
+    "Cancelled": "Storniert",
+    "Refunded": "Erstattet"
+  },
+  "drawer": {
+    "title": "Kartentransaktion",
+    "confirmedAt": "Bestätigt",
+    "error": "Fehler"
+  },
+  "modal": {
+    "title": "Kartentransaktion",
+    "confirmedAt": "Bestätigt",
+    "error": "Fehler"
+  }
+}

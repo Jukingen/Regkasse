@@ -1,0 +1,41 @@
+{
+  "title": "Card transactions",
+  "empty": "No card transactions in the selected period",
+  "filters": {
+    "status": "Status",
+    "register": "Register"
+  },
+  "actions": {
+    "refresh": "Refresh",
+    "detail": "Details"
+  },
+  "columns": {
+    "createdAt": "Created",
+    "amount": "Amount",
+    "status": "Status",
+    "card": "Card",
+    "gateway": "Gateway",
+    "register": "Register",
+    "receipt": "Receipt",
+    "transactionId": "Transaction ID",
+    "actions": "Action"
+  },
+  "status": {
+    "Created": "Created",
+    "Pending": "Pending",
+    "Succeeded": "Succeeded",
+    "Failed": "Failed",
+    "Cancelled": "Cancelled",
+    "Refunded": "Refunded"
+  },
+  "drawer": {
+    "title": "Card transaction",
+    "confirmedAt": "Confirmed",
+    "error": "Error"
+  },
+  "modal": {
+    "title": "Card transaction",
+    "confirmedAt": "Confirmed",
+    "error": "Error"
+  }
+}

@@ -20,6 +20,7 @@
   "offlineTransactionsAdmin": "Çevrimdışı işlemler (TSE)",
   "payments": "Ödemeler",
   "paymentTrends": "Ödeme trendleri",
+  "cardTransactions": "Kart işlemleri",
   "stornoRefundAudit": "Storno ve iade denetimi",
   "vouchers": "Hediye çekleri",
   "reporting": "Operasyonel raporlar",

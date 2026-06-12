@@ -27,15 +27,10 @@ public sealed class PosStatusService : IPosStatusService
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
+        // License lookups use their own DbContext factory; POS register + settings share scoped AppDbContext.
         var deploymentTask = _licenseService.GetCurrentStatusAsync(cancellationToken);
         var mandantTask = _licenseService.GetLicenseStatusAsync(tenantId, cancellationToken);
-        var cashRegisterTask = _cashRegisterReadiness.GetReadinessSnapshotForPosAsync(
-            userId,
-            principal,
-            cancellationToken);
-        var settingsTask = LoadSettingsSnapshotAsync(userId, cancellationToken);
-
-        await Task.WhenAll(deploymentTask, mandantTask, cashRegisterTask, settingsTask).ConfigureAwait(false);
+        await Task.WhenAll(deploymentTask, mandantTask).ConfigureAwait(false);
 
         var deployment = await deploymentTask.ConfigureAwait(false);
         var licenseDto = LicensePublicStatusMapper.MapDeploymentStatus(deployment);
@@ -44,6 +39,12 @@ public sealed class PosStatusService : IPosStatusService
             await mandantTask.ConfigureAwait(false));
 
         var healthSnapshot = _licenseService.GetStatus();
+
+        var cashRegister = await _cashRegisterReadiness.GetReadinessSnapshotForPosAsync(
+            userId,
+            principal,
+            cancellationToken).ConfigureAwait(false);
+        var settings = await LoadSettingsSnapshotAsync(userId, cancellationToken).ConfigureAwait(false);
 
         return new PosStatusOverviewDto
         {
@@ -60,8 +61,8 @@ public sealed class PosStatusService : IPosStatusService
                     : null,
                 MachineHash = healthSnapshot.MachineHash,
             },
-            CashRegister = await cashRegisterTask.ConfigureAwait(false),
-            Settings = await settingsTask.ConfigureAwait(false),
+            CashRegister = cashRegister,
+            Settings = settings,
         };
     }
 

@@ -1,5 +1,9 @@
 import type { DemoImportCatalog, DemoImportRequest } from '@/api/admin/products';
-import type { CategoryGroup } from './categoryGroups';
+import {
+    expandDemoCategoryReferences,
+    toLegacyImportCategoryName,
+    type CategoryGroup,
+} from './categoryGroups';
 
 export type CatalogProduct = DemoImportCatalog['products'][number];
 
@@ -14,7 +18,31 @@ export const PREDEFINED_TAX_RATES = [
 export const PRODUCTS_PAGE_SIZE = 8;
 
 export function getGroupCategoryNames(group: CategoryGroup): string[] {
-    return group.subcategories?.map((sub) => sub.name) ?? [group.name];
+    const rawNames = group.subcategories?.map((sub) => sub.name) ?? [group.name];
+    return [...new Set(rawNames.flatMap(expandDemoCategoryReferences))];
+}
+
+/** Maps selected wizard group keys (e.g. pizzas) to demo JSON subcategory names. */
+export function getSelectedCategoryNames(
+    selectedGroupNames: ReadonlySet<string> | readonly string[],
+    categoryGroups: CategoryGroup[],
+): string[] {
+    const selected =
+        selectedGroupNames instanceof Set ? selectedGroupNames : new Set(selectedGroupNames);
+
+    const categories: string[] = [];
+    for (const group of categoryGroups) {
+        if (!selected.has(group.name)) continue;
+        if (group.subcategories?.length) {
+            for (const sub of group.subcategories) {
+                categories.push(sub.name);
+            }
+        } else if (group.name) {
+            categories.push(group.name);
+        }
+    }
+
+    return [...new Set(categories)];
 }
 
 export function getProductsForGroup(group: CategoryGroup, catalogProducts: CatalogProduct[]): CatalogProduct[] {
@@ -78,14 +106,33 @@ export function buildImportRequest(
     catalog: DemoImportCatalog,
     selectedProductIds: Set<string>,
     overwriteExisting: boolean,
+    options?: {
+        selectedGroupNames?: ReadonlySet<string>;
+        categoryGroups?: CategoryGroup[];
+    },
 ): DemoImportRequest {
     const selected = catalog.products.filter((p) => selectedProductIds.has(p.id));
     if (selected.length === 0) {
         return { selectedCategories: [], overwriteExisting };
     }
 
-    const categories = [...new Set(selected.map((p) => p.category))];
-    const allInCategories = catalog.products.filter((p) => categories.includes(p.category));
+    const productLegacyCategories = [
+        ...new Set(selected.map((product) => toLegacyImportCategoryName(product.category))),
+    ];
+    const groupLegacyCategories =
+        options?.selectedGroupNames && options?.categoryGroups
+            ? getSelectedCategoryNames(options.selectedGroupNames, options.categoryGroups)
+            : [];
+
+    const selectedCategories =
+        groupLegacyCategories.length > 0
+            ? groupLegacyCategories.filter((legacyName) => productLegacyCategories.includes(legacyName))
+            : productLegacyCategories;
+
+    const categories = selectedCategories.length > 0 ? selectedCategories : productLegacyCategories;
+    const allInCategories = catalog.products.filter((product) =>
+        categories.includes(toLegacyImportCategoryName(product.category)),
+    );
     const isFullCategorySelection = selected.length === allInCategories.length;
 
     return {

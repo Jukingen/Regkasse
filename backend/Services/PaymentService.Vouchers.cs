@@ -14,6 +14,9 @@ public partial class PaymentService
     private static bool IsVoucherLegacyPayment(string legacyRaw) =>
         string.Equals(legacyRaw, ((int)PaymentMethod.Voucher).ToString(), StringComparison.Ordinal);
 
+    private static bool IsCardLegacyPayment(string legacyRaw) =>
+        string.Equals(legacyRaw, ((int)PaymentMethod.Card).ToString(), StringComparison.Ordinal);
+
     /// <summary>Per-voucher redemption line after validation (tracked entities).</summary>
     private sealed class VoucherRedeemLine
     {

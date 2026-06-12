@@ -19,7 +19,10 @@
   "paymentHistory": {
     "title": "Zahlungshistorie",
     "description": "Letzte 24 Stunden: Zahlungen anzeigen, stornieren oder erstatten.",
-    "open": "Zahlungshistorie öffnen"
+    "open": "Zahlungshistorie öffnen",
+    "noRegisterTitle": "Keine Kasse ausgewählt",
+    "noRegisterMessage": "Bitte wählen Sie zuerst unter „Kasse“ eine Registrierkasse aus oder starten Sie eine Schicht.",
+    "noRegisterHint": "Zuerst eine Kasse zuweisen (Abschnitt „Kasse“ oben)."
   },
   "appUpdate": {
     "title": "App-Aktualisierung",
@@ -118,6 +121,8 @@
     "saveErrorMessage": "Zuweisung wurde vom Server abgelehnt (ungültige Kasse, keine Berechtigung oder Kasse nicht geöffnet)."
   },
   "cashRegister": {
+    "sectionTitle": "Kasse",
+    "noRegistersAvailable": "Keine Kassen verfügbar",
     "summaryTitle": "Zusammenfassung",
     "categoryTitle": "Kategorie",
     "personalLabel": "Personal:",

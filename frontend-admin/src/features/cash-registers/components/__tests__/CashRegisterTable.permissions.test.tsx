@@ -7,6 +7,10 @@ import { I18nProvider } from '@/i18n';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import type { CashRegister } from '@/api/generated/model';
 
+vi.mock('@/features/license/hooks/useLicense', () => ({
+    useLicense: () => ({ licenseStatus: null }),
+}));
+
 const sampleRegister: CashRegister = {
     id: 'reg-1',
     createdAt: '2026-01-01T00:00:00Z',
@@ -19,6 +23,12 @@ const sampleRegister: CashRegister = {
 };
 
 beforeAll(() => {
+    global.ResizeObserver = class ResizeObserver {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    } as unknown as typeof ResizeObserver;
+
     Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({

@@ -31,6 +31,7 @@ import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { CashRegisterSelector } from '@/features/cash-registers/components/CashRegisterSelector';
 import { CashRegisterGrid } from '@/features/cash-registers/components/CashRegisterGrid';
+import { CashRegisterShiftRksvGuide } from '@/features/cash-registers/components/CashRegisterShiftRksvGuide';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import { CreateCashRegisterModal } from '@/features/cash-registers/components/CreateCashRegisterModal';
 import { DecommissionModal } from '@/features/cash-registers/components/DecommissionModal';
@@ -445,6 +446,8 @@ export default function AdminCashRegistersPage() {
                     {t('cashRegisters.adminPage.intro')}
                 </Typography.Paragraph>
             </AdminPageScopeSummary>
+
+            <CashRegisterShiftRksvGuide />
 
             <Card>
                 <Space orientation="vertical" size="middle" style={{ width: '100%', marginBottom: 16 }}>

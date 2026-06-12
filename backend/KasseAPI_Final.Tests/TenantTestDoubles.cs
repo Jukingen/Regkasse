@@ -28,6 +28,22 @@ internal static class TenantTestDoubles
     public static ICurrentTenantAccessor TenantAccessorReturning(Guid? tenantId) =>
         new MutableTenantAccessor(tenantId);
 
+    /// <summary>In-memory test factory sharing one database name across created contexts.</summary>
+    public static IDbContextFactory<AppDbContext> DbContextFactoryForTests(
+        DbContextOptions<AppDbContext> options,
+        ICurrentTenantAccessor? tenantAccessor = null) =>
+        new TestAppDbContextFactory(options, tenantAccessor ?? TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
+
+    internal sealed class TestAppDbContextFactory(
+        DbContextOptions<AppDbContext> options,
+        ICurrentTenantAccessor tenantAccessor) : IDbContextFactory<AppDbContext>
+    {
+        public AppDbContext CreateDbContext() => new(options, tenantAccessor);
+
+        public Task<AppDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(CreateDbContext());
+    }
+
     internal sealed class MutableTenantAccessor(Guid? tenantId) : ICurrentTenantAccessor
     {
         public Guid? TenantId { get; set; } = tenantId;

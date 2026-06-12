@@ -148,6 +148,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         icon: 'AreaChartOutlined',
         permission: AppPermissions.PaymentView,
     },
+    cardTransactions: {
+        id: 'cardTransactions',
+        menuKey: '/admin/payments/card-transactions',
+        href: '/admin/payments/card-transactions',
+        labelKey: 'nav.cardTransactions',
+        icon: 'CreditCardOutlined',
+        permission: AppPermissions.PaymentView,
+    },
     vouchers: {
         id: 'vouchers',
         menuKey: '/vouchers',
@@ -518,7 +526,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['receipts', 'payments', 'paymentTrends', 'stornoRefundAudit', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
+                catalogIds: ['receipts', 'payments', 'paymentTrends', 'cardTransactions', 'stornoRefundAudit', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
             },
         ],
     },

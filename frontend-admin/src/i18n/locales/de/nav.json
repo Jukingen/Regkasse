@@ -20,6 +20,7 @@
   "offlineTransactionsAdmin": "Offline-Transaktionen (TSE)",
   "payments": "Zahlungen",
   "paymentTrends": "Zahlungstrends",
+  "cardTransactions": "Kartentransaktionen",
   "stornoRefundAudit": "Storno & Rückerstattung (Audit)",
   "vouchers": "Gutscheine",
   "reporting": "Operative Berichte",

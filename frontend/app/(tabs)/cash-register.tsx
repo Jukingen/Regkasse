@@ -471,8 +471,16 @@ export default function CashRegisterScreen() {
   }, [router]);
 
   const handleOpenPaymentHistory = useCallback(() => {
+    const registerId = posReadiness.data?.effectiveRegisterId?.trim();
+    if (!isValidPosCashRegisterId(registerId)) {
+      Alert.alert(
+        'Keine Kasse ausgewählt',
+        'Bitte wählen Sie zuerst unter Einstellungen → Kasse eine Registrierkasse aus oder starten Sie eine Schicht.'
+      );
+      return;
+    }
     router.push('/(screens)/PaymentHistoryScreen' as const);
-  }, [router]);
+  }, [posReadiness.data?.effectiveRegisterId, router]);
 
   // Fetch benefit-summary when sale customer changes (skip guest); request guard to avoid race.
   useEffect(() => {

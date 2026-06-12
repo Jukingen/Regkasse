@@ -73,6 +73,7 @@ namespace KasseAPI_Final.Data
         public DbSet<PaymentReversalApproval> PaymentReversalApprovals { get; set; }
         public DbSet<SuspiciousTransactionAlert> SuspiciousTransactionAlerts { get; set; }
         public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
+        public DbSet<CardPaymentTransaction> CardPaymentTransactions { get; set; }
         /// <summary>Observability: DeviceId/ClientSequence coverage per replayed offline intent (no domain impact).</summary>
         public DbSet<OfflineIntentCoverageSample> OfflineIntentCoverageSamples { get; set; }
         public DbSet<InventoryItem> Inventory { get; set; }
@@ -959,6 +960,43 @@ namespace KasseAPI_Final.Data
                 // Enforce monotonic sequence identity per device (nulls are allowed multiple times by Postgres)
                 entity.HasIndex(e => new { e.CashRegisterId, e.DeviceId, e.ClientSequenceNumber })
                     .IsUnique();
+            });
+
+            builder.Entity<CardPaymentTransaction>(entity =>
+            {
+                entity.ToTable("card_payment_transactions");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId);
+                entity.Property(e => e.CashRegisterId).HasColumnName("cash_register_id").IsRequired();
+                entity.Property(e => e.PaymentId).HasColumnName("payment_id");
+                entity.HasOne(e => e.Payment)
+                    .WithMany()
+                    .HasForeignKey(e => e.PaymentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.Currency).HasMaxLength(3).IsRequired();
+                entity.Property(e => e.Gateway).HasColumnName("gateway").HasMaxLength(20).IsRequired();
+                entity.Property(e => e.GatewayPaymentIntentId).HasColumnName("gateway_payment_intent_id").HasMaxLength(128);
+                entity.Property(e => e.GatewayTransactionId).HasColumnName("gateway_transaction_id").HasMaxLength(100);
+                entity.Property(e => e.ClientSecret).HasColumnName("client_secret").HasMaxLength(128);
+                entity.Property(e => e.Status).HasMaxLength(20).IsRequired();
+                entity.Property(e => e.CardBrand).HasColumnName("card_brand").HasMaxLength(20);
+                entity.Property(e => e.CardLast4).HasColumnName("card_last4").HasMaxLength(4);
+                entity.Property(e => e.ErrorMessage).HasColumnName("error_message");
+                entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+                entity.Property(e => e.RefundedAtUtc).HasColumnName("refunded_at_utc");
+                entity.Property(e => e.RefundedAmount).HasColumnName("refunded_amount").HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CreatedByUserId).HasColumnName("created_by_user_id").HasMaxLength(450);
+                entity.Property(e => e.MetadataJson).HasColumnName("metadata_json").HasColumnType("jsonb");
+                entity.HasIndex(e => e.CashRegisterId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.PaymentId);
+                entity.HasIndex(e => e.CreatedAt);
             });
 
             // OfflineIntentCoverageSample: observability only; one row per replayed intent for coverage metrics
@@ -2747,6 +2785,7 @@ namespace KasseAPI_Final.Data
         {
             CashierShift cs => cs.CashRegisterId,
             OfflineTransaction ot => ot.CashRegisterId,
+            CardPaymentTransaction ct => ct.CashRegisterId,
             DailyClosing dc => dc.CashRegisterId,
             TseSignature ts => ts.CashRegisterId,
             SignatureChainState sc => sc.CashRegisterId,

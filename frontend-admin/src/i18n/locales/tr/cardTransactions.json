@@ -1,0 +1,41 @@
+{
+  "title": "Kart İşlemleri",
+  "empty": "Seçilen dönemde kart işlemi yok",
+  "filters": {
+    "status": "Durum",
+    "register": "Kasa"
+  },
+  "actions": {
+    "refresh": "Yenile",
+    "detail": "Detay"
+  },
+  "columns": {
+    "createdAt": "Oluşturulma",
+    "amount": "Tutar",
+    "status": "Durum",
+    "card": "Kart",
+    "gateway": "Gateway",
+    "register": "Kasa",
+    "receipt": "Fiş",
+    "transactionId": "İşlem ID",
+    "actions": "İşlem"
+  },
+  "status": {
+    "Created": "Oluşturuldu",
+    "Pending": "Beklemede",
+    "Succeeded": "Başarılı",
+    "Failed": "Başarısız",
+    "Cancelled": "İptal",
+    "Refunded": "İade"
+  },
+  "drawer": {
+    "title": "Kart işlemi",
+    "confirmedAt": "Onaylandı",
+    "error": "Hata"
+  },
+  "modal": {
+    "title": "Kart işlemi",
+    "confirmedAt": "Onaylandı",
+    "error": "Hata"
+  }
+}

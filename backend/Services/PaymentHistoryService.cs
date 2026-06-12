@@ -49,7 +49,8 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
         offset = Math.Max(0, offset);
         language = NormalizeLanguage(language);
 
-        var registerId = await ResolveCashRegisterIdAsync(actor.UserId, cashRegisterId, cancellationToken);
+        var registerId = await ResolveCashRegisterIdAsync(actor.UserId, cashRegisterId, cancellationToken)
+            .ConfigureAwait(false);
         if (registerId == null)
         {
             return (null, "POS_PAYMENT_HISTORY_NO_REGISTER",
@@ -57,14 +58,15 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
         }
 
         var tenantId = _tenantAccessor.TenantId
-                       ?? await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+                       ?? await _tenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken).ConfigureAwait(false);
 
         var registerOk = await _context.CashRegisters.AsNoTracking().ForResolvedTenantScope()
-            .AnyAsync(cr => cr.Id == registerId.Value && cr.TenantId == tenantId, cancellationToken);
+            .AnyAsync(cr => cr.Id == registerId.Value && cr.TenantId == tenantId, cancellationToken)
+            .ConfigureAwait(false);
         if (!registerOk)
             return (null, "POS_PAYMENT_HISTORY_REGISTER_NOT_FOUND", "Cash register not found");
 
-        var userRole = actor.UserRole ?? await ResolveUserRoleAsync(actor.UserId, cancellationToken);
+        var userRole = actor.UserRole ?? await ResolveUserRoleAsync(actor.UserId, cancellationToken).ConfigureAwait(false);
         var actorWithRole = actor with { UserRole = userRole };
 
         var toUtc = DateTime.UtcNow;
@@ -75,13 +77,14 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
                         && p.CreatedAt >= fromUtc
                         && p.CreatedAt <= toUtc);
 
-        var totalCount = await baseQuery.CountAsync(cancellationToken);
+        var totalCount = await baseQuery.CountAsync(cancellationToken).ConfigureAwait(false);
 
         var payments = await baseQuery
             .OrderByDescending(p => p.CreatedAt)
             .Skip(offset)
             .Take(limit)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         if (payments.Count == 0)
         {
@@ -89,8 +92,8 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
         }
 
         var paymentIds = payments.Select(p => p.Id).ToList();
-        var reversalByOriginal = await LoadReversalStateAsync(paymentIds, cancellationToken);
-        var voucherPaymentIds = await LoadVoucherPaymentIdsAsync(paymentIds, cancellationToken);
+        var reversalByOriginal = await LoadReversalStateAsync(paymentIds, cancellationToken).ConfigureAwait(false);
+        var voucherPaymentIds = await LoadVoucherPaymentIdsAsync(paymentIds, cancellationToken).ConfigureAwait(false);
 
         var result = new List<PaymentHistoryItemDto>(payments.Count);
         foreach (var payment in payments)
@@ -113,7 +116,7 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
                         PaymentReversalOperation.Cancel,
                         null,
                         actorWithRole.UserId,
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                     policyStornoApproval = stornoPolicy.RequiresApproval;
                 }
 
@@ -130,7 +133,7 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
                             PaymentReversalOperation.Refund,
                             remaining,
                             actorWithRole.UserId,
-                            cancellationToken);
+                            cancellationToken).ConfigureAwait(false);
                         policyRefundApproval = refundPolicy.RequiresApproval;
                     }
                 }
@@ -263,7 +266,7 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
 
     private async Task<string?> ResolveUserRoleAsync(string userId, CancellationToken cancellationToken)
     {
-        var user = await _userService.GetUserByIdAsync(userId);
+        var user = await _userService.GetUserByIdAsync(userId).ConfigureAwait(false);
         return user?.Role;
     }
 
@@ -313,7 +316,8 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
                         && s.IsActive)
             .OrderByDescending(s => s.StartedAt)
             .Select(s => (Guid?)s.CashRegisterId)
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     private async Task<Dictionary<Guid, PaymentHistoryReversalState>> LoadReversalStateAsync(
@@ -331,7 +335,8 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
                 p.IsActive,
                 p.TotalAmount,
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
 
         var map = new Dictionary<Guid, PaymentHistoryReversalState>();
         foreach (var group in children.GroupBy(c => c.OriginalId))
@@ -357,7 +362,8 @@ public sealed class PaymentHistoryService : IPaymentHistoryService
                         && l.Type == VoucherTransactionType.Redeem)
             .Select(l => l.PaymentId!.Value)
             .Distinct()
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
         return ids.ToHashSet();
     }
 }

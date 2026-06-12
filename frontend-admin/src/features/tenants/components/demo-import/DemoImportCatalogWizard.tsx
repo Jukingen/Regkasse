@@ -61,6 +61,7 @@ export type DemoImportCatalogWizardProps = {
     overwrite: boolean;
     onOverwriteChange: (v: boolean) => void;
     onRequestImport: (draft: {
+        selectedGroupNames: Set<string>;
         selectedProductIds: Set<string>;
         productOverrides: ReturnType<typeof buildProductOverridesForApi>;
     }) => void;
@@ -364,32 +365,28 @@ export function DemoImportCatalogWizard({
                     </Space>
                     {categoryGroups.map((group) => {
                         const checked = selectedGroupNames.has(group.name);
-                        const full = isGroupFullySelected(group, catalogProducts, selectedProductIds);
-                        const partial = isGroupPartiallySelected(group, catalogProducts, selectedProductIds);
                         return (
                             <div
                                 key={group.name}
                                 style={{
                                     padding: '10px 12px',
                                     borderBottom: '1px solid #f0f0f0',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 12,
                                 }}
                             >
                                 <Checkbox
-                                    checked={checked && full}
-                                    indeterminate={checked && partial && !full}
-                                    onChange={(e) => handleGroupToggle(group, e.target.checked)}
-                                />
-                                <span style={{ fontSize: 22 }}>{group.icon}</span>
-                                <div style={{ flex: 1 }}>
-                                    <Text strong>{group.displayName}</Text>
-                                    <br />
-                                    <Text type="secondary" style={{ fontSize: 12 }}>
-                                        {group.productCount} Produkte
-                                    </Text>
-                                </div>
+                                    checked={checked}
+                                    onChange={(e) => {
+                                        e.stopPropagation();
+                                        handleGroupToggle(group, e.target.checked);
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <Space>
+                                        <span style={{ fontSize: 20 }}>{group.icon}</span>
+                                        <Text strong>{group.displayName}</Text>
+                                        <Tag color="blue">{group.productCount} Produkte</Tag>
+                                    </Space>
+                                </Checkbox>
                             </div>
                         );
                     })}
@@ -428,12 +425,16 @@ export function DemoImportCatalogWizard({
                                             <Checkbox
                                                 checked={groupChecked}
                                                 indeterminate={groupIndeterminate}
-                                                onChange={(e) => handleGroupToggle(group, e.target.checked)}
+                                                onChange={(e) => {
+                                                    e.stopPropagation();
+                                                    handleGroupToggle(group, e.target.checked);
+                                                }}
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 <Space>
                                                     <span>{group.icon}</span>
                                                     <Text strong>{group.displayName}</Text>
+                                                    <Tag color="blue">{group.productCount} Produkte</Tag>
                                                 </Space>
                                             </Checkbox>
                                             <DemoImportBulkMenu
@@ -599,6 +600,7 @@ export function DemoImportCatalogWizard({
                             disabled={selectedProductIds.size === 0}
                             onClick={() =>
                                 onRequestImport({
+                                    selectedGroupNames,
                                     selectedProductIds,
                                     productOverrides: buildProductOverridesForApi(
                                         catalogProducts,

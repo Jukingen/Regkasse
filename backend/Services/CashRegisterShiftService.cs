@@ -107,7 +107,7 @@ public sealed class CashRegisterShiftService : ICashRegisterShiftService
                         && r.Id != registerId
                         && r.Status == RegisterStatus.Open
                         && r.CurrentUserId != null
-                        && string.Equals(r.CurrentUserId, shiftOperatorUserId, StringComparison.Ordinal),
+                        && r.CurrentUserId == shiftOperatorUserId,
                     cancellationToken);
 
             if (actorHasOtherOpenRegister)

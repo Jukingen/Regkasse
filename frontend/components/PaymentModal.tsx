@@ -46,6 +46,7 @@ import { usePosCheckoutUiStore } from '../stores/posCheckoutUiStore';
 import { receiptPrinter } from '../services/receiptPrinter';
 import { VoucherScanner } from '../app/components/VoucherScanner';
 import { PaymentSuccessQr } from './PaymentSuccessQr';
+import CardPaymentModal from './CardPaymentModal';
 import { ReceiptSummary, type ReceiptSummaryReceipt } from './ReceiptSummary';
 import type { PaymentTseInfo } from '../services/api/paymentService';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
@@ -305,6 +306,8 @@ export default function PaymentModal({
   const [receiptData, setReceiptData] = useState<ReceiptDTO | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   /** Prevents double-submit during async work before purchaseState becomes 'processing'. */
+  const [cardSimVisible, setCardSimVisible] = useState(false);
+  const [cardPaymentIntentId, setCardPaymentIntentId] = useState<string | undefined>();
   const [paymentBusy, setPaymentBusy] = useState(false);
 
   /** RKSV: separate wizard for Storno vs Teilrückerstattung (elevated permissions). */
@@ -957,7 +960,7 @@ export default function PaymentModal({
   };
 
   /** POST /api/pos/payment — exhaustive logs + Debug Error on every guard exit (operator confirmations log only). */
-  const executePaymentSubmission = async () => {
+  const executePaymentSubmission = async (confirmedCardIntentId?: string) => {
     const logPay = (step: string, detail?: Record<string, unknown>) => {
       console.log(`[PaymentModal] ${step}`, detail ?? '');
     };
@@ -1149,6 +1152,12 @@ export default function PaymentModal({
       // Continue to API call - do nothing here, just let flow continue
     }
 
+    const effectiveCardIntentId = confirmedCardIntentId ?? cardPaymentIntentId;
+    if (selectedPaymentMethod === 'card' && !effectiveCardIntentId) {
+      setCardSimVisible(true);
+      return;
+    }
+
     setPaymentBusy(true);
     try {
       logPay('Step 4: Payload construction (before cart id)');
@@ -1218,6 +1227,7 @@ export default function PaymentModal({
           ...(voucherEnabled
             ? { voucherRedemptions: [{ code: voucherCode.trim(), amount: voucherRedeemAmountEffective }] }
             : {}),
+          ...(effectiveCardIntentId ? { cardPaymentIntentId: effectiveCardIntentId } : {}),
         },
         tableNumber: resolvedTableNumber,
         totalAmount: totalAmount,
@@ -2245,6 +2255,17 @@ export default function PaymentModal({
           type: 'success',
           message: t('checkout:posFlow.stornoRefund.alerts.successTitle'),
         });
+      }}
+    />
+    <CardPaymentModal
+      visible={cardSimVisible}
+      amount={settlementAmountDue > 0 ? settlementAmountDue : totalAmount}
+      cashRegisterId={cashRegisterId ?? ''}
+      onClose={() => setCardSimVisible(false)}
+      onSuccess={(intentId) => {
+        setCardPaymentIntentId(intentId);
+        setCardSimVisible(false);
+        void executePaymentSubmission(intentId);
       }}
     />
     </>

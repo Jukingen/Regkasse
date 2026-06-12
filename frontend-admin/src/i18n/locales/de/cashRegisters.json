@@ -1,6 +1,6 @@
 {
   "pageTitle": "Kassenverwaltung",
-  "pageIntro": "Registrierkassen des Mandanten: Schichtstatus, Stilllegung (RKSV) und Stammdaten.",
+  "pageIntro": "Registrierkassen des Mandanten: Schichtstatus, RKSV-Hinweise zum Status «Geschlossen», Stilllegung und Stammdaten.",
   "columns": {
     "name": "Kasse",
     "status": "Status",
@@ -42,6 +42,58 @@
     "openSuccess": "Kasse wurde geöffnet.",
     "closeSuccess": "Kasse wurde geschlossen."
   },
+  "shiftGuidance": {
+    "pageCollapseTitle": "Schicht & RKSV: Hinweise zum Kassenstatus",
+    "closedSectionTitle": "Was bedeutet «Geschlossen»?",
+    "closedSectionIntro": "Geschlossen bedeutet: keine aktive Schicht, keine laufenden Verkäufe auf dieser Kasse. Das ist der Normalzustand außerhalb der Öffnungszeiten oder zwischen Schichten.",
+    "closedReasons": {
+      "endOfShift": "Schichtende: Kassierer oder Manager hat die Kasse nach dem Tagesgeschäft geschlossen.",
+      "tagesabschluss": "Tagesabschluss (Z-Bericht): Nach dem Z-Bericht wird die Kasse üblicherweise geschlossen.",
+      "adminAction": "Manuell aus dem Admin-Panel oder der Kasse geschlossen.",
+      "neverOpened": "Neu angelegt oder noch nie geöffnet — wartet auf die erste Schicht.",
+      "decommissionPrep": "Vorbereitung zur Stilllegung: Die Kasse muss geschlossen sein, bevor ein Schlussbeleg erstellt werden kann."
+    },
+    "rksvRulesSectionTitle": "RKSV-Regeln für Schicht & Kassenstatus",
+    "rksvRulesColumnRule": "Regel",
+    "rksvRulesColumnDescription": "Erklärung",
+    "rksvRules": {
+      "schlussbeleg": {
+        "rule": "Schlussbeleg",
+        "description": "Nur bei dauerhafter Stilllegung (Decommission): Vor der Stilllegung muss ein Schlussbeleg erstellt werden. Bei normalem Tagesende nicht erforderlich."
+      },
+      "tagesabschluss": {
+        "rule": "Tagesabschluss (Z-Bericht)",
+        "description": "Am Ende jedes Geschäftstages sollte ein Tagesabschluss (Z-Bericht) erstellt und die Kasse geschlossen werden."
+      },
+      "startbeleg": {
+        "rule": "Startbeleg",
+        "description": "Bei der ersten Inbetriebnahme einer Kasse (Produktions-TSE) muss ein Startbeleg erstellt werden, bevor Verkäufe möglich sind."
+      },
+      "reopenStartbeleg": {
+        "rule": "Erneutes Öffnen",
+        "description": "Nein — beim erneuten Öffnen einer geschlossenen Kasse ist kein neuer Startbeleg erforderlich. Der Startbeleg gilt nur für die erste Inbetriebnahme."
+      },
+      "singleCashier": {
+        "rule": "Ein Kassierer, eine Kasse",
+        "description": "Ein Kassierer darf nicht gleichzeitig an mehr als einer geöffneten Kasse arbeiten. Vor dem Öffnen einer zweiten Kasse muss die erste geschlossen werden."
+      }
+    },
+    "statusTooltipClosed": "Geschlossen — keine aktive Schicht. Klicken Sie auf «Details» oder öffnen Sie die Hinweise oben.",
+    "detailClosedTitle": "Kasse ist geschlossen",
+    "detailContextNeverOpened": "Diese Kasse wurde noch nicht in Betrieb genommen. Vor der ersten Schicht ist ein Startbeleg erforderlich (Produktions-TSE). Anschließend können Sie die Kasse über «Kasse öffnen» starten.",
+    "detailContextAfterShift": "Die letzte Schicht wurde beendet. Für einen neuen Betriebstag oder eine neue Schicht öffnen Sie die Kasse erneut — kein neuer Startbeleg nötig.",
+    "detailContextGeneric": "Die Kasse hat keine aktive Schicht. Öffnen Sie sie über «Aktionen → Kasse öffnen», wenn der Betrieb starten soll.",
+    "detailOpenTitle": "Kasse ist geöffnet",
+    "detailOpenDescription": "Aktive Schicht läuft. Verkäufe sind möglich. Schließen Sie die Kasse am Schichtende oder nach dem Tagesabschluss (Z-Bericht).",
+    "openPrerequisitesTitle": "Voraussetzungen zum Öffnen",
+    "openPrerequisites": {
+      "startbelegFirstOpen": "Startbeleg vorhanden (nur bei erster Inbetriebnahme, Produktions-TSE)",
+      "noStartbelegOnReopen": "Beim erneuten Öffnen kein neuer Startbeleg nötig",
+      "monatsbelegProduction": "Monatsbeleg für den aktuellen Wien-Kalendermonat (Produktions-TSE)",
+      "singleCashier": "Der Kassierer darf keine andere geöffnete Kasse haben"
+    },
+    "openActionTooltip": "Geschlossene Kasse öffnen: Kein neuer Startbeleg nötig (nur bei erster Inbetriebnahme). Kassierer darf nur eine offene Kasse haben."
+  },
   "filter": {
     "showDecommissioned": "Stillgelegte Kassen anzeigen",
     "hiddenCount": "{{count}} stillgelegte Kasse(n) ausgeblendet",
@@ -67,6 +119,44 @@
     "openRegister": "Kasse öffnen",
     "closeRegister": "Kasse schließen",
     "viewReceipts": "Belege anzeigen"
+  },
+  "statusBadge": {
+    "open": {
+      "text": "Geöffnet",
+      "tooltip": "Aktive Schicht — Verkäufe sind möglich."
+    },
+    "decommissioned": {
+      "text": "Stillgelegt",
+      "tooltip": "Kasse dauerhaft außer Betrieb (RKSV Schlussbeleg)."
+    },
+    "maintenance": {
+      "tooltip": "Kasse ist im Wartungsmodus."
+    },
+    "disabled": {
+      "tooltip": "Kasse ist deaktiviert."
+    },
+    "closed": {
+      "dailyClosing": {
+        "text": "Tagesabschluss geschlossen",
+        "tooltip": "Heute geschlossen — Tagesabschluss (Z-Bericht) oder Schichtende am heutigen Tag."
+      },
+      "shiftChange": {
+        "text": "Schichtwechsel",
+        "tooltip": "Schicht beendet — Kassierer ausgeloggt, neue Schicht kann geöffnet werden."
+      },
+      "neverOpened": {
+        "text": "Noch nicht geöffnet",
+        "tooltip": "Kasse wurde noch nicht in Betrieb genommen (Startbeleg / erste Schicht ausstehend)."
+      },
+      "licenseExpired": {
+        "text": "Lizenz abgelaufen",
+        "tooltip": "Mandanten- oder Deployment-Lizenz abgelaufen — Kasse kann nicht geöffnet werden."
+      },
+      "generic": {
+        "text": "Geschlossen",
+        "tooltip": "Keine aktive Schicht auf dieser Kasse."
+      }
+    }
   },
   "status": {
     "closed": "Geschlossen",

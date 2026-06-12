@@ -8,15 +8,19 @@ import {
 } from '@ant-design/icons';
 
 import type { DemoImportProgress } from '@/features/tenants/api/demoImportJobs';
-import { CATEGORY_GROUPS } from '@/features/tenants/components/demo-import/categoryGroups';
+import {
+    CATEGORY_GROUPS,
+    expandDemoCategoryReferences,
+} from '@/features/tenants/components/demo-import/categoryGroups';
 
 const { Text } = Typography;
 
 function resolveCategoryLabel(categoryName: string): string {
+    const refs = new Set(expandDemoCategoryReferences(categoryName));
     for (const group of CATEGORY_GROUPS) {
-        if (group.name === categoryName) return group.displayName;
+        if (refs.has(group.name)) return group.displayName;
         for (const sub of group.subcategories ?? []) {
-            if (sub.name === categoryName) return sub.displayName;
+            if (refs.has(sub.name)) return sub.displayName;
         }
     }
     return categoryName;

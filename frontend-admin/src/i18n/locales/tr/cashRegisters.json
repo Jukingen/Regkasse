@@ -42,6 +42,44 @@
     "restore": "Geri yükle",
     "refresh": "Yenile"
   },
+  "statusBadge": {
+    "open": {
+      "text": "Açık",
+      "tooltip": "Aktif vardiya — satış yapılabilir."
+    },
+    "decommissioned": {
+      "text": "Devre dışı",
+      "tooltip": "Kasa kalıcı olarak kapatıldı (RKSV Schlussbeleg)."
+    },
+    "maintenance": {
+      "tooltip": "Kasa bakım modunda."
+    },
+    "disabled": {
+      "tooltip": "Kasa devre dışı bırakıldı."
+    },
+    "closed": {
+      "dailyClosing": {
+        "text": "Gün sonu kapalı",
+        "tooltip": "Günlük kapanış yapıldı — bugün kapatıldı (Tagesabschluss / vardiya sonu)."
+      },
+      "shiftChange": {
+        "text": "Vardiya değişimi",
+        "tooltip": "Vardiya sona erdi — kasiyer çıkış yaptı, yeni vardiya açılabilir."
+      },
+      "neverOpened": {
+        "text": "Henüz açılmadı",
+        "tooltip": "Kasa henüz devreye alınmadı (Startbeleg / ilk vardiya bekleniyor)."
+      },
+      "licenseExpired": {
+        "text": "Lisans süresi doldu",
+        "tooltip": "Mandant veya deployment lisansı süresi doldu — kasa açılamaz."
+      },
+      "generic": {
+        "text": "Kapalı",
+        "tooltip": "Bu kasada aktif vardiya yok."
+      }
+    }
+  },
   "status": {
     "closed": "Kapalı",
     "open": "Açık",
@@ -49,6 +87,62 @@
     "disabled": "Devre dışı",
     "decommissioned": "Kapatıldı",
     "unknown": "Durum {{status}}"
+  },
+  "shift": {
+    "openSuccess": "Kasa açıldı.",
+    "closeSuccess": "Kasa kapatıldı."
+  },
+  "shiftGuidance": {
+    "pageCollapseTitle": "Vardiya ve RKSV: kasa durumu rehberi",
+    "closedSectionTitle": "«Kapalı» ne anlama gelir?",
+    "closedSectionIntro": "Kapalı, bu kasada aktif vardiya ve devam eden satış olmadığı anlamına gelir. Bu, mesai dışı veya vardiyalar arası normal durumdur.",
+    "closedReasons": {
+      "endOfShift": "Vardiya sonu: kasiyer veya yönetici gün sonunda kasayı kapattı.",
+      "tagesabschluss": "Gün sonu kapanışı (Z raporu): Z raporundan sonra kasa genelde kapatılır.",
+      "adminAction": "Admin panelinden veya cihazdan manuel kapatma.",
+      "neverOpened": "Yeni oluşturuldu veya hiç açılmadı — ilk vardiyayı bekliyor.",
+      "decommissionPrep": "Devre dışı bırakma hazırlığı: Schlussbeleg öncesi kasa kapalı olmalıdır."
+    },
+    "rksvRulesSectionTitle": "Vardiya ve kasa durumu için RKSV kuralları",
+    "rksvRulesColumnRule": "Kural",
+    "rksvRulesColumnDescription": "Açıklama",
+    "rksvRules": {
+      "schlussbeleg": {
+        "rule": "Schlussbeleg",
+        "description": "Yalnızca kalıcı devre dışı bırakmada: önce Schlussbeleg gerekir. Normal gün sonu kapanışında gerekli değildir."
+      },
+      "tagesabschluss": {
+        "rule": "Gün sonu kapanışı (Z raporu)",
+        "description": "Her iş günü sonunda gün sonu kapanışı (Z raporu) alınmalı ve kasa kapatılmalıdır."
+      },
+      "startbeleg": {
+        "rule": "Startbeleg",
+        "description": "Kasanın ilk devreye alınmasında (üretim TSE) satış öncesi Startbeleg zorunludur."
+      },
+      "reopenStartbeleg": {
+        "rule": "Yeniden açma",
+        "description": "Hayır — kapalı kasayı yeniden açarken yeni Startbeleg gerekmez. Startbeleg yalnızca ilk devreye almada geçerlidir."
+      },
+      "singleCashier": {
+        "rule": "Bir kasiyer, bir kasa",
+        "description": "Bir kasiyer aynı anda birden fazla açık kasada çalışamaz. İkinci kasayı açmadan önce ilki kapatılmalıdır."
+      }
+    },
+    "statusTooltipClosed": "Kapalı — aktif vardiya yok. Detaylar veya üstteki rehberi açın.",
+    "detailClosedTitle": "Kasa kapalı",
+    "detailContextNeverOpened": "Bu kasa henüz devreye alınmadı. İlk vardiya öncesi Startbeleg gerekir (üretim TSE). Ardından «Kasa aç» ile başlatın.",
+    "detailContextAfterShift": "Son vardiya sona erdi. Yeni iş günü veya vardiya için kasayı yeniden açın — yeni Startbeleg gerekmez.",
+    "detailContextGeneric": "Kasada aktif vardiya yok. Operasyon başlayacaksa «İşlemler → Kasa aç» kullanın.",
+    "detailOpenTitle": "Kasa açık",
+    "detailOpenDescription": "Aktif vardiya devam ediyor. Satış yapılabilir. Vardiya veya gün sonu (Z raporu) sonrası kasayı kapatın.",
+    "openPrerequisitesTitle": "Açma önkoşulları",
+    "openPrerequisites": {
+      "startbelegFirstOpen": "Startbeleg mevcut (yalnızca ilk devreye alma, üretim TSE)",
+      "noStartbelegOnReopen": "Yeniden açmada yeni Startbeleg gerekmez",
+      "monatsbelegProduction": "Geçerli Viyana takvim ayı için Monatsbeleg (üretim TSE)",
+      "singleCashier": "Kasiyerin başka açık kasası olmamalı"
+    },
+    "openActionTooltip": "Kapalı kasayı aç: yeni Startbeleg gerekmez (yalnızca ilk devreye almada). Kasiyerin tek açık kasası olabilir."
   },
   "decommission": {
     "modalTitle": "Kasayı kalıcı olarak kapat",

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
-import { Button, Dropdown, Tag } from 'antd';
+import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
 import { ShopOutlined, SwapOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
@@ -14,11 +14,7 @@ import {
 } from '@/features/cash-registers/constants/quickSwitch';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { useCashRegisters } from '@/features/cash-registers/hooks/useCashRegisters';
-import {
-    REGISTER_STATUS,
-    rawRegisterStatus,
-    registerStatusTagColor,
-} from '@/features/cash-registers/utils/registerStatus';
+import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useI18n } from '@/i18n';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -63,22 +59,6 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
         [registers, selectedRegisterId],
     );
 
-    const statusShortLabel = useCallback(
-        (status: number | undefined) => {
-            switch (status) {
-                case REGISTER_STATUS.open:
-                    return t('cashRegisters.status.open');
-                case REGISTER_STATUS.closed:
-                    return t('cashRegisters.status.closed');
-                case REGISTER_STATUS.decommissioned:
-                    return t('cashRegisters.status.decommissioned');
-                default:
-                    return t('cashRegisters.status.unknown', { status: String(status ?? '—') });
-            }
-        },
-        [t],
-    );
-
     const navigateToRegister = useCallback(
         (register: AdminCashRegisterListItem) => {
             writeQuickCashRegisterId(register.id);
@@ -91,28 +71,23 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
     );
 
     const menuItems: MenuProps['items'] = useMemo(() => {
-        const rows: MenuProps['items'] = registers.map((register) => {
-            const status = rawRegisterStatus(register as never);
-            return {
-                key: register.id,
-                label: (
-                    <div
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            gap: 8,
-                            minWidth: 200,
-                        }}
-                    >
-                        <span>{register.registerNumber}</span>
-                        <Tag color={registerStatusTagColor(status)} style={{ fontSize: 10, margin: 0 }}>
-                            {statusShortLabel(status)}
-                        </Tag>
-                    </div>
-                ),
-            };
-        });
+        const rows: MenuProps['items'] = registers.map((register) => ({
+            key: register.id,
+            label: (
+                <div
+                    style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: 8,
+                        minWidth: 200,
+                    }}
+                >
+                    <span>{register.registerNumber}</span>
+                    <CashRegisterStatusBadge register={register as never} useIcon />
+                </div>
+            ),
+        }));
 
         if (rows.length > 0) {
             rows.push({ type: 'divider' });
@@ -123,7 +98,7 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
         }
 
         return rows;
-    }, [registers, statusShortLabel, t]);
+    }, [registers, t]);
 
     const handleMenuClick: MenuProps['onClick'] = useCallback(
         ({ key }: { key: string }) => {

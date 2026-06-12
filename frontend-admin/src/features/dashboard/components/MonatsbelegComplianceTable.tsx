@@ -242,7 +242,7 @@ export function MonatsbelegComplianceTable({
     return (
         <Card
             title="Monatsbeleg (RKSV)"
-            bordered={false}
+            variant="borderless"
             style={{ marginBottom: 24 }}
             extra={
                 <Space size="small">

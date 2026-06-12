@@ -20,7 +20,7 @@ export default function PersonalizationSettingsPage() {
         title={t('settings.personalization.pageTitle')}
         breadcrumbs={breadcrumbs}
       />
-      <Card bordered={false} styles={{ body: { padding: 0 } }}>
+      <Card variant="borderless" styles={{ body: { padding: 0 } }}>
         <PersonalizationSettings />
       </Card>
     </div>

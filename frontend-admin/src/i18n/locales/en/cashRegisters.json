@@ -1,6 +1,6 @@
 {
   "pageTitle": "Cash register management",
-  "pageIntro": "Tenant cash registers: shift status, RKSV decommissioning, and master data.",
+  "pageIntro": "Tenant cash registers: shift status, RKSV guidance for «Closed» status, decommissioning, and master data.",
   "columns": {
     "name": "Register",
     "status": "Status",
@@ -42,6 +42,58 @@
     "openSuccess": "Register opened.",
     "closeSuccess": "Register closed."
   },
+  "shiftGuidance": {
+    "pageCollapseTitle": "Shift & RKSV: cash register status guide",
+    "closedSectionTitle": "What does «Closed» mean?",
+    "closedSectionIntro": "Closed means: no active shift and no ongoing sales on this register. This is normal outside business hours or between shifts.",
+    "closedReasons": {
+      "endOfShift": "End of shift: cashier or manager closed the register after business hours.",
+      "tagesabschluss": "Daily closing (Z report): after the Z report the register is usually closed.",
+      "adminAction": "Manually closed from the admin panel or on the device.",
+      "neverOpened": "Newly created or never opened — waiting for the first shift.",
+      "decommissionPrep": "Decommission preparation: the register must be closed before a Schlussbeleg can be created."
+    },
+    "rksvRulesSectionTitle": "RKSV rules for shifts and register status",
+    "rksvRulesColumnRule": "Rule",
+    "rksvRulesColumnDescription": "Explanation",
+    "rksvRules": {
+      "schlussbeleg": {
+        "rule": "Schlussbeleg",
+        "description": "Only for permanent decommission: a Schlussbeleg must be created before decommissioning. Not required for normal end-of-day closing."
+      },
+      "tagesabschluss": {
+        "rule": "Daily closing (Z report)",
+        "description": "At the end of each business day, create a daily closing (Z report) and close the register."
+      },
+      "startbeleg": {
+        "rule": "Startbeleg",
+        "description": "On first commissioning of a register (production TSE), a Startbeleg is required before sales are allowed."
+      },
+      "reopenStartbeleg": {
+        "rule": "Re-opening",
+        "description": "No — reopening a closed register does not require a new Startbeleg. Startbeleg applies only to first commissioning."
+      },
+      "singleCashier": {
+        "rule": "One cashier, one register",
+        "description": "A cashier cannot work on more than one open register at the same time. Close the first register before opening another."
+      }
+    },
+    "statusTooltipClosed": "Closed — no active shift. Open Details or expand the guide above.",
+    "detailClosedTitle": "Register is closed",
+    "detailContextNeverOpened": "This register has not been commissioned yet. A Startbeleg is required before the first shift (production TSE). Then use «Open register» to start.",
+    "detailContextAfterShift": "The last shift has ended. Open the register again for a new business day or shift — no new Startbeleg needed.",
+    "detailContextGeneric": "The register has no active shift. Use «Actions → Open register» when operations should start.",
+    "detailOpenTitle": "Register is open",
+    "detailOpenDescription": "Active shift in progress. Sales are allowed. Close the register at end of shift or after daily closing (Z report).",
+    "openPrerequisitesTitle": "Requirements to open",
+    "openPrerequisites": {
+      "startbelegFirstOpen": "Startbeleg present (first commissioning only, production TSE)",
+      "noStartbelegOnReopen": "No new Startbeleg when re-opening",
+      "monatsbelegProduction": "Monatsbeleg for the current Vienna calendar month (production TSE)",
+      "singleCashier": "Cashier must not have another open register"
+    },
+    "openActionTooltip": "Open closed register: no new Startbeleg needed (only on first commissioning). Cashier may have only one open register."
+  },
   "filter": {
     "showDecommissioned": "Show decommissioned registers",
     "hiddenCount": "{{count}} decommissioned register(s) hidden",
@@ -67,6 +119,44 @@
     "openRegister": "Open register",
     "closeRegister": "Close register",
     "viewReceipts": "View receipts"
+  },
+  "statusBadge": {
+    "open": {
+      "text": "Open",
+      "tooltip": "Active shift — sales are allowed."
+    },
+    "decommissioned": {
+      "text": "Decommissioned",
+      "tooltip": "Register permanently decommissioned (RKSV Schlussbeleg)."
+    },
+    "maintenance": {
+      "tooltip": "Register is in maintenance mode."
+    },
+    "disabled": {
+      "tooltip": "Register is disabled."
+    },
+    "closed": {
+      "dailyClosing": {
+        "text": "Closed after daily closing",
+        "tooltip": "Closed today — daily closing (Z report) or end-of-shift on the current Vienna day."
+      },
+      "shiftChange": {
+        "text": "Shift change",
+        "tooltip": "Shift ended — cashier logged out; a new shift can be opened."
+      },
+      "neverOpened": {
+        "text": "Not yet opened",
+        "tooltip": "Register not yet commissioned (Startbeleg / first shift pending)."
+      },
+      "licenseExpired": {
+        "text": "License expired",
+        "tooltip": "Tenant or deployment license expired — register cannot be opened."
+      },
+      "generic": {
+        "text": "Closed",
+        "tooltip": "No active shift on this register."
+      }
+    }
   },
   "status": {
     "closed": "Closed",

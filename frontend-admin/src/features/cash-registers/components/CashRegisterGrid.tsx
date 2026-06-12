@@ -1,31 +1,28 @@
 'use client';
 import type { ReactNode } from 'react';
 import {
-    CheckCircleOutlined,
     CloudSyncOutlined,
     ClockCircleOutlined,
     EnvironmentOutlined,
     EyeOutlined,
     FileProtectOutlined,
-    LockOutlined,
     MinusCircleOutlined,
     SafetyOutlined,
     ShopOutlined,
     StopOutlined,
-    ToolOutlined,
     UserOutlined,
     WalletOutlined,
 } from '@ant-design/icons';
 import { Button, Card, Col, Empty, Row, Tag, Tooltip, Typography } from 'antd';
 import type { CashRegister } from '@/api/generated/model';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
+import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import {
     canDecommissionRegister,
     isDecommissionedRegister,
     rawRegisterStatus,
-    REGISTER_STATUS,
 } from '@/features/cash-registers/utils/registerStatus';
 import styles from './CashRegisterGrid.module.css';
 
@@ -36,7 +33,8 @@ export type CashRegisterGridProps = {
     canManage?: boolean;
     totalRegisterCount?: number;
     canDecommission: boolean;
-    statusLabel: (status: number | undefined) => string;
+    /** @deprecated Use CashRegisterStatusBadge. */
+    statusLabel?: (status: number | undefined) => string;
     onEdit: (register: CashRegister) => void;
     onDecommission: (register: CashRegister) => void;
 };
@@ -65,38 +63,6 @@ function renderLoadingCards() {
     ));
 }
 
-function statusBadgeClass(status: number | undefined): string {
-    switch (status) {
-        case REGISTER_STATUS.open:
-            return `${styles.statusBadge} ${styles.statusOpen}`;
-        case REGISTER_STATUS.closed:
-            return `${styles.statusBadge} ${styles.statusClosed}`;
-        case REGISTER_STATUS.decommissioned:
-            return `${styles.statusBadge} ${styles.statusDecommissioned}`;
-        case REGISTER_STATUS.maintenance:
-            return `${styles.statusBadge} ${styles.statusMaintenance}`;
-        case REGISTER_STATUS.disabled:
-        default:
-            return `${styles.statusBadge} ${styles.statusDisabled}`;
-    }
-}
-
-function statusIcon(status: number | undefined) {
-    switch (status) {
-        case REGISTER_STATUS.open:
-            return <CheckCircleOutlined />;
-        case REGISTER_STATUS.closed:
-            return <LockOutlined />;
-        case REGISTER_STATUS.decommissioned:
-            return <StopOutlined />;
-        case REGISTER_STATUS.maintenance:
-            return <ToolOutlined />;
-        case REGISTER_STATUS.disabled:
-        default:
-            return <MinusCircleOutlined />;
-    }
-}
-
 export function CashRegisterGrid({
     registers,
     loading = false,
@@ -104,7 +70,6 @@ export function CashRegisterGrid({
     canManage = false,
     totalRegisterCount = 0,
     canDecommission,
-    statusLabel,
     onEdit,
     onDecommission,
 }: CashRegisterGridProps) {
@@ -247,10 +212,7 @@ export function CashRegisterGrid({
                             />
 
                             <div className={styles.statusRow}>
-                                <span className={statusBadgeClass(status)}>
-                                    {statusIcon(status)}
-                                    {statusLabel(status)}
-                                </span>
+                                <CashRegisterStatusBadge register={register} />
                                 <Tag>{register.isActive === false ? t('common.categories.table.inactive') : t('common.categories.table.active')}</Tag>
                             </div>
 

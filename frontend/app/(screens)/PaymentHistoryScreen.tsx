@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { usePosRegisterReadiness } from '../../contexts/PosRegisterReadinessContext';
+import { usePosStatusOverview } from '../../contexts/PosStatusOverviewContext';
 import { formatTime } from '../../i18n/formatting';
 import { getFormattingLocaleForTextLocale } from '../../i18n/localeUtils';
 import {
@@ -51,13 +52,37 @@ function isActionable(action: PaymentHistoryAvailableAction): boolean {
   return action.action === 'storno' || action.action === 'refund';
 }
 
+function resolveEffectiveRegisterId(
+  readinessId?: string | null,
+  overviewId?: string | null
+): string | null {
+  for (const id of [readinessId, overviewId]) {
+    if (isValidPosCashRegisterId(id)) return id!.trim();
+  }
+  return null;
+}
+
 export default function PaymentHistoryScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation(['paymentHistory', 'common']);
-  const posReadiness = usePosRegisterReadiness();
-  const cashRegisterId = isValidPosCashRegisterId(posReadiness.data?.effectiveRegisterId)
-    ? posReadiness.data!.effectiveRegisterId!.trim()
-    : null;
+  const {
+    data: registerData,
+    loading: registerLoading,
+    refresh: refreshRegister,
+  } = usePosRegisterReadiness();
+  const { cashRegister: overviewRegister } = usePosStatusOverview();
+  const [registerId, setRegisterId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRegisterId(
+      resolveEffectiveRegisterId(
+        registerData?.effectiveRegisterId,
+        overviewRegister?.effectiveRegisterId
+      )
+    );
+  }, [registerData?.effectiveRegisterId, overviewRegister?.effectiveRegisterId]);
+
+  const isRegisterResolving = registerLoading && !registerId;
 
   const formatLocale = useMemo(
     () => getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language),
@@ -67,7 +92,8 @@ export default function PaymentHistoryScreen() {
   const history = usePaymentHistory({
     hours: HISTORY_HOURS,
     limit: HISTORY_LIMIT,
-    cashRegisterId,
+    cashRegisterId: registerId ?? undefined,
+    enabled: Boolean(registerId),
   });
   const { resolveLabel } = usePaymentHistoryLabels();
   const refreshSilent = useCallback(() => {
@@ -308,10 +334,62 @@ export default function PaymentHistoryScreen() {
     [formatLocale, handleActionPress, resolveLabel, t]
   );
 
+  if (isRegisterResolving) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.centerContainer}>
+          <WaveLoader />
+          <Text style={styles.loadingText}>{t('paymentHistory:preparingRegister')}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!registerId) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Pressable
+            onPress={() => router.back()}
+            style={styles.backButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('common:back')}
+          >
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </Pressable>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>{t('paymentHistory:title')}</Text>
+          </View>
+        </View>
+        <View style={styles.centerContainer}>
+          <Ionicons name="warning-outline" size={48} color="#ef6c00" accessibilityElementsHidden />
+          <Text style={styles.warningTitle}>{t('paymentHistory:noRegisterTitle')}</Text>
+          <Text style={styles.warningText}>{t('paymentHistory:noRegister')}</Text>
+          <Pressable
+            onPress={() => router.push('/(tabs)/settings' as const)}
+            style={styles.selectRegisterButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('paymentHistory:selectRegister')}
+          >
+            <Text style={styles.selectRegisterButtonText}>{t('paymentHistory:selectRegister')}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => refreshRegister()}
+            style={styles.retryLinkButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('common:retry')}
+          >
+            <Text style={styles.retryLinkText}>{t('common:retry')}</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (history.isLoading && history.payments.length === 0) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
+        <View style={styles.centerContainer}>
           <WaveLoader />
           <Text style={styles.loadingText}>{t('common:loading')}</Text>
         </View>
@@ -488,10 +566,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+    gap: 12,
+  },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
     color: '#666',
+    textAlign: 'center',
+  },
+  warningTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#333',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  warningText: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  selectRegisterButton: {
+    marginTop: 16,
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 200,
+    alignItems: 'center',
+  },
+  selectRegisterButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  retryLinkButton: {
+    marginTop: 8,
+    padding: 8,
+  },
+  retryLinkText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',

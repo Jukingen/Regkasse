@@ -7,6 +7,48 @@ export type CategoryGroup = {
     subcategories?: CategoryGroup[];
 };
 
+/** Legacy demo-products.json labels → normalized catalog category names (mirrors backend SystemCategories). */
+export const LEGACY_TO_CATALOG_CATEGORY_NAME: Record<string, string> = {
+    'Pizza-mittel': 'Pizza, mittel',
+    'Pizza-Partner': 'Pizza, Partner',
+    'Mexikanische-Pizza-mittel': 'Mexikanische Pizza, mittel',
+    'Mexikanische-Pizza-Partner': 'Mexikanische Pizza, Partner',
+    'Alkoholfreie-Getrnke': 'Alkoholfreie Getränke',
+};
+
+export function expandDemoCategoryReferences(name: string): string[] {
+    const refs = new Set<string>([name]);
+    const normalized = LEGACY_TO_CATALOG_CATEGORY_NAME[name];
+    if (normalized) refs.add(normalized);
+    for (const [legacy, catalogName] of Object.entries(LEGACY_TO_CATALOG_CATEGORY_NAME)) {
+        if (catalogName === name) refs.add(legacy);
+    }
+    return [...refs];
+}
+
+/** Maps catalog/normalized labels back to demo-products.json import keys for API requests. */
+export function toLegacyImportCategoryName(name: string): string {
+    if (Object.prototype.hasOwnProperty.call(LEGACY_TO_CATALOG_CATEGORY_NAME, name)) {
+        return name;
+    }
+    for (const [legacy, catalogName] of Object.entries(LEGACY_TO_CATALOG_CATEGORY_NAME)) {
+        if (name === catalogName) return legacy;
+    }
+    return name;
+}
+
+export function resolveCatalogCategoryCount(
+    name: string,
+    countByName: Map<string, number>,
+    fallback: number,
+): number {
+    for (const ref of expandDemoCategoryReferences(name)) {
+        const count = countByName.get(ref);
+        if (count != null) return count;
+    }
+    return fallback;
+}
+
 export const CATEGORY_GROUPS: CategoryGroup[] = [
     {
         name: 'pizzas',
@@ -101,11 +143,11 @@ export function enrichGroupsWithCatalog(groups: CategoryGroup[], countByName: Ma
     return groups.map((group) => {
         const subcategories = group.subcategories?.map((sub) => ({
             ...sub,
-            productCount: countByName.get(sub.name) ?? sub.productCount,
+            productCount: resolveCatalogCategoryCount(sub.name, countByName, sub.productCount),
         }));
         const productCount = subcategories
             ? subcategories.reduce((sum, sub) => sum + sub.productCount, 0)
-            : countByName.get(group.name) ?? group.productCount;
+            : resolveCatalogCategoryCount(group.name, countByName, group.productCount);
 
         return { ...group, subcategories, productCount };
     });

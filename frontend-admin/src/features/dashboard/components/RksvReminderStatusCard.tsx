@@ -101,7 +101,7 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
     return (
         <Card
             title={t('dashboard.rksvReminder.card_title')}
-            bordered={false}
+            variant="borderless"
             loading={loading}
             style={{ marginBottom: 24 }}
         >

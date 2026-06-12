@@ -74,12 +74,12 @@ public sealed class DemoProductImportServiceTests
             new DemoImportRequest { SelectedCategories = ["Salate", "Pasta"] });
 
         Assert.True(result.Success);
-        Assert.Equal(6, result.TotalProductCount);
+        Assert.Equal(16, result.TotalProductCount);
         Assert.Equal(2, result.SelectedCategoryCount);
-        Assert.Equal(6, result.Created);
+        Assert.Equal(16, result.Created);
         Assert.Equal(0, result.Updated);
         Assert.Equal(0, result.Skipped);
-        Assert.Equal(6, result.ImportedProductCount);
+        Assert.Equal(16, result.ImportedProductCount);
         Assert.Equal(2, result.CategoriesCreated);
         Assert.True(result.AverageImportedPrice > 0);
         Assert.NotEmpty(result.CategoryIds);
@@ -113,10 +113,10 @@ public sealed class DemoProductImportServiceTests
         var result = await service.ImportDemoProductsAsync(tenant.Id, new DemoImportRequest());
 
         Assert.True(result.Success);
-        Assert.Equal(19, result.TotalProductCount);
+        Assert.Equal(156, result.TotalProductCount);
         Assert.Equal(16, result.SelectedCategoryCount);
-        Assert.Equal(19, result.Created);
-        Assert.Equal(19, result.ImportedProductCount);
+        Assert.Equal(156, result.Created);
+        Assert.Equal(156, result.ImportedProductCount);
         Assert.Equal(16, result.CategoriesCreated);
 
         var categories = await db.Categories.IgnoreQueryFilters()
@@ -140,7 +140,7 @@ public sealed class DemoProductImportServiceTests
         Assert.True(second.Success);
         Assert.Equal(0, second.Created);
         Assert.Equal(0, second.Updated);
-        Assert.True(second.Skipped >= 19);
+        Assert.True(second.Skipped >= 156);
         Assert.All(second.CategorySummaries, s => Assert.Equal(s.ProductCount, s.Skipped));
 
         var overwrite = await service.ImportDemoProductsAsync(
@@ -148,9 +148,9 @@ public sealed class DemoProductImportServiceTests
             new DemoImportRequest { OverwriteExisting = true });
         Assert.True(overwrite.Success);
         Assert.Equal(0, overwrite.Created);
-        Assert.True(overwrite.Updated >= 19);
+        Assert.True(overwrite.Updated >= 156);
         Assert.Equal(0, overwrite.CategoriesCreated);
-        Assert.True(overwrite.ImportedProductCount >= 19);
+        Assert.True(overwrite.ImportedProductCount >= 156);
     }
 
     [Fact]

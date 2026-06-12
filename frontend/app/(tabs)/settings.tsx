@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+import { usePosRegisterSelection } from '../../hooks/usePosRegisterSelection';
 
 import { AppUpdateChecker } from '../../components/AppUpdateChecker';
-import { CashRegisterAssignmentSection } from '../../components/CashRegisterAssignmentSection';
+import { CashRegisterSelector } from '../../components/CashRegisterSelector';
 import { ShiftManager } from '../../components/ShiftManager';
 import LanguageSelector from '../../components/LanguageSelector';
 import { LicenseStatusIndicator } from '../../components/LicenseStatusIndicator';
@@ -31,6 +33,18 @@ export default function SettingsScreen() {
   const { t } = useTranslation(['settings', 'auth', 'common', 'license']);
   const { logout } = useAuth();
   const { status, loading, error, refetch } = useTimeSyncStatus();
+  const { effectiveRegisterId } = usePosRegisterSelection();
+
+  const openPaymentHistory = useCallback(() => {
+    if (!effectiveRegisterId) {
+      Alert.alert(
+        t('settings:paymentHistory.noRegisterTitle'),
+        t('settings:paymentHistory.noRegisterMessage')
+      );
+      return;
+    }
+    router.push('/(screens)/PaymentHistoryScreen' as const);
+  }, [effectiveRegisterId, router, t]);
 
   // CRITICAL FIX: Translation değerlerini useMemo ile cache'le
   const translations = useMemo(() => ({
@@ -58,7 +72,7 @@ export default function SettingsScreen() {
         <LanguageSelector />
       </View>
       <View style={styles.section}>
-        <CashRegisterAssignmentSection />
+        <CashRegisterSelector />
       </View>
       <View style={styles.section}>
         <ShiftManager />
@@ -126,10 +140,13 @@ export default function SettingsScreen() {
         </Text>
         <TouchableOpacity
           style={styles.queueLinkButton}
-          onPress={() => router.push('/(screens)/PaymentHistoryScreen' as any)}
+          onPress={openPaymentHistory}
         >
           <Text style={styles.queueLinkText}>{translations.paymentHistoryOpen}</Text>
         </TouchableOpacity>
+        {!effectiveRegisterId ? (
+          <Text style={styles.descriptionMuted}>{t('settings:paymentHistory.noRegisterHint')}</Text>
+        ) : null}
       </View>
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{translations.offlineQueueTitle}</Text>

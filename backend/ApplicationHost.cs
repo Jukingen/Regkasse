@@ -21,6 +21,7 @@ using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.PaymentGateway;
 using KasseAPI_Final.Services.Reports;
 using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Tenancy;
@@ -670,6 +671,19 @@ builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();
 builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
 builder.Services.AddScoped<IVoucherIssuanceService, VoucherIssuanceService>();
+builder.Services.Configure<PaymentGatewayOptions>(builder.Configuration.GetSection(PaymentGatewayOptions.SectionName));
+builder.Services.AddStripePaymentGateway();
+// Payment Gateway: Mock in Development, Stripe in non-Development hosts.
+if (isDevelopment)
+{
+    builder.Services.AddSingleton<IPaymentGateway, MockCardGateway>();
+}
+else
+{
+    builder.Services.AddSingleton<IPaymentGateway, StripeCardGateway>();
+}
+builder.Services.AddScoped<ICardPaymentService, CardPaymentService>();
+builder.Services.AddScoped<IAdminCardTransactionListService, AdminCardTransactionListService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IAdminPaymentListService, AdminPaymentListService>();
 builder.Services.AddScoped<IAdminSuspiciousAlertService, AdminSuspiciousAlertService>();

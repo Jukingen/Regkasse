@@ -8,18 +8,16 @@ import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
-import {
-    rawRegisterStatus,
-    readDecommissionMeta,
-    registerStatusEmoji,
-    registerStatusTagColor,
-} from '@/features/cash-registers/utils/registerStatus';
+import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
+import { CashRegisterStatusContextAlert } from '@/features/cash-registers/components/CashRegisterStatusContextAlert';
+import { rawRegisterStatus, readDecommissionMeta } from '@/features/cash-registers/utils/registerStatus';
 
 export type RegisterDetailModalProps = {
     open: boolean;
     register: CashRegister | null;
     onClose: () => void;
-    statusLabel: (status: number | undefined) => string;
+    /** @deprecated Use CashRegisterStatusBadge. */
+    statusLabel?: (status: number | undefined) => string;
     showHardDelete?: boolean;
     onHardDelete?: () => void;
 };
@@ -28,7 +26,6 @@ export function RegisterDetailModal({
     open,
     register,
     onClose,
-    statusLabel,
     showHardDelete,
     onHardDelete,
 }: RegisterDetailModalProps) {
@@ -79,14 +76,15 @@ export function RegisterDetailModal({
             destroyOnHidden
         >
             {register ? (
+                <CashRegisterStatusContextAlert register={register} showOpenPrerequisites />
+            ) : null}
+            {register ? (
                 <Descriptions bordered column={1} size="small">
                     <Descriptions.Item label={t('cashRegisters.detail.location')}>
                         {register.location?.trim() || FORMAT_EMPTY_DISPLAY}
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.columns.status')}>
-                        <Tag color={registerStatusTagColor(status)}>
-                            {registerStatusEmoji(status)} {statusLabel(status)}
-                        </Tag>
+                        <CashRegisterStatusBadge register={register} />
                     </Descriptions.Item>
                     <Descriptions.Item label={t('cashRegisters.detail.tseStatus')}>
                         <TseHealthBadge
