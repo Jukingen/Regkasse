@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+
 namespace KasseAPI_Final.Models.DTOs;
 
 /// <summary>Advanced query filters for admin product list.</summary>
@@ -24,7 +26,8 @@ public class ProductFilterDto
     // Categories
     public List<Guid> CategoryIds { get; set; } = new();
 
-    // Status
+    // Status — set in AdminProductsController.MergeLegacyListParams from query isActive (true|false|all), not model-bound.
+    [BindNever]
     public bool? IsActive { get; set; }
     public bool? IsTaxable { get; set; }
 

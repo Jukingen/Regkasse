@@ -13,7 +13,7 @@ import { sessionManager } from '../services/session/sessionManager';
 import { extractApiMessage, showToast } from '../utils/toast';
 
 // Türkçe Açıklama: Ödeme işlemleri için hook - Backend API ile entegre çalışır
-export const usePayment = () => {
+export const usePayment = (cashRegisterId?: string | null) => {
   // State split: loading (genel/action) vs methodsLoading (init)
   const [methodsLoading, setMethodsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,11 @@ export const usePayment = () => {
       setMethodsLoading(true);
       setError(null);
 
-      const methods = await paymentService.getPaymentMethods();
+      if (!cashRegisterId?.trim()) {
+        throw new Error('cashRegisterId is required to load payment methods');
+      }
+
+      const methods = await paymentService.getPaymentMethods(cashRegisterId.trim());
       setPaymentMethods(methods);
       return methods;
     } catch (err) {
@@ -42,7 +46,7 @@ export const usePayment = () => {
     } finally {
       setMethodsLoading(false);
     }
-  }, []);
+  }, [cashRegisterId]);
 
   const validateVoucher = useCallback(async (voucherCode: string, amount?: number): Promise<VoucherValidateResult> => {
     const token = await sessionManager.getAccessToken();

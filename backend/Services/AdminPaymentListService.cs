@@ -169,7 +169,7 @@ public sealed class AdminPaymentListService : IAdminPaymentListService
         var raws = new List<string>();
         foreach (var method in paymentMethods)
         {
-            var raw = await _paymentMethodCatalog.ResolveRawForFilterAsync(method, cancellationToken);
+            var raw = await _paymentMethodCatalog.ResolveRawForFilterAsync(method, cancellationToken: cancellationToken);
             if (!raws.Contains(raw, StringComparer.Ordinal))
                 raws.Add(raw);
         }
@@ -186,6 +186,7 @@ public sealed class AdminPaymentListService : IAdminPaymentListService
             .OrderBy(x => x.DisplayOrder)
             .ThenBy(x => x.Code)
             .Select(x => x.Code)
+            .Distinct()
             .ToListAsync(cancellationToken);
 
         if (fromDefinitions.Count > 0)

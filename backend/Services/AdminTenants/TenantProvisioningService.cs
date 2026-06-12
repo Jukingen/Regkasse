@@ -22,6 +22,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
     private readonly IUserTenantMembershipProvisioner _membershipProvisioner;
     private readonly IUserUniquenessValidationService _uniquenessValidation;
     private readonly IDemoProductImportService _demoProductImport;
+    private readonly IPaymentMethodDefinitionBootstrapService _paymentMethodBootstrap;
     private readonly ILogger<TenantProvisioningService> _logger;
 
     public TenantProvisioningService(
@@ -30,6 +31,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         IUserTenantMembershipProvisioner membershipProvisioner,
         IUserUniquenessValidationService uniquenessValidation,
         IDemoProductImportService demoProductImport,
+        IPaymentMethodDefinitionBootstrapService paymentMethodBootstrap,
         ILogger<TenantProvisioningService> logger)
     {
         _db = db;
@@ -37,6 +39,7 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         _membershipProvisioner = membershipProvisioner;
         _uniquenessValidation = uniquenessValidation;
         _demoProductImport = demoProductImport;
+        _paymentMethodBootstrap = paymentMethodBootstrap;
         _logger = logger;
     }
 
@@ -194,6 +197,10 @@ public sealed class TenantProvisioningService : ITenantProvisioningService
         }
 
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await _paymentMethodBootstrap
+            .EnsureDefaultsForCashRegisterAsync(tenant.Id, cashRegister.Id, cancellationToken)
+            .ConfigureAwait(false);
 
         _logger.LogInformation(
             "Provisioned tenant {TenantId} slug {Slug}: register {RegisterId}, admin {AdminUserId}, {ProductCount} demo products (importDemoMenu={ImportDemoMenu})",

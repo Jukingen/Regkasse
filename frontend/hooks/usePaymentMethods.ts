@@ -4,7 +4,7 @@ import {
   normalizeToPosPaymentMethods,
   type NormalizedPosPaymentMethod,
 } from '../services/api/normalizePosPaymentMethods';
-import { POS_PAYMENT_METHODS_PATH } from '../services/api/posPaymentPaths';
+import { posPaymentMethodsPath } from '../services/api/posPaymentPaths';
 import { apiClient } from '../services/api/config';
 import { sessionManager } from '../services/session/sessionManager';
 
@@ -48,7 +48,7 @@ function toPaymentMethodInfo(m: NormalizedPosPaymentMethod): PaymentMethodInfo {
   };
 }
 
-export function usePaymentMethods(user: any) {
+export function usePaymentMethods(user: any, cashRegisterId?: string | null) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodInfo[]>([]);
   const [tseStatus, setTseStatus] = useState<TseStatusInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,6 +67,12 @@ export function usePaymentMethods(user: any) {
     }
 
     // OPTIMIZATION: Eğer zaten fetch edildiyse ve data varsa, tekrar fetch yapma
+    if (!cashRegisterId?.trim()) {
+      setError('Cash register is not selected.');
+      setPaymentMethods([]);
+      return;
+    }
+
     if (isInitialized && paymentMethods.length > 0) {
       console.log('🔄 Payment methods already fetched, returning cached data');
       return;
@@ -77,7 +83,7 @@ export function usePaymentMethods(user: any) {
       setError(null);
       console.log('🔄 Fetching payment methods from backend...');
       console.log('🔐 Using token:', token ? 'Available' : 'Missing');
-      const json: unknown = await apiClient.get<unknown>(POS_PAYMENT_METHODS_PATH);
+      const json: unknown = await apiClient.get<unknown>(posPaymentMethodsPath(cashRegisterId.trim()));
       const methods = normalizeToPosPaymentMethods(json);
       const env = isRecord(json) ? json : null;
 
@@ -153,11 +159,16 @@ export function usePaymentMethods(user: any) {
     } finally {
       setLoading(false);
     }
-  }, [user, isInitialized, paymentMethods.length]);
+  }, [user, cashRegisterId, isInitialized, paymentMethods.length]);
+
+  useEffect(() => {
+    setIsInitialized(false);
+    setPaymentMethods([]);
+  }, [cashRegisterId]);
 
   // OPTIMIZATION: Sadece user değiştiğinde ve henüz initialize edilmemişse fetch yap
   useEffect(() => {
-    if (user && !isInitialized) {
+    if (user && cashRegisterId?.trim() && !isInitialized) {
       fetchPaymentMethods();
     } else if (!user) {
       setPaymentMethods([]);
@@ -165,7 +176,7 @@ export function usePaymentMethods(user: any) {
       setError(null);
       setIsInitialized(false); // Reset initialization flag
     }
-  }, [user]); // fetchPaymentMethods dependency'sini kaldırdık
+  }, [user, cashRegisterId, isInitialized, fetchPaymentMethods]);
 
   // Get specific payment method
   const getPaymentMethod = useCallback((method: string): PaymentMethodInfo | undefined => {

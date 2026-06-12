@@ -31,28 +31,59 @@ internal static class DemoProductImportFilter
 
         if (request.SelectedCategories.Count > 0)
         {
-            var selected = new HashSet<string>(
-                request.SelectedCategories.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()),
-                StringComparer.Ordinal);
-            categoriesToImport = categoriesToImport.Where(c =>
-                selected.Contains(c.Name)
-                || selected.Contains(c.Key)
-                || (SystemCategories.TryResolve(c.Name, out var byName) && selected.Contains(byName.Key))
-                || (SystemCategories.TryResolve(c.Key, out var byKey) && (selected.Contains(byKey.Key) || selected.Contains(byKey.DisplayName))));
+            var selected = ExpandCategoryReferences(request.SelectedCategories);
+            categoriesToImport = categoriesToImport.Where(c => CategoryMatchesReferenceSet(c, selected));
         }
         else if (request.ExcludedCategories.Count > 0)
         {
-            var excluded = new HashSet<string>(
-                request.ExcludedCategories.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()),
-                StringComparer.Ordinal);
-            categoriesToImport = categoriesToImport.Where(c =>
-                !excluded.Contains(c.Name)
-                && !excluded.Contains(c.Key)
-                && !(SystemCategories.TryResolve(c.Name, out var byName) && excluded.Contains(byName.Key))
-                && !(SystemCategories.TryResolve(c.Key, out var byKey) && (excluded.Contains(byKey.Key) || excluded.Contains(byKey.DisplayName))));
+            var excluded = ExpandCategoryReferences(request.ExcludedCategories);
+            categoriesToImport = categoriesToImport.Where(c => !CategoryMatchesReferenceSet(c, excluded));
         }
 
         return categoriesToImport.OrderBy(c => c.SortOrder).ToList();
+    }
+
+    /// <summary>
+    /// Expands wizard/JSON labels (e.g. Alkoholfreie-Getrnke) to canonical keys and display names.
+    /// </summary>
+    private static HashSet<string> ExpandCategoryReferences(IEnumerable<string> references)
+    {
+        var expanded = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var raw in references.Where(n => !string.IsNullOrWhiteSpace(n)).Select(n => n.Trim()))
+        {
+            expanded.Add(raw);
+            if (SystemCategories.TryResolve(raw, out var resolved))
+            {
+                expanded.Add(resolved.Key);
+                expanded.Add(resolved.DisplayName);
+            }
+        }
+
+        return expanded;
+    }
+
+    private static bool CategoryMatchesReferenceSet(DemoCategory category, HashSet<string> references)
+    {
+        if (references.Contains(category.Name))
+            return true;
+
+        if (!string.IsNullOrWhiteSpace(category.Key) && references.Contains(category.Key))
+            return true;
+
+        if (SystemCategories.TryResolve(category.Name, out var byName)
+            && (references.Contains(byName.Key) || references.Contains(byName.DisplayName)))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(category.Key)
+            && SystemCategories.TryResolve(category.Key, out var byKey)
+            && (references.Contains(byKey.Key) || references.Contains(byKey.DisplayName)))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     internal static List<DemoProduct> SelectProducts(

@@ -1,62 +1,106 @@
 'use client';
 
 import { useAntdApp } from '@/hooks/useAntdApp';
-import React, { useMemo, useState } from 'react';
-import { Modal, Button, Table, Space, Form, Input, InputNumber, Switch, Select, Tag, Typography, Empty } from 'antd';
-import { PlusOutlined, EditOutlined } from '@ant-design/icons';
-import type { ColumnType } from 'antd/es/table';
-import {
-  useAdminPaymentMethodDefinitionsList,
-  useCreateAdminPaymentMethodDefinition,
-  useUpdateAdminPaymentMethodDefinition,
-  useDeleteAdminPaymentMethodDefinition,
-  type PaymentMethodDefinitionAdmin,
-  type CreatePaymentMethodDefinitionRequest,
-} from '@/api/admin/payment-method-definitions';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Form, Tabs, Typography } from 'antd';
+import { AppstoreOutlined, EditOutlined } from '@ant-design/icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { adminPaymentMethodDefinitionsQueryKeys } from '@/api/admin/payment-method-definitions';
+
+import {
+  adminPaymentMethodDefinitionsQueryKeys,
+  createAdminPaymentMethodDefinition,
+  deleteAdminPaymentMethodDefinition,
+  updateAdminPaymentMethodDefinition,
+  useAdminPaymentMethodDefinitionsList,
+  type CreatePaymentMethodDefinitionRequest,
+  type PaymentMethodDefinitionAdmin,
+} from '@/api/admin/payment-method-definitions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
-import { FORMAT_EMPTY_DISPLAY } from '@/i18n/formatting';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
+import { useCashRegisters } from '@/features/cash-registers/hooks/useCashRegisters';
+import { PaymentMethodDefinitionModal } from '@/features/payment-methods/components/PaymentMethodDefinitionModal';
+import { PaymentMethodMatrixOverview } from '@/features/payment-methods/components/PaymentMethodMatrixOverview';
+import { PaymentMethodRegisterPanel } from '@/features/payment-methods/components/PaymentMethodRegisterPanel';
+import { useAllRegistersPaymentMethods } from '@/features/payment-methods/hooks/useAllRegistersPaymentMethods';
+
+type SettingsTab = 'overview' | 'manage';
+
+function toRequestPayload(
+  row: PaymentMethodDefinitionAdmin,
+  overrides?: Partial<CreatePaymentMethodDefinitionRequest>,
+): CreatePaymentMethodDefinitionRequest {
+  return {
+    cashRegisterId: row.cashRegisterId,
+    code: row.code,
+    name: row.name,
+    legacyPaymentMethodValue: row.legacyPaymentMethodValue,
+    fiscalCategory: row.fiscalCategory ?? null,
+    isActive: row.isActive,
+    isDefault: row.isDefault,
+    displayOrder: row.displayOrder,
+    requiresTerminal: row.requiresTerminal,
+    terminalType: row.terminalType ?? null,
+    allowRefund: row.allowRefund,
+    icon: row.icon ?? null,
+    metadataJson: row.metadataJson ?? null,
+    ...overrides,
+  };
+}
 
 export default function PaymentMethodsSettingsPage() {
   const { message, modal } = useAntdApp();
-
+  const queryClient = useQueryClient();
   const { t } = useI18n();
   const { user } = useAuth();
+  const { tenantId, requiresTenantSelection } = useCurrentTenant();
   const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
-  const queryClient = useQueryClient();
-  const listQuery = useAdminPaymentMethodDefinitionsList();
-  const createMutation = useCreateAdminPaymentMethodDefinition();
-  const updateMutation = useUpdateAdminPaymentMethodDefinition();
-  const deleteMutation = useDeleteAdminPaymentMethodDefinition();
+
+  const { registers, defaultRegister, isLoading: registersLoading } = useCashRegisters(tenantId ?? undefined, {
+    enabled: Boolean(tenantId) && !requiresTenantSelection,
+  });
+
+  const registerIds = registers.map((r) => r.id);
+  const matrixQuery = useAllRegistersPaymentMethods(registerIds, Boolean(tenantId) && !requiresTenantSelection);
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>('overview');
+  const [selectedRegisterId, setSelectedRegisterId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tenantId || registers.length === 0) {
+      setSelectedRegisterId(null);
+      return;
+    }
+    if (selectedRegisterId && registers.some((r) => r.id === selectedRegisterId)) {
+      return;
+    }
+    setSelectedRegisterId(defaultRegister?.id ?? registers[0]?.id ?? null);
+  }, [tenantId, registers, defaultRegister, selectedRegisterId]);
+
+  const cashRegisterId = selectedRegisterId ?? defaultRegister?.id ?? registers[0]?.id ?? null;
+
+  const listQuery = useAdminPaymentMethodDefinitionsList(cashRegisterId);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState<PaymentMethodDefinitionAdmin | null>(null);
+  const [modalRegisterId, setModalRegisterId] = useState<string | null>(null);
   const [form] = Form.useForm<CreatePaymentMethodDefinitionRequest>();
 
-  const rows = listQuery.data ?? [];
-
-  const legacyPaymentMethodOptions = useMemo(
-    () => [
-      { value: 0, label: t('settings.paymentMethods.form.legacyOption0') },
-      { value: 1, label: t('settings.paymentMethods.form.legacyOption1') },
-      { value: 2, label: t('settings.paymentMethods.form.legacyOption2') },
-      { value: 3, label: t('settings.paymentMethods.form.legacyOption3') },
-      { value: 4, label: t('settings.paymentMethods.form.legacyOption4') },
-      { value: 5, label: t('settings.paymentMethods.form.legacyOption5') },
-    ],
-    [t],
-  );
-
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.lists() });
+  const invalidateAll = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.lists() });
+    await matrixQuery.refetchAll();
+  }, [matrixQuery, queryClient]);
 
   const openCreate = () => {
+    if (!cashRegisterId) return;
+    setModalRegisterId(cashRegisterId);
     setEditing(null);
     form.setFieldsValue({
+      cashRegisterId,
       code: '',
       name: '',
       legacyPaymentMethodValue: 1,
@@ -74,54 +118,36 @@ export default function PaymentMethodsSettingsPage() {
   };
 
   const openEdit = (row: PaymentMethodDefinitionAdmin) => {
+    setModalRegisterId(row.cashRegisterId);
     setEditing(row);
-    form.setFieldsValue({
-      code: row.code,
-      name: row.name,
-      legacyPaymentMethodValue: row.legacyPaymentMethodValue,
-      fiscalCategory: row.fiscalCategory ?? '',
-      isActive: row.isActive,
-      isDefault: row.isDefault,
-      displayOrder: row.displayOrder,
-      requiresTerminal: row.requiresTerminal,
-      terminalType: row.terminalType ?? '',
-      allowRefund: row.allowRefund,
-      icon: row.icon ?? '',
-      metadataJson: row.metadataJson ?? '',
-    });
+    if (row.cashRegisterId !== cashRegisterId) {
+      setSelectedRegisterId(row.cashRegisterId);
+    }
+    form.setFieldsValue(toRequestPayload(row, { fiscalCategory: row.fiscalCategory ?? '', icon: row.icon ?? '', metadataJson: row.metadataJson ?? '', terminalType: row.terminalType ?? '' }));
     setModalOpen(true);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (payload: CreatePaymentMethodDefinitionRequest) => {
+    const targetRegisterId = modalRegisterId ?? cashRegisterId;
+    if (!targetRegisterId) return;
+    setSaving(true);
     try {
-      const values = await form.validateFields();
-      const payload: CreatePaymentMethodDefinitionRequest = {
-        code: values.code?.trim() ?? '',
-        name: values.name?.trim() ?? '',
-        legacyPaymentMethodValue: values.legacyPaymentMethodValue,
-        fiscalCategory: values.fiscalCategory?.trim() || null,
-        isActive: values.isActive ?? true,
-        isDefault: values.isDefault ?? false,
-        displayOrder: values.displayOrder ?? 0,
-        requiresTerminal: values.requiresTerminal ?? false,
-        terminalType: values.terminalType?.trim() || null,
-        allowRefund: values.allowRefund ?? true,
-        icon: values.icon?.trim() || null,
-        metadataJson: values.metadataJson?.trim() || null,
-      };
+      const body: CreatePaymentMethodDefinitionRequest = { ...payload, cashRegisterId: targetRegisterId };
       if (editing) {
-        await updateMutation.mutateAsync({ id: editing.id, data: payload });
+        await updateAdminPaymentMethodDefinition(editing.id, body);
         message.success(t('settings.paymentMethods.saved'));
       } else {
-        await createMutation.mutateAsync(payload);
+        await createAdminPaymentMethodDefinition(body);
         message.success(t('settings.paymentMethods.created'));
       }
       setModalOpen(false);
       setEditing(null);
-      invalidate();
+      await invalidateAll();
     } catch (e) {
       if (e && typeof e === 'object' && 'errorFields' in e) return;
       message.error(t('settings.paymentMethods.saveFailed'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -132,64 +158,33 @@ export default function PaymentMethodsSettingsPage() {
       okText: t('common.buttons.yes'),
       cancelText: t('common.buttons.cancel'),
       onOk: async () => {
-        await deleteMutation.mutateAsync(row.id);
+        await deleteAdminPaymentMethodDefinition(row.id);
         message.success(t('settings.paymentMethods.deactivated'));
-        invalidate();
+        await invalidateAll();
       },
     });
   };
 
-  const columns: ColumnType<PaymentMethodDefinitionAdmin>[] = [
-    { title: t('settings.paymentMethods.columns.code'), dataIndex: 'code', key: 'code', width: 140 },
-    { title: t('settings.paymentMethods.columns.name'), dataIndex: 'name', key: 'name' },
-    {
-      title: t('settings.paymentMethods.columns.active'),
-      dataIndex: 'isActive',
-      key: 'isActive',
-      width: 100,
-      render: (v: boolean) => (v ? <Tag color="green">{t('common.buttons.yes')}</Tag> : <Tag>{t('common.buttons.no')}</Tag>),
-    },
-    {
-      title: t('settings.paymentMethods.columns.default'),
-      dataIndex: 'isDefault',
-      key: 'isDefault',
-      width: 90,
-      render: (v: boolean) => (v ? <Tag color="blue">{t('common.buttons.yes')}</Tag> : <Tag>{t('common.buttons.no')}</Tag>),
-    },
-    { title: t('settings.paymentMethods.columns.order'), dataIndex: 'displayOrder', key: 'displayOrder', width: 90 },
-    {
-      title: t('settings.paymentMethods.columns.legacy'),
-      dataIndex: 'legacyPaymentMethodValue',
-      key: 'legacyPaymentMethodValue',
-      width: 110,
-    },
-    {
-      title: t('settings.paymentMethods.columns.terminal'),
-      key: 'term',
-      width: 120,
-      render: (_, r) =>
-        r.requiresTerminal ? r.terminalType?.trim() || FORMAT_EMPTY_DISPLAY : FORMAT_EMPTY_DISPLAY,
-    },
-    {
-      title: t('settings.paymentMethods.columns.actions'),
-      key: 'actions',
-      width: 200,
-      render: (_, row) => (
-        <Space>
-          {canManage && (
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => openEdit(row)}>
-              {t('common.buttons.edit')}
-            </Button>
-          )}
-          {canManage && row.isActive && (
-            <Button type="link" size="small" danger onClick={() => handleDeactivate(row)}>
-              {t('settings.paymentMethods.deactivate')}
-            </Button>
-          )}
-        </Space>
-      ),
-    },
-  ];
+  const handleToggleActive = async (definition: PaymentMethodDefinitionAdmin, nextActive: boolean) => {
+    if (!canManage) return;
+    try {
+      if (nextActive) {
+        await updateAdminPaymentMethodDefinition(definition.id, toRequestPayload(definition, { isActive: true }));
+        message.success(t('settings.paymentMethods.matrix.turnedOn', { code: definition.code }));
+      } else {
+        await deleteAdminPaymentMethodDefinition(definition.id);
+        message.success(t('settings.paymentMethods.deactivated'));
+      }
+      await invalidateAll();
+    } catch {
+      message.error(t('settings.paymentMethods.saveFailed'));
+    }
+  };
+
+  const handleManageRegister = (registerId: string) => {
+    setSelectedRegisterId(registerId);
+    setActiveTab('manage');
+  };
 
   const headerBreadcrumbs = [
     adminOverviewCrumb(t),
@@ -197,87 +192,81 @@ export default function PaymentMethodsSettingsPage() {
     { title: t('settings.paymentMethods.title') },
   ];
 
+  if (requiresTenantSelection) {
+    return (
+      <>
+        <AdminPageHeader title={t('settings.paymentMethods.title')} breadcrumbs={headerBreadcrumbs} />
+        <Alert type="info" showIcon message={t('settings.paymentMethods.noCashRegister')} />
+      </>
+    );
+  }
+
   return (
     <>
       <AdminPageHeader title={t('settings.paymentMethods.title')} breadcrumbs={headerBreadcrumbs} />
-      <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          {t('settings.paymentMethods.intro')}
-        </Typography.Paragraph>
-        <Space>
-          {canManage && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              {t('settings.paymentMethods.add')}
-            </Button>
-          )}
-        </Space>
-        <Table<PaymentMethodDefinitionAdmin>
-          rowKey="id"
-          loading={listQuery.isLoading}
-          dataSource={rows}
-          columns={columns}
-          pagination={{ pageSize: 20 }}
-          locale={{
-            emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('settings.paymentMethods.tableEmpty')} />,
-          }}
-        />
-      </Space>
+      <Typography.Paragraph type="secondary">{t('settings.paymentMethods.intro')}</Typography.Paragraph>
 
-      <Modal
-        title={editing ? t('settings.paymentMethods.editTitle') : t('settings.paymentMethods.createTitle')}
+      <Tabs
+        activeKey={activeTab}
+        onChange={(key) => setActiveTab(key as SettingsTab)}
+        destroyOnHidden={false}
+        items={[
+          {
+            key: 'overview',
+            label: (
+              <span>
+                <AppstoreOutlined /> {t('settings.paymentMethods.tabs.overview')}
+              </span>
+            ),
+            children: (
+              <PaymentMethodMatrixOverview
+                registers={registers}
+                methodsByRegisterId={matrixQuery.methodsByRegisterId}
+                loading={registersLoading || matrixQuery.isLoading}
+                canManage={canManage}
+                onManageRegister={handleManageRegister}
+                onEditDefinition={(definition) => {
+                  setActiveTab('manage');
+                  openEdit(definition);
+                }}
+                onToggleActive={handleToggleActive}
+              />
+            ),
+          },
+          {
+            key: 'manage',
+            label: (
+              <span>
+                <EditOutlined /> {t('settings.paymentMethods.tabs.manage')}
+              </span>
+            ),
+            children: (
+              <PaymentMethodRegisterPanel
+                registers={registers}
+                registersLoading={registersLoading}
+                cashRegisterId={cashRegisterId}
+                onSelectRegister={setSelectedRegisterId}
+                rows={listQuery.data ?? []}
+                tableLoading={listQuery.isLoading}
+                canManage={canManage}
+                onAdd={openCreate}
+                onEdit={openEdit}
+                onDeactivate={handleDeactivate}
+              />
+            ),
+          },
+        ]}
+      />
+
+      <PaymentMethodDefinitionModal
         open={modalOpen}
+        editing={editing}
+        cashRegisterId={modalRegisterId ?? cashRegisterId ?? ''}
+        confirmLoading={saving}
         onCancel={() => setModalOpen(false)}
-        onOk={handleSubmit}
-        confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnHidden
-        width={640}
-        okText={t('common.buttons.save')}
-        cancelText={t('common.buttons.cancel')}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="code"
-            label={t('settings.paymentMethods.form.code')}
-            rules={[{ required: true }]}
-            extra={t('settings.paymentMethods.form.codeHint')}
-          >
-            <Input disabled={!!editing} autoComplete="off" />
-          </Form.Item>
-          <Form.Item name="name" label={t('settings.paymentMethods.form.name')} rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="legacyPaymentMethodValue" label={t('settings.paymentMethods.form.legacy')} rules={[{ required: true }]}>
-            <Select options={legacyPaymentMethodOptions} />
-          </Form.Item>
-          <Form.Item name="fiscalCategory" label={t('settings.paymentMethods.form.fiscalCategory')}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="displayOrder" label={t('settings.paymentMethods.form.order')}>
-            <InputNumber style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="isActive" label={t('settings.paymentMethods.form.active')} valuePropName="checked">
-            <Switch />
-          </Form.Item>
-          <Form.Item name="isDefault" label={t('settings.paymentMethods.form.default')} valuePropName="checked">
-            <Switch />
-          </Form.Item>
-          <Form.Item name="requiresTerminal" label={t('settings.paymentMethods.form.requiresTerminal')} valuePropName="checked">
-            <Switch />
-          </Form.Item>
-          <Form.Item name="terminalType" label={t('settings.paymentMethods.form.terminalType')}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="allowRefund" label={t('settings.paymentMethods.form.allowRefund')} valuePropName="checked">
-            <Switch />
-          </Form.Item>
-          <Form.Item name="icon" label={t('settings.paymentMethods.form.icon')}>
-            <Input placeholder={t('settings.paymentMethods.form.iconPlaceholder')} />
-          </Form.Item>
-          <Form.Item name="metadataJson" label={t('settings.paymentMethods.form.metadata')}>
-            <Input.TextArea rows={3} />
-          </Form.Item>
-        </Form>
-      </Modal>
+        onSubmit={handleSubmit}
+        form={form}
+      />
     </>
   );
 }

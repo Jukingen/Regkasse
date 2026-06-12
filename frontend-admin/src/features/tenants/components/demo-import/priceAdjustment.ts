@@ -13,7 +13,7 @@ export type DemoImportPriceAdjustmentState = {
 };
 
 export const DEFAULT_PRICE_ADJUSTMENT: DemoImportPriceAdjustmentState = {
-    mode: 'increasePercent',
+    mode: 'none',
     percent: 10,
     roundIncrement: 0.5,
 };

@@ -9,6 +9,8 @@ const BASE = '/api/admin/payment-method-definitions';
 
 export interface PaymentMethodDefinitionAdmin {
   id: string;
+  cashRegisterId: string;
+  cashRegisterNumber?: string | null;
   code: string;
   name: string;
   isActive: boolean;
@@ -26,6 +28,7 @@ export interface PaymentMethodDefinitionAdmin {
 }
 
 export interface CreatePaymentMethodDefinitionRequest {
+  cashRegisterId: string;
   code: string;
   name: string;
   legacyPaymentMethodValue: number;
@@ -50,12 +53,14 @@ function unwrapData<T>(res: any): T {
 }
 
 export function getAdminPaymentMethodDefinitions(
+  cashRegisterId: string,
   options?: SecondParameter<typeof customInstance>,
   signal?: AbortSignal
 ): Promise<PaymentMethodDefinitionAdmin[]> {
-  return customInstance<PaymentMethodDefinitionAdmin[]>({ url: BASE, method: 'GET', signal }, options).then((res) =>
-    unwrapData<PaymentMethodDefinitionAdmin[]>(res)
-  );
+  return customInstance<PaymentMethodDefinitionAdmin[]>(
+    { url: BASE, method: 'GET', params: { cashRegisterId }, signal },
+    options
+  ).then((res) => unwrapData<PaymentMethodDefinitionAdmin[]>(res));
 }
 
 export function createAdminPaymentMethodDefinition(
@@ -88,30 +93,39 @@ export function deleteAdminPaymentMethodDefinition(id: string, options?: SecondP
 export const adminPaymentMethodDefinitionsQueryKeys = {
   all: ['admin', 'payment-method-definitions'] as const,
   lists: () => [...adminPaymentMethodDefinitionsQueryKeys.all, 'list'] as const,
+  list: (cashRegisterId: string) => [...adminPaymentMethodDefinitionsQueryKeys.lists(), cashRegisterId] as const,
 };
 
 export function useAdminPaymentMethodDefinitionsList(
+  cashRegisterId: string | null | undefined,
   options?: Partial<UseQueryOptions<PaymentMethodDefinitionAdmin[], Error, PaymentMethodDefinitionAdmin[]>>
 ): UseQueryResult<PaymentMethodDefinitionAdmin[], Error> {
   return useQuery({
-    queryKey: adminPaymentMethodDefinitionsQueryKeys.lists(),
-    queryFn: ({ signal }) => getAdminPaymentMethodDefinitions(undefined, signal),
+    queryKey: adminPaymentMethodDefinitionsQueryKeys.list(cashRegisterId ?? ''),
+    queryFn: ({ signal }) => getAdminPaymentMethodDefinitions(cashRegisterId!, undefined, signal),
+    enabled: Boolean(cashRegisterId),
     ...options,
   });
 }
 
 export function useCreateAdminPaymentMethodDefinition(
+  cashRegisterId: string | null | undefined,
   options?: UseMutationOptions<PaymentMethodDefinitionAdmin, Error, CreatePaymentMethodDefinitionRequest>
 ): UseMutationResult<PaymentMethodDefinitionAdmin, Error, CreatePaymentMethodDefinitionRequest> {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data) => createAdminPaymentMethodDefinition(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.lists() }),
+    onSuccess: () => {
+      if (cashRegisterId) {
+        qc.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.list(cashRegisterId) });
+      }
+    },
     ...options,
   });
 }
 
 export function useUpdateAdminPaymentMethodDefinition(
+  cashRegisterId: string | null | undefined,
   options?: UseMutationOptions<
     PaymentMethodDefinitionAdmin,
     Error,
@@ -125,12 +139,17 @@ export function useUpdateAdminPaymentMethodDefinition(
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }) => updateAdminPaymentMethodDefinition(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.lists() }),
+    onSuccess: () => {
+      if (cashRegisterId) {
+        qc.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.list(cashRegisterId) });
+      }
+    },
     ...options,
   });
 }
 
 export function useDeleteAdminPaymentMethodDefinition(
+  cashRegisterId: string | null | undefined,
   options?: UseMutationOptions<void, Error, string>
 ): UseMutationResult<void, Error, string> {
   const qc = useQueryClient();
@@ -138,7 +157,11 @@ export function useDeleteAdminPaymentMethodDefinition(
     mutationFn: async (id) => {
       await deleteAdminPaymentMethodDefinition(id);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.lists() }),
+    onSuccess: () => {
+      if (cashRegisterId) {
+        qc.invalidateQueries({ queryKey: adminPaymentMethodDefinitionsQueryKeys.list(cashRegisterId) });
+      }
+    },
     ...options,
   });
 }

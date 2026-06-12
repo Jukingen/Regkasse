@@ -148,7 +148,7 @@ export function buildProductListSearchParams(
         next.set('categoryIds', filters.categoryIds.join(','));
     }
 
-    if (filters.status && filters.status !== 'active') {
+    if (filters.status) {
         next.set('status', filters.status);
     }
 

@@ -44,6 +44,7 @@ public sealed class AdminCashRegistersListTests
             tenantResolver,
             Mock.Of<IAuditLogService>(),
             enrichment,
+            new PaymentMethodDefinitionBootstrapService(db),
             NullLogger<CashRegisterManagementService>.Instance);
 
         var controller = new AdminCashRegistersController(

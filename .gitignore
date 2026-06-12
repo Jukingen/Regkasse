@@ -248,6 +248,11 @@ testsprite.config.local.json
 tools/**/appsettings.json
 !tools/**/appsettings.example.json
 
+# Local-only dev scripts (passwords, tokens, machine paths) — keep on disk, never commit
+scripts/local/
+scripts/dev-*
+scripts/parse-demo-menu-html.*
+
 # Legacy one-off DB scripts (use EF migrations + user-secrets instead)
 backend/UpdateDatabase.cs
 

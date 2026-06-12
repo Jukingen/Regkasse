@@ -22,27 +22,27 @@
     },
     {
       "name": "Pizza-mittel",
-      "description": "Ø 36cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.",
+      "description": "Ø 36cm Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.",
       "sortOrder": 5
     },
     {
       "name": "Pizza-Partner",
-      "description": "Ø 40cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.",
+      "description": "Ø 40cm Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.",
       "sortOrder": 6
     },
     {
       "name": "Familien-Pizza",
-      "description": "Ø 50cm. Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.",
+      "description": "Ø 50cm Alle Pizzen werden mit Tomaten, Pizzakäse und Oregano zubereitet.",
       "sortOrder": 7
     },
     {
       "name": "Mexikanische-Pizza-mittel",
-      "description": "Ø 36cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.",
+      "description": "Ø 36cm Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.",
       "sortOrder": 8
     },
     {
       "name": "Mexikanische-Pizza-Partner",
-      "description": "Ø 40cm. Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.",
+      "description": "Ø 40cm Alle Pizzen werden mit Jalapenos und Tacosauce zubereitet.",
       "sortOrder": 9
     },
     {
@@ -71,9 +71,14 @@
       "sortOrder": 14
     },
     {
-      "name": "Alkoholfreie-Getrnke",
+      "name": "Saucen",
       "description": "",
       "sortOrder": 15
+    },
+    {
+      "name": "Alkoholfreie-Getrnke",
+      "description": "",
+      "sortOrder": 16
     }
   ],
   "products": [
@@ -106,6 +111,55 @@
       "category": "Salate"
     },
     {
+      "name": "king-salat",
+      "description": "gemischter Salat mit Kebapfleisch, Tomaten, Gurken, Zwiebeln und Olivenöl, dazu ein Stangerlbrot",
+      "price": 9,
+      "taxRate": 10,
+      "category": "Salate"
+    },
+    {
+      "name": "insalata caprese",
+      "description": "mit Tomaten, Mozzarella, Gurken und Rucola, dazu ein Stangerlbrot",
+      "price": 9.4,
+      "taxRate": 10,
+      "category": "Salate"
+    },
+    {
+      "name": "tomatensalat",
+      "description": "mit Zwiebeln und Olivenöl",
+      "price": 5,
+      "taxRate": 10,
+      "category": "Salate"
+    },
+    {
+      "name": "gemischte salatschüssel",
+      "description": "grüner Salat mit Tomaten, Gurken und Zwiebeln",
+      "price": 5,
+      "taxRate": 10,
+      "category": "Salate"
+    },
+    {
+      "name": "schnitzel-salat",
+      "description": "grüner Salat mit Tomaten, Gurken und Zwiebeln",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Salate"
+    },
+    {
+      "name": "grüner salat",
+      "description": "Wahl aus: mit Joghurt-Dressing, mit Kernöl oder ohne Dressing.",
+      "price": 4.5,
+      "taxRate": 10,
+      "category": "Salate"
+    },
+    {
+      "name": "pizzabrot",
+      "description": "",
+      "price": 1.2,
+      "taxRate": 10,
+      "category": "Salate"
+    },
+    {
       "name": "spinat-stangerl",
       "description": "mit Schafskäse und Knoblauch",
       "price": 9,
@@ -127,6 +181,209 @@
       "category": "Stangerl"
     },
     {
+      "name": "hawaii-stangerl",
+      "description": "mit Schinken und Ananas",
+      "price": 9,
+      "taxRate": 10,
+      "category": "Stangerl"
+    },
+    {
+      "name": "salami-stangerl",
+      "description": "",
+      "price": 9,
+      "taxRate": 10,
+      "category": "Stangerl"
+    },
+    {
+      "name": "speck-stangerl",
+      "description": "",
+      "price": 9,
+      "taxRate": 10,
+      "category": "Stangerl"
+    },
+    {
+      "name": "kebap-stangerl",
+      "description": "mit Zwiebeln",
+      "price": 9,
+      "taxRate": 10,
+      "category": "Stangerl"
+    },
+    {
+      "name": "cardinale-stangerl",
+      "description": "mit Schinken und Salami",
+      "price": 9,
+      "taxRate": 10,
+      "category": "Stangerl"
+    },
+    {
+      "name": "fornello-stangerl",
+      "description": "mit Schinken und Champignons",
+      "price": 9,
+      "taxRate": 10,
+      "category": "Stangerl"
+    },
+    {
+      "name": "vegetarisches stangerl",
+      "description": "mit Gemüse",
+      "price": 9,
+      "taxRate": 10,
+      "category": "Stangerl"
+    },
+    {
+      "name": "fladenbrot",
+      "description": "mit Knoblauch",
+      "price": 3,
+      "taxRate": 10,
+      "category": "Stangerl"
+    },
+    {
+      "name": "spinat-baguette",
+      "description": "mit Schafskäse und Knoblauch",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "thunfisch-baguette",
+      "description": "mit Zwiebeln und Knoblauch",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "schinken-baguette",
+      "description": "mit Schinken und Mais",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "hawaii-baguette",
+      "description": "mit Schinken und Ananas",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "salami-baguette",
+      "description": "",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "speck-baguette",
+      "description": "",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "kebap-baguette",
+      "description": "mit Zwiebeln",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "cardinale-baguette",
+      "description": "mit Schinken und Salami",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "fornello-baguette",
+      "description": "mit Schinken und Champignons",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "vegetarisches baguette",
+      "description": "mit Gemüse",
+      "price": 7.5,
+      "taxRate": 10,
+      "category": "Baguettes"
+    },
+    {
+      "name": "spinat-calzone",
+      "description": "mit Schafskäse und Knoblauch",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "thunfisch-calzone",
+      "description": "mit Zwiebeln und Knoblauch",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "schinken-calzone",
+      "description": "mit Schinken und Mais",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "hawaii-calzone",
+      "description": "mit Schinken und Ananas",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "salami-calzone",
+      "description": "",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "speck-calzone",
+      "description": "",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "kebap-calzone",
+      "description": "mit Zwiebeln",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "cardinale-calzone",
+      "description": "mit Schinken und Salami",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "fornello-calzone",
+      "description": "mit Schinken und Champignons",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "vegetarische calzone",
+      "description": "mit Gemüse",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
+      "name": "pizza margherita",
+      "description": "",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Calzone"
+    },
+    {
       "name": "pizza margherita",
       "description": "",
       "price": 9.8,
@@ -141,11 +398,508 @@
       "category": "Pizza-mittel"
     },
     {
+      "name": "pizza mossa funghi",
+      "description": "mit Schinken und Champignons",
+      "price": 11,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza steirer",
+      "description": "mit Speck, Champignons, Zwiebeln und Ei",
+      "price": 12,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
       "name": "pizza prosciutto",
       "description": "mit Schinken",
       "price": 11.7,
       "taxRate": 10,
       "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza salami",
+      "description": "",
+      "price": 11.7,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza cardinale",
+      "description": "mit Schinken und Salami",
+      "price": 11.7,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza contadina",
+      "description": "mit Salami, Speck und Zwiebeln",
+      "price": 11.5,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza frutti di mare",
+      "description": "mit Thunfisch, Meeresfrüchten und Knoblauch",
+      "price": 12.4,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza hawaii",
+      "description": "mit Schinken und Ananas",
+      "price": 11.8,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza spinat",
+      "description": "mit Blattspinat, Schafskäse, Spiegelei und Schafskäse",
+      "price": 11.9,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza mafioso (scharf)",
+      "description": "mit Schinken, Salami, Perlzwiebeln, scharfer Pfefferoni, Kapern und Knoblauch",
+      "price": 12,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza quattro stagione",
+      "description": "mit Schinken, Champignons, Artischocken und Thunfisch",
+      "price": 11.9,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza papagallo",
+      "description": "mit Speck, Mais und Spiegelei",
+      "price": 12,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza al tonno",
+      "description": "mit Thunfisch und Zwiebeln",
+      "price": 12.3,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "bauern-pizza",
+      "description": "mit Schinken, Speck, Mais und Pfefferoni",
+      "price": 12,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza verdura",
+      "description": "mit Champignons, Broccoli, Mais, frischen Tomatenscheiben und Paprika",
+      "price": 12,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza milano",
+      "description": "mit Schinken, Speck, Knoblauch und Ei",
+      "price": 11.6,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "kebap-pizza",
+      "description": "mit Kebapfleisch, Pfefferoni und Zwiebeln",
+      "price": 12,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "king-pizza",
+      "description": "mit Schinken, Speck, Salami, Mais, Pfefferoni, Zwiebeln und Knoblauch",
+      "price": 12.5,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza torino",
+      "description": "mit Schinken, Salami und Speck",
+      "price": 11.9,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza capricciosa",
+      "description": "mit Schinken, Champignons, Artischocken, Oliven und Spiegelei",
+      "price": 12.4,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza diavolo speziale (scharf)",
+      "description": "mit Salami, Zwiebeln, Knoblauch und scharfer Pfefferoni",
+      "price": 11.9,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza toscana",
+      "description": "mit Schinken, Salami, Spiegelei und Knoblauch",
+      "price": 11.6,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza lavamba",
+      "description": "mit Schinken und Mais",
+      "price": 11.7,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza quattro formaggi",
+      "description": "mit Pizzakäse, Schafskäse, Mozzarella und Gorgonzola",
+      "price": 12.4,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza shrimps",
+      "description": "mit Shrimps und Knoblauch",
+      "price": 11.4,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza napoli",
+      "description": "mit Salami und Champignons",
+      "price": 11.8,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza siciliana",
+      "description": "mit Thunfisch, Schinken und Zwiebeln",
+      "price": 11.4,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza peppone",
+      "description": "mit Salami, Thunfisch und Ei",
+      "price": 11.9,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza rucola",
+      "description": "mit Mozzarella und Rucola",
+      "price": 11.3,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "wunsch-pizza",
+      "description": "mit 4 Zutaten nach Wahl",
+      "price": 13.5,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza menü",
+      "description": "Wunsch Pizza mit Zutaten nach Wahl + Gemischter Salat + 0.33l Dose",
+      "price": 18.9,
+      "taxRate": 10,
+      "category": "Pizza-mittel"
+    },
+    {
+      "name": "pizza margherita",
+      "description": "",
+      "price": 13,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza al funghi",
+      "description": "mit Champignons",
+      "price": 14.4,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza mossa funghi",
+      "description": "mit Schinken und Champignons",
+      "price": 14.8,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza steirer",
+      "description": "mit Speck, Champignons, Zwiebeln und Ei",
+      "price": 15.5,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza prosciutto",
+      "description": "mit Schinken",
+      "price": 14.7,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza salami",
+      "description": "",
+      "price": 14.7,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza cardinale",
+      "description": "mit Schinken und Salami",
+      "price": 14.7,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza contadina",
+      "description": "mit Salami, Speck und Zwiebeln",
+      "price": 15.9,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza frutti di mare",
+      "description": "mit Thunfisch, Meeresfrüchten und Knoblauch",
+      "price": 16.4,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza hawaii",
+      "description": "mit Schinken und Ananas",
+      "price": 14.8,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza spinat",
+      "description": "mit Blattspinat, Schafskäse, Spiegelei und Schafskäse",
+      "price": 15.9,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza mafioso (scharf)",
+      "description": "mit Schinken, Salami, Perlzwiebeln, scharfer Pfefferoni, Kapern und Knoblauch",
+      "price": 16,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza quattro stagione",
+      "description": "mit Schinken, Champignons, Artischocken und Thunfisch",
+      "price": 15.9,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza papagallo",
+      "description": "mit Speck, Mais und Spiegelei",
+      "price": 15.2,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza al tonno",
+      "description": "mit Thunfisch und Zwiebeln",
+      "price": 15.3,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "bauern-pizza",
+      "description": "mit Schinken, Speck, Mais und Pfefferoni",
+      "price": 16.3,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza verdura",
+      "description": "mit Champignons, Broccoli, Mais, frischen Tomatenscheiben und Paprika",
+      "price": 15.9,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza milano",
+      "description": "mit Schinken, Speck, Knoblauch und Ei",
+      "price": 15.6,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "kebap-pizza",
+      "description": "mit Kebapfleisch, Pfefferoni und Zwiebeln",
+      "price": 16.7,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "king-pizza",
+      "description": "mit Schinken, Speck, Salami, Mais, Pfefferoni, Zwiebeln und Knoblauch",
+      "price": 16.7,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza torino",
+      "description": "mit Schinken, Salami und Speck",
+      "price": 15.7,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza capricciosa",
+      "description": "mit Schinken, Champignons, Artischocken, Oliven und Spiegelei",
+      "price": 16,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza diavolo speziale (scharf)",
+      "description": "mit Salami, Zwiebeln, Knoblauch und scharfer Pfefferoni",
+      "price": 15.9,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza toscana",
+      "description": "mit Schinken, Salami, Spiegelei und Knoblauch",
+      "price": 15.6,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza lavamba",
+      "description": "mit Schinken und Mais",
+      "price": 14.8,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza quattro formaggi",
+      "description": "mit Pizzakäse, Schafskäse, Mozzarella und Gorgonzola",
+      "price": 16.2,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza shrimps",
+      "description": "mit Shrimps und Knoblauch",
+      "price": 15.4,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza napoli",
+      "description": "mit Salami und Champignons",
+      "price": 14.9,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza siciliana",
+      "description": "mit Thunfisch, Schinken und Zwiebeln",
+      "price": 15.4,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza peppone",
+      "description": "mit Salami, Thunfisch und Ei",
+      "price": 14.9,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "pizza rucola",
+      "description": "mit Mozzarella und Rucola",
+      "price": 15.3,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "wunsch-pizza",
+      "description": "mit 4 Zutaten nach Wahl",
+      "price": 16.9,
+      "taxRate": 10,
+      "category": "Pizza-Partner"
+    },
+    {
+      "name": "familien-pizza margherita",
+      "description": "mit 5 Zutaten nach Wahl",
+      "price": 25,
+      "taxRate": 10,
+      "category": "Familien-Pizza"
+    },
+    {
+      "name": "pizza acapulco",
+      "description": "mit Schinken, Salami und Speck",
+      "price": 11.8,
+      "taxRate": 10,
+      "category": "Mexikanische-Pizza-mittel"
+    },
+    {
+      "name": "pizza mexico city",
+      "description": "mit Schinken, Champignons, Paprika und Zwiebeln",
+      "price": 11.8,
+      "taxRate": 10,
+      "category": "Mexikanische-Pizza-mittel"
+    },
+    {
+      "name": "pizza mexicana",
+      "description": "mit Champignons, Mais, Zwiebeln und Paprika",
+      "price": 11.8,
+      "taxRate": 10,
+      "category": "Mexikanische-Pizza-mittel"
+    },
+    {
+      "name": "pizza fiesta",
+      "description": "mit Schinken, Speck, Zwiebeln und Paprika",
+      "price": 11.8,
+      "taxRate": 10,
+      "category": "Mexikanische-Pizza-mittel"
+    },
+    {
+      "name": "pizza acapulco",
+      "description": "mit Schinken, Salami und Speck",
+      "price": 14.8,
+      "taxRate": 10,
+      "category": "Mexikanische-Pizza-Partner"
+    },
+    {
+      "name": "pizza mexico city",
+      "description": "mit Schinken, Champignons, Paprika und Zwiebeln",
+      "price": 14.8,
+      "taxRate": 10,
+      "category": "Mexikanische-Pizza-Partner"
+    },
+    {
+      "name": "pizza mexicana",
+      "description": "mit Champignons, Mais, Zwiebeln und Paprika",
+      "price": 14.8,
+      "taxRate": 10,
+      "category": "Mexikanische-Pizza-Partner"
+    },
+    {
+      "name": "pizza fiesta",
+      "description": "mit Schinken, Speck, Zwiebeln und Paprika",
+      "price": 14.8,
+      "taxRate": 10,
+      "category": "Mexikanische-Pizza-Partner"
     },
     {
       "name": "pasta bolognese",
@@ -162,6 +916,111 @@
       "category": "Pasta"
     },
     {
+      "name": "pasta alla arrabbiata (scharf)",
+      "description": "mit Tomatensauce, frischem Knoblauch und Chili",
+      "price": 9.5,
+      "taxRate": 10,
+      "category": "Pasta"
+    },
+    {
+      "name": "pasta crema di funghi",
+      "description": "mit frischen Champignons und Cremesauce",
+      "price": 9.5,
+      "taxRate": 10,
+      "category": "Pasta"
+    },
+    {
+      "name": "pasta al tonno",
+      "description": "mit Thunfisch und Tomatnesauce",
+      "price": 9.5,
+      "taxRate": 10,
+      "category": "Pasta"
+    },
+    {
+      "name": "lasagne al forno",
+      "description": "mit Fleischsauce und Käse überbacken",
+      "price": 9.5,
+      "taxRate": 10,
+      "category": "Pasta"
+    },
+    {
+      "name": "schnitzel-teller",
+      "description": "mit Pommes frites",
+      "price": 11,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "cordon bleu",
+      "description": "mit Pommes frites",
+      "price": 11,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "schnitzel-semmel",
+      "description": "ohne Sauce",
+      "price": 6.5,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "chicken nuggets (8 stück)",
+      "description": "mit Pommes frites",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "chicken wings (8 stück)",
+      "description": "mit Pommes frites",
+      "price": 10.5,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "pommes frites",
+      "description": "",
+      "price": 4,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "gebackener emmentaler acg",
+      "description": "",
+      "price": 11.8,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "gebackene champignons acg",
+      "description": "",
+      "price": 10,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "mozzarella sticks acg",
+      "description": "",
+      "price": 8,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "onion rings acg",
+      "description": "",
+      "price": 11.8,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
+      "name": "schnitzel menü",
+      "description": "Schnitzel + Gemischter Salat + Pommes",
+      "price": 17.9,
+      "taxRate": 10,
+      "category": "Imbiss"
+    },
+    {
       "name": "hamburger",
       "description": "mit 180g österreichischem Rindfleisch-Patty, Salat, Tomaten, Zwiebeln, Gurken und Haussauce",
       "price": 9.9,
@@ -176,9 +1035,79 @@
       "category": "Burger"
     },
     {
+      "name": "mexico-burger (scharf)",
+      "description": "mit 180g österreichischem Rindfleisch-Patty, Jalapenos, Salat, Tomaten, Zwiebeln, Gurken und Hot-Chilisauce",
+      "price": 11.5,
+      "taxRate": 10,
+      "category": "Burger"
+    },
+    {
+      "name": "steirer burger",
+      "description": "mit 180g österreichischem Rindfleisch-Patty, Speck, Spiegelei, Salat, Tomaten, Zwiebeln, Gurken und Ketchup",
+      "price": 11.9,
+      "taxRate": 10,
+      "category": "Burger"
+    },
+    {
+      "name": "chickenburger",
+      "description": "mit paniertem Hühnerfilet, Salat, Tomaten und Sour Cream",
+      "price": 8.5,
+      "taxRate": 10,
+      "category": "Burger"
+    },
+    {
+      "name": "bbq-burger",
+      "description": "mit 180g österreichischem Rindfleisch-Patty, Speck, Salat, Tomaten, Zwiebeln und Barbequesauce",
+      "price": 11.5,
+      "taxRate": 10,
+      "category": "Burger"
+    },
+    {
+      "name": "hawaii-burger",
+      "description": "mit 180g österreichischem Rindfleisch-Patty, Ananas, Rucola, Tomaten und Haussauce",
+      "price": 11.5,
+      "taxRate": 10,
+      "category": "Burger"
+    },
+    {
+      "name": "king-burger",
+      "description": "mit 150g österreichischem Rindfleisch-Patty, Salat, Tomaten, Zwiebeln und einer Sauce nach Wahl",
+      "price": 14,
+      "taxRate": 10,
+      "category": "Burger"
+    },
+    {
+      "name": "burger menü",
+      "description": "Burger + Pommes + 0.33l Getränk",
+      "price": 18.9,
+      "taxRate": 10,
+      "category": "Burger"
+    },
+    {
+      "name": "vegetarischer döner",
+      "description": "",
+      "price": 4.8,
+      "taxRate": 10,
+      "category": "Kebap"
+    },
+    {
       "name": "döner kebap",
       "description": "",
       "price": 5.4,
+      "taxRate": 10,
+      "category": "Kebap"
+    },
+    {
+      "name": "döner kebap xxl",
+      "description": "",
+      "price": 6.4,
+      "taxRate": 10,
+      "category": "Kebap"
+    },
+    {
+      "name": "döner-teller",
+      "description": "",
+      "price": 10.9,
       "taxRate": 10,
       "category": "Kebap"
     },
@@ -190,11 +1119,95 @@
       "category": "Kebap"
     },
     {
-      "name": "schnitzel-teller",
-      "description": "mit Pommes frites",
-      "price": 11,
+      "name": "dürüm xxl",
+      "description": "",
+      "price": 7,
       "taxRate": 10,
-      "category": "Imbiss"
+      "category": "Kebap"
+    },
+    {
+      "name": "döner-box",
+      "description": "",
+      "price": 6,
+      "taxRate": 10,
+      "category": "Kebap"
+    },
+    {
+      "name": "kapsalon döner-box",
+      "description": "mit Pommes frites und Käse überbacken",
+      "price": 9.5,
+      "taxRate": 10,
+      "category": "Kebap"
+    },
+    {
+      "name": "kebap menü",
+      "description": "Kebap + Pommes+ 0.33l Getränk",
+      "price": 12.9,
+      "taxRate": 10,
+      "category": "Kebap"
+    },
+    {
+      "name": "dürüm menü",
+      "description": "Dürüm + Pommes+ 0.33l Getränk",
+      "price": 14.1,
+      "taxRate": 10,
+      "category": "Kebap"
+    },
+    {
+      "name": "mohr im hemd",
+      "description": "",
+      "price": 5.5,
+      "taxRate": 10,
+      "category": "Desserts"
+    },
+    {
+      "name": "nuss-palatschinken",
+      "description": "",
+      "price": 6.5,
+      "taxRate": 10,
+      "category": "Desserts"
+    },
+    {
+      "name": "topfen-palatschinken",
+      "description": "",
+      "price": 6.5,
+      "taxRate": 10,
+      "category": "Desserts"
+    },
+    {
+      "name": "ketchup",
+      "description": "",
+      "price": 1.4,
+      "taxRate": 20,
+      "category": "Saucen"
+    },
+    {
+      "name": "mayo",
+      "description": "",
+      "price": 1.4,
+      "taxRate": 20,
+      "category": "Saucen"
+    },
+    {
+      "name": "joghurtsauce",
+      "description": "",
+      "price": 1.4,
+      "taxRate": 20,
+      "category": "Saucen"
+    },
+    {
+      "name": "kebap sauce mild",
+      "description": "",
+      "price": 1.4,
+      "taxRate": 20,
+      "category": "Saucen"
+    },
+    {
+      "name": "kebap sauce scharf",
+      "description": "",
+      "price": 1.4,
+      "taxRate": 20,
+      "category": "Saucen"
     },
     {
       "name": "coca cola 0,33l",
@@ -204,872 +1217,18 @@
       "category": "Alkoholfreie-Getrnke"
     },
     {
-      "name": "fanta 0,5l",
+      "name": "coca cola 0,5l",
       "description": "",
       "price": 3.25,
       "taxRate": 20,
       "category": "Alkoholfreie-Getrnke"
     },
     {
-      "name": "griechischer salat",
-      "description": "mit Feta, Oliven und Peperoni",
-      "price": 8.5,
-      "taxRate": 10,
-      "category": "Salate"
-    },
-    {
-      "name": "caesar salat",
-      "description": "mit Hähnchenstreifen und Parmesan",
-      "price": 9.2,
-      "taxRate": 10,
-      "category": "Salate"
-    },
-    {
-      "name": "gemischter salat",
-      "description": "mit Dressing nach Wahl",
-      "price": 7.5,
-      "taxRate": 10,
-      "category": "Salate"
-    },
-    {
-      "name": "tomaten-mozzarella salat",
-      "description": "mit Basilikum und Olivenöl",
-      "price": 8,
-      "taxRate": 10,
-      "category": "Salate"
-    },
-    {
-      "name": "puten-salat",
-      "description": "mit Putenstreifen und Mais",
-      "price": 9.3,
-      "taxRate": 10,
-      "category": "Salate"
-    },
-    {
-      "name": "fitness-salat",
-      "description": "mit Käse und Ei",
-      "price": 8.8,
-      "taxRate": 10,
-      "category": "Salate"
-    },
-    {
-      "name": "klassisch-stangerl",
-      "description": "mit Knoblauchöl",
-      "price": 8.5,
-      "taxRate": 10,
-      "category": "Stangerl"
-    },
-    {
-      "name": "käse-stangerl",
-      "description": "mit Mozzarella überbacken",
-      "price": 9,
-      "taxRate": 10,
-      "category": "Stangerl"
-    },
-    {
-      "name": "salami-stangerl",
-      "description": "mit scharfer Salami",
-      "price": 9.2,
-      "taxRate": 10,
-      "category": "Stangerl"
-    },
-    {
-      "name": "mais-stangerl",
-      "description": "mit Mais und Paprika",
-      "price": 9,
-      "taxRate": 10,
-      "category": "Stangerl"
-    },
-    {
-      "name": "kebap-stangerl",
-      "description": "mit Kebapfleisch",
-      "price": 9.5,
-      "taxRate": 10,
-      "category": "Stangerl"
-    },
-    {
-      "name": "sardellen-stangerl",
-      "description": "mit Sardellen und Kapern",
-      "price": 9.3,
-      "taxRate": 10,
-      "category": "Stangerl"
-    },
-    {
-      "name": "peperoni-stangerl",
-      "description": "mit Peperoni",
-      "price": 9.1,
-      "taxRate": 10,
-      "category": "Stangerl"
-    },
-    {
-      "name": "vegetarisch-stangerl",
-      "description": "mit Gemüse",
-      "price": 8.9,
-      "taxRate": 10,
-      "category": "Stangerl"
-    },
-    {
-      "name": "baguette schinken-käse",
-      "description": "mit Salat und Sauce",
-      "price": 6.5,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette thunfisch",
-      "description": "mit Ei und Mais",
-      "price": 6.8,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette vegetarisch",
-      "description": "mit Gemüse und Mozzarella",
-      "price": 6.2,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette hänchen",
-      "description": "mit Curry-Dressing",
-      "price": 6.9,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette kebap",
-      "description": "mit Kebapfleisch",
-      "price": 7.2,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette salami",
-      "description": "mit Salami und Käse",
-      "price": 6.7,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette tonno",
-      "description": "mit Thunfisch und Zwiebeln",
-      "price": 6.6,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette spezial",
-      "description": "mit Schinken, Salami und Käse",
-      "price": 7,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette spinat",
-      "description": "mit Spinat und Schafskäse",
-      "price": 6.4,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "baguette mozza",
-      "description": "mit Mozzarella und Tomaten",
-      "price": 6.3,
-      "taxRate": 10,
-      "category": "Baguettes"
-    },
-    {
-      "name": "pizza margherita partner",
+      "name": "fanta 0,5l",
       "description": "",
-      "price": 11.56,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza al funghi partner",
-      "description": "mit Champignons",
-      "price": 12.74,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza prosciutto partner",
-      "description": "mit Schinken",
-      "price": 13.81,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza salami",
-      "description": "mit scharfer Salami",
-      "price": 11.2,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza salami partner",
-      "description": "mit scharfer Salami",
-      "price": 13.22,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza napoli",
-      "description": "mit Sardellen und Kapern",
-      "price": 11,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza napoli partner",
-      "description": "mit Sardellen und Kapern",
-      "price": 12.98,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza capricciosa",
-      "description": "mit Schinken, Artischocken und Oliven",
-      "price": 12,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza capricciosa partner",
-      "description": "mit Schinken, Artischocken und Oliven",
-      "price": 14.16,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza hawaii",
-      "description": "mit Schinken und Ananas",
-      "price": 11.5,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza hawaii partner",
-      "description": "mit Schinken und Ananas",
-      "price": 13.57,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza diavolo",
-      "description": "scharf mit Peperoni",
-      "price": 11.8,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza diavolo partner",
-      "description": "scharf mit Peperoni",
-      "price": 13.92,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza tonno",
-      "description": "mit Thunfisch und Zwiebeln",
-      "price": 12.1,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza tonno partner",
-      "description": "mit Thunfisch und Zwiebeln",
-      "price": 14.28,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza quattro formaggi",
-      "description": "mit vier Käsesorten",
-      "price": 12.4,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza quattro formaggi partner",
-      "description": "mit vier Käsesorten",
-      "price": 14.63,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza regina",
-      "description": "mit Schinken und Champignons",
-      "price": 12,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza regina partner",
-      "description": "mit Schinken und Champignons",
-      "price": 14.16,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza vegetariana",
-      "description": "mit Gemüse der Saison",
-      "price": 11.3,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza vegetariana partner",
-      "description": "mit Gemüse der Saison",
-      "price": 13.33,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza spinaci",
-      "description": "mit Spinat und Knoblauch",
-      "price": 11.6,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza spinaci partner",
-      "description": "mit Spinat und Knoblauch",
-      "price": 13.69,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza gorgonzola",
-      "description": "mit Gorgonzola und Walnüssen",
-      "price": 12.2,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza gorgonzola partner",
-      "description": "mit Gorgonzola und Walnüssen",
-      "price": 14.4,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza mare",
-      "description": "mit Meeresfrüchten",
-      "price": 13.5,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza mare partner",
-      "description": "mit Meeresfrüchten",
-      "price": 15.93,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza rustica",
-      "description": "mit Speck und Zwiebeln",
-      "price": 12.3,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza rustica partner",
-      "description": "mit Speck und Zwiebeln",
-      "price": 14.51,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza tirolese",
-      "description": "mit Speck und Schafskäse",
-      "price": 12.5,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza tirolese partner",
-      "description": "mit Speck und Schafskäse",
-      "price": 14.75,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza calabrese",
-      "description": "mit scharfer Salami und Peperoni",
-      "price": 12.1,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza calabrese partner",
-      "description": "mit scharfer Salami und Peperoni",
-      "price": 14.28,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza americana",
-      "description": "mit Mais und Paprika",
-      "price": 11.4,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza americana partner",
-      "description": "mit Mais und Paprika",
-      "price": 13.45,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza bolognese",
-      "description": "mit Fleischsauce",
-      "price": 11.9,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza bolognese partner",
-      "description": "mit Fleischsauce",
-      "price": 14.04,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza carciofi",
-      "description": "mit Artischocken",
-      "price": 11.7,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza carciofi partner",
-      "description": "mit Artischocken",
-      "price": 13.81,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza parmigiana",
-      "description": "mit Auberginen und Parmesan",
-      "price": 12,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza parmigiana partner",
-      "description": "mit Auberginen und Parmesan",
-      "price": 14.16,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza siciliana",
-      "description": "mit Kapern und Oliven",
-      "price": 11.8,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza siciliana partner",
-      "description": "mit Kapern und Oliven",
-      "price": 13.92,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza frutti di mare",
-      "description": "mit Meeresfrüchten",
-      "price": 13.8,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza frutti di mare partner",
-      "description": "mit Meeresfrüchten",
-      "price": 16.28,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza romana",
-      "description": "mit Schinken und Ei",
-      "price": 11.6,
-      "taxRate": 10,
-      "category": "Pizza-mittel"
-    },
-    {
-      "name": "pizza romana partner",
-      "description": "mit Schinken und Ei",
-      "price": 13.69,
-      "taxRate": 10,
-      "category": "Pizza-Partner"
-    },
-    {
-      "name": "pizza margherita familien",
-      "description": "Ø 50cm",
-      "price": 24.9,
-      "taxRate": 10,
-      "category": "Familien-Pizza"
-    },
-    {
-      "name": "mexikanische pizza el diablo",
-      "description": "scharf mit Jalapenos",
-      "price": 12.5,
-      "taxRate": 10,
-      "category": "Mexikanische-Pizza-mittel"
-    },
-    {
-      "name": "mexikanische pizza el diablo partner",
-      "description": "scharf mit Jalapenos",
-      "price": 14.75,
-      "taxRate": 10,
-      "category": "Mexikanische-Pizza-Partner"
-    },
-    {
-      "name": "mexikanische pizza taco",
-      "description": "mit Hackfleisch und Tacosauce",
-      "price": 12.8,
-      "taxRate": 10,
-      "category": "Mexikanische-Pizza-mittel"
-    },
-    {
-      "name": "mexikanische pizza taco partner",
-      "description": "mit Hackfleisch und Tacosauce",
-      "price": 15.1,
-      "taxRate": 10,
-      "category": "Mexikanische-Pizza-Partner"
-    },
-    {
-      "name": "mexikanische pizza jalapeno",
-      "description": "extra scharf",
-      "price": 12.6,
-      "taxRate": 10,
-      "category": "Mexikanische-Pizza-mittel"
-    },
-    {
-      "name": "mexikanische pizza jalapeno partner",
-      "description": "extra scharf",
-      "price": 14.87,
-      "taxRate": 10,
-      "category": "Mexikanische-Pizza-Partner"
-    },
-    {
-      "name": "mexikanische pizza mexicana",
-      "description": "mit Mais, Bohnen und Jalapenos",
-      "price": 12.9,
-      "taxRate": 10,
-      "category": "Mexikanische-Pizza-mittel"
-    },
-    {
-      "name": "mexikanische pizza mexicana partner",
-      "description": "mit Mais, Bohnen und Jalapenos",
-      "price": 15.22,
-      "taxRate": 10,
-      "category": "Mexikanische-Pizza-Partner"
-    },
-    {
-      "name": "calzone classica",
-      "description": "Tomaten, Mozzarella, Schinken",
-      "price": 10.5,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone speciale",
-      "description": "Salami, Schinken, Champignons",
-      "price": 11.2,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone vegetarisch",
-      "description": "Gemüse und Mozzarella",
-      "price": 10,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone hawaii",
-      "description": "Schinken und Ananas",
-      "price": 11,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone prosciutto",
-      "description": "mit Schinken",
-      "price": 10.8,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone funghi",
-      "description": "mit Champignons",
-      "price": 10.6,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone salami",
-      "description": "mit Salami",
-      "price": 11.1,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone spinaci",
-      "description": "mit Spinat und Knoblauch",
-      "price": 10.7,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone tonno",
-      "description": "mit Thunfisch",
-      "price": 11.3,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone diavolo",
-      "description": "scharf mit Peperoni",
-      "price": 11.4,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "calzone quattro formaggi",
-      "description": "mit vier Käsesorten",
-      "price": 11.8,
-      "taxRate": 10,
-      "category": "Calzone"
-    },
-    {
-      "name": "pasta arrabbiata",
-      "description": "Tomaten-Chili-Sauce",
-      "price": 9.2,
-      "taxRate": 10,
-      "category": "Pasta"
-    },
-    {
-      "name": "pasta lasagne",
-      "description": "hausgemacht mit Béchamel",
-      "price": 11.5,
-      "taxRate": 10,
-      "category": "Pasta"
-    },
-    {
-      "name": "pasta aglio olio",
-      "description": "mit Knoblauch und Olivenöl",
-      "price": 8.9,
-      "taxRate": 10,
-      "category": "Pasta"
-    },
-    {
-      "name": "pasta pesto",
-      "description": "mit Basilikum-Pesto",
-      "price": 9.8,
-      "taxRate": 10,
-      "category": "Pasta"
-    },
-    {
-      "name": "chickenburger",
-      "description": "mit Hähnchenfilet und Haussauce",
-      "price": 10.2,
-      "taxRate": 10,
-      "category": "Burger"
-    },
-    {
-      "name": "bbq burger",
-      "description": "mit BBQ-Sauce und Bacon",
-      "price": 10.8,
-      "taxRate": 10,
-      "category": "Burger"
-    },
-    {
-      "name": "double cheeseburger",
-      "description": "mit doppeltem Cheddar",
-      "price": 11.2,
-      "taxRate": 10,
-      "category": "Burger"
-    },
-    {
-      "name": "veggie burger",
-      "description": "mit Gemüse-Patty",
-      "price": 9.8,
-      "taxRate": 10,
-      "category": "Burger"
-    },
-    {
-      "name": "chili cheeseburger",
-      "description": "mit Jalapenos und Chili-Cheese",
-      "price": 10.5,
-      "taxRate": 10,
-      "category": "Burger"
-    },
-    {
-      "name": "bacon burger",
-      "description": "mit Speck und Cheddar",
-      "price": 10.9,
-      "taxRate": 10,
-      "category": "Burger"
-    },
-    {
-      "name": "fish burger",
-      "description": "mit Fischfilet",
-      "price": 9.7,
-      "taxRate": 10,
-      "category": "Burger"
-    },
-    {
-      "name": "kebap-teller",
-      "description": "mit Pommes und Salat",
-      "price": 9.5,
-      "taxRate": 10,
-      "category": "Kebap"
-    },
-    {
-      "name": "kebap überbacken",
-      "description": "mit Käse überbacken",
-      "price": 8.9,
-      "taxRate": 10,
-      "category": "Kebap"
-    },
-    {
-      "name": "kebap box",
-      "description": "mit Pommes und Sauce",
-      "price": 8.2,
-      "taxRate": 10,
-      "category": "Kebap"
-    },
-    {
-      "name": "yaprak sarma",
-      "description": "mit Reis und Hackfleisch",
-      "price": 7.8,
-      "taxRate": 10,
-      "category": "Kebap"
-    },
-    {
-      "name": "falafel-teller",
-      "description": "mit Pommes und Hummus",
-      "price": 8.5,
-      "taxRate": 10,
-      "category": "Kebap"
-    },
-    {
-      "name": "falafel dürüm",
-      "description": "im Fladenbrot",
-      "price": 7.2,
-      "taxRate": 10,
-      "category": "Kebap"
-    },
-    {
-      "name": "kebap pizza",
-      "description": "Pizzabrot mit Kebapfleisch",
-      "price": 8.8,
-      "taxRate": 10,
-      "category": "Kebap"
-    },
-    {
-      "name": "kebap salat",
-      "description": "nur mit Salat",
-      "price": 7.5,
-      "taxRate": 10,
-      "category": "Kebap"
-    },
-    {
-      "name": "chicken nuggets",
-      "description": "6 Stück mit Pommes",
-      "price": 8.5,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "chicken wings",
-      "description": "8 Stück mit Dip",
-      "price": 9.2,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "pommes frites",
-      "description": "große Portion",
-      "price": 4.5,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "würstel mit pommes",
-      "description": "mit Ketchup und Senf",
-      "price": 7.8,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "corn dog",
-      "description": "mit Pommes",
-      "price": 6.9,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "mozzarella sticks",
-      "description": "6 Stück mit Dip",
-      "price": 7.5,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "onion rings",
-      "description": "mit Dip",
-      "price": 6.8,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "fischstäbchen",
-      "description": "mit Pommes und Salat",
-      "price": 9,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "chicken strips",
-      "description": "mit Pommes",
-      "price": 8.9,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "currywurst mit pommes",
-      "description": "mit Currysauce",
-      "price": 8.2,
-      "taxRate": 10,
-      "category": "Imbiss"
-    },
-    {
-      "name": "mohr im hemd",
-      "description": "warmer Schokoladenkuchen mit Vanillesauce",
-      "price": 5.8,
-      "taxRate": 10,
-      "category": "Desserts"
-    },
-    {
-      "name": "palatschinken",
-      "description": "mit Marillenmarmelade",
-      "price": 5.5,
-      "taxRate": 10,
-      "category": "Desserts"
-    },
-    {
-      "name": "topfenstrudel",
-      "description": "mit Vanillesauce",
-      "price": 5.9,
-      "taxRate": 10,
-      "category": "Desserts"
+      "price": 3.25,
+      "taxRate": 20,
+      "category": "Alkoholfreie-Getrnke"
     },
     {
       "name": "sprite 0,33l",
@@ -1102,68 +1261,68 @@
     {
       "name": "almdudler 0,33l",
       "description": "",
-      "price": 3.15,
+      "price": 3.05,
       "taxRate": 20,
       "category": "Alkoholfreie-Getrnke"
     },
     {
       "name": "almdudler 0,5l",
       "description": "",
-      "price": 3.35,
+      "price": 3.25,
       "taxRate": 20,
       "category": "Alkoholfreie-Getrnke"
     },
     {
       "name": "eistee pfirsich 0,33l",
       "description": "",
-      "price": 3.1,
+      "price": 3.05,
       "taxRate": 20,
       "category": "Alkoholfreie-Getrnke"
     },
     {
-      "name": "eistee zitrone 0,5l",
+      "name": "eistee pfirsich 0,5l",
       "description": "",
-      "price": 3.3,
+      "price": 3,
       "taxRate": 20,
       "category": "Alkoholfreie-Getrnke"
     },
     {
-      "name": "ayran 0,25l",
-      "description": "",
-      "price": 2.8,
-      "taxRate": 20,
-      "category": "Alkoholfreie-Getrnke"
-    },
-    {
-      "name": "mineralwasser 0,33l",
-      "description": "",
-      "price": 2.5,
-      "taxRate": 20,
-      "category": "Alkoholfreie-Getrnke"
-    },
-    {
-      "name": "mineralwasser 0,5l",
-      "description": "",
-      "price": 2.8,
-      "taxRate": 20,
-      "category": "Alkoholfreie-Getrnke"
-    },
-    {
-      "name": "red bull 0,25l",
-      "description": "",
-      "price": 3.8,
-      "taxRate": 20,
-      "category": "Alkoholfreie-Getrnke"
-    },
-    {
-      "name": "fanta 0,33l",
+      "name": "eistee zitrone 0,33l",
       "description": "",
       "price": 3.05,
       "taxRate": 20,
       "category": "Alkoholfreie-Getrnke"
     },
     {
-      "name": "coca cola 0,5l",
+      "name": "eistee zitrone 0,5l",
+      "description": "",
+      "price": 3.25,
+      "taxRate": 20,
+      "category": "Alkoholfreie-Getrnke"
+    },
+    {
+      "name": "ayran 0,25l",
+      "description": "",
+      "price": 2,
+      "taxRate": 20,
+      "category": "Alkoholfreie-Getrnke"
+    },
+    {
+      "name": "mineralwasser still 0,5l",
+      "description": "",
+      "price": 3.25,
+      "taxRate": 20,
+      "category": "Alkoholfreie-Getrnke"
+    },
+    {
+      "name": "mineralwasser mit kohlensäure 0,5l",
+      "description": "",
+      "price": 3.25,
+      "taxRate": 20,
+      "category": "Alkoholfreie-Getrnke"
+    },
+    {
+      "name": "red bull 0,25l",
       "description": "",
       "price": 3.25,
       "taxRate": 20,

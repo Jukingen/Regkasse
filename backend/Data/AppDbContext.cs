@@ -451,12 +451,17 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.MetadataJson).HasColumnType("text");
                 entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.Property(e => e.CashRegisterId).HasColumnName("cash_register_id").IsRequired();
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
-                entity.HasIndex(e => new { e.TenantId, e.Code }).IsUnique();
-                entity.HasIndex(e => new { e.IsActive, e.DisplayOrder });
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasIndex(e => new { e.CashRegisterId, e.Code }).IsUnique();
+                entity.HasIndex(e => new { e.TenantId, e.CashRegisterId, e.IsActive, e.DisplayOrder });
             });
 
             // BenefitDailyUsage configuration

@@ -1,3 +1,4 @@
+using KasseAPI_Final.Data.CategorySeed;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using Xunit;
@@ -74,6 +75,24 @@ public sealed class DemoProductImportFilterTests
 
         Assert.Single(categories);
         Assert.Equal("Salate", categories[0].Name);
+    }
+
+    [Fact]
+    public void SelectCategories_WithLegacyJsonLabels_ResolvesSystemCatalogCategories()
+    {
+        var data = new DemoData
+        {
+            Categories = SystemCategories.CreateDemoCatalogCategories().ToList(),
+            Products = [],
+        };
+
+        var categories = DemoProductImportFilter.SelectCategories(
+            data,
+            new DemoImportRequest { SelectedCategories = ["Alkoholfreie-Getrnke", "Pizza-mittel"] });
+
+        Assert.Equal(2, categories.Count);
+        Assert.Contains(categories, c => c.Key == "alkoholfreie-getranke" && c.Name == "Alkoholfreie Getränke");
+        Assert.Contains(categories, c => c.Key == "pizza-mittel" && c.Name == "Pizza, mittel");
     }
 
     [Fact]

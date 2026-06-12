@@ -3,7 +3,7 @@ import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
 import { sessionManager } from '../session/sessionManager';
 import {
   POS_PAYMENT_API_PREFIX,
-  POS_PAYMENT_METHODS_PATH,
+  posPaymentMethodsPath,
   POS_VOUCHERS_VALIDATE_PATH,
   posPaymentByIdPath,
   posPaymentQrPngAbsoluteUrl,
@@ -235,8 +235,8 @@ class PaymentService {
     }
   }
 
-  async getPaymentMethods(): Promise<PaymentMethod[]> {
-    const raw = await apiClient.get<unknown>(POS_PAYMENT_METHODS_PATH);
+  async getPaymentMethods(cashRegisterId: string): Promise<PaymentMethod[]> {
+    const raw = await apiClient.get<unknown>(posPaymentMethodsPath(cashRegisterId));
     const list = normalizeToPosPaymentMethods(raw);
     if (list.length === 0 && raw != null) {
       console.warn('[paymentService] No payment methods parsed from response:', raw);

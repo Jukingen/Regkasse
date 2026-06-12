@@ -8,7 +8,7 @@ using KasseAPI_Final.Tenancy;
 namespace KasseAPI_Final.Services;
 
 /// <summary>
-/// Zahlungsarten aus payment_method_definitions; Fallback entspricht der früheren GetPaymentMethodEnum-Switch-Logik.
+/// Zahlungsarten aus payment_method_definitions (pro Kasse); Fallback entspricht der früheren GetPaymentMethodEnum-Switch-Logik.
 /// </summary>
 public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
 {
@@ -21,12 +21,21 @@ public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
         _settingsTenantResolver = settingsTenantResolver;
     }
 
-    public async Task<IReadOnlyList<PosPaymentMethodDto>> GetActivePosMethodsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PosPaymentMethodDto>> GetActivePosMethodsAsync(
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default)
     {
+        if (cashRegisterId == Guid.Empty)
+            return Array.Empty<PosPaymentMethodDto>();
+
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+        if (!await RegisterBelongsToTenantAsync(tenantId, cashRegisterId, cancellationToken))
+            return Array.Empty<PosPaymentMethodDto>();
+
         var rows = await _context.PaymentMethodDefinitions
+            .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(x => x.TenantId == tenantId && x.IsActive)
+            .Where(x => x.TenantId == tenantId && x.CashRegisterId == cashRegisterId && x.IsActive)
             .OrderBy(x => x.DisplayOrder)
             .ThenBy(x => x.Code)
             .ToListAsync(cancellationToken);
@@ -34,16 +43,25 @@ public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
         return rows.Select(ToPosDto).ToList();
     }
 
-    public async Task<PaymentMethodResolutionResult> ResolveForPaymentAsync(string? methodCode, CancellationToken cancellationToken = default)
+    public async Task<PaymentMethodResolutionResult> ResolveForPaymentAsync(
+        string? methodCode,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken = default)
     {
         var code = NormalizeCode(methodCode);
         if (string.IsNullOrEmpty(code))
             return new PaymentMethodResolutionResult(true, "0", null, false);
 
+        if (cashRegisterId == Guid.Empty)
+            return new PaymentMethodResolutionResult(true, LegacyFallbackRaw(code), null, false);
+
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
         var row = await _context.PaymentMethodDefinitions
+            .IgnoreQueryFilters()
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.TenantId == tenantId && x.Code == code, cancellationToken);
+            .FirstOrDefaultAsync(
+                x => x.TenantId == tenantId && x.CashRegisterId == cashRegisterId && x.Code == code,
+                cancellationToken);
 
         if (row != null)
         {
@@ -59,22 +77,42 @@ public sealed class PaymentMethodCatalogService : IPaymentMethodCatalogService
         return new PaymentMethodResolutionResult(true, LegacyFallbackRaw(code), null, false);
     }
 
-    public async Task<string> ResolveRawForFilterAsync(string? methodCode, CancellationToken cancellationToken = default)
+    public async Task<string> ResolveRawForFilterAsync(
+        string? methodCode,
+        Guid? cashRegisterId = null,
+        CancellationToken cancellationToken = default)
     {
         var code = NormalizeCode(methodCode);
         if (string.IsNullOrEmpty(code))
             return "0";
 
         var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
-        var row = await _context.PaymentMethodDefinitions
+        var query = _context.PaymentMethodDefinitions
+            .IgnoreQueryFilters()
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.TenantId == tenantId && x.Code == code, cancellationToken);
+            .Where(x => x.TenantId == tenantId && x.Code == code);
+
+        if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
+            query = query.Where(x => x.CashRegisterId == cashRegisterId.Value);
+
+        var row = await query
+            .OrderBy(x => x.DisplayOrder)
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (row != null)
             return row.LegacyPaymentMethodValue.ToString(CultureInfo.InvariantCulture);
 
         return LegacyFallbackRaw(code);
     }
+
+    private async Task<bool> RegisterBelongsToTenantAsync(
+        Guid tenantId,
+        Guid cashRegisterId,
+        CancellationToken cancellationToken) =>
+        await _context.CashRegisters
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == cashRegisterId && x.TenantId == tenantId, cancellationToken);
 
     private static PosPaymentMethodDto ToPosDto(PaymentMethodDefinition x)
     {

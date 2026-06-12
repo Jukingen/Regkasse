@@ -84,6 +84,7 @@ public sealed class TenantProvisioningServiceTests
             new UserTenantMembershipProvisioner(db),
             uniqueness.Object,
             Mock.Of<IDemoProductImportService>(),
+            new PaymentMethodDefinitionBootstrapService(db),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         var (result, error) = await service.ProvisionAsync(tenant, null, null, grantTrialLicense: true);
@@ -94,18 +95,23 @@ public sealed class TenantProvisioningServiceTests
         Assert.Equal("admin@cafe_demo.regkasse.at", result.AdminEmail);
         Assert.Equal(3, result.ProductIds.Count);
 
-        var register = await db.CashRegisters.SingleAsync(r => r.TenantId == tenant.Id);
+        var register = await db.CashRegisters.IgnoreQueryFilters().SingleAsync(r => r.TenantId == tenant.Id);
         Assert.Equal(RegisterStatus.Closed, register.Status);
         Assert.Equal("Hauptkasse", register.Location);
 
-        var category = await db.Categories.SingleAsync(c => c.TenantId == tenant.Id);
+        var category = await db.Categories.IgnoreQueryFilters().SingleAsync(c => c.TenantId == tenant.Id);
         Assert.Equal("Allgemein", category.Name);
 
-        var products = await db.Products.Where(p => p.TenantId == tenant.Id).ToListAsync();
+        var products = await db.Products.IgnoreQueryFilters().Where(p => p.TenantId == tenant.Id).ToListAsync();
         Assert.Equal(3, products.Count);
         Assert.All(products, p => Assert.False(string.IsNullOrWhiteSpace(p.Description)));
 
-        var membership = await db.UserTenantMemberships.SingleAsync(m => m.TenantId == tenant.Id);
+        var paymentMethods = await db.PaymentMethodDefinitions.IgnoreQueryFilters()
+            .Where(p => p.CashRegisterId == register.Id)
+            .ToListAsync();
+        Assert.NotEmpty(paymentMethods);
+
+        var membership = await db.UserTenantMemberships.IgnoreQueryFilters().SingleAsync(m => m.TenantId == tenant.Id);
         Assert.True(membership.IsActive);
         Assert.True(membership.IsOwner);
         Assert.Equal(result.AdminUserId, membership.UserId);
@@ -157,6 +163,7 @@ public sealed class TenantProvisioningServiceTests
             new UserTenantMembershipProvisioner(db),
             uniqueness.Object,
             importMock.Object,
+            new PaymentMethodDefinitionBootstrapService(db),
             Mock.Of<ILogger<TenantProvisioningService>>());
 
         db.Categories.Add(new Category

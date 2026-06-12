@@ -848,7 +848,9 @@ namespace KasseAPI_Final.Services
                     };
                 }
 
-                var methodResolution = await _paymentMethodCatalog.ResolveForPaymentAsync(request.Payment.Method);
+                var methodResolution = await _paymentMethodCatalog.ResolveForPaymentAsync(
+                    request.Payment.Method,
+                    cashRegisterId);
                 if (!methodResolution.Ok)
                 {
                     await transaction.RollbackAsync();

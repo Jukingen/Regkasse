@@ -55,10 +55,10 @@ export const CATEGORY_GROUPS: CategoryGroup[] = [
         displayName: '🍕 Pizzen',
         description: 'Margherita, Salami, Funghi, Hawaii, Capricciosa, Quattro Formaggi und mehr',
         icon: '🍕',
-        productCount: 35,
+        productCount: 85,
         subcategories: [
-            { name: 'Pizza-mittel', displayName: 'Mittel (Ø 36cm)', description: 'Klassische Pizzen', icon: '🍕', productCount: 25 },
-            { name: 'Pizza-Partner', displayName: 'Partner (Ø 40cm)', description: 'Größere Pizzen zum Teilen', icon: '🍕', productCount: 25 },
+            { name: 'Pizza-mittel', displayName: 'Mittel (Ø 36cm)', description: 'Klassische Pizzen', icon: '🍕', productCount: 33 },
+            { name: 'Pizza-Partner', displayName: 'Partner (Ø 40cm)', description: 'Größere Pizzen zum Teilen', icon: '🍕', productCount: 32 },
             { name: 'Familien-Pizza', displayName: 'Familie (Ø 50cm)', description: 'Extra große Familien-Pizza', icon: '🍕', productCount: 1 },
             { name: 'Mexikanische-Pizza-mittel', displayName: 'Mexikanisch Mittel', description: 'Scharfe Pizzen mit Jalapenos', icon: '🌶️', productCount: 4 },
             { name: 'Mexikanische-Pizza-Partner', displayName: 'Mexikanisch Partner', description: 'Scharfe Pizzen zum Teilen', icon: '🌶️', productCount: 4 },
@@ -70,9 +70,9 @@ export const CATEGORY_GROUPS: CategoryGroup[] = [
         displayName: '🥗 Salate',
         description: 'Frische Salate mit verschiedenen Dressings',
         icon: '🥗',
-        productCount: 10,
+        productCount: 11,
         subcategories: [
-            { name: 'Salate', displayName: 'Alle Salate', description: 'Chefsalat, Thunfischsalat, Bauernsalat', icon: '🥗', productCount: 10 },
+            { name: 'Salate', displayName: 'Alle Salate', description: 'Chefsalat, Thunfischsalat, Bauernsalat', icon: '🥗', productCount: 11 },
         ],
     },
     {
@@ -132,9 +132,9 @@ export const CATEGORY_GROUPS: CategoryGroup[] = [
         displayName: '🥤 Getränke',
         description: 'Coca Cola, Fanta, Sprite, Mezzo Mix, Almdudler, Eistee, Ayran, Mineralwasser, Red Bull',
         icon: '🥤',
-        productCount: 16,
+        productCount: 17,
         subcategories: [
-            { name: 'Alkoholfreie-Getrnke', displayName: 'Alkoholfreie Getränke', description: '0,33l und 0,5l Flaschen', icon: '🥤', productCount: 16 },
+            { name: 'Alkoholfreie-Getrnke', displayName: 'Alkoholfreie Getränke', description: '0,33l und 0,5l Flaschen', icon: '🥤', productCount: 17 },
         ],
     },
 ];

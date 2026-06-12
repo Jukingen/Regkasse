@@ -16,6 +16,7 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
     private readonly ISettingsTenantResolver _tenantResolver;
     private readonly IAuditLogService _auditLog;
     private readonly ICashRegisterListEnrichmentService _enrichment;
+    private readonly IPaymentMethodDefinitionBootstrapService _paymentMethodBootstrap;
     private readonly ILogger<CashRegisterManagementService> _logger;
 
     public CashRegisterManagementService(
@@ -23,12 +24,14 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
         ISettingsTenantResolver tenantResolver,
         IAuditLogService auditLog,
         ICashRegisterListEnrichmentService enrichment,
+        IPaymentMethodDefinitionBootstrapService paymentMethodBootstrap,
         ILogger<CashRegisterManagementService> logger)
     {
         _db = db;
         _tenantResolver = tenantResolver;
         _auditLog = auditLog;
         _enrichment = enrichment;
+        _paymentMethodBootstrap = paymentMethodBootstrap;
         _logger = logger;
     }
 
@@ -91,6 +94,10 @@ public sealed class CashRegisterManagementService : ICashRegisterManagementServi
 
         _db.CashRegisters.Add(register);
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        await _paymentMethodBootstrap
+            .EnsureDefaultsForCashRegisterAsync(tenantId, register.Id, cancellationToken)
+            .ConfigureAwait(false);
 
         await TryAuditCreateAsync(register, actorUserId, actorRole).ConfigureAwait(false);
 

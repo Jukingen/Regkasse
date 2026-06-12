@@ -29,7 +29,7 @@ public class VoucherPaymentRedemptionTests
             .UseInMemoryDatabase(databaseName: $"VoucherPay_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static PaymentService CreatePaymentService(AppDbContext context, string tseMode = "Demo")
@@ -852,6 +852,7 @@ public class VoucherPaymentRedemptionTests
         {
             Id = Guid.NewGuid(),
             TenantId = LegacyDefaultTenantIds.Primary,
+            CashRegisterId = regId,
             Code = "voucher",
             Name = "Gutschein",
             IsActive = true,

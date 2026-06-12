@@ -5,6 +5,7 @@ namespace KasseAPI_Final.Models;
 
 /// <summary>
 /// Yönetici tarafından yapılandırılabilir ödeme yöntemi: sabit kod, görünen ad, RKSV için Invoice.PaymentMethod ile uyumlu 0–5 legacy eşlemesi.
+/// Scoped per cash register so each POS device can expose a different method catalog.
 /// </summary>
 [Table("payment_method_definitions")]
 public class PaymentMethodDefinition : ITenantEntity
@@ -12,9 +13,13 @@ public class PaymentMethodDefinition : ITenantEntity
     [Column("id")]
     public Guid Id { get; set; }
 
-    /// <summary>FK to <see cref="Models.Tenant"/>; scopes codes and defaults per tenant.</summary>
+    /// <summary>FK to <see cref="Models.Tenant"/>; retained for tenant query filters and reporting.</summary>
     [Column("tenant_id")]
     public Guid TenantId { get; set; }
+
+    /// <summary>FK to <see cref="CashRegister"/>; codes are unique per register.</summary>
+    [Column("cash_register_id")]
+    public Guid CashRegisterId { get; set; }
 
     [Required]
     [Column("code")]
@@ -69,4 +74,7 @@ public class PaymentMethodDefinition : ITenantEntity
 
     [ForeignKey(nameof(TenantId))]
     public virtual Tenant? Tenant { get; set; }
+
+    [ForeignKey(nameof(CashRegisterId))]
+    public virtual CashRegister? CashRegister { get; set; }
 }

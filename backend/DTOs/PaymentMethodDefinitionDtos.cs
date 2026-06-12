@@ -17,6 +17,8 @@ public sealed record PosPaymentMethodDto(
 public sealed class PaymentMethodDefinitionAdminDto
 {
     public Guid Id { get; set; }
+    public Guid CashRegisterId { get; set; }
+    public string? CashRegisterNumber { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; }
@@ -35,6 +37,9 @@ public sealed class PaymentMethodDefinitionAdminDto
 
 public class CreatePaymentMethodDefinitionRequest
 {
+    [Required]
+    public Guid CashRegisterId { get; set; }
+
     [Required]
     [MaxLength(64)]
     [RegularExpression(@"^[a-z0-9_-]+$", ErrorMessage = "Code must be lowercase letters, digits, underscore or hyphen.")]

@@ -667,6 +667,7 @@ builder.Services.AddScoped<IPaymentHistoryService, PaymentHistoryService>();
 builder.Services.AddScoped<IDailyClosingReportService, DailyClosingReportService>();
 builder.Services.AddScoped<IAdminShiftOverviewService, AdminShiftOverviewService>();
 builder.Services.AddScoped<IPaymentMethodCatalogService, PaymentMethodCatalogService>();
+builder.Services.AddScoped<IPaymentMethodDefinitionBootstrapService, PaymentMethodDefinitionBootstrapService>();
 builder.Services.AddScoped<IPricingRuleResolver, PricingRuleResolver>();
 builder.Services.AddScoped<IVoucherService, VoucherService>();
 builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();

@@ -9,8 +9,13 @@
  */
 export const POS_PAYMENT_API_PREFIX = '/pos/payment';
 
-/** Relative path for GET/POST payment methods list. */
+/** Relative path for GET payment methods list (append `?cashRegisterId=`). */
 export const POS_PAYMENT_METHODS_PATH = `${POS_PAYMENT_API_PREFIX}/methods` as const;
+
+export function posPaymentMethodsPath(cashRegisterId: string): string {
+  const id = encodeURIComponent(cashRegisterId.trim());
+  return `${POS_PAYMENT_METHODS_PATH}?cashRegisterId=${id}`;
+}
 
 /** POST body: `{ voucherCode, amount? }` — relative to `/api`. */
 export const POS_VOUCHERS_VALIDATE_PATH = '/pos/vouchers/validate' as const;

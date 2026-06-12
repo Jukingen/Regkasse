@@ -74,12 +74,12 @@ public sealed class DemoProductImportServiceTests
             new DemoImportRequest { SelectedCategories = ["Salate", "Pasta"] });
 
         Assert.True(result.Success);
-        Assert.Equal(16, result.TotalProductCount);
+        Assert.Equal(17, result.TotalProductCount);
         Assert.Equal(2, result.SelectedCategoryCount);
-        Assert.Equal(16, result.Created);
+        Assert.Equal(17, result.Created);
         Assert.Equal(0, result.Updated);
         Assert.Equal(0, result.Skipped);
-        Assert.Equal(16, result.ImportedProductCount);
+        Assert.Equal(17, result.ImportedProductCount);
         Assert.Equal(2, result.CategoriesCreated);
         Assert.True(result.AverageImportedPrice > 0);
         Assert.NotEmpty(result.CategoryIds);
@@ -113,10 +113,10 @@ public sealed class DemoProductImportServiceTests
         var result = await service.ImportDemoProductsAsync(tenant.Id, new DemoImportRequest());
 
         Assert.True(result.Success);
-        Assert.Equal(156, result.TotalProductCount);
+        Assert.Equal(178, result.TotalProductCount);
         Assert.Equal(16, result.SelectedCategoryCount);
-        Assert.Equal(156, result.Created);
-        Assert.Equal(156, result.ImportedProductCount);
+        Assert.Equal(178, result.Created);
+        Assert.Equal(178, result.ImportedProductCount);
         Assert.Equal(16, result.CategoriesCreated);
 
         var categories = await db.Categories.IgnoreQueryFilters()
@@ -140,7 +140,7 @@ public sealed class DemoProductImportServiceTests
         Assert.True(second.Success);
         Assert.Equal(0, second.Created);
         Assert.Equal(0, second.Updated);
-        Assert.True(second.Skipped >= 156);
+        Assert.True(second.Skipped >= 178);
         Assert.All(second.CategorySummaries, s => Assert.Equal(s.ProductCount, s.Skipped));
 
         var overwrite = await service.ImportDemoProductsAsync(
@@ -148,9 +148,9 @@ public sealed class DemoProductImportServiceTests
             new DemoImportRequest { OverwriteExisting = true });
         Assert.True(overwrite.Success);
         Assert.Equal(0, overwrite.Created);
-        Assert.True(overwrite.Updated >= 156);
+        Assert.True(overwrite.Updated >= 178);
         Assert.Equal(0, overwrite.CategoriesCreated);
-        Assert.True(overwrite.ImportedProductCount >= 156);
+        Assert.True(overwrite.ImportedProductCount >= 178);
     }
 
     [Fact]
@@ -179,6 +179,27 @@ public sealed class DemoProductImportServiceTests
         Assert.True(result.Success);
         Assert.Equal(0, result.CategoriesCreated);
         Assert.Equal(1, await db.Categories.IgnoreQueryFilters().CountAsync(c => c.TenantId == tenant.Id && c.Name == "Salate"));
+    }
+
+    [Fact]
+    public async Task ImportDemoProductsAsync_WithLegacyDrinksCategoryLabel_ImportsBeverages()
+    {
+        await using var db = CreateDb();
+        var tenant = await SeedTenantAsync(db);
+        var service = CreateService(db);
+
+        var result = await service.ImportDemoProductsAsync(
+            tenant.Id,
+            new DemoImportRequest { SelectedCategories = ["Alkoholfreie-Getrnke"] });
+
+        Assert.True(result.Success, result.ErrorMessage);
+        Assert.Equal(1, result.SelectedCategoryCount);
+        Assert.Equal(17, result.TotalProductCount);
+        Assert.Equal(17, result.Created);
+
+        var category = await db.Categories.IgnoreQueryFilters()
+            .SingleAsync(c => c.TenantId == tenant.Id && c.Key == "alkoholfreie-getranke");
+        Assert.Equal("Alkoholfreie Getränke", category.Name);
     }
 
     [Fact]

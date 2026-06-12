@@ -459,7 +459,7 @@ export default function PaymentModal({
     validateVoucher,
     processPayment,
     clearError
-  } = usePayment();
+  } = usePayment(cashRegisterId);
 
   const requiresCashAmount = useMemo(() => {
     if (!selectedPaymentMethod) return false;
@@ -762,7 +762,7 @@ export default function PaymentModal({
     customerService.getGuestCustomer()
       .then((id) => setGuestCustomerId(id))
       .catch((err) => console.warn('[PaymentModal] Failed to load guest customer:', err));
-  }, [visible, getPaymentMethods]);
+  }, [visible, cashRegisterId, getPaymentMethods]);
 
   useEffect(() => {
     if (!visible) {

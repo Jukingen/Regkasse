@@ -60,7 +60,9 @@ namespace KasseAPI_Final.Controllers
         /// Mevcut ödeme yöntemlerini getir
         /// </summary>
         [HttpGet("methods")]
-        public async Task<IActionResult> GetPaymentMethods(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetPaymentMethods(
+            [FromQuery] Guid cashRegisterId,
+            CancellationToken cancellationToken)
         {
             try
             {
@@ -71,7 +73,12 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("User not authenticated", 401);
                 }
 
-                var paymentMethods = await _paymentMethodCatalog.GetActivePosMethodsAsync(cancellationToken);
+                if (cashRegisterId == Guid.Empty)
+                {
+                    return ErrorResponse("cashRegisterId is required", 400);
+                }
+
+                var paymentMethods = await _paymentMethodCatalog.GetActivePosMethodsAsync(cashRegisterId, cancellationToken);
                 return SuccessResponse(paymentMethods, "Payment methods retrieved successfully");
             }
             catch (Exception ex)

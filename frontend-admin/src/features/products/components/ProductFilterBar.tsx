@@ -13,10 +13,12 @@ import {
     Input,
     InputNumber,
     Row,
+    Segmented,
     Select,
     Slider,
     Space,
     Tag,
+    Typography,
 } from 'antd';
 import {
     ClearOutlined,
@@ -44,11 +46,20 @@ export type ProductTaxTypeFilterOption = {
     label: string;
 };
 
+export type ProductStatusCountsDisplay = {
+    active: number;
+    inactive: number;
+    all: number;
+    isLoading?: boolean;
+};
+
 export interface ProductFilterBarProps {
     filters: ProductFilters;
     onFilterChange: (filters: ProductFilters) => void;
     categories: AdminCategory[];
     taxTypes?: ProductTaxTypeFilterOption[];
+    statusCounts?: ProductStatusCountsDisplay;
+    filteredResultCount?: number;
 }
 
 type FilterKey = keyof ProductFilters;
@@ -66,7 +77,19 @@ function statusToCheckboxes(status: ProductListActiveFilter | undefined): { acti
     return { active: true, inactive: false };
 }
 
-export function ProductFilterBar({ filters, onFilterChange, categories, taxTypes }: ProductFilterBarProps) {
+function formatCount(count: number, loading?: boolean): string {
+    if (loading) return '…';
+    return String(count);
+}
+
+export function ProductFilterBar({
+    filters,
+    onFilterChange,
+    categories,
+    taxTypes,
+    statusCounts,
+    filteredResultCount,
+}: ProductFilterBarProps) {
     const { t } = useI18n();
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [searchDraft, setSearchDraft] = useState(filters.searchTerm ?? '');
@@ -199,10 +222,52 @@ export function ProductFilterBar({ filters, onFilterChange, categories, taxTypes
         [categoryOptions],
     );
 
+    const statusSegmentedValue: ProductListActiveFilter = filters.status ?? 'active';
+
+    const handleStatusSegmentChange = useCallback(
+        (value: string | number) => {
+            const next = String(value) as ProductListActiveFilter;
+            patchFilters({ status: next });
+        },
+        [patchFilters],
+    );
+
+    const counts = statusCounts ?? { active: 0, inactive: 0, all: 0, isLoading: false };
+    const countsLoading = counts.isLoading ?? false;
+    const currentStatusTotal =
+        statusSegmentedValue === 'inactive'
+            ? counts.inactive
+            : statusSegmentedValue === 'all'
+              ? counts.all
+              : counts.active;
+    const showFilteredHint =
+        filteredResultCount != null &&
+        !countsLoading &&
+        filteredResultCount !== currentStatusTotal;
+
     return (
         <>
             <Card size="small" style={{ marginBottom: 16, width: '100%' }}>
+                <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                 <Space wrap style={{ width: '100%' }} align="center">
+                    <Segmented
+                        value={statusSegmentedValue}
+                        onChange={handleStatusSegmentChange}
+                        options={[
+                            {
+                                label: `${t('products.page.filterActive')} (${formatCount(counts.active, countsLoading)})`,
+                                value: 'active',
+                            },
+                            {
+                                label: `${t('products.page.filterInactive')} (${formatCount(counts.inactive, countsLoading)})`,
+                                value: 'inactive',
+                            },
+                            {
+                                label: `${t('products.page.filterAll')} (${formatCount(counts.all, countsLoading)})`,
+                                value: 'all',
+                            },
+                        ]}
+                    />
                     <Input.Search
                         placeholder={t('products.filters.searchPlaceholderFull')}
                         value={searchDraft}
@@ -222,6 +287,17 @@ export function ProductFilterBar({ filters, onFilterChange, categories, taxTypes
                             {t('products.filters.clear')}
                         </Button>
                     ) : null}
+                </Space>
+                <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                    {t('products.page.statusCountsSummary', {
+                        active: formatCount(counts.active, countsLoading),
+                        inactive: formatCount(counts.inactive, countsLoading),
+                        all: formatCount(counts.all, countsLoading),
+                    })}
+                    {showFilteredHint
+                        ? ` · ${t('products.page.filteredResultCount', { count: filteredResultCount })}`
+                        : null}
+                </Typography.Text>
                 </Space>
 
                 {activeFilterCount > 0 ? (

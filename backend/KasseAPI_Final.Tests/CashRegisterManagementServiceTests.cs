@@ -65,6 +65,7 @@ public sealed class CashRegisterManagementServiceTests
             tenantResolver,
             audit.Object,
             enrichment.Object,
+            new PaymentMethodDefinitionBootstrapService(ctx),
             NullLogger<CashRegisterManagementService>.Instance);
     }
 

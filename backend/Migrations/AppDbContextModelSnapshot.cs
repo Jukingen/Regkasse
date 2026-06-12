@@ -4817,6 +4817,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("allow_refund");
 
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -4882,10 +4886,10 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsActive", "DisplayOrder");
-
-                    b.HasIndex("TenantId", "Code")
+                    b.HasIndex("CashRegisterId", "Code")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "CashRegisterId", "IsActive", "DisplayOrder");
 
                     b.ToTable("payment_method_definitions");
                 });
@@ -8856,11 +8860,19 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.PaymentMethodDefinition", b =>
                 {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("CashRegister");
 
                     b.Navigation("Tenant");
                 });

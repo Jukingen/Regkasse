@@ -195,6 +195,87 @@ export function deleteAdminProduct(id: string, options?: SecondParameter<typeof 
   return customInstance<void>({ url: `${ADMIN_PRODUCTS}/${id}`, method: 'DELETE' }, options);
 }
 
+export type BulkDeactivateAdminProductsResult = {
+  deactivated: number;
+  alreadyInactive: number;
+  notFound: number;
+};
+
+export const DEACTIVATE_ALL_PRODUCTS_CONFIRM_PHRASE = 'DEACTIVATE-ALL-PRODUCTS';
+
+export type DeactivateAllAdminProductsResult = {
+  deactivated: number;
+  alreadyInactive: number;
+  totalProducts: number;
+};
+
+export function bulkDeactivateAdminProducts(
+  productIds: string[],
+  options?: SecondParameter<typeof customInstance>,
+) {
+  return customInstance<BulkDeactivateAdminProductsResult>(
+    {
+      url: `${ADMIN_PRODUCTS}/bulk-deactivate`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { productIds },
+    },
+    options,
+  ).then(unwrapData);
+}
+
+export function deactivateAllAdminProducts(
+  confirmPhrase: string = DEACTIVATE_ALL_PRODUCTS_CONFIRM_PHRASE,
+  options?: SecondParameter<typeof customInstance>,
+) {
+  return customInstance<DeactivateAllAdminProductsResult>(
+    {
+      url: `${ADMIN_PRODUCTS}/deactivate-all`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: { confirmPhrase },
+    },
+    options,
+  ).then(unwrapData);
+}
+
+export const DEV_PURGE_CATALOG_CONFIRM_PHRASE = 'DEV-PURGE-CATALOG';
+export const DEV_PURGE_CATALOG_FISCAL_OVERRIDE_PHRASE = 'DEV-PURGE-CATALOG-WITH-FISCAL';
+
+export type DevPurgeAdminCatalogResult = {
+  tenantId: string;
+  productsDeleted: number;
+  categoriesDeleted: number;
+  hasFiscalPayments: boolean;
+};
+
+export type DevPurgeAdminCatalogRequest = {
+  tenantSlug?: string;
+  tenantId?: string;
+  includeCategories?: boolean;
+  confirmPhrase: string;
+};
+
+export function devPurgeAdminCatalog(
+  request: DevPurgeAdminCatalogRequest,
+  options?: SecondParameter<typeof customInstance>,
+) {
+  return customInstance<DevPurgeAdminCatalogResult>(
+    {
+      url: `${ADMIN_PRODUCTS}/dev/purge-catalog`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: {
+        tenantSlug: request.tenantSlug,
+        tenantId: request.tenantId,
+        includeCategories: request.includeCategories ?? true,
+        confirmPhrase: request.confirmPhrase,
+      },
+    },
+    options,
+  ).then(unwrapData);
+}
+
 export function getAdminProductModifierGroups(productId: string, options?: SecondParameter<typeof customInstance>, signal?: AbortSignal) {
   return customInstance<any>({ url: `${ADMIN_PRODUCTS}/${productId}/modifier-groups`, method: 'GET', signal }, options).then(unwrapData);
 }
@@ -367,6 +448,42 @@ export function useDeleteAdminProduct(opts?: UseMutationOptions<void, Error, { i
   const { tenantSlug } = useCurrentTenant();
   return useMutation({
     mutationFn: ({ id }) => deleteAdminProduct(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists(tenantSlug) }),
+    ...opts,
+  });
+}
+
+export function useBulkDeactivateAdminProducts(
+  opts?: UseMutationOptions<BulkDeactivateAdminProductsResult, Error, { productIds: string[] }>,
+): UseMutationResult<BulkDeactivateAdminProductsResult, Error, { productIds: string[] }> {
+  const qc = useQueryClient();
+  const { tenantSlug } = useCurrentTenant();
+  return useMutation({
+    mutationFn: ({ productIds }) => bulkDeactivateAdminProducts(productIds),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists(tenantSlug) }),
+    ...opts,
+  });
+}
+
+export function useDeactivateAllAdminProducts(
+  opts?: UseMutationOptions<DeactivateAllAdminProductsResult, Error, void>,
+): UseMutationResult<DeactivateAllAdminProductsResult, Error, void> {
+  const qc = useQueryClient();
+  const { tenantSlug } = useCurrentTenant();
+  return useMutation({
+    mutationFn: () => deactivateAllAdminProducts(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists(tenantSlug) }),
+    ...opts,
+  });
+}
+
+export function useDevPurgeAdminCatalog(
+  opts?: UseMutationOptions<DevPurgeAdminCatalogResult, Error, DevPurgeAdminCatalogRequest>,
+): UseMutationResult<DevPurgeAdminCatalogResult, Error, DevPurgeAdminCatalogRequest> {
+  const qc = useQueryClient();
+  const { tenantSlug } = useCurrentTenant();
+  return useMutation({
+    mutationFn: (request) => devPurgeAdminCatalog(request),
     onSuccess: () => qc.invalidateQueries({ queryKey: adminProductsQueryKeys.lists(tenantSlug) }),
     ...opts,
   });
