@@ -205,7 +205,7 @@ export function HeaderDevTenantSwitch({ compact = false }: HeaderDevTenantSwitch
         router.push('/admin/tenants');
     }, [router, setOpen]);
 
-    if (!shouldShowHeaderDevTenantSwitch()) {
+    if (!shouldShowHeaderDevTenantSwitch() || !isSuperAdminUser) {
         return null;
     }
 

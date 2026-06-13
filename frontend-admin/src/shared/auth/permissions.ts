@@ -97,6 +97,9 @@ export const PERMISSIONS = {
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
+/** Menu/route visible to any authenticated user with at least one permission claim. */
+export const ANY_AUTHENTICATED_PERMISSION: string[] = [];
+
 export interface UserWithPermissions {
   permissions?: string[];
 }

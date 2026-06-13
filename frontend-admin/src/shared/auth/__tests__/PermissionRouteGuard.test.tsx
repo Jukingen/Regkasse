@@ -8,10 +8,9 @@ import { render } from '@testing-library/react';
 import { AuthStatus } from '@/features/auth/hooks/useAuth';
 import { PermissionRouteGuard } from '../PermissionRouteGuard';
 
-const mockReplace = vi.fn();
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/dashboard',
-  useRouter: () => ({ replace: mockReplace }),
+  usePathname: () => '/rksv/sonderbelege',
+  useRouter: () => ({ back: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
 
 const mockUseAuth = vi.fn();
@@ -23,6 +22,13 @@ vi.mock('@/features/auth/hooks/useAuth', async (importOriginal) => {
   };
 });
 
+vi.mock('@/i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    formatLocale: 'de-DE',
+  }),
+}));
+
 vi.mock('@/shared/auth/routeGuardConfig', () => ({
   ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS: false,
 }));
@@ -32,39 +38,39 @@ describe('PermissionRouteGuard', () => {
     vi.clearAllMocks();
   });
 
-  it('redirects to /403 when user has no permissions (fail-closed)', () => {
+  it('shows forbidden view when user has no permissions (fail-closed)', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Cashier', permissions: [] },
       authStatus: AuthStatus.Authenticated,
       isAuthInitializing: false,
       isInitialized: true,
     });
-    render(
+    const { getByText } = render(
       <PermissionRouteGuard>
         <div>Protected</div>
       </PermissionRouteGuard>
     );
-    expect(mockReplace).toHaveBeenCalledWith('/403');
+    expect(getByText('common.system.forbidden403Title')).toBeInTheDocument();
   });
 
-  it('redirects to /403 when user has insufficient permission for path', () => {
+  it('shows forbidden view when user has insufficient permission for path', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Cashier', permissions: ['product.view'] },
       authStatus: AuthStatus.Authenticated,
       isAuthInitializing: false,
       isInitialized: true,
     });
-    render(
+    const { getByText } = render(
       <PermissionRouteGuard>
         <div>Protected</div>
       </PermissionRouteGuard>
     );
-    expect(mockReplace).toHaveBeenCalledWith('/403');
+    expect(getByText('common.system.forbidden403Title')).toBeInTheDocument();
   });
 
   it('renders children when user has required permission for path', () => {
     mockUseAuth.mockReturnValue({
-      user: { id: 'u1', role: 'SuperAdmin', permissions: ['settings.view'] },
+      user: { id: 'u1', role: 'SuperAdmin', permissions: ['finanzonline.manage'] },
       authStatus: AuthStatus.Authenticated,
       isAuthInitializing: false,
       isInitialized: true,
@@ -75,6 +81,5 @@ describe('PermissionRouteGuard', () => {
       </PermissionRouteGuard>
     );
     expect(getByText('Protected')).toBeInTheDocument();
-    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

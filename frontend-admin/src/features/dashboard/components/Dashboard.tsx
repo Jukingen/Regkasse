@@ -3,7 +3,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Button, Spin } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import {
     dashboardPreferencesQueryKeys,
     fetchDashboardPreferences,
@@ -26,15 +27,17 @@ export function Dashboard({ headerSlot }: DashboardProps) {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const catalogQuery = useQuery({
+    const catalogQuery = useAuthorizedQuery({
         queryKey: dashboardPreferencesQueryKeys.catalog,
         queryFn: fetchDashboardWidgetCatalog,
         staleTime: 5 * 60_000,
+        requiredRole: [],
     });
 
-    const preferencesQuery = useQuery({
+    const preferencesQuery = useAuthorizedQuery({
         queryKey: dashboardPreferencesQueryKeys.preferences,
         queryFn: fetchDashboardPreferences,
+        requiredRole: [],
     });
 
     useEffect(() => {

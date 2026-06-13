@@ -3,21 +3,29 @@
 import React, { useMemo } from 'react';
 import { Row, Col, Statistic, Typography } from 'antd';
 import Link from 'next/link';
+import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useGetApiAdminFinanzonlineReconciliation } from '@/api/generated/admin/admin';
 import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
 export function FinanzOnlineStatusWidget({ title, dragHandleProps, onRefresh }: Props) {
+    const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.FINANZONLINE_VIEW });
+    const queryOptions = {
+        enabled: isAuthorized,
+        refetchInterval: DASHBOARD_AUTO_REFRESH_MS,
+        staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
+    } as const;
     const pendingQuery = useGetApiAdminFinanzonlineReconciliation(
         { status: 'Pending', limit: 200 },
-        { query: { refetchInterval: DASHBOARD_AUTO_REFRESH_MS, staleTime: DASHBOARD_AUTO_REFRESH_MS / 2 } },
+        { query: queryOptions },
     );
     const failedQuery = useGetApiAdminFinanzonlineReconciliation(
         { status: 'Failed', limit: 200 },
-        { query: { refetchInterval: DASHBOARD_AUTO_REFRESH_MS, staleTime: DASHBOARD_AUTO_REFRESH_MS / 2 } },
+        { query: queryOptions },
     );
 
     const pending = pendingQuery.data?.total ?? pendingQuery.data?.items?.length ?? 0;

@@ -51,10 +51,10 @@ export function useCommandRegistry({
 
     const triggerBackup = useCallback(() => {
         modal.confirm({
-            title: t('commandPalette.backupConfirmTitle'),
-            content: t('commandPalette.backupConfirmBody'),
-            okText: t('commandPalette.backupConfirmOk'),
-            cancelText: t('commandPalette.backupConfirmCancel'),
+            title: t('adminShell.commandPalette.backupConfirmTitle'),
+            content: t('adminShell.commandPalette.backupConfirmBody'),
+            okText: t('adminShell.commandPalette.backupConfirmOk'),
+            cancelText: t('adminShell.commandPalette.backupConfirmCancel'),
             onOk: () => backupTrigger.mutateAsync({ data: {} }),
         });
     }, [backupTrigger, t]);

@@ -52,7 +52,8 @@ public sealed class AdminCashRegistersListTests
             management,
             enrichment,
             TenantTestDoubles.TenantAccessorReturning(TenantAId),
-            NullLogger<AdminCashRegistersController>.Instance);
+            NullLogger<AdminCashRegistersController>.Instance,
+            LocalizationTestDoubles.ApiMessageLocalizer());
 
         controller.ControllerContext = new ControllerContext
         {

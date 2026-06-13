@@ -60,6 +60,7 @@
     "payloadHash": "Payload hash çakışmaları",
     "queueLegacy": "FinanzOnline mutabakat (eski)",
     "fiscalExport": "Mali export (profil)",
+    "depExport": "DEP §7 dışa aktarım",
     "integrity": "Veri bütünlüğü",
     "offlineCoverage": "Çevrimdışı niyet kapsamı",
     "verifications": "Doğrulamalar / denetim",

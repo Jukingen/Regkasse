@@ -115,6 +115,20 @@
       "grace": {
         "title": "Kiracı lisansı sona erdi - grace dönemi",
         "message": "Lisansınız {{days}} gün önce sona erdi. Satışların açık kalması için lütfen önümüzdeki {{remaining}} gün içinde lisansı yenileyin."
+      },
+      "graceWrite": {
+        "title": "Kiracı lisansı – grace dönemi",
+        "adminDescription": "Lisansınız {{daysExpired}} gün önce sona erdi. Kiracı kilitlenmeden önce yenilemek için {{daysRemaining}} gününüz kaldı.",
+        "contactAdminDescription": "Kiracı lisansı {{daysExpired}} gün önce sona erdi. Lütfen yöneticinizle iletişime geçin."
+      },
+      "lockdown": {
+        "title": "Kiracı lisansı sona erdi – sistem kilitli",
+        "adminDescription": "Lisansınız {{daysExpired}} gün önce sona erdi. Sistem şu anda kilit modunda.",
+        "contactAdminDescription": "Bu kiracı şu anda kilitli. Lütfen yöneticinizle iletişime geçin."
+      },
+      "noLicense": {
+        "title": "Kiracı lisansı eksik",
+        "adminDescription": "Bu kiracı için lisans tanımlanmamış. Lütfen bir lisans ekleyin."
       }
     },
     "deployment": {
@@ -125,6 +139,18 @@
       "grace": {
         "title": "Sunucu lisansı sona erdi - grace dönemi",
         "message": "Sunucu lisansı {{days}} gün önce sona erdi. Daha fazla yazma işlemi kapanmadan önce lütfen önümüzdeki {{remaining}} gün içinde lisansı yenileyin."
+      },
+      "graceWrite": {
+        "title": "Dağıtım lisansı – grace dönemi",
+        "adminDescription": "Dağıtım lisansı {{daysExpired}} gün önce sona erdi. Yazma işlemleri kısıtlanmadan önce {{daysRemaining}} gününüz kaldı."
+      },
+      "lockdown": {
+        "title": "Dağıtım lisansı sona erdi – sistem kilitli",
+        "adminDescription": "Dağıtım lisansı {{daysExpired}} gün önce sona erdi. Yalnızca health ve lisans aktivasyon uç noktaları kullanılabilir."
+      },
+      "noLicense": {
+        "title": "Dağıtım lisansı eksik",
+        "adminDescription": "Bu dağıtım için lisans tanımlanmamış."
       }
     },
     "readOnly": {

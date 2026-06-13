@@ -54,7 +54,8 @@ public class CashRegisterControllerCloseTests
             TenantTestDoubles.PrimaryTenantResolver,
             TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary),
             Mock.Of<ICashRegisterManagementService>(),
-            Mock.Of<ICashRegisterListEnrichmentService>());
+            Mock.Of<ICashRegisterListEnrichmentService>(),
+            LocalizationTestDoubles.ApiMessageLocalizer());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

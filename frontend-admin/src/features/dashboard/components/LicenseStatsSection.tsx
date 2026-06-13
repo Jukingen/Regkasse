@@ -234,7 +234,7 @@ export function LicenseStatsSection() {
         isTenantRecordLoading,
     } = useCurrentTenant();
 
-    const { data, isLoading, isError } = useLicenseDashboardStats({ enabled: isSuperAdminUser });
+    const { data, isLoading, isError } = useLicenseDashboardStats();
     const { data: tenantLicenseStatus } = useTenantLicenseStatus(tenantId ?? undefined);
     const { data: deploymentLicenseStatus } = useDeploymentLicenseStatus();
 

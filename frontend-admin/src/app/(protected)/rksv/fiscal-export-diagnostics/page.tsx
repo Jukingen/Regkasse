@@ -11,7 +11,6 @@ import {
     Card,
     Checkbox,
     DatePicker,
-    List,
     Segmented,
     Select,
     Space,
@@ -19,6 +18,7 @@ import {
     Tag,
     Typography,
 } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import type { SegmentedValue } from 'antd/es/segmented';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';

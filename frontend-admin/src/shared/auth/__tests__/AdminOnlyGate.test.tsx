@@ -1,5 +1,5 @@
 /**
- * AdminOnlyGate: permission-first; fallback isSuperAdmin. Redirects to /403 when not allowed.
+ * AdminOnlyGate: permission-first; fallback isSuperAdmin. Inline forbidden when not allowed.
  */
 import '@testing-library/jest-dom';
 import React from 'react';
@@ -8,10 +8,8 @@ import { render } from '@testing-library/react';
 import { AuthStatus } from '@/features/auth/hooks/useAuth';
 import { AdminOnlyGate } from '../AdminOnlyGate';
 
-const mockReplace = vi.fn();
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: mockReplace }),
-  usePathname: () => '/users',
+  useRouter: () => ({ back: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
 
 const mockUseAuth = vi.fn();
@@ -23,39 +21,46 @@ vi.mock('@/features/auth/hooks/useAuth', async (importOriginal) => {
   };
 });
 
+vi.mock('@/i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+    formatLocale: 'de-DE',
+  }),
+}));
+
 describe('AdminOnlyGate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('redirects to /403 when user has no admin permission and not SuperAdmin role', () => {
+  it('shows forbidden view when user has no admin permission and not SuperAdmin role', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Cashier', permissions: ['product.view'] },
       authStatus: AuthStatus.Authenticated,
       isAuthInitializing: false,
       isInitialized: true,
     });
-    render(
+    const { getByText } = render(
       <AdminOnlyGate>
         <div>Protected content</div>
       </AdminOnlyGate>
     );
-    expect(mockReplace).toHaveBeenCalledWith('/403');
+    expect(getByText('common.system.forbidden403Title')).toBeInTheDocument();
   });
 
-  it('redirects to /403 when user has Admin role (no longer treated as SuperAdmin)', () => {
+  it('shows forbidden view when user has Admin role (no longer treated as SuperAdmin)', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'u1', role: 'Admin', permissions: [] },
       authStatus: AuthStatus.Authenticated,
       isAuthInitializing: false,
       isInitialized: true,
     });
-    render(
+    const { getByText } = render(
       <AdminOnlyGate>
         <div>Protected content</div>
       </AdminOnlyGate>
     );
-    expect(mockReplace).toHaveBeenCalledWith('/403');
+    expect(getByText('common.system.forbidden403Title')).toBeInTheDocument();
   });
 
   it('renders children when user has admin permission (user.manage)', () => {
@@ -71,6 +76,5 @@ describe('AdminOnlyGate', () => {
       </AdminOnlyGate>
     );
     expect(getByText('Protected content')).toBeInTheDocument();
-    expect(mockReplace).not.toHaveBeenCalled();
   });
 });

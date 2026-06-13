@@ -6,7 +6,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Descriptions, List, Radio, Space, Spin, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Checkbox, Descriptions, Radio, Space, Spin, Tag, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import axios from 'axios';
 import {
   getBackupExecutionMode,

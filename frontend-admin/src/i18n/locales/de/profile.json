@@ -1,0 +1,42 @@
+{
+  "pageTitle": "Mein Profil",
+  "loading": "Profil wird geladen…",
+  "loadError": "Profil konnte nicht geladen werden.",
+  "notProvided": "Nicht angegeben",
+  "emptyValue": "—",
+  "saveSuccess": "Profil erfolgreich aktualisiert.",
+  "saveError": "Profil konnte nicht aktualisiert werden.",
+  "reset": "Zurücksetzen",
+  "fields": {
+    "userName": "Benutzername",
+    "role": "Rolle",
+    "employeeNumber": "Mitarbeiternummer",
+    "phoneNumber": "Telefon",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "email": "E-Mail"
+  },
+  "validation": {
+    "firstNameRequired": "Vorname erforderlich.",
+    "lastNameRequired": "Nachname erforderlich.",
+    "emailRequired": "E-Mail erforderlich.",
+    "emailInvalid": "Ungültige E-Mail-Adresse."
+  },
+  "placeholders": {
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "email": "email@example.com",
+    "phoneNumber": "+43 123 456789"
+  },
+  "username": {
+    "changeAction": "Benutzername ändern",
+    "reloginTitle": "Neu anmelden erforderlich",
+    "reloginDescription": "Nach einer Benutzernamenänderung werden alle aktiven Sitzungen beendet. Bitte melden Sie sich mit dem neuen Benutzernamen erneut an.",
+    "policyTitle": "Benutzername-Änderungslimit",
+    "policyDescription": "Der Benutzername kann höchstens einmal alle {{days}} Tage geändert werden.",
+    "policyCooldownActive": "Eine Änderung ist derzeit nicht möglich. Nächste Änderung möglich ab {{date}} (UTC).",
+    "policyChangeAllowed": "Sie können Ihren Benutzernamen jetzt ändern.",
+    "policyLastChanged": "Zuletzt geändert: {{date}} (UTC). Sie können Ihren Benutzernamen jetzt erneut ändern.",
+    "policySuperAdminExempt": "Als SuperAdmin sind Sie von Wartezeiten und Änderungslimits ausgenommen."
+  }
+}

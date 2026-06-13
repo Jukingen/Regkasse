@@ -108,7 +108,7 @@ public class RefreshTokenServiceTests
     }
 
     [Fact]
-    public async Task ReusedRefreshToken_DetectsReuse()
+    public async Task ReusedRefreshToken_IsRejectedWithoutSessionInvalidation()
     {
         using var db = CreateContext();
         var service = CreateService(db);
@@ -119,11 +119,13 @@ public class RefreshTokenServiceTests
 
         Assert.True(first.Success);
         Assert.False(second.Success);
-        Assert.True(second.ReuseDetected);
+        Assert.False(second.ReuseDetected);
+        Assert.Equal("refresh_token_already_used", second.ErrorCode);
+        Assert.True(await service.IsSessionActiveAsync("u1", login.SessionId));
     }
 
     [Fact]
-    public async Task ParallelRefreshRace_OnlyOneSucceeds()
+    public async Task ParallelRefreshRace_OnlyOneSucceedsWithoutSessionInvalidation()
     {
         using var db = CreateContext();
         var service = CreateService(db);
@@ -134,7 +136,12 @@ public class RefreshTokenServiceTests
         var results = await Task.WhenAll(t1, t2);
 
         Assert.Single(results, x => x.Success);
-        Assert.Single(results, x => !x.Success);
+        var loser = results.Single(x => !x.Success);
+        Assert.False(loser.ReuseDetected);
+        Assert.True(
+            loser.ErrorCode is "refresh_token_parallel_conflict" or "refresh_token_already_used",
+            $"Unexpected error code: {loser.ErrorCode}");
+        Assert.True(await service.IsSessionActiveAsync("u1", login.SessionId));
     }
 
     [Fact]

@@ -11,8 +11,10 @@ import {
     Tooltip as RechartsTooltip,
     ResponsiveContainer,
 } from 'recharts';
+import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useGetApiReportsSales } from '@/api/generated/reports/reports';
 import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 
@@ -20,10 +22,12 @@ type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
 export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
     const today = dayjs().format('YYYY-MM-DD');
+    const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.REPORT_VIEW });
     const query = useGetApiReportsSales(
         { startDate: today, endDate: today },
         {
             query: {
+                enabled: isAuthorized,
                 refetchInterval: DASHBOARD_AUTO_REFRESH_MS,
                 staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
             },

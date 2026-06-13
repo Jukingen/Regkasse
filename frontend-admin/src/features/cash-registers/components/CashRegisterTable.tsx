@@ -26,6 +26,8 @@ import {
     isDecommissionedRegister,
     rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import styles from './CashRegisterTable.module.css';
 
 function asEnhanced(record: CashRegister): EnhancedCashRegister {
@@ -75,6 +77,7 @@ export function CashRegisterTable({
     onDecommission,
 }: CashRegisterTableProps) {
     const { t, formatLocale } = useI18n();
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
 
     const emptyDescription =
         totalRegisterCount === 0
@@ -299,14 +302,16 @@ export function CashRegisterTable({
                                           />
                                       </Tooltip>
                                   ) : null}
-                                  <Tooltip title={t('cashRegisters.actions.specialReceipts')}>
-                                      <Button
-                                          size="small"
-                                          icon={<FileProtectOutlined />}
-                                          aria-label={t('cashRegisters.actions.specialReceipts')}
-                                          href="/rksv/sonderbelege?focus=schlussbeleg"
-                                      />
-                                  </Tooltip>
+                                  {canOpenSonderbelege ? (
+                                      <Tooltip title={t('cashRegisters.actions.specialReceipts')}>
+                                          <Button
+                                              size="small"
+                                              icon={<FileProtectOutlined />}
+                                              aria-label={t('cashRegisters.actions.specialReceipts')}
+                                              href="/rksv/sonderbelege?focus=schlussbeleg"
+                                          />
+                                      </Tooltip>
+                                  ) : null}
                                   {decommissioned ? (
                                       <Tooltip title={t('cashRegisters.decommission.restoreTooltip')}>
                                           <Button

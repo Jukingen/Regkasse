@@ -5,7 +5,6 @@ import {
     Badge,
     Button,
     Empty,
-    List,
     Popover,
     Space,
     Tag,
@@ -18,6 +17,7 @@ import {
     WarningOutlined,
 } from '@ant-design/icons';
 
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import styles from '@/components/alertBell.module.css';
 import {
     useMarkAlertAsRead,
@@ -154,9 +154,11 @@ export function AlertBell() {
         >
             <Badge count={unreadCount} offset={[-2, 2]} size="small">
                 <Button
-                    type="text"
+                    type="default"
+                    size="small"
+                    className="admin-header-tool-btn admin-header-icon-btn"
                     aria-label={t('suspiciousAlerts.bellAria')}
-                    icon={<AlertOutlined style={{ fontSize: 18 }} />}
+                    icon={<AlertOutlined style={{ fontSize: 16 }} />}
                 />
             </Badge>
         </Popover>

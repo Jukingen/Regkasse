@@ -4,7 +4,7 @@ import React from 'react';
 import { Alert, Card, Col, Row, Space, Statistic, Typography } from 'antd';
 import { InboxOutlined, LinkOutlined } from '@ant-design/icons';
 import NextLink from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import {
@@ -26,10 +26,10 @@ export function OfflineQueueDashboardCard() {
     const { hasPermission } = usePermissions();
     const enabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
 
-    const summaryQuery = useQuery({
+    const summaryQuery = useAuthorizedQuery({
         queryKey: getGetApiAdminOfflineTransactionsSummaryQueryKey(),
         queryFn: ({ signal }) => getApiAdminOfflineTransactionsSummary({ signal }),
-        enabled,
+        requiredPermission: PERMISSIONS.PAYMENT_VIEW,
         staleTime: 60_000,
         refetchInterval: REFETCH_MS,
         refetchIntervalInBackground: false,

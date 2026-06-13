@@ -14,7 +14,9 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
-import { usePermissions } from '@/shared/auth/usePermissions';
+import { useCashRegisterModuleAccess } from '@/features/cash-registers/hooks/useCashRegisterModuleAccess';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { normalizeCashRegisterList } from '@/features/cash-registers/normalizers';
@@ -39,7 +41,6 @@ import {
     rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
-import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
     FA_QUICK_CASH_REGISTER_QUERY_PARAM,
     readQuickCashRegisterId,
@@ -66,17 +67,22 @@ export default function KassenverwaltungPage() {
     const queryClient = useQueryClient();
     const deepLinkHandledRef = useRef(false);
     const {
-        canViewCashRegisters,
+        canAccessPage,
+        canLoadRegisters,
         canManageCashRegisters,
         canDecommissionCashRegisters,
         hasPermission,
-    } = usePermissions();
-    const { tenantId, isSuperAdminUser } = useCurrentTenant();
+        licenseBlocksModule,
+        licenseLoading,
+        tenantId,
+        isSuperAdminUser,
+    } = useCashRegisterModuleAccess();
 
-    const canView = canViewCashRegisters;
+    const canView = canAccessPage;
     const canCreate = canManageCashRegisters;
     const canDecommission = canDecommissionCashRegisters;
     const canHardDelete = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
 
     const [selectedTenantId, setSelectedTenantId] = useState<string>();
     const [showDecommissioned, setShowDecommissioned] = useState(false);
@@ -99,7 +105,7 @@ export default function KassenverwaltungPage() {
     const capabilitiesQuery = useQuery({
         queryKey: CAPABILITIES_QUERY_KEY,
         queryFn: getCashRegisterCapabilities,
-        enabled: canView,
+        enabled: canLoadRegisters,
         staleTime: 60_000,
     });
 
@@ -109,13 +115,13 @@ export default function KassenverwaltungPage() {
     const tenantRegistersQuery = useQuery({
         queryKey: cashRegisterListQueryKey,
         queryFn: () => getApiCashRegister(),
-        enabled: canView && !isSuperAdminUser,
+        enabled: canLoadRegisters && !isSuperAdminUser,
     });
 
     const adminRegistersQuery = useAdminCashRegisterList({
         tenantId: selectedTenantId,
         allowAllTenants: isSuperAdminUser && !selectedTenantId,
-        enabled: canView && isSuperAdminUser,
+        enabled: canLoadRegisters && isSuperAdminUser,
         excludeDecommissioned: false,
     });
 
@@ -303,10 +309,27 @@ export default function KassenverwaltungPage() {
         setCreateOpen(false);
     }, []);
 
-    if (!canView) {
+    if (!canAccessPage) {
         return (
             <AdminPageShell>
                 <Alert type="warning" showIcon title={t('errors.forbidden.FORBIDDEN')} />
+            </AdminPageShell>
+        );
+    }
+
+    if (licenseBlocksModule && !licenseLoading) {
+        return (
+            <AdminPageShell>
+                <AdminPageHeader
+                    title={t('cashRegisters.pageTitle')}
+                    breadcrumbs={[adminOverviewCrumb(t), { title: t('cashRegisters.pageTitle') }]}
+                />
+                <Alert
+                    type="info"
+                    showIcon
+                    title={t('cashRegisters.moduleUnavailable')}
+                    description={t('cashRegisters.moduleUnavailableDescription')}
+                />
             </AdminPageShell>
         );
     }
@@ -356,7 +379,7 @@ export default function KassenverwaltungPage() {
                             })}
                         </Typography.Text>
                     ) : null}
-                    {canDecommission ? (
+                    {canDecommission && canOpenSonderbelege ? (
                         <Link href="/rksv/sonderbelege?focus=schlussbeleg">
                             {t('cashRegisters.decommission.hintSchlussbelegLink')}
                         </Link>

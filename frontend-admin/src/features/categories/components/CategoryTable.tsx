@@ -12,6 +12,7 @@ import { useI18n } from '@/i18n';
 interface CategoryTableProps {
   data: AdminCategory[];
   loading: boolean;
+  canManage?: boolean;
   onEdit: (category: AdminCategory) => void;
   onDelete: (category: AdminCategory) => void;
   onUpdateName: (category: AdminCategory, newName: string) => Promise<void>;
@@ -37,6 +38,7 @@ function FiscalCategoryTag({ value, t }: { value: RksvProductCategoryValue | und
 export default function CategoryTable({
   data,
   loading,
+  canManage = true,
   onEdit,
   onDelete,
   onUpdateName,
@@ -46,7 +48,8 @@ export default function CategoryTable({
   const { t } = useI18n();
 
   const columns: ColumnType<AdminCategory>[] = useMemo(
-    () => [
+    () => {
+      const cols: ColumnType<AdminCategory>[] = [
       {
         title: t('common.categories.table.icon'),
         dataIndex: 'icon',
@@ -71,6 +74,7 @@ export default function CategoryTable({
           <EditableCell
             value={name}
             onSave={(newName) => onUpdateName(record, newName)}
+            disabled={!canManage}
           />
         ),
       },
@@ -110,7 +114,10 @@ export default function CategoryTable({
         align: 'right',
         sorter: (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
       },
-      {
+      ];
+
+      if (canManage) {
+        cols.push({
         title: t('common.categories.table.actions'),
         key: 'actions',
         width: 220,
@@ -146,9 +153,12 @@ export default function CategoryTable({
             ) : null}
           </Space>
         ),
-      },
-    ],
-    [t, onEdit, onDelete, onUpdateName, deleteLoadingId],
+      });
+      }
+
+      return cols;
+    },
+    [t, onEdit, onDelete, onUpdateName, deleteLoadingId, canManage],
   );
 
   return (

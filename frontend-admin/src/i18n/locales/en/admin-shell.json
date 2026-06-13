@@ -5,6 +5,9 @@
     "sidebarExpanded": "REGKASSE ADMIN",
     "fallbackUserName": "Admin User"
   },
+  "sidebar": {
+    "noAccessibleMenus": "No menu items available."
+  },
   "aria": {
     "openNav": "Open navigation menu",
     "closeNav": "Close navigation menu",
@@ -13,17 +16,19 @@
     "resizeSidebar": "Resize sidebar width"
   },
   "header": {
-    "headerActionsAria": "Language and user account",
-    "languageSelectAria": "Choose interface language",
+    "headerActionsAria": "Header actions",
+    "languageSelectAria": "Language",
     "languageSelectTitle": "Interface language",
     "languageSelectHint": "Applies to the admin UI only. Formal fiscal report text stays German or English.",
     "languageNameDe": "German",
     "languageNameEn": "English",
     "languageNameTr": "Turkish",
-    "cashRegisterQuickSwitchLabel": "Switch register",
+    "cashRegisterQuickSwitchLabel": "Register",
     "cashRegisterQuickSwitchAria": "Quick cash register switch",
     "cashRegisterQuickSwitchHint": "Pick a register and open cash register management",
-    "cashRegisterQuickSwitchManage": "Open cash register management"
+    "cashRegisterQuickSwitchManage": "Open cash register management",
+    "monatsbelegBadgeLabel": "Monthly receipt ({count})",
+    "monatsbelegBadgeAria": "Monthly receipt warnings: {count}"
   },
   "tenant": {
     "badge": {

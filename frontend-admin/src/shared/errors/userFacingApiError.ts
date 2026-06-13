@@ -43,11 +43,16 @@ export function getUserFacingApiErrorMessage(
     technicalConsole.error(`[API Error] ${options.logContext}`, buildTechnicalApiErrorPayload(normalized));
   }
 
+  // Login screen: backend message is already localized via Accept-Language.
+  if (options.loginContext && normalized.httpStatus === 401 && normalized.rawMessage) {
+    return normalized.rawMessage;
+  }
+
   const byCode = tryCodeBasedUserMessage(t, normalized);
   if (byCode) return byCode;
 
   if (options.loginContext && normalized.httpStatus === 401) {
-    return t('common.auth.loginInvalidCredentials');
+    return t('common.auth.invalidCredentials');
   }
   if (normalized.httpStatus === 400) {
     return normalized.rawMessage ?? t('common.errors.http400');

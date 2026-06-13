@@ -4,8 +4,6 @@
  * Header badge shows the most critical active tenant or deployment license phase.
  */
 
-import { LoadingOutlined, WarningOutlined } from '@ant-design/icons';
-
 import {
     useDeploymentLicenseStatus,
     useTenantLicenseStatus,
@@ -90,7 +88,6 @@ export function LicenseStatusIndicator({ compact: _compact = false }: LicenseSta
     if (isLoading) {
         return (
             <div className="license-badge loading" aria-busy="true" aria-live="polite">
-                <LoadingOutlined className="license-icon" spin aria-hidden />
                 <span className="license-text">{t('license.badge.loading')}</span>
             </div>
         );
@@ -116,7 +113,6 @@ export function LicenseStatusIndicator({ compact: _compact = false }: LicenseSta
 
     return (
         <div className={`license-badge ${statusClass}`} aria-label={statusText}>
-            <WarningOutlined className="license-icon" aria-hidden />
             <span className="license-text">{statusText}</span>
         </div>
     );

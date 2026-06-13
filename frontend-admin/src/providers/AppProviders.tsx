@@ -11,6 +11,7 @@ import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { AuthSessionInvalidationListener } from '@/features/auth/components/AuthSessionInvalidationListener';
 import { TenantChangeListener } from '@/features/auth/components/TenantChangeListener';
 import { TenantSwitchProvider } from '@/features/auth/contexts/TenantSwitchContext';
+import { AuthProvider } from '@/features/auth/providers/AuthProvider';
 
 /** Root client providers: i18n → query → theme → user preferences. */
 export function AppProviders({ children }: { children: ReactNode }) {
@@ -25,16 +26,18 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <I18nProvider>
       <TenantSwitchProvider>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <PersonalizationProvider>
-              <AuthSessionInvalidationListener />
-              <TenantChangeListener />
-              {children}
-              {process.env.NODE_ENV === 'development' ? (
-                <ReactQueryDevtools initialIsOpen={false} />
-              ) : null}
-            </PersonalizationProvider>
-          </ThemeProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <PersonalizationProvider>
+                <AuthSessionInvalidationListener />
+                <TenantChangeListener />
+                {children}
+                {process.env.NODE_ENV === 'development' ? (
+                  <ReactQueryDevtools initialIsOpen={false} />
+                ) : null}
+              </PersonalizationProvider>
+            </ThemeProvider>
+          </AuthProvider>
         </QueryClientProvider>
       </TenantSwitchProvider>
     </I18nProvider>

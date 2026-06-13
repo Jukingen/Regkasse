@@ -6,7 +6,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  * System roles are readonly; custom roles are editable. No legacy/deprecated role category.
  */
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { Drawer, List, Button, Space, Spin, Alert, Empty, Checkbox, Tooltip, Typography, Select, Tag, Card, Row, Col } from 'antd';
+import { Drawer, Button, Space, Spin, Alert, Empty, Checkbox, Tooltip, Typography, Select, Tag, Card, Row, Col } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import { PlusOutlined, DeleteOutlined, SaveOutlined } from '@ant-design/icons';
 import type { RoleWithPermissionsDto } from '../api/usersGateway';
 import type { PermissionCatalogItemDto } from '../api/usersGateway';
@@ -79,6 +80,8 @@ type Props = {
   onDeleteRole: (roleName: string) => Promise<void>;
   saveLoading?: boolean;
   deleteLoading?: boolean;
+  /** Full-page hub vs right drawer (default drawer). */
+  presentation?: 'drawer' | 'page';
 };
 
 export function RoleManagementDrawer({
@@ -99,10 +102,12 @@ export function RoleManagementDrawer({
   onDeleteRole,
   saveLoading = false,
   deleteLoading = false,
+  presentation = 'drawer',
 }: Props) {
   const { modal } = useAntdApp();
 
   const { t } = useI18n();
+  const isActive = presentation === 'page' || open;
 
   const roleDisplayLabel = useCallback(
     (roleName: string) =>
@@ -250,7 +255,7 @@ export function RoleManagementDrawer({
 
   // --- Effect 1: selection only when open and list identity changes. No `roles` in deps — avoids infinite update depth when parent passes new array reference each render. ---
   useEffect(() => {
-    if (!open) return;
+    if (!isActive) return;
     const names = roleNamesKey ? roleNamesKey.split('\u0001') : [];
     if (names.length === 0) {
       setSelectedRoleName((prev) => (prev === null ? prev : null));
@@ -263,7 +268,7 @@ export function RoleManagementDrawer({
       setSelectedRoleName(firstName);
       // Draft sync delegated to effect 2 when selectedRolePermissionsKey updates (derived from roles).
     }
-  }, [open, roleNamesKey, selectedRoleName]);
+  }, [isActive, roleNamesKey, selectedRoleName]);
 
   // --- Effect 2: sync draft from server. Deps exclude `roles` array — selectedRolePermissionsKey already encodes permission content; prevents loop when React Query returns new roles reference with same data. ---
   useEffect(() => {
@@ -272,7 +277,7 @@ export function RoleManagementDrawer({
     if (!role) return;
     const next = new Set(role.permissions ?? []);
     setDraftPermissions((prev) => (setsEqual(prev, next) ? prev : next));
-  }, [open, selectedRoleName, selectedRolePermissionsKey]);
+  }, [isActive, selectedRoleName, selectedRolePermissionsKey]);
 
   // Primitive fingerprint for catalog keys so effect does not re-run every render (Set reference unstable).
   const catalogKeysFingerprint = useMemo(() => {
@@ -284,7 +289,7 @@ export function RoleManagementDrawer({
     if (!open || catalogKeysFingerprint.length === 0) return;
     const keys = catalogKeysFingerprint.split(',');
     validateCatalogAlignment(keys, { warnUnknown: true });
-  }, [open, catalogKeysFingerprint]);
+  }, [isActive, catalogKeysFingerprint]);
 
   const groupedCatalog = useMemo(() => groupCatalogByGroup(catalog), [catalog]);
   // Set from fingerprint avoids depending on catalog array reference (React Query refetch).
@@ -401,16 +406,8 @@ export function RoleManagementDrawer({
   const loading = rolesLoading || catalogLoading;
   const error = rolesError || catalogError;
 
-  return (
-    <Drawer
-      title={t('users.page.manageRoles')}
-      placement="right"
-      size={720}
-      open={open}
-      onClose={handleClose}
-      destroyOnHidden
-      footer={
-        <Space>
+  const actionFooter = (
+        <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
           {canCreateRole && (
             <Button icon={<PlusOutlined />} onClick={onCreateRole}>
               {t('users.roleDrawer.newRoleButton')}
@@ -431,7 +428,6 @@ export function RoleManagementDrawer({
               </span>
             </Tooltip>
           )}
-          <span style={{ flex: 1 }} />
           {canEditRolePermissions && (
             <Button
               type="primary"
@@ -444,8 +440,10 @@ export function RoleManagementDrawer({
             </Button>
           )}
         </Space>
-      }
-    >
+  );
+
+  const panelBody = (
+    <>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
         {t('users.roleDrawer.description')}
       </Typography.Paragraph>
@@ -470,7 +468,7 @@ export function RoleManagementDrawer({
           </Spin>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: 24, minHeight: 400 }}>
+        <div style={{ display: 'flex', gap: 24, minHeight: presentation === 'page' ? 520 : 400 }}>
           <div style={{ width: 220, flexShrink: 0, borderRight: '1px solid #f0f0f0', paddingRight: 16 }}>
             <Typography.Text strong>{t('users.list.columnRole')}</Typography.Text>
             {sortedRoles.length === 0 ? (
@@ -760,6 +758,29 @@ export function RoleManagementDrawer({
           </div>
         </div>
       )}
+    </>
+  );
+
+  if (presentation === 'page') {
+    return (
+      <Card>
+        {panelBody}
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f0f0f0' }}>{actionFooter}</div>
+      </Card>
+    );
+  }
+
+  return (
+    <Drawer
+      title={t('users.page.manageRoles')}
+      placement="right"
+      size={720}
+      open={open}
+      onClose={handleClose}
+      destroyOnHidden
+      footer={actionFooter}
+    >
+      {panelBody}
     </Drawer>
   );
 }

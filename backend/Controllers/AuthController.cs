@@ -18,7 +18,9 @@ using KasseAPI_Final.Services.Auth;
 using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Helpers;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 
@@ -49,8 +51,11 @@ namespace KasseAPI_Final.Controllers
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
         private readonly IUserUsernameHistoryService _usernameHistory;
         private readonly IForgotUsernameEmailService _forgotUsernameEmail;
+        private readonly IForgotPasswordEmailService _forgotPasswordEmail;
         private readonly ITenantSessionPolicyService _sessionPolicyService;
         private readonly ISessionService _sessionService;
+        private readonly IApiMessageLocalizer _messages;
+        private readonly II18nErrorService _i18nErrorService;
 
         /// <summary>Throttles diagnostic logs when /me is called without a resolvable user id claim.</summary>
         private static readonly object GetCurrentUserMissingIdLogSync = new();
@@ -71,8 +76,11 @@ namespace KasseAPI_Final.Controllers
             IUserTenantMembershipProvisioner tenantMembershipProvisioner,
             IUserUsernameHistoryService usernameHistory,
             IForgotUsernameEmailService forgotUsernameEmail,
+            IForgotPasswordEmailService forgotPasswordEmail,
             ITenantSessionPolicyService sessionPolicyService,
-            ISessionService sessionService)
+            ISessionService sessionService,
+            IApiMessageLocalizer messages,
+            II18nErrorService i18nErrorService)
         {
             _context = context;
             _userManager = userManager;
@@ -88,8 +96,11 @@ namespace KasseAPI_Final.Controllers
             _tenantMembershipProvisioner = tenantMembershipProvisioner;
             _usernameHistory = usernameHistory;
             _forgotUsernameEmail = forgotUsernameEmail;
+            _forgotPasswordEmail = forgotPasswordEmail;
             _sessionPolicyService = sessionPolicyService;
             _sessionService = sessionService;
+            _messages = messages;
+            _i18nErrorService = i18nErrorService;
         }
 
         /// <summary>
@@ -159,6 +170,46 @@ namespace KasseAPI_Final.Controllers
             return Ok(new { message = genericMessage });
         }
 
+        /// <summary>
+        /// Sends a password reset email for the given address (admin app). Always returns success to avoid account enumeration.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(
+            [FromBody] ForgotPasswordRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "Email is required." });
+
+            var clientApp = request.ClientApp?.Trim().ToLowerInvariant();
+            if (!string.Equals(clientApp, ClientAppPolicy.Admin, StringComparison.Ordinal))
+                return BadRequest(new { message = "clientApp must be \"admin\" for this endpoint." });
+
+            var email = request.Email.Trim();
+            var user = await _userManager.FindByEmailAsync(email).ConfigureAwait(false);
+            if (user != null && user.IsActive)
+            {
+                var token = await _userManager.GeneratePasswordResetTokenAsync(user).ConfigureAwait(false);
+                var sent = await _forgotPasswordEmail.TrySendForgotPasswordAsync(
+                    new ForgotPasswordEmailRequest(email, token),
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!sent)
+                {
+                    _logger.LogWarning(
+                        "Forgot-password: SMTP not configured or send failed for user {UserId}.",
+                        user.Id);
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Forgot-password: no active user for masked email.");
+            }
+
+            return Ok(new { message = _messages.Get(ApiMessageKeys.ForgotPasswordGeneric) });
+        }
+
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginModel model)
         {
@@ -211,18 +262,20 @@ namespace KasseAPI_Final.Controllers
                     loginCancellation);
                 if (user == null)
                 {
-                    return BadRequest(new { message = "Kullanıcı bulunamadı" });
+                    return InvalidLoginCredentials(
+                        "User not found",
+                        loginMasked: MaskLoginIdentifier(loginIdentifier));
                 }
 
                 if (!user.IsActive)
                 {
-                    return BadRequest(new { message = "Hesap aktif değil" });
+                    return InvalidLoginCredentials("Inactive user", userId: user.Id);
                 }
 
                 var passwordValid = await _userManager.CheckPasswordAsync(user, model.Password);
                 if (!passwordValid)
                 {
-                    return BadRequest(new { message = "Geçersiz şifre" });
+                    return InvalidLoginCredentials("Invalid password", userId: user.Id);
                 }
 
                 // --- Role-level app policy check ---
@@ -237,7 +290,7 @@ namespace KasseAPI_Final.Controllers
                         "Login denied: user {EmailMasked} (role {Role}) is not allowed for clientApp {ClientApp}",
                         MaskLoginIdentifier(loginIdentifier), canonicalRole, resolvedClientApp);
 
-                    return StatusCode(403, new { message = "Bu kullanıcı bu uygulama için yetkili değil." });
+                    return StatusCode(403, new { message = _messages.Get(ApiMessageKeys.NotAuthorizedForApp) });
                 }
 
                 var authCt = HttpContext?.RequestAborted ?? CancellationToken.None;
@@ -251,7 +304,7 @@ namespace KasseAPI_Final.Controllers
                             user.Id);
                         return BadRequest(new
                         {
-                            message = "Kein Zugriff auf diesen Mandanten",
+                            message = _messages.Get(ApiMessageKeys.TenantMembershipRequired),
                             code = "TENANT_MEMBERSHIP_REQUIRED",
                         });
                     }
@@ -282,7 +335,11 @@ namespace KasseAPI_Final.Controllers
 
                 if (tenantAccess.Snapshot is not AuthTenantSnapshot loginTenantSnapshot)
                 {
-                    return BadRequest(new { message = "Kein Zugriff auf diesen Mandanten", code = "TENANT_MEMBERSHIP_REQUIRED" });
+                    return BadRequest(new
+                    {
+                        message = _messages.Get(ApiMessageKeys.TenantMembershipRequired),
+                        code = "TENANT_MEMBERSHIP_REQUIRED",
+                    });
                 }
 
                 Guid? sessionTenantKey = Guid.TryParse(loginTenantSnapshot.TenantId, out var loginTenantGuid)
@@ -309,7 +366,13 @@ namespace KasseAPI_Final.Controllers
                     sessionTenantId: sessionTenantKey,
                     clientMetadata: BuildSessionClientMetadata(),
                     authCt);
-                var permissions = await GetEffectivePermissionsListAsync(user.Id, roles, sessionTenantKey, authCt);
+                var permissions = await GetEffectivePermissionsListAsync(
+                    user.Id,
+                    roles,
+                    user.Role,
+                    sessionTenantKey,
+                    resolvedClientApp,
+                    authCt);
 
                 var response = new
                 {
@@ -346,7 +409,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Login error for user: {LoginMasked}", MaskLoginIdentifier(loginIdentifier));
-                return StatusCode(500, new { message = "Giriş işlemi sırasında hata oluştu" });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.LoginError) });
             }
         }
 
@@ -447,19 +510,27 @@ namespace KasseAPI_Final.Controllers
 
                 var tenantSnapshot = await _authTenantSnapshotProvider.GetSnapshotAsync(User, meCt);
                 Guid? tenantGuid = Guid.TryParse(tenantSnapshot.TenantId, out var tid) ? tid : null;
-                var permissions = await GetEffectivePermissionsListAsync(user.Id, roles, tenantGuid, meCt);
-                var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
-
                 var appContext = User.FindFirst(ClientAppPolicy.AppContextClaimType)?.Value;
+                var permissions = await GetEffectivePermissionsListAsync(
+                    user.Id,
+                    roles,
+                    user.Role,
+                    tenantGuid,
+                    appContext,
+                    meCt);
+                var canonicalRole = RoleCanonicalization.GetCanonicalRole(primaryRole);
 
                 var sessionPolicy = await _sessionPolicyService.GetPolicyAsync(tenantGuid, meCt);
 
                 var userResponse = new
                 {
                     id = user.Id,
+                    userName = user.UserName,
                     email = user.Email,
                     firstName = user.FirstName,
                     lastName = user.LastName,
+                    employeeNumber = user.EmployeeNumber,
+                    phoneNumber = user.PhoneNumber,
                     role = canonicalRole,
                     roles = roles,
                     permissions = permissions,
@@ -549,17 +620,28 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(model.Email))
+                    return BadRequest(new { message = "Email is required." });
+
+                var email = model.Email.Trim();
+                var regCt = HttpContext?.RequestAborted ?? default;
+                var existingUser = await _userManager.FindByEmailAsync(email).ConfigureAwait(false);
+                if (existingUser != null)
+                {
+                    _logger.LogWarning("Registration failed: email already registered (not disclosed to client).");
+                    return RegistrationFailedResponse();
+                }
+
                 var user = new ApplicationUser
                 {
-                    UserName = model.Email,
-                    Email = model.Email,
+                    UserName = email,
+                    Email = email,
                     FirstName = model.FirstName,
                     LastName = model.LastName,
                     EmployeeNumber = model.EmployeeNumber ?? string.Empty,
                     IsActive = true
                 };
                 
-                var regCt = HttpContext?.RequestAborted ?? default;
                 await using var tx = await _context.Database.BeginTransactionAsync(regCt);
                 try
                 {
@@ -567,6 +649,12 @@ namespace KasseAPI_Final.Controllers
                     if (!result.Succeeded)
                     {
                         await tx.RollbackAsync(regCt);
+                        if (result.Errors.Any(IsDuplicateIdentityError))
+                        {
+                            _logger.LogWarning("Registration failed: duplicate identity (not disclosed to client).");
+                            return RegistrationFailedResponse();
+                        }
+
                         return BadRequest(new { errors = result.Errors });
                     }
 
@@ -590,7 +678,7 @@ namespace KasseAPI_Final.Controllers
                     return StatusCode(500, new { message = "Registrierung fehlgeschlagen.", code = "REGISTRATION_TRANSACTION_FAILED" });
                 }
 
-                return Ok(new { message = "Kullanıcı başarıyla oluşturuldu" });
+                return Ok(new { message = _messages.Get(ApiMessageKeys.UserCreatedSuccess) });
             }
             catch (Exception ex)
             {
@@ -666,6 +754,38 @@ namespace KasseAPI_Final.Controllers
             return $"{prefix}***{domain}";
         }
 
+        private IActionResult RegistrationFailedResponse() =>
+            BadRequest(new
+            {
+                message = _messages.Get(ApiMessageKeys.RegistrationFailed),
+                code = "REGISTRATION_FAILED",
+            });
+
+        private static bool IsDuplicateIdentityError(IdentityError error) =>
+            string.Equals(error.Code, "DuplicateEmail", StringComparison.Ordinal)
+            || string.Equals(error.Code, "DuplicateUserName", StringComparison.Ordinal);
+
+        private IActionResult InvalidLoginCredentials(string logReason, string? loginMasked = null, string? userId = null)
+        {
+            if (!string.IsNullOrEmpty(userId))
+            {
+                _logger.LogWarning("Login failed: {Reason} for user {UserId}", logReason, userId);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "Login failed: {Reason} for identifier {LoginMasked}",
+                    logReason,
+                    loginMasked ?? "unknown");
+            }
+
+            return Unauthorized(new ApiErrorResponse
+            {
+                Code = "INVALID_CREDENTIALS",
+                Message = _messages.Get(ApiMessageKeys.InvalidLoginCredentials),
+            });
+        }
+
         private static string MaskLoginIdentifier(string? loginIdentifier)
         {
             if (string.IsNullOrWhiteSpace(loginIdentifier))
@@ -685,11 +805,14 @@ namespace KasseAPI_Final.Controllers
         private async Task<List<string>> GetEffectivePermissionsListAsync(
             string userId,
             IList<string> roles,
+            string? userRoleColumn,
             Guid? tenantId,
+            string? appContext,
             CancellationToken cancellationToken)
         {
             var set = await _effectivePermissionResolver.GetEffectivePermissionsAsync(userId, roles, tenantId, cancellationToken);
-            return set.OrderBy(p => p, StringComparer.OrdinalIgnoreCase).ToList();
+            var canonicalRoles = TokenClaimsService.CollectCanonicalRoles(roles, userRoleColumn);
+            return AdminAppPermissionProfile.FilterToSortedList(appContext, canonicalRoles, set);
         }
     }
 

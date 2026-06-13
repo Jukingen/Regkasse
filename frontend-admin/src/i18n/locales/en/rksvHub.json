@@ -60,6 +60,7 @@
     "payloadHash": "Payload hash conflicts",
     "queueLegacy": "FinanzOnline reconciliation (legacy)",
     "fiscalExport": "Fiscal export (profiles)",
+    "depExport": "DEP §7 export",
     "integrity": "Data integrity",
     "offlineCoverage": "Offline intent coverage",
     "verifications": "Verifications / audit",

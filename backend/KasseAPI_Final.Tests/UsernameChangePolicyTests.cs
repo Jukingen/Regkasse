@@ -34,6 +34,18 @@ public class UsernameChangePolicyTests
     }
 
     [Fact]
+    public void GetNewAccountRestrictionError_WhenBypassed_ReturnsNull()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            CreatedAt = DateTime.UtcNow.AddHours(-1),
+        };
+
+        Assert.Null(UsernameChangePolicy.GetNewAccountRestrictionError(user, bypassRestrictions: true));
+    }
+
+    [Fact]
     public void GetNewAccountRestrictionError_WhenCreatedAtDefaultsToNow_ReturnsMessage()
     {
         var user = new ApplicationUser { Id = "u1" };

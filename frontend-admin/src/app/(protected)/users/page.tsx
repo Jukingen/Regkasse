@@ -7,7 +7,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  * Filters: role, status, branch, search. Drawer create/edit, deactivate (reason), reactivate, activity timeline tab.
  */
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Modal, Card, Typography, Tag, Space, Button, Select, Alert, Empty, Flex, Tooltip, Descriptions } from 'antd';
+import { Modal, Card, Typography, Tag, Space, Button, Select, Alert, Empty, Flex, Tooltip, Descriptions, Input } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -19,20 +19,17 @@ import {
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { AccessSecondaryNav } from '@/features/access/components/AccessSecondaryNav';
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
 import { useUsersList } from '@/features/users/hooks/useUsersList';
 import { useRoles } from '@/features/users/hooks/useRoles';
-import { useRolesWithPermissions } from '@/features/users/hooks/useRolesWithPermissions';
-import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatNumber } from '@/i18n/formatting';
 import {
     listQueryKey,
     rolesQueryKey,
-    rolesWithPermissionsQueryKey,
-    permissionsCatalogQueryKey,
     createUser as gatewayCreateUser,
     updateUser as gatewayUpdateUser,
     getUserById,
@@ -41,8 +38,6 @@ import {
     reactivateUser as gatewayReactivateUser,
     resetPassword as gatewayResetPassword,
     createRole as gatewayCreateRole,
-    updateRolePermissions as gatewayUpdateRolePermissions,
-    deleteRole as gatewayDeleteRole,
     normalizeError,
     type UserInfo,
     type CreateUserRequest,
@@ -52,7 +47,6 @@ import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { EditUsernameModal } from '@/features/users/components/EditUsernameModal';
 import { UsersTable } from '@/features/users/components/UsersTable';
 import { UserFormDrawer, type UserFormSubmitValues } from '@/features/users/components/UserFormDrawer';
-import { RoleManagementDrawer } from '@/features/users/components/RoleManagementDrawer';
 import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
 import {
     CreateRoleModal,
@@ -220,7 +214,6 @@ export default function UsersPage() {
     /** Backend validation error shown inside reset password modal (German); cleared when modal closes. */
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
-    const [roleManagementDrawerOpen, setRoleManagementDrawerOpen] = useState(false);
     const { user: currentUser } = useAuth();
     const policy = useUsersPolicy();
     const isSuperAdminLayout = isSuperAdmin(currentUser?.role);
@@ -351,8 +344,6 @@ export default function UsersPage() {
 
     const { data: roles, isLoading: rolesLoading } = useRoles({ enabled: policy.canView || !!editUserId });
     const canManageRoles = policy.canCreateRole || policy.canDeleteRole || policy.canEditRolePermissions;
-    const { data: rolesWithPermissions, isLoading: rolesWithPermsLoading, isError: rolesWithPermsError, refetch: refetchRolesWithPerms } = useRolesWithPermissions({ enabled: roleManagementDrawerOpen });
-    const { data: permissionsCatalog, isLoading: catalogLoading, isError: catalogError, refetch: refetchCatalog } = usePermissionsCatalog({ enabled: roleManagementDrawerOpen });
     // Edit flow: when editUserId is set, fetch full user detail (GET /api/UserManagement/{id}); form is filled from this response only.
     const { data: editUserFull, isLoading: editUserLoading, isError: editUserError, error: editUserFetchError, refetch: refetchEditUser } = useQuery({
         queryKey: getUserByIdQueryKey(editUserId ?? ''),
@@ -490,34 +481,10 @@ export default function UsersPage() {
         onSuccess: () => {
             message.success(t('users.messages.roleCreated'));
             queryClient.invalidateQueries({ queryKey: rolesQueryKey });
-            queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
             setCreateRoleOpen(false);
         },
         onError: (e: unknown) => {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
-        },
-    });
-    const updateRolePermissionsMutation = useMutation({
-        mutationFn: ({ roleName, permissions }: { roleName: string; permissions: string[] }) =>
-            gatewayUpdateRolePermissions(roleName, permissions),
-        onSuccess: () => {
-            message.success(usersCopy.successPermissionsSaved);
-            queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
-            queryClient.invalidateQueries({ queryKey: rolesQueryKey });
-        },
-        onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorSavePermissions).message);
-        },
-    });
-    const deleteRoleMutation = useMutation({
-        mutationFn: (roleName: string) => gatewayDeleteRole(roleName),
-        onSuccess: () => {
-            message.success(usersCopy.successRoleDeleted);
-            queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
-            queryClient.invalidateQueries({ queryKey: rolesQueryKey });
-        },
-        onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorDeleteRole).message);
         },
     });
     const handleCreate = (values: CreateUserRequest | UpdateUserRequest) => {
@@ -596,19 +563,6 @@ export default function UsersPage() {
         setResetPasswordValidationError(null);
     }, []);
 
-    const handleRoleManagementRetry = () => {
-        refetchRolesWithPerms();
-        refetchCatalog();
-    };
-
-    const handleSaveRolePermissions = async (roleName: string, permissions: string[]) => {
-        await updateRolePermissionsMutation.mutateAsync({ roleName, permissions });
-    };
-
-    const handleDeleteRole = async (roleName: string) => {
-        await deleteRoleMutation.mutateAsync(roleName);
-    };
-
     const handleUsernameUpdated = useCallback(
         (userId: string, result: { newUsername: string }) => {
             setDetailUser((prev) =>
@@ -642,9 +596,18 @@ export default function UsersPage() {
 
     return (
         <AdminPageShell>
+            {!isSuperAdminLayout ? <AccessSecondaryNav /> : null}
             <AdminPageHeader
                 title={t('users.page.title')}
-                breadcrumbs={[adminOverviewCrumb(t), { title: t('users.page.title') }]}
+                breadcrumbs={[
+                    adminOverviewCrumb(t),
+                    ...(isSuperAdminLayout
+                        ? [{ title: t('users.page.title') }]
+                        : [
+                              { title: t('access.hub.pageTitle'), href: '/admin/access' },
+                              { title: t('users.page.title') },
+                          ]),
+                ]}
                 actions={
                     <Space wrap>
                         {!isSuperAdminLayout ? (
@@ -672,9 +635,9 @@ export default function UsersPage() {
                             </Button>
                         )}
                         {canManageRoles && (
-                            <Button type="default" onClick={() => setRoleManagementDrawerOpen(true)}>
-                                {t('users.page.manageRoles')}
-                            </Button>
+                            <Link href="/admin/access/roles">
+                                <Button type="default">{t('users.page.manageRoles')}</Button>
+                            </Link>
                         )}
                         {isSuperAdminLayout ? (
                             <DevOrphanedUsersCleanupButton invalidatePlatformUsers />
@@ -992,26 +955,6 @@ export default function UsersPage() {
                     roleNameRules={modalRules.roleName}
                 />
             ) : null}
-
-            <RoleManagementDrawer
-                open={roleManagementDrawerOpen}
-                onClose={() => setRoleManagementDrawerOpen(false)}
-                roles={rolesWithPermissions}
-                catalog={permissionsCatalog}
-                rolesLoading={rolesWithPermsLoading}
-                catalogLoading={catalogLoading}
-                rolesError={rolesWithPermsError}
-                catalogError={catalogError}
-                onRetry={handleRoleManagementRetry}
-                canCreateRole={policy.canCreateRole}
-                canDeleteRole={policy.canDeleteRole}
-                canEditRolePermissions={policy.canEditRolePermissions}
-                onCreateRole={() => setCreateRoleOpen(true)}
-                onSavePermissions={handleSaveRolePermissions}
-                onDeleteRole={handleDeleteRole}
-                saveLoading={updateRolePermissionsMutation.isPending}
-                deleteLoading={deleteRoleMutation.isPending}
-            />
 
             {permissionsUser?.id ? (
                 <UserPermissionsModal

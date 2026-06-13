@@ -1,11 +1,12 @@
 # Role Management UI – Architecture Note
 
-**Updated:** 2025-03-10 (aligned with backend role-governance and simplified POS role model)
+**Updated:** 2026-06-12 (access hub routes, admin permission filter, full-page role editor)
 
 ## Data flow
 
 - **Source:** `GET /api/UserManagement/roles/with-permissions` returns `RoleWithPermissionsDto[]` with `roleName`, `permissions`, `isSystemRole`, `userCount`, `canDelete`, `canEditPermissions`.
-- **Hook:** `useRolesWithPermissions()` loads roles and exposes them to the users page; Role Management Drawer receives `roles` and `catalog` as props.
+- **Hook:** `useRolesWithPermissions()` loads roles; **`/admin/access/roles`** page and legacy drawer mode both consume the same hooks/components.
+- **Entry:** Users page links to `/admin/access/roles` instead of opening the drawer by default (SuperAdmin unified layout unchanged for user list).
 - **Permissions:** Create/delete/edit role visibility is driven by `canCreateRole`, `canDeleteRole`, `canEditRolePermissions` (from `useAuth` + role helpers). Actual delete/save is disabled when the **selected role** is not deletable or not editable (`selectedRoleCanDelete`, `canEditRole`).
 
 ## UI behavior
@@ -21,7 +22,9 @@
 
 | File | Purpose |
 |------|--------|
-| `components/RoleManagementDrawer.tsx` | Drawer UI: role list (sorted, badges, display names), permissions panel, delete/save actions, helper alert. |
+| `components/RoleManagementDrawer.tsx` | Role list + permissions panel; `presentation="page"` on `/admin/access/roles`. |
+| `features/access/components/RoleMatrixOverview.tsx` | Read-only matrix on `/admin/access/matrix`. |
+| `docs/ACCESS_AND_ROLES_HUB.md` | Hub routes, nav IA, permission split, contract tests. |
 | `constants/copy.ts` | German strings: `systemRoleProtectedNoDelete`, `roleDeleteBlockedReassignFirst`, `badgeSystemRole`, `badgeCustomRole`, `roleDisplayName`, `ROLE_DISPLAY_NAMES`. |
 | `api/roleManagementApi.ts` | `RoleWithPermissionsDto` includes optional `canDelete`, `canEditPermissions`. |
 

@@ -1,25 +1,20 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { CashRegister } from '@/api/generated/model';
-import type { RksvReminderStatusDto } from '@/api/generated/model';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import { useQuery } from '@tanstack/react-query';
+import type { CashRegister, RksvReminderStatusDto } from '@/api/generated/model';
+import {
+    cashRegisterByTenantQueryKey,
+    listCashRegistersByTenant,
+} from '@/features/cash-registers/api/cashRegisters';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import {
     getApiRksvReminderStatusOverview,
     getGetApiRksvReminderStatusOverviewQueryKey,
 } from '@/api/generated/rksv/rksv';
+import { AppPermissions } from '@/shared/auth/permissions';
 
 const FIVE_MIN_MS = 5 * 60 * 1000;
-
-function normalizeRegisterRows(data: unknown): CashRegister[] {
-    if (Array.isArray(data)) return data as CashRegister[];
-    if (data && typeof data === 'object' && 'registers' in data) {
-        const r = (data as { registers?: CashRegister[] }).registers;
-        if (Array.isArray(r)) return r;
-    }
-    return [];
-}
 
 export type RegisterReminderRow = {
     register: CashRegister;
@@ -53,18 +48,18 @@ export function useRksvReminderOverview(enabled = true) {
         data: registersRaw,
         isLoading: registersLoading,
         isError: registersError,
-    } = useGetApiCashRegister({
-        query: {
-            enabled,
-            staleTime: FIVE_MIN_MS,
-            refetchInterval: FIVE_MIN_MS,
-            refetchIntervalInBackground: false,
-            refetchOnWindowFocus: false,
-        },
+    } = useQuery({
+        queryKey: cashRegisterByTenantQueryKey(undefined),
+        queryFn: () => listCashRegistersByTenant(),
+        enabled,
+        staleTime: FIVE_MIN_MS,
+        refetchInterval: FIVE_MIN_MS,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: false,
     });
 
     const registers = useMemo(
-        () => normalizeRegisterRows(registersRaw).filter((register) => register.status !== 5),
+        () => (registersRaw ?? []).filter((register) => register.status !== 5) as CashRegister[],
         [registersRaw],
     );
 
@@ -76,9 +71,10 @@ export function useRksvReminderOverview(enabled = true) {
         [registers],
     );
 
-    const overviewQuery = useQuery({
+    const overviewQuery = useAuthorizedQuery({
         queryKey: getGetApiRksvReminderStatusOverviewQueryKey(),
         queryFn: () => getApiRksvReminderStatusOverview(),
+        requiredPermission: AppPermissions.CashRegisterView,
         enabled: enabled && registerIds.length > 0 && !registersLoading && !registersError,
         staleTime: FIVE_MIN_MS,
         refetchInterval: FIVE_MIN_MS,

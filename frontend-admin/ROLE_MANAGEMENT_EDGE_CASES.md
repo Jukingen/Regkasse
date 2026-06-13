@@ -14,7 +14,7 @@
 - **Dirty state and refetch**: After Save, React Query invalidates and refetches. Draft is re-synced from the new `selectedRole`; if refetch is slow, user might briefly see old draft.
 - **Delete last custom role**: After deleting the last role in the list, `selectedRoleName` becomes `null`; right panel shows empty state. No automatic redirect or message beyond success toast.
 - **Ant Design in tests**: Full drawer render in jsdom fails (matchMedia, List, etc.). Preset/dirty/delete-next-selection are covered by unit tests (rolePresets.test, roleManagementDrawer.logic.test); initial render, load/error/empty, and button states are covered by manual QA.
-- **Users page test (reset password)**: One test in `page.test.tsx` asserts `mockResetPassword` to have been called after submitting the reset-password modal. This may fail intermittently or if the modal/button selection does not trigger the mutation (e.g. form validation or timing). Not introduced by role management changes; gateway mock now includes `getUserById`, `getUserByIdQueryKey`, `getRolesWithPermissions`, `getPermissionsCatalog`, `updateRolePermissions`, `deleteRole`, and policy fields `canDeleteRole`, `canEditRolePermissions`.
+- **Users page tests:** `src/app/(protected)/users/__tests__/page.test.tsx` — SuperAdmin (unified view wiring) and Manager (tenant list CRUD) scenarios; 17 tests.
 
 ## Security / Policy
 

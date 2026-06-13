@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Button, Modal, Space, Typography, Divider, List, Tooltip } from 'antd';
+import { Button, Modal, Space, Typography, Divider, Tooltip } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import {
     CheckCircleOutlined,
     BarChartOutlined,
@@ -16,10 +17,12 @@ import {
     resolveCategoriesCreated,
     resolveImportedProductCount,
 } from '@/features/tenants/components/demo-import/demoImportSummary';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 
 const { Text, Title } = Typography;
 
-const NEXT_STEPS: Array<{ text: string; href?: string }> = [
+const BASE_NEXT_STEPS: Array<{ text: string; href?: string }> = [
     { text: 'Preise überprüfen und anpassen', href: '/products' },
     { text: 'Produktbilder hinzufügen', href: '/products' },
     { text: 'TSE-konforme Monatsbeleg erstellen', href: '/rksv/sonderbelege?focus=monatsbeleg' },
@@ -42,6 +45,10 @@ export function DemoImportSummaryModal({
     onDone,
 }: DemoImportSummaryModalProps) {
     const router = useRouter();
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
+    const nextSteps = BASE_NEXT_STEPS.filter(
+        (step) => !step.href?.startsWith(RKSV_SONDERBELEGE_PATH) || canOpenSonderbelege,
+    );
     const importedCount = resolveImportedProductCount(result);
     const categoriesCreated = resolveCategoriesCreated(result);
     const averagePrice = formatAverageImportedPrice(result);
@@ -120,7 +127,7 @@ export function DemoImportSummaryModal({
                     <List
                         size="small"
                         style={{ marginTop: 8 }}
-                        dataSource={NEXT_STEPS}
+                        dataSource={nextSteps}
                         renderItem={(item) => (
                             <List.Item style={{ padding: '4px 0', border: 'none' }}>
                                 {item.href ? (

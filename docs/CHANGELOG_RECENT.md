@@ -4,6 +4,27 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ---
 
+## 2026-06-12 — Access & roles hub + admin permission filter
+
+**Frontend Admin:**
+
+- **Zugriff & Rollen hub** under Verwaltung: `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix`
+- Secondary nav (`AccessSecondaryNav`), route guards, sidebar `grp-access` nested group
+- Role management moved to full page at `/admin/access/roles`; read-only matrix at `/admin/access/matrix`
+- Role-based menu visibility contract tests (`adminRoleMenuVisibility.test.ts`); `users/page.test.tsx` split SuperAdmin vs Manager scenarios
+- i18n namespace `access`; orphan locale namespaces registered in `namespace-manifest.json`
+- Command palette keys aligned to `adminShell.commandPalette.*` for usage CI
+
+**Backend:**
+
+- **Admin app permission profile** on login and `/me`: filters JWT permissions when `app_context=admin` (`AdminAppPermissionProfile.cs`)
+- Cashier FA login whitelist; Manager strips POS-terminal permissions from admin session
+- Contract tests: `AdminAppPermissionProfileTests`, `RoleAdminMenuContractTests`
+
+**Documentation:** `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`, updates to user/role management docs.
+
+---
+
 ## 2026-05-22 — Remove email invitation system
 
 **Backend:**
@@ -85,6 +106,7 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ### frontend-admin
 
+- **Access & roles hub:** Zugriff & Rollen under Verwaltung (`grp-access`); routes `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix`; admin permission filter on login/`/me` (`AdminAppPermissionProfile`).
 - **Dashboard:** Monatsbeleg compliance table/badge, offline queue card, time-sync drift card; hooks/API wiring.
 - **RKSV / fiscal export:** Status and fiscal-export diagnostics pages updated; fiscal export disclaimer session, TSE compat hook, new admin routes (offline transactions, storno/refund audit, fiscal export audit).
 - **i18n & nav:** `timeSync`, `fiscalExportAudit`, payments copy; sidebar/registry/permissions tests updated.

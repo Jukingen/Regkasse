@@ -103,6 +103,34 @@ public class TokenClaimsServiceRoleClaimTests
         Assert.True(principal.IsInRole(Roles.SuperAdmin));
     }
 
+    [Fact]
+    public async Task BuildClaimsAsync_Admin_Cashier_StripsPosPermissionsFromJwt()
+    {
+        var cashierPerms = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Cashier });
+        var resolver = new MockEffectivePermissionResolver(cashierPerms);
+        var svc = new TokenClaimsService(resolver);
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            Email = "c@b.c",
+            UserName = "c@b.c",
+            FirstName = "C",
+            LastName = "H",
+            Role = Roles.Cashier,
+        };
+
+        var claims = await svc.BuildClaimsAsync(
+            user,
+            new List<string> { Roles.Cashier },
+            appContext: ClientAppPolicy.Admin);
+
+        var permClaims = claims.Where(c => c.Type == PermissionCatalog.PermissionClaimType).Select(c => c.Value).ToList();
+        Assert.Contains(AppPermissions.ProductView, permClaims);
+        Assert.Contains(AppPermissions.ReportView, permClaims);
+        Assert.DoesNotContain(AppPermissions.TableView, permClaims);
+        Assert.DoesNotContain(AppPermissions.TseSign, permClaims);
+    }
+
     private sealed class MockEffectivePermissionResolver : IEffectivePermissionResolver
     {
         private readonly IReadOnlySet<string> _perms;

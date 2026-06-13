@@ -12,6 +12,10 @@ import {
     useRksvReminderOverview,
     type RegisterReminderRow,
 } from '@/features/dashboard/hooks/useRksvReminderOverview';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
+import { RKSV_COMPLIANCE_PATH, RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import type { RksvReminderStatusDto } from '@/api/generated/model';
 
 function registerLabel(row: RegisterReminderRow): string {
@@ -72,6 +76,12 @@ export type RksvReminderStatusCardProps = {
 
 export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCardProps) {
     const { t } = useI18n();
+    const { hasPermission } = usePermissions();
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
+    const canOpenCompliance = useCanAccessPath(RKSV_COMPLIANCE_PATH);
+    const canCreateStartbeleg = hasPermission(PERMISSIONS.RKSV_STARTBELEG_CREATE);
+    const canCreateMonatsbeleg = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
+    const canCreateJahresbeleg = hasPermission(PERMISSIONS.RKSV_JAHRESBELEG_CREATE);
     const { rows, summary, registersLoading, statusPending, hasRegisters, loadError } = useRksvReminderOverview(enabled);
     const [selectedRegisterId, setSelectedRegisterId] = useState<string | undefined>(undefined);
 
@@ -160,11 +170,13 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                             title={t('dashboard.rksvReminder.startbeleg_missing_warning')}
                             description={t('dashboard.rksvReminder.startbeleg_blocks_pos')}
                             action={
-                                <Link href={sonderbelegeHref(selectedRow.registerId, 'startbeleg')}>
-                                    <Button type="primary" size="small" danger>
-                                        {t('dashboard.rksvReminder.create_now')}
-                                    </Button>
-                                </Link>
+                                canOpenSonderbelege && canCreateStartbeleg ? (
+                                    <Link href={sonderbelegeHref(selectedRow.registerId, 'startbeleg')}>
+                                        <Button type="primary" size="small" danger>
+                                            {t('dashboard.rksvReminder.create_now')}
+                                        </Button>
+                                    </Link>
+                                ) : undefined
                             }
                         />
                     ) : null}
@@ -183,11 +195,13 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                                     : undefined
                             }
                             action={
-                                <Link href={sonderbelegeHref(selectedRow.registerId, 'jahresbeleg')}>
-                                    <Button type="primary" size="small">
-                                        {t('dashboard.rksvReminder.create_now')}
-                                    </Button>
-                                </Link>
+                                canOpenSonderbelege && canCreateJahresbeleg ? (
+                                    <Link href={sonderbelegeHref(selectedRow.registerId, 'jahresbeleg')}>
+                                        <Button type="primary" size="small">
+                                            {t('dashboard.rksvReminder.create_now')}
+                                        </Button>
+                                    </Link>
+                                ) : undefined
                             }
                         />
                     ) : null}
@@ -202,11 +216,13 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                                 t('dashboard.rksvReminder.monatsbeleg_default_warning')
                             }
                             action={
-                                <Link href={sonderbelegeHref(selectedRow.registerId, 'monatsbeleg')}>
-                                    <Button type="primary" size="small">
-                                        {t('dashboard.rksvReminder.create_now')}
-                                    </Button>
-                                </Link>
+                                canOpenSonderbelege && canCreateMonatsbeleg ? (
+                                    <Link href={sonderbelegeHref(selectedRow.registerId, 'monatsbeleg')}>
+                                        <Button type="primary" size="small">
+                                            {t('dashboard.rksvReminder.create_now')}
+                                        </Button>
+                                    </Link>
+                                ) : undefined
                             }
                         />
                     ) : null}
@@ -248,13 +264,17 @@ export function RksvReminderStatusCard({ enabled = true }: RksvReminderStatusCar
                     </Descriptions>
 
                     <div style={{ marginTop: 12 }}>
-                        <Link href={sonderbelegeHref(selectedRow.registerId)}>
-                            <Button type="link" style={{ paddingLeft: 0 }}>
-                                {t('dashboard.rksvReminder.open_sonderbelege')}
-                            </Button>
-                        </Link>
-                        <span> · </span>
-                        <Link href="/rksv/compliance">{t('dashboard.rksvReminder.open_compliance')}</Link>
+                        {canOpenSonderbelege ? (
+                            <Link href={sonderbelegeHref(selectedRow.registerId)}>
+                                <Button type="link" style={{ paddingLeft: 0 }}>
+                                    {t('dashboard.rksvReminder.open_sonderbelege')}
+                                </Button>
+                            </Link>
+                        ) : null}
+                        {canOpenSonderbelege && canOpenCompliance ? <span> · </span> : null}
+                        {canOpenCompliance ? (
+                            <Link href={RKSV_COMPLIANCE_PATH}>{t('dashboard.rksvReminder.open_compliance')}</Link>
+                        ) : null}
                     </div>
                 </>
             ) : null}

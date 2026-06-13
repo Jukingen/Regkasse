@@ -5,7 +5,8 @@
  */
 
 import React from "react";
-import { Alert, Card, List, Space, Tag, Typography } from "antd";
+import { Alert, Card, Space, Tag, Typography } from "antd";
+import { SimpleList as List } from "@/components/ui/SimpleList";
 import type {
   BackupEvidenceLadderModel,
   EvidenceStepStatus,

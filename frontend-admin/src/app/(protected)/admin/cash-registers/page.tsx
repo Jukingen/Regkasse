@@ -27,6 +27,8 @@ import { useI18n } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { usePermissions } from '@/shared/auth/usePermissions';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { CashRegisterSelector } from '@/features/cash-registers/components/CashRegisterSelector';
@@ -123,6 +125,7 @@ export default function AdminCashRegistersPage() {
     const canCreate = canManageCashRegisters;
     const canDecommission = canDecommissionCashRegisters;
     const canHardDelete = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
 
     const [selectedTenantId, setSelectedTenantId] = useState<string>();
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
@@ -497,7 +500,7 @@ export default function AdminCashRegistersPage() {
                                     <Button size="small" href="/rksv/status">
                                         {t('adminShell.hospitalityHub.linkRksvStatus')}
                                     </Button>
-                                    {canDecommission ? (
+                                    {canDecommission && canOpenSonderbelege ? (
                                         <Button size="small" href="/rksv/sonderbelege?focus=schlussbeleg">
                                             {t('nav.rksvLeafSonderbelege')}
                                         </Button>

@@ -13,7 +13,7 @@ namespace KasseAPI_Final.Authorization;
 /// <list type="bullet">
 /// <item><description>SuperAdmin — cash_register.view, manage, decommission (via full catalog)</description></item>
 /// <item><description>Manager — view, manage, decommission (tenant-scoped at API layer)</description></item>
-/// <item><description>Cashier — view only</description></item>
+/// <item><description>Cashier — FA: product/payment/report view; POS: register awareness via cash_register.view (not admin Kassenverwaltung — gate with cash_register.manage on admin routes).</description></item>
 /// <item><description>Accountant — view only</description></item>
 /// </list>
 /// </remarks>
@@ -86,6 +86,8 @@ public static class RolePermissionMatrix
                 AppPermissions.InvoiceView, AppPermissions.InvoiceManage, AppPermissions.InvoiceExport,
                 AppPermissions.ReportView, AppPermissions.ReportExport,
                 AppPermissions.FiscalExportCompliance,
+                AppPermissions.FinanzOnlineView,
+                AppPermissions.FinanzOnlineManage,
                 AppPermissions.FinanzOnlineSubmit,
                 AppPermissions.RksvNullbelegCreate,
                 AppPermissions.RksvStartbelegCreate,
@@ -117,6 +119,7 @@ public static class RolePermissionMatrix
                 AppPermissions.InventoryView,
                 AppPermissions.CustomerView, AppPermissions.CustomerManage,
                 AppPermissions.InvoiceView,
+                AppPermissions.ReportView,
                 AppPermissions.ReceiptReprint,
                 AppPermissions.KitchenView,
                 AppPermissions.TseSign,

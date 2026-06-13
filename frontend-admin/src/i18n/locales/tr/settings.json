@@ -70,8 +70,27 @@
     "confirmMismatch": "Sifreler eslesmiyor.",
     "submit": "Sifreyi degistir",
     "success": "Sifre degistirildi.",
+    "successTitle": "Sifre basariyla degistirildi",
+    "goToLogin": "Giris sayfasina git",
+    "redirectCountdown": "{{seconds}} saniye icinde giris sayfasina yonlendiriliyorsunuz…",
     "errorFallback": "Sifre degistirilemedi.",
-    "requiredBanner": "Uygulamayi kullanmaya devam etmeden once sifrenizi degistirmelisiniz."
+    "requiredBanner": "Uygulamayi kullanmaya devam etmeden once sifrenizi degistirmelisiniz.",
+    "firstLoginTitle": "Devam etmek icin yeni sifre belirleyin",
+    "firstLoginHint": "Hesabiniz gecici bir sifre kullaniyor. Yeni bir sifre secin ve ardindan tekrar giris yapin.",
+    "forceChangeTitle": "Sifre degisimi gerekli",
+    "forceChangeAlertTitle": "Ilk giris",
+    "forceChangeAlertDescription": "Ilk giriste sifrenizi degirmeniz zorunludur.",
+    "temporaryPasswordPlaceholder": "Gecici sifrenizi girin",
+    "newPasswordPlaceholder": "Yeni sifre",
+    "confirmPasswordPlaceholder": "Yeni sifreyi onaylayin",
+    "requirementsTitle": "Sifre gereksinimleri:",
+    "requirementsHint": "Sifre yukaridaki tum gereksinimleri karsilamali.",
+    "requirementsNotMet": "Sifre tum gereksinimleri karsilamiyor.",
+    "requirementMinLength": "En az 8 karakter uzunlugunda",
+    "requirementUppercase": "En az bir buyuk harf (A-Z)",
+    "requirementLowercase": "En az bir kucuk harf (a-z)",
+    "requirementDigit": "En az bir rakam (0-9)",
+    "requirementSpecial": "En az bir ozel karakter (! @ # $ % ^ & *)"
   },
   "form": {
     "general": {

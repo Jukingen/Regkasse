@@ -9,7 +9,11 @@ import {
     type ReactNode,
 } from 'react';
 
-import { shouldShowHeaderDevTenantSwitch } from '@/features/super-admin/utils/tenantHeaderSwitcher';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import {
+    canUseHeaderTenantSwitch,
+    shouldShowHeaderDevTenantSwitch,
+} from '@/features/super-admin/utils/tenantHeaderSwitcher';
 
 export type HeaderTenantSwitcherContextValue = {
     isAvailable: boolean;
@@ -30,8 +34,10 @@ const defaultValue: HeaderTenantSwitcherContextValue = {
 const HeaderTenantSwitcherContext = createContext<HeaderTenantSwitcherContextValue>(defaultValue);
 
 export function HeaderTenantSwitcherProvider({ children }: { children: ReactNode }) {
+    const { user } = useAuth();
     const [open, setOpen] = useState(false);
-    const isAvailable = shouldShowHeaderDevTenantSwitch();
+    const isAvailable =
+        shouldShowHeaderDevTenantSwitch() && canUseHeaderTenantSwitch(user?.role ?? null);
     const toggle = useCallback(() => setOpen((current) => !current), []);
 
     const value = useMemo(

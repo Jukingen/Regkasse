@@ -266,3 +266,8 @@ export function shouldShowHeaderDevTenantSwitch(): boolean {
     }
     return isLocalDevHostname(host);
 }
+
+/** Mandant header switch is SuperAdmin-only (Manager is tenant-scoped; no cross-tenant switch). */
+export function canUseHeaderTenantSwitch(role: string | null | undefined): boolean {
+    return role === 'SuperAdmin';
+}

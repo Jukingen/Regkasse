@@ -9,7 +9,7 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useUserPreferences } from '@/features/user/hooks/useUserPreferences';
 import { App, ConfigProvider } from 'antd';
 import { AntdAppBridgeRegistrar } from '@/lib/AntdAppBridgeRegistrar';
 import { applyDocumentDensity, applyDocumentTheme, applyReducedAnimations } from './applyDocumentTheme';
@@ -25,11 +25,9 @@ import { resolveEffectiveTheme } from './theme';
 import { ThemeContext } from './ThemeContext';
 import type { DensityMode, ResolvedTheme, ThemeMode } from './types';
 import {
-  fetchUserPreferences,
   mapApiToPersonalization,
   mapPersonalizationToApi,
   saveUserPreferences,
-  userPreferencesQueryKey,
 } from './userPreferencesApi';
 import { buildAntdTheme } from '@/theme/buildAntdTheme';
 import { authStorage } from '@/features/auth/services/authStorage';
@@ -62,15 +60,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const hydrated = useRef(false);
   const skipRemoteApply = useRef(false);
 
-  const isAuthenticated =
-    typeof window !== 'undefined' && authStorage.hasToken();
-
-  const remoteQuery = useQuery({
-    queryKey: userPreferencesQueryKey,
-    queryFn: fetchUserPreferences,
-    enabled: isAuthenticated,
-    staleTime: 60_000,
-  });
+  const remoteQuery = useUserPreferences();
 
   useLayoutEffect(() => {
     const legacyTheme = window.localStorage.getItem(THEME_MODE_STORAGE_KEY) as ThemeMode | null;

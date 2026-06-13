@@ -4,9 +4,11 @@ import React from 'react';
 import { Alert, Statistic, Typography } from 'antd';
 import dayjs from 'dayjs';
 import Link from 'next/link';
+import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { formatDate } from '@/i18n';
 import { useI18n } from '@/i18n/I18nProvider';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 
@@ -14,7 +16,12 @@ type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps'>;
 
 export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
     const { formatLocale } = useI18n();
+    const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.SETTINGS_MANAGE });
     const { licenseValidUntilUtc, licenseDaysRemaining } = useCurrentTenant();
+
+    if (!isAuthorized) {
+        return null;
+    }
 
     const days =
         licenseDaysRemaining ??

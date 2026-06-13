@@ -34,17 +34,17 @@ function resolveItemGroup(item: CommandItem): CommandItemGroup {
 function groupLabel(t: (key: string) => string, group: CommandItemGroup): string {
     switch (group) {
         case 'Actions':
-            return t('commandPalette.group.actions');
+            return t('adminShell.commandPalette.group.actions');
         case 'Users':
-            return t('commandPalette.group.users');
+            return t('adminShell.commandPalette.group.users');
         case 'Receipts':
-            return t('commandPalette.group.receipts');
+            return t('adminShell.commandPalette.group.receipts');
         case 'Registers':
-            return t('commandPalette.group.registers');
+            return t('adminShell.commandPalette.group.registers');
         case 'Recent':
-            return t('commandPalette.group.recent');
+            return t('adminShell.commandPalette.group.recent');
         default:
-            return t('commandPalette.group.navigation');
+            return t('adminShell.commandPalette.group.navigation');
     }
 }
 
@@ -124,7 +124,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose })
             <Input
                 ref={inputRef}
                 autoFocus
-                placeholder={t('commandPalette.placeholder')}
+                placeholder={t('adminShell.commandPalette.placeholder')}
                 prefix={<SearchOutlined />}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -132,7 +132,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose })
                 size="large"
                 variant="borderless"
                 className={styles.searchInput}
-                aria-label={t('commandPalette.placeholder')}
+                aria-label={t('adminShell.commandPalette.placeholder')}
                 autoComplete="off"
                 spellCheck={false}
             />
@@ -142,7 +142,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose })
             <div
                 className={styles.commandResults}
                 role="listbox"
-                aria-label={t('commandPalette.resultsAria')}
+                aria-label={t('adminShell.commandPalette.resultsAria')}
             >
                 {isLoading ? (
                     <div className={styles.loading}>
@@ -151,11 +151,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose })
                 ) : null}
 
                 {!isLoading && flatResults.length === 0 && searchTerm.trim() ? (
-                    <div className={styles.emptyState}>{t('commandPalette.empty')}</div>
+                    <div className={styles.emptyState}>{t('adminShell.commandPalette.empty')}</div>
                 ) : null}
 
                 {!isLoading && flatResults.length === 0 && !searchTerm.trim() ? (
-                    <div className={styles.emptyState}>{t('commandPalette.emptyHint')}</div>
+                    <div className={styles.emptyState}>{t('adminShell.commandPalette.emptyHint')}</div>
                 ) : null}
 
                 {Array.from(groupedResults.entries()).map(([group, items]) => (
@@ -199,11 +199,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose })
             <div className={styles.commandFooter}>
                 <span>
                     <kbd className={styles.footerKey}>↵</kbd>
-                    {t('commandPalette.footer.select')}
+                    {t('adminShell.commandPalette.footer.select')}
                 </span>
                 <span>
                     <kbd className={styles.footerKey}>Esc</kbd>
-                    {t('commandPalette.footer.close')}
+                    {t('adminShell.commandPalette.footer.close')}
                 </span>
             </div>
         </Modal>

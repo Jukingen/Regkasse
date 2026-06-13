@@ -29,6 +29,8 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import {
   downloadRksvComplianceReportPdf,
@@ -98,6 +100,7 @@ function complianceTableVirtualProps(rowCount: number, scrollX = 900) {
 
 export default function RksvComplianceDashboard() {
   const { t } = useI18n();
+  const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
   const [range, setRange] = useState<[Dayjs | null, Dayjs | null]>([
     dayjs().subtract(30, 'day').startOf('day'),
     dayjs().endOf('day'),
@@ -213,7 +216,11 @@ export default function RksvComplianceDashboard() {
         <>
           <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
             {t('rksvHub.compliancePage.checkStartbelegHint')}{' '}
-            <Link href="/rksv/sonderbelege">{t('rksvHub.compliancePage.linkSonderbelege')}</Link>
+            {canOpenSonderbelege ? (
+              <Link href="/rksv/sonderbelege">{t('rksvHub.compliancePage.linkSonderbelege')}</Link>
+            ) : (
+              t('rksvHub.compliancePage.linkSonderbelege')
+            )}
           </Typography.Paragraph>
           {startbelegMissing.length > 0 ? (
             <Table

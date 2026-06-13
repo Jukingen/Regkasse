@@ -1,8 +1,10 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Auth;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -37,7 +39,8 @@ public sealed class TenantOperationalGateMiddleware
         IHostEnvironment environment,
         IOptions<TseOptions> tseOptions,
         IOptions<LicenseOptions> licenseOptions,
-        IDevelopmentModeService developmentMode)
+        IDevelopmentModeService developmentMode,
+        IApiMessageLocalizer messages)
     {
         if (ShouldSkip(context.Request.Path) || tenantAccessor.TenantId is not Guid tenantId)
         {
@@ -72,7 +75,7 @@ public sealed class TenantOperationalGateMiddleware
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsJsonAsync(new
             {
-                message = Services.Auth.AuthService.TenantDisabledMessageDe,
+                message = messages.Get(ApiMessageKeys.TenantDisabled),
                 code = LoginTenantBlockedException.CodeTenantDisabled,
                 tenantName = row.Name,
             }).ConfigureAwait(false);

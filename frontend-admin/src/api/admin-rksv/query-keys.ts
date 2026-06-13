@@ -31,7 +31,7 @@ export const rksvAdminQueryKeys = {
     analyze: (params: unknown) => ['admin', 'rksv', 'offline-payload-hash', 'analyze', params] as const,
   },
   operations: {
-    reminderOverview: ['rksv-operations', 'reminder-overview'] as const,
+    reminderOverview: ['rksv-reminder-overview'] as const,
     payloadAnalyzeQuick: (maxRows: number) => ['rksv-operations', 'payload-analyze', maxRows] as const,
     foMetrics: ['rksv-operations', 'fo-metrics'] as const,
     coverageSummary: (params: unknown) => ['rksv-operations', 'coverage', params] as const,

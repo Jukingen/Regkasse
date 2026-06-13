@@ -8,8 +8,12 @@ import {
     ADMIN_SIDEBAR_GROUP_KEYS,
     normalizeAdminPathname,
     computeSidebarOpenKeysMerge,
+    filterSidebarMenuItems,
+    type SidebarPermissionContext,
 } from '../adminSidebarNavigation';
 import { buildRksvMenuGroups } from '../rksvMenuModel';
+import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 
 const passthroughT = (k: string) => k;
 const sampleRksvGroups = () => buildRksvMenuGroups(passthroughT, 'verifications');
@@ -90,7 +94,6 @@ describe('adminSidebarNavigation', () => {
             ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance,
         );
         expect(getNonRksvSidebarOpenGroupKeys('/rksv/incident')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        expect(getNonRksvSidebarOpenGroupKeys('/settings')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.verwaltung);
         expect(getNonRksvSidebarOpenGroupKeys('/settings')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
         expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
             ADMIN_SIDEBAR_GROUP_KEYS.verwaltung,
@@ -99,15 +102,81 @@ describe('adminSidebarNavigation', () => {
             ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
         );
         expect(getNonRksvSidebarOpenGroupKeys('/admin/tenants')).toEqual([]);
-        expect(getNonRksvSidebarOpenGroupKeys('/admin/users')).toEqual([]);
+        expect(getNonRksvSidebarOpenGroupKeys('/admin/users')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
     });
 
     it('detects Verwaltung routes for tenant context card', () => {
-        expect(isVerwaltungAdminPath('/admin/users')).toBe(false);
+        expect(isVerwaltungAdminPath('/admin/users')).toBe(true);
         expect(isVerwaltungAdminPath('/settings/backup-dr')).toBe(true);
         expect(isVerwaltungAdminPath('/admin/tenants')).toBe(false);
         expect(isVerwaltungAdminPath('/products')).toBe(false);
         expect(isVerwaltungAdminPath('/receipts/abc')).toBe(false);
+    });
+});
+
+describe('filterSidebarMenuItems', () => {
+    const baseCtx = (permissions: string[]): SidebarPermissionContext => ({
+        usePermissionFirst: true,
+        permissions,
+        userRole: 'Cashier',
+        isMenuItemAllowed,
+        canViewUsers: () => false,
+        canShowRksvMenu: () => false,
+        canShowPlatformAdminMenu: () => false,
+        isSuperAdminRole: () => false,
+    });
+
+    const sampleMenu = [
+        {
+            key: 'grp-reporting',
+            label: 'Reporting',
+            children: [
+                { key: '/dashboard', label: 'Dashboard' },
+                { key: '/admin/reports', label: 'Reports' },
+            ],
+        },
+        {
+            key: 'grp-verwaltung',
+            label: 'Admin',
+            children: [
+                { key: '/admin/users', label: 'Users' },
+                { key: '/settings/company', label: 'Settings' },
+            ],
+        },
+    ];
+
+    it('hides unauthorized leaves and removes empty parent groups', () => {
+        const filtered = filterSidebarMenuItems(sampleMenu, baseCtx([PERMISSIONS.REPORT_VIEW]));
+        expect(filtered).toHaveLength(1);
+        const reporting = filtered![0] as { children?: { key?: string }[] };
+        expect(reporting.children?.map((c) => c.key)).toEqual(['/dashboard', '/admin/reports']);
+    });
+
+    it('hides users menu without user.view', () => {
+        const filtered = filterSidebarMenuItems(sampleMenu, baseCtx([PERMISSIONS.SETTINGS_VIEW]));
+        const verwaltung = filtered!.find((item) => (item as { key?: string }).key === 'grp-verwaltung') as
+            | { children?: { key?: string }[] }
+            | undefined;
+        expect(verwaltung?.children?.map((c) => c.key)).toEqual(['/settings/company']);
+    });
+
+    it('shows dashboard for any permission holder', () => {
+        const filtered = filterSidebarMenuItems(
+            [{ key: '/dashboard', label: 'Dashboard' }],
+            baseCtx(['shift.view']),
+        );
+        expect(filtered).toHaveLength(1);
+    });
+
+    it('shows all leaves for SuperAdmin regardless of permission list', () => {
+        const filtered = filterSidebarMenuItems(sampleMenu, {
+            ...baseCtx([]),
+            userRole: 'SuperAdmin',
+            isSuperAdminRole: () => true,
+        });
+        expect(filtered).toHaveLength(2);
+        const reporting = filtered![0] as { children?: { key?: string }[] };
+        expect(reporting.children?.map((c) => c.key)).toEqual(['/dashboard', '/admin/reports']);
     });
 });
 

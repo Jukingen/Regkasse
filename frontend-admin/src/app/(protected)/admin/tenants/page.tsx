@@ -7,7 +7,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useMemo, useState } from 'react';
 import { Modal, Alert, Button, Card, Form, Input, Select, Space, Switch, Empty, Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -280,14 +280,9 @@ export default function SuperAdminTenantsPage() {
                     { title: t('tenants.page.title'), href: '/admin/tenants' },
                 ]}
                 actions={
-                    <Space>
-                        <Button icon={<ReloadOutlined />} onClick={invalidateTenants}>
-                            {t('common.refresh')}
-                        </Button>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-                            {t('tenants.actions.create')}
-                        </Button>
-                    </Space>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+                        {t('tenants.actions.create')}
+                    </Button>
                 }
             />
 

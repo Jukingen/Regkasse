@@ -64,10 +64,14 @@
   },
   "system": {
     "status403": "403",
+    "forbidden403Title": "Erisim reddedildi",
     "forbidden403Subtitle": "Bu sayfaya erisim yetkiniz yok.",
+    "forbidden403Hint": "Yetkiniz olan bir bolume yan menuden gecin.",
     "status404": "404",
     "notFound404Subtitle": "Istenen sayfa bulunamadi.",
-    "backToDashboard": "Genel bakisa don"
+    "notFound404Hint": "Adresi kontrol edin veya yan menuden bir sayfa secin.",
+    "backToDashboard": "Genel bakisa don",
+    "goBack": "Geri"
   },
   "dataList": {
     "errorLoadTitle": "Veri yuklenirken hata olustu",
@@ -252,8 +256,11 @@
     },
     "logoutSuccess": "Cikis basarili.",
     "loginSuccess": "Giris basarili",
+    "passwordChangedLoginPrompt": "Sifre guncellendi. Yeni sifrenizle tekrar giris yapin.",
+    "invalidCredentials": "Kullanıcı adı veya şifre geçersiz",
+    "loginFailed": "Giriş başarısız",
     "loginFailedWithStatus": "Giris basarisiz ({{status}}): {{details}}",
-    "loginInvalidCredentials": "Kullanici adi veya sifre hatali.",
+    "loginInvalidCredentials": "Kullanıcı adı veya şifre geçersiz",
     "loginFailedGeneric": "Giris basarisiz. Lutfen tekrar deneyin.",
     "forgotUsernameLink": "Kullanici adini mi unuttunuz?",
     "forgotUsername": {

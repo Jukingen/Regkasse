@@ -1,11 +1,14 @@
 'use client';
 
 import React, { ReactNode, useEffect, useMemo } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuth, AuthStatus } from '@/features/auth/hooks/useAuth';
 import { getRequiredPermissionForPath } from './routePermissions';
 import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from './routeGuardConfig';
+import { isChangePasswordPath } from '@/features/auth/constants/changePasswordRoute';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { ForbiddenAccessView } from '@/shared/auth/ForbiddenAccessView';
+import { rememberAllowedAdminPath } from '@/shared/auth/useSafeNavigateBack';
 import { Spin } from 'antd';
 
 interface PermissionRouteGuardProps {
@@ -24,14 +27,13 @@ function checkRoutePermission(pathname: string, permissions: string[]): boolean 
 }
 
 /**
- * Protects routes by permission. Fail-closed by default:
- * - No permissions in token → redirect to /403 (unless migration flag is set).
- * - Insufficient permission for route → redirect to /403.
- * States: loading → spinner; unauthenticated → null (AuthGate redirects); no_permissions/insufficient → 403; allowed → children.
+ * Protects route content by permission. Fail-closed by default:
+ * - No permissions in token → inline 403 (unless migration flag is set).
+ * - Insufficient permission for route → inline 403.
+ * Render inside the admin content area so sidebar/header stay visible.
  */
 export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, authStatus, isAuthInitializing } = useAuth();
   const permissions = (user as { permissions?: string[] } | undefined)?.permissions ?? [];
 
@@ -43,13 +45,19 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   const state = useMemo((): GuardState => {
     if (isAuthInitializing) return 'loading';
     if (authStatus === AuthStatus.Unauthenticated) return 'unauthenticated';
+
+    const mustChangePassword = user?.mustChangePasswordOnNextLogin === true;
+    if (mustChangePassword) {
+      return isChangePasswordPath(pathname) ? 'allowed' : 'loading';
+    }
+
     if (permissions.length === 0) {
       if (allowEmptyPermissionsForRouteAccess) return 'allowed';
       return 'no_permissions';
     }
     if (!checkRoutePermission(pathname, permissions)) return 'insufficient';
     return 'allowed';
-  }, [isAuthInitializing, authStatus, permissions, pathname, allowEmptyPermissionsForRouteAccess]);
+  }, [isAuthInitializing, authStatus, permissions, pathname, allowEmptyPermissionsForRouteAccess, user?.mustChangePasswordOnNextLogin]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== 'production') {
@@ -60,10 +68,10 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
   }, [pathname, state, permissions.length, authStatus, isAuthInitializing]);
 
   useEffect(() => {
-    if (state !== 'allowed' && state !== 'loading' && state !== 'unauthenticated') {
-      router.replace('/403');
+    if (state === 'allowed') {
+      rememberAllowedAdminPath(pathname);
     }
-  }, [state, router]);
+  }, [state, pathname]);
 
   if (state === 'loading') {
     return (
@@ -75,7 +83,9 @@ export function PermissionRouteGuard({ children }: PermissionRouteGuardProps) {
 
   if (state === 'unauthenticated') return null;
 
-  if (state === 'no_permissions' || state === 'insufficient') return null;
+  if (state === 'no_permissions' || state === 'insufficient') {
+    return <ForbiddenAccessView compact />;
+  }
 
   return <>{children}</>;
 }

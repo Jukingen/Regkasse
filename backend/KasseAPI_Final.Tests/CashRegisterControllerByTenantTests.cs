@@ -49,7 +49,8 @@ public sealed class CashRegisterControllerByTenantTests
             TenantTestDoubles.SettingsResolverReturning(PrimaryTenantId),
             tenantAccessor,
             Mock.Of<ICashRegisterManagementService>(),
-            enrichment ?? CashRegisterTestDoubles.NoOpListEnrichment());
+            enrichment ?? CashRegisterTestDoubles.NoOpListEnrichment(),
+            LocalizationTestDoubles.ApiMessageLocalizer());
 
         controller.ControllerContext = new ControllerContext
         {

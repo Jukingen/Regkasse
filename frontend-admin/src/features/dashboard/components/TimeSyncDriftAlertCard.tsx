@@ -4,9 +4,8 @@ import React from 'react';
 import { Alert } from 'antd';
 import { ClockCircleOutlined, LinkOutlined } from '@ant-design/icons';
 import NextLink from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useAuthorizationGate, useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { getTimeSyncDriftSummary } from '@/api/manual/adminSystemTimeSync';
-import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { useI18n } from '@/i18n/I18nProvider';
 
@@ -17,17 +16,16 @@ const REFETCH_MS = 60_000;
  */
 export function TimeSyncDriftAlertCard() {
     const { t } = useI18n();
-    const { hasPermission } = usePermissions();
-    const enabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
+    const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.SETTINGS_MANAGE });
 
-    const driftQuery = useQuery({
+    const driftQuery = useAuthorizedQuery({
         queryKey: ['admin', 'time-sync', 'drift-summary'],
-        queryFn: ({ signal }) => getTimeSyncDriftSummary(),
-        enabled,
+        queryFn: () => getTimeSyncDriftSummary(),
+        requiredPermission: PERMISSIONS.SETTINGS_MANAGE,
         refetchInterval: REFETCH_MS,
     });
 
-    if (!enabled) return null;
+    if (!isAuthorized) return null;
 
     if (!driftQuery.data?.hasActiveDrift) return null;
 

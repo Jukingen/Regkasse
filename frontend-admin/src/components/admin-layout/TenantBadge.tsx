@@ -165,7 +165,7 @@ export function TenantBadge({ compact = false }: TenantBadgeProps) {
                     </Tag>
                 ) : null}
             </div>
-            <DownOutlined className="tenant-badge-chevron" aria-hidden />
+            {isInteractive ? <DownOutlined className="tenant-badge-chevron" aria-hidden /> : null}
         </div>
     );
 

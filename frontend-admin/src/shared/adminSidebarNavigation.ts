@@ -50,6 +50,8 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
     verwaltung: 'grp-verwaltung',
     /** Super Admin: companies / tenants (platform). */
     platformAdmin: 'grp-platform-admin',
+    /** Nested under Verwaltung: Zugriff & Rollen hub */
+    accessArea: 'grp-access',
     /** Nested under Verwaltung: /settings + /settings/payment-methods */
     settingsArea: 'grp-settings-area',
 } as const;
@@ -102,6 +104,16 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         ...SETTINGS_AREA_ROUTE_PATHS,
         '/admin/system/time-sync',
         '/admin/license',
+        '/admin/access',
+        '/admin/users',
+        '/admin/access/roles',
+        '/admin/access/matrix',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
+        '/admin/access',
+        '/admin/users',
+        '/admin/access/roles',
+        '/admin/access/matrix',
     ],
 };
 
@@ -181,6 +193,14 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
     }
+    if (
+        p === '/admin/access' ||
+        p.startsWith('/admin/access/') ||
+        p === '/admin/users' ||
+        p.startsWith('/admin/users/')
+    ) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
+    }
     if (p === '/admin/rksv' || p.startsWith('/admin/rksv/')) {
         keys.push('/admin/rksv');
     }
@@ -211,6 +231,7 @@ export function filterSidebarMenuItems(
         key.startsWith('grp-') || key.startsWith('rksv-grp-');
 
     const leafAllowed = (key: string): boolean => {
+        if (ctx.isSuperAdminRole(ctx.userRole)) return true;
         if (ctx.usePermissionFirst) {
             return ctx.isMenuItemAllowed(key, ctx.permissions);
         }

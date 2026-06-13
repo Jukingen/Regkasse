@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Descriptions, Input, List, Space, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Descriptions, Input, Space, Tag, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { AXIOS_INSTANCE } from '@/lib/axios';

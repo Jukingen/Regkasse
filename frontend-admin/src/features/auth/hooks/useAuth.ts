@@ -2,7 +2,7 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { customInstance } from '@/lib/axios';
@@ -19,6 +19,29 @@ import { useI18n } from '@/i18n';
 export const AUTH_KEYS = {
     user: ['auth', 'me'] as const,
 };
+
+/** Brief pause after persisting tokens so storage/cookie sync completes before parallel API calls. */
+export const POST_LOGIN_TOKEN_SETTLE_MS = 100;
+
+/** Clears stale credentials and in-flight `/me` before a fresh login attempt. */
+export function clearStaleAuthBeforeLogin(queryClient: QueryClient): void {
+    authStorage.removeToken();
+    queryClient.removeQueries({ queryKey: AUTH_KEYS.user });
+}
+
+/** Persists login tokens then waits so interceptors and Edge cookie see the new session. */
+export async function persistLoginTokensAndSettle(
+    accessToken: string,
+    refreshToken?: string | null,
+): Promise<void> {
+    authStorage.setToken(accessToken);
+    if (refreshToken) {
+        authStorage.setRefreshToken(refreshToken);
+    }
+    await new Promise<void>((resolve) => {
+        setTimeout(resolve, POST_LOGIN_TOKEN_SETTLE_MS);
+    });
+}
 
 const emptySubscribe = () => () => {};
 
@@ -103,7 +126,17 @@ export const useAuth = () => {
 
     const { mutateAsync: logoutMutation } = usePostApiAuthLogout();
 
-    const logout = useCallback(async () => {
+    const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+        // API only — no automatic logout here; callers show success UI then redirect.
+        const data = await customInstance<{ success?: boolean; message?: string }>({
+            url: '/api/UserManagement/me/password',
+            method: 'PUT',
+            data: { currentPassword, newPassword },
+        });
+        return data;
+    }, []);
+
+    const logout = useCallback(async (options?: { silent?: boolean; redirectTo?: string }) => {
         try {
             await logoutMutation();
         } catch (logoutError) {
@@ -112,10 +145,12 @@ export const useAuth = () => {
             authStorage.removeToken();
             queryClient.setQueryData(AUTH_KEYS.user, null);
             queryClient.clear();
-            router.replace('/login');
-            message.success(t('common.auth.logoutSuccess'));
+            router.replace(options?.redirectTo ?? '/login');
+            if (!options?.silent) {
+                message.success(t('common.auth.logoutSuccess'));
+            }
         }
-    }, [logoutMutation, queryClient, router, t]);
+    }, [logoutMutation, queryClient, router, message, t]);
 
     let authStatus: AuthStatus = AuthStatus.Loading;
 
@@ -156,16 +191,24 @@ export const useAuth = () => {
         lastLoggedStatus.current = authStatus;
     }
 
+    const mustChangePassword = effectiveUser?.mustChangePasswordOnNextLogin;
+    const checkPasswordChangeRequired = mustChangePassword === true;
+
     return {
         user: effectiveUser,
+        userPermissions: effectiveUser?.permissions ?? [],
         authStatus,
         isAuthInitializing,
         /** False until browser mount and /me bootstrap completes (no early permission redirects). */
         isInitialized,
         isAuthenticated: authStatus === AuthStatus.Authenticated,
         isLoadingAuth: authStatus === AuthStatus.Loading,
+        isLoading: authStatus === AuthStatus.Loading,
+        mustChangePassword,
+        checkPasswordChangeRequired,
         error,
         logout,
+        changePassword,
         refetchMe: refetch,
     };
 };

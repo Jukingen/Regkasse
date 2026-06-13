@@ -34,14 +34,20 @@ describe('sidebarRegistryCatalog', () => {
     it('aligns catalog permission with ROUTE_PERMISSIONS when declared', () => {
         for (const item of Object.values(SIDEBAR_NAV_ITEM_CATALOG)) {
             if (item.permission === undefined) continue;
-            expect(ROUTE_PERMISSIONS[item.menuKey], item.menuKey).toBe(item.permission);
+            expect(ROUTE_PERMISSIONS[item.menuKey], item.menuKey).toEqual(item.permission);
         }
     });
 
-    it('hides Kassenverwaltung without cash_register.view', () => {
+    it('shows dashboard for any user with permission claims', () => {
+        expect(isMenuItemAllowed('/dashboard', ['product.view'])).toBe(true);
+        expect(isMenuItemAllowed('/dashboard', [])).toBe(false);
+    });
+
+    it('hides Kassenverwaltung without cash_register.manage', () => {
         expect(
-            isMenuItemAllowed('/kassenverwaltung', [AppPermissions.CashRegisterView]),
+            isMenuItemAllowed('/kassenverwaltung', [AppPermissions.CashRegisterManage]),
         ).toBe(true);
+        expect(isMenuItemAllowed('/kassenverwaltung', [AppPermissions.CashRegisterView])).toBe(false);
         expect(isMenuItemAllowed('/kassenverwaltung', ['product.view'])).toBe(false);
         expect(isMenuItemAllowed('/kassenverwaltung', [])).toBe(false);
     });

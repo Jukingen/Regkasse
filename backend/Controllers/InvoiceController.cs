@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Fiscal;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Time;
@@ -28,6 +30,7 @@ namespace KasseAPI_Final.Controllers
         private readonly IReceiptSequenceService _receiptSequenceService;
         private readonly ITseService _tseService;
         private readonly IInvoicePdfService _invoicePdfService;
+        private readonly IApiMessageLocalizer _messages;
 
         public InvoiceController(
             AppDbContext context,
@@ -36,7 +39,8 @@ namespace KasseAPI_Final.Controllers
             IInvoiceService invoiceService,
             IReceiptSequenceService receiptSequenceService,
             ITseService tseService,
-            IInvoicePdfService invoicePdfService)
+            IInvoicePdfService invoicePdfService,
+            IApiMessageLocalizer messages)
         {
             _context = context;
             _logger = logger;
@@ -45,6 +49,7 @@ namespace KasseAPI_Final.Controllers
             _receiptSequenceService = receiptSequenceService;
             _tseService = tseService;
             _invoicePdfService = invoicePdfService;
+            _messages = messages;
         }
 
         // GET: api/Invoice/list
@@ -404,7 +409,7 @@ namespace KasseAPI_Final.Controllers
                 {
                     var posPayment = await _context.PaymentDetails.FindAsync(id);
                     if (posPayment == null || !posPayment.IsActive)
-                        return NotFound("Fatura bulunamadı");
+                        return NotFound(_messages.Get(ApiMessageKeys.InvoiceNotFound));
 
                     invoice = await _invoiceService.ResolveInvoiceFromPaymentAsync(
                         posPayment, HttpContext.RequestAborted);
@@ -430,9 +435,9 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                if (string.IsNullOrWhiteSpace(request.CompanyName)) return BadRequest("Firma adı gerekli");
-                if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber)) return BadRequest("Firma vergi numarası gerekli");
-                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11) return BadRequest("Firma vergi numarası ATU formatında olmalı");
+                if (string.IsNullOrWhiteSpace(request.CompanyName)) return BadRequest(_messages.Get(ApiMessageKeys.CompanyNameRequired));
+                if (string.IsNullOrWhiteSpace(request.CompanyTaxNumber)) return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberRequired));
+                if (!request.CompanyTaxNumber.StartsWith("ATU") || request.CompanyTaxNumber.Length != 11) return BadRequest(_messages.Get(ApiMessageKeys.CompanyTaxNumberInvalidFormat));
                 if (request.CashRegisterId == Guid.Empty)
                     return BadRequest("CashRegisterId is required.");
                 var cashRegCreate = await _context.CashRegisters.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.CashRegisterId);
@@ -498,7 +503,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var existingInvoice = await _context.Invoices.FindAsync(id);
-                if (existingInvoice == null || !existingInvoice.IsActive) return NotFound("Fatura bulunamadı");
+                if (existingInvoice == null || !existingInvoice.IsActive) return NotFound(_messages.Get(ApiMessageKeys.InvoiceNotFound));
 
                 // Fiscal immutability: POS-originated invoices must not be updated (TSE/receipt chain integrity).
                 if (existingInvoice.SourcePaymentId.HasValue)
@@ -555,7 +560,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var invoice = await _context.Invoices.FindAsync(id);
-                if (invoice == null || !invoice.IsActive) return NotFound("Fatura bulunamadı");
+                if (invoice == null || !invoice.IsActive) return NotFound(_messages.Get(ApiMessageKeys.InvoiceNotFound));
 
                 // Fiscal immutability: POS-originated and finalized invoices must not be soft-deleted (audit integrity).
                 if (invoice.SourcePaymentId.HasValue)
@@ -589,7 +594,7 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var original = await _context.Invoices.FindAsync(id);
-                if (original == null || !original.IsActive) return NotFound("Orijinal fatura bulunamadı");
+                if (original == null || !original.IsActive) return NotFound(_messages.Get(ApiMessageKeys.OriginalInvoiceNotFound));
 
                 var newInvoice = new Invoice
                 {

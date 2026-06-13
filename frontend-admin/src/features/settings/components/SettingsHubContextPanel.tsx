@@ -3,7 +3,8 @@
 // Collapsible panel describing settings domain boundaries without a large refactor.
 
 import React from 'react';
-import { Collapse, List, Space, Typography, Button } from 'antd';
+import { Collapse, Space, Typography, Button } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import Link from 'next/link';
 import { useI18n } from '@/i18n/I18nProvider';
 import { RKSV_HUB_PATH } from '@/shared/adminSidebarNavigation';

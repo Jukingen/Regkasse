@@ -26,7 +26,6 @@ namespace KasseAPI_Final.Controllers;
 /// Base route: /api/admin/users
 /// </summary>
 [Authorize]
-[HasPermission(AppPermissions.UserManage)]
 [ApiController]
 [Route("api/admin/users")]
 [Produces("application/json")]
@@ -466,6 +465,7 @@ public partial class AdminUsersController : ControllerBase
     /// List users. <paramref name="type"/> = <c>platform</c> | <c>tenant</c> (alias: <c>scope</c>).
     /// Tenant rows include membership metadata; optional <paramref name="tenantId"/> filters one mandant.
     /// </summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<AdminUserDto>), 200)]
     [ProducesResponseType(typeof(IEnumerable<AdminTenantUserRowDto>), 200)]
@@ -504,6 +504,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Preview next auto-generated username for Quick Create (role-based prefix + number).</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet("username-suggestions")]
     [ProducesResponseType(typeof(UsernameSuggestionResponse), 200)]
     [ProducesResponseType(typeof(ApiError), 400)]
@@ -538,6 +539,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Get user by id. Returns 404 if not found.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(AdminUserDto), 200)]
     [ProducesResponseType(typeof(ApiError), 404)]
@@ -567,6 +569,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Active tenant memberships for a user (super-admin user management).</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet("{id}/tenants")]
     [ProducesResponseType(typeof(IEnumerable<AdminUserTenantMembershipDto>), 200)]
     [ProducesResponseType(typeof(ApiError), 404)]
@@ -598,6 +601,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Replace active business-tenant memberships for a user. Super-admin only; not for platform operators.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPut("{id}/tenants")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ApiError), 400)]
@@ -701,6 +705,7 @@ public partial class AdminUsersController : ControllerBase
     /// Create a user without invitation email. Password is generated when omitted and returned once in the response.
     /// When <see cref="AdminCreateUserRequest.TenantId"/> is set, creates a tenant-scoped user.
     /// </summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPost]
     [ProducesResponseType(typeof(AdminCreateUserResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(CreateTenantUserResultDto), StatusCodes.Status201Created)]
@@ -968,6 +973,7 @@ public partial class AdminUsersController : ControllerBase
         };
 
     /// <summary>Partial update. Use If-Match: "{etag}" for optimistic concurrency (ConcurrencyStamp).</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPatch("{id}")]
     [ProducesResponseType(typeof(AdminUserDto), 200)]
     [ProducesResponseType(typeof(ApiError), 400)]
@@ -1062,6 +1068,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Deactivate user. Reason required for audit. Invalidates sessions.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPost("{id}/deactivate")]
     [ProducesResponseType(typeof(AdminUserDto), 200)]
     [ProducesResponseType(typeof(ApiError), 400)]
@@ -1107,6 +1114,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Reactivate user. Optional reason. Writes audit event.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPost("{id}/reactivate")]
     [ProducesResponseType(typeof(AdminUserDto), 200)]
     [ProducesResponseType(typeof(ApiError), 400)]
@@ -1144,6 +1152,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Username change history for compliance and support (newest first).</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet("{id}/username-history")]
     [ProducesResponseType(typeof(IReadOnlyList<UserUsernameHistoryDto>), 200)]
     [ProducesResponseType(typeof(ApiError), 404)]
@@ -1160,6 +1169,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Change login username. Audited; invalidates active sessions.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPatch("{id}/username")]
     [ProducesResponseType(typeof(AdminUpdateUsernameResponse), 200)]
     [ProducesResponseType(typeof(ApiError), 400)]
@@ -1177,7 +1187,9 @@ public partial class AdminUsersController : ControllerBase
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
         var newUsername = request.NewUsername.Trim();
-        var validationErrors = UsernameValidation.ValidateNewUsername(newUsername);
+        var validationErrors = UsernameValidation.ValidateNewUsername(
+            newUsername,
+            bypassReservedUsername: UsernameChangeRestrictions.IsBypassedForActor(ActorRole));
         if (validationErrors != null)
             return BadRequest(ApiError.Validation("Validation failed", validationErrors));
 
@@ -1196,12 +1208,14 @@ public partial class AdminUsersController : ControllerBase
         }
 
         var rateLimitError = await UsernameChangeRateLimit
-            .GetRateLimitErrorAsync(_userManager, user, cancellationToken)
+            .GetRateLimitErrorAsync(_userManager, user, bypassCooldown: UsernameChangeRestrictions.IsBypassedForActor(ActorRole), cancellationToken)
             .ConfigureAwait(false);
         if (rateLimitError != null)
             return BadRequest(ApiError.BusinessRule("Username change rate limit", rateLimitError));
 
-        var newAccountError = UsernameChangePolicy.GetNewAccountRestrictionError(user);
+        var newAccountError = UsernameChangePolicy.GetNewAccountRestrictionError(
+            user,
+            UsernameChangeRestrictions.IsBypassedForActor(ActorRole));
         if (newAccountError != null)
             return BadRequest(ApiError.BusinessRule("Username change not allowed", newAccountError));
 
@@ -1328,6 +1342,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Force password reset (admin). User must change password at next login can be set. Invalidates sessions.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPost("{id}/force-password-reset")]
     [ProducesResponseType(204)]
     [ProducesResponseType(typeof(ApiError), 400)]
@@ -1363,6 +1378,7 @@ public partial class AdminUsersController : ControllerBase
     /// Generates a new temporary password, stores only the hash, and returns the password once for Super Admin handoff.
     /// Intended for controlled operator recovery; existing password hashes are never exposed.
     /// </summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPost("{id}/generate-temporary-password")]
     [ProducesResponseType(typeof(AdminTemporaryPasswordResponse), 200)]
     [ProducesResponseType(typeof(ApiError), 400)]
@@ -1443,6 +1459,7 @@ public partial class AdminUsersController : ControllerBase
     }
 
     /// <summary>Get audit activity for the user (paginated).</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet("{id}/activity")]
     [ProducesResponseType(typeof(AdminUserActivityResponse), 200)]
     [ProducesResponseType(typeof(ApiError), 404)]

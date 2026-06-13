@@ -1,6 +1,7 @@
 'use client';
 
-import { Alert, Button, List, Space, Typography } from 'antd';
+import { Alert, Button, Space, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import { WarningOutlined } from '@ant-design/icons';
 
 import type { DemoImportCatalog } from '@/api/admin/products';

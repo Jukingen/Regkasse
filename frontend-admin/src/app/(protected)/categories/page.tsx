@@ -16,7 +16,8 @@ import CategoryForm from '@/features/categories/components/CategoryForm';
 import CategoryTable from '@/features/categories/components/CategoryTable';
 import { ResetCategoriesButton } from '@/features/categories/components/ResetCategoriesButton';
 import { useI18n } from '@/i18n';
-import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -114,6 +115,8 @@ export default function CategoriesPage() {
   const { message } = useAntdApp();
 
     const { t } = useI18n();
+    const { user } = useAuth();
+    const canManageCategories = hasPermission(user, PERMISSIONS.CATEGORY_MANAGE);
     const [searchTerm, setSearchTerm] = useState('');
     const [searchDebounced, setSearchDebounced] = useState('');
 
@@ -231,10 +234,12 @@ export default function CategoriesPage() {
                             onSearch={(v) => setSearchTerm(v)}
                             style={{ width: 280, maxWidth: '100%' }}
                         />
-                        <ResetCategoriesButton />
-                        <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-                            {t('common.categories.newCategory')}
-                        </Button>
+                        {canManageCategories ? <ResetCategoriesButton /> : null}
+                        {canManageCategories ? (
+                            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                                {t('common.categories.newCategory')}
+                            </Button>
+                        ) : null}
                     </Flex>
                 }
             >
@@ -272,6 +277,7 @@ export default function CategoriesPage() {
                 <CategoryTable
                     data={categories}
                     loading={isLoading}
+                    canManage={canManageCategories}
                     onEdit={(record) => {
                         setEditingCategory(record);
                         setFormVisible(true);

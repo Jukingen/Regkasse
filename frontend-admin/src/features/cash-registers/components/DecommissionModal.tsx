@@ -6,6 +6,8 @@ import { Alert, Button, Checkbox, Form, Input, Modal, Space, Typography } from '
 import { StopOutlined } from '@ant-design/icons';
 import type { CashRegister } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import { canDecommissionRegister, rawRegisterStatus } from '@/features/cash-registers/utils/registerStatus';
 
 export type DecommissionModalProps = {
@@ -35,6 +37,7 @@ function DecommissionModalContent({
     confirmLoading,
 }: DecommissionModalProps) {
     const { t } = useI18n();
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
     const [form] = Form.useForm<{ reason?: string; confirm?: boolean }>();
     const status = register ? rawRegisterStatus(register) : undefined;
     const canProceed = canDecommissionRegister(status);
@@ -118,19 +121,21 @@ function DecommissionModalContent({
                     </ul>
                 }
             />
-            <Alert
-                type="info"
-                showIcon
-                style={{ marginBottom: 16 }}
-                title={
-                    <span>
-                        {t('cashRegisters.decommission.hintSchlussbeleg')}{' '}
-                        <Link href="/rksv/sonderbelege?focus=schlussbeleg">
-                            {t('cashRegisters.decommission.hintSchlussbelegLink')}
-                        </Link>
-                    </span>
-                }
-            />
+            {canOpenSonderbelege ? (
+                <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    title={
+                        <span>
+                            {t('cashRegisters.decommission.hintSchlussbeleg')}{' '}
+                            <Link href="/rksv/sonderbelege?focus=schlussbeleg">
+                                {t('cashRegisters.decommission.hintSchlussbelegLink')}
+                            </Link>
+                        </span>
+                    }
+                />
+            ) : null}
 
             <Form
                 form={form}

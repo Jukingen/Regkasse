@@ -1,4 +1,6 @@
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Localization;
+using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -62,7 +64,7 @@ public sealed class LoginTenantResolver : ILoginTenantResolver
             if (await HasDeletedTenantMembershipOnlyAsync(userId, cancellationToken).ConfigureAwait(false))
             {
                 throw new LoginTenantBlockedException(
-                    Services.Auth.AuthService.TenantDisabledMessageDe,
+                    ApiMessageCatalog.Get(ApiMessageKeys.TenantDisabled, LanguageMiddleware.DefaultLanguage),
                     LoginTenantBlockedException.CodeTenantDisabled);
             }
 

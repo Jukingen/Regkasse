@@ -64,10 +64,14 @@
   },
   "system": {
     "status403": "403",
+    "forbidden403Title": "Access denied",
     "forbidden403Subtitle": "You are not authorized to access this page.",
+    "forbidden403Hint": "Use the sidebar to open a section you are allowed to access.",
     "status404": "404",
     "notFound404Subtitle": "The requested page does not exist.",
-    "backToDashboard": "Back to overview"
+    "notFound404Hint": "Check the address or pick a menu item from the sidebar.",
+    "backToDashboard": "Back to overview",
+    "goBack": "Go back"
   },
   "dataList": {
     "errorLoadTitle": "Error loading data",
@@ -252,8 +256,11 @@
     },
     "logoutSuccess": "Signed out successfully.",
     "loginSuccess": "Login successful",
+    "passwordChangedLoginPrompt": "Password updated. Sign in again with your new password.",
+    "invalidCredentials": "Invalid username or password",
+    "loginFailed": "Login failed",
     "loginFailedWithStatus": "Login failed ({{status}}): {{details}}",
-    "loginInvalidCredentials": "Invalid username or password.",
+    "loginInvalidCredentials": "Invalid username or password",
     "loginFailedGeneric": "Login failed. Please try again.",
     "forgotUsernameLink": "Forgot username?",
     "forgotUsername": {

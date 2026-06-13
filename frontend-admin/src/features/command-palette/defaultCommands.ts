@@ -116,7 +116,7 @@ export function buildDefaultCommands(ctx: DefaultCommandsContext): CommandItem[]
         {
             id: 'action:create-user',
             type: 'action',
-            label: t('commandPalette.action.createUser'),
+            label: t('adminShell.commandPalette.action.createUser'),
             description: '/admin/users?create=1',
             group: 'Actions',
             keywords: ['create user', 'add', 'neu', 'benutzer', 'anlegen'],
@@ -126,7 +126,7 @@ export function buildDefaultCommands(ctx: DefaultCommandsContext): CommandItem[]
         {
             id: 'action:create-platform-user',
             type: 'action',
-            label: t('commandPalette.action.createPlatformUser'),
+            label: t('adminShell.commandPalette.action.createPlatformUser'),
             description: '/admin/users?create=1&platform=1',
             group: 'Actions',
             keywords: ['platform admin', 'super', 'plattform'],
@@ -136,7 +136,7 @@ export function buildDefaultCommands(ctx: DefaultCommandsContext): CommandItem[]
         {
             id: 'action:create-register',
             type: 'action',
-            label: t('commandPalette.action.createRegister'),
+            label: t('adminShell.commandPalette.action.createRegister'),
             description: '/kassenverwaltung?create=1',
             group: 'Actions',
             keywords: ['create register', 'kasse', 'neue kasse'],
@@ -146,8 +146,8 @@ export function buildDefaultCommands(ctx: DefaultCommandsContext): CommandItem[]
         {
             id: 'action:trigger-backup',
             type: 'action',
-            label: t('commandPalette.action.triggerBackup'),
-            description: t('commandPalette.action.triggerBackupHint'),
+            label: t('adminShell.commandPalette.action.triggerBackup'),
+            description: t('adminShell.commandPalette.action.triggerBackupHint'),
             group: 'Actions',
             keywords: ['backup now', 'trigger', 'jetzt', 'starten'],
             menuKey: '/settings/backup-dr',
@@ -159,7 +159,7 @@ export function buildDefaultCommands(ctx: DefaultCommandsContext): CommandItem[]
         {
             id: 'action:generate-report',
             type: 'action',
-            label: t('commandPalette.action.generateReport'),
+            label: t('adminShell.commandPalette.action.generateReport'),
             description: '/reporting/report-center',
             group: 'Actions',
             keywords: ['report generate', 'bericht', 'erstellen', 'generieren'],
@@ -175,7 +175,7 @@ export function buildDynamicSearchPlaceholders(t: (key: string) => string): Comm
         {
             id: 'dynamic:users',
             type: 'user',
-            label: t('commandPalette.dynamic.searchUsers'),
+            label: t('adminShell.commandPalette.dynamic.searchUsers'),
             keywords: [],
             action: () => {},
             dynamic: true,
@@ -183,7 +183,7 @@ export function buildDynamicSearchPlaceholders(t: (key: string) => string): Comm
         {
             id: 'dynamic:receipts',
             type: 'receipt',
-            label: t('commandPalette.dynamic.searchReceipts'),
+            label: t('adminShell.commandPalette.dynamic.searchReceipts'),
             keywords: [],
             action: () => {},
             dynamic: true,
@@ -191,7 +191,7 @@ export function buildDynamicSearchPlaceholders(t: (key: string) => string): Comm
         {
             id: 'dynamic:registers',
             type: 'register',
-            label: t('commandPalette.dynamic.searchRegisters'),
+            label: t('adminShell.commandPalette.dynamic.searchRegisters'),
             keywords: [],
             action: () => {},
             dynamic: true,

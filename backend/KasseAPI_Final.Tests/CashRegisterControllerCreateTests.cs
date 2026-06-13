@@ -78,7 +78,8 @@ public class CashRegisterControllerCreateTests
                 CashRegisterTestDoubles.NoOpListEnrichment(),
                 new PaymentMethodDefinitionBootstrapService(ctx),
                 NullLogger<CashRegisterManagementService>.Instance),
-            Mock.Of<ICashRegisterListEnrichmentService>());
+            Mock.Of<ICashRegisterListEnrichmentService>(),
+            LocalizationTestDoubles.ApiMessageLocalizer());
         c.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

@@ -244,6 +244,26 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Cashier_Has_ReportView_ForAdminReportsMenu()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.ReportView));
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.ReportExport));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_Has_FinanzOnlineManage_ForRksvAdminHub()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FinanzOnlineManage));
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.FinanzOnlineView));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_DoesNotHave_FinanzOnlineManage()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.FinanzOnlineManage));
+    }
+
+    [Fact]
     public void RoleHasPermission_Cashier_Has_CashRegisterView_Only()
     {
         Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.CashRegisterView));

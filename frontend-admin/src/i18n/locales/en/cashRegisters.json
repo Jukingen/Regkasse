@@ -251,6 +251,8 @@
   "errors": {
     "loadFailed": "Could not load cash registers."
   },
+  "moduleUnavailable": "Cash register management is currently unavailable",
+  "moduleUnavailableDescription": "No valid license is configured for your tenant or access is locked. Please contact your administrator.",
   "export": {
     "success": "Cash register list exported."
   },

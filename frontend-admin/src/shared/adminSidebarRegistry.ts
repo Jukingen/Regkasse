@@ -10,7 +10,7 @@ import { collectRksvMenuLeafKeys } from '@/shared/rksvMenuModel';
 import { FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS } from '@/shared/fiscalRksvClosingSidebar';
 import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
 import { registerRksvSidebar, type RksvSidebarRegistryAttachment } from '@/features/rksv/sidebarPlugin';
-import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
+import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from '@/shared/auth/permissions';
 
 export type SidebarDomainId =
     | 'operations'
@@ -102,7 +102,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/kassenverwaltung',
         labelKey: 'nav.kassenverwaltung',
         icon: 'ShopOutlined',
-        permission: AppPermissions.CashRegisterView,
+        permission: AppPermissions.CashRegisterManage,
     },
     shiftsOverview: {
         id: 'shiftsOverview',
@@ -146,7 +146,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/payments/trends',
         labelKey: 'nav.paymentTrends',
         icon: 'AreaChartOutlined',
-        permission: AppPermissions.PaymentView,
+        permission: PERMISSIONS.PAYMENT_VIEW,
     },
     cardTransactions: {
         id: 'cardTransactions',
@@ -154,7 +154,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/payments/card-transactions',
         labelKey: 'nav.cardTransactions',
         icon: 'CreditCardOutlined',
-        permission: AppPermissions.PaymentView,
+        permission: PERMISSIONS.PAYMENT_VIEW,
     },
     vouchers: {
         id: 'vouchers',
@@ -190,6 +190,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/products',
         labelKey: 'nav.products',
         icon: 'ShoppingOutlined',
+        permission: PERMISSIONS.PRODUCT_VIEW,
     },
     categories: {
         id: 'categories',
@@ -246,6 +247,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/dashboard',
         labelKey: 'nav.reportingDashboard',
         icon: 'DashboardOutlined',
+        permission: ANY_AUTHENTICATED_PERMISSION,
     },
     reportingOverview: {
         id: 'reportingOverview',
@@ -337,6 +339,31 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/users',
         labelKey: 'nav.users',
         icon: 'TeamOutlined',
+        permission: PERMISSIONS.USER_VIEW,
+    },
+    accessOverview: {
+        id: 'accessOverview',
+        menuKey: '/admin/access',
+        href: '/admin/access',
+        labelKey: 'nav.accessOverview',
+        icon: 'KeyOutlined',
+        permission: PERMISSIONS.USER_VIEW,
+    },
+    accessRoles: {
+        id: 'accessRoles',
+        menuKey: '/admin/access/roles',
+        href: '/admin/access/roles',
+        labelKey: 'nav.accessRoles',
+        icon: 'SafetyOutlined',
+        permission: PERMISSIONS.ROLE_VIEW,
+    },
+    accessMatrix: {
+        id: 'accessMatrix',
+        menuKey: '/admin/access/matrix',
+        href: '/admin/access/matrix',
+        labelKey: 'nav.accessMatrix',
+        icon: 'AuditOutlined',
+        permission: PERMISSIONS.ROLE_VIEW,
     },
     companySettings: {
         id: 'companySettings',
@@ -379,7 +406,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/backup',
         labelKey: 'nav.backupRestore',
         icon: 'CloudSyncOutlined',
-        permission: AppPermissions.SETTINGS_VIEW,
+        permission: PERMISSIONS.SETTINGS_VIEW,
     },
     developmentMode: {
         id: 'developmentMode',
@@ -508,7 +535,6 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'leaves',
         catalogIds: [
             'reportingDashboard',
-            'users',
             'superAdminTenants',
             'superAdminLicenses',
             'superAdminCashRegisters',
@@ -600,6 +626,13 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         kind: 'domain',
         domain: 'administration',
         blocks: [
+            {
+                kind: 'nested',
+                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.accessArea,
+                labelKey: 'nav.accessHub',
+                icon: 'KeyOutlined',
+                catalogIds: ['accessOverview', 'users', 'accessRoles', 'accessMatrix'],
+            },
             {
                 kind: 'nested',
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,

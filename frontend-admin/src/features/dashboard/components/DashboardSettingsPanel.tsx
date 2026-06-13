@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Drawer, Switch, Typography, List } from 'antd';
+import { Drawer, Switch, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import type { DashboardWidgetCatalogItem, DashboardWidgetPreference } from '@/features/dashboard/types';
 
 type Props = {

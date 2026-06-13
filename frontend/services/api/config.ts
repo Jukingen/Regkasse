@@ -204,6 +204,9 @@ axiosInstance.interceptors.request.use(
 
         await addTenantHeader(config);
 
+        config.headers = config.headers ?? {};
+        config.headers['Accept-Language'] = 'de';
+
         // Token kontrolü
         const token = await sessionManager.getAccessToken();
         if (token) {

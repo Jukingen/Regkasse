@@ -27,7 +27,7 @@ export type SaveUserPreferencesApiRequest = {
   reducedAnimations: boolean;
 };
 
-export const userPreferencesQueryKey = ['admin', 'user', 'preferences'] as const;
+export const userPreferencesQueryKey = ['user-preferences'] as const;
 
 export async function fetchUserPreferences(): Promise<UserPreferencesApiResponse> {
   return customInstance<UserPreferencesApiResponse>({

@@ -1,10 +1,14 @@
 using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Email;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -74,6 +78,8 @@ public class UserManagementControllerUserLifecycleTests
         m.Setup(x => x.IsTaxNumberTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>())).ReturnsAsync(taxNumberTaken);
         m.Setup(x => x.ValidateUniquenessForUpdateAsync(It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>()))
             .ReturnsAsync((false, (string?)null));
+        m.Setup(x => x.IsUserNameTakenByOtherUserAsync(It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(false);
         return m.Object;
     }
 
@@ -103,7 +109,12 @@ public class UserManagementControllerUserLifecycleTests
             Mock.Of<IUserPermissionOverrideService>(),
             logger,
             provisioner,
-            NullCurrentTenantAccessor.Instance);
+            NullCurrentTenantAccessor.Instance,
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            LocalizationTestDoubles.I18nErrorService(),
+            LocalizationTestDoubles.PasswordErrorTranslator(),
+            Mock.Of<IUserUsernameHistoryService>(),
+            Mock.Of<IUsernameChangeEmailService>());
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, actorId ?? ""),
@@ -967,6 +978,152 @@ public class UserManagementControllerUserLifecycleTests
         Assert.NotNull(badRequest.Value);
         var json = JsonSerializer.Serialize(badRequest.Value);
         Assert.Contains("Email already exists", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ChangeMyUsername_WhenValid_UpdatesUserAndReturnsOk()
+    {
+        var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
+            new ApplicationUser
+            {
+                Id = "self-id",
+                UserName = "manager1",
+                Email = "manager@example.com",
+                FirstName = "Max",
+                LastName = "Mustermann",
+                IsActive = true,
+                Role = "Manager",
+                CreatedAt = DateTime.UtcNow.AddDays(-30),
+            });
+
+        var auditMock = new Mock<IAuditLogService>();
+        var sessionMock = new Mock<IUserSessionInvalidation>();
+        sessionMock
+            .Setup(x => x.InvalidateSessionsForUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var controller = CreateController(
+            context,
+            userManager,
+            roleManager,
+            auditMock.Object,
+            sessionMock.Object,
+            uniquenessValidation,
+            actorId: "self-id",
+            actorRole: "Manager");
+
+        var result = await controller.ChangeMyUsername(
+            new UpdateUsernameRequest { NewUsername = "manager2", Reason = "Self-service rename" },
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        Assert.Contains("manager2", json, StringComparison.OrdinalIgnoreCase);
+
+        var updated = await userManager.FindByIdAsync("self-id");
+        Assert.Equal("manager2", updated?.UserName);
+
+        auditMock.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditEventType.UserNameChanged,
+                "self-id",
+                "Manager",
+                "self-id",
+                It.IsAny<Guid?>(),
+                "Self-service rename",
+                null,
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()),
+            Times.Once);
+        sessionMock.Verify(
+            x => x.InvalidateSessionsForUserAsync("self-id", It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetMyUsernameChangePolicy_WhenCooldownActive_ReturnsBlockedStatus()
+    {
+        var lastChange = DateTime.UtcNow.AddDays(-2);
+        var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
+            new ApplicationUser
+            {
+                Id = "self-id",
+                UserName = "manager1",
+                Email = "manager@example.com",
+                FirstName = "Max",
+                LastName = "Mustermann",
+                IsActive = true,
+                Role = "Manager",
+                CreatedAt = DateTime.UtcNow.AddDays(-30),
+            });
+
+        var user = await userManager.FindByIdAsync("self-id");
+        Assert.NotNull(user);
+        await userManager.AddClaimAsync(
+            user,
+            new Claim(UsernameChangeRateLimit.LastChangeClaimType, lastChange.ToString("O")));
+
+        var controller = CreateController(
+            context,
+            userManager,
+            roleManager,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            uniquenessValidation,
+            actorId: "self-id",
+            actorRole: "Manager");
+
+        var result = await controller.GetMyUsernameChangePolicy(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<UsernameChangePolicyDto>(ok.Value);
+        Assert.False(dto.CanChange);
+        Assert.Equal(7, dto.CooldownDays);
+        Assert.NotNull(dto.NextChangeAllowedAtUtc);
+        Assert.True(dto.RestrictionsApply);
+    }
+
+    [Fact]
+    public async Task GetMyUsernameChangePolicy_WhenActorIsSuperAdmin_ReturnsExemptStatus()
+    {
+        var lastChange = DateTime.UtcNow.AddDays(-1);
+        var (context, userManager, roleManager, uniquenessValidation) = await CreateInMemoryUserManagerWithUsersAsync(
+            new ApplicationUser
+            {
+                Id = "self-id",
+                UserName = "superadmin",
+                Email = "super@example.com",
+                FirstName = "Super",
+                LastName = "Admin",
+                IsActive = true,
+                Role = Roles.SuperAdmin,
+                CreatedAt = DateTime.UtcNow.AddHours(-1),
+            });
+
+        var user = await userManager.FindByIdAsync("self-id");
+        Assert.NotNull(user);
+        await userManager.AddClaimAsync(
+            user,
+            new Claim(UsernameChangeRateLimit.LastChangeClaimType, lastChange.ToString("O")));
+
+        var controller = CreateController(
+            context,
+            userManager,
+            roleManager,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            uniquenessValidation,
+            actorId: "self-id",
+            actorRole: Roles.SuperAdmin);
+
+        var result = await controller.GetMyUsernameChangePolicy(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<UsernameChangePolicyDto>(ok.Value);
+        Assert.True(dto.CanChange);
+        Assert.False(dto.RestrictionsApply);
     }
 
     private static void EnsureNormalizedFields(ApplicationUser user)

@@ -13,6 +13,7 @@ public partial class AdminUsersController
     private const long BulkImportMaxUploadBytes = 20 * 1024 * 1024;
 
     /// <summary>Download CSV template for bulk user import.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet("bulk-import/template")]
     [Produces("text/csv")]
     public IActionResult DownloadBulkImportTemplate()
@@ -23,6 +24,7 @@ public partial class AdminUsersController
     }
 
     /// <summary>Preview first rows of an import file without creating users.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPost("bulk-import/preview")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(BulkImportMaxUploadBytes)]
@@ -45,6 +47,7 @@ public partial class AdminUsersController
     }
 
     /// <summary>Start a background bulk import job (supports 1000+ rows; poll job status for progress).</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpPost("bulk-import")]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(BulkImportMaxUploadBytes)]
@@ -93,6 +96,7 @@ public partial class AdminUsersController
     }
 
     /// <summary>Poll bulk import job progress and final result.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet("bulk-import/jobs/{jobId}")]
     [ProducesResponseType(typeof(BulkImportJobStatusDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -105,6 +109,7 @@ public partial class AdminUsersController
     }
 
     /// <summary>Cancel a running bulk import job.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpDelete("bulk-import/jobs/{jobId}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -125,6 +130,7 @@ public partial class AdminUsersController
     }
 
     /// <summary>Download detailed import results CSV.</summary>
+    [HasPermission(AppPermissions.UserManage)]
     [HttpGet("bulk-import/results/{resultId}")]
     [Produces("text/csv")]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

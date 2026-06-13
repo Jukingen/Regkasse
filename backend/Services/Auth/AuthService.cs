@@ -1,6 +1,8 @@
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -13,16 +15,13 @@ public sealed class AuthService : IAuthService
 {
     private static readonly TenantLicenseValidator TenantLicenseValidator = new();
 
-    /// <summary>Shown in API responses when login is blocked due to a deleted tenant (UI: de-DE).</summary>
-    public const string TenantDisabledMessageDe = "Dieser Mandant wurde deaktiviert.";
-    public const string TenantLicenseLockdownMessageDe = "Dieser Mandant ist wegen abgelaufener Lizenz gesperrt.";
-
     private readonly AppDbContext _db;
     private readonly ILoginTenantResolver _loginTenantResolver;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly TseOptions _tseOptions;
     private readonly IDevelopmentModeService _developmentMode;
     private readonly LicenseOptions _licenseOptions;
+    private readonly IApiMessageLocalizer _messages;
 
     public AuthService(
         AppDbContext db,
@@ -30,7 +29,8 @@ public sealed class AuthService : IAuthService
         IHostEnvironment hostEnvironment,
         IOptions<TseOptions> tseOptions,
         IDevelopmentModeService developmentMode,
-        IOptions<LicenseOptions> licenseOptions)
+        IOptions<LicenseOptions> licenseOptions,
+        IApiMessageLocalizer messages)
     {
         _db = db;
         _loginTenantResolver = loginTenantResolver;
@@ -38,6 +38,7 @@ public sealed class AuthService : IAuthService
         _tseOptions = tseOptions.Value;
         _developmentMode = developmentMode;
         _licenseOptions = licenseOptions.Value;
+        _messages = messages;
     }
 
     public async Task<LoginTenantAccessResult> ResolveLoginTenantAccessAsync(
@@ -48,7 +49,7 @@ public sealed class AuthService : IAuthService
         if (!isSuperAdmin && await IsLoginBlockedByDeletedMembershipAsync(userId, cancellationToken).ConfigureAwait(false))
         {
             return LoginTenantAccessResult.Blocked(
-                TenantDisabledMessageDe,
+                _messages.Get(ApiMessageKeys.TenantDisabled),
                 LoginTenantBlockedException.CodeTenantDisabled);
         }
 
@@ -61,7 +62,15 @@ public sealed class AuthService : IAuthService
         }
         catch (LoginTenantBlockedException ex)
         {
-            return LoginTenantAccessResult.Blocked(ex.Message, ex.ErrorCode);
+            var message = ex.ErrorCode switch
+            {
+                LoginTenantBlockedException.CodeTenantDisabled =>
+                    _messages.Get(ApiMessageKeys.TenantDisabled),
+                LoginTenantBlockedException.CodeTenantLicenseLockdown =>
+                    _messages.Get(ApiMessageKeys.TenantLicenseLockdown),
+                _ => ex.Message,
+            };
+            return LoginTenantAccessResult.Blocked(message, ex.ErrorCode);
         }
 
         if (Guid.TryParse(snapshot.TenantId, out var tenantId))
@@ -81,7 +90,7 @@ public sealed class AuthService : IAuthService
                 && string.Equals(tenant.Status, TenantStatuses.Deleted, StringComparison.OrdinalIgnoreCase))
             {
                 return LoginTenantAccessResult.Blocked(
-                    TenantDisabledMessageDe,
+                    _messages.Get(ApiMessageKeys.TenantDisabled),
                     LoginTenantBlockedException.CodeTenantDisabled);
             }
 
@@ -97,7 +106,7 @@ public sealed class AuthService : IAuthService
                 if (!permissions.CanAccess)
                 {
                     return LoginTenantAccessResult.Blocked(
-                        TenantLicenseLockdownMessageDe,
+                        _messages.Get(ApiMessageKeys.TenantLicenseLockdown),
                         LoginTenantBlockedException.CodeTenantLicenseLockdown);
                 }
             }

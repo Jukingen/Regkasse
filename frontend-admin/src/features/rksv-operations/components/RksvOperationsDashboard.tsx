@@ -12,7 +12,6 @@ import {
   Card,
   Col,
   Collapse,
-  List,
   Row,
   Skeleton,
   Space,
@@ -22,6 +21,7 @@ import {
   Typography,
   theme,
 } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import { ReloadOutlined, LinkOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import dayjs from 'dayjs';

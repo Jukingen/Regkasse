@@ -3,7 +3,9 @@ using KasseAPI_Final.Validators;
 
 namespace KasseAPI_Final.Models.DTOs;
 
-/// <summary>PATCH /api/admin/users/{id}/username — change login username (audited).</summary>
+/// <summary>
+/// PATCH username change — admin: /api/admin/users/{id}/username; self-service: /api/UserManagement/me/username.
+/// </summary>
 public class UpdateUsernameRequest
 {
     [Required]

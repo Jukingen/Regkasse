@@ -3,8 +3,10 @@
 import React, { useMemo } from 'react';
 import { Segmented, Table } from 'antd';
 import dayjs from 'dayjs';
+import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useGetApiReportsProducts } from '@/api/generated/reports/reports';
 import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 
@@ -35,8 +37,10 @@ export function TopSellingProductsWidget({
     onPeriodChange,
 }: Props) {
     const range = useMemo(() => rangeForPeriod(period), [period]);
+    const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.REPORT_VIEW });
     const query = useGetApiReportsProducts(range, {
         query: {
+            enabled: isAuthorized,
             refetchInterval: DASHBOARD_AUTO_REFRESH_MS,
             staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
         },

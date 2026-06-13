@@ -1,0 +1,42 @@
+{
+  "pageTitle": "Profilim",
+  "loading": "Profil yükleniyor…",
+  "loadError": "Profil yüklenemedi.",
+  "notProvided": "Belirtilmedi",
+  "emptyValue": "—",
+  "saveSuccess": "Profil başarıyla güncellendi.",
+  "saveError": "Profil güncellenemedi.",
+  "reset": "Sıfırla",
+  "fields": {
+    "userName": "Kullanıcı adı",
+    "role": "Rol",
+    "employeeNumber": "Personel numarası",
+    "phoneNumber": "Telefon",
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "email": "E-posta"
+  },
+  "validation": {
+    "firstNameRequired": "Ad gereklidir.",
+    "lastNameRequired": "Soyad gereklidir.",
+    "emailRequired": "E-posta gereklidir.",
+    "emailInvalid": "Geçerli bir e-posta adresi girin."
+  },
+  "placeholders": {
+    "firstName": "Ad",
+    "lastName": "Soyad",
+    "email": "email@example.com",
+    "phoneNumber": "+43 123 456789"
+  },
+  "username": {
+    "changeAction": "Kullanıcı adını değiştir",
+    "reloginTitle": "Yeniden giriş gerekli",
+    "reloginDescription": "Kullanıcı adı değişince tüm oturumlar sonlandırılır. Lütfen yeni kullanıcı adınızla tekrar giriş yapın.",
+    "policyTitle": "Kullanıcı adı değişiklik limiti",
+    "policyDescription": "Kullanıcı adı en fazla {{days}} günde bir kez değiştirilebilir.",
+    "policyCooldownActive": "Şu anda değişiklik yapılamaz. Sonraki değişiklik: {{date}} (UTC).",
+    "policyChangeAllowed": "Kullanıcı adınızı şimdi değiştirebilirsiniz.",
+    "policyLastChanged": "Son değişiklik: {{date}} (UTC). Kullanıcı adınızı tekrar değiştirebilirsiniz.",
+    "policySuperAdminExempt": "SuperAdmin olarak bekleme süresi ve değişiklik limitlerinden muafsınız."
+  }
+}

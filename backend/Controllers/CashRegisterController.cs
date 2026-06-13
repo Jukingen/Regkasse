@@ -12,7 +12,9 @@ using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services.AdminCashRegisters;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Identity;
 
@@ -38,6 +40,7 @@ namespace KasseAPI_Final.Controllers
         private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly ICashRegisterManagementService _cashRegisterManagement;
         private readonly ICashRegisterListEnrichmentService _enrichment;
+        private readonly IApiMessageLocalizer _messages;
 
         public CashRegisterController(
             ILogger<CashRegisterController> logger,
@@ -47,7 +50,8 @@ namespace KasseAPI_Final.Controllers
             ISettingsTenantResolver settingsTenantResolver,
             ICurrentTenantAccessor tenantAccessor,
             ICashRegisterManagementService cashRegisterManagement,
-            ICashRegisterListEnrichmentService enrichment)
+            ICashRegisterListEnrichmentService enrichment,
+            IApiMessageLocalizer messages)
         {
             _logger = logger;
             _context = context;
@@ -57,6 +61,7 @@ namespace KasseAPI_Final.Controllers
             _tenantAccessor = tenantAccessor;
             _cashRegisterManagement = cashRegisterManagement;
             _enrichment = enrichment;
+            _messages = messages;
         }
 
         /// <summary>Tenant register inventory with TSE/offline/sync telemetry (admin FA).</summary>
@@ -87,7 +92,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Enhanced cash registers list failed");
-                return StatusCode(500, new { message = "Kasalar getirilirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegistersFetchError), error = ex.Message });
             }
         }
 
@@ -105,12 +110,12 @@ namespace KasseAPI_Final.Controllers
                     .Where(cr => cr.TenantId == tenantId)
                     .ToListAsync();
 
-                return Ok(new { message = "Kasalar başarıyla getirildi", registers });
+                return Ok(new { message = _messages.Get(ApiMessageKeys.RegistersFetchSuccess), registers });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Kasalar getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "Kasalar getirilirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegistersFetchError), error = ex.Message });
             }
         }
 
@@ -160,15 +165,15 @@ namespace KasseAPI_Final.Controllers
 
                 if (register == null)
                 {
-                    return NotFound(new { message = "Kasa bulunamadı" });
+                    return NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound) });
                 }
 
-                return Ok(new { message = "Kasa başarıyla getirildi", register });
+                return Ok(new { message = _messages.Get(ApiMessageKeys.RegisterFetchSuccess), register });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"ID: {id} olan kasa getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "Kasa getirilirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterFetchError), error = ex.Message });
             }
         }
 
@@ -201,7 +206,7 @@ namespace KasseAPI_Final.Controllers
                     cancellationToken).ConfigureAwait(false);
 
                 return CreatedAtAction(nameof(GetCashRegister), new { id = register.Id },
-                    new { message = "Kasa başarıyla oluşturuldu", register });
+                    new { message = _messages.Get(ApiMessageKeys.RegisterCreateSuccess), register });
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -227,7 +232,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Kasa oluşturulurken bir hata oluştu");
-                return StatusCode(500, new { message = "Kasa oluşturulurken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterCreateError), error = ex.Message });
             }
         }
 
@@ -240,7 +245,7 @@ namespace KasseAPI_Final.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return Unauthorized(new { message = "Kullanıcı bulunamadı" });
+                    return Unauthorized(new { message = _messages.Get(ApiMessageKeys.UserNotFound) });
                 }
 
                 var result = await _cashRegisterShift.TryOpenCashRegisterAsync(
@@ -254,12 +259,12 @@ namespace KasseAPI_Final.Controllers
                 return result.Kind switch
                 {
                     CashRegisterOpenKind.SuccessOpened or CashRegisterOpenKind.SuccessIdempotentAlreadyOpen =>
-                        Ok(new { message = "Kasa başarıyla açıldı" }),
-                    CashRegisterOpenKind.FailedNotFound => NotFound(new { message = "Kasa bulunamadı" }),
+                        Ok(new { message = _messages.Get(ApiMessageKeys.RegisterOpenSuccess) }),
+                    CashRegisterOpenKind.FailedNotFound => NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound) }),
                     CashRegisterOpenKind.FailedAlreadyOpenSameUserNotIdempotent =>
-                        BadRequest(new { message = "Kasa zaten açık" }),
+                        BadRequest(new { message = _messages.Get(ApiMessageKeys.RegisterAlreadyOpen) }),
                     CashRegisterOpenKind.FailedConflictOtherUser =>
-                        Conflict(new { message = "Kasa ist von einem anderen Benutzer geöffnet." }),
+                        Conflict(new { message = _messages.Get(ApiMessageKeys.RegisterOpenedByOtherUser) }),
                     CashRegisterOpenKind.FailedActorAlreadyHasOtherOpenRegister =>
                         Conflict(new
                         {
@@ -275,18 +280,18 @@ namespace KasseAPI_Final.Controllers
                     CashRegisterOpenKind.FailedMonatsbelegRequired =>
                         BadRequest(new
                         {
-                            message = "Monatsbeleg muss für den aktuellen Monat erstellt werden.",
+                            message = _messages.Get(ApiMessageKeys.MonthlyReceiptRequired),
                             code = "MONATSBELEG_REQUIRED"
                         }),
                     CashRegisterOpenKind.FailedInvalidState =>
-                        BadRequest(new { message = "Kasa kann in diesem Zustand nicht geöffnet werden." }),
-                    _ => StatusCode(500, new { message = "Kasa açılırken bir hata oluştu" })
+                        BadRequest(new { message = _messages.Get(ApiMessageKeys.RegisterCannotOpenInState) }),
+                    _ => StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterOpenError) })
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"ID: {id} olan kasa açılırken bir hata oluştu");
-                return StatusCode(500, new { message = "Kasa açılırken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterOpenError), error = ex.Message });
             }
         }
 
@@ -311,20 +316,20 @@ namespace KasseAPI_Final.Controllers
                 return result.Kind switch
                 {
                     CashRegisterCloseKind.Success =>
-                        Ok(new { message = "Kasa başarıyla kapatıldı" }),
+                        Ok(new { message = _messages.Get(ApiMessageKeys.RegisterCloseSuccess) }),
                     CashRegisterCloseKind.FailedNotFound =>
-                        NotFound(new { message = "Kasa bulunamadı" }),
+                        NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound) }),
                     CashRegisterCloseKind.FailedAlreadyClosed =>
-                        BadRequest(new { message = "Kasa zaten kapalı" }),
+                        BadRequest(new { message = _messages.Get(ApiMessageKeys.RegisterAlreadyClosed) }),
                     CashRegisterCloseKind.FailedForbidden =>
                         Forbid(),
-                    _ => StatusCode(500, new { message = "Kasa kapatılırken bir hata oluştu" })
+                    _ => StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterCloseError) })
                 };
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"ID: {id} olan kasa kapatılırken bir hata oluştu");
-                return StatusCode(500, new { message = "Kasa kapatılırken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterCloseError), error = ex.Message });
             }
         }
 
@@ -338,7 +343,7 @@ namespace KasseAPI_Final.Controllers
                 var registerOk = await _context.CashRegisters.AsNoTracking()
                     .AnyAsync(r => r.Id == id && r.TenantId == tenantId);
                 if (!registerOk)
-                    return NotFound(new { message = "Kasa bulunamadı" });
+                    return NotFound(new { message = _messages.Get(ApiMessageKeys.RegisterNotFound) });
 
                 var query = _context.CashRegisterTransactions
                     .Where(t => t.CashRegisterId == id);
@@ -356,12 +361,12 @@ namespace KasseAPI_Final.Controllers
                     .OrderByDescending(t => t.TransactionDate)
                     .ToListAsync();
 
-                return Ok(new { message = "İşlemler başarıyla getirildi", transactions });
+                return Ok(new { message = _messages.Get(ApiMessageKeys.TransactionsFetchSuccess), transactions });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"ID: {id} olan kasanın işlemleri getirilirken bir hata oluştu");
-                return StatusCode(500, new { message = "İşlemler getirilirken bir hata oluştu", error = ex.Message });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.TransactionsFetchError), error = ex.Message });
             }
         }
 

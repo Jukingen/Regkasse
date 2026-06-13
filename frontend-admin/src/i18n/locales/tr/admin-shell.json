@@ -5,6 +5,9 @@
     "sidebarExpanded": "REGKASSE ADMIN",
     "fallbackUserName": "Admin User"
   },
+  "sidebar": {
+    "noAccessibleMenus": "Kullanılabilir menü ögesi yok."
+  },
   "aria": {
     "openNav": "Gezinme menüsünü aç",
     "closeNav": "Gezinme menüsünü kapat",
@@ -13,17 +16,19 @@
     "resizeSidebar": "Kenar çubuğu genişliğini ayarla"
   },
   "header": {
-    "headerActionsAria": "Dil ve kullanıcı hesabı",
-    "languageSelectAria": "Arayüz dilini seçin",
+    "headerActionsAria": "Üst çubuk eylemleri",
+    "languageSelectAria": "Dil",
     "languageSelectTitle": "Arayüz dili",
     "languageSelectHint": "Yalnızca yönetim arayüzü için. Resmi mali rapor metinleri Almanca veya İngilizce kalır.",
     "languageNameDe": "Almanca",
     "languageNameEn": "İngilizce",
     "languageNameTr": "Türkçe",
-    "cashRegisterQuickSwitchLabel": "Kasa değiştir",
+    "cashRegisterQuickSwitchLabel": "Kasa",
     "cashRegisterQuickSwitchAria": "Hızlı kasa seçimi",
     "cashRegisterQuickSwitchHint": "Kasa seçin ve kasa yönetimini açın",
-    "cashRegisterQuickSwitchManage": "Kasa yönetimini aç"
+    "cashRegisterQuickSwitchManage": "Kasa yönetimini aç",
+    "monatsbelegBadgeLabel": "Aylık fiş ({count})",
+    "monatsbelegBadgeAria": "Aylık fiş uyarıları: {count}"
   },
   "tenant": {
     "badge": {

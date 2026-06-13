@@ -106,11 +106,12 @@ public sealed class TokenClaimsService : ITokenClaimsService
             roleNamesForResolver.Add(user.Role.Trim());
 
         Guid? tenantGuid = Guid.TryParse(tenantId, out var parsedTenantId) ? parsedTenantId : null;
-        var permissions = await _effectivePermissionResolver.GetEffectivePermissionsAsync(
+        var effectivePermissions = await _effectivePermissionResolver.GetEffectivePermissionsAsync(
             user.Id,
             roleNamesForResolver,
             tenantGuid,
             cancellationToken);
+        var permissions = AdminAppPermissionProfile.Filter(appContext, canonicalRoles, effectivePermissions);
         foreach (var p in permissions)
             list.Add(new Claim(PermissionCatalog.PermissionClaimType, p));
 

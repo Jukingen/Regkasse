@@ -7,11 +7,13 @@ namespace KasseAPI_Final.Helpers;
 /// <summary>Shared username format validation (login name, not email).</summary>
 public static class UsernameValidation
 {
-    public static Dictionary<string, string[]>? ValidateNewUsername(string? trimmedUsername)
+    public static Dictionary<string, string[]>? ValidateNewUsername(
+        string? trimmedUsername,
+        bool bypassReservedUsername = false)
     {
         var trimmed = trimmedUsername?.Trim() ?? string.Empty;
 
-        if (ReservedUsernames.IsReserved(trimmed))
+        if (!bypassReservedUsername && ReservedUsernames.IsReserved(trimmed))
         {
             return new Dictionary<string, string[]>(StringComparer.Ordinal)
             {

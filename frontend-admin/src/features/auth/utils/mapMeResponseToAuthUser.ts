@@ -38,6 +38,8 @@ export type MeResponse = UserInfo & MeResponseCamelExtensions & {
     LastName?: string | null;
     Role?: string | null;
     EmployeeNumber?: string | null;
+    PhoneNumber?: string | null;
+    phoneNumber?: string | null;
     TaxNumber?: string | null;
     Notes?: string | null;
     IsActive?: boolean;
@@ -69,6 +71,7 @@ export function mapMeResponseToAuthUser(res: MeResponse): AuthUser {
         roles: roles.length > 0 ? roles : undefined,
         permissions,
         employeeNumber: res.employeeNumber ?? res.EmployeeNumber,
+        phoneNumber: res.phoneNumber ?? res.PhoneNumber,
         taxNumber: res.taxNumber ?? res.TaxNumber,
         notes: res.notes ?? res.Notes,
         isActive: res.isActive ?? res.IsActive,

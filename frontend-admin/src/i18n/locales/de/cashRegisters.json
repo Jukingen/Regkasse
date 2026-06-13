@@ -251,6 +251,8 @@
   "errors": {
     "loadFailed": "Kassenliste konnte nicht geladen werden."
   },
+  "moduleUnavailable": "Kassenverwaltung derzeit nicht verfügbar",
+  "moduleUnavailableDescription": "Für Ihren Mandanten ist keine gültige Lizenz hinterlegt oder der Zugang ist gesperrt. Bitte wenden Sie sich an Ihren Administrator.",
   "export": {
     "success": "Kassenliste wurde exportiert."
   },

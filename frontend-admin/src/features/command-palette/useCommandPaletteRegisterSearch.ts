@@ -3,22 +3,21 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import {
     adminCashRegisterListQueryKey,
-    cashRegisterListQueryKey,
+    cashRegisterByTenantQueryKey,
     listAdminCashRegisters,
+    listCashRegistersByTenant,
 } from '@/features/cash-registers/api/cashRegisters';
-import { normalizeCashRegisterList } from '@/features/cash-registers/normalizers';
+import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
 import { useDebounce } from '@/hooks/useDebounce';
-import type { CashRegister } from '@/api/generated/model';
 import type { CommandItem } from '@/features/command-palette/types';
 
 const MIN_QUERY_LEN = 2;
 const MAX_RESULTS = 5;
 const DEBOUNCE_MS = 300;
 
-function filterRegisters(registers: CashRegister[], trimmed: string): CashRegister[] {
+function filterRegisters(registers: AdminCashRegisterListItem[], trimmed: string): AdminCashRegisterListItem[] {
     return registers.filter((reg) => {
         const hay = [reg.id, reg.registerNumber, reg.location].filter(Boolean).join(' ').toLowerCase();
         return hay.includes(trimmed);
@@ -34,8 +33,8 @@ export function useCommandPaletteRegisterSearch(
     const enabled = options.enabled && debouncedQuery.length >= MIN_QUERY_LEN;
 
     const tenantQuery = useQuery({
-        queryKey: cashRegisterListQueryKey,
-        queryFn: () => getApiCashRegister(),
+        queryKey: cashRegisterByTenantQueryKey(undefined),
+        queryFn: () => listCashRegistersByTenant(),
         enabled: enabled && !options.isSuperAdmin,
         staleTime: 30_000,
     });
@@ -52,9 +51,9 @@ export function useCommandPaletteRegisterSearch(
     const items = useMemo((): CommandItem[] => {
         if (debouncedQuery.length < MIN_QUERY_LEN) return [];
 
-        const rows: CashRegister[] = options.isSuperAdmin
-            ? (adminQuery.data?.items ?? []).map((row) => row as unknown as CashRegister)
-            : normalizeCashRegisterList(tenantQuery.data);
+        const rows: AdminCashRegisterListItem[] = options.isSuperAdmin
+            ? (adminQuery.data?.items ?? [])
+            : (tenantQuery.data ?? []);
 
         const matches = filterRegisters(rows, debouncedQuery);
 

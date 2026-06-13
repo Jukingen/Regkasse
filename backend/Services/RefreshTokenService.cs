@@ -95,11 +95,17 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
         if (session.RevokedAtUtc.HasValue)
             return new RefreshResult(false, false, null, "session_revoked");
 
-        if (token.RevokedAtUtc.HasValue || token.ConsumedAtUtc.HasValue || token.ExpiresAtUtc <= DateTime.UtcNow)
+        if (token.ExpiresAtUtc <= DateTime.UtcNow)
+            return new RefreshResult(false, false, null, "refresh_token_expired");
+
+        if (token.RevokedAtUtc.HasValue || token.ConsumedAtUtc.HasValue)
         {
-            await LogoutSessionAsync(session.Id, "refresh_token_reuse_detected", cancellationToken);
-            _logger.LogWarning("Refresh token reuse detected for user {UserId}, session {SessionId}", token.UserId, token.SessionId);
-            return new RefreshResult(false, true, null, "refresh_token_reuse_detected");
+            // Token already rotated — reject without revoking the session (parallel/tab race or stale client).
+            _logger.LogDebug(
+                "Refresh token already consumed or revoked for user {UserId}, session {SessionId}",
+                token.UserId,
+                token.SessionId);
+            return new RefreshResult(false, false, null, "refresh_token_already_used");
         }
 
         var consumedAt = DateTime.UtcNow;
@@ -107,8 +113,12 @@ public sealed class RefreshTokenService : IRefreshTokenService, IUserSessionInva
 
         if (updated == 0)
         {
-            await LogoutSessionAsync(session.Id, "refresh_token_parallel_reuse_detected", cancellationToken);
-            return new RefreshResult(false, true, null, "refresh_token_reuse_detected");
+            // Concurrent first-use race — one caller won rotation; do not treat as reuse attack.
+            _logger.LogDebug(
+                "Parallel refresh race lost for user {UserId}, session {SessionId}",
+                token.UserId,
+                token.SessionId);
+            return new RefreshResult(false, false, null, "refresh_token_parallel_conflict");
         }
 
         var accessJti = Guid.NewGuid().ToString("N");

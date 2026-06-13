@@ -82,8 +82,85 @@
 .admin-header-utilities {
   display: flex;
   align-items: center;
-  gap: var(--header-gap);
+  gap: 8px;
   flex-shrink: 0;
+}
+
+.admin-header-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.admin-header-tool-btn.ant-btn-sm {
+  padding-inline: 10px;
+}
+
+.admin-header-icon-btn {
+  min-width: 36px;
+  padding-inline: 8px !important;
+}
+
+.admin-header-icon-btn .ant-btn-icon {
+  margin-inline-end: 0 !important;
+}
+
+.admin-header-user-menu-btn {
+  max-width: 220px;
+  height: auto !important;
+  min-height: 32px;
+  padding: 4px 10px !important;
+  text-align: left;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-header-user-avatar {
+  flex-shrink: 0;
+}
+
+.admin-header-user-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.admin-header-user-role {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-header-user-name {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-header-user-role-compact {
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0.12em;
+}
+
+.admin-header-monatsbeleg-btn {
+  font-variant-numeric: tabular-nums;
 }
 
 .cash-register-quick-switch-trigger-wrap {

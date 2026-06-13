@@ -7,8 +7,11 @@ public static class UsernameChangePolicy
 {
     public static readonly TimeSpan MinAccountAgeBeforeChange = TimeSpan.FromHours(24);
 
-    public static string? GetNewAccountRestrictionError(ApplicationUser user)
+    public static string? GetNewAccountRestrictionError(ApplicationUser user, bool bypassRestrictions = false)
     {
+        if (bypassRestrictions)
+            return null;
+
         var age = DateTime.UtcNow - user.CreatedAt.ToUniversalTime();
         if (age < MinAccountAgeBeforeChange)
         {

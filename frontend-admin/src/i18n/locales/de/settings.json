@@ -70,8 +70,27 @@
     "confirmMismatch": "Passwörter stimmen nicht überein.",
     "submit": "Passwort ändern",
     "success": "Passwort wurde geändert.",
+    "successTitle": "Passwort erfolgreich geändert",
+    "goToLogin": "Zur Anmeldung",
+    "redirectCountdown": "Weiterleitung zur Anmeldung in {{seconds}} Sekunden…",
     "errorFallback": "Passwort konnte nicht geändert werden.",
-    "requiredBanner": "Sie müssen Ihr Passwort ändern, bevor Sie die Anwendung weiter nutzen können."
+    "requiredBanner": "Sie müssen Ihr Passwort ändern, bevor Sie die Anwendung weiter nutzen können.",
+    "firstLoginTitle": "Neues Passwort festlegen",
+    "firstLoginHint": "Ihr Konto verwendet ein temporäres Passwort. Wählen Sie ein neues Passwort und melden Sie sich danach erneut an.",
+    "forceChangeTitle": "Passwortänderung erforderlich",
+    "forceChangeAlertTitle": "Erste Anmeldung",
+    "forceChangeAlertDescription": "Sie müssen Ihr Passwort bei der ersten Anmeldung ändern.",
+    "temporaryPasswordPlaceholder": "Temporäres Passwort eingeben",
+    "newPasswordPlaceholder": "Neues Passwort",
+    "confirmPasswordPlaceholder": "Neues Passwort bestätigen",
+    "requirementsTitle": "Passwortanforderungen:",
+    "requirementsHint": "Das Passwort muss alle oben genannten Anforderungen erfüllen.",
+    "requirementsNotMet": "Das Passwort erfüllt nicht alle Anforderungen.",
+    "requirementMinLength": "Mindestens 8 Zeichen lang",
+    "requirementUppercase": "Mindestens ein Großbuchstabe (A-Z)",
+    "requirementLowercase": "Mindestens ein Kleinbuchstabe (a-z)",
+    "requirementDigit": "Mindestens eine Ziffer (0-9)",
+    "requirementSpecial": "Mindestens ein Sonderzeichen (! @ # $ % ^ & *)"
   },
   "form": {
     "general": {

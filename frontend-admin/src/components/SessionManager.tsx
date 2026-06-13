@@ -2,7 +2,8 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback } from 'react';
-import { Button, Card, List, Space, Tag, Typography } from 'antd';
+import { Button, Card, Space, Tag, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import dayjs from 'dayjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 

@@ -41,33 +41,15 @@
 .language-trigger {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  height: auto !important;
-  border-radius: 20px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.language-trigger:hover {
-  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04)) !important;
+  justify-content: center;
+  min-width: 40px;
+  padding: 0 10px !important;
 }
 
 .language-code {
   font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   line-height: 1;
-}
-
-@media (--mobile) {
-  .language-trigger {
-    padding: 4px 6px;
-  }
-
-  .language-code,
-  .language-text {
-    display: none;
-  }
+  text-transform: lowercase;
 }

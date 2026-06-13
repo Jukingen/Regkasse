@@ -10,11 +10,11 @@ import {
   Badge,
   Button,
   Card,
-  List,
   Spin,
   Tag,
   Typography,
 } from "antd";
+import { SimpleList as List } from "@/components/ui/SimpleList";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,

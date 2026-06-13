@@ -43,6 +43,8 @@ Tam mimari: `docs/MULTI_TENANT.md`.
 ## Kimlik doğrulama / yetkilendirme
 - Auth: ASP.NET Core Identity + JWT.
 - Yetki: `HasPermission(...)` tabanlı policy yaklaşımı ana standarttır; rol matrisi `backend/Authorization/RolePermissionMatrix.cs`.
+- **Admin FA oturumu:** Login ve `/me` yanıtında izinler `AdminAppPermissionProfile` ile filtrelenir (`app_context=admin`) — Cashier whitelist, Manager için POS-terminal strip. Menü/route sözleşmesi: `frontend-admin` `test:contract`, backend `RoleAdminMenuContractTests`.
+- **Zugriff & Rollen hub:** `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix` — ayrıntı `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`.
 - Yeni endpointlerde public gereksinim yoksa auth varsayımıyla ilerle.
 
 ## Gutschein / voucher

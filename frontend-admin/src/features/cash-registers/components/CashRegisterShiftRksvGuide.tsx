@@ -1,6 +1,7 @@
 'use client';
 
-import { Collapse, List, Table, Typography } from 'antd';
+import { Collapse, Table, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { useI18n } from '@/i18n';
 import {

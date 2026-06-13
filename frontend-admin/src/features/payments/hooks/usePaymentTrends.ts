@@ -1,13 +1,13 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import type { Dayjs } from 'dayjs';
 
 import { fetchPaymentTrends } from '@/features/payments/api/paymentTrends';
 import type { TrendPeriod } from '@/features/payments/types/paymentTrends';
 import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
-import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const trendsKey = ['admin', 'payments', 'trends'] as const;
 
@@ -27,7 +27,7 @@ export function usePaymentTrends(
     const startDate = dateRange?.[0]?.format('YYYY-MM-DD');
     const endDate = dateRange?.[1]?.format('YYYY-MM-DD');
 
-    return useQuery({
+    return useAuthorizedQuery({
         queryKey: [...trendsKey, { period, startDate, endDate }],
         queryFn: ({ signal }) =>
             fetchPaymentTrends(
@@ -38,6 +38,7 @@ export function usePaymentTrends(
                 },
                 signal,
             ),
+        requiredPermission: PERMISSIONS.PAYMENT_VIEW,
         enabled: enabled && canSee,
         staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
         refetchInterval: enabled && canSee && !dateRange ? DASHBOARD_AUTO_REFRESH_MS : false,

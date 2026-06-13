@@ -4,6 +4,8 @@ import React, { useMemo } from 'react';
 import { Alert, Badge, Card, Col, Progress, Row, Statistic, Typography } from 'antd';
 import { useGetApiTseHealth } from '@/api/generated/tse/tse';
 import type { TseHealthResponseDto } from '@/api/generated/model';
+import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
+import { AppPermissions } from '@/shared/auth/permissions';
 
 const REFETCH_MS = 30_000;
 
@@ -33,14 +35,22 @@ function statusBadge(data: TseHealthResponseDto | undefined) {
  * Cached TSE operational health from `/api/tse/health` (background probe snapshot).
  */
 export function TseHealthCard() {
+    const { isAuthorized } = useAuthorizationGate({
+        requiredPermission: AppPermissions.CashRegisterView,
+    });
     const { data, isLoading } = useGetApiTseHealth(undefined, {
         query: {
+            enabled: isAuthorized,
             refetchInterval: REFETCH_MS,
             refetchIntervalInBackground: false,
             refetchOnWindowFocus: false,
             staleTime: 60_000,
         },
     });
+
+    if (!isAuthorized) {
+        return null;
+    }
 
     const healthPercent = useMemo(() => healthPercentFromSnapshot(data), [data]);
 

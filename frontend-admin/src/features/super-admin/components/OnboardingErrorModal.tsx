@@ -4,7 +4,8 @@
  * Tenant create failure with optional subdomain suggestions (rollback confirmed server-side).
  */
 import React, { useMemo } from 'react';
-import { Alert, Button, List, Modal, Typography } from 'antd';
+import { Alert, Button, Modal, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import { CloseCircleFilled } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 

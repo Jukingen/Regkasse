@@ -115,6 +115,20 @@
       "grace": {
         "title": "Tenant license expired - grace period",
         "message": "Your license expired {{days}} day(s) ago. Please renew it within the next {{remaining}} day(s) to keep sales enabled."
+      },
+      "graceWrite": {
+        "title": "Tenant license – grace period",
+        "adminDescription": "Your license expired {{daysExpired}} day(s) ago. You have {{daysRemaining}} day(s) left to renew before the tenant is locked.",
+        "contactAdminDescription": "The tenant license expired {{daysExpired}} day(s) ago. Please contact your administrator."
+      },
+      "lockdown": {
+        "title": "Tenant license expired – system locked",
+        "adminDescription": "Your license expired {{daysExpired}} day(s) ago. The system is now in lockdown mode.",
+        "contactAdminDescription": "This tenant is currently locked. Please contact your administrator."
+      },
+      "noLicense": {
+        "title": "Tenant license missing",
+        "adminDescription": "No license is configured for this tenant. Please add a license."
       }
     },
     "deployment": {
@@ -125,6 +139,18 @@
       "grace": {
         "title": "Server license expired - grace period",
         "message": "The server license expired {{days}} day(s) ago. Please renew it within the next {{remaining}} day(s) before more write operations are disabled."
+      },
+      "graceWrite": {
+        "title": "Deployment license – grace period",
+        "adminDescription": "The deployment license expired {{daysExpired}} day(s) ago. You have {{daysRemaining}} day(s) before write operations are restricted."
+      },
+      "lockdown": {
+        "title": "Deployment license expired – system locked",
+        "adminDescription": "The deployment license expired {{daysExpired}} day(s) ago. Only health and license activation endpoints remain available."
+      },
+      "noLicense": {
+        "title": "Deployment license missing",
+        "adminDescription": "No license is configured for this deployment."
       }
     },
     "readOnly": {

@@ -19,5 +19,7 @@ export function isMenuItemAllowed(
   if (required === undefined) return true;
   if (!permissions?.length) return false;
   const arr = Array.isArray(required) ? required : [required];
+  /** Empty array = any authenticated user with permission claims (e.g. `/dashboard`). */
+  if (arr.length === 0) return permissions.length > 0;
   return arr.some((p) => permissions.includes(p));
 }

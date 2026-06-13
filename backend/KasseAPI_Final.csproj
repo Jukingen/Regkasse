@@ -65,4 +65,32 @@
     <Content Update="Data\demo-products.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Align embedded resource names with AddLocalization(ResourcesPath = "Resources"). -->
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\ErrorMessages.resx">
+      <ManifestResourceName>Resources.ErrorMessages</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\ErrorMessages.de.resx">
+      <ManifestResourceName>Resources.ErrorMessages.de</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\ErrorMessages.en.resx">
+      <ManifestResourceName>Resources.ErrorMessages.en</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\ErrorMessages.tr.resx">
+      <ManifestResourceName>Resources.ErrorMessages.tr</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\PasswordErrorMessages.resx">
+      <ManifestResourceName>Resources.PasswordErrorMessages</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\PasswordErrorMessages.de.resx">
+      <ManifestResourceName>Resources.PasswordErrorMessages.de</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\PasswordErrorMessages.en.resx">
+      <ManifestResourceName>Resources.PasswordErrorMessages.en</ManifestResourceName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\PasswordErrorMessages.tr.resx">
+      <ManifestResourceName>Resources.PasswordErrorMessages.tr</ManifestResourceName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

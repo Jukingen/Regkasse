@@ -1,9 +1,11 @@
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Rksv;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services.AdminCashRegisters;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,19 +24,22 @@ public sealed class AdminCashRegistersController : ControllerBase
     private readonly ICashRegisterListEnrichmentService _enrichment;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ILogger<AdminCashRegistersController> _logger;
+    private readonly IApiMessageLocalizer _messages;
 
     public AdminCashRegistersController(
         ICashRegisterDecommissionService decommission,
         ICashRegisterManagementService cashRegisterManagement,
         ICashRegisterListEnrichmentService enrichment,
         ICurrentTenantAccessor tenantAccessor,
-        ILogger<AdminCashRegistersController> logger)
+        ILogger<AdminCashRegistersController> logger,
+        IApiMessageLocalizer messages)
     {
         _decommission = decommission;
         _cashRegisterManagement = cashRegisterManagement;
         _enrichment = enrichment;
         _tenantAccessor = tenantAccessor;
         _logger = logger;
+        _messages = messages;
     }
 
     /// <summary>
@@ -270,7 +275,7 @@ public sealed class AdminCashRegistersController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Kasa oluşturulurken bir hata oluştu");
-            return StatusCode(500, new { message = "Kasa oluşturulurken bir hata oluştu", error = ex.Message });
+            return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterCreateError), error = ex.Message });
         }
     }
 
@@ -325,7 +330,7 @@ public sealed class AdminCashRegistersController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Cash register update failed RegisterId={RegisterId}", id);
-            return StatusCode(500, new { message = "Kasa güncellenirken bir hata oluştu", error = ex.Message });
+            return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.RegisterUpdateError), error = ex.Message });
         }
     }
 

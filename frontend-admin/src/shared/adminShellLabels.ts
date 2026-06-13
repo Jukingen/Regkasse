@@ -67,6 +67,10 @@ export const ADMIN_NAV_LABEL_KEYS = {
     monatsbericht: 'nav.monatsbericht',
     jahresbericht: 'nav.jahresbericht',
     users: 'nav.users',
+    accessHub: 'nav.accessHub',
+    accessOverview: 'nav.accessOverview',
+    accessRoles: 'nav.accessRoles',
+    accessMatrix: 'nav.accessMatrix',
     /** Sidebar: Einstellungen-Gruppe (Parent) */
     settingsHub: 'nav.settingsHub',
     /** Firma, FinanzOnline, TSE – Route /settings */
@@ -79,6 +83,8 @@ export const ADMIN_NAV_LABEL_KEYS = {
     developmentMode: 'nav.developmentMode',
     timeSync: 'nav.timeSync',
     myProfile: 'nav.myProfile',
+    changeUsername: 'nav.changeUsername',
+    changePassword: 'nav.changePassword',
     logout: 'nav.logout',
     rksvOperationsOverview: 'nav.rksvOperationsOverview',
     finanzOnlineAbgleich: 'nav.finanzOnlineAbgleich',

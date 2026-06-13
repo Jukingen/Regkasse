@@ -7,7 +7,8 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Alert, Button, Card, Checkbox, Descriptions, Input, List, Progress, Result, Space, Steps, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Checkbox, Descriptions, Input, Progress, Result, Space, Steps, Table, Tag, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import type { ColumnsType } from 'antd/es/table';
 import {
     ArrowLeftOutlined,

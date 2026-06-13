@@ -1,20 +1,26 @@
 'use client';
 
-import React, { FC } from 'react';
+import React, { FC, useEffect } from 'react';
 import { App, Form, Input, Button, Card, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePostApiAuthLogin } from '@/api/generated/auth/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import type { LoginModel } from '@/api/generated/model';
-import { authStorage } from '@/features/auth/services/authStorage';
 import { tenantStorage } from '@/features/auth/services/tenantStorage';
-import { AUTH_KEYS, fetchAuthUser } from '../hooks/useAuth';
+import {
+    AUTH_KEYS,
+    clearStaleAuthBeforeLogin,
+    fetchAuthUser,
+    persistLoginTokensAndSettle,
+} from '../hooks/useAuth';
 import { useI18n } from '@/i18n';
 import { getDefaultLandingPathFromStorage } from '@/lib/personalization/PersonalizationProvider';
+import { CHANGE_PASSWORD_PATH } from '@/features/auth/constants/changePasswordRoute';
 import { userPreferencesQueryKey } from '@/lib/personalization/userPreferencesApi';
 import { technicalConsole } from '@/shared/dev/technicalConsole';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
 const { Title, Text } = Typography;
@@ -27,8 +33,15 @@ type LoginFormValues = {
 export const LoginForm: FC = () => {
     const { message } = App.useApp();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const queryClient = useQueryClient();
     const { t } = useI18n();
+
+    useEffect(() => {
+        if (searchParams.get('passwordChanged') === '1') {
+            message.info(t('common.auth.passwordChangedLoginPrompt'));
+        }
+    }, [message, searchParams, t]);
 
     const { mutate: login, isPending } = usePostApiAuthLogin({
         mutation: {
@@ -38,10 +51,7 @@ export const LoginForm: FC = () => {
                 const refreshToken = loginResponse?.refreshToken;
 
                 if (token) {
-                    authStorage.setToken(token);
-                    if (refreshToken) {
-                        authStorage.setRefreshToken(refreshToken);
-                    }
+                    await persistLoginTokensAndSettle(token, refreshToken);
                     const loginUser = loginResponse?.user as
                         | { tenantId?: string | null; tenantSlug?: string | null }
                         | undefined;
@@ -80,21 +90,26 @@ export const LoginForm: FC = () => {
                 if (process.env.NODE_ENV === 'development') {
                     technicalConsole.devLog(
                         '[LoginForm] user cache set; redirecting to',
-                        mustChange ? '/settings (password)' : landingPath,
+                        mustChange ? CHANGE_PASSWORD_PATH : landingPath,
                     );
                 }
                 queueMicrotask(() => {
-                    router.push(mustChange ? '/settings?mustChangePassword=1' : landingPath);
+                    router.push(mustChange ? CHANGE_PASSWORD_PATH : landingPath);
                 });
             },
             onError: (error: unknown) => {
-                message.error(
-                    getUserFacingApiErrorMessage(t, error, {
-                        logContext: 'LoginForm',
-                        loginContext: true,
-                        fallbackKey: 'common.auth.loginFailedGeneric',
-                    }),
-                );
+                getUserFacingApiErrorMessage(t, error, {
+                    logContext: 'LoginForm',
+                    loginContext: true,
+                    fallbackKey: 'common.auth.invalidCredentials',
+                });
+                const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data
+                    ?.message;
+                const displayMessage =
+                    typeof apiMessage === 'string' && apiMessage.trim()
+                        ? apiMessage.trim()
+                        : t('common.auth.invalidCredentials');
+                message.error(displayMessage);
             },
         },
     });
@@ -111,11 +126,24 @@ export const LoginForm: FC = () => {
         if (process.env.NODE_ENV === 'development') {
             technicalConsole.devLog('[LoginForm] submitting login request');
         }
+        clearStaleAuthBeforeLogin(queryClient);
         login({ data: payload });
     };
 
     return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>
+        <div
+            style={{
+                position: 'relative',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
+                background: '#f0f2f5',
+            }}
+        >
+            <div style={{ position: 'absolute', top: 16, right: 16 }}>
+                <LanguageSwitcher data-testid="login-language-switcher" />
+            </div>
             <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
                     <Title level={3}>{t('common.auth.appTitle')}</Title>

@@ -201,6 +201,8 @@ curl http://localhost:5184/api/health?tenant=test_cafe
 - `settings.manage` - Modify system settings
 - `reports.view` - View reports
 - `reports.export` - Export reports
+- **FA hub:** Verwaltung → Zugriff & Rollen — `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix` (see `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`)
+- **Admin session filter:** JWT/`/me` permissions for `app_context=admin` via `AdminAppPermissionProfile` (Cashier whitelist; Manager strips POS-terminal keys)
 
 ## Audit & Compliance
 

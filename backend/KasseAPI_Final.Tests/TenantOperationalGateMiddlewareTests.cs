@@ -96,7 +96,8 @@ public sealed class TenantOperationalGateMiddlewareTests
             CreateHostEnvironment(isDevelopment),
             CreateTseOptions(tseMode),
             CreateLicenseOptions(licenseEnabled),
-            CreateDevelopmentMode());
+            CreateDevelopmentMode(),
+            LocalizationTestDoubles.ApiMessageLocalizer());
 
     [Fact]
     public async Task InvokeAsync_LockdownAfterGrace_BlocksNonUserManagementWrites()

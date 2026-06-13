@@ -1,0 +1,31 @@
+{
+  "hub": {
+    "pageTitle": "Access & roles",
+    "intro": "Manage users, roles, and permissions in one place. System roles are read-only; custom roles can be edited in the permission catalog.",
+    "cardUsersTitle": "Users",
+    "cardUsersDescription": "Create users, assign roles, reset passwords, and deactivate accounts.",
+    "cardRolesTitle": "Roles & permissions",
+    "cardRolesDescription": "Create custom roles and maintain permissions per role.",
+    "cardMatrixTitle": "Permission overview",
+    "cardMatrixDescription": "See roles, UI access (POS/Admin), and permission groups at a glance.",
+    "cardAuditTitle": "Audit log",
+    "cardAuditDescription": "Trace security-sensitive changes (users, roles, permissions).",
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedDescription": "You need at least user.view to open this area."
+  },
+  "roles": {
+    "pageTitle": "Roles & permissions"
+  },
+  "matrix": {
+    "pageTitle": "Permission overview",
+    "intro": "Overview of all roles in the tenant. System roles are product-defined and not editable.",
+    "editHint": "Edit:",
+    "loadErrorTitle": "Could not load role overview.",
+    "columnRole": "Role",
+    "columnUsers": "Users",
+    "columnPosAdmin": "POS / Admin",
+    "columnPermissionCount": "Permissions",
+    "columnGroups": "Groups",
+    "systemRoleTag": "System"
+  }
+}

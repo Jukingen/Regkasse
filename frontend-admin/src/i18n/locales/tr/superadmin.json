@@ -14,5 +14,9 @@
     "demoTenant": "Demo kiracı",
     "adminColumn": "Yönetici"
   },
-  "loadFailed": "Kiracı listesi yüklenemedi."
+  "loadFailed": "Kiracı listesi yüklenemedi.",
+  "tenantCreate": {
+    "slugExample": "cafe-example",
+    "urlPreviewHint": "Tam adres, kısa ad ve alan adından oluşturulur."
+  }
 }

@@ -1,4 +1,4 @@
-import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
+import { listCashRegistersByTenant } from '@/features/cash-registers/api/cashRegisters';
 import type {
   GetApiAdminFiscalExportParams,
 } from '@/api/generated/model';
@@ -28,7 +28,7 @@ export function fiscalExportDisclaimerAckHeaders(): Record<string, string> {
  * - Every new manual wrapper must include a short WHY comment and a removal condition.
  */
 export async function getAdminCashRegisters(): Promise<CashRegisterRow[]> {
-  const response = await getApiCashRegister();
+  const response = await listCashRegistersByTenant();
   return normalizeCashRegisterListBody(response);
 }
 

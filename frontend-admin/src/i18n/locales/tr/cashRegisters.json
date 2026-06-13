@@ -14,11 +14,29 @@
     "healthy": "TSE OK",
     "degraded": "TSE kısıtlı",
     "offline": "TSE çevrimdışı",
-    "notConfigured": "TSE yapılandırılmamış"
+    "notConfigured": "TSE yapılandırılmamış",
+    "lastCheck": "Son kontrol"
   },
   "offlineQueue": {
     "label": "{{count}} offline",
     "tooltip": "{{count}} bekleyen çevrimdışı işlem"
+  },
+  "tseHealthFilter": {
+    "placeholder": "TSE durumu",
+    "healthy": "TSE OK",
+    "degraded": "TSE kısıtlı",
+    "offline": "TSE çevrimdışı",
+    "notConfigured": "Yapılandırılmamış"
+  },
+  "bulk": {
+    "selectedCount": "{{count}} kasa seçildi",
+    "decommissionAction": "Seçili kasaları devre dışı bırak",
+    "decommissionTitle": "Birden fazla kasayı kapat",
+    "decommissionSummary": "{{total}} kasadan {{eligible}} tanesi kapatılabilir.",
+    "skippedCount": "{{count}} kasa atlandı (açık vardiya veya zaten kapatılmış).",
+    "decommissionConfirm": "Kapatmayı onayla",
+    "success": "{{count}} kasa başarıyla kapatıldı.",
+    "partialSuccess": "{{success}} kapatıldı, {{failed}} başarısız."
   },
   "filter": {
     "showDecommissioned": "Kapatılmış kasaları göster",
@@ -40,7 +58,11 @@
     "gridView": "Kartlar",
     "export": "Dışa aktar",
     "restore": "Geri yükle",
-    "refresh": "Yenile"
+    "refresh": "Yenile",
+    "quickActions": "İşlemler",
+    "openRegister": "Kasayı aç",
+    "closeRegister": "Kasayı kapat",
+    "viewReceipts": "Fişleri göster"
   },
   "statusBadge": {
     "open": {
@@ -193,7 +215,10 @@
     "deviceInfoTitle": "Cihaz",
     "deviceModel": "Model",
     "deviceOs": "İşletim sistemi",
-    "deviceApp": "Uygulama sürümü"
+    "deviceApp": "Uygulama sürümü",
+    "offlineQueueTransactions": "{{count}} işlem",
+    "noCashier": "Kimse yok",
+    "deviceUnknown": "Bilinmiyor"
   },
   "hardDelete": {
     "action": "Hard delete (test)",
@@ -226,6 +251,8 @@
   "errors": {
     "loadFailed": "Kasa listesi yüklenemedi."
   },
+  "moduleUnavailable": "Kasa yönetimi şu anda kullanılamıyor",
+  "moduleUnavailableDescription": "Kiracınız için geçerli bir lisans tanımlı değil veya erişim kilitli. Lütfen yöneticinizle iletişime geçin.",
   "export": {
     "success": "Kasa listesi dışa aktarıldı."
   },

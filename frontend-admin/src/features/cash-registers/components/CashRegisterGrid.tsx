@@ -24,6 +24,8 @@ import {
     isDecommissionedRegister,
     rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import styles from './CashRegisterGrid.module.css';
 
 export type CashRegisterGridProps = {
@@ -74,6 +76,7 @@ export function CashRegisterGrid({
     onDecommission,
 }: CashRegisterGridProps) {
     const { t, formatLocale } = useI18n();
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
 
     const emptyDescription =
         totalRegisterCount === 0
@@ -182,16 +185,18 @@ export function CashRegisterGrid({
                     );
                 }
 
-                actions.push(
-                    <Tooltip title={t('cashRegisters.actions.specialReceipts')} key="special">
-                        <Button
-                            type="text"
-                            icon={<FileProtectOutlined />}
-                            aria-label={t('cashRegisters.actions.specialReceipts')}
-                            href="/rksv/sonderbelege?focus=schlussbeleg"
-                        />
-                    </Tooltip>,
-                );
+                if (canOpenSonderbelege) {
+                    actions.push(
+                        <Tooltip title={t('cashRegisters.actions.specialReceipts')} key="special">
+                            <Button
+                                type="text"
+                                icon={<FileProtectOutlined />}
+                                aria-label={t('cashRegisters.actions.specialReceipts')}
+                                href="/rksv/sonderbelege?focus=schlussbeleg"
+                            />
+                        </Tooltip>,
+                    );
+                }
 
                 return (
                     <Col xs={24} sm={12} xl={8} xxl={6} key={register.id ?? register.registerNumber}>

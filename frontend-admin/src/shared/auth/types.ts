@@ -3,6 +3,10 @@
  * Permissions match JWT effective set (IRolePermissionResolver).
  * Tenant/branch: optional; populated when the API resolves context (see mapMeResponseToAuthUser).
  */
+import type { User } from '@/types/auth';
+
+export type { User };
+
 export interface AuthUser {
   id: string | null;
   userName?: string | null;
@@ -16,6 +20,7 @@ export interface AuthUser {
   /** Permission strings (resource.action). Same effective set as JWT permission claims. */
   permissions?: string[];
   employeeNumber?: string | null;
+  phoneNumber?: string | null;
   taxNumber?: string | null;
   notes?: string | null;
   isActive?: boolean;
@@ -30,7 +35,7 @@ export interface AuthUser {
   createdAt?: string | null;
   lastLoginAt?: string | null;
   /** When true, user must change password before using the app (admin reset). */
-  mustChangePasswordOnNextLogin?: boolean;
+  mustChangePasswordOnNextLogin?: User['mustChangePasswordOnNextLogin'];
   /** Tenant idle session policy from GET /api/Auth/me. */
   sessionPolicy?: {
     sessionTimeoutMinutes: number;

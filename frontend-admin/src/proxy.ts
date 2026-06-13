@@ -3,11 +3,11 @@ import { NextResponse, NextRequest } from 'next/server';
 /** Same name as client `authStorage` access key so HttpOnly migration stays aligned. */
 const ACCESS_TOKEN_COOKIE = 'rk_admin_access_token';
 
-const PUBLIC_PATHS = new Set(['/login', '/403', '/health', '/impersonate-callback']);
+const PUBLIC_PATHS = new Set(['/login', '/health', '/impersonate-callback', '/force-password-change']);
 
-const PROTECTED_PREFIXES = ['/admin/', '/dashboard/', '/rksv/', '/settings/'] as const;
+const PROTECTED_PREFIXES = ['/admin/', '/dashboard/', '/rksv/', '/settings/', '/403'] as const;
 
-const PROTECTED_EXACT = new Set(['/admin', '/dashboard', '/rksv', '/settings']);
+const PROTECTED_EXACT = new Set(['/admin', '/dashboard', '/rksv', '/settings', '/403']);
 
 /** Clock skew leeway (seconds) when comparing JWT `exp` without signature verification. */
 const EXP_LEEWAY_SEC = 60;

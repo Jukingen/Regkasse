@@ -5,12 +5,18 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Auth;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Helpers;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Security;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.DTOs;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Middleware;
+using KasseAPI_Final.Services.Email;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Validators;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
@@ -33,6 +39,11 @@ namespace KasseAPI_Final.Controllers
         private readonly ILogger<UserManagementController> _logger;
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
         private readonly ICurrentTenantAccessor _tenantAccessor;
+        private readonly IApiMessageLocalizer _messages;
+        private readonly II18nErrorService _i18nErrorService;
+        private readonly PasswordErrorTranslator _passwordErrors;
+        private readonly IUserUsernameHistoryService _usernameHistory;
+        private readonly IUsernameChangeEmailService _usernameChangeEmail;
 
         public UserManagementController(
             AppDbContext context,
@@ -45,7 +56,12 @@ namespace KasseAPI_Final.Controllers
             IUserPermissionOverrideService permissionOverrideService,
             ILogger<UserManagementController> logger,
             IUserTenantMembershipProvisioner tenantMembershipProvisioner,
-            ICurrentTenantAccessor tenantAccessor)
+            ICurrentTenantAccessor tenantAccessor,
+            IApiMessageLocalizer messages,
+            II18nErrorService i18nErrorService,
+            PasswordErrorTranslator passwordErrors,
+            IUserUsernameHistoryService usernameHistory,
+            IUsernameChangeEmailService usernameChangeEmail)
         {
             _context = context;
             _userManager = userManager;
@@ -58,6 +74,11 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
             _tenantMembershipProvisioner = tenantMembershipProvisioner;
             _tenantAccessor = tenantAccessor;
+            _messages = messages;
+            _i18nErrorService = i18nErrorService;
+            _passwordErrors = passwordErrors;
+            _usernameHistory = usernameHistory;
+            _usernameChangeEmail = usernameChangeEmail;
         }
 
         private string? GetCurrentUserId() => User.GetActorUserId();
@@ -118,7 +139,7 @@ namespace KasseAPI_Final.Controllers
         // PUT: api/usermanagement/me/password — change own password (any authenticated user; self-service, no resource permission)
         [HttpPut("me/password")]
         [Authorize]
-        public async Task<IActionResult> ChangeOwnPassword([FromBody] ChangePasswordRequest request)
+        public async Task<IActionResult> ChangeMyPassword([FromBody] ChangePasswordRequest request)
         {
             try
             {
@@ -136,34 +157,248 @@ namespace KasseAPI_Final.Controllers
                 var user = await _userManager.FindByIdAsync(currentUserId);
                 if (user == null || !user.IsActive)
                 {
-                    return NotFound(new { message = "User not found" });
+                    return NotFound();
                 }
 
-                var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+                var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.CurrentPassword);
+                if (!isPasswordValid)
+                {
+                    return BadRequest(new PasswordChangeResponse
+                    {
+                        Success = false,
+                        Message = _i18nErrorService.GetMessage("CurrentPasswordIncorrect"),
+                    });
+                }
+
+                var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var result = await _userManager.ResetPasswordAsync(user, resetToken, request.NewPassword);
                 if (!result.Succeeded)
                 {
-                    return BadRequest(new { message = "Failed to change password", errors = result.Errors });
+                    var validationResponse = _passwordErrors.GetValidationResponse(result);
+                    return BadRequest(new PasswordChangeResponse
+                    {
+                        Success = false,
+                        Message = validationResponse.Message,
+                        ErrorCodes = validationResponse.ErrorCodes,
+                        Requirements = GetPasswordRequirements(),
+                    });
                 }
 
-                if (user.MustChangePasswordOnNextLogin)
+                user.MustChangePasswordOnNextLogin = false;
+                user.UpdatedAt = DateTime.UtcNow;
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
                 {
-                    user.MustChangePasswordOnNextLogin = false;
-                    user.UpdatedAt = DateTime.UtcNow;
-                    await _userManager.UpdateAsync(user);
+                    _logger.LogWarning(
+                        "Password changed but MustChangePasswordOnNextLogin clear failed for user {UserId}: {Errors}",
+                        currentUserId,
+                        string.Join("; ", updateResult.Errors.Select(e => e.Description)));
                 }
+
+                var stampResult = await _userManager.UpdateSecurityStampAsync(user);
+                if (!stampResult.Succeeded)
+                {
+                    _logger.LogWarning(
+                        "Security stamp update failed after own password change for user {UserId}: {Errors}",
+                        currentUserId,
+                        string.Join("; ", stampResult.Errors.Select(e => e.Description)));
+                }
+
+                await _sessionInvalidation.InvalidateSessionsForUserAsync(currentUserId);
 
                 var actorRole = GetCurrentUserRole();
                 await TryLogUserLifecycleAsync(
                     AuditEventType.ChangeOwnPassword, currentUserId, actorRole, currentUserId,
-                    null, null, AuditLogStatus.Success, "User changed own password");
+                    null, null, AuditLogStatus.Success, $"User {user.Email} changed password");
 
-                return Ok(new { message = "Password changed successfully" });
+                return Ok(new PasswordChangeResponse
+                {
+                    Success = true,
+                    Message = _i18nErrorService.GetMessage("PasswordChangedSuccess"),
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error changing own password for user {UserId}", GetCurrentUserId());
                 return StatusCode(500, new { message = "Internal server error" });
             }
+        }
+
+        private static PasswordRequirements GetPasswordRequirements() => new()
+        {
+            MinLength = 8,
+            RequireDigit = true,
+            RequireLowercase = true,
+            RequireUppercase = true,
+            RequireNonAlphanumeric = true,
+        };
+
+        /// <summary>GET api/UserManagement/me/username-change-policy — cooldown status for self-service username change.</summary>
+        [HttpGet("me/username-change-policy")]
+        public async Task<ActionResult<UsernameChangePolicyDto>> GetMyUsernameChangePolicy(
+            CancellationToken cancellationToken = default)
+        {
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            var user = await _userManager.FindByIdAsync(currentUserId).ConfigureAwait(false);
+            if (user == null || !user.IsActive)
+                return NotFound(new { message = "User not found" });
+
+            var bypassRestrictions = UsernameChangeRestrictions.IsBypassedForActor(GetCurrentUserRole());
+            var status = await UsernameChangeRateLimit
+                .GetStatusAsync(
+                    _userManager,
+                    user,
+                    bypassCooldown: bypassRestrictions,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            return Ok(new UsernameChangePolicyDto
+            {
+                CooldownDays = status.CooldownDays,
+                CanChange = status.CanChange,
+                RestrictionsApply = !bypassRestrictions,
+                LastChangedAtUtc = status.LastChangedAtUtc,
+                NextChangeAllowedAtUtc = status.NextChangeAllowedAtUtc,
+            });
+        }
+
+        /// <summary>PATCH api/UserManagement/me/username — self-service login username change (audited; invalidates sessions).</summary>
+        [HttpPatch("me/username")]
+        public async Task<IActionResult> ChangeMyUsername(
+            [FromBody] UpdateUsernameRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            if (request == null)
+                return BadRequest(new { message = "Request body is required.", code = "VALIDATION_ERROR" });
+
+            var currentUserId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            var user = await _userManager.FindByIdAsync(currentUserId).ConfigureAwait(false);
+            if (user == null || !user.IsActive)
+                return NotFound(new { message = "User not found" });
+
+            var newUsername = request.NewUsername.Trim();
+            var bypassRestrictions = UsernameChangeRestrictions.IsBypassedForActor(GetCurrentUserRole());
+
+            var validationErrors = UsernameValidation.ValidateNewUsername(
+                newUsername,
+                bypassReservedUsername: bypassRestrictions);
+            if (validationErrors != null)
+                return BadRequest(new { message = "Validation failed.", code = "VALIDATION_ERROR", errors = validationErrors });
+
+            var oldUsername = user.UserName;
+            if (string.Equals(oldUsername, newUsername, StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(new
+                {
+                    oldUsername,
+                    newUsername = user.UserName ?? newUsername,
+                    message = "Username unchanged.",
+                });
+            }
+
+            var rateLimitError = await UsernameChangeRateLimit
+                .GetRateLimitErrorAsync(_userManager, user, bypassCooldown: bypassRestrictions, cancellationToken)
+                .ConfigureAwait(false);
+            if (rateLimitError != null)
+                return BadRequest(new { message = rateLimitError, code = "BUSINESS_RULE" });
+
+            var newAccountError = UsernameChangePolicy.GetNewAccountRestrictionError(user, bypassRestrictions);
+            if (newAccountError != null)
+                return BadRequest(new { message = newAccountError, code = "BUSINESS_RULE" });
+
+            if (await _uniquenessValidation.IsUserNameTakenByOtherUserAsync(newUsername, user.Id).ConfigureAwait(false))
+                return Conflict(new { message = UsernameConflictMessages.Detail(newUsername), code = "USERNAME_CONFLICT" });
+
+            var setNameResult = await _userManager.SetUserNameAsync(user, newUsername).ConfigureAwait(false);
+            if (!setNameResult.Succeeded)
+            {
+                return BadRequest(new
+                {
+                    message = "Username update failed",
+                    code = "VALIDATION_ERROR",
+                    errors = setNameResult.Errors.Select(e => e.Description),
+                });
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+            var updateResult = await _userManager.UpdateAsync(user).ConfigureAwait(false);
+            if (!updateResult.Succeeded)
+            {
+                return BadRequest(new
+                {
+                    message = "Username update failed",
+                    code = "VALIDATION_ERROR",
+                    errors = updateResult.Errors.Select(e => e.Description),
+                });
+            }
+
+            var actorRole = GetCurrentUserRole();
+            var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
+            var tenantId = _tenantAccessor.TenantId;
+
+            await _auditLogService.LogUserLifecycleAsync(
+                AuditEventType.UserNameChanged,
+                currentUserId,
+                actorRole,
+                currentUserId,
+                tenantId,
+                reason,
+                null,
+                AuditLogStatus.Success,
+                description: $"Username changed from '{oldUsername}' to '{newUsername}'",
+                oldValues: new { UserName = oldUsername },
+                newValues: new { UserName = newUsername }).ConfigureAwait(false);
+
+            var stampResult = await _userManager.UpdateSecurityStampAsync(user).ConfigureAwait(false);
+            if (!stampResult.Succeeded)
+            {
+                _logger.LogWarning(
+                    "Security stamp update failed after self-service username change for user {UserId}",
+                    currentUserId);
+            }
+
+            await _sessionInvalidation.InvalidateSessionsForUserAsync(currentUserId, cancellationToken).ConfigureAwait(false);
+
+            await _usernameHistory.RecordChangeAsync(
+                currentUserId,
+                oldUsername,
+                newUsername,
+                currentUserId,
+                reason,
+                cancellationToken).ConfigureAwait(false);
+
+            await UsernameChangeRateLimit.RecordChangeAsync(_userManager, user, cancellationToken).ConfigureAwait(false);
+            await TryNotifyOwnUsernameChangedAsync(user, oldUsername, newUsername).ConfigureAwait(false);
+
+            return Ok(new
+            {
+                oldUsername,
+                newUsername = user.UserName ?? newUsername,
+                message = "Username updated successfully. Please sign in again.",
+            });
+        }
+
+        private async Task TryNotifyOwnUsernameChangedAsync(
+            ApplicationUser user,
+            string? oldUsername,
+            string newUsername)
+        {
+            if (string.IsNullOrWhiteSpace(user.Email))
+                return;
+
+            await _usernameChangeEmail.TrySendUsernameChangedAsync(
+                new UsernameChangedEmailRequest(
+                    user.Email.Trim(),
+                    oldUsername ?? string.Empty,
+                    newUsername,
+                    user.Email.Trim(),
+                    DateTime.UtcNow)).ConfigureAwait(false);
         }
 
         // GET: api/usermanagement — birleşik liste: query + role + isActive + page + pageSize
@@ -594,7 +829,7 @@ namespace KasseAPI_Final.Controllers
                 var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
                 if (!result.Succeeded)
                 {
-                    return BadRequest(new { message = "Failed to change password", errors = result.Errors });
+                    return BadRequest(_passwordErrors.BuildPasswordValidationBadRequest(result.Errors));
                 }
 
                 var actorRole = GetCurrentUserRole();
@@ -681,9 +916,14 @@ namespace KasseAPI_Final.Controllers
                 var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
                 if (!result.Succeeded)
                 {
-                    var descriptions = result.Errors.Select(e => e.Description).ToArray();
-                    var firstMessage = descriptions.Length > 0 ? descriptions[0] : "Password does not meet requirements.";
-                    return BadRequest(new { message = firstMessage, code = "PASSWORD_RESET_FAILED", errors = new { NewPassword = descriptions } });
+                    var validation = _passwordErrors.GetValidationResponse(result);
+                    return BadRequest(new
+                    {
+                        message = validation.Message,
+                        code = "PASSWORD_RESET_FAILED",
+                        errorCodes = validation.ErrorCodes,
+                        errors = new { NewPassword = result.Errors.Select(e => _passwordErrors.TranslateError(e)).ToArray() },
+                    });
                 }
 
                 if (!string.IsNullOrEmpty(currentUserId))
@@ -694,7 +934,7 @@ namespace KasseAPI_Final.Controllers
                 }
 
                 await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
-                return Ok(new { message = "Password reset successfully" });
+                return Ok(new { message = _messages.Get(ApiMessageKeys.PasswordResetSuccess) });
             }
             catch (Exception ex)
             {

@@ -3,7 +3,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
-import { ShopOutlined, SwapOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
 import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
@@ -143,19 +142,14 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
         >
             <span className="cash-register-quick-switch-trigger-wrap">
                 <Button
-                    type="text"
-                    className="cash-register-quick-switch-trigger"
-                    icon={<ShopOutlined />}
+                    type="default"
+                    size="small"
+                    className="admin-header-tool-btn cash-register-quick-switch-trigger"
                     loading={isLoading}
                     aria-label={ariaLabel}
                     data-testid="admin-header-cash-register-quick-switch"
                 >
-                    {!isMobile ? (
-                        <>
-                            <span className="cash-register-quick-switch-label">{buttonLabel}</span>
-                            <SwapOutlined aria-hidden />
-                        </>
-                    ) : null}
+                    <span className="cash-register-quick-switch-label">{buttonLabel}</span>
                 </Button>
             </span>
         </Dropdown>

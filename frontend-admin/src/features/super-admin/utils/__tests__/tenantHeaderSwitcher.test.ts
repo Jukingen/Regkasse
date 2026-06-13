@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
 
 import {
+    canUseHeaderTenantSwitch,
     filterTenantsForHeaderSearch,
     formatTenantDisplay,
     getTenantHeaderDetailLines,
@@ -200,5 +201,12 @@ describe('tenantHeaderSwitcher', () => {
         );
         expect(lines.adminLine).toBeNull();
         expect(tenantHeaderShowsNoAdminWarning(baseRow({ ownerAdminEmail: null }))).toBe(true);
+    });
+
+    it('allows header tenant switch only for SuperAdmin', () => {
+        expect(canUseHeaderTenantSwitch('SuperAdmin')).toBe(true);
+        expect(canUseHeaderTenantSwitch('Manager')).toBe(false);
+        expect(canUseHeaderTenantSwitch('Cashier')).toBe(false);
+        expect(canUseHeaderTenantSwitch(null)).toBe(false);
     });
 });

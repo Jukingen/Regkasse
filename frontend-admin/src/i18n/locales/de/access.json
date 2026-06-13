@@ -1,0 +1,31 @@
+{
+  "hub": {
+    "pageTitle": "Zugriff & Rollen",
+    "intro": "Benutzer, Rollen und Berechtigungen zentral verwalten. Systemrollen sind schreibgeschützt; benutzerdefinierte Rollen können im Berechtigungskatalog angepasst werden.",
+    "cardUsersTitle": "Benutzer",
+    "cardUsersDescription": "Benutzer anlegen, Rollen zuweisen, Passwort zurücksetzen und Konten deaktivieren.",
+    "cardRolesTitle": "Rollen & Berechtigungen",
+    "cardRolesDescription": "Custom-Rollen erstellen und Berechtigungen pro Rolle pflegen.",
+    "cardMatrixTitle": "Berechtigungsübersicht",
+    "cardMatrixDescription": "Rollen, UI-Zugang (POS/Admin) und Berechtigungsgruppen auf einen Blick.",
+    "cardAuditTitle": "Audit-Protokoll",
+    "cardAuditDescription": "Sicherheitsrelevante Änderungen nachvollziehen (Benutzer, Rollen, Berechtigungen).",
+    "accessDeniedTitle": "Kein Zugriff",
+    "accessDeniedDescription": "Sie benötigen mindestens die Berechtigung Benutzer anzeigen (user.view)."
+  },
+  "roles": {
+    "pageTitle": "Rollen & Berechtigungen"
+  },
+  "matrix": {
+    "pageTitle": "Berechtigungsübersicht",
+    "intro": "Übersicht aller Rollen im Mandanten. Systemrollen werden vom Produkt vorgegeben und sind nicht editierbar.",
+    "editHint": "Bearbeiten:",
+    "loadErrorTitle": "Rollenübersicht konnte nicht geladen werden.",
+    "columnRole": "Rolle",
+    "columnUsers": "Benutzer",
+    "columnPosAdmin": "POS / Admin",
+    "columnPermissionCount": "Berechtigungen",
+    "columnGroups": "Gruppen",
+    "systemRoleTag": "System"
+  }
+}

@@ -27,6 +27,7 @@ public static class ClientAppPolicy
     {
         Roles.SuperAdmin,
         Roles.Manager,
+        Roles.Cashier,
         Roles.Accountant,
         Roles.ReportViewer,
     };

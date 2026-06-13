@@ -1,0 +1,31 @@
+{
+  "hub": {
+    "pageTitle": "Erişim ve roller",
+    "intro": "Kullanıcı, rol ve izinleri tek yerden yönetin. Sistem rolleri salt okunurdur; özel roller izin kataloğunda düzenlenebilir.",
+    "cardUsersTitle": "Kullanıcılar",
+    "cardUsersDescription": "Kullanıcı oluşturma, rol atama, şifre sıfırlama ve hesap devre dışı bırakma.",
+    "cardRolesTitle": "Roller ve izinler",
+    "cardRolesDescription": "Özel rol oluşturma ve rol başına izin yönetimi.",
+    "cardMatrixTitle": "İzin özeti",
+    "cardMatrixDescription": "Roller, UI erişimi (POS/Admin) ve izin gruplarına genel bakış.",
+    "cardAuditTitle": "Denetim günlüğü",
+    "cardAuditDescription": "Güvenlikle ilgili değişiklikleri izleyin (kullanıcı, rol, izin).",
+    "accessDeniedTitle": "Erişim yok",
+    "accessDeniedDescription": "Bu alan için en az user.view izni gerekir."
+  },
+  "roles": {
+    "pageTitle": "Roller ve izinler"
+  },
+  "matrix": {
+    "pageTitle": "İzin özeti",
+    "intro": "Kiracıdaki tüm rollerin özeti. Sistem rolleri ürün tarafından tanımlanır ve düzenlenemez.",
+    "editHint": "Düzenle:",
+    "loadErrorTitle": "Rol özeti yüklenemedi.",
+    "columnRole": "Rol",
+    "columnUsers": "Kullanıcı",
+    "columnPosAdmin": "POS / Admin",
+    "columnPermissionCount": "İzinler",
+    "columnGroups": "Gruplar",
+    "systemRoleTag": "Sistem"
+  }
+}

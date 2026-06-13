@@ -1,6 +1,7 @@
 'use client';
 
-import { Alert, List, Typography } from 'antd';
+import { Alert, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import type { CashRegister } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
 import {

@@ -6,10 +6,12 @@
  * Empty array = route requires at least one permission (no specific permission).
  * Fail-closed: no permissions in token → deny unless migration flag is set.
  */
-import { AppPermissions, PERMISSIONS } from './permissions';
+import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from './permissions';
 
 export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
-  '/dashboard': PERMISSIONS.SETTINGS_VIEW,
+  '/dashboard': ANY_AUTHENTICATED_PERMISSION,
+  '/403': ANY_AUTHENTICATED_PERMISSION,
+  '/profile': ANY_AUTHENTICATED_PERMISSION,
   '/products': PERMISSIONS.PRODUCT_VIEW,
   '/pricing-rules': PERMISSIONS.PRODUCT_VIEW,
   '/categories': PERMISSIONS.CATEGORY_VIEW,
@@ -36,13 +38,16 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/reports': PERMISSIONS.REPORT_VIEW,
   '/admin/reports/user-activity': PERMISSIONS.REPORT_VIEW,
   '/tables': PERMISSIONS.TABLE_VIEW,
-  '/kassenverwaltung': AppPermissions.CashRegisterView,
+  '/kassenverwaltung': AppPermissions.CashRegisterManage,
   '/shifts': PERMISSIONS.SHIFT_VIEW,
   '/tagesabschluss': PERMISSIONS.TSE_SIGN,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
   '/admin/audit/fiscal-exports': PERMISSIONS.AUDIT_VIEW,
   '/users': PERMISSIONS.USER_VIEW,
   '/admin/users': PERMISSIONS.USER_VIEW,
+  '/admin/access': PERMISSIONS.USER_VIEW,
+  '/admin/access/roles': PERMISSIONS.ROLE_VIEW,
+  '/admin/access/matrix': PERMISSIONS.ROLE_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/settings/company': PERMISSIONS.SETTINGS_VIEW,
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
@@ -62,7 +67,6 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/receipts': PERMISSIONS.SALE_VIEW,
   '/operations-center': [
     PERMISSIONS.SALE_VIEW,
-    PERMISSIONS.REPORT_VIEW,
     PERMISSIONS.TSE_SIGN,
     PERMISSIONS.RECEIPT_REPRINT,
     PERMISSIONS.REPORT_EXPORT,

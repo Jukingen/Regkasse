@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { List, Typography } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+import { Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { listAllAdminUsers } from '@/features/users/api/users';
 import { formatDateTime } from '@/i18n/formatting';
 import { useI18n } from '@/i18n/I18nProvider';
 import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 
@@ -14,9 +16,10 @@ type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
 export function RecentUsersWidget({ title, dragHandleProps, onRefresh }: Props) {
     const { formatLocale } = useI18n();
-    const query = useQuery({
+    const query = useAuthorizedQuery({
         queryKey: ['dashboard', 'recent-users'],
         queryFn: () => listAllAdminUsers({ isActive: true }),
+        requiredPermission: PERMISSIONS.USER_VIEW,
         refetchInterval: DASHBOARD_AUTO_REFRESH_MS,
         staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
     });

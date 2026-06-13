@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 
 export interface LicenseActivity {
@@ -28,9 +28,10 @@ export const getLicenseDashboardStats = async (): Promise<LicenseDashboardStats>
 };
 
 export const useLicenseDashboardStats = (options?: { enabled?: boolean }) => {
-    return useQuery({
+    return useAuthorizedQuery({
         queryKey: licenseDashboardStatsQueryKey,
         queryFn: getLicenseDashboardStats,
+        requiredRole: 'SuperAdmin',
         refetchInterval: 60_000,
         enabled: options?.enabled !== false,
     });

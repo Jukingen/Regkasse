@@ -11,6 +11,8 @@ import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBa
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { CashRegisterStatusContextAlert } from '@/features/cash-registers/components/CashRegisterStatusContextAlert';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import { rawRegisterStatus, readDecommissionMeta } from '@/features/cash-registers/utils/registerStatus';
 export type CashRegisterDetailDrawerProps = {
     open: boolean;
@@ -30,6 +32,7 @@ export function CashRegisterDetailDrawer({
     showHardDelete,
 }: CashRegisterDetailDrawerProps) {
     const { t, formatLocale } = useI18n();
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
     const status = register ? rawRegisterStatus(register) : undefined;
     const decommissionMeta = register ? readDecommissionMeta(register) : null;
     const registerNumber = register?.registerNumber?.trim() || FORMAT_EMPTY_DISPLAY;
@@ -194,7 +197,7 @@ export function CashRegisterDetailDrawer({
                     ) : null}
                 </Descriptions>
             ) : null}
-            {register ? (
+            {register && canOpenSonderbelege ? (
                 <>
                     <Divider />
                     <Typography.Title level={5}>{t('cashRegisters.detail.specialReceiptsTitle')}</Typography.Title>

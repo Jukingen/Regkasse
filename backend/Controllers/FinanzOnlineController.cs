@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Localization;
 using KasseAPI_Final.Services.FinanzOnlineIntegration;
+using KasseAPI_Final.Services.Localization;
 using KasseAPI_Final.Tenancy;
 using System.Text.Json;
 using System.ComponentModel.DataAnnotations;
@@ -24,17 +26,20 @@ namespace KasseAPI_Final.Controllers
         private readonly ILogger<FinanzOnlineController> _logger;
         private readonly IFinanzOnlineAdminConnectivityService _adminConnectivity;
         private readonly ISettingsTenantResolver _settingsTenantResolver;
+        private readonly IApiMessageLocalizer _messages;
 
         public FinanzOnlineController(
             AppDbContext context,
             ILogger<FinanzOnlineController> logger,
             IFinanzOnlineAdminConnectivityService adminConnectivity,
-            ISettingsTenantResolver settingsTenantResolver)
+            ISettingsTenantResolver settingsTenantResolver,
+            IApiMessageLocalizer messages)
         {
             _context = context;
             _logger = logger;
             _adminConnectivity = adminConnectivity;
             _settingsTenantResolver = settingsTenantResolver;
+            _messages = messages;
         }
 
         // GET: api/finanzonline/config
@@ -54,7 +59,7 @@ namespace KasseAPI_Final.Controllers
 
                 if (companySettings == null)
                 {
-                    return NotFound(new { message = "Firma ayarları bulunamadı" });
+                    return NotFound(new { message = _messages.Get(ApiMessageKeys.CompanySettingsNotFound) });
                 }
 
                 return Ok(new FinanzOnlineConfigResponse
@@ -71,7 +76,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "FinanzOnline config fetch failed");
-                return StatusCode(500, new { message = "FinanzOnline konfigürasyonu alınamadı" });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.FinanzOnlineConfigFetchError) });
             }
         }
 
@@ -88,7 +93,7 @@ namespace KasseAPI_Final.Controllers
                     .FirstOrDefaultAsync(c => c.TenantId == tenantId, HttpContext?.RequestAborted ?? CancellationToken.None);
                 if (companySettings == null)
                 {
-                    return NotFound(new { message = "Firma ayarları bulunamadı" });
+                    return NotFound(new { message = _messages.Get(ApiMessageKeys.CompanySettingsNotFound) });
                 }
 
                 // Konfigürasyon güncelleme
@@ -118,7 +123,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "FinanzOnline config update failed");
-                return StatusCode(500, new { message = "FinanzOnline konfigürasyonu güncellenemedi" });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.FinanzOnlineConfigUpdateError) });
             }
         }
 
@@ -234,7 +239,7 @@ namespace KasseAPI_Final.Controllers
                 _context.FinanzOnlineSubmissions.Add(submission);
                 await _context.SaveChangesAsync();
 
-                return StatusCode(500, new { message = "Fatura gönderimi başarısız" });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.InvoiceSubmissionFailed) });
             }
         }
 
@@ -271,7 +276,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "FinanzOnline errors fetch failed");
-                return StatusCode(500, new { message = "FinanzOnline hataları alınamadı" });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.FinanzOnlineErrorsFetchError) });
             }
         }
 
@@ -287,7 +292,7 @@ namespace KasseAPI_Final.Controllers
 
                 if (tseDevice == null)
                 {
-                    return BadRequest(new { message = "FinanzOnline etkin değil" });
+                    return BadRequest(new { message = _messages.Get(ApiMessageKeys.FinanzOnlineNotEnabled) });
                 }
 
                 var testSnapshot = await _adminConnectivity.RunTestConnectionAsync(tseDevice, HttpContext.RequestAborted);
@@ -296,7 +301,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "FinanzOnline connection test failed");
-                return StatusCode(500, new { message = "FinanzOnline bağlantı testi başarısız" });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.FinanzOnlineConnectionTestFailed) });
             }
         }
 
@@ -316,7 +321,7 @@ namespace KasseAPI_Final.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving FinanzOnline history for invoice {InvoiceId}", invoiceId);
-                return StatusCode(500, new { message = "Geçmiş alınamadı" });
+                return StatusCode(500, new { message = _messages.Get(ApiMessageKeys.HistoryFetchError) });
             }
         }
 

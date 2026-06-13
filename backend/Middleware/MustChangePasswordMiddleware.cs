@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Localization;
+using KasseAPI_Final.Services.Localization;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Middleware;
@@ -16,15 +18,20 @@ public sealed class MustChangePasswordMiddleware
         "/api/auth/refresh",
         "/api/auth/logout",
         "/api/auth/me",
+        "/api/health",
+        "/swagger",
         "/api/usermanagement/me/password",
         "/api/UserManagement/me/password",
     };
+
+    /// <summary>Test hook and documentation for exempt API paths while password change is pending.</summary>
+    public static bool IsExemptPath(string path) => IsAllowedPath(path);
 
     private readonly RequestDelegate _next;
 
     public MustChangePasswordMiddleware(RequestDelegate next) => _next = next;
 
-    public async Task InvokeAsync(HttpContext context, AppDbContext db)
+    public async Task InvokeAsync(HttpContext context, AppDbContext db, IApiMessageLocalizer messages)
     {
         if (context.User.Identity?.IsAuthenticated == true)
         {
@@ -46,7 +53,7 @@ public sealed class MustChangePasswordMiddleware
                         context.Response.StatusCode = StatusCodes.Status403Forbidden;
                         await context.Response.WriteAsJsonAsync(new
                         {
-                            message = "Password change required before accessing this resource.",
+                            message = messages.Get(ApiMessageKeys.PasswordChangeRequired),
                             code = "PASSWORD_CHANGE_REQUIRED",
                         }).ConfigureAwait(false);
                         return;

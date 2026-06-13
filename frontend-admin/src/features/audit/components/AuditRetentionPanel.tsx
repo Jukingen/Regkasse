@@ -2,7 +2,8 @@
 
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, DatePicker, Form, Input, List, Space, Typography } from 'antd';
+import { Alert, Button, Card, DatePicker, Form, Input, Space, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import dayjs from 'dayjs';
 
 import {

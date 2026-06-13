@@ -13,10 +13,20 @@ describe('getUserFacingApiErrorMessage', () => {
     clearApiErrorCodeRegistryForTests();
   });
 
-  it('maps 401 in loginContext to loginInvalidCredentials', () => {
+  it('maps 401 in loginContext to invalidCredentials', () => {
     expect(
       getUserFacingApiErrorMessage(t, { response: { status: 401 } }, { logContext: 'x', loginContext: true }),
-    ).toBe('common.auth.loginInvalidCredentials');
+    ).toBe('common.auth.invalidCredentials');
+  });
+
+  it('prefers backend message on 401 in loginContext when present', () => {
+    expect(
+      getUserFacingApiErrorMessage(
+        t,
+        { response: { status: 401, data: { code: 'INVALID_PASSWORD', message: 'Ungültiges Passwort' } } },
+        { logContext: 'x', loginContext: true },
+      ),
+    ).toBe('Ungültiges Passwort');
   });
 
   it('maps 401 without loginContext to http401', () => {

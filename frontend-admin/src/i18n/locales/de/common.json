@@ -64,10 +64,14 @@
   },
   "system": {
     "status403": "403",
+    "forbidden403Title": "Zugriff verweigert",
     "forbidden403Subtitle": "Sie sind nicht berechtigt, diese Seite aufzurufen.",
+    "forbidden403Hint": "Nutzen Sie die Seitenleiste, um zu einem Bereich zu wechseln, für den Sie berechtigt sind.",
     "status404": "404",
     "notFound404Subtitle": "Die angeforderte Seite existiert nicht.",
-    "backToDashboard": "Zur Übersicht"
+    "notFound404Hint": "Prüfen Sie die Adresse oder wählen Sie einen Menüpunkt in der Seitenleiste.",
+    "backToDashboard": "Zur Übersicht",
+    "goBack": "Zurück"
   },
   "dataList": {
     "errorLoadTitle": "Fehler beim Laden der Daten",
@@ -252,8 +256,11 @@
     },
     "logoutSuccess": "Abmeldung erfolgreich.",
     "loginSuccess": "Anmeldung erfolgreich",
+    "passwordChangedLoginPrompt": "Passwort aktualisiert. Bitte melden Sie sich mit Ihrem neuen Passwort an.",
+    "invalidCredentials": "Ungültiger Benutzername oder Passwort",
+    "loginFailed": "Anmeldung fehlgeschlagen",
     "loginFailedWithStatus": "Anmeldung fehlgeschlagen ({{status}}): {{details}}",
-    "loginInvalidCredentials": "Benutzername oder Passwort ist ungueltig.",
+    "loginInvalidCredentials": "Ungültiger Benutzername oder Passwort",
     "loginFailedGeneric": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
     "forgotUsernameLink": "Benutzername vergessen?",
     "forgotUsername": {

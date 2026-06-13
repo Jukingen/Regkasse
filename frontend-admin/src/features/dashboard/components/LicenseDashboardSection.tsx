@@ -10,7 +10,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Alert, Button, Card, Col, Row, Segmented, Space, Spin, Typography } from 'antd';
 import { DownloadOutlined, KeyOutlined, PlusOutlined } from '@ant-design/icons';
-import { useQuery } from '@tanstack/react-query';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek';
 import utc from 'dayjs/plugin/utc';
@@ -59,14 +59,14 @@ export function LicenseDashboardSection() {
     const [exportingCsv, setExportingCsv] = useState(false);
     const lookbackDays = 30;
 
-    const seriesQuery = useQuery({
+    const seriesQuery = useAuthorizedQuery({
         queryKey: licenseDashboardQueryKeys.series(granularity, lookbackDays),
         queryFn: () =>
             getLicenseDashboardActivationSeries({
                 granularity,
                 lookbackDays,
             }),
-        enabled: isSuperAdminUser,
+        requiredRole: 'SuperAdmin',
     });
 
     const chartData = useMemo(() => {

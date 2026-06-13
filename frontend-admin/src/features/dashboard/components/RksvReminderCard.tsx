@@ -7,9 +7,12 @@ import {
     WarningOutlined,
 } from '@ant-design/icons';
 import { useRksvReminderOverview } from '@/features/rksv-operations/hooks/useRksvReminderOverview';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 
 export function RksvReminderCard() {
     const { data, isLoading, error, refetch, isError, isFetching } = useRksvReminderOverview();
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
 
     if (isLoading) {
         return (
@@ -26,7 +29,7 @@ export function RksvReminderCard() {
         );
     }
 
-    const hasLoadError = isError || Boolean(error) || data === null;
+    const hasLoadError = isError || Boolean(error);
     if (hasLoadError) {
         return (
             <Card
@@ -90,9 +93,11 @@ export function RksvReminderCard() {
             extra={
                 <Space>
                     <Button size="small" icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()} />
-                    <Button size="small" type="link" href="/rksv/sonderbelege">
-                        Verwalten
-                    </Button>
+                    {canOpenSonderbelege ? (
+                        <Button size="small" type="link" href={RKSV_SONDERBELEGE_PATH}>
+                            Verwalten
+                        </Button>
+                    ) : null}
                 </Space>
             }
             variant="borderless"

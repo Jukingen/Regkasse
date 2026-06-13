@@ -34,12 +34,15 @@
       "csvPath": "localization/out/frontend-admin.csv",
       "namespaces": [
         "admin-shell",
+        "access",
+        "activityNotifications",
         "common",
         "errors",
         "nav",
         "users",
         "settings",
         "products",
+        "profile",
         "finanzOnlineOutbox",
         "finanzOnlineReconciliation",
         "fiscalExportAudit",
@@ -58,7 +61,14 @@
         "backupDr",
         "customers",
         "invoices",
-        "license"
+        "license",
+        "cardTransactions",
+        "dashboard",
+        "developmentMode",
+        "shifts",
+        "superadmin",
+        "suspiciousAlerts",
+        "tenants"
       ]
     }
   }

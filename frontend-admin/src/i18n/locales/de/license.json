@@ -115,6 +115,20 @@
       "grace": {
         "title": "Mandantenlizenz abgelaufen - Grace-Periode",
         "message": "Ihre Lizenz ist seit {{days}} Tagen abgelaufen. Bitte verlängern Sie die Lizenz in den nächsten {{remaining}} Tagen, um weiterhin Verkäufe durchführen zu können."
+      },
+      "graceWrite": {
+        "title": "Mandantenlizenz – Grace-Periode",
+        "adminDescription": "Ihre Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Sie haben noch {{daysRemaining}} Tage Zeit, um die Lizenz zu verlängern. Danach wird der Mandant gesperrt.",
+        "contactAdminDescription": "Die Mandantenlizenz ist seit {{daysExpired}} Tagen abgelaufen. Bitte wenden Sie sich an Ihren Administrator."
+      },
+      "lockdown": {
+        "title": "Mandantenlizenz abgelaufen – System gesperrt",
+        "adminDescription": "Ihre Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Das System ist jetzt im Lockdown-Modus.",
+        "contactAdminDescription": "Der Mandant ist derzeit gesperrt. Bitte wenden Sie sich an Ihren Administrator."
+      },
+      "noLicense": {
+        "title": "Mandantenlizenz fehlt",
+        "adminDescription": "Für diesen Mandanten ist keine Lizenz hinterlegt. Bitte hinterlegen Sie eine Lizenz."
       }
     },
     "deployment": {
@@ -125,6 +139,18 @@
       "grace": {
         "title": "Server-Lizenz abgelaufen - Grace-Periode",
         "message": "Die Server-Lizenz ist seit {{days}} Tagen abgelaufen. Bitte verlängern Sie die Lizenz in den nächsten {{remaining}} Tagen, bevor weitere Schreiboperationen deaktiviert werden."
+      },
+      "graceWrite": {
+        "title": "Deployment-Lizenz – Grace-Periode",
+        "adminDescription": "Die Deployment-Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Sie haben noch {{daysRemaining}} Tage Zeit, bevor Schreiboperationen eingeschränkt werden."
+      },
+      "lockdown": {
+        "title": "Deployment-Lizenz abgelaufen – System im Lockdown",
+        "adminDescription": "Die Deployment-Lizenz ist seit {{daysExpired}} Tagen abgelaufen. Nur Health- und Lizenz-Aktivierungsendpunkte bleiben verfügbar."
+      },
+      "noLicense": {
+        "title": "Deployment-Lizenz fehlt",
+        "adminDescription": "Für dieses Deployment ist keine Lizenz hinterlegt."
       }
     },
     "readOnly": {

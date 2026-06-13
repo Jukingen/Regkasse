@@ -442,6 +442,7 @@ builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
 builder.Services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
 builder.Services.AddScoped<IUsernameChangeEmailService, UsernameChangeEmailService>();
 builder.Services.AddScoped<IForgotUsernameEmailService, ForgotUsernameEmailService>();
+builder.Services.AddScoped<IForgotPasswordEmailService, ForgotPasswordEmailService>();
 builder.Services.AddScoped<IUserUsernameHistoryService, UserUsernameHistoryService>();
 builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
 // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).
@@ -641,6 +642,10 @@ builder.Services.AddScoped<IJahresberichtService, JahresberichtService>();
 builder.Services.AddScoped<IReportSubmissionCompatibilityService, ReportSubmissionCompatibilityService>();
 builder.Services.AddScoped<IReportHistoryService, ReportHistoryService>();
 builder.Services.AddScoped<IUserService, UserService>(); // Kullanıcı servisi eklendi
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.AddScoped<II18nErrorService, I18nErrorService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.Localization.IApiMessageLocalizer, KasseAPI_Final.Services.Localization.ApiMessageLocalizer>();
+builder.Services.AddScoped<KasseAPI_Final.Services.PasswordErrorTranslator>();
 builder.Services.AddScoped<IReceiptService, ReceiptService>();
 // Watermarked receipt reprint PDF (no new TSE signing); routes: GET api/admin/payments/{id}/reprint-pdf and .../reprint.
 builder.Services.AddScoped<IReceiptPdfService, ReceiptPdfService>();
@@ -968,6 +973,7 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseCors("AllowAll");
 
+app.UseMiddleware<KasseAPI_Final.Middleware.LanguageMiddleware>();
 // CorrelationId: propagate from request (X-Correlation-Id) or generate; required for audit traceability
 app.UseMiddleware<KasseAPI_Final.Middleware.CorrelationIdMiddleware>();
 

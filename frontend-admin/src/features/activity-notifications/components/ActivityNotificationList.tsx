@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Empty, List, Spin, Tag } from 'antd';
+import { Button, Empty, Spin, Tag } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 import { CheckOutlined } from '@ant-design/icons';
 
 import type { ActivityDto, ActivitySeverity } from '@/api/manual/activityEvents';

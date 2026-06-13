@@ -10,7 +10,8 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useUserPreferences } from '@/features/user/hooks/useUserPreferences';
 import { applyReducedAnimations } from './applyDocumentTheme';
 import { resolveFormatLocaleForDateFormat } from './formatLocale';
 import { useDensityContext } from './DensityContext';
@@ -30,7 +31,6 @@ import type {
   TimeFormatPreference,
 } from './types';
 import {
-  fetchUserPreferences,
   mapApiToPersonalization,
   mapPersonalizationToApi,
   saveUserPreferences,
@@ -88,15 +88,7 @@ function PersonalizationStateBridge({ children }: { children: ReactNode }) {
     };
   });
 
-  const isAuthenticated =
-    typeof window !== 'undefined' && authStorage.hasToken();
-
-  const remoteQuery = useQuery({
-    queryKey: userPreferencesQueryKey,
-    queryFn: fetchUserPreferences,
-    enabled: isAuthenticated,
-    staleTime: 60_000,
-  });
+  const remoteQuery = useUserPreferences();
 
   const saveMutation = useMutation({
     mutationFn: saveUserPreferences,

@@ -2,7 +2,6 @@
 
 import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
-import { BgColorsOutlined } from '@ant-design/icons';
 import { useMemo } from 'react';
 import { useI18n } from '@/i18n';
 import { usePersonalization } from '@/lib/personalization/PersonalizationProvider';
@@ -25,22 +24,24 @@ export function HeaderThemeQuickSwitch() {
     [setThemeMode, t],
   );
 
-  const ariaLabel = t('settings.personalization.theme.quickSwitchAria');
+  const currentLabel = t(`settings.personalization.theme.${preferences.themeMode}`);
 
   return (
     <Dropdown
       menu={{ items, selectedKeys: [preferences.themeMode] }}
       trigger={['click']}
       placement="bottomRight"
-      classNames={{ root: "admin-header-dropdown" }}
+      classNames={{ root: 'admin-header-dropdown' }}
       getPopupContainer={getAdminHeaderPopupContainer}
     >
       <Button
-        type="text"
-        className="admin-header-icon-btn"
-        aria-label={ariaLabel}
-        icon={<BgColorsOutlined />}
-      />
+        type="default"
+        size="small"
+        className="admin-header-tool-btn"
+        aria-label={t('settings.personalization.theme.quickSwitchAria')}
+      >
+        {currentLabel}
+      </Button>
     </Dropdown>
   );
 }

@@ -70,8 +70,27 @@
     "confirmMismatch": "Passwords do not match.",
     "submit": "Change password",
     "success": "Password has been changed.",
+    "successTitle": "Password changed successfully",
+    "goToLogin": "Go to login",
+    "redirectCountdown": "Redirecting to login in {{seconds}} seconds…",
     "errorFallback": "Password could not be changed.",
-    "requiredBanner": "You must change your password before continuing to use the application."
+    "requiredBanner": "You must change your password before continuing to use the application.",
+    "firstLoginTitle": "Set a new password to continue",
+    "firstLoginHint": "Your account uses a temporary password. Choose a new password, then sign in again.",
+    "forceChangeTitle": "Password change required",
+    "forceChangeAlertTitle": "First login",
+    "forceChangeAlertDescription": "You are required to change your password on first login.",
+    "temporaryPasswordPlaceholder": "Enter your temporary password",
+    "newPasswordPlaceholder": "New password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "requirementsTitle": "Password requirements:",
+    "requirementsHint": "Password must meet all requirements above.",
+    "requirementsNotMet": "Password does not meet all requirements.",
+    "requirementMinLength": "At least 8 characters long",
+    "requirementUppercase": "At least one uppercase letter (A-Z)",
+    "requirementLowercase": "At least one lowercase letter (a-z)",
+    "requirementDigit": "At least one digit (0-9)",
+    "requirementSpecial": "At least one special character (! @ # $ % ^ & *)"
   },
   "form": {
     "general": {

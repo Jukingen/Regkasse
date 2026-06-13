@@ -1,24 +1,19 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { CashRegister } from '@/api/generated/model';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { MonatsbelegStatusDto } from '@/api/generated/model';
+import {
+    cashRegisterByTenantQueryKey,
+    listCashRegistersByTenant,
+} from '@/features/cash-registers/api/cashRegisters';
 import {
     MONATSBELEG_REFETCH_INTERVAL_MS,
     useMonatsbelegStatus,
 } from '@/features/rksv/hooks/useMonatsbeleg';
 
 const FIVE_MIN_MS = MONATSBELEG_REFETCH_INTERVAL_MS;
-
-function normalizeRegisterRows(data: unknown): CashRegister[] {
-    if (Array.isArray(data)) return data as CashRegister[];
-    if (data && typeof data === 'object' && 'registers' in data) {
-        const r = (data as { registers?: CashRegister[] }).registers;
-        if (Array.isArray(r)) return r;
-    }
-    return [];
-}
 
 export type RegisterMonatsbelegRow = {
     register: CashRegister;
@@ -39,17 +34,20 @@ export function useAdminMonatsbelegOverview(enabled = true) {
         isError: registersError,
         error: registersQueryError,
         refetch: refetchRegisters,
-    } = useGetApiCashRegister({
-        query: {
-            enabled,
-            staleTime: FIVE_MIN_MS,
-            refetchInterval: FIVE_MIN_MS,
-            refetchIntervalInBackground: false,
-            refetchOnWindowFocus: false,
-        },
+    } = useQuery({
+        queryKey: cashRegisterByTenantQueryKey(undefined),
+        queryFn: () => listCashRegistersByTenant(),
+        enabled,
+        staleTime: FIVE_MIN_MS,
+        refetchInterval: FIVE_MIN_MS,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: false,
     });
 
-    const registers = useMemo(() => normalizeRegisterRows(registersRaw), [registersRaw]);
+    const registers = useMemo(
+        () => (registersRaw ?? []).filter((register) => register.status !== 5) as CashRegister[],
+        [registersRaw],
+    );
 
     const registerIds = useMemo(
         () =>

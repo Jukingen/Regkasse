@@ -9,6 +9,8 @@ import type { ColumnsType } from 'antd/es/table';
 import type { RegisterMonatsbelegRow } from '@/features/dashboard/hooks/useAdminMonatsbelegOverview';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import type { MissingMonth } from '@/features/dashboard/api/monatsbelegStatus';
 import { customInstance } from '@/lib/axios';
 import { useQueryClient } from '@tanstack/react-query';
@@ -106,6 +108,7 @@ export function MonatsbelegComplianceTable({
     const { hasPermission } = usePermissions();
     const queryClient = useQueryClient();
     const canMonatsbeleg = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
     const demoAutoSuggestEnabled = isDemoAutoSuggestMonatsbelegEnabled();
     const [pastMonthsModalOpen, setPastMonthsModalOpen] = useState(false);
 
@@ -206,7 +209,7 @@ export function MonatsbelegComplianceTable({
                 key: 'action',
                 width: 320,
                 render: (_, record) => {
-                    if (!canMonatsbeleg) {
+                    if (!canMonatsbeleg || !canOpenSonderbelege) {
                         return <Typography.Text type="secondary">Keine Berechtigung</Typography.Text>;
                     }
 
@@ -216,7 +219,7 @@ export function MonatsbelegComplianceTable({
                     return (
                         <Space orientation="vertical" size={8}>
                             <Link
-                                href={`/rksv/sonderbelege?registerId=${encodeURIComponent(record.registerId)}&kind=monatsbeleg`}
+                                href={`${RKSV_SONDERBELEGE_PATH}?registerId=${encodeURIComponent(record.registerId)}&kind=monatsbeleg`}
                             >
                                 <Button type="primary" size="small" disabled={!currentMonthMissing}>
                                     Monatsbeleg für {currentMonthLabel} erstellen
@@ -236,7 +239,7 @@ export function MonatsbelegComplianceTable({
                 },
             },
         ],
-        [canMonatsbeleg, createCurrentMonthMonatsbelegForTest, demoAutoSuggestEnabled],
+        [canMonatsbeleg, canOpenSonderbelege, createCurrentMonthMonatsbelegForTest, demoAutoSuggestEnabled],
     );
 
     return (

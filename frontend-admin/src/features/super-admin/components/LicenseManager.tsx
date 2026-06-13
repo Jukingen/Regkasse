@@ -7,7 +7,9 @@ import type { ColumnsType } from 'antd/es/table';
 import type { AxiosError } from 'axios';
 import dayjs from 'dayjs';
 import Link from 'next/link';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 
 import {
     getLicenseStatusDayText,
@@ -65,9 +67,10 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
     const [renewOpen, setRenewOpen] = useState(false);
     const [consistency, setConsistency] = useState<TenantLicenseConsistency | null>(null);
 
-    const licenseQuery = useQuery({
+    const licenseQuery = useAuthorizedQuery({
         queryKey: ['admin', 'tenant-license', tenant.id],
         queryFn: () => getAdminTenantLicense(tenant.id),
+        requiredRole: 'SuperAdmin',
     });
 
     const invalidate = () => {

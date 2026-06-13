@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { List, Statistic, Tag, Typography } from 'antd';
-import { useQuery } from '@tanstack/react-query';
+import { Statistic, Tag, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
+import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import {
     listAdminCashRegisters,
     cashRegisterListQueryKey,
     type AdminCashRegisterListItem,
 } from '@/features/cash-registers/api/cashRegisters';
 import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
+import { AppPermissions } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 
@@ -22,9 +24,10 @@ function statusTag(status: number) {
 }
 
 export function ActiveCashRegistersWidget({ title, dragHandleProps, onRefresh }: Props) {
-    const query = useQuery({
+    const query = useAuthorizedQuery({
         queryKey: [...cashRegisterListQueryKey, 'dashboard'],
         queryFn: () => listAdminCashRegisters({ page: 1, pageSize: 50 }),
+        requiredPermission: AppPermissions.CashRegisterView,
         refetchInterval: DASHBOARD_AUTO_REFRESH_MS,
         staleTime: DASHBOARD_AUTO_REFRESH_MS / 2,
     });

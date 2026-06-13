@@ -27,13 +27,15 @@ export function ActivityNotificationsBell() {
     return (
         <>
             <Button
-                type="text"
+                type="default"
+                size="small"
+                className="admin-header-tool-btn admin-header-icon-btn"
                 aria-label={t('activityNotifications.bellAria')}
                 onClick={() => setNotificationsOpen(true)}
                 icon={
                     <Badge count={unreadCount} size="small" offset={[-2, 2]}>
                         <BellOutlined
-                            style={{ fontSize: 18, color: unreadLoading ? '#bfbfbf' : undefined }}
+                            style={{ fontSize: 16, color: unreadLoading ? '#bfbfbf' : undefined }}
                         />
                     </Badge>
                 }

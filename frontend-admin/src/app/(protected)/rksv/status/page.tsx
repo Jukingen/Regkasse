@@ -13,10 +13,13 @@ import {
     OPERATOR_RKSV_GENERAL_STATUS_COPY,
 } from '@/shared/operatorTruthCopy';
 import { useI18n } from '@/i18n';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 
 export default function RksvStatusPage() {
     const { t } = useI18n();
+    const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
     const { data: tseStatus, isLoading: tseLoading, error: tseError } = useGetApiTseStatus();
     const { data: foStatus, isLoading: foLoading, error: foError } = useGetApiFinanzOnlineStatus();
 
@@ -80,18 +83,20 @@ export default function RksvStatusPage() {
                 </Typography.Text>
             </Space>
 
-            <Alert
-                type="info"
-                showIcon
-                style={{ marginBottom: 16 }}
-                title="RKSV Sonderbelege"
-                description={
-                    <Typography.Paragraph style={{ marginBottom: 0 }}>
-                        Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg und Endbeleg (Schlussbeleg) finden Sie unter{' '}
-                        <Link href="/rksv/sonderbelege">RKSV Sonderbelege</Link>.
-                    </Typography.Paragraph>
-                }
-            />
+            {canOpenSonderbelege ? (
+                <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    title="RKSV Sonderbelege"
+                    description={
+                        <Typography.Paragraph style={{ marginBottom: 0 }}>
+                            Nullbeleg, Startbeleg, Monatsbeleg, Jahresbeleg und Endbeleg (Schlussbeleg) finden Sie unter{' '}
+                            <Link href="/rksv/sonderbelege">RKSV Sonderbelege</Link>.
+                        </Typography.Paragraph>
+                    }
+                />
+            ) : null}
 
             {tseError && (
                 <Alert

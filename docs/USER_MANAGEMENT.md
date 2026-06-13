@@ -52,9 +52,26 @@ Authorization is **permission-first** on the API (`[HasPermission(AppPermissions
 
 ## Routes and UI surfaces
 
+### Access & roles hub (tenant Manager / Super Admin)
+
+Since 2026-06, operational RBAC is grouped under **Verwaltung → Zugriff & Rollen**:
+
+| Route | German (nav) | Notes |
+|-------|--------------|-------|
+| `/admin/access` | Übersicht | Hub landing cards |
+| `/admin/users` | Benutzer | Tenant user list + lifecycle (Manager); Super Admin uses unified view at `/users` → `/admin/users` |
+| `/admin/access/roles` | Rollen & Berechtigungen | Full-page role + permission editor |
+| `/admin/access/matrix` | Berechtigungsübersicht | Read-only matrix |
+
+Technical reference: [`frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`](../frontend-admin/docs/ACCESS_AND_ROLES_HUB.md).
+
+Admin JWT/`/me` permissions are filtered for FA via `AdminAppPermissionProfile` (Cashier admin whitelist; Manager without POS-terminal keys). Menu visibility contract: `npm run test:contract` in `frontend-admin`.
+
+### Legacy / other surfaces
+
 | Surface | Route | Component |
 |---------|-------|-----------|
-| Combined users page | `/users` | `UnifiedAdminUsersView`, `UserTenantCreatePanel` |
+| Combined users page | `/users` or `/admin/users` | `UnifiedAdminUsersView` (Super Admin), tenant list (Manager) |
 | Tenant detail users | `/admin/tenants/{tenantId}` → Benutzer | `TenantUsersTabCore`, `TenantDetailUsersTab` |
 | Create user modal | (modal) | `CreateUserModal` — form + one-time password modal |
 | Add existing user | (modal, tenant detail) | `AddExistingUserModal` |

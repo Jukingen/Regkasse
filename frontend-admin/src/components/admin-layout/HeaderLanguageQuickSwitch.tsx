@@ -2,12 +2,12 @@
 
 /**
  * Top-bar UI language: `setTextLocale` → `setStoredLanguage` (`app_language`).
- * Option labels use fixed endonyms (Deutsch / English / Türkçe). Does not change formal report content resolution.
+ * Shows only the active locale code (de / en / tr) — no visible title or globe icon.
  */
 import { useMemo } from 'react';
 import { Button, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
-import { CheckOutlined, GlobalOutlined } from '@ant-design/icons';
+import { CheckOutlined } from '@ant-design/icons';
 import { useI18n, type TextLocale } from '@/i18n';
 import { getAdminHeaderPopupContainer } from '@/shared/layout/adminHeaderDropdown';
 
@@ -43,34 +43,27 @@ export function HeaderLanguageQuickSwitch() {
     setTextLocale(key as TextLocale);
   };
 
-  const ariaLabel = t('adminShell.header.languageSelectAria');
-
   return (
-    <fieldset style={{ border: 'none', margin: 0, padding: 0, minWidth: 0, display: 'inline-flex' }}>
-      <legend className="admin-sr-only">{ariaLabel}</legend>
-      <Dropdown
-        menu={{
-          items: menuItems,
-          onClick: handleMenuClick,
-          selectedKeys: [textLocale],
-        }}
-        trigger={['click']}
-        placement="bottomRight"
-        classNames={{ root: "language-switcher-dropdown admin-header-dropdown" }}
-        getPopupContainer={getAdminHeaderPopupContainer}
+    <Dropdown
+      menu={{
+        items: menuItems,
+        onClick: handleMenuClick,
+        selectedKeys: [textLocale],
+      }}
+      trigger={['click']}
+      placement="bottomRight"
+      classNames={{ root: 'language-switcher-dropdown admin-header-dropdown' }}
+      getPopupContainer={getAdminHeaderPopupContainer}
+    >
+      <Button
+        type="default"
+        size="small"
+        className="admin-header-tool-btn language-trigger"
+        aria-label={t('adminShell.header.languageSelectAria')}
+        data-testid="admin-header-language-select"
       >
-        <span className="language-trigger-wrap">
-          <Button
-            type="text"
-            className="language-trigger"
-            icon={<GlobalOutlined />}
-            aria-label={ariaLabel}
-            data-testid="admin-header-language-select"
-          >
-            <span className="language-code">{textLocale.toUpperCase()}</span>
-          </Button>
-        </span>
-      </Dropdown>
-    </fieldset>
+        <span className="language-code">{textLocale}</span>
+      </Button>
+    </Dropdown>
   );
 }

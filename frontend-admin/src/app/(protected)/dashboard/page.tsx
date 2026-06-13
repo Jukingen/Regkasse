@@ -12,29 +12,39 @@ import { TimeSyncDriftAlertCard } from '@/features/dashboard/components/TimeSync
 import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
 import { LicenseDashboardSection } from '@/features/dashboard/components/LicenseDashboardSection';
 import { RksvReminderCard } from '@/features/dashboard/components/RksvReminderCard';
+import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { PERMISSIONS } from '@/shared/auth/permissions';
-import { usePermissions } from '@/shared/auth/usePermissions';
+import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
+import { RKSV_HUB_PATH } from '@/shared/auth/rksvRoutePaths';
+import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
 
 export default function DashboardPage() {
     const { t } = useI18n();
     const { hasPermission } = usePermissions();
+    const canOpenRksvHub = useCanAccessPath(RKSV_HUB_PATH);
+
+    const { isAuthorized: canFetchTenantLicense } = useAuthorizationGate({
+        requiredRole: 'SuperAdmin',
+    });
+    const { isAuthorized: canSeeRksvReminder } = useAuthorizationGate({
+        requiredPermission: AppPermissions.CashRegisterView,
+    });
+
     const offlineQueueCardEnabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
-    const monatsbelegOverviewEnabled = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
-    const tseHealthCardEnabled = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
     const timeSyncDriftAlertEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
-    const licenseDashboardEnabled = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
+    const tseHealthCardEnabled = hasPermission(AppPermissions.CashRegisterView);
 
     const operationalHeader = (
         <>
-            {licenseDashboardEnabled ? <LicenseDashboardSection /> : null}
+            {canFetchTenantLicense ? <LicenseDashboardSection /> : null}
             {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
             {timeSyncDriftAlertEnabled ? <TimeSyncDriftAlertCard /> : null}
             {tseHealthCardEnabled ? <TseHealthCard /> : null}
-            {monatsbelegOverviewEnabled ? <RksvReminderCard /> : null}
-            {monatsbelegOverviewEnabled ? (
-                <DashboardMonatsbelegSection enabled={monatsbelegOverviewEnabled} />
+            {canSeeRksvReminder ? <RksvReminderCard /> : null}
+            {canSeeRksvReminder ? (
+                <DashboardMonatsbelegSection enabled={canSeeRksvReminder} />
             ) : null}
             <HospitalityQuickLinksCard />
         </>
@@ -48,7 +58,13 @@ export default function DashboardPage() {
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     Anpassbares Dashboard mit Widgets (ziehen zum Sortieren). Operative Kassenberichte:{' '}
-                    <Link href="/reporting">{t('nav.reporting')}</Link>. RKSV: Seitenleiste unter «RKSV».
+                    <Link href="/reporting">{t('nav.reporting')}</Link>.
+                    {canOpenRksvHub ? (
+                        <>
+                            {' '}
+                            RKSV: Seitenleiste unter «RKSV».
+                        </>
+                    ) : null}
                 </Typography.Paragraph>
             </AdminPageHeader>
 

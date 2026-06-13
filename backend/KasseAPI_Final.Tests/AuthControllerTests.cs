@@ -88,6 +88,9 @@ public class AuthControllerTests
         mgr.Setup(m => m.UpdateAsync(It.IsAny<ApplicationUser>()))
             .ReturnsAsync(IdentityResult.Success);
 
+        mgr.Setup(m => m.GeneratePasswordResetTokenAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync("reset-token");
+
         if (userByEmail != null)
             mgr.Setup(m => m.FindByIdAsync(userByEmail.Id)).ReturnsAsync(userByEmail);
 
@@ -296,12 +299,8 @@ public class AuthControllerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(new[] { "cashier1" });
 
-        var forgotUsernameEmail = new Mock<IForgotUsernameEmailService>();
-        forgotUsernameEmail.Setup(x => x.IsConfigured).Returns(true);
-        forgotUsernameEmail.Setup(x => x.TrySendForgotUsernameAsync(
-                It.IsAny<ForgotUsernameEmailRequest>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(true);
+        var forgotUsernameEmail = CreateForgotUsernameEmailMock();
+        var forgotPasswordEmail = CreateForgotPasswordEmailMock();
 
         var sessionService = sessionServiceMock ?? new Mock<ISessionService>();
 
@@ -320,13 +319,38 @@ public class AuthControllerTests
             provisioner.Object,
             usernameHistory.Object,
             forgotUsernameEmail.Object,
+            forgotPasswordEmail.Object,
             sessionPolicy.Object,
-            sessionService.Object);
+            sessionService.Object,
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            LocalizationTestDoubles.I18nErrorService());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
         };
         return controller;
+    }
+
+    private static Mock<IForgotUsernameEmailService> CreateForgotUsernameEmailMock()
+    {
+        var mock = new Mock<IForgotUsernameEmailService>();
+        mock.Setup(x => x.IsConfigured).Returns(true);
+        mock.Setup(x => x.TrySendForgotUsernameAsync(
+                It.IsAny<ForgotUsernameEmailRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        return mock;
+    }
+
+    private static Mock<IForgotPasswordEmailService> CreateForgotPasswordEmailMock()
+    {
+        var mock = new Mock<IForgotPasswordEmailService>();
+        mock.Setup(x => x.IsConfigured).Returns(true);
+        mock.Setup(x => x.TrySendForgotPasswordAsync(
+                It.IsAny<ForgotPasswordEmailRequest>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        return mock;
     }
 
     private static Mock<IAuthService> CreateAuthServiceMock(Mock<ILoginTenantResolver> loginTenantResolver)
@@ -389,7 +413,7 @@ public class AuthControllerTests
     // -------- Existing behaviour tests (updated for new signature) --------
 
     [Fact]
-    public async Task Login_WhenUserDeactivated_ReturnsBadRequest()
+    public async Task Login_WhenUserDeactivated_ReturnsUnauthorized_WithGenericCredentialsMessage()
     {
         var user = ActiveUser();
         user.IsActive = false;
@@ -397,17 +421,61 @@ public class AuthControllerTests
 
         var result = await controller.Login(new LoginModel { Email = user.Email!, Password = "any" });
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
+        var body = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("INVALID_CREDENTIALS", body.Code);
+        Assert.Equal("Ungültiger Benutzername oder Passwort", body.Message);
     }
 
     [Fact]
-    public async Task Login_WhenUserNotFound_ReturnsBadRequest()
+    public async Task Login_WhenUserNotFound_ReturnsUnauthorized_WithGenericCredentialsMessage()
     {
         var controller = CreateController(null, allowLegacy: true);
 
         var result = await controller.Login(new LoginModel { Email = "nobody@test.com", Password = "any" });
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
+        var body = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("INVALID_CREDENTIALS", body.Code);
+        Assert.Equal("Ungültiger Benutzername oder Passwort", body.Message);
+    }
+
+    [Fact]
+    public async Task Login_WhenPasswordInvalid_ReturnsUnauthorized_WithGenericCredentialsMessage()
+    {
+        var user = ActiveUser();
+        var controller = CreateController(user, passwordValid: false, allowLegacy: true);
+
+        var result = await controller.Login(new LoginModel { Email = user.Email, Password = "wrong" });
+
+        var unauthorized = Assert.IsType<UnauthorizedObjectResult>(result);
+        var body = Assert.IsType<ApiErrorResponse>(unauthorized.Value);
+        Assert.Equal("INVALID_CREDENTIALS", body.Code);
+        Assert.Equal("Ungültiger Benutzername oder Passwort", body.Message);
+    }
+
+    [Fact]
+    public async Task Login_CredentialFailures_ReturnSameCodeAndMessage_ToPreventEnumeration()
+    {
+        var inactiveUser = ActiveUser();
+        inactiveUser.IsActive = false;
+        var wrongPasswordUser = ActiveUser();
+
+        var notFoundResult = await CreateController(null, allowLegacy: true)
+            .Login(new LoginModel { Email = "nobody@test.com", Password = "any" });
+        var inactiveResult = await CreateController(inactiveUser, allowLegacy: true)
+            .Login(new LoginModel { Email = inactiveUser.Email!, Password = "any" });
+        var wrongPasswordResult = await CreateController(wrongPasswordUser, passwordValid: false, allowLegacy: true)
+            .Login(new LoginModel { Email = wrongPasswordUser.Email, Password = "wrong" });
+
+        var notFound = Assert.IsType<ApiErrorResponse>(Assert.IsType<UnauthorizedObjectResult>(notFoundResult).Value);
+        var inactive = Assert.IsType<ApiErrorResponse>(Assert.IsType<UnauthorizedObjectResult>(inactiveResult).Value);
+        var wrongPassword = Assert.IsType<ApiErrorResponse>(Assert.IsType<UnauthorizedObjectResult>(wrongPasswordResult).Value);
+
+        Assert.Equal(notFound.Code, inactive.Code);
+        Assert.Equal(notFound.Message, inactive.Message);
+        Assert.Equal(notFound.Code, wrongPassword.Code);
+        Assert.Equal(notFound.Message, wrongPassword.Message);
     }
 
     [Fact]
@@ -554,6 +622,7 @@ public class AuthControllerTests
     [Theory]
     [InlineData("SuperAdmin")]
     [InlineData("Manager")]
+    [InlineData("Cashier")]
     [InlineData("Accountant")]
     [InlineData("ReportViewer")]
     public async Task Login_Admin_AllowedRoles_Succeeds(string role)
@@ -566,7 +635,6 @@ public class AuthControllerTests
     }
 
     [Theory]
-    [InlineData("Cashier")]
     [InlineData("Waiter")]
     [InlineData("Kitchen")]
     public async Task Login_Admin_DeniedRoles_Returns403(string role)
@@ -617,6 +685,125 @@ public class AuthControllerTests
         Assert.Contains(LegacyDefaultTenantIds.Primary.ToString("D"), json, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("\"tenantDisplayName\":\"Default\"", json, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task Login_Admin_Cashier_ReturnsViewOnlyPermissions()
+    {
+        var user = ActiveUser(Roles.Cashier);
+        var controller = CreateController(user, roles: new List<string> { Roles.Cashier }, allowLegacy: false);
+
+        var result = await controller.Login(new LoginModel
+        {
+            Email = user.Email!,
+            Password = "pass",
+            ClientApp = ClientAppPolicy.Admin,
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var permissions = ExtractLoginPermissions(ok.Value);
+
+        Assert.Contains(AppPermissions.ProductView, permissions);
+        Assert.Contains(AppPermissions.ReportView, permissions);
+        Assert.DoesNotContain(AppPermissions.TableView, permissions);
+        Assert.DoesNotContain(AppPermissions.SaleView, permissions);
+        Assert.DoesNotContain(AppPermissions.TseSign, permissions);
+        Assert.DoesNotContain(AppPermissions.PaymentTake, permissions);
+    }
+
+    [Fact]
+    public async Task Login_Admin_Manager_StripsPosTerminalPermissions()
+    {
+        var user = ActiveUser(Roles.Manager);
+        var controller = CreateController(user, roles: new List<string> { Roles.Manager }, allowLegacy: false);
+
+        var result = await controller.Login(new LoginModel
+        {
+            Email = user.Email!,
+            Password = "pass",
+            ClientApp = ClientAppPolicy.Admin,
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var permissions = ExtractLoginPermissions(ok.Value);
+
+        Assert.Contains(AppPermissions.UserView, permissions);
+        Assert.Contains(AppPermissions.CashRegisterManage, permissions);
+        Assert.DoesNotContain(AppPermissions.PaymentTake, permissions);
+        Assert.DoesNotContain(AppPermissions.TseSign, permissions);
+    }
+
+    [Fact]
+    public async Task Login_Pos_Cashier_ReturnsFullMatrixPermissions()
+    {
+        var user = ActiveUser(Roles.Cashier);
+        var controller = CreateController(user, roles: new List<string> { Roles.Cashier }, allowLegacy: false);
+
+        var result = await controller.Login(new LoginModel
+        {
+            Email = user.Email!,
+            Password = "pass",
+            ClientApp = ClientAppPolicy.Pos,
+        });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var permissions = ExtractLoginPermissions(ok.Value);
+
+        Assert.Contains(AppPermissions.TableView, permissions);
+        Assert.Contains(AppPermissions.PaymentTake, permissions);
+    }
+
+    [Fact]
+    public async Task GetCurrentUser_AdminContext_ReturnsFilteredPermissions()
+    {
+        var user = ActiveUser(Roles.Cashier);
+        var controller = CreateController(user, roles: new List<string> { Roles.Cashier }, allowLegacy: false);
+
+        var http = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        http.User = new ClaimsPrincipal(
+            new ClaimsIdentity(
+                new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, user.Id),
+                    new Claim(ClientAppPolicy.AppContextClaimType, ClientAppPolicy.Admin),
+                },
+                "Test"));
+        controller.ControllerContext = new ControllerContext { HttpContext = http };
+
+        var result = await controller.GetCurrentUser();
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var permissions = ExtractMePermissions(ok.Value);
+
+        Assert.Contains(AppPermissions.PaymentView, permissions);
+        Assert.DoesNotContain(AppPermissions.ShiftView, permissions);
+    }
+
+    private static List<string> ExtractLoginPermissions(object payload)
+    {
+        var json = JsonSerializer.Serialize(payload, AdminPermissionJsonOptions);
+        using var doc = JsonDocument.Parse(json);
+        return ReadPermissionStrings(doc.RootElement.GetProperty("user").GetProperty("permissions"));
+    }
+
+    private static List<string> ExtractMePermissions(object payload)
+    {
+        var json = JsonSerializer.Serialize(payload, AdminPermissionJsonOptions);
+        using var doc = JsonDocument.Parse(json);
+        return ReadPermissionStrings(doc.RootElement.GetProperty("permissions"));
+    }
+
+    private static List<string> ReadPermissionStrings(JsonElement permissionsElement)
+    {
+        var list = new List<string>();
+        foreach (var item in permissionsElement.EnumerateArray())
+            list.Add(item.GetString()!);
+        return list;
+    }
+
+    private static readonly JsonSerializerOptions AdminPermissionJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
     [Fact]
     public async Task GetCurrentUser_Returns_Tenant_Fields_From_Snapshot()
@@ -759,6 +946,105 @@ public class AuthControllerTests
         Assert.IsType<OkObjectResult>(result);
     }
 
+    [Fact]
+    public async Task ForgotPassword_WhenUserExists_Sends_Email_And_Returns_Generic_Message()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            Email = "user@test.com",
+            UserName = "user@test.com",
+            IsActive = true,
+        };
+        var forgotPasswordEmail = CreateForgotPasswordEmailMock();
+        var userManager = CreateMockUserManager(user);
+        var controller = CreateForgotPasswordController(user, userManager, forgotPasswordEmail);
+
+        var result = await controller.ForgotPassword(
+            new ForgotPasswordRequest { Email = "user@test.com", ClientApp = "admin" });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        forgotPasswordEmail.Verify(
+            x => x.TrySendForgotPasswordAsync(
+                It.Is<ForgotPasswordEmailRequest>(r =>
+                    r.ToEmail == "user@test.com"
+                    && r.ResetToken == "reset-token"),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        Assert.NotNull(ok.Value);
+    }
+
+    [Fact]
+    public async Task ForgotPassword_WhenUserMissing_Still_Returns_Ok_With_Generic_Message()
+    {
+        var controller = CreateController(userByEmail: null);
+
+        var result = await controller.ForgotPassword(
+            new ForgotPasswordRequest { Email = "missing@test.com", ClientApp = "admin" });
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var json = JsonSerializer.Serialize(ok.Value);
+        Assert.Contains("Wenn ein Konto existiert", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Register_WhenEmailAlreadyExists_Returns_Generic_RegistrationFailed_Message()
+    {
+        var user = ActiveUser();
+        var controller = CreateController(user);
+
+        var result = await controller.Register(new RegisterModel
+        {
+            Email = user.Email!,
+            Password = "Password1!",
+            FirstName = "Test",
+            LastName = "User",
+        });
+
+        var bad = Assert.IsType<BadRequestObjectResult>(result);
+        var json = JsonSerializer.Serialize(bad.Value);
+        Assert.Contains("REGISTRATION_FAILED", json, StringComparison.Ordinal);
+        Assert.Contains("Registrierung fehlgeschlagen", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("Duplicate", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static AuthController CreateForgotPasswordController(
+        ApplicationUser user,
+        UserManager<ApplicationUser> userManager,
+        Mock<IForgotPasswordEmailService>? forgotPasswordEmail = null)
+    {
+        forgotPasswordEmail ??= CreateForgotPasswordEmailMock();
+        var sessionPolicy = new Mock<ITenantSessionPolicyService>();
+        sessionPolicy.Setup(s => s.GetPolicyAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TenantSessionPolicyDto());
+
+        return new AuthController(
+            new AppDbContext(
+                new DbContextOptionsBuilder<AppDbContext>()
+                    .UseInMemoryDatabase($"AuthForgotPwd_{Guid.NewGuid():N}")
+                    .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                    .Options,
+                NullCurrentTenantAccessor.Instance),
+            userManager,
+            CreateConfig(),
+            new Mock<ILogger<AuthController>>().Object,
+            CreateTokenClaimsMock().Object,
+            CreateEffectivePermissionResolverMock().Object,
+            Options.Create(new AuthOptions()),
+            new Mock<IRefreshTokenService>().Object,
+            CreateAuthTenantSnapshotMock().Object,
+            CreateLoginTenantResolverMock().Object,
+            CreateAuthServiceMock(CreateLoginTenantResolverMock()).Object,
+            CreateMembershipProvisionerMock().Object,
+            new Mock<IUserUsernameHistoryService>().Object,
+            CreateForgotUsernameEmailMock().Object,
+            forgotPasswordEmail.Object,
+            sessionPolicy.Object,
+            new Mock<ISessionService>().Object,
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            LocalizationTestDoubles.I18nErrorService());
+    }
+
     private static AuthController CreateForgotUsernameController(
         ApplicationUser user,
         Mock<IForgotUsernameEmailService>? forgotUsernameEmail = null,
@@ -799,8 +1085,11 @@ public class AuthControllerTests
             CreateMembershipProvisionerMock().Object,
             usernameHistory.Object,
             forgotUsernameEmail.Object,
+            CreateForgotPasswordEmailMock().Object,
             sessionPolicy.Object,
-            new Mock<ISessionService>().Object);
+            new Mock<ISessionService>().Object,
+            LocalizationTestDoubles.ApiMessageLocalizer(),
+            LocalizationTestDoubles.I18nErrorService());
     }
 
     [Fact]
@@ -873,7 +1162,7 @@ public class ClientAppPolicyTests
     [InlineData("admin", "Accountant", true)]
     [InlineData("admin", "ReportViewer", true)]
     [InlineData("admin", "Admin", false)]
-    [InlineData("admin", "Cashier", false)]
+    [InlineData("admin", "Cashier", true)]
     [InlineData("admin", "Waiter", false)]
     public void IsRoleAllowedForApp_ReturnsExpected(string app, string role, bool expected)
     {

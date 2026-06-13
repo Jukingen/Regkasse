@@ -21,6 +21,7 @@ import { customInstance } from '@/lib/axios';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
+import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 
 const ATU_REGEX = /^ATU\d{8}$/;
 
@@ -522,8 +523,12 @@ function ChangeMyPasswordTab() {
             message.success(t('settings.changePassword.success'));
             form.resetFields();
         } catch (err: unknown) {
-            const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-            message.error(msg ?? t('settings.changePassword.errorFallback'));
+            message.error(
+                getUserFacingApiErrorMessage(t, err, {
+                    fallbackKey: 'settings.changePassword.errorFallback',
+                    logContext: 'changeOwnPassword',
+                }),
+            );
         } finally {
             setLoading(false);
         }

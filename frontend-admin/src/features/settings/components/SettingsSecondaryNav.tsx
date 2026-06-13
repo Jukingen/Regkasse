@@ -3,6 +3,7 @@
 /**
  * Horizontal sub-navigation for the settings hub. Route paths are owned by `SETTINGS_AREA_ROUTE_PATHS`
  * (`shared/settingsAreaRoutes.ts`); labels use the same i18n keys as the main sidebar.
+ * Tabs are filtered by permission — unauthorized settings pages are hidden.
  */
 
 import React, { useMemo, type ComponentType } from 'react';
@@ -24,6 +25,8 @@ import {
     SETTINGS_AREA_ROUTE_PATHS,
     type SettingsAreaRoutePath,
 } from '@/shared/settingsAreaRoutes';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 
 const SETTINGS_TAB_META: Record<
     SettingsAreaRoutePath,
@@ -40,10 +43,17 @@ const SETTINGS_TAB_META: Record<
 export function SettingsSecondaryNav() {
   const pathname = usePathname() ?? '';
   const { t } = useI18n();
+  const { user } = useAuth();
+  const permissions = user?.permissions ?? [];
+
+  const visiblePaths = useMemo(
+    () => SETTINGS_AREA_ROUTE_PATHS.filter((path) => isMenuItemAllowed(path, permissions)),
+    [permissions],
+  );
 
   const items: MenuProps['items'] = useMemo(
     () =>
-      SETTINGS_AREA_ROUTE_PATHS.map((path) => {
+      visiblePaths.map((path) => {
         const { labelKey, Icon } = SETTINGS_TAB_META[path];
         return {
           key: path,
@@ -55,17 +65,21 @@ export function SettingsSecondaryNav() {
           ),
         };
       }),
-    [t],
+    [t, visiblePaths],
   );
 
   const selectedKeys = useMemo(() => {
     if (!pathname.startsWith('/settings')) return [pathname];
-    const sorted = [...SETTINGS_AREA_ROUTE_PATHS].sort((a, b) => b.length - a.length);
+    const sorted = [...visiblePaths].sort((a, b) => b.length - a.length);
     for (const route of sorted) {
       if (pathname === route || pathname.startsWith(`${route}/`)) return [route];
     }
-    return ['/settings/company'];
-  }, [pathname]);
+    return visiblePaths[0] ? [visiblePaths[0]] : [];
+  }, [pathname, visiblePaths]);
+
+  if (visiblePaths.length === 0) {
+    return null;
+  }
 
   return (
     <Menu

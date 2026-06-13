@@ -107,6 +107,6 @@ public sealed class AuthServiceTests
         var tseOptions = Options.Create(new TseOptions { TseMode = tseMode });
         var devMode = Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false);
         var licenseOptions = Options.Create(new KasseAPI_Final.Configuration.LicenseOptions { Enabled = true });
-        return new AuthService(db, resolver, env, tseOptions, devMode, licenseOptions);
+        return new AuthService(db, resolver, env, tseOptions, devMode, licenseOptions, LocalizationTestDoubles.ApiMessageLocalizer());
     }
 }

@@ -1313,7 +1313,8 @@ public class AdminUsersControllerTests
         var controller = CreateController(
             db,
             new Mock<IAuditLogService>().Object,
-            new Mock<IUserSessionInvalidation>().Object);
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.Manager);
 
         var result = await controller.UpdateUsername(
             "user-1",
@@ -1322,6 +1323,40 @@ public class AdminUsersControllerTests
         var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         var body = Assert.IsType<ApiError>(badRequest.Value);
         Assert.Equal(400, body.Status);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenReserved_AndActorIsSuperAdmin_Succeeds()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "cashier1",
+            Email = "u@test.com",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddDays(-30),
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.SuperAdmin);
+
+        var result = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "admin" });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
+        Assert.Equal("admin", persisted.UserName);
     }
 
     [Fact]
@@ -1345,7 +1380,8 @@ public class AdminUsersControllerTests
         var controller = CreateController(
             db,
             new Mock<IAuditLogService>().Object,
-            new Mock<IUserSessionInvalidation>().Object);
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.Manager);
 
         var result = await controller.UpdateUsername(
             "user-1",
@@ -1357,6 +1393,41 @@ public class AdminUsersControllerTests
 
         var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
         Assert.Equal("oldname", persisted.UserName);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenAccountTooNew_AndActorIsSuperAdmin_Succeeds()
+    {
+        await using var db = CreateEphemeralContext();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "oldname",
+            NormalizedUserName = "OLDNAME",
+            Email = "op@test.com",
+            FirstName = "C",
+            LastName = "D",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow.AddHours(-1),
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.SuperAdmin);
+
+        var result = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "newname" });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
+        Assert.Equal("newname", persisted.UserName);
     }
 
     [Fact]
@@ -1395,7 +1466,8 @@ public class AdminUsersControllerTests
                 null!),
             new Mock<IAuditLogService>().Object,
             new Mock<IUserSessionInvalidation>().Object,
-            context: db);
+            context: db,
+            actorRole: Roles.Manager);
 
         var result = await controller.UpdateUsername(
             "user-1",
@@ -1407,6 +1479,56 @@ public class AdminUsersControllerTests
 
         var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
         Assert.Equal("oldname", persisted.UserName);
+    }
+
+    [Fact]
+    public async Task UpdateUsername_WhenRateLimited_AndActorIsSuperAdmin_Succeeds()
+    {
+        await using var db = CreateEphemeralContext();
+        var user = new ApplicationUser
+        {
+            Id = "user-1",
+            UserName = "oldname",
+            NormalizedUserName = "OLDNAME",
+            Email = "u@test.com",
+            FirstName = "A",
+            LastName = "B",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var userManager = CreateUserManager(db);
+        await userManager.AddClaimAsync(
+            user,
+            new System.Security.Claims.Claim(
+                UsernameChangeRateLimit.LastChangeClaimType,
+                DateTime.UtcNow.AddDays(-1).ToString("O")));
+
+        var controller = CreateController(
+            userManager,
+            new RoleManager<IdentityRole>(
+                new RoleStore<IdentityRole>(db),
+                null!,
+                new UpperInvariantLookupNormalizer(),
+                new IdentityErrorDescriber(),
+                null!),
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            context: db,
+            actorRole: Roles.SuperAdmin);
+
+        var result = await controller.UpdateUsername(
+            "user-1",
+            new UpdateUsernameRequest { NewUsername = "newname" });
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.NotNull(ok.Value);
+
+        var persisted = await db.Users.AsNoTracking().SingleAsync(u => u.Id == "user-1");
+        Assert.Equal("newname", persisted.UserName);
     }
 
     [Fact]

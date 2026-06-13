@@ -5,6 +5,9 @@
     "sidebarExpanded": "REGKASSE ADMIN",
     "fallbackUserName": "Admin User"
   },
+  "sidebar": {
+    "noAccessibleMenus": "Keine Menüpunkte verfügbar."
+  },
   "aria": {
     "openNav": "Navigationsmenü öffnen",
     "closeNav": "Navigationsmenü schließen",
@@ -13,17 +16,19 @@
     "resizeSidebar": "Breite der Seitenleiste anpassen"
   },
   "header": {
-    "headerActionsAria": "Oberflächensprache und Benutzerkonto",
-    "languageSelectAria": "Oberflächensprache wählen",
+    "headerActionsAria": "Kopfzeilen-Aktionen",
+    "languageSelectAria": "Sprache",
     "languageSelectTitle": "Oberflächensprache",
     "languageSelectHint": "Gilt nur für die Bedienoberfläche. Formale Berichtstexte bleiben Deutsch oder Englisch.",
     "languageNameDe": "Deutsch",
     "languageNameEn": "English",
     "languageNameTr": "Türkçe",
-    "cashRegisterQuickSwitchLabel": "Kasse wechseln",
+    "cashRegisterQuickSwitchLabel": "Kasse",
     "cashRegisterQuickSwitchAria": "Kasse schnell wechseln",
     "cashRegisterQuickSwitchHint": "Kasse auswählen und Kassenverwaltung öffnen",
-    "cashRegisterQuickSwitchManage": "Kassenverwaltung öffnen"
+    "cashRegisterQuickSwitchManage": "Kassenverwaltung öffnen",
+    "monatsbelegBadgeLabel": "Monatsbeleg ({count})",
+    "monatsbelegBadgeAria": "Monatsbeleg-Warnungen: {count}"
   },
   "tenant": {
     "badge": {

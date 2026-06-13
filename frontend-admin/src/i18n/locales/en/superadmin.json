@@ -14,5 +14,9 @@
     "demoTenant": "Demo tenant",
     "adminColumn": "Administrator"
   },
-  "loadFailed": "Could not load tenant list."
+  "loadFailed": "Could not load tenant list.",
+  "tenantCreate": {
+    "slugExample": "cafe-example",
+    "urlPreviewHint": "The full URL is built from the slug and domain."
+  }
 }

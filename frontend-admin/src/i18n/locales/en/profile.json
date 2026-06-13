@@ -1,0 +1,42 @@
+{
+  "pageTitle": "My profile",
+  "loading": "Loading profile…",
+  "loadError": "Profile could not be loaded.",
+  "notProvided": "Not provided",
+  "emptyValue": "—",
+  "saveSuccess": "Profile updated successfully.",
+  "saveError": "Could not update profile.",
+  "reset": "Reset",
+  "fields": {
+    "userName": "Username",
+    "role": "Role",
+    "employeeNumber": "Employee number",
+    "phoneNumber": "Phone",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email"
+  },
+  "validation": {
+    "firstNameRequired": "First name is required.",
+    "lastNameRequired": "Last name is required.",
+    "emailRequired": "Email is required.",
+    "emailInvalid": "Please enter a valid email address."
+  },
+  "placeholders": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "email@example.com",
+    "phoneNumber": "+43 123 456789"
+  },
+  "username": {
+    "changeAction": "Change username",
+    "reloginTitle": "Sign in again required",
+    "reloginDescription": "Changing your username ends all active sessions. Please sign in again with your new username.",
+    "policyTitle": "Username change limit",
+    "policyDescription": "You can change your username at most once every {{days}} days.",
+    "policyCooldownActive": "A change is not possible right now. Next change allowed from {{date}} (UTC).",
+    "policyChangeAllowed": "You can change your username now.",
+    "policyLastChanged": "Last changed: {{date}} (UTC). You can change your username again now.",
+    "policySuperAdminExempt": "As SuperAdmin you are exempt from cooldown and change limits."
+  }
+}
