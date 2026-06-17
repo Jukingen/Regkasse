@@ -273,7 +273,7 @@ export default function UsersPage() {
         [listParams, roleFilter],
     );
 
-    const { data: listData, isLoading, isFetching, isError, error: listError, refetch } = useUsersList(
+    const { data: listData, isLoading, isFetching, isPlaceholderData, isError, error: listError, refetch } = useUsersList(
         tenantScopedListParams,
         {
             enabled: policy.canView && !isSuperAdminLayout,
@@ -285,9 +285,6 @@ export default function UsersPage() {
     }, [listData?.items]);
 
     const pagination = listData?.pagination;
-    useEffect(() => {
-        setPage(DEFAULT_PAGE);
-    }, [roleFilter, statusFilter, searchTerm]);
 
     const usersScopeSummary = useMemo(() => {
         const parts: string[] = [
@@ -336,6 +333,32 @@ export default function UsersPage() {
         setPage(DEFAULT_PAGE);
         setPageSize(DEFAULT_PAGE_SIZE);
     }, []);
+
+    const resetListPage = useCallback(() => setPage(DEFAULT_PAGE), []);
+
+    const handleSearchTerm = useCallback(
+        (value: string) => {
+            setSearchTerm(value);
+            resetListPage();
+        },
+        [resetListPage],
+    );
+
+    const handleRoleFilterChange = useCallback(
+        (value: string | undefined) => {
+            setRoleFilter(value);
+            resetListPage();
+        },
+        [resetListPage],
+    );
+
+    const handleStatusFilterChange = useCallback(
+        (value: string | undefined) => {
+            setStatusFilter(value === undefined ? undefined : value === 'active');
+            resetListPage();
+        },
+        [resetListPage],
+    );
 
     /** Deviations from default list query: active-only, no role, no search text. */
     const hasNonDefaultListFilters = Boolean(
@@ -688,9 +711,9 @@ export default function UsersPage() {
                                 onChange={(e) => {
                                     const v = e.target.value;
                                     setSearchInput(v);
-                                    if (!v) setSearchTerm('');
+                                    if (!v) handleSearchTerm('');
                                 }}
-                                onSearch={(v) => setSearchTerm(v ?? '')}
+                                onSearch={(v) => handleSearchTerm(v ?? '')}
                                 style={{ width: 260 }}
                                 enterButton={<SearchOutlined />}
                             />
@@ -699,7 +722,7 @@ export default function UsersPage() {
                                 allowClear
                                 style={{ width: 140 }}
                                 value={roleFilter}
-                                onChange={setRoleFilter}
+                                onChange={handleRoleFilterChange}
                                 options={roleOptions}
                             />
                             <Select
@@ -707,7 +730,7 @@ export default function UsersPage() {
                                 allowClear
                                 style={{ width: 120 }}
                                 value={statusFilter === undefined ? undefined : statusFilter ? 'active' : 'inactive'}
-                                onChange={(v) => setStatusFilter(v === undefined ? undefined : v === 'active')}
+                                onChange={handleStatusFilterChange}
                                 options={statusFilterOptions}
                             />
                             <Button icon={<ClearOutlined />} onClick={resetAllFilters}>
@@ -727,7 +750,7 @@ export default function UsersPage() {
                                         closable
                                         onClose={() => {
                                             setSearchInput('');
-                                            setSearchTerm('');
+                                            handleSearchTerm('');
                                         }}
                                     >
                                         {t('users.list.scopeSearchChip', {
@@ -737,7 +760,7 @@ export default function UsersPage() {
                                     </Tag>
                                 ) : null}
                                 {roleFilter ? (
-                                    <Tag closable onClose={() => setRoleFilter(undefined)}>
+                                    <Tag closable onClose={() => handleRoleFilterChange(undefined)}>
                                         {t('users.list.scopeRoleChip', {
                                             prefix: t('users.list.scopeRolePrefix'),
                                             role: roleDisplayLabel(roleFilter),
@@ -746,7 +769,7 @@ export default function UsersPage() {
                                 ) : null}
                                 <Tag
                                     closable
-                                    onClose={() => setStatusFilter(true)}
+                                    onClose={() => handleStatusFilterChange('active')}
                                     color={statusFilter === undefined ? 'purple' : statusFilter ? 'green' : 'red'}
                                 >
                                     {t('users.list.scopeStatusChip', {
@@ -801,6 +824,7 @@ export default function UsersPage() {
                     <UsersTable
                         users={users}
                         loading={isLoading}
+                        isPlaceholderData={isPlaceholderData}
                         policy={policy}
                         currentUserId={currentUser?.id}
                         onView={setDetailUser}

@@ -30,10 +30,12 @@ import type {
   RoleWithPermissionsDto,
   UpdateRolePermissionsRequest,
   UpdateUserRequest,
+  UpdateUsernameRequest,
   UpsertUserPermissionOverrideRequest,
   UserEffectivePermissionsDto,
   UserInfo,
   UserPermissionOverrideDto,
+  UsernameChangePolicyDto,
   UsersListResponse
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -90,6 +92,112 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPutApiUserManagementMePasswordMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiUserManagementMeUsernameChangePolicy = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UsernameChangePolicyDto>(
+      {url: `/api/UserManagement/me/username-change-policy`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiUserManagementMeUsernameChangePolicyQueryKey = () => {
+    return [`/api/UserManagement/me/username-change-policy`] as const;
+    }
+
+    
+export const getGetApiUserManagementMeUsernameChangePolicyQueryOptions = <TData = Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiUserManagementMeUsernameChangePolicyQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>> = ({ signal }) => getApiUserManagementMeUsernameChangePolicy(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiUserManagementMeUsernameChangePolicyQueryResult = NonNullable<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>>
+export type GetApiUserManagementMeUsernameChangePolicyQueryError = unknown
+
+export const useGetApiUserManagementMeUsernameChangePolicy = <TData = Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiUserManagementMeUsernameChangePolicy>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiUserManagementMeUsernameChangePolicyQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const patchApiUserManagementMeUsername = (
+    updateUsernameRequest: UpdateUsernameRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/UserManagement/me/username`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: updateUsernameRequest
+    },
+      options);
+    }
+  
+
+
+export const getPatchApiUserManagementMeUsernameMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>, TError,{data: UpdateUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>, TError,{data: UpdateUsernameRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>, {data: UpdateUsernameRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  patchApiUserManagementMeUsername(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchApiUserManagementMeUsernameMutationResult = NonNullable<Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>>
+    export type PatchApiUserManagementMeUsernameMutationBody = UpdateUsernameRequest
+    export type PatchApiUserManagementMeUsernameMutationError = unknown
+
+    export const usePatchApiUserManagementMeUsername = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>, TError,{data: UpdateUsernameRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof patchApiUserManagementMeUsername>>,
+        TError,
+        {data: UpdateUsernameRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPatchApiUserManagementMeUsernameMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

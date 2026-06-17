@@ -19,7 +19,6 @@ MinStock?: number;
 MaxStock?: number;
 TaxTypes?: number[];
 CategoryIds?: string[];
-IsActive?: boolean;
 IsTaxable?: boolean;
 CreatedFrom?: string;
 CreatedTo?: string;

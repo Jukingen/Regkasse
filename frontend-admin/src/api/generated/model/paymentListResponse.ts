@@ -10,9 +10,13 @@ import type { PaymentListItemDto } from './paymentListItemDto';
 
 export interface PaymentListResponse {
   activeFilters?: FilterSummaryDto;
+  hasMore?: boolean;
   /** @nullable */
   items?: PaymentListItemDto[] | null;
+  /** @nullable */
+  nextCursor?: string | null;
   page?: number;
   pageSize?: number;
-  totalCount?: number;
+  /** @nullable */
+  totalCount?: number | null;
 }

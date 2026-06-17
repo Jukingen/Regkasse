@@ -8,6 +8,7 @@
 
 export interface CreatePaymentMethodDefinitionRequest {
   allowRefund?: boolean;
+  cashRegisterId: string;
   /**
    * @minLength 1
    * @maxLength 64

@@ -27,14 +27,22 @@ public class PaymentFilterDto
     public int PageSize { get; set; } = 20;
     public string? SortBy { get; set; } = "CreatedAt";
     public string? SortDirection { get; set; } = "desc";
+
+    /// <summary>Opaque keyset cursor from a prior page's <see cref="PaymentListResponse.NextCursor"/>.</summary>
+    public string? AfterCursor { get; set; }
+
+    /// <summary>When false, skips the expensive COUNT query (deep keyset pages).</summary>
+    public bool IncludeTotalCount { get; set; } = true;
 }
 
 public class PaymentListResponse
 {
     public List<PaymentListItemDto> Items { get; set; } = new();
-    public int TotalCount { get; set; }
+    public int? TotalCount { get; set; }
     public int Page { get; set; }
     public int PageSize { get; set; }
+    public string? NextCursor { get; set; }
+    public bool HasMore { get; set; }
     public FilterSummaryDto ActiveFilters { get; set; } = new();
 }
 

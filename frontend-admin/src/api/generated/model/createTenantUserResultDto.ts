@@ -16,7 +16,11 @@ export interface CreateTenantUserResultDto {
   role?: string | null;
   success?: boolean;
   /** @nullable */
+  tenantId?: string | null;
+  /** @nullable */
   tenantPortalUrl?: string | null;
+  /** @nullable */
+  tenantSlug?: string | null;
   /** @nullable */
   userId?: string | null;
   /** @nullable */

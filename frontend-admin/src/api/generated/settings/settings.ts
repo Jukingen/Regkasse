@@ -20,13 +20,9 @@ import type {
 } from '@tanstack/react-query'
 import type {
   CashRegisterSettings,
-  GetApiSettingsTaxRates200One,
-  GetApiSettingsTaxRates200Three,
-  GetApiSettingsTaxRates200Two,
+  GetApiSettingsTaxRates200,
   NotificationSettings,
-  PutApiSettingsTaxRatesBodyOne,
-  PutApiSettingsTaxRatesBodyThree,
-  PutApiSettingsTaxRatesBodyTwo,
+  PutApiSettingsTaxRatesBody,
   SessionSettingsDto,
   SystemSettings,
   UpdateCashRegisterSettingsRequest,
@@ -258,7 +254,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 ) => {
       
       
-      return customInstance<GetApiSettingsTaxRates200One | GetApiSettingsTaxRates200Two | GetApiSettingsTaxRates200Three>(
+      return customInstance<GetApiSettingsTaxRates200>(
       {url: `/api/Settings/tax-rates`, method: 'GET', signal
     },
       options);
@@ -308,12 +304,13 @@ export const useGetApiSettingsTaxRates = <TData = Awaited<ReturnType<typeof getA
 
 
 export const putApiSettingsTaxRates = (
-    putApiSettingsTaxRatesBody: PutApiSettingsTaxRatesBodyOne | PutApiSettingsTaxRatesBodyTwo | PutApiSettingsTaxRatesBodyThree,
+    putApiSettingsTaxRatesBody: PutApiSettingsTaxRatesBody,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
       {url: `/api/Settings/tax-rates`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
       data: putApiSettingsTaxRatesBody
     },
       options);
@@ -322,14 +319,14 @@ export const putApiSettingsTaxRates = (
 
 
 export const getPutApiSettingsTaxRatesMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsTaxRates>>, TError,{data: PutApiSettingsTaxRatesBodyOne | PutApiSettingsTaxRatesBodyTwo | PutApiSettingsTaxRatesBodyThree}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsTaxRates>>, TError,{data: PutApiSettingsTaxRatesBodyOne | PutApiSettingsTaxRatesBodyTwo | PutApiSettingsTaxRatesBodyThree}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsTaxRates>>, TError,{data: PutApiSettingsTaxRatesBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsTaxRates>>, TError,{data: PutApiSettingsTaxRatesBody}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiSettingsTaxRates>>, {data: PutApiSettingsTaxRatesBodyOne | PutApiSettingsTaxRatesBodyTwo | PutApiSettingsTaxRatesBodyThree}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiSettingsTaxRates>>, {data: PutApiSettingsTaxRatesBody}> = (props) => {
           const {data} = props ?? {};
 
           return  putApiSettingsTaxRates(data,requestOptions)
@@ -341,15 +338,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   return  { mutationFn, ...mutationOptions }}
 
     export type PutApiSettingsTaxRatesMutationResult = NonNullable<Awaited<ReturnType<typeof putApiSettingsTaxRates>>>
-    export type PutApiSettingsTaxRatesMutationBody = PutApiSettingsTaxRatesBodyOne | PutApiSettingsTaxRatesBodyTwo | PutApiSettingsTaxRatesBodyThree
+    export type PutApiSettingsTaxRatesMutationBody = PutApiSettingsTaxRatesBody
     export type PutApiSettingsTaxRatesMutationError = unknown
 
     export const usePutApiSettingsTaxRates = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsTaxRates>>, TError,{data: PutApiSettingsTaxRatesBodyOne | PutApiSettingsTaxRatesBodyTwo | PutApiSettingsTaxRatesBodyThree}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiSettingsTaxRates>>, TError,{data: PutApiSettingsTaxRatesBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiSettingsTaxRates>>,
         TError,
-        {data: PutApiSettingsTaxRatesBodyOne | PutApiSettingsTaxRatesBodyTwo | PutApiSettingsTaxRatesBodyThree},
+        {data: PutApiSettingsTaxRatesBody},
         TContext
       > => {
 

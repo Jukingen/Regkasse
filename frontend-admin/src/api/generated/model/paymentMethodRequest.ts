@@ -10,6 +10,8 @@ import type { VoucherRedemptionRequestItem } from './voucherRedemptionRequestIte
 export interface PaymentMethodRequest {
   /** @nullable */
   amount?: number | null;
+  /** @nullable */
+  cardPaymentIntentId?: string | null;
   /** @minLength 1 */
   method: string;
   tseRequired: boolean;

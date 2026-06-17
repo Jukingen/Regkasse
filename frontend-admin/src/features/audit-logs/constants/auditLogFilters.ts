@@ -20,6 +20,9 @@ export const AUDIT_LOG_ENTITY_TYPE_FILTER_VALUES = [
 
 export type AuditLogEntityTypeFilter = (typeof AUDIT_LOG_ENTITY_TYPE_FILTER_VALUES)[number];
 
+import type { AuditLogStatus } from '@/api/generated/model/auditLogStatus';
+import { AuditLogStatus as AuditLogStatusEnum } from '@/api/generated/model/auditLogStatus';
+
 /** Operator-facing status filter values (API enum names). */
 export const AUDIT_LOG_STATUS_FILTER_VALUES = ['Success', 'Failed', 'Warning'] as const;
 
@@ -40,8 +43,14 @@ export function toAuditLogStatusUrlParam(status: AuditLogStatusFilter): string {
     return status === 'Failed' ? 'Failure' : status;
 }
 
-export function toAuditLogStatusApiParam(status: AuditLogStatusFilter | undefined): string | undefined {
-    return status;
+const AUDIT_LOG_STATUS_FILTER_TO_API: Record<AuditLogStatusFilter, AuditLogStatus> = {
+    Success: AuditLogStatusEnum.NUMBER_0,
+    Failed: AuditLogStatusEnum.NUMBER_1,
+    Warning: AuditLogStatusEnum.NUMBER_9,
+};
+
+export function toAuditLogStatusApiParam(status: AuditLogStatusFilter | undefined): AuditLogStatus | undefined {
+    return status ? AUDIT_LOG_STATUS_FILTER_TO_API[status] : undefined;
 }
 
 export { AUDIT_ACTION_FILTER_VALUES, type AuditActionFilter } from '@/features/audit-logs/utils/auditActionLabels';

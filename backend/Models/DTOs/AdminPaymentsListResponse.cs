@@ -8,13 +8,17 @@ public class AdminPaymentsListResponse
     public int PageSize { get; set; }
     public IReadOnlyList<AdminPaymentListItemDto> Items { get; set; } = Array.Empty<AdminPaymentListItemDto>();
     public FilterSummaryDto? ActiveFilters { get; set; }
+    public string? NextCursor { get; set; }
+    public bool HasMore { get; set; }
 
     public static AdminPaymentsListResponse From(PaymentListResponse response) => new()
     {
-        Total = response.TotalCount,
+        Total = response.TotalCount ?? 0,
         PageNumber = response.Page,
         PageSize = response.PageSize,
         Items = response.Items.Cast<AdminPaymentListItemDto>().ToList(),
         ActiveFilters = response.ActiveFilters,
+        NextCursor = response.NextCursor,
+        HasMore = response.HasMore,
     };
 }

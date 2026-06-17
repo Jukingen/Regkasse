@@ -22,4 +22,6 @@ statusOutcome?: string;
 hasChanges?: boolean;
 page?: number;
 pageSize?: number;
+afterCursor?: string;
+includeTotalCount?: boolean;
 };

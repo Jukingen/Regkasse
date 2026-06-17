@@ -24,6 +24,7 @@ import type {
 } from '@/api/generated/model';
 import { useAdminPaymentsList } from '@/features/payments/api/adminPaymentsListQuery';
 import { PaymentFilterBar } from '@/features/payments/components/PaymentFilterBar';
+import { useKeysetCursors } from '@/shared/pagination/useKeysetPageStack';
 import type { PaymentFilters } from '@/features/payments/types/paymentFilters';
 import { countActivePaymentFilters } from '@/features/payments/utils/countActivePaymentFilters';
 import {
@@ -170,6 +171,8 @@ export default function PaymentsPage() {
   );
   const [page, setPage] = useState(initialPagination.page);
   const [pageSize, setPageSize] = useState(initialPagination.pageSize);
+  const { getAfterCursor, shouldIncludeTotalCount, cachedTotal, ingestPageMeta, resetCursors } =
+    useKeysetCursors();
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [refundReason, setRefundReason] = useState('');
@@ -185,9 +188,10 @@ export default function PaymentsPage() {
   useEffect(() => {
     if (prevFiltersSerialized.current !== filtersSerialized) {
       setPage(1);
+      resetCursors();
       prevFiltersSerialized.current = filtersSerialized;
     }
-  }, [filtersSerialized]);
+  }, [filtersSerialized, resetCursors]);
 
   useEffect(() => {
     if (!searchParams) return;
@@ -206,14 +210,29 @@ export default function PaymentsPage() {
   }, []);
 
   const listParams = useMemo(
-    () => paymentFiltersToApiParams(filters, { page, pageSize }),
-    [filters, page, pageSize],
+    () =>
+      paymentFiltersToApiParams(filters, {
+        page,
+        pageSize,
+        afterCursor: getAfterCursor(page),
+        includeTotalCount: shouldIncludeTotalCount(page),
+      }),
+    [filters, page, pageSize, getAfterCursor, shouldIncludeTotalCount],
   );
 
   const { data: registersRaw } = useGetApiCashRegister();
   const cashRegisters = useMemo(() => normalizeRegisters(registersRaw), [registersRaw]);
 
-  const { data, isLoading, isError, error, refetch } = useAdminPaymentsList(listParams);
+  const { data, isLoading, isPlaceholderData, isError, error, refetch } = useAdminPaymentsList(listParams);
+
+  useEffect(() => {
+    if (!data) return;
+    ingestPageMeta(page, {
+      nextCursor: data.nextCursor,
+      hasMore: data.hasMore,
+      totalCount: data.total,
+    });
+  }, [data, page, ingestPageMeta]);
   const { data: statsRaw, isLoading: statsLoading } = useGetApiAdminPaymentsStatistics({
     startDate: listParams.startDate,
     endDate: listParams.endDate,
@@ -224,7 +243,7 @@ export default function PaymentsPage() {
   const paymentDetailData = paymentDetail as AdminPaymentDetailDto | undefined;
 
   const payments: AdminPaymentListItemDto[] = useMemo(() => data?.items ?? [], [data?.items]);
-  const totalCount = data?.total ?? payments.length;
+  const totalCount = cachedTotal ?? data?.total ?? payments.length;
 
   const stats: PaymentStatisticsShape | null =
     statsRaw && typeof statsRaw === 'object' ? (statsRaw as PaymentStatisticsShape) : null;
@@ -589,19 +608,24 @@ export default function PaymentsPage() {
       <Table
         columns={columns}
         dataSource={payments}
-        loading={isLoading}
+        loading={isLoading && !isPlaceholderData}
         rowKey="id"
         virtual={shouldUseAdminTableVirtual(payments.length)}
         scroll={adminTableScrollXy(1280, payments.length)}
+        style={{
+          opacity: isPlaceholderData ? 0.6 : 1,
+          transition: 'opacity 0.2s',
+        }}
         pagination={{
           current: page,
           pageSize,
           total: totalCount,
           showSizeChanger: true,
+          showQuickJumper: false,
           pageSizeOptions: ['25', '50', '100'],
           onChange: (p, ps) => {
             setPage(p);
-            setPageSize(ps);
+            if (ps != null) setPageSize(ps);
           },
         }}
         locale={{

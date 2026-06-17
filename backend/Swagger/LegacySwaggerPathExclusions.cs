@@ -20,6 +20,12 @@ public static class LegacySwaggerPathExclusions
             || MatchesPrefix(relativePath, "api/Product"))
             return true;
 
+        // Legacy route aliases — canonical paths remain in OpenAPI (runtime still serves both).
+        if (MatchesPrefix(relativePath, "api/CompanySettings")
+            || MatchesPrefix(relativePath, "api/pos/company-profile")
+            || MatchesPrefix(relativePath, "api/pos/payment/card"))
+            return true;
+
         // Legacy simulated submit; operational flow is outbox + normal fiscal submit.
         if (relativePath.Equals("api/FinanzOnline/submit-invoice", StringComparison.OrdinalIgnoreCase))
             return true;

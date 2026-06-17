@@ -589,6 +589,15 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("TenantId", "Timestamp")
+                        .IsDescending(false, true);
+
+                    b.HasIndex("EntityType", "EntityId", "Timestamp")
+                        .IsDescending(false, false, true);
+
+                    b.HasIndex("EntityType", "EntityName", "Timestamp")
+                        .IsDescending(false, false, true);
+
                     b.ToTable("audit_logs", (string)null);
                 });
 
@@ -4668,6 +4677,9 @@ namespace KasseAPI_Final.Migrations
                         .HasFilter("\"receipt_number\" IS NOT NULL AND \"receipt_number\" <> ''");
 
                     b.HasIndex("TseSignature");
+
+                    b.HasIndex("CashRegisterId", "CreatedAt")
+                        .IsDescending(false, true);
 
                     b.HasIndex("CashRegisterId", "RksvSpecialReceiptKind")
                         .IsUnique()

@@ -20,11 +20,13 @@ export type AdminPaymentsListQueryParams = {
     pageNumber?: number;
     sortBy?: string;
     sortDirection?: string;
+    afterCursor?: string;
+    includeTotalCount?: boolean;
 };
 
 export function paymentFiltersToApiParams(
     filters: PaymentFilters,
-    pagination: { page: number; pageSize: number },
+    pagination: { page: number; pageSize: number; afterCursor?: string; includeTotalCount?: boolean },
 ): AdminPaymentsListQueryParams {
     const start = filters.dateRange?.[0] ?? dayjs().subtract(30, 'day');
     const end = filters.dateRange?.[1] ?? dayjs();
@@ -37,7 +39,12 @@ export function paymentFiltersToApiParams(
         pageSize: pagination.pageSize,
         sortBy: 'CreatedAt',
         sortDirection: 'desc',
+        includeTotalCount: pagination.includeTotalCount ?? pagination.page === 1,
     };
+
+    if (pagination.afterCursor) {
+        params.afterCursor = pagination.afterCursor;
+    }
 
     if (filters.minAmount != null && Number.isFinite(filters.minAmount)) {
         params.minAmount = filters.minAmount;

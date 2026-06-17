@@ -17,7 +17,7 @@ export function buildAuditLogExportQuery(params: AuditLogListParams): Record<str
     if (params.entityId) exportParams.entityId = params.entityId;
     if (params.ipAddress) exportParams.ipAddress = params.ipAddress;
     const status = toAuditLogStatusApiParam(params.status);
-    if (status) exportParams.status = status;
+    if (status != null) exportParams.status = String(status);
     if (params.statusOutcome) exportParams.statusOutcome = params.statusOutcome;
     if (params.hasChanges === true) exportParams.hasChanges = 'true';
     if (params.hasChanges === false) exportParams.hasChanges = 'false';

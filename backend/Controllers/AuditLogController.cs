@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Models;
-using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Authorization;
 using System.ComponentModel.DataAnnotations;
 
@@ -54,35 +53,39 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] string? statusOutcome = null,
             [FromQuery] bool? hasChanges = null,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
+            [FromQuery] int pageSize = 50,
+            [FromQuery] string? afterCursor = null,
+            [FromQuery] bool includeTotalCount = true)
         {
             try
             {
                 if (page < 1) page = 1;
                 if (pageSize < 1 || pageSize > 100) pageSize = 50;
 
-                var auditLogs = await _auditLogService.GetAuditLogsAsync(
-                    startDate, endDate, userId, userRole, action, entityType, entityId, status, page, pageSize,
-                    targetUserId, ipAddress, statusOutcome, hasChanges);
-                var list = auditLogs.ToList();
+                var filters = AuditLogQueryExtensions.ToFilters(
+                    startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
+                    ipAddress, status, statusOutcome, hasChanges);
 
-                var totalCount = await _auditLogService.GetAuditLogsCountAsync(
-                    startDate, endDate, userId, userRole, action, entityType, entityId, status,
-                    targetUserId, ipAddress, statusOutcome, hasChanges);
+                var includeTotal = includeTotalCount && page == 1 && string.IsNullOrWhiteSpace(afterCursor);
+                var (items, meta) = await _auditLogService.GetAuditLogsPagedAsync(
+                    filters, pageSize, afterCursor, page, includeTotal);
 
+                var totalCount = meta.TotalCount ?? 0;
                 var response = new AuditLogsResponse
                 {
                     Success = true,
-                    AuditLogs = AuditLogEntryMapper.ToDtoList(list),
+                    AuditLogs = AuditLogEntryMapper.ToDtoList(items.ToList()),
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
-                    TotalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                    TotalPages = totalCount > 0 ? (int)Math.Ceiling((double)totalCount / pageSize) : 0,
+                    NextCursor = meta.NextCursor,
+                    HasMore = meta.HasMore,
                     Message = "Audit logs retrieved successfully"
                 };
 
-                _logger.LogInformation("Retrieved {Count} audit logs (page {Page} of {TotalPages})", 
-                    list.Count, page, response.TotalPages);
+                _logger.LogInformation("Retrieved {Count} audit logs (page {Page}, hasMore={HasMore})",
+                    items.Count, page, meta.HasMore);
 
                 return Ok(response);
             }
@@ -461,18 +464,6 @@ namespace KasseAPI_Final.Controllers
                 }
             }
         }
-    }
-
-    // DTOs for audit log responses
-    public class AuditLogsResponse
-    {
-        public bool Success { get; set; }
-        public List<AuditLogEntryDto> AuditLogs { get; set; } = new();
-        public int TotalCount { get; set; }
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public int TotalPages { get; set; }
-        public string Message { get; set; } = string.Empty;
     }
 
     public class AuditLogResponse

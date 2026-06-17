@@ -416,18 +416,16 @@ namespace KasseAPI_Final.Controllers
                 if (page < 1) page = 1;
                 if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
-                var q = _userManager.Users.AsQueryable();
+                var q = _context.Users.AsNoTracking();
 
                 var actorCanonicalRole = RoleCanonicalization.GetCanonicalRole(GetCurrentUserRole());
                 var isSuperAdmin = string.Equals(actorCanonicalRole, Roles.SuperAdmin, StringComparison.Ordinal);
                 if (!isSuperAdmin && _tenantAccessor.TenantId is Guid scopedTenantId)
                 {
-                    var memberUserIds = await _context.UserTenantMemberships
-                        .AsNoTracking()
-                        .Where(m => m.TenantId == scopedTenantId && m.IsActive)
-                        .Select(m => m.UserId)
-                        .ToListAsync();
-                    q = q.Where(u => memberUserIds.Contains(u.Id) && u.Role != Roles.SuperAdmin);
+                    q = q.Where(u =>
+                        _context.UserTenantMemberships.Any(m =>
+                            m.UserId == u.Id && m.TenantId == scopedTenantId && m.IsActive)
+                        && u.Role != Roles.SuperAdmin);
                 }
 
                 if (isActive.HasValue)

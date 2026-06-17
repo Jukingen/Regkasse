@@ -1,9 +1,10 @@
 'use client';
 
-import React, { Suspense, useCallback, useMemo, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
 import { Card, Typography, Tag, Space, Button, Alert, Spin, Tooltip } from 'antd';
 import { CalendarOutlined, DownloadOutlined, ReloadOutlined } from '@ant-design/icons';
-import type { AuditLogEntryDto } from '@/api/generated/model';
+import type { AuditLogEntryDto, GetApiAuditLogParams } from '@/api/generated/model';
 import type { Dayjs } from 'dayjs';
 import Link from 'next/link';
 import { useGetApiAuditLog } from '@/api/generated/audit-log/audit-log';
@@ -23,6 +24,7 @@ import { ScheduleReportModal } from '@/features/audit/components/ScheduleReportM
 import { AuditLogTable } from '@/features/audit-logs/components/AuditLogTable';
 import { useAuditLogUserFilterOptions } from '@/features/audit-logs/hooks/useAuditLogUserFilterOptions';
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
+import { useKeysetCursors } from '@/shared/pagination/useKeysetPageStack';
 
 function getAuditListErrorMessage(error: unknown, translate: (key: string) => string): string {
     if (error instanceof Error) return error.message;
@@ -32,6 +34,74 @@ function getAuditListErrorMessage(error: unknown, translate: (key: string) => st
 function AuditLogsPageContent() {
     const { t, formatLocale } = useI18n();
     const { params, setParams, resetFilters } = useAuditLogSearchParams();
+    const { getAfterCursor, shouldIncludeTotalCount, cachedTotal, ingestPageMeta, resetCursors } =
+        useKeysetCursors();
+    const filterFingerprint = useMemo(
+        () =>
+            JSON.stringify({
+                startDate: params.startDate,
+                endDate: params.endDate,
+                action: params.action,
+                userId: params.userId,
+                targetUserId: params.targetUserId,
+                entityType: params.entityType,
+                entityId: params.entityId,
+                ipAddress: params.ipAddress,
+                status: params.status,
+                statusOutcome: params.statusOutcome,
+                hasChanges: params.hasChanges,
+                pageSize: params.pageSize,
+            }),
+        [params],
+    );
+    const prevFilterFingerprint = useRef(filterFingerprint);
+    useEffect(() => {
+        if (prevFilterFingerprint.current !== filterFingerprint) {
+            resetCursors();
+            prevFilterFingerprint.current = filterFingerprint;
+        }
+    }, [filterFingerprint, resetCursors]);
+
+    const afterCursor = getAfterCursor(params.page);
+    const queryParams = useMemo((): GetApiAuditLogParams => ({
+        page: params.page,
+        pageSize: params.pageSize,
+        afterCursor,
+        includeTotalCount: shouldIncludeTotalCount(params.page),
+        startDate: params.startDate ? dayjs(params.startDate).startOf('day').toISOString() : undefined,
+        endDate: params.endDate ? dayjs(params.endDate).endOf('day').toISOString() : undefined,
+        action: params.action,
+        userId: params.userId,
+        targetUserId: params.targetUserId,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        ipAddress: params.ipAddress,
+        status: toAuditLogStatusApiParam(params.status),
+        statusOutcome: params.statusOutcome,
+        hasChanges: params.hasChanges,
+    }), [params, afterCursor, shouldIncludeTotalCount]);
+
+    const { data, isLoading, isFetching, isPlaceholderData, isError, error, refetch } = useGetApiAuditLog(
+        queryParams,
+        { query: { placeholderData: keepPreviousData } },
+    );
+
+    useEffect(() => {
+        if (!data) return;
+        ingestPageMeta(params.page, {
+            nextCursor: data.nextCursor,
+            hasMore: data.hasMore,
+            totalCount: data.totalCount,
+        });
+    }, [data, params.page, ingestPageMeta]);
+
+    const handleResetFilters = useCallback(() => {
+        resetCursors();
+        resetFilters();
+    }, [resetCursors, resetFilters]);
+
+    const listTotal = cachedTotal ?? data?.totalCount ?? 0;
+
     const [exportOpen, setExportOpen] = useState(false);
     const [scheduleOpen, setScheduleOpen] = useState(false);
     const [detailRecord, setDetailRecord] = useState<AuditLogEntryDto | null>(null);
@@ -40,27 +110,6 @@ function AuditLogsPageContent() {
         if (!params.startDate && !params.endDate) return null;
         return [params.startDate ? dayjs(params.startDate) : null, params.endDate ? dayjs(params.endDate) : null];
     }, [params.startDate, params.endDate]);
-
-    const queryParams = useMemo(
-        () => ({
-            page: params.page,
-            pageSize: params.pageSize,
-            startDate: params.startDate ? dayjs(params.startDate).startOf('day').toISOString() : undefined,
-            endDate: params.endDate ? dayjs(params.endDate).endOf('day').toISOString() : undefined,
-            action: params.action,
-            userId: params.userId,
-            targetUserId: params.targetUserId,
-            entityType: params.entityType,
-            entityId: params.entityId,
-            ipAddress: params.ipAddress,
-            status: toAuditLogStatusApiParam(params.status) as never,
-            statusOutcome: params.statusOutcome,
-            hasChanges: params.hasChanges,
-        }),
-        [params],
-    );
-
-    const { data, isLoading, isFetching, isError, error, refetch } = useGetApiAuditLog(queryParams);
 
     const { resolveLabel: resolveUserLabel } = useAuditLogUserFilterOptions();
 
@@ -99,9 +148,9 @@ function AuditLogsPageContent() {
         const parts: string[] = [
             t('common.auditLogs.scopePage', { page: String(params.page) }),
             t('common.auditLogs.scopeRowsPerRequest', { pageSize: String(params.pageSize) }),
-            data?.totalCount != null
+            data?.totalCount != null || cachedTotal != null
                 ? t('common.auditLogs.scopeTotalEntries', {
-                      total: formatNumber(data.totalCount, formatLocale, { maximumFractionDigits: 0 }),
+                      total: formatNumber(listTotal, formatLocale, { maximumFractionDigits: 0 }),
                   })
                 : t('common.auditLogs.scopeTotalLoading'),
         ];
@@ -122,7 +171,7 @@ function AuditLogsPageContent() {
         }
         parts.push(t('common.auditLogs.scopeApiPageNote'));
         return parts.join(' · ');
-    }, [params, data?.totalCount, formatLocale, t, statusLabel, actionOptionLabel]);
+    }, [params, listTotal, formatLocale, t, statusLabel, actionOptionLabel, cachedTotal, data?.totalCount]);
 
     const rows = data?.auditLogs ?? [];
 
@@ -181,7 +230,7 @@ function AuditLogsPageContent() {
                     }
                     onHasChangesChange={(hasChanges) => setParams({ hasChanges })}
                     onDateRangeChange={(startDate, endDate) => setParams({ startDate, endDate })}
-                    onClearFilters={resetFilters}
+                    onClearFilters={handleResetFilters}
                 />
             </Card>
 
@@ -231,7 +280,7 @@ function AuditLogsPageContent() {
                                     {dayjs(params.endDate).format('DD.MM.YYYY')}
                                 </Tag>
                             ) : null}
-                            <Button type="link" size="small" onClick={resetFilters}>
+                            <Button type="link" size="small" onClick={handleResetFilters}>
                                 {t('common.auditLogs.clearAllFilters')}
                             </Button>
                         </Space>
@@ -259,7 +308,7 @@ function AuditLogsPageContent() {
                             <Button size="small" onClick={() => refetch()}>
                                 {t('common.buttons.retry')}
                             </Button>
-                            <Button size="small" type="link" onClick={resetFilters} style={{ padding: 0, height: 'auto' }}>
+                            <Button size="small" type="link" onClick={handleResetFilters} style={{ padding: 0, height: 'auto' }}>
                                 {t('common.auditLogs.clearAllFilters')}
                             </Button>
                         </Space>
@@ -271,9 +320,11 @@ function AuditLogsPageContent() {
                 <AuditLogTable
                     rows={rows}
                     loading={isLoading}
+                    isPlaceholderData={isPlaceholderData}
                     page={params.page}
                     pageSize={params.pageSize}
-                    total={data?.totalCount ?? 0}
+                    total={listTotal}
+                    hasMore={(data as { hasMore?: boolean } | undefined)?.hasMore}
                     hasActiveFilters={hasActiveFilters}
                     onPageChange={(p, s) => setParams({ page: p, pageSize: s })}
                     onRowClick={setDetailRecord}

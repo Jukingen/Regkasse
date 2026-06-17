@@ -15,6 +15,8 @@ import type {
 } from '@tanstack/react-query'
 import type {
   DevOrphanedUserCleanupResponse,
+  DevTenantCatalogCleanupRequest,
+  DevTenantCatalogCleanupResult,
   ProblemDetails
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -23,7 +25,58 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
-export const postApiDevCleanupOrphanedUsers = (
+export const postApiDevCleanupTenantCatalog = (
+    devTenantCatalogCleanupRequest: DevTenantCatalogCleanupRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<DevTenantCatalogCleanupResult>(
+      {url: `/api/dev/cleanup/tenant-catalog`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: devTenantCatalogCleanupRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiDevCleanupTenantCatalogMutationOptions = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiDevCleanupTenantCatalog>>, TError,{data: DevTenantCatalogCleanupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiDevCleanupTenantCatalog>>, TError,{data: DevTenantCatalogCleanupRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiDevCleanupTenantCatalog>>, {data: DevTenantCatalogCleanupRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiDevCleanupTenantCatalog(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiDevCleanupTenantCatalogMutationResult = NonNullable<Awaited<ReturnType<typeof postApiDevCleanupTenantCatalog>>>
+    export type PostApiDevCleanupTenantCatalogMutationBody = DevTenantCatalogCleanupRequest
+    export type PostApiDevCleanupTenantCatalogMutationError = ProblemDetails
+
+    export const usePostApiDevCleanupTenantCatalog = <TError = ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiDevCleanupTenantCatalog>>, TError,{data: DevTenantCatalogCleanupRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiDevCleanupTenantCatalog>>,
+        TError,
+        {data: DevTenantCatalogCleanupRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiDevCleanupTenantCatalogMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiDevCleanupOrphanedUsers = (
     
  options?: SecondParameter<typeof customInstance>,) => {
       

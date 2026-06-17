@@ -514,6 +514,7 @@ builder.Services.AddSwaggerGen(c =>
     c.SchemaFilter<KasseAPI_Final.Swagger.TagesabschlussSchemaRequiredFilter>();
     c.OperationFilter<SignatureDebugSwaggerExamples>();
     c.OperationFilter<KasseAPI_Final.Swagger.PosAdminTagsAndDeprecationFilter>();
+    c.OperationFilter<KasseAPI_Final.Swagger.SingleJsonContentTypeOperationFilter>();
 
     c.DocInclusionPredicate((_, api) => !KasseAPI_Final.Swagger.LegacySwaggerPathExclusions.ShouldExclude(api.RelativePath));
     

@@ -42,6 +42,8 @@ export type UsersTableProps = {
     virtual?: boolean;
     scroll?: TableProps<UserInfo>['scroll'];
     emptyDescription?: React.ReactNode;
+    /** When true, keep showing prior rows while the next page loads (no full-table spinner). */
+    isPlaceholderData?: boolean;
 };
 
 export function UsersTable({
@@ -61,6 +63,7 @@ export function UsersTable({
     virtual,
     scroll,
     emptyDescription,
+    isPlaceholderData = false,
 }: UsersTableProps) {
     const { t, formatLocale } = useI18n();
 
@@ -206,12 +209,16 @@ export function UsersTable({
     return (
         <Table
             rowKey={(r) => r.id ?? ''}
-            loading={loading}
+            loading={loading && !isPlaceholderData}
             dataSource={users}
             columns={columns}
             virtual={virtual}
             scroll={scroll}
             pagination={pagination}
+            style={{
+                opacity: isPlaceholderData ? 0.6 : 1,
+                transition: 'opacity 0.2s',
+            }}
             locale={{
                 emptyText: (
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={emptyDescription} />

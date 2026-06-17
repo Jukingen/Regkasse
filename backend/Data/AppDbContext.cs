@@ -873,6 +873,8 @@ namespace KasseAPI_Final.Data
                     .HasForeignKey(e => e.CashRegisterId)
                     .OnDelete(DeleteBehavior.Restrict);
                 entity.HasIndex(e => e.CashRegisterId);
+                entity.HasIndex(e => new { e.CashRegisterId, e.CreatedAt })
+                    .IsDescending(false, true);
                 entity.Property(e => e.OriginalReceiptId).HasColumnName("original_receipt_id");
                 entity.HasOne<Receipt>()
                     .WithMany()
@@ -1297,6 +1299,14 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.EntityType);
                 entity.HasIndex(e => e.EntityId);
                 entity.HasIndex(e => e.UserId);
+
+                // Tenant-scoped list + user lifecycle queries (ORDER BY timestamp DESC)
+                entity.HasIndex(e => new { e.TenantId, e.Timestamp })
+                    .IsDescending(false, true);
+                entity.HasIndex(e => new { e.EntityType, e.EntityName, e.Timestamp })
+                    .IsDescending(false, false, true);
+                entity.HasIndex(e => new { e.EntityType, e.EntityId, e.Timestamp })
+                    .IsDescending(false, false, true);
             });
 
             // CompanySettings configuration

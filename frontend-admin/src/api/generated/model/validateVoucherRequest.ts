@@ -13,6 +13,8 @@ export interface ValidateVoucherRequest {
    * @nullable
    */
   amount?: number | null;
+  /** @nullable */
+  code?: string | null;
   /**
    * @minLength 3
    * @maxLength 128

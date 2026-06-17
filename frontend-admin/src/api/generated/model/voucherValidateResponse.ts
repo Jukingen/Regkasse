@@ -8,9 +8,14 @@
 
 export interface VoucherValidateResponse {
   /** @nullable */
+  readonly code?: string | null;
+  /** @nullable */
   errorCode?: string | null;
   /** @nullable */
+  readonly expiresAt?: string | null;
+  /** @nullable */
   expiresAtUtc?: string | null;
+  readonly isValid?: boolean;
   /** @nullable */
   maskedCode?: string | null;
   /** @nullable */

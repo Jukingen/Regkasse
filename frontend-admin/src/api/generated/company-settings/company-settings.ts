@@ -22,13 +22,9 @@ import type {
   BankingInfo,
   BillingSettings,
   CompanySettings,
-  GetApiCompanySettingsBusinessHours200One,
-  GetApiCompanySettingsBusinessHours200Three,
-  GetApiCompanySettingsBusinessHours200Two,
+  GetApiCompanySettingsBusinessHours200,
   LocalizationSettings,
-  PutApiCompanySettingsBusinessHoursBodyOne,
-  PutApiCompanySettingsBusinessHoursBodyThree,
-  PutApiCompanySettingsBusinessHoursBodyTwo,
+  PutApiCompanySettingsBusinessHoursBody,
   UpdateBankingInfoRequest,
   UpdateBillingSettingsRequest,
   UpdateCompanySettingsRequest
@@ -46,14 +42,14 @@ export const getApiCompanySettings = (
       
       
       return customInstance<CompanySettings>(
-      {url: `/api/CompanySettings`, method: 'GET', signal
+      {url: `/api/company/settings`, method: 'GET', signal
     },
       options);
     }
   
 
 export const getGetApiCompanySettingsQueryKey = () => {
-    return [`/api/CompanySettings`] as const;
+    return [`/api/company/settings`] as const;
     }
 
     
@@ -100,7 +96,7 @@ export const putApiCompanySettings = (
       
       
       return customInstance<void>(
-      {url: `/api/CompanySettings`, method: 'PUT',
+      {url: `/api/company/settings`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: updateCompanySettingsRequest
     },
@@ -151,15 +147,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 ) => {
       
       
-      return customInstance<GetApiCompanySettingsBusinessHours200One | GetApiCompanySettingsBusinessHours200Two | GetApiCompanySettingsBusinessHours200Three>(
-      {url: `/api/CompanySettings/business-hours`, method: 'GET', signal
+      return customInstance<GetApiCompanySettingsBusinessHours200>(
+      {url: `/api/company/settings/business-hours`, method: 'GET', signal
     },
       options);
     }
   
 
 export const getGetApiCompanySettingsBusinessHoursQueryKey = () => {
-    return [`/api/CompanySettings/business-hours`] as const;
+    return [`/api/company/settings/business-hours`] as const;
     }
 
     
@@ -201,12 +197,13 @@ export const useGetApiCompanySettingsBusinessHours = <TData = Awaited<ReturnType
 
 
 export const putApiCompanySettingsBusinessHours = (
-    putApiCompanySettingsBusinessHoursBody: PutApiCompanySettingsBusinessHoursBodyOne | PutApiCompanySettingsBusinessHoursBodyTwo | PutApiCompanySettingsBusinessHoursBodyThree,
+    putApiCompanySettingsBusinessHoursBody: PutApiCompanySettingsBusinessHoursBody,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
-      {url: `/api/CompanySettings/business-hours`, method: 'PUT',
+      {url: `/api/company/settings/business-hours`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
       data: putApiCompanySettingsBusinessHoursBody
     },
       options);
@@ -215,14 +212,14 @@ export const putApiCompanySettingsBusinessHours = (
 
 
 export const getPutApiCompanySettingsBusinessHoursMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, TError,{data: PutApiCompanySettingsBusinessHoursBodyOne | PutApiCompanySettingsBusinessHoursBodyTwo | PutApiCompanySettingsBusinessHoursBodyThree}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, TError,{data: PutApiCompanySettingsBusinessHoursBodyOne | PutApiCompanySettingsBusinessHoursBodyTwo | PutApiCompanySettingsBusinessHoursBodyThree}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, TError,{data: PutApiCompanySettingsBusinessHoursBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, TError,{data: PutApiCompanySettingsBusinessHoursBody}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, {data: PutApiCompanySettingsBusinessHoursBodyOne | PutApiCompanySettingsBusinessHoursBodyTwo | PutApiCompanySettingsBusinessHoursBodyThree}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, {data: PutApiCompanySettingsBusinessHoursBody}> = (props) => {
           const {data} = props ?? {};
 
           return  putApiCompanySettingsBusinessHours(data,requestOptions)
@@ -234,15 +231,15 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   return  { mutationFn, ...mutationOptions }}
 
     export type PutApiCompanySettingsBusinessHoursMutationResult = NonNullable<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>>
-    export type PutApiCompanySettingsBusinessHoursMutationBody = PutApiCompanySettingsBusinessHoursBodyOne | PutApiCompanySettingsBusinessHoursBodyTwo | PutApiCompanySettingsBusinessHoursBodyThree
+    export type PutApiCompanySettingsBusinessHoursMutationBody = PutApiCompanySettingsBusinessHoursBody
     export type PutApiCompanySettingsBusinessHoursMutationError = unknown
 
     export const usePutApiCompanySettingsBusinessHours = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, TError,{data: PutApiCompanySettingsBusinessHoursBodyOne | PutApiCompanySettingsBusinessHoursBodyTwo | PutApiCompanySettingsBusinessHoursBodyThree}, TContext>, request?: SecondParameter<typeof customInstance>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>, TError,{data: PutApiCompanySettingsBusinessHoursBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof putApiCompanySettingsBusinessHours>>,
         TError,
-        {data: PutApiCompanySettingsBusinessHoursBodyOne | PutApiCompanySettingsBusinessHoursBodyTwo | PutApiCompanySettingsBusinessHoursBodyThree},
+        {data: PutApiCompanySettingsBusinessHoursBody},
         TContext
       > => {
 
@@ -257,14 +254,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       
       
       return customInstance<BankingInfo>(
-      {url: `/api/CompanySettings/banking`, method: 'GET', signal
+      {url: `/api/company/settings/banking`, method: 'GET', signal
     },
       options);
     }
   
 
 export const getGetApiCompanySettingsBankingQueryKey = () => {
-    return [`/api/CompanySettings/banking`] as const;
+    return [`/api/company/settings/banking`] as const;
     }
 
     
@@ -311,7 +308,7 @@ export const putApiCompanySettingsBanking = (
       
       
       return customInstance<void>(
-      {url: `/api/CompanySettings/banking`, method: 'PUT',
+      {url: `/api/company/settings/banking`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: updateBankingInfoRequest
     },
@@ -363,14 +360,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       
       
       return customInstance<LocalizationSettings>(
-      {url: `/api/CompanySettings/localization`, method: 'GET', signal
+      {url: `/api/company/settings/localization`, method: 'GET', signal
     },
       options);
     }
   
 
 export const getGetApiCompanySettingsLocalizationQueryKey = () => {
-    return [`/api/CompanySettings/localization`] as const;
+    return [`/api/company/settings/localization`] as const;
     }
 
     
@@ -417,7 +414,7 @@ export const putApiCompanySettingsLocalization = (
       
       
       return customInstance<void>(
-      {url: `/api/CompanySettings/localization`, method: 'PUT',
+      {url: `/api/company/settings/localization`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: localizationSettings
     },
@@ -469,14 +466,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       
       
       return customInstance<BillingSettings>(
-      {url: `/api/CompanySettings/billing`, method: 'GET', signal
+      {url: `/api/company/settings/billing`, method: 'GET', signal
     },
       options);
     }
   
 
 export const getGetApiCompanySettingsBillingQueryKey = () => {
-    return [`/api/CompanySettings/billing`] as const;
+    return [`/api/company/settings/billing`] as const;
     }
 
     
@@ -523,7 +520,7 @@ export const putApiCompanySettingsBilling = (
       
       
       return customInstance<void>(
-      {url: `/api/CompanySettings/billing`, method: 'PUT',
+      {url: `/api/company/settings/billing`, method: 'PUT',
       headers: {'Content-Type': 'application/json', },
       data: updateBillingSettingsRequest
     },
@@ -575,14 +572,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       
       
       return customInstance<void>(
-      {url: `/api/CompanySettings/export`, method: 'GET', signal
+      {url: `/api/company/settings/export`, method: 'GET', signal
     },
       options);
     }
   
 
 export const getGetApiCompanySettingsExportQueryKey = () => {
-    return [`/api/CompanySettings/export`] as const;
+    return [`/api/company/settings/export`] as const;
     }
 
     

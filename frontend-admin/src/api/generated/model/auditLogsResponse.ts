@@ -10,8 +10,11 @@ import type { AuditLogEntryDto } from './auditLogEntryDto';
 export interface AuditLogsResponse {
   /** @nullable */
   auditLogs?: AuditLogEntryDto[] | null;
+  hasMore?: boolean;
   /** @nullable */
   message?: string | null;
+  /** @nullable */
+  nextCursor?: string | null;
   page?: number;
   pageSize?: number;
   success?: boolean;

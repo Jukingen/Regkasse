@@ -24,6 +24,8 @@ Page?: number;
 PageSize?: number;
 SortBy?: string;
 SortDirection?: string;
+AfterCursor?: string;
+IncludeTotalCount?: boolean;
 method?: string;
 status?: string;
 pageNumber?: number;

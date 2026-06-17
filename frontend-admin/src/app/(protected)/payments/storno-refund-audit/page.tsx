@@ -107,7 +107,7 @@ export default function StornoRefundAuditPage() {
     const { data, isLoading, isError, error, refetch } = useGetApiAdminPayments(listParams);
 
     const items = data?.items ?? [];
-    const total = data?.total ?? 0;
+    const total = data?.totalCount ?? 0;
 
     const stornoReasonLabel = useCallback(
         (reason: AdminPaymentListItemDto['stornoReason']) => {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AuditLogStatus } from '@/api/generated/model/auditLogStatus';
 import {
     parseAuditLogStatusFromUrl,
     toAuditLogStatusApiParam,
@@ -15,7 +16,10 @@ describe('audit log status URL/API mapping', () => {
         expect(toAuditLogStatusUrlParam('Success')).toBe('Success');
     });
 
-    it('sends Failed to the API query', () => {
-        expect(toAuditLogStatusApiParam('Failed')).toBe('Failed');
+    it('maps filter values to generated AuditLogStatus ordinals', () => {
+        expect(toAuditLogStatusApiParam('Failed')).toBe(AuditLogStatus.NUMBER_1);
+        expect(toAuditLogStatusApiParam('Success')).toBe(AuditLogStatus.NUMBER_0);
+        expect(toAuditLogStatusApiParam('Warning')).toBe(AuditLogStatus.NUMBER_9);
+        expect(toAuditLogStatusApiParam(undefined)).toBeUndefined();
     });
 });

@@ -77,6 +77,14 @@ namespace KasseAPI_Final.Services
             Guid? entityId = null, AuditLogStatus? status = null, int page = 1, int pageSize = 50,
             string? targetUserId = null, string? ipAddress = null, string? statusOutcome = null, bool? hasChanges = null);
 
+        /// <summary>Keyset-paginated audit log list (preferred for admin UI).</summary>
+        Task<(IReadOnlyList<AuditLog> Items, KeysetPageMetaDto Meta)> GetAuditLogsPagedAsync(
+            AuditLogQueryFilters filters,
+            int pageSize,
+            string? afterCursor = null,
+            int page = 1,
+            bool includeTotalCount = false);
+
         Task<IEnumerable<AuditLog>> GetPaymentAuditLogsAsync(Guid paymentId, DateTime? startDate = null, 
             DateTime? endDate = null, int page = 1, int pageSize = 50);
 
@@ -147,6 +155,9 @@ namespace KasseAPI_Final.Services
             _actorDisplayNameResolver = actorDisplayNameResolver;
             _retentionOptions = retentionOptions?.Value ?? new AuditRetentionOptions();
         }
+
+        /// <summary>Read-only audit log queries — append-only stream is never mutated on read paths.</summary>
+        private IQueryable<AuditLog> AuditLogsReadOnly => _context.AuditLogs.AsNoTracking();
 
         /// <summary>
         /// Log payment operations with comprehensive details
@@ -657,27 +668,68 @@ namespace KasseAPI_Final.Services
             Guid? entityId = null, AuditLogStatus? status = null, int page = 1, int pageSize = 50,
             string? targetUserId = null, string? ipAddress = null, string? statusOutcome = null, bool? hasChanges = null)
         {
+            var filters = AuditLogQueryExtensions.ToFilters(
+                startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
+                ipAddress, status, statusOutcome, hasChanges);
+            var (items, _) = await GetAuditLogsPagedAsync(filters, pageSize, page: page, includeTotalCount: false);
+            return items;
+        }
+
+        public async Task<(IReadOnlyList<AuditLog> Items, KeysetPageMetaDto Meta)> GetAuditLogsPagedAsync(
+            AuditLogQueryFilters filters,
+            int pageSize,
+            string? afterCursor = null,
+            int page = 1,
+            bool includeTotalCount = false)
+        {
             try
             {
-                var filters = AuditLogQueryExtensions.ToFilters(
-                    startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
-                    ipAddress, status, statusOutcome, hasChanges);
-                var query = _context.AuditLogs.AsQueryable().ApplyFilters(filters);
+                pageSize = Math.Clamp(pageSize, 1, 100);
+                page = Math.Max(1, page);
 
-                // Order by timestamp descending (newest first)
-                query = query.OrderByDescending(a => a.Timestamp);
+                var query = AuditLogsReadOnly.ApplyFilters(filters)
+                    .OrderByDescending(a => a.Timestamp)
+                    .ThenByDescending(a => a.Id);
 
-                // Apply pagination
-                var skip = (page - 1) * pageSize;
-                var auditLogs = await query.Skip(skip).Take(pageSize).ToListAsync();
+                int? total = null;
+                if (includeTotalCount)
+                    total = await AuditLogsReadOnly.ApplyFilters(filters).CountAsync();
 
-                _logger.LogInformation("Retrieved {Count} audit logs with filters", auditLogs.Count);
+                IQueryable<AuditLog> pageQuery = query;
+                if (KeysetCursor.TryDecode(afterCursor, out var cursor))
+                {
+                    pageQuery = query.ApplyKeysetAfterDesc(cursor, a => a.Timestamp, a => a.Id);
+                }
+                else if (page > 1)
+                {
+                    pageQuery = query.Skip((page - 1) * pageSize);
+                }
 
-                return auditLogs;
+                var rows = await pageQuery.Take(pageSize + 1).ToListAsync();
+                var hasMore = rows.Count > pageSize;
+                if (hasMore)
+                    rows = rows.Take(pageSize).ToList();
+
+                string? nextCursor = null;
+                if (hasMore && rows.Count > 0)
+                {
+                    var last = rows[^1];
+                    nextCursor = new KeysetCursor(last.Timestamp, last.Id).Encode();
+                }
+
+                _logger.LogInformation("Retrieved {Count} audit logs (keyset hasMore={HasMore})", rows.Count, hasMore);
+
+                return (rows, new KeysetPageMetaDto
+                {
+                    NextCursor = nextCursor,
+                    HasMore = hasMore,
+                    TotalCount = total,
+                    PageSize = pageSize,
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to retrieve audit logs");
+                _logger.LogError(ex, "Failed to retrieve audit logs (paged)");
                 throw;
             }
         }
@@ -690,7 +742,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var query = _context.AuditLogs
+                var query = AuditLogsReadOnly
                     .Where(a => a.EntityType == AuditLogEntityTypes.PAYMENT && a.EntityId == paymentId);
 
                 var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
@@ -724,7 +776,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var query = _context.AuditLogs
+                var query = AuditLogsReadOnly
                     .Where(a => a.EntityType == AuditLogEntityTypes.USER && a.EntityName == userId);
 
                 var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
@@ -757,7 +809,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var query = _context.AuditLogs
+                var query = AuditLogsReadOnly
                     .Where(a => a.EntityType == AuditLogEntityTypes.USER && a.EntityName == userId);
                 var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
                 if (lo.HasValue)
@@ -780,8 +832,8 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var auditLog = await _context.AuditLogs.FindAsync(auditLogId);
-                return auditLog;
+                return await AuditLogsReadOnly
+                    .FirstOrDefaultAsync(a => a.Id == auditLogId);
             }
             catch (Exception ex)
             {
@@ -803,7 +855,7 @@ namespace KasseAPI_Final.Services
                 var filters = AuditLogQueryExtensions.ToFilters(
                     startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
                     ipAddress, status, statusOutcome, hasChanges);
-                var count = await _context.AuditLogs.AsQueryable().ApplyFilters(filters).CountAsync();
+                var count = await AuditLogsReadOnly.ApplyFilters(filters).CountAsync();
 
                 _logger.LogInformation("Retrieved audit log count: {Count}", count);
 
@@ -823,7 +875,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var auditLogs = await _context.AuditLogs
+                var auditLogs = await AuditLogsReadOnly
                     .Where(a => a.CorrelationId == correlationId)
                     .OrderBy(a => a.Timestamp)
                     .ToListAsync();
@@ -847,7 +899,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var auditLogs = await _context.AuditLogs
+                var auditLogs = await AuditLogsReadOnly
                     .Where(a => a.TransactionId == transactionId)
                     .OrderBy(a => a.Timestamp)
                     .ToListAsync();
@@ -932,7 +984,7 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                var query = _context.AuditLogs.AsQueryable();
+                var query = AuditLogsReadOnly;
 
                 var (lo, hi) = PostgreSqlUtcDateTime.CalendarHalfOpenInstantBounds(startDate, endDate);
                 if (lo.HasValue)
@@ -975,8 +1027,7 @@ namespace KasseAPI_Final.Services
                     statistics[$"EntityType_{stat.EntityType}"] = stat.Count;
                 }
 
-                // Total count
-                statistics["Total"] = await query.CountAsync();
+                statistics["Total"] = actionStats.Sum(s => s.Count);
 
                 _logger.LogInformation("Retrieved audit log statistics: {Statistics}", 
                     string.Join(", ", statistics.Select(kvp => $"{kvp.Key}: {kvp.Value}")));
@@ -1009,7 +1060,7 @@ namespace KasseAPI_Final.Services
                     AuditLogActions.TENANT_QUICK_USER_CREATED
                 };
 
-                var query = _context.AuditLogs
+                var query = AuditLogsReadOnly
                     .Where(a => a.EntityType == AuditLogEntityTypes.USER && highRiskActions.Contains(a.Action));
 
                 if (since.HasValue)

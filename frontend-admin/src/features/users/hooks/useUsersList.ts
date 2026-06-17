@@ -1,7 +1,7 @@
 /**
  * Kullanıcı listesi – gateway üzerinden; server-side pagination + birleşik filtre.
  */
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getUsersList, listQueryKey, type UsersListParams } from '../api/usersGateway';
 
 export const usersListQueryKey = listQueryKey;
@@ -15,5 +15,6 @@ export function useUsersList(
     queryFn: () => getUsersList(params),
     enabled: options?.enabled !== false,
     staleTime: options?.staleTime,
+    placeholderData: keepPreviousData,
   });
 }

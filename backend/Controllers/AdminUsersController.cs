@@ -371,9 +371,15 @@ public partial class AdminUsersController : ControllerBase
         if (_tenantAccessor.TenantId is not Guid)
             query = query.IgnoreQueryFilters();
 
-        return query
+        query = query
             .Include(u => u.UserTenantMemberships)
             .ThenInclude(m => m.Tenant);
+
+        // InMemory test provider does not execute split queries correctly.
+        if (_context.Database.IsRelational())
+            query = query.AsSplitQuery();
+
+        return query;
     }
 
     private static UserTenantMembership? PickPrimaryMembership(

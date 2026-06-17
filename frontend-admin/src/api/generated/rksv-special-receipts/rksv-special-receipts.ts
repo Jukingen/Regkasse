@@ -24,6 +24,8 @@ import type {
   CreateSchlussbelegResponse,
   CreateStartbelegRequest,
   CreateStartbelegResponse,
+  MonatsbelegWarningResponse,
+  PostApiRksvSpecialReceiptsMonatsbelegParams,
   ProblemDetails
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -136,31 +138,33 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     }
     export const postApiRksvSpecialReceiptsMonatsbeleg = (
     createMonatsbelegRequest: CreateMonatsbelegRequest,
+    params?: PostApiRksvSpecialReceiptsMonatsbelegParams,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<CreateMonatsbelegResponse>(
       {url: `/api/rksv/special-receipts/monatsbeleg`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
-      data: createMonatsbelegRequest
+      data: createMonatsbelegRequest,
+        params
     },
       options);
     }
   
 
 
-export const getPostApiRksvSpecialReceiptsMonatsbelegMutationOptions = <TError = ProblemDetails,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, TError,{data: CreateMonatsbelegRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, TError,{data: CreateMonatsbelegRequest}, TContext> => {
+export const getPostApiRksvSpecialReceiptsMonatsbelegMutationOptions = <TError = MonatsbelegWarningResponse | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, TError,{data: CreateMonatsbelegRequest;params?: PostApiRksvSpecialReceiptsMonatsbelegParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, TError,{data: CreateMonatsbelegRequest;params?: PostApiRksvSpecialReceiptsMonatsbelegParams}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, {data: CreateMonatsbelegRequest}> = (props) => {
-          const {data} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, {data: CreateMonatsbelegRequest;params?: PostApiRksvSpecialReceiptsMonatsbelegParams}> = (props) => {
+          const {data,params} = props ?? {};
 
-          return  postApiRksvSpecialReceiptsMonatsbeleg(data,requestOptions)
+          return  postApiRksvSpecialReceiptsMonatsbeleg(data,params,requestOptions)
         }
 
         
@@ -170,14 +174,14 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiRksvSpecialReceiptsMonatsbelegMutationResult = NonNullable<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>>
     export type PostApiRksvSpecialReceiptsMonatsbelegMutationBody = CreateMonatsbelegRequest
-    export type PostApiRksvSpecialReceiptsMonatsbelegMutationError = ProblemDetails
+    export type PostApiRksvSpecialReceiptsMonatsbelegMutationError = MonatsbelegWarningResponse | ProblemDetails
 
-    export const usePostApiRksvSpecialReceiptsMonatsbeleg = <TError = ProblemDetails,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, TError,{data: CreateMonatsbelegRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+    export const usePostApiRksvSpecialReceiptsMonatsbeleg = <TError = MonatsbelegWarningResponse | ProblemDetails,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>, TError,{data: CreateMonatsbelegRequest;params?: PostApiRksvSpecialReceiptsMonatsbelegParams}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiRksvSpecialReceiptsMonatsbeleg>>,
         TError,
-        {data: CreateMonatsbelegRequest},
+        {data: CreateMonatsbelegRequest;params?: PostApiRksvSpecialReceiptsMonatsbelegParams},
         TContext
       > => {
 

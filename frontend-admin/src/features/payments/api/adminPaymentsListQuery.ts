@@ -1,34 +1,27 @@
 import { keepPreviousData, useQuery, type UseQueryOptions } from '@tanstack/react-query';
-import type { AdminPaymentListItemDto } from '@/api/generated/model';
+import type { AdminPaymentListItemDto, FilterSummaryDto, PaymentListResponse } from '@/api/generated/model';
 import { customInstance } from '@/lib/axios';
 import type { AdminPaymentsListQueryParams } from '@/features/payments/utils/paymentFiltersToApiParams';
-import type { PaymentFilterSummary } from '@/features/payments/types/paymentFilters';
-
-type PaymentListApiResponse = {
-    items?: AdminPaymentListItemDto[] | null;
-    total?: number;
-    totalCount?: number;
-    pageNumber?: number;
-    page?: number;
-    pageSize?: number;
-    activeFilters?: PaymentFilterSummary;
-};
 
 export type NormalizedAdminPaymentsList = {
     items: AdminPaymentListItemDto[];
-    total: number;
+    total: number | null;
     page: number;
     pageSize: number;
-    activeFilters?: PaymentFilterSummary;
+    activeFilters?: FilterSummaryDto;
+    nextCursor?: string | null;
+    hasMore: boolean;
 };
 
-function normalizeResponse(raw: PaymentListApiResponse): NormalizedAdminPaymentsList {
+function normalizeResponse(raw: PaymentListResponse): NormalizedAdminPaymentsList {
     return {
         items: raw.items ?? [],
-        total: raw.totalCount ?? raw.total ?? 0,
-        page: raw.page ?? raw.pageNumber ?? 1,
+        total: raw.totalCount != null ? raw.totalCount : null,
+        page: raw.page ?? 1,
         pageSize: raw.pageSize ?? 50,
         activeFilters: raw.activeFilters,
+        nextCursor: raw.nextCursor,
+        hasMore: raw.hasMore ?? false,
     };
 }
 
@@ -36,7 +29,7 @@ export async function fetchAdminPaymentsList(
     params: AdminPaymentsListQueryParams,
     signal?: AbortSignal,
 ): Promise<NormalizedAdminPaymentsList> {
-    const res = await customInstance<PaymentListApiResponse>({
+    const res = await customInstance<PaymentListResponse>({
         url: '/api/admin/payments',
         method: 'GET',
         params,

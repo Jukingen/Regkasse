@@ -19,11 +19,13 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  CashRegisterDto,
   CloseCashRegisterModel,
   CreateCashRegisterRequest,
   EnhancedCashRegisterDto,
   GetApiCashRegisterIdTransactionsParams,
-  OpenCashRegisterModel
+  OpenCashRegisterModel,
+  ProblemDetails
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -192,7 +194,62 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiCashRegisterId = (
+    export const getApiCashRegisterByTenant = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<CashRegisterDto[]>(
+      {url: `/api/CashRegister/by-tenant`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiCashRegisterByTenantQueryKey = () => {
+    return [`/api/CashRegister/by-tenant`] as const;
+    }
+
+    
+export const getGetApiCashRegisterByTenantQueryOptions = <TData = Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCashRegisterByTenantQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>> = ({ signal }) => getApiCashRegisterByTenant(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiCashRegisterByTenantQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>>
+export type GetApiCashRegisterByTenantQueryError = ProblemDetails
+
+export const useGetApiCashRegisterByTenant = <TData = Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCashRegisterByTenant>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiCashRegisterByTenantQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiCashRegisterId = (
     id: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

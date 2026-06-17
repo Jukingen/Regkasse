@@ -181,19 +181,23 @@ public static class PaymentQueryExtensions
         return filter.SortBy.ToLowerInvariant() switch
         {
             "amount" or "totalamount" => desc
-                ? query.OrderByDescending(p => p.TotalAmount).ThenByDescending(p => p.CreatedAt)
-                : query.OrderBy(p => p.TotalAmount).ThenByDescending(p => p.CreatedAt),
+                ? query.OrderByDescending(p => p.TotalAmount).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+                : query.OrderBy(p => p.TotalAmount).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id),
             "receiptnumber" => desc
-                ? query.OrderByDescending(p => p.ReceiptNumber).ThenByDescending(p => p.CreatedAt)
-                : query.OrderBy(p => p.ReceiptNumber).ThenByDescending(p => p.CreatedAt),
+                ? query.OrderByDescending(p => p.ReceiptNumber).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+                : query.OrderBy(p => p.ReceiptNumber).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id),
             "customername" => desc
-                ? query.OrderByDescending(p => p.CustomerName).ThenByDescending(p => p.CreatedAt)
-                : query.OrderBy(p => p.CustomerName).ThenByDescending(p => p.CreatedAt),
+                ? query.OrderByDescending(p => p.CustomerName).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+                : query.OrderBy(p => p.CustomerName).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id),
             _ => desc
-                ? query.OrderByDescending(p => p.CreatedAt)
-                : query.OrderBy(p => p.CreatedAt),
+                ? query.OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+                : query.OrderBy(p => p.CreatedAt).ThenByDescending(p => p.Id),
         };
     }
+
+    public static bool SupportsKeysetPagination(PaymentFilterDto filter) =>
+        string.Equals(filter.SortBy, "CreatedAt", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(filter.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
 
     public static FilterSummaryDto BuildFilterSummary(
         PaymentFilterDto filter,

@@ -30,6 +30,7 @@ export interface CashRegister {
   decommissionReason?: string | null;
   id?: string;
   isActive?: boolean;
+  isDefaultForTenant?: boolean;
   lastBalanceUpdate: string;
   /** @nullable */
   lastJahresbelegUtc?: string | null;

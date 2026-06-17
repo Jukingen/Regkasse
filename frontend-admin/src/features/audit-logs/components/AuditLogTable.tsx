@@ -21,6 +21,10 @@ export type AuditLogTableProps = {
     hasActiveFilters: boolean;
     onPageChange: (page: number, pageSize: number) => void;
     onRowClick?: (record: AuditLogEntryDto) => void;
+    /** When true, keep showing prior rows while the next page loads (no full-table spinner). */
+    isPlaceholderData?: boolean;
+    /** Server hint when total count was not computed for this page. */
+    hasMore?: boolean;
 };
 
 export function AuditLogTable({
@@ -32,6 +36,8 @@ export function AuditLogTable({
     hasActiveFilters,
     onPageChange,
     onRowClick,
+    isPlaceholderData = false,
+    hasMore = false,
 }: AuditLogTableProps) {
     const { t, formatLocale, formatNumber } = useI18n();
 
@@ -165,7 +171,7 @@ export function AuditLogTable({
         <Table<AuditLogEntryDto>
             columns={columns}
             dataSource={rows}
-            loading={loading}
+            loading={loading && !isPlaceholderData}
             virtual={shouldUseAdminTableVirtual(rows.length)}
             rowKey={(r) => r.id ?? `${r.timestamp ?? ''}-${r.action ?? ''}`}
             onRow={
@@ -178,6 +184,10 @@ export function AuditLogTable({
             }
             size="middle"
             scroll={adminTableScrollXy(1400, rows.length)}
+            style={{
+                opacity: isPlaceholderData ? 0.6 : 1,
+                transition: 'opacity 0.2s',
+            }}
             pagination={{
                 current: page,
                 pageSize,
@@ -193,6 +203,7 @@ export function AuditLogTable({
                     });
                 },
                 hideOnSinglePage: false,
+                showQuickJumper: false,
                 onChange: (p, s) => onPageChange(p, s ?? pageSize),
             }}
             locale={{

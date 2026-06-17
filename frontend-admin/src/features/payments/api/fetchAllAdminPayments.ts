@@ -20,7 +20,7 @@ export async function fetchAllAdminPaymentsPages(
         });
         const batch = res.items ?? [];
         all.push(...batch);
-        const total = res.total ?? 0;
+        const total = res.totalCount ?? 0;
         if (batch.length < EXPORT_PAGE_SIZE || (total > 0 && all.length >= total)) {
             break;
         }

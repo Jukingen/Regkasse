@@ -8,6 +8,9 @@
 
 export interface PaymentMethodDefinitionAdminDto {
   allowRefund?: boolean;
+  cashRegisterId?: string;
+  /** @nullable */
+  cashRegisterNumber?: string | null;
   /** @nullable */
   code?: string | null;
   createdAtUtc?: string;
