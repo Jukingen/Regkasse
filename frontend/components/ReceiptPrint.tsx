@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 
 import { Invoice, InvoiceItem } from '../types/invoice';
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
+import { formatUserDate, formatUserDateTime } from '../utils/dateFormatter';
 
 interface ReceiptPrintProps {
   invoice: Invoice;
@@ -15,21 +16,9 @@ const ReceiptPrint: React.FC<ReceiptPrintProps> = ({
   items,
   isPreview = true,
 }) => {
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
+  const formatDate = (date: Date) => formatUserDate(date);
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  };
+  const formatTime = (date: Date) => formatUserTime(date, { includeSeconds: true });
 
   const calculateTaxAmount = (items: InvoiceItem[], taxType: number) => {
     return items
@@ -64,7 +53,7 @@ const ReceiptPrint: React.FC<ReceiptPrintProps> = ({
           <Text style={styles.receiptTitle}>KASSA BELEG</Text>
           <Text style={styles.receiptNumber}>Beleg-Nr: {invoice.receiptNumber}</Text>
           <Text style={styles.receiptDate}>
-            Datum: {invoice.createdAt ? formatDate(new Date(invoice.createdAt)) : new Date().toLocaleDateString('de-DE')}
+            Datum: {invoice.createdAt ? formatDate(new Date(invoice.createdAt)) : formatUserDate(new Date())}
           </Text>
           <View style={styles.metaRow}>
             <Text style={styles.metaText}>

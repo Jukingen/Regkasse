@@ -28,6 +28,7 @@ import {
   TaskPriority, 
   TaskStatus 
 } from '../services/TaskMasterService';
+import { formatUserDateTime } from '../utils/dateFormatter';
 
 interface UseEnhancedTaskMasterReturn {
   // Enhanced task management
@@ -428,7 +429,7 @@ ${analytics.riskAssessment.map(risk => `- ${risk}`).join('\n')}
 - Visual Mapping: ${systemStatus.visualsEnabled ? 'Aktiv' : 'Inaktiv'}
 - Compliance Mode: ${systemStatus.complianceMode ? 'Aktiviert' : 'Deaktiviert'}
 
-Generiert: ${new Date().toLocaleString('de-DE')}
+Generiert: ${formatUserDateTime(new Date(), { includeSeconds: true })}
 Enhanced TaskMaster v2.0.0
 `;
       

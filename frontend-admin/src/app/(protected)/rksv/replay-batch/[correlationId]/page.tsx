@@ -7,11 +7,10 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { formatCurrency, useI18n } from '@/i18n';
+import { formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { getApiAdminReplayBatchCorrelationId } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { ReplayBatchPaymentItemDto } from '@/api/generated/model';
-import dayjs from 'dayjs';
 import { viewReplayBatchTraceIds } from '@/shared/rksvAdminTruth';
 import {
     buildFinanzOnlineQueueInvestigationHref,
@@ -118,7 +117,7 @@ export default function ReplayBatchDetailPage() {
                 ),
                 dataIndex: 'createdAtUtc',
                 key: 'createdAtUtc',
-                render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm:ss') : '—'),
+                render: (v: string) => (v ? formatDateTime(v, '') : '—'),
             },
         ],
         [t, formatLocale, correlationId],

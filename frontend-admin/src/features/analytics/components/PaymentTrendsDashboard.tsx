@@ -31,6 +31,7 @@ import styles from '@/features/analytics/components/paymentTrendsDashboard.modul
 import { usePaymentTrends } from '@/features/analytics/hooks/usePaymentTrends';
 import type { TrendPeriod } from '@/features/payments/types/paymentTrends';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatUserMonthDay, formatUserMonthYear, DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -46,7 +47,7 @@ type MethodPieRow = {
 
 /** Full-page payment trend analytics with charts and period comparison. */
 export function PaymentTrendsDashboard() {
-    const { t, formatLocale } = useI18n();
+    const { t } = useI18n();
     const [period, setPeriod] = useState<TrendPeriod>('Daily');
     const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null);
 
@@ -58,13 +59,11 @@ export function PaymentTrendsDashboard() {
                 ...point,
                 xLabel:
                     point.label ??
-                    new Date(point.date).toLocaleDateString(formatLocale, {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: period === 'Monthly' ? 'numeric' : undefined,
-                    }),
+                    (period === 'Monthly'
+                        ? formatUserMonthYear(point.date)
+                        : formatUserMonthDay(point.date)),
             })),
-        [formatLocale, period, trends?.trendData],
+        [period, trends?.trendData],
     );
 
     const methodPieData = useMemo((): MethodPieRow[] => {
@@ -109,6 +108,7 @@ export function PaymentTrendsDashboard() {
                         }))}
                     />
                     <RangePicker
+                        format={DAYJS_DATE_FORMAT}
                         value={dateRange}
                         onChange={(values) => {
                             if (!values?.[0] || !values[1]) {

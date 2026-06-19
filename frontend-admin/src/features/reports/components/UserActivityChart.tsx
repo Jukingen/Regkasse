@@ -18,7 +18,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import dayjs from 'dayjs';
+import { formatUserMonthDay } from '@/lib/dateFormatter';
 
 import type { UserActivityActionSummary, UserActivityDailyCount } from '@/features/reports/api/userActivityReport';
 import { userActivityReportCopy as copy } from '@/features/reports/constants/copy';
@@ -34,7 +34,7 @@ export function UserActivityChart({ dailyActivity, actionsPerformed }: Props) {
     const lineData = useMemo(
         () =>
             dailyActivity.map((d) => ({
-                name: dayjs(d.date).format('DD.MM.'),
+                name: formatUserMonthDay(d.date),
                 count: d.count,
             })),
         [dailyActivity],

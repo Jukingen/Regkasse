@@ -1,5 +1,6 @@
 import { apiClient } from './config';
 import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
+import { formatUserDate, formatUserTime } from '../../utils/dateFormatter';
 
 export interface DailyClosingRequest {
     cashRegisterId: string;
@@ -215,29 +216,12 @@ export const getClosingStatistics = async (
     }
 };
 
-/**
- * Format closing date for display
- */
-export const formatClosingDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('de-DE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-    });
-};
+/** Format closing date for display (DD.MM.YYYY). */
+export const formatClosingDate = (dateString: string): string => formatUserDate(dateString);
 
-/**
- * Format closing time for display
- */
-export const formatClosingTime = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('de-DE', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-    });
-};
+/** Format closing time for display (HH:mm:ss). */
+export const formatClosingTime = (dateString: string): string =>
+    formatUserTime(dateString, { includeSeconds: true });
 
 /**
  * Get closing type display name

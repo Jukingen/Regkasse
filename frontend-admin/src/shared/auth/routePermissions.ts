@@ -60,7 +60,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/license': PERMISSIONS.SETTINGS_VIEW,
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
-  '/admin/cash-registers': AppPermissions.CashRegisterView,
+  /** Cross-tenant platform register list — not tenant `/kassenverwaltung` (cash_register.manage). */
+  '/admin/cash-registers': PERMISSIONS.SYSTEM_CRITICAL,
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/customers': PERMISSIONS.CUSTOMER_VIEW,

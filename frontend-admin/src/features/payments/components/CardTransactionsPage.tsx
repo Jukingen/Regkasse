@@ -13,6 +13,7 @@ import { CardTransactionsTable } from '@/features/payments/components/CardTransa
 import { useCardTransactions } from '@/features/payments/hooks/useCardTransactions';
 import { useI18n } from '@/i18n';
 import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 function normalizeRegisters(data: unknown): CashRegister[] {
   if (Array.isArray(data)) return data as CashRegister[];
@@ -77,7 +78,7 @@ export function CardTransactionsPage() {
       <AdminPageShell>
         <Card>
           <Space wrap style={{ marginBottom: 16 }}>
-            <DatePicker.RangePicker
+            <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
               value={dateRange}
               onChange={(v) => applyFilters({ dateRange: v })}
               allowEmpty={[true, true]}

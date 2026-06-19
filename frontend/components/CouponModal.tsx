@@ -14,7 +14,7 @@ import {
 
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { couponService, Coupon, CouponValidationResult } from '../services/api/couponService';
-import { WaveLoader } from '../src/components/common/WaveLoader';
+import { formatUserDate } from '../utils/dateFormatter';
 
 interface CouponModalProps {
   visible: boolean;
@@ -108,9 +108,7 @@ export default function CouponModal({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
+  const formatDate = (dateString: string) => formatUserDate(dateString);
 
   return (
     <Modal

@@ -5,6 +5,7 @@ import { SoftColors, SoftSpacing } from '../constants/SoftTheme';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
 import { areLicenseChecksBypassedInDevelopment } from '../utils/licenseCriticalActionGuard';
 import { TENANT_WARNING_DAYS_BEFORE_EXPIRY } from '../constants/licenseGracePeriod';
+import { formatUserDate } from '../utils/dateFormatter';
 
 const WARNING_THRESHOLD_DAYS = TENANT_WARNING_DAYS_BEFORE_EXPIRY;
 
@@ -57,17 +58,8 @@ export function LicenseExpiryBanner() {
 
 function formatExpiryDateDe(iso: string | null): string | null {
   if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  try {
-    return d.toLocaleDateString('de-AT', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-  } catch {
-    return iso.slice(0, 10);
-  }
+  const formatted = formatUserDate(iso);
+  return formatted || iso.slice(0, 10);
 }
 
 const styles = StyleSheet.create({

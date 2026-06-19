@@ -22,7 +22,7 @@ describe('personalization storage', () => {
       themeMode: 'dark',
       density: 'compact',
       defaultLandingPath: '/reporting',
-      dateFormat: 'MM/DD/YYYY',
+      dateFormat: 'DD.MM.YYYY',
       timeFormat: '12h',
       reducedAnimations: true,
     });
@@ -31,9 +31,13 @@ describe('personalization storage', () => {
       themeMode: 'dark',
       density: 'compact',
       defaultLandingPath: '/reporting',
-      dateFormat: 'MM/DD/YYYY',
+      dateFormat: 'DD.MM.YYYY',
       timeFormat: '12h',
       reducedAnimations: true,
     });
+  });
+
+  it('normalizes legacy date formats to DD.MM.YYYY', () => {
+    expect(normalizePersonalization({ dateFormat: 'MM/DD/YYYY' }).dateFormat).toBe('DD.MM.YYYY');
   });
 });

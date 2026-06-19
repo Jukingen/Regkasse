@@ -5,6 +5,7 @@ import { DatePicker, Form, Modal, Select } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useI18n } from '@/i18n/I18nProvider';
 import type { ReportCategoryId } from './ReportSelector';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 export type ReportConfigValues = {
     businessDay: Dayjs;
@@ -62,7 +63,7 @@ function ReportConfigModalContent({
                         label={t('reporting.compliance.config.businessDay')}
                         rules={[{ required: true }]}
                     >
-                        <DatePicker style={{ width: '100%' }} />
+                        <DatePicker format={DAYJS_DATE_FORMAT} style={{ width: '100%' }} />
                     </Form.Item>
                 ) : (
                     <Form.Item
@@ -70,7 +71,7 @@ function ReportConfigModalContent({
                         label={t('reporting.compliance.config.dateRange')}
                         rules={[{ required: true }]}
                     >
-                        <DatePicker.RangePicker style={{ width: '100%' }} />
+                        <DatePicker.RangePicker format={DAYJS_DATE_FORMAT} style={{ width: '100%' }} />
                     </Form.Item>
                 )}
                 <Form.Item name="cashRegisterId" label={t('reporting.compliance.config.register')}>

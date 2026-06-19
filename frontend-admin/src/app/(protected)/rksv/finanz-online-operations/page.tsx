@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
@@ -421,7 +422,7 @@ export default function FinanzOnlineOperationsPage() {
                 dataIndex: 'submittedAt',
                 key: 'submittedAt',
                 width: 180,
-                render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm:ss') : '—'),
+                render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
               },
               {
                 title: t('rksvHub.finanzOnlineOpsPage.colSuccess'),

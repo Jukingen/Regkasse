@@ -16,6 +16,7 @@ import { usersCopy } from '../constants/copy';
 import { formatAuditLogDescription } from '@/features/audit-logs/utils/formatAuditLogDescription';
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 import { getDiffRowsFromEntry, EMPTY_PLACEHOLDER } from '../utils/auditDiffUtils';
 import { AuditDiffViewerModal } from './AuditDiffViewerModal';
 
@@ -163,7 +164,9 @@ export function UserActivityTimeline({ userId, userName }: Props) {
             key: 'timestamp',
             width: 160,
             render: (v: string | null | undefined) =>
-                v && String(v).trim() ? dayjs(v).format('DD.MM.YYYY HH:mm:ss') : EMPTY_PLACEHOLDER,
+                v && String(v).trim()
+                    ? formatDateTime(v, '', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    : EMPTY_PLACEHOLDER,
         },
         {
             title: usersCopy.actor,

@@ -13,6 +13,7 @@ import {
     getAuditActionLabelKey,
 } from '@/features/audit-logs/utils/auditActionLabels';
 import { useI18n } from '@/i18n';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -140,7 +141,7 @@ export function AuditFilterBar({
                 />
             </Col>
             <Col xs={24} sm={12} md={8} lg={4}>
-                <RangePicker
+                <RangePicker format={DAYJS_DATE_FORMAT}
                     style={{ width: '100%' }}
                     value={dateRange ?? undefined}
                     onChange={(dates) =>

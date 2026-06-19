@@ -65,7 +65,8 @@ import {
     OPERATOR_REGISTER_LINK_COPY,
 } from '@/shared/operatorTruthCopy';
 import { useI18n } from '@/i18n';
-import { FORMAT_EMPTY_DISPLAY, createIntlFormatters } from '@/i18n/formatting';
+import { FORMAT_EMPTY_DISPLAY, createIntlFormatters, formatDate, formatDateTime } from '@/i18n/formatting';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -265,7 +266,13 @@ export const InvoiceList: React.FC = () => {
                     {args.submittedAt ? (
                         <Typography.Text>
                             {t('invoices.handoff.submittedAtLabel')}:{' '}
-                            {dayjs(args.submittedAt).isValid() ? dayjs(args.submittedAt).format('DD.MM.YYYY HH:mm:ss') : args.submittedAt}
+                            {dayjs(args.submittedAt).isValid()
+                                ? formatDateTime(args.submittedAt, '', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      second: '2-digit',
+                                  })
+                                : args.submittedAt}
                         </Typography.Text>
                     ) : null}
                     {registerFilterOmitted ? (
@@ -681,7 +688,7 @@ export const InvoiceList: React.FC = () => {
             key: 'invoiceDate',
             sorter: true,
             width: 132,
-            render: (date) => dayjs(date).format('DD.MM.YYYY HH:mm'),
+            render: (date) => formatDateTime(date, ''),
         },
         {
             title: t('invoices.columns.customer'),
@@ -950,6 +957,7 @@ export const InvoiceList: React.FC = () => {
                         <Col xs={24} sm={16} md={7}>
                             <RangePicker
                                 style={{ width: '100%' }}
+                                format={DAYJS_DATE_FORMAT}
                                 onChange={(dates) =>
                                     setDateRange(
                                         dates && dates[0] && dates[1] ? [dates[0], dates[1]] : null
@@ -1032,8 +1040,8 @@ export const InvoiceList: React.FC = () => {
                                         }}
                                     >
                                         {t('invoices.filterTags.dateRangePrefix')}:{' '}
-                                        {dayjs(dateRange[0]).format('DD.MM.YYYY')} –{' '}
-                                        {dayjs(dateRange[1]).format('DD.MM.YYYY')}
+                                        {formatDate(dateRange[0].toDate(), '')} –{' '}
+                                        {formatDate(dateRange[1].toDate(), '')}
                                     </Tag>
                                 ) : null}
                                 {cashRegisterIdFilter?.trim() ? (
@@ -1239,7 +1247,7 @@ export const InvoiceList: React.FC = () => {
                             const detailCorrelationTrimmed = detailInvoice.correlationId?.trim() ?? '';
 
                             const detailDate = dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).isValid()
-                                ? dayjs(detailInvoice.invoiceDate || detailInvoice.createdAt).format('DD.MM.YYYY HH:mm')
+                                ? formatDateTime(detailInvoice.invoiceDate || detailInvoice.createdAt, '')
                                 : null;
 
                             const positionsLabel =

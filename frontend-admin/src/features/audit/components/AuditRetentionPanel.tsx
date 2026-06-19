@@ -13,7 +13,9 @@ import {
 } from '@/api/generated/admin/admin';
 import { fetchAuditRetention } from '@/features/audit/api/auditAdmin';
 import { AXIOS_INSTANCE } from '@/lib/axios';
+import { formatDate } from '@/i18n/formatting';
 import { useI18n } from '@/i18n';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 export function AuditRetentionPanel() {
   const { message } = useAntdApp();
@@ -88,7 +90,7 @@ export function AuditRetentionPanel() {
                     description={
                         minCutoff
                             ? t('common.auditLogs.retentionMinCutoff', {
-                                  date: dayjs(minCutoff).format('DD.MM.YYYY'),
+                                  date: formatDate(minCutoff, ''),
                               })
                             : undefined
                     }
@@ -99,7 +101,7 @@ export function AuditRetentionPanel() {
                     <DatePicker
                         value={cleanupDate}
                         onChange={setCleanupDate}
-                        format="DD.MM.YYYY"
+                        format={DAYJS_DATE_FORMAT}
                         disabledDate={(d) => (minCutoff ? d.isAfter(dayjs(minCutoff)) : false)}
                     />
                     <Button danger loading={cleanupLoading} onClick={runCleanup}>
@@ -110,10 +112,10 @@ export function AuditRetentionPanel() {
                 <Typography.Text strong>{t('common.auditLogs.legalHoldTitle')}</Typography.Text>
                 <Form form={holdForm} layout="inline">
                     <Form.Item name="fromDate" rules={[{ required: true }]}>
-                        <DatePicker placeholder={t('common.auditLogs.legalHoldFrom')} format="DD.MM.YYYY" />
+                        <DatePicker placeholder={t('common.auditLogs.legalHoldFrom')} format={DAYJS_DATE_FORMAT} />
                     </Form.Item>
                     <Form.Item name="toDate" rules={[{ required: true }]}>
-                        <DatePicker placeholder={t('common.auditLogs.legalHoldTo')} format="DD.MM.YYYY" />
+                        <DatePicker placeholder={t('common.auditLogs.legalHoldTo')} format={DAYJS_DATE_FORMAT} />
                     </Form.Item>
                     <Form.Item name="reason">
                         <Input placeholder={t('common.auditLogs.legalHoldReason')} style={{ minWidth: 160 }} />
@@ -150,7 +152,7 @@ export function AuditRetentionPanel() {
                                 </Button>,
                             ]}
                         >
-                            {dayjs(item.fromDate).format('DD.MM.YYYY')} – {dayjs(item.toDate).format('DD.MM.YYYY')}
+                            {formatDate(item.fromDate, '')} – {formatDate(item.toDate, '')}
                             {item.reason ? ` · ${item.reason}` : ''}
                         </List.Item>
                     )}

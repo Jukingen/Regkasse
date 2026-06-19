@@ -34,7 +34,7 @@ import {
   registerGateBannerTitle,
   registerGateFooterHint,
 } from '../utils/posRegisterGateCopy';
-import { getFormattingLocaleForTextLocale } from '../i18n/localeUtils';
+import { formatUserDateTime } from '../utils/dateFormatter';
 import { useSystem } from '../contexts/SystemContext';
 import {
   POS_VOUCHER_REQUIRES_ONLINE_MESSAGE_DE,
@@ -217,9 +217,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   t('checkout:posFlow.payment.cancelSummary', {
                     reason: cancelResponse.cancellationReason,
                     cancelledBy: cancelResponse.cancelledBy,
-                    cancelledAt: new Date(cancelResponse.cancelledAt).toLocaleString(
-                      getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language)
-                    ),
+                    cancelledAt: formatUserDateTime(cancelResponse.cancelledAt),
                   }),
                   [{ text: t('common:ok'), onPress: () => onCancel() }]
                 );
@@ -317,9 +315,7 @@ const PaymentScreen: React.FC<PaymentScreenProps> = ({
         tableNumber: tableNumber || 1,
         totalAmount,
         cashRegisterId,
-        notes: `Tisch ${tableNumber} - ${new Date().toLocaleString(
-          getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language),
-        )}`,
+        notes: `Tisch ${tableNumber} - ${formatUserDateTime(new Date())}`,
         idempotencyKey,
       };
 

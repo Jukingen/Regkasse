@@ -728,6 +728,10 @@ public class AuthControllerTests
 
         Assert.Contains(AppPermissions.UserView, permissions);
         Assert.Contains(AppPermissions.CashRegisterManage, permissions);
+        Assert.Contains(AppPermissions.PaymentView, permissions);
+        Assert.Contains(AppPermissions.SaleView, permissions);
+        Assert.Contains(AppPermissions.ReportExport, permissions);
+        Assert.Contains(AppPermissions.AuditView, permissions);
         Assert.DoesNotContain(AppPermissions.PaymentTake, permissions);
         Assert.DoesNotContain(AppPermissions.TseSign, permissions);
     }

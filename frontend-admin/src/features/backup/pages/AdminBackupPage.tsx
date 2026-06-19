@@ -10,6 +10,7 @@ import { Alert, Card, Col, Collapse, Row, Space, Spin, Typography } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/i18n";
+import { formatDateTime } from "@/i18n/formatting";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
 import { MetricCard } from "@/features/backup/components/MetricCard";
 import { TriggerBackupButton } from "@/features/backup/components/TriggerBackupButton";
@@ -42,11 +43,7 @@ import { useBackupManagementAccess } from "@/features/backup-management/hooks/us
 
 function formatDt(iso: string | undefined | null, formatLocale: string): string {
   if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString(formatLocale);
-  } catch {
-    return iso;
-  }
+  return formatDateTime(iso, formatLocale);
 }
 
 export function AdminBackupPage() {
@@ -285,11 +282,7 @@ export function AdminBackupPageHeaderActions() {
 
   const formatDt = (iso: string | undefined | null, locale: string) => {
     if (!iso) return "—";
-    try {
-      return new Date(iso).toLocaleString(locale);
-    } catch {
-      return iso;
-    }
+    return formatDateTime(iso, locale);
   };
 
   return (

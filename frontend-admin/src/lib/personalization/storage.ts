@@ -1,5 +1,4 @@
 import {
-  DATE_FORMAT_PATTERNS,
   DEFAULT_LANDING_PATHS,
   DEFAULT_PERSONALIZATION,
   type DateFormatPattern,
@@ -41,13 +40,7 @@ function normalizeDefaultLandingPath(value: unknown): DefaultLandingPath {
   return DEFAULT_PERSONALIZATION.defaultLandingPath;
 }
 
-function normalizeDateFormat(value: unknown, legacyPreset?: unknown): DateFormatPattern {
-  if (typeof value === 'string' && (DATE_FORMAT_PATTERNS as readonly string[]).includes(value)) {
-    return value as DateFormatPattern;
-  }
-  if (legacyPreset === 'en-US') return 'MM/DD/YYYY';
-  if (legacyPreset === 'YYYY-MM-DD') return 'YYYY-MM-DD';
-  if (legacyPreset === 'de-AT' || legacyPreset === 'tr-TR') return 'DD.MM.YYYY';
+function normalizeDateFormat(_value: unknown, _legacyPreset?: unknown): DateFormatPattern {
   return DEFAULT_PERSONALIZATION.dateFormat;
 }
 

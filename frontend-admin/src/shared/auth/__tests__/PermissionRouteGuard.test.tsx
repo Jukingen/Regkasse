@@ -7,9 +7,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import { AuthStatus } from '@/features/auth/hooks/useAuth';
 import { PermissionRouteGuard } from '../PermissionRouteGuard';
+import { MANAGER_ADMIN_PERMISSIONS } from '@/shared/__tests__/fixtures/adminAppPermissionFixtures';
+
+let mockPathname = '/rksv/sonderbelege';
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/rksv/sonderbelege',
+  usePathname: () => mockPathname,
   useRouter: () => ({ back: vi.fn(), push: vi.fn(), replace: vi.fn() }),
 }));
 
@@ -36,6 +39,7 @@ vi.mock('@/shared/auth/routeGuardConfig', () => ({
 describe('PermissionRouteGuard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPathname = '/rksv/sonderbelege';
   });
 
   it('shows forbidden view when user has no permissions (fail-closed)', () => {
@@ -81,5 +85,65 @@ describe('PermissionRouteGuard', () => {
       </PermissionRouteGuard>
     );
     expect(getByText('Protected')).toBeInTheDocument();
+  });
+
+  it('Manager with oversight permissions can access /payments', () => {
+    mockPathname = '/payments';
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 'm1',
+        role: 'Manager',
+        permissions: [...MANAGER_ADMIN_PERMISSIONS],
+      },
+      authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
+      isInitialized: true,
+    });
+    const { getByText } = render(
+      <PermissionRouteGuard>
+        <div>Payments</div>
+      </PermissionRouteGuard>
+    );
+    expect(getByText('Payments')).toBeInTheDocument();
+  });
+
+  it('Manager without tse.sign is blocked on /tagesabschluss', () => {
+    mockPathname = '/tagesabschluss';
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 'm1',
+        role: 'Manager',
+        permissions: [...MANAGER_ADMIN_PERMISSIONS],
+      },
+      authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
+      isInitialized: true,
+    });
+    const { getByText } = render(
+      <PermissionRouteGuard>
+        <div>Tagesabschluss</div>
+      </PermissionRouteGuard>
+    );
+    expect(getByText('common.system.forbidden403Title')).toBeInTheDocument();
+  });
+
+  it('Manager is blocked on platform admin /admin/tenants', () => {
+    mockPathname = '/admin/tenants';
+    mockUseAuth.mockReturnValue({
+      user: {
+        id: 'm1',
+        role: 'Manager',
+        permissions: [...MANAGER_ADMIN_PERMISSIONS],
+      },
+      authStatus: AuthStatus.Authenticated,
+      isAuthInitializing: false,
+      isInitialized: true,
+    });
+    const { getByText } = render(
+      <PermissionRouteGuard>
+        <div>Tenants</div>
+      </PermissionRouteGuard>
+    );
+    expect(getByText('common.system.forbidden403Title')).toBeInTheDocument();
   });
 });

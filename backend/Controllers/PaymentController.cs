@@ -27,7 +27,6 @@ namespace KasseAPI_Final.Controllers
     [Route("api/pos/payment")]
     [ApiController]
     [ServiceFilter(typeof(LegacyRouteDeprecationFilter))]
-    [HasPermission(AppPermissions.PaymentTake)]
     public class PaymentController : BaseController
     {
         private readonly IPaymentService _paymentService;
@@ -60,6 +59,7 @@ namespace KasseAPI_Final.Controllers
         /// Mevcut ödeme yöntemlerini getir
         /// </summary>
         [HttpGet("methods")]
+        [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetPaymentMethods(
             [FromQuery] Guid cashRegisterId,
             CancellationToken cancellationToken)
@@ -91,6 +91,7 @@ namespace KasseAPI_Final.Controllers
         /// Last 24 hours of payments for the POS cash register with backend-controlled storno/refund actions.
         /// </summary>
         [HttpGet("history")]
+        [HasPermission(AppPermissions.PaymentView)]
         [ProducesResponseType(typeof(PaymentHistoryResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -317,6 +318,7 @@ namespace KasseAPI_Final.Controllers
         /// Ödeme detaylarını getir
         /// </summary>
         [HttpGet("{id}")]
+        [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetPayment(Guid id)
         {
             try
@@ -340,6 +342,7 @@ namespace KasseAPI_Final.Controllers
         /// Müşteri ödemelerini getir
         /// </summary>
         [HttpGet("customer/{customerId}")]
+        [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetCustomerPayments(Guid customerId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
         {
             try
@@ -371,6 +374,7 @@ namespace KasseAPI_Final.Controllers
         /// Ödeme yöntemine göre ödemeleri getir
         /// </summary>
         [HttpGet("method/{paymentMethod}")]
+        [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetPaymentsByMethod(string paymentMethod, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
         {
             try
@@ -402,6 +406,7 @@ namespace KasseAPI_Final.Controllers
         /// Tarih aralığına göre ödemeleri getir
         /// </summary>
         [HttpGet("date-range")]
+        [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetPaymentsByDateRange(
             [FromQuery] DateTime startDate, 
             [FromQuery] DateTime endDate,
@@ -533,6 +538,7 @@ namespace KasseAPI_Final.Controllers
         /// Ödeme istatistiklerini getir
         /// </summary>
         [HttpGet("statistics")]
+        [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetPaymentStatistics(
             [FromQuery] string? startDate, 
             [FromQuery] string? endDate)
@@ -603,6 +609,7 @@ namespace KasseAPI_Final.Controllers
         /// <response code="200">PNG binary</response>
         /// <response code="404">Payment not found or no QR payload</response>
         [HttpGet("{id}/qr.png")]
+        [HasPermission(AppPermissions.PaymentView)]
         [Produces("image/png")]
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -624,6 +631,7 @@ namespace KasseAPI_Final.Controllers
         /// <response code="200">SVG content</response>
         /// <response code="404">Payment not found or no QR payload</response>
         [HttpGet("{id}/qr.svg")]
+        [HasPermission(AppPermissions.PaymentView)]
         [Produces("image/svg+xml")]
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -642,6 +650,7 @@ namespace KasseAPI_Final.Controllers
         /// Get receipt data for payment
         /// </summary>
         [HttpGet("{id}/receipt")]
+        [HasPermission(AppPermissions.PaymentView)]
         public async Task<IActionResult> GetReceipt(Guid id)
         {
             try
@@ -693,14 +702,14 @@ namespace KasseAPI_Final.Controllers
 
         /// <summary>
         /// RKSV Checklist 1–5 diagnostik: Ödeme imzasının adım adım doğrulaması.
-        /// Admin only.
+        /// Manager oversight via <see cref="AppPermissions.PaymentView"/>.
         /// </summary>
         /// <param name="id">Payment ID</param>
         /// <returns>Checklist steps: CMC match, JWS format, Hash, Signature verify, Base64URL padding</returns>
         /// <response code="200">Diagnostic steps returned</response>
         /// <response code="404">Payment not found</response>
         [HttpGet("{id}/signature-debug")]
-        [HasPermission(AppPermissions.TseDiagnostics)]
+        [HasPermission(AppPermissions.PaymentView)]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetSignatureDebug(Guid id)
@@ -762,13 +771,13 @@ namespace KasseAPI_Final.Controllers
 
         /// <summary>
         /// Manuel JWS doğrulama. RKSV Checklist 1–5 sonuçları.
-        /// Admin only.
+        /// Manager oversight via <see cref="AppPermissions.PaymentView"/>.
         /// </summary>
         /// <param name="request">compactJws = COMPACT JWS string (header.payload.signature)</param>
         /// <returns>Structured diagnostic result</returns>
         /// <response code="200">Verify result with checklist steps</response>
         [HttpPost("verify-signature")]
-        [HasPermission(AppPermissions.TseDiagnostics)]
+        [HasPermission(AppPermissions.PaymentView)]
         [ProducesResponseType(typeof(VerifySignatureResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public IActionResult VerifySignature([FromBody] VerifySignatureRequest request)

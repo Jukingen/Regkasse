@@ -1,7 +1,4 @@
-/**
- * Pure receipt HTML formatter (no React Native / Expo).
- * Used by receiptPrinter and by unit tests. Tax table from backend taxSummary only.
- */
+import { formatUserDateTime } from '../utils/dateFormatter';
 import type { ReceiptDTO } from '../types/ReceiptDTO';
 
 export interface FormatReceiptParams {
@@ -145,7 +142,7 @@ export function formatReceiptHtml(data: ReceiptDTO, params?: FormatReceiptParams
         </div>
         <div class="meta-info">
           <div>Beleg: ${data.receiptNumber}</div>
-          <div>Datum: ${new Date(data.date).toLocaleString('de-AT')}</div>
+          <div>Datum: ${formatUserDateTime(data.date)}</div>
           <div>Kasse: ${data.kassenID} | Kassierer: ${(data.cashierDisplayName && data.cashierDisplayName.trim()) || (data.cashierId && data.cashierId.trim()) || '—'}</div>
         </div>
         <table>

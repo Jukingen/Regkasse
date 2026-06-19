@@ -12,6 +12,8 @@ import { backupQueryKeys, useBackupRuns, useTriggerBackup } from "@/features/bac
 import type { BackupRunResponseDto } from "@/api/generated/model";
 import { BackupRunStatus } from "@/api/generated/model/backupRunStatus";
 import { useI18n } from "@/i18n";
+import { formatDateTime as formatDisplayDateTime } from "@/i18n/formatting";
+import { formatUserTime } from "@/lib/dateFormatter";
 import { useQueryClient } from "@tanstack/react-query";
 import { triggerErrorMessageBackupDashboard } from "@/features/backup-dr/logic/backupManualTriggerMessaging";
 import { describeBackupTriggerOutcome } from "@/features/backup-dr/logic/backupTriggerOutcome";
@@ -104,11 +106,7 @@ export function BackupRunsTable({
   const formatDateTime = useCallback(
     (iso: string | undefined | null) => {
       if (!iso) return t("backupDr.runsTable.noValue");
-      try {
-        return new Date(iso).toLocaleString(formatLocale);
-      } catch {
-        return iso;
-      }
+      return formatDisplayDateTime(iso, formatLocale);
     },
     [formatLocale, t],
   );
@@ -116,13 +114,9 @@ export function BackupRunsTable({
   const formatTime = useCallback(
     (iso: string | undefined | null) => {
       if (!iso) return t("backupDr.runsTable.noValue");
-      try {
-        return new Date(iso).toLocaleTimeString(formatLocale);
-      } catch {
-        return iso;
-      }
+      return formatUserTime(iso) || iso;
     },
-    [formatLocale, t],
+    [t],
   );
 
   const artifactTypeLabel = useCallback(

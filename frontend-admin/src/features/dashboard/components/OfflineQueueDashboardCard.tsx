@@ -5,16 +5,13 @@ import { Alert, Card, Col, Row, Space, Statistic, Typography } from 'antd';
 import { InboxOutlined, LinkOutlined } from '@ant-design/icons';
 import NextLink from 'next/link';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+import { formatDateTime } from '@/i18n/formatting';
 import {
     getApiAdminOfflineTransactionsSummary,
     getGetApiAdminOfflineTransactionsSummaryQueryKey,
 } from '@/api/generated/admin/admin';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
-
-dayjs.extend(utc);
 
 const REFETCH_MS = 30_000;
 
@@ -77,7 +74,7 @@ export function OfflineQueueDashboardCard() {
                     <div>
                         <Typography.Text strong>
                             {lastReplay
-                                ? dayjs(lastReplay).utc().format('DD.MM.YYYY HH:mm:ss')
+                                ? formatDateTime(lastReplay, '', { second: '2-digit' })
                                 : '—'}
                         </Typography.Text>
                     </div>

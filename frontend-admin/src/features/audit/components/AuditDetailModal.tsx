@@ -3,7 +3,8 @@
 import { useMemo } from 'react';
 import { Button, Col, Descriptions, Modal, Row, Typography } from 'antd';
 import { LinkOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
+import { formatUserTime } from '@/lib/dateFormatter';
+import { formatDate, formatDateTime } from '@/i18n/formatting';
 
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import { useGetApiAuditLogCorrelationCorrelationId } from '@/api/generated/audit-log/audit-log';
@@ -99,7 +100,13 @@ export function AuditDetailModal({ open, record, onClose }: Props) {
         >
             <Descriptions size="small" column={2} bordered>
                 <Descriptions.Item label={t('common.auditLogs.table.time')}>
-                    {record.timestamp ? dayjs(record.timestamp).format('DD.MM.YYYY HH:mm:ss') : '—'}
+                    {record.timestamp
+                        ? formatDateTime(record.timestamp, '', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                          })
+                        : '—'}
                 </Descriptions.Item>
                 <Descriptions.Item label={t('common.auditLogs.table.action')}>{record.action ?? '—'}</Descriptions.Item>
                 <Descriptions.Item label={t('common.auditLogs.table.user')}>
@@ -148,7 +155,7 @@ export function AuditDetailModal({ open, record, onClose }: Props) {
                         <ul style={{ paddingLeft: 20, margin: 0 }}>
                             {related.map((r) => (
                                 <li key={r.id}>
-                                    {dayjs(r.timestamp).format('HH:mm:ss')} — {r.action}{' '}
+                                    {formatUserTime(r.timestamp, { includeSeconds: true })} — {r.action}{' '}
                                     <Typography.Text type="secondary">
                                         ({parseAuditJsonField(r.metadata, 'targetUserId') ?? r.entityName ?? r.entityType})
                                     </Typography.Text>

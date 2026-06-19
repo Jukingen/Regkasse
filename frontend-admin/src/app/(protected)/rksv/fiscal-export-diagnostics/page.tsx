@@ -42,6 +42,7 @@ import {
 } from '@/features/rksv/fiscalExportDisclaimerSession';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { GetApiAdminFiscalExportParams } from '@/api/generated/model';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -384,7 +385,7 @@ export default function FiscalExportDiagnosticsPage() {
                         <div>
                             <Typography.Text strong>{t('rksvHub.fiscalExportPage.utcRangeLabel')}</Typography.Text>
                             <br />
-                            <RangePicker
+                            <RangePicker format={DAYJS_DATE_FORMAT}
                                 showTime
                                 value={[dateRange[0] ?? null, dateRange[1] ?? null]}
                                 onChange={(dates) => setDateRange(dates as [Dayjs | null, Dayjs | null])}

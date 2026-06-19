@@ -4,6 +4,7 @@ import { paymentService } from './api/paymentService';
 import printerService from './PrinterService';
 import { ReceiptDTO } from '../types/ReceiptDTO';
 import { formatReceiptHtml } from './receiptFormatter';
+import { formatUserDate } from '../utils/dateFormatter';
 import {
   formatRefundReceiptHtml,
   formatStornoReceiptHtml,
@@ -187,7 +188,7 @@ class ReceiptPrinter {
       // Map RequestDTO to PrinterService format
       await printerService.printReceipt({
         receiptNumber: receiptData.receiptNumber,
-        date: new Date(receiptData.date).toLocaleDateString('de-AT'),
+        date: formatUserDate(receiptData.date),
         time: new Date(receiptData.date).toLocaleTimeString('de-AT'),
         cashier:
           (receiptData.cashierDisplayName && receiptData.cashierDisplayName.trim()) ||

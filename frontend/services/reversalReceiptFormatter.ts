@@ -1,7 +1,4 @@
-/**
- * Storno / refund summary receipt HTML (thermal width).
- * RKSV signed beleg with QR is printed via receiptPrinter.print(paymentId).
- */
+import { formatUserDateTime } from '../utils/dateFormatter';
 
 export type ReversalReceiptSnapshot = {
   /** Fiscal payment row id — when set, prefer full RKSV print path. */
@@ -36,15 +33,8 @@ export function formatMoneyDe(amount: number): string {
 }
 
 export function formatDateTimeDe(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('de-AT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const formatted = formatUserDateTime(iso);
+  return formatted || '—';
 }
 
 function wrapReversalHtml(title: string, body: string): string {

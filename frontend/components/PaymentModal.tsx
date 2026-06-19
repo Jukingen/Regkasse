@@ -17,7 +17,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { getFormattingLocaleForTextLocale } from '../i18n/localeUtils';
+import { formatUserDate, formatUserDateTime } from '../utils/dateFormatter';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice } from '../utils/formatPrice';
@@ -1234,9 +1234,7 @@ export default function PaymentModal({
         cashRegisterId,
         notes:
           notes ||
-          `Tisch ${resolvedTableNumber} - ${new Date().toLocaleString(
-            getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language)
-          )}`,
+          `Tisch ${resolvedTableNumber} - ${formatUserDateTime(new Date())}`,
         idempotencyKey
       };
 
@@ -1921,10 +1919,7 @@ export default function PaymentModal({
                       return (
                         <Text style={styles.voucherMuted}>
                           {t('checkout:posFlow.payment.voucher.expiresHint', {
-                            date: exp.toLocaleDateString(
-                              getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language),
-                              { day: '2-digit', month: '2-digit', year: 'numeric' }
-                            ),
+                            date: formatUserDate(exp),
                           })}
                         </Text>
                       );

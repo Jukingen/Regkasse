@@ -33,14 +33,10 @@ function formatMoney(amount: number, locale: string): string {
   }).format(amount);
 }
 
-function formatDate(iso: string, locale: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(locale, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+import { formatUserDate } from './dateFormatter';
+
+function formatDate(iso: string, _locale: string): string {
+  return formatUserDate(iso) || iso;
 }
 
 export function formatDailyClosingReportHtml(

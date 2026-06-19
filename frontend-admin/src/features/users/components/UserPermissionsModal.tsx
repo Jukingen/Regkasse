@@ -17,7 +17,9 @@ import {
 import { usePermissionsCatalog } from '@/features/users/hooks/usePermissionsCatalog';
 import { permissionCatalogGroupToSlug } from '@/features/users/utils/permissionCatalogGroup';
 import { resolvePermissionDisplayLabel } from '@/features/users/utils/permissionDisplayLabel';
+import { formatDate } from '@/i18n/formatting';
 import { useI18n } from '@/i18n';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { permissionImplied } from '@/shared/auth/permissionImplication';
 
 export type UserPermissionsModalProps = {
@@ -282,7 +284,7 @@ function PermissionOverrideConfirmModal({
           <Input.TextArea rows={2} maxLength={500} />
         </Form.Item>
         <Form.Item name="expiresAt" label={t('users.permissionsModal.expiresLabel')}>
-          <DatePicker className="w-full" format="DD.MM.YYYY" />
+          <DatePicker className="w-full" format={DAYJS_DATE_FORMAT} />
         </Form.Item>
       </Form>
     </Modal>
@@ -426,7 +428,7 @@ function OverridesTable({ overrides, readOnly, loading, onDelete, t }: Overrides
       title: t('users.permissionsModal.expiresLabel'),
       dataIndex: 'expiresAt',
       width: 120,
-      render: (d: string | null | undefined) => (d ? dayjs(d).format('DD.MM.YYYY') : '—'),
+      render: (d: string | null | undefined) => (d ? formatDate(d, '') : '—'),
     },
     {
       key: 'actions',

@@ -55,6 +55,10 @@ public class RoleAdminMenuContractTests
     [InlineData(Roles.Manager, AppPermissions.UserView)]
     [InlineData(Roles.Manager, AppPermissions.CashRegisterManage)]
     [InlineData(Roles.Manager, AppPermissions.FinanzOnlineManage)]
+    [InlineData(Roles.Manager, AppPermissions.PaymentView)]
+    [InlineData(Roles.Manager, AppPermissions.SaleView)]
+    [InlineData(Roles.Manager, AppPermissions.ReportView)]
+    [InlineData(Roles.Manager, AppPermissions.ReportExport)]
     [InlineData(Roles.Accountant, AppPermissions.ReportExport)]
     [InlineData(Roles.ReportViewer, AppPermissions.AuditView)]
     public void AdminProfile_BackOfficeRoles_KeepAdminPermissions(string role, string permission)
@@ -66,5 +70,41 @@ public class RoleAdminMenuContractTests
             effective);
 
         Assert.Contains(permission, filtered);
+    }
+
+    [Fact]
+    public void AdminProfile_Manager_KeepsAllOversightViewPermissionsForFaMenus()
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        var filtered = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        foreach (var viewKey in AdminAppPermissionProfile.ManagerOversightViewPermissions)
+        {
+            Assert.Contains(viewKey, effective);
+            Assert.Contains(viewKey, filtered);
+        }
+
+        Assert.DoesNotContain(AppPermissions.PaymentTake, filtered);
+        Assert.DoesNotContain(AppPermissions.TseSign, filtered);
+        Assert.DoesNotContain(AppPermissions.CartManage, filtered);
+    }
+
+    [Theory]
+    [InlineData(AppPermissions.PaymentTake)]
+    [InlineData(AppPermissions.TseSign)]
+    [InlineData(AppPermissions.CartManage)]
+    [InlineData(AppPermissions.SaleCreate)]
+    public void AdminProfile_Manager_ExcludesPosTerminalWritePermissions(string permission)
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        var filtered = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.DoesNotContain(permission, filtered);
     }
 }

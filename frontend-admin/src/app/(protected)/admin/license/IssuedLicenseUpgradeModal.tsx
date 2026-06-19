@@ -13,6 +13,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n, formatDate } from '@/i18n';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import {
     licenseQueryKeys,
     postUpgradeIssuedLicense,
@@ -176,7 +177,7 @@ export function IssuedLicenseUpgradeModal({ row, onClose }: IssuedLicenseUpgrade
                         <Typography.Text>{t('license.issued.upgrade.newExpiryLabel')}</Typography.Text>
                         <DatePicker
                             style={{ width: '100%', marginTop: 6 }}
-                            format="YYYY-MM-DD"
+                            format={DAYJS_DATE_FORMAT}
                             value={expiryPick}
                             onChange={(d) => setExpiryPick(d)}
                             disabledDate={disabledDate}

@@ -320,13 +320,12 @@
       "density": "Yoğunluk",
       "defaultPage": "Giriş sonrası ana sayfa",
       "dateFormatLabel": "Tarih biçimi",
+      "dateFormatDescription": "Tarih formatı: Gün.Ay.Yıl — arayüz dili ne olursa olsun sabit Almanca biçim.",
       "timeFormat": "Saat biçimi",
       "reducedMotion": "Azaltılmış animasyonlar",
       "reducedMotionHint": "Daha iyi performans için",
       "dateFormatOptions": {
-        "DD_MM_YYYY": "DD.MM.YYYY (31.12.2024)",
-        "YYYY_MM_DD": "YYYY-MM-DD (2024-12-31)",
-        "MM_DD_YYYY": "MM/DD/YYYY (12/31/2024)"
+        "DD_MM_YYYY": "01.12.2025 (DD.MM.YYYY)"
       }
     },
     "theme": {

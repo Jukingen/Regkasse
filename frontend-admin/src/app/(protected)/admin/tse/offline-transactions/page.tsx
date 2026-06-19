@@ -29,6 +29,7 @@ import type { AdminOfflineTransactionRowDto } from '@/api/generated/model/adminO
 import { useI18n } from '@/i18n/I18nProvider';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 dayjs.extend(utc);
 
@@ -378,7 +379,7 @@ export default function AdminOfflineTransactionsPage() {
                         />
                     </Form.Item>
                     <Form.Item label="Zeitraum (UTC)">
-                        <DatePicker.RangePicker
+                        <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
                             value={rangeUtc}
                             onChange={(d) => {
                                 setRangeUtc(d as [Dayjs, Dayjs] | null);

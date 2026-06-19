@@ -24,6 +24,7 @@ import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 import { usePaymentTrends } from '@/features/payments/hooks/usePaymentTrends';
 import type { TrendPeriod } from '@/features/payments/types/paymentTrends';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatUserMonthDay } from '@/lib/dateFormatter';
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'> & {
     period?: TrendPeriod;
@@ -44,7 +45,7 @@ export function PaymentTrendWidget({
     period: periodProp,
     onPeriodChange,
 }: Props) {
-    const { t, formatLocale } = useI18n();
+    const { t } = useI18n();
     const [localPeriod, setLocalPeriod] = React.useState<TrendPeriod>('Daily');
     const period = periodProp ?? localPeriod;
 
@@ -55,14 +56,11 @@ export function PaymentTrendWidget({
             (query.data?.trendData ?? []).map((point) => ({
                 label:
                     point.label ??
-                    new Date(point.date).toLocaleDateString(formatLocale, {
-                        day: '2-digit',
-                        month: '2-digit',
-                    }),
+                    formatUserMonthDay(point.date),
                 revenue: point.totalAmount,
                 count: point.transactionCount,
             })),
-        [query.data?.trendData, formatLocale],
+        [query.data?.trendData],
     );
 
     const comparison = query.data?.comparison;

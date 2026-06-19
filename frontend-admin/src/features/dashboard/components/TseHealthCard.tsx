@@ -5,6 +5,7 @@ import { Alert, Badge, Card, Col, Progress, Row, Statistic, Typography } from 'a
 import { useGetApiTseHealth } from '@/api/generated/tse/tse';
 import type { TseHealthResponseDto } from '@/api/generated/model';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
+import { formatDateTime } from '@/i18n/formatting';
 import { AppPermissions } from '@/shared/auth/permissions';
 
 const REFETCH_MS = 30_000;
@@ -56,7 +57,7 @@ export function TseHealthCard() {
 
     const nextProbeHint =
         data?.estimatedRecoveryTimeUtc != null
-            ? new Date(data.estimatedRecoveryTimeUtc).toLocaleString('de-DE')
+            ? formatDateTime(data.estimatedRecoveryTimeUtc, '')
             : null;
 
     return (
@@ -70,7 +71,7 @@ export function TseHealthCard() {
                         title="Letzter erfolgreicher TSE-Check"
                         value={
                             data?.lastSuccessfulPingUtc
-                                ? new Date(data.lastSuccessfulPingUtc).toLocaleString('de-DE')
+                                ? formatDateTime(data.lastSuccessfulPingUtc, '')
                                 : '—'
                         }
                     />
@@ -82,7 +83,7 @@ export function TseHealthCard() {
                     <Statistic
                         title="Letzte Prüfung (UTC)"
                         value={
-                            data?.lastCheckUtc ? new Date(data.lastCheckUtc).toLocaleString('de-DE') : '—'
+                            data?.lastCheckUtc ? formatDateTime(data.lastCheckUtc, '') : '—'
                         }
                     />
                 </Col>

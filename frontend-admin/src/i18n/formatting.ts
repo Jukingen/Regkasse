@@ -1,42 +1,79 @@
 /**
- * Tek format katmanı: `useI18n().formatLocale` (BCP-47: de-AT, en-US, tr-TR).
- * Metin dili (`textLocale`) ile karıştırma; tarih/sayı/para her zaman `formatLocale` ile.
+ * Number/currency: `formatLocale` (de-AT, en-US, tr-TR).
+ * Dates: fixed German display `DD.MM.YYYY` via `@/lib/dateFormatter` — independent of text locale.
  *
  * @example
  *   const { formatLocale } = useI18n();
  *   formatCurrency(19.99, formatLocale);
- *
- * @example
- *   const fmt = useMemo(() => createIntlFormatters(formatLocale), [formatLocale]);
- *   fmt.formatNumber(1_200, { maximumFractionDigits: 0 });
- *
- * @example
- *   // Yüzde: Intl `style: 'percent'` — değer 0–1 aralığında (ör. 0,125 → %12,5)
- *   formatPercent(0.125, formatLocale, { maximumFractionDigits: 1 });
+ *   formatDate(iso, formatLocale); // → 01.12.2025 (locale ignored for dates)
  */
+
+import { formatUserDate, formatUserDateTime, formatUserMonthDay } from '@/lib/dateFormatter';
 
 export const FORMAT_EMPTY_DISPLAY = '—';
 
+function wantsMonthDayOnly(options?: Intl.DateTimeFormatOptions): boolean {
+  if (!options) return false;
+  const hasMonth = options.month !== undefined;
+  const hasDay = options.day !== undefined;
+  const hasYear = options.year !== undefined;
+  return hasMonth && hasDay && !hasYear;
+}
+
+function wantsDateTimeSeconds(options?: Intl.DateTimeFormatOptions): boolean {
+  if (!options) return false;
+  return (
+    options.second === '2-digit' ||
+    options.timeStyle === 'medium' ||
+    options.timeStyle === 'long' ||
+    options.timeStyle === 'full'
+  );
+}
+
+function hasTimeComponent(options?: Intl.DateTimeFormatOptions): boolean {
+  if (!options) return false;
+  return (
+    options.timeStyle !== undefined ||
+    options.hour !== undefined ||
+    options.minute !== undefined ||
+    options.second !== undefined
+  );
+}
+
 export function formatDateTime(
   input: string | number | Date | null | undefined,
-  formatLocale: string,
+  _formatLocale?: string,
   options?: Intl.DateTimeFormatOptions,
 ): string {
   if (input == null || input === '') return FORMAT_EMPTY_DISPLAY;
-  const d = input instanceof Date ? input : new Date(input);
-  if (Number.isNaN(d.getTime())) return FORMAT_EMPTY_DISPLAY;
-  return d.toLocaleString(formatLocale, options);
+  if (wantsMonthDayOnly(options)) {
+    const short = formatUserMonthDay(input);
+    return short || FORMAT_EMPTY_DISPLAY;
+  }
+  if (hasTimeComponent(options)) {
+    const formatted = formatUserDateTime(input, { includeSeconds: wantsDateTimeSeconds(options) });
+    return formatted || FORMAT_EMPTY_DISPLAY;
+  }
+  if (options?.dateStyle !== undefined) {
+    const dateOnly = formatUserDate(input);
+    return dateOnly || FORMAT_EMPTY_DISPLAY;
+  }
+  const formatted = formatUserDateTime(input, { includeSeconds: wantsDateTimeSeconds(options) });
+  return formatted || FORMAT_EMPTY_DISPLAY;
 }
 
 export function formatDate(
   input: string | number | Date | null | undefined,
-  formatLocale: string,
+  _formatLocale?: string,
   options?: Intl.DateTimeFormatOptions,
 ): string {
   if (input == null || input === '') return FORMAT_EMPTY_DISPLAY;
-  const d = input instanceof Date ? input : new Date(input);
-  if (Number.isNaN(d.getTime())) return FORMAT_EMPTY_DISPLAY;
-  return d.toLocaleDateString(formatLocale, options);
+  if (wantsMonthDayOnly(options)) {
+    const short = formatUserMonthDay(input);
+    return short || FORMAT_EMPTY_DISPLAY;
+  }
+  const formatted = formatUserDate(input);
+  return formatted || FORMAT_EMPTY_DISPLAY;
 }
 
 export function formatNumber(value: number, formatLocale: string, options?: Intl.NumberFormatOptions): string {

@@ -24,6 +24,7 @@ import {
 import { type LicenseStatus } from '../../../hooks/useLicenseStatus';
 import { openAdmin, openLicenseExtension } from '@/src/features/admin-navigation/openAdmin';
 import { openMailtoUrl } from '../../../utils/openLink';
+import { formatUserDateTime } from '../../../utils/dateFormatter';
 
 const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
 
@@ -36,19 +37,7 @@ function sanitizeLicenseKeyInput(raw: string): string {
 
 function formatExpiryDeAt(iso: string | null): string {
   if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  try {
-    return d.toLocaleString('de-AT', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso.slice(0, 10);
-  }
+  return formatUserDateTime(iso) || '—';
 }
 
 type ApiErrorShape = { status?: number; data?: { message?: string; Message?: string } };

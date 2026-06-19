@@ -31,8 +31,8 @@ export const ROLES_CAN_DELETE_ROLE = ['SuperAdmin'] as const;
 /** Sadece SuperAdmin rol izinlerini düzenleyebilir (PUT .../roles/{roleName}/permissions). */
 export const ROLES_CAN_EDIT_ROLE_PERMISSIONS = ['SuperAdmin'] as const;
 
-/** RKSV menü: SuperAdmin only. */
-export const ROLES_RKSV_MENU = ['SuperAdmin'] as const;
+/** RKSV menü legacy fallback — prefer `isRksvMenuAreaAllowed` + JWT permissions in prod. */
+export const ROLES_RKSV_MENU = ['SuperAdmin', 'Manager'] as const;
 
 export type UserRole = string;
 
@@ -92,4 +92,9 @@ export function canResetPassword(
 
 export function canShowRksvMenu(role: UserRole | undefined | null): boolean {
   return ROLES_RKSV_MENU.includes(role as (typeof ROLES_RKSV_MENU)[number]);
+}
+
+/** Platform admin sidebar / command palette (SuperAdmin only). */
+export function canShowPlatformAdminMenu(role: UserRole | undefined | null): boolean {
+  return isSuperAdmin(role);
 }

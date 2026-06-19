@@ -14,6 +14,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
+import { formatUserMonthYear } from '@/lib/dateFormatter';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
@@ -21,6 +22,7 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 type MonatsberichtListItem = {
   id: string;
@@ -120,7 +122,7 @@ export default function MonatsberichtListPage() {
       {
         title: t('reporting.monatsbericht.list.columnMonth'),
         dataIndex: 'viennaMonthStart',
-        render: (v: string) => dayjs(v).format('YYYY-MM'),
+        render: (v: string) => formatUserMonthYear(v) || '—',
       },
       {
         title: t('reporting.listShared.columns.scope'),
@@ -187,7 +189,7 @@ export default function MonatsberichtListPage() {
       <FormalReportLanguageNotice />
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
-          <DatePicker.RangePicker
+          <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
             picker="month"
             value={listRange}
             onChange={(v) => v && setListRange(v as [dayjs.Dayjs, dayjs.Dayjs])}

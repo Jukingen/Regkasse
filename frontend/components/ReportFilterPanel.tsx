@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+import { formatUserDate } from '../utils/dateFormatter';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 export interface ReportFilter {
@@ -61,7 +61,7 @@ const ReportFilterPanel: React.FC<ReportFilterPanelProps> = ({
 
   const formatDate = (date?: Date) => {
     if (!date) return '';
-    return date.toLocaleDateString('de-DE');
+    return formatUserDate(date);
   };
 
   const getActiveFilterCount = () => {

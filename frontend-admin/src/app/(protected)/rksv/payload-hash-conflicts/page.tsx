@@ -14,6 +14,7 @@ import dayjs from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { openApiErrorMessage } from '@/shared/errors/openApiErrorMessage';
 import {
@@ -155,7 +156,7 @@ export default function PayloadHashConflictsPage() {
         dataIndex: 'latestCreatedAtUtc',
         key: 'latestCreatedAtUtc',
         width: 160,
-        render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
+        render: (v: string | null) => (v ? formatDateTime(v, '') : '—'),
       },
       {
         title: t('rksvHub.payloadHashConflictsPage.colMismatchRowIds'),
@@ -214,7 +215,7 @@ export default function PayloadHashConflictsPage() {
         dataIndex: 'createdAtUtc',
         key: 'createdAtUtc',
         width: 160,
-        render: (v: string | null) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm') : '—'),
+        render: (v: string | null) => (v ? formatDateTime(v, '') : '—'),
       },
     ],
     [t],

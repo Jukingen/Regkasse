@@ -12,6 +12,7 @@ import {
 import { Colors, Spacing, BorderRadius } from '../constants/Colors';
 import { checkTseStatus, TseStatus } from '../services/api/tseService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { formatUserDateTime } from '../utils/dateFormatter';
 
 interface TseStatusIndicatorProps {
   onStatusChange?: (status: TseStatus) => void;
@@ -79,7 +80,7 @@ export const TseStatusIndicator: React.FC<TseStatusIndicatorProps> = ({
 Serial Number: ${tseStatus.serialNumber || t('tse.na', 'N/A')}
 Certificate: ${tseStatus.certificateStatus}
 Memory: ${tseStatus.memoryStatus}
-Last Signature: ${tseStatus.lastSignatureTime ? new Date(tseStatus.lastSignatureTime).toLocaleString() : t('tse.na', 'N/A')}
+Last Signature: ${tseStatus.lastSignatureTime ? formatUserDateTime(tseStatus.lastSignatureTime) : t('tse.na', 'N/A')}
 Can Create Invoices: ${tseStatus.canCreateInvoices ? t('tse.yes', 'Yes') : t('tse.no', 'No')}
 ${tseStatus.errorMessage ? `${t('tse.error', 'Error')}: ${tseStatus.errorMessage}` : ''}`),
       [

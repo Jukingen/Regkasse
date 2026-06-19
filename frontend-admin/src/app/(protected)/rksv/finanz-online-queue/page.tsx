@@ -15,6 +15,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { formatCurrency, formatDateTime, useI18n } from '@/i18n';
+import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_NAV_LABEL_KEYS, ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import {
     parseAuthoritativePaymentGuid,
@@ -936,6 +937,7 @@ export default function FinanzOnlineReconciliationPage() {
                     <Space>
                         <Typography.Text strong>{t('finanzOnlineReconciliation.queuePage.filters.utcRangeLabel')}</Typography.Text>
                         <DatePicker.RangePicker
+                            format={DAYJS_DATETIME_SECONDS_FORMAT}
                             value={[dateRange[0], dateRange[1]]}
                             onChange={(dates) => setDateRange(dates ?? [null, null])}
                             showTime
@@ -1180,8 +1182,8 @@ export default function FinanzOnlineReconciliationPage() {
                                             <Descriptions.Item
                                                 label={t('finanzOnlineReconciliation.queuePage.expandRow.labelCreatedAt')}
                                             >
-                                                {record.createdAt && dayjs(record.createdAt).isValid()
-                                                    ? dayjs(record.createdAt).format('DD.MM.YYYY HH:mm:ss')
+                                                {record.createdAt
+                                                    ? formatDateTime(record.createdAt, '', { second: '2-digit' })
                                                     : '—'}
                                             </Descriptions.Item>
                                             <Descriptions.Item
@@ -1189,11 +1191,10 @@ export default function FinanzOnlineReconciliationPage() {
                                                     'finanzOnlineReconciliation.queuePage.expandRow.labelFinanzOnlineLastAttemptAtUtc',
                                                 )}
                                             >
-                                                {record.finanzOnlineLastAttemptAtUtc &&
-                                                dayjs(record.finanzOnlineLastAttemptAtUtc).isValid()
-                                                    ? dayjs(record.finanzOnlineLastAttemptAtUtc).format(
-                                                          'DD.MM.YYYY HH:mm:ss',
-                                                      )
+                                                {record.finanzOnlineLastAttemptAtUtc
+                                                    ? formatDateTime(record.finanzOnlineLastAttemptAtUtc, '', {
+                                                          second: '2-digit',
+                                                      })
                                                     : '—'}
                                             </Descriptions.Item>
                                             <Descriptions.Item

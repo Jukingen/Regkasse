@@ -20,6 +20,7 @@ import {
   YAxis,
 } from "recharts";
 import { buildBackupHistory30DayChartData } from "@/features/backup-dr/logic/backupMonitoringMetrics";
+import { formatUserMonthDay } from "@/lib/dateFormatter";
 
 export interface BackupHistoryChartPoint {
   key: string;
@@ -55,16 +56,7 @@ export function BackupHistoryChart({
   durationSuffix,
   onBarClick,
 }: BackupHistoryChartProps) {
-  const formatDate = (iso: string) => {
-    try {
-      return new Date(iso).toLocaleDateString(formatLocale, {
-        day: "2-digit",
-        month: "2-digit",
-      });
-    } catch {
-      return "—";
-    }
-  };
+  const formatDate = (iso: string) => formatUserMonthDay(iso) || "—";
 
   const chartData = useMemo(() => {
     if (chartDataProp && chartDataProp.length > 0) return [...chartDataProp];

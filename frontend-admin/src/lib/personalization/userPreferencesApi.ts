@@ -6,7 +6,7 @@ import type {
   DensityMode,
 } from './types';
 import { normalizeThemeMode } from './theme';
-import { DATE_FORMAT_PATTERNS, DEFAULT_PERSONALIZATION, DEFAULT_LANDING_PATHS } from './types';
+import { DEFAULT_PERSONALIZATION, DEFAULT_LANDING_PATHS } from './types';
 
 export type UserPreferencesApiResponse = {
   themeMode: string;
@@ -59,13 +59,7 @@ function normalizeLandingFromApi(value: string | undefined): DefaultLandingPath 
   return DEFAULT_PERSONALIZATION.defaultLandingPath;
 }
 
-function normalizeDateFormatFromApi(value: string | null | undefined): DateFormatPattern {
-  if (value && (DATE_FORMAT_PATTERNS as readonly string[]).includes(value)) {
-    return value as DateFormatPattern;
-  }
-  if (value === 'de-AT') return 'DD.MM.YYYY';
-  if (value === 'en-US') return 'MM/DD/YYYY';
-  if (value === 'tr-TR') return 'DD.MM.YYYY';
+function normalizeDateFormatFromApi(_value: string | null | undefined): DateFormatPattern {
   return DEFAULT_PERSONALIZATION.dateFormat;
 }
 

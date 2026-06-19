@@ -1,3 +1,5 @@
+import { formatUserDate, formatUserDateTime, formatUserTime } from '../utils/dateFormatter';
+
 export interface ValidationRule {
   type: 'required' | 'minLength' | 'maxLength' | 'pattern' | 'email' | 'phone' | 'number' | 'decimal' | 'range' | 'custom';
   value?: any;
@@ -450,35 +452,17 @@ export class ValidationService {
 
   public formatDate(date: Date | string): string {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    // RKSV compliant Austrian date format: DD.MM.YYYY
-    return dateObj.toLocaleDateString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return formatUserDate(dateObj);
   }
 
   public formatDateTime(date: Date | string): string {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    // RKSV compliant Austrian date/time format: DD.MM.YYYY HH:MM:SS
-    return dateObj.toLocaleString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return formatUserDateTime(dateObj, { includeSeconds: true });
   }
 
   public formatTime(date: Date | string): string {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    // RKSV compliant Austrian time format: HH:MM:SS
-    return dateObj.toLocaleTimeString('de-DE', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return formatUserTime(dateObj, { includeSeconds: true });
   }
 }
 

@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { Statistic, Row, Col, Typography } from 'antd';
 import dayjs from 'dayjs';
+import { formatUserMonthDay } from '@/lib/dateFormatter';
 import {
     LineChart,
     Line,
@@ -37,7 +38,7 @@ export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
     const chartData = useMemo(
         () =>
             (query.data?.dailySales ?? []).map((d) => ({
-                date: d.date ? dayjs(d.date).format('DD.MM.') : '—',
+                date: d.date ? formatUserMonthDay(d.date) || '—' : '—',
                 total: d.total ?? 0,
             })),
         [query.data?.dailySales],

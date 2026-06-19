@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import { useRksvReminderOverview } from '@/features/rksv-operations/hooks/useRksvReminderOverview';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { formatDateTime } from '@/i18n/formatting';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 
 export function RksvReminderCard() {
@@ -150,7 +151,7 @@ export function RksvReminderCard() {
                 ) : null}
 
                 <div style={{ fontSize: 12, color: '#8c8c8c', textAlign: 'right' }}>
-                    Letzte Aktualisierung: {data.lastUpdated ? new Date(data.lastUpdated).toLocaleString('de-DE') : 'unbekannt'}
+                    Letzte Aktualisierung: {data.lastUpdated ? formatDateTime(data.lastUpdated, '') : 'unbekannt'}
                 </div>
             </Space>
         </Card>

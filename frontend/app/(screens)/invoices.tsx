@@ -16,14 +16,11 @@ import {
 import { useTranslation } from 'react-i18next';
 import * as InvoiceService from '../../services/api/invoiceService';
 import type { PosInvoiceView } from '../../services/api/invoiceService';
-import { getFormattingLocaleForTextLocale } from '../../i18n/localeUtils';
+import { formatUserDate, formatUserTime } from '../../utils/dateFormatter';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
 
 export default function InvoicesScreen() {
-  const { t, i18n } = useTranslation(['invoices', 'common']);
-  const uiLocale = useMemo(() => {
-    return getFormattingLocaleForTextLocale(i18n.resolvedLanguage || i18n.language);
-  }, [i18n.language, i18n.resolvedLanguage]);
+  const { t } = useTranslation(['invoices', 'common']);
 
   const [invoices, setInvoices] = useState<PosInvoiceView[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,7 +189,7 @@ export default function InvoicesScreen() {
                   {invoice.customer?.firstName} {invoice.customer?.lastName}
                 </Text>
                 <Text style={styles.invoiceDate}>
-                  {new Date(invoice.invoiceDate).toLocaleDateString(uiLocale)}
+                  {formatUserDate(invoice.invoiceDate)}
                 </Text>
                 <Text style={styles.invoiceAmount}>€{invoice.totalAmount?.toFixed(2)}</Text>
               </View>
@@ -228,12 +225,12 @@ export default function InvoicesScreen() {
 
                 <Text style={styles.detailLabel}>{t('invoices:date')}:</Text>
                 <Text style={styles.detailValue}>
-                  {new Date(selectedInvoice.invoiceDate).toLocaleDateString(uiLocale)}
+                  {formatUserDate(selectedInvoice.invoiceDate)}
                 </Text>
 
                 <Text style={styles.detailLabel}>{t('invoices:time')}:</Text>
                 <Text style={styles.detailValue}>
-                  {new Date(selectedInvoice.invoiceDate).toLocaleTimeString(uiLocale)}
+                  {formatUserTime(selectedInvoice.invoiceDate)}
                 </Text>
 
                 <Text style={styles.detailLabel}>{t('invoices:tseSignature')}:</Text>

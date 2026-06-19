@@ -26,6 +26,8 @@ import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { getApiAdminIntegrity } from '@/api/generated/admin/admin';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
@@ -112,7 +114,7 @@ export default function IntegrityReportPage() {
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space wrap align="center">
           <Typography.Text strong>{t('rksvHub.integrityPage.filterRangeLabel')}</Typography.Text>
-          <RangePicker value={range} onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])} allowClear={false} />
+          <RangePicker format={DAYJS_DATE_FORMAT} value={range} onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])} allowClear={false} />
           <Space align="center">
             <Typography.Text>{t('rksvHub.integrityPage.detailsSwitchLabel')}</Typography.Text>
             <Switch checked={includeDetails} onChange={setIncludeDetails} />
@@ -124,7 +126,7 @@ export default function IntegrityReportPage() {
         {report?.generatedAtUtc && (
           <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
             {t('rksvHub.integrityPage.generatedUtc', {
-              ts: dayjs(report.generatedAtUtc).format('DD.MM.YYYY HH:mm:ss'),
+              ts: formatDateTime(report.generatedAtUtc, '', { second: '2-digit' }),
             })}
           </Typography.Paragraph>
         )}

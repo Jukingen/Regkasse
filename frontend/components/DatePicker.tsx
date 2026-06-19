@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { useColorScheme } from '../hooks/useColorScheme';
+import { formatUserDate, formatUserDateTime, formatUserTime } from '../utils/dateFormatter';
 
 interface DatePickerProps {
   value: Date | null;
@@ -55,17 +56,14 @@ export function DatePicker({
     setShowPicker(false);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDisplayValue = (date: Date) => {
     if (mode === 'date') {
-      return date.toLocaleDateString('tr-TR');
-    } else if (mode === 'time') {
-      return date.toLocaleTimeString('tr-TR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } else {
-      return date.toLocaleString('tr-TR');
+      return formatUserDate(date);
     }
+    if (mode === 'time') {
+      return formatUserTime(date);
+    }
+    return formatUserDateTime(date);
   };
 
   const renderPicker = () => {
@@ -162,7 +160,7 @@ export function DatePicker({
               : (colorScheme === 'dark' ? '#8E8E93' : '#8E8E93'),
           },
         ]}>
-          {value ? formatDate(value) : placeholder}
+          {value ? formatDisplayValue(value) : placeholder}
         </Text>
         <Ionicons
           name="calendar-outline"

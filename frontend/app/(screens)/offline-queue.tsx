@@ -24,6 +24,7 @@ import {
   type OfflineTransactionStatus,
 } from '../../services/payment/pendingPaymentQueue';
 import { WaveLoader } from '../../src/components/common/WaveLoader';
+import { formatUserDateTime } from '../../utils/dateFormatter';
 
 const FILTER_ALL = 'All';
 const FILTER_PENDING = 'Pending';
@@ -32,18 +33,7 @@ const FILTER_UNKNOWN = 'Unknown';
 const RKSV_HANDOFF_PREFIX = 'RKSV_HANDOFF_V1';
 
 function formatDate(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString('de-DE', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return iso;
-  }
+  return formatUserDateTime(iso, { includeSeconds: true }) || iso;
 }
 
 /** User-friendly status and error text (no raw NON_FISCAL_PENDING / codes only). */

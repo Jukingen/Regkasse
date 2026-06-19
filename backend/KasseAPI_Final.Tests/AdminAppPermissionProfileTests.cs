@@ -34,7 +34,7 @@ public class AdminAppPermissionProfileTests
     }
 
     [Fact]
-    public void Filter_Admin_Manager_StripsPosTerminalOnly()
+    public void Filter_Admin_Manager_StripsPosOperationalWriteOnly()
     {
         var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
         var result = AdminAppPermissionProfile.Filter(
@@ -51,6 +51,60 @@ public class AdminAppPermissionProfileTests
         Assert.DoesNotContain(AppPermissions.CartManage, result);
         Assert.DoesNotContain(AppPermissions.TseSign, result);
         Assert.DoesNotContain(AppPermissions.VoucherIssue, result);
+        Assert.DoesNotContain(AppPermissions.SaleCreate, result);
+        Assert.DoesNotContain(AppPermissions.OrderCreate, result);
+    }
+
+    [Theory]
+    [MemberData(nameof(ManagerOversightViewPermissionCases))]
+    public void Filter_Admin_Manager_PreservesOversightViewPermissions(string permission)
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        Assert.Contains(permission, effective);
+
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.Contains(permission, result);
+    }
+
+    public static IEnumerable<object[]> ManagerOversightViewPermissionCases() =>
+        AdminAppPermissionProfile.ManagerOversightViewPermissions.Select(p => new object[] { p });
+
+    [Theory]
+    [InlineData(AppPermissions.PaymentTake)]
+    [InlineData(AppPermissions.SaleCreate)]
+    [InlineData(AppPermissions.OrderUpdate)]
+    [InlineData(AppPermissions.TseSign)]
+    [InlineData(AppPermissions.RksvStartbelegCreate)]
+    public void Filter_Admin_Manager_StripsOperationalWritePermissions(string writePermission)
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        if (!effective.Contains(writePermission))
+            return;
+
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.DoesNotContain(writePermission, result);
+    }
+
+    [Fact]
+    public void Filter_Admin_Manager_PreservesPosReadPermissions_NotInWriteStrip()
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.Contains(AppPermissions.CartView, result);
+        Assert.Contains(AppPermissions.KitchenView, result);
+        Assert.Contains(AppPermissions.PaymentView, result);
     }
 
     [Fact]

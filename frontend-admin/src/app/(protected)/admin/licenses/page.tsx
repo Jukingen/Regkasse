@@ -38,6 +38,7 @@ import {
     type ResolvedLicenseStatus,
 } from '@/features/license/utils/licenseStatus';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const TENANT_LICENSE_QUERY_KEY = ['admin', 'tenants', 'licenses'] as const;
 
@@ -702,7 +703,7 @@ export default function AdminTenantLicensesPage() {
                     ]}
                 />
 
-                <DatePicker.RangePicker
+                <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
                     value={expiryRange}
                     placeholder={[
                         t('tenants.licensesPage.validFromPlaceholder'),

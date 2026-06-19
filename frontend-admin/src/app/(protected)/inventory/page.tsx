@@ -36,6 +36,7 @@ import type { InventoryHistoryRowDto } from '@/api/generated/model';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { isAdminInventoryNavEnabled } from '@/shared/config/adminInventoryNavUi';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 dayjs.extend(utc);
 
@@ -525,7 +526,7 @@ export default function InventoryOperationsPage() {
                     value={histInvFilter}
                     onChange={(v) => setHistInvFilter(v)}
                   />
-                  <DatePicker.RangePicker
+                  <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
                     value={histRange[0] && histRange[1] ? [histRange[0], histRange[1]] : null}
                     onChange={(d) => setHistRange(d ? [d[0], d[1]] : [null, null])}
                   />

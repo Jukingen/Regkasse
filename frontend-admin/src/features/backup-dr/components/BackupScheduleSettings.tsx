@@ -6,6 +6,7 @@ import axios from "axios";
 import { Alert, Button, Card, Descriptions, InputNumber, Space, Spin, Switch, Typography } from 'antd';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
+import { formatDateTime } from "@/i18n/formatting";
 import { BackupSchedulePlanner } from "@/features/backup/components/BackupSchedulePlanner";
 import {
   apiScheduleToPlannerState,
@@ -129,11 +130,7 @@ export function BackupScheduleSettings({ canManage }: BackupScheduleSettingsProp
 
   const fmt = (iso: string | null | undefined) => {
     if (!iso) return t("backupDr.scheduleSettings.noRunsYet");
-    try {
-      return new Date(iso).toLocaleString(formatLocale);
-    } catch {
-      return iso;
-    }
+    return formatDateTime(iso, formatLocale);
   };
 
   const status = scheduleStatusQuery.data;

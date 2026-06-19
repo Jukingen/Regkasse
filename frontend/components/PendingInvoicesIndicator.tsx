@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { networkService, NetworkStatus } from '../services/api/networkService';
 import { pendingInvoicesService, PendingInvoicesResponse } from '../services/api/pendingInvoicesService';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { formatUserDate } from '../utils/dateFormatter';
 
 interface PendingInvoicesIndicatorProps {
   showDetails?: boolean;
@@ -166,7 +167,7 @@ export const PendingInvoicesIndicator: React.FC<PendingInvoicesIndicatorProps> =
               <View style={styles.invoiceInfo}>
                 <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
                 <Text style={styles.invoiceDate}>
-                  {new Date(invoice.invoiceDate).toLocaleDateString('tr-TR')}
+                  {formatUserDate(invoice.invoiceDate)}
                 </Text>
                 <Text style={styles.invoiceAmount}>
                   {invoice.totalAmount.toFixed(2)} €

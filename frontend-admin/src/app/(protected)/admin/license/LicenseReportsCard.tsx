@@ -20,6 +20,7 @@ import {
 } from '@/api/manual/adminLicense';
 import { useI18n, formatDate } from '@/i18n';
 import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from '@/shared/licenseDeploymentFeatures';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 dayjs.extend(utc);
 
@@ -130,7 +131,7 @@ export function LicenseReportsCard({ enabledLicenseFeatures }: Props) {
                     onFinish={onApply}
                 >
                     <Form.Item name="dateRange" label={t('license.reports.dateRangeIssuedAt')}>
-                        <DatePicker.RangePicker allowClear style={{ width: '100%', maxWidth: 400 }} />
+                        <DatePicker.RangePicker format={DAYJS_DATE_FORMAT} allowClear style={{ width: '100%', maxWidth: 400 }} />
                     </Form.Item>
                     <Form.Item
                         name="includeActivationHistory"

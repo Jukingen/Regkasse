@@ -5,6 +5,7 @@
  * with no sidebar row, e.g. `/orders` — see `ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF`).
  * Empty = show when authenticated. One permission = require it; array = require any.
  */
+import { canShowRksvMenu } from '@/features/auth/constants/roles';
 import { ROUTE_PERMISSIONS } from './routePermissions';
 
 // Deprecate direct usage; proxy to route permissions.
@@ -22,4 +23,31 @@ export function isMenuItemAllowed(
   /** Empty array = any authenticated user with permission claims (e.g. `/dashboard`). */
   if (arr.length === 0) return permissions.length > 0;
   return arr.some((p) => permissions.includes(p));
+}
+
+/** RKSV hub visibility — permission-first; legacy role fallback when JWT has no permission claims. */
+export function isRksvMenuAreaAllowed(
+  permissions: string[] | undefined,
+  role?: string | null,
+): boolean {
+  if (permissions && permissions.length > 0) {
+    return (
+      isMenuItemAllowed('/rksv', permissions) ||
+      isMenuItemAllowed('/rksv/operations', permissions)
+    );
+  }
+  return canShowRksvMenu(role);
+}
+
+/** RKSV sidebar / command-palette leaf — per-route permission when claims exist, else role fallback. */
+export function isRksvRouteKeyAllowed(
+  menuKey: string,
+  permissions: string[] | undefined,
+  role?: string | null,
+): boolean {
+  if (!menuKey.startsWith('/rksv')) return true;
+  if (permissions && permissions.length > 0) {
+    return isMenuItemAllowed(menuKey, permissions);
+  }
+  return canShowRksvMenu(role);
 }

@@ -23,6 +23,7 @@ import { ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { useSearchParams } from 'next/navigation';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 export default function BenefitAssignmentsPage() {
   const { message } = useAntdApp();
@@ -275,10 +276,10 @@ export default function BenefitAssignmentsPage() {
             />
           </Form.Item>
           <Form.Item name="validFrom" label={t('benefits.assignments.formValidFrom')} rules={[{ required: true, message: t('benefits.assignments.formValidFromRequired') }]}>
-            <DatePicker style={{ width: '100%' }} />
+            <DatePicker format={DAYJS_DATE_FORMAT} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="validTo" label={t('benefits.assignments.formValidTo')}>
-            <DatePicker style={{ width: '100%' }} />
+            <DatePicker format={DAYJS_DATE_FORMAT} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="priority" label={t('benefits.assignments.formPriorityHint')}>
             <InputNumber min={0} style={{ width: '100%' }} />

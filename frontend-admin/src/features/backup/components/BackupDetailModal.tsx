@@ -27,6 +27,7 @@ import type {
   BackupVerificationResponseDto,
 } from "@/api/generated/model";
 import { useI18n } from "@/i18n";
+import { formatDateTime as formatDisplayDateTime } from "@/i18n/formatting";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
 import { useBackupRun } from "@/features/backup/hooks/useBackupRun";
 import { BackupArtifactsDownloadCard } from "@/features/backup-dr/components/BackupArtifactsDownloadCard";
@@ -79,11 +80,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
   const formatDateTime = useCallback(
     (iso: string | undefined | null) => {
       if (!iso) return "—";
-      try {
-        return new Date(iso).toLocaleString(formatLocale);
-      } catch {
-        return iso;
-      }
+      return formatDisplayDateTime(iso, formatLocale);
     },
     [formatLocale],
   );

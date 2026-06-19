@@ -1,6 +1,7 @@
 {
   "page": {
-    "title": "Lizenz (On-Premise)"
+    "title": "Server-Lizenz (On-Premise)",
+    "subtitle": "Lizenz für diese API-Instanz (Deployment). Nicht mit der Mandantenlizenz im Header verwechseln."
   },
   "status": {
     "label": "Lizenzstatus",
@@ -46,10 +47,13 @@
   "badge": {
     "loading": "Lizenzstatus…",
     "headerShort": {
+      "none": "Keine Mandantenlizenz",
       "expired": "Lizenz abgelaufen",
+      "expiringSoon": "Lizenz läuft bald ab",
       "daysRemaining": "{{days}} Tage",
       "trial": "Testversion",
-      "licensed": "Lizenziert"
+      "licensed": "Lizenziert",
+      "mandantTooltip": "Mandantenlizenz: {{status}}"
     },
     "unavailable": "Lizenz unbekannt",
     "unavailableTooltip": "Lizenzstatus konnte nicht geladen werden (fehlende Berechtigung oder Serverfehler).",
@@ -179,7 +183,7 @@
   "simpleUi": {
     "titlePublic": "Lizenzstatus (Übersicht)",
     "subtitlePublic": "Wie für die Kassen-App — nur die wichtigsten Angaben.",
-    "titleServer": "Lizenzstatus (Server)",
+    "titleServer": "Server-Lizenz (On-Premise)",
     "status": "Status",
     "validUntil": "Gültig bis",
     "daysRemaining": "Verbleibende Tage",

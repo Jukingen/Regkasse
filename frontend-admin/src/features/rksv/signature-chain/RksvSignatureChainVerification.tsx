@@ -31,6 +31,8 @@ import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
+import { formatDate, formatDateTime } from '@/i18n/formatting';
+import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
 import { getAdminCashRegisters, getRksvComplianceReportJson } from '@/api/admin-rksv/client';
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
@@ -187,7 +189,7 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
         title: t('rksvHub.signatureChainPage.colIssuedUtc'),
         dataIndex: 'issuedAtUtc',
         key: 'issuedAtUtc',
-        render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm:ss') : '—'),
+        render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
       },
       {
         title: t('rksvHub.signatureChainPage.signaturePreview'),
@@ -262,6 +264,7 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
           />
           <Typography.Text strong>{t('rksvHub.signatureChainPage.filterRangeLabel')}</Typography.Text>
           <RangePicker
+            format={DAYJS_DATETIME_SECONDS_FORMAT}
             value={range}
             onChange={(v) => setRange(v ?? [null, null])}
             allowClear={false}
@@ -329,13 +332,13 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
             <Typography.Paragraph style={{ marginBottom: 4 }}>
               {t('rksvHub.signatureChainPage.printRange')}:{' '}
               {verifiedParams.fromUtc && verifiedParams.toUtc
-                ? `${dayjs(verifiedParams.fromUtc).format('DD.MM.YYYY HH:mm')} – ${dayjs(verifiedParams.toUtc).format('DD.MM.YYYY HH:mm')} UTC`
+                ? `${formatDateTime(verifiedParams.fromUtc, '')} – ${formatDateTime(verifiedParams.toUtc, '')} UTC`
                 : '—'}
             </Typography.Paragraph>
             {report.generatedAtUtc && (
               <Typography.Paragraph style={{ marginBottom: 0 }} type="secondary">
                 {t('rksvHub.signatureChainPage.generatedUtc', {
-                  ts: dayjs(report.generatedAtUtc).format('DD.MM.YYYY HH:mm:ss'),
+                  ts: formatDateTime(report.generatedAtUtc, '', { second: '2-digit' }),
                 })}
               </Typography.Paragraph>
             )}
@@ -379,7 +382,7 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
                     title: t('rksvHub.signatureChainPage.colSequenceDate'),
                     dataIndex: 'sequenceDateUtc',
                     key: 'sequenceDateUtc',
-                    render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY') : '—'),
+                    render: (v: string) => (v ? formatDate(v, '') : '—'),
                   },
                   {
                     title: t('rksvHub.signatureChainPage.colExpectedSeq'),
@@ -430,7 +433,7 @@ export default function RksvSignatureChainVerification({ embedded = false }: { e
                     title: t('rksvHub.compliancePage.colIssuedUtc'),
                     dataIndex: 'issuedAtUtc',
                     key: 'issuedAtUtc',
-                    render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm:ss') : '—'),
+                    render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
                   },
                 ]}
               />

@@ -1027,6 +1027,10 @@ export default function AdminLicensePage() {
                 }
             />
 
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                {t('license.page.subtitle')}
+            </Typography.Paragraph>
+
             <Card title={t('license.simpleUi.titlePublic')}>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
                     {t('license.simpleUi.subtitlePublic')}

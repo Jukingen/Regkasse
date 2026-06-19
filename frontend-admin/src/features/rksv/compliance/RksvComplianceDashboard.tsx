@@ -28,7 +28,8 @@ import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 import { ADMIN_NAV_GROUP_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
-import { useI18n } from '@/i18n';
+import { formatDate, formatDateTime, useI18n } from '@/i18n';
+import { DAYJS_DATETIME_SECONDS_FORMAT } from '@/lib/dateFormatter';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
@@ -327,7 +328,7 @@ export default function RksvComplianceDashboard() {
               title: t('rksvHub.compliancePage.colIssuedUtc'),
               dataIndex: 'issuedAtUtc',
               key: 'issuedAtUtc',
-              render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY HH:mm:ss') : '—'),
+              render: (v: string) => (v ? formatDateTime(v, '', { second: '2-digit' }) : '—'),
             },
           ]}
         />
@@ -364,7 +365,7 @@ export default function RksvComplianceDashboard() {
               title: t('rksvHub.compliancePage.colSequenceDate'),
               dataIndex: 'sequenceDateUtc',
               key: 'sequenceDateUtc',
-              render: (v: string) => (v ? dayjs(v).format('DD.MM.YYYY') : '—'),
+              render: (v: string) => (v ? formatDate(v, '') : '—'),
             },
             {
               title: t('rksvHub.compliancePage.colExpectedSeq'),
@@ -526,6 +527,7 @@ export default function RksvComplianceDashboard() {
           />
           <Typography.Text strong>{t('rksvHub.compliancePage.filterRangeLabel')}</Typography.Text>
           <RangePicker
+            format={DAYJS_DATETIME_SECONDS_FORMAT}
             value={range}
             onChange={(v) => setRange(v ?? [null, null])}
             allowClear={false}
@@ -543,7 +545,7 @@ export default function RksvComplianceDashboard() {
         {report?.generatedAtUtc && (
           <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
             {t('rksvHub.compliancePage.generatedUtc', {
-              ts: dayjs(report.generatedAtUtc).format('DD.MM.YYYY HH:mm:ss'),
+              ts: formatDateTime(report.generatedAtUtc, '', { second: '2-digit' }),
             })}
           </Typography.Paragraph>
         )}

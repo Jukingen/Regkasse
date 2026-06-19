@@ -7,6 +7,7 @@ import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import {
     canManageUsers,
     canShowRksvMenu,
+    canShowPlatformAdminMenu,
     canViewUsers,
     isSuperAdmin,
 } from '@/features/auth/constants/roles';
@@ -54,7 +55,7 @@ export function useCommands({ open, searchTerm, onClose }: UseCommandsParams) {
             canViewUsers,
             canManageUsers,
             canShowRksvMenu,
-            canShowPlatformAdminMenu: (role: string) => isSuperAdmin(role),
+            canShowPlatformAdminMenu,
         }),
         [usePermissionFirst, permissions, userRole],
     );

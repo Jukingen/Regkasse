@@ -24,6 +24,7 @@ import { UserFilterSelect } from '@/features/audit-logs/components/UserFilterSel
 import type { PaymentFilters } from '@/features/payments/types/paymentFilters';
 import { countActivePaymentFilters } from '@/features/payments/utils/countActivePaymentFilters';
 import { useI18n } from '@/i18n';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -116,7 +117,7 @@ export function PaymentFilterBar({
             <Card size="small" style={{ marginBottom: 16 }}>
                 <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
                     <Space wrap>
-                        <RangePicker
+                        <RangePicker format={DAYJS_DATE_FORMAT}
                             value={dateRangeValue}
                             placeholder={[
                                 t('payments.filtersBar.dateStart'),

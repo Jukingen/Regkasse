@@ -154,7 +154,7 @@ FA shows **two separate license concepts**. Mixing them caused operator confusio
 
 ### 1. Deployment / server license (On-Premise)
 
-- **Route:** `/admin/license` — page title *„Lizenz (On-Premise)“* (`license.page.title`).
+- **Route:** `/admin/license` — page title *„Server-Lizenz (On-Premise)“* (`license.page.title`); subtitle clarifies this is **not** the header Mandantenlizenz.
 - **API:** `/api/admin/license/*`, `/api/license/status` — `frontend-admin/src/api/manual/adminLicense.ts`
 - **Scope:** API **host** / machine fingerprint / issued JWT rows (`issued_licenses`).
 - **Super Admin on `admin.*`:** may open this route without mandant context (`SUPER_ADMIN_PLATFORM_ALLOWED_PREFIXES`).
@@ -164,7 +164,7 @@ FA shows **two separate license concepts**. Mixing them caused operator confusio
 
 - **Stored on:** `tenants.license_key`, `tenants.license_valid_until_utc`.
 - **Super Admin management:** tenant detail → **License** tab — `LicenseManager` + `/api/admin/tenants/{id}/license/*` (`adminTenantLicense.ts`).
-- **Manager header badge:** `LicenseStatusIndicator` — only when `showTenantLicenseInHeader` (Manager + real tenant slug, not Super Admin).
+- **Manager header badge:** `LicenseStatusIndicator` → `useHeaderTenantLicense` — only when `showTenantLicenseInHeader` (Manager + real tenant slug, not Super Admin). Shows **Mandantenlizenz** from `GET /api/tenants/switcher` (via `useCurrentTenant`), never deployment license.
 - **Dev switcher rows:** `getTenantSwitcherLicenseBadge` — explicit hint *„Mandantenlizenz (Unternehmen)“*.
 
 Resolution logic (shared):
@@ -179,13 +179,16 @@ export function resolveTenantLicenseLabel(
 }
 ```
 
-Badge colors for i18n labels: `mandantLicenseBadge.ts` → `mapTenantLicenseLabelToBadge`.
+Badge mapping for header pill (`headerLicenseStatus.ts`):
 
-| Kind | Tag color (Ant Design) | German label pattern |
-|------|------------------------|----------------------|
-| `expired` | `red` | Mandanten-Lizenz: ABGELAUFEN |
-| `trial` / ≤31 days | `orange` if ≤7 days, else `blue` | TESTVERSION / N Tage |
-| `valid` (paid) | `green` | LIZENZIERT |
+| Condition | CSS class | German label |
+|-----------|-----------|--------------|
+| No `license_valid_until_utc` | red | Keine Mandantenlizenz |
+| Expired | red | Lizenz abgelaufen |
+| ≤7 days left | orange | Lizenz läuft bald ab |
+| >7 days left | green | Lizenziert |
+
+Dev switcher / tenant list still use `mandantLicenseBadge.ts` → `mapTenantLicenseLabelToBadge`.
 
 **Expiry banner (Manager only):** `LicenseExpiryBanner` — warning if ≤15 days, error if expired. Super Admin never sees it.
 
@@ -249,7 +252,7 @@ On `admin.*` without impersonation / dev override:
 
 Order in `AdminShellHeader` (`frontend-admin/src/components/layout/Header.tsx`):
 
-`EnvironmentBadge` → `TenantBadge` → `HeaderDevTenantSwitch` (dev) → `LicenseStatusIndicator` (Manager mandant) → language → user menu.
+`EnvironmentBadge` → `TenantBadge` → `HeaderDevTenantSwitch` (dev) → `LicenseStatusIndicator` (Manager **Mandantenlizenz** via `useHeaderTenantLicense`) → language → user menu.
 
 ---
 

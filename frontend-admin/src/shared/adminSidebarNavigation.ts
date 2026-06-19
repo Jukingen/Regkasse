@@ -11,9 +11,10 @@
  * - If `ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS` is false, hide all routable leaves (matches
  *   `PermissionRouteGuard` fail-closed). Submenu group keys `grp-*` / `rksv-grp-*` stay structural
  *   so children can be filtered to empty and removed.
- * - If the env flag is true (migration), legacy role fallbacks apply: `/users` and `/rksv` use
- *   `canViewUsers` / `canShowRksvMenu`, other leaves stay visible. Prefer `/me` permissions in prod.
+ * - If the env flag is true (migration), legacy role fallbacks apply: `/users` uses `canViewUsers`,
+ *   RKSV leaves use `isRksvRouteKeyAllowed`, other leaves stay visible. Prefer `/me` permissions in prod.
  */
+import { isRksvRouteKeyAllowed } from '@/shared/auth/menuPermissions';
 
 import type { MenuProps } from 'antd';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
@@ -230,8 +231,15 @@ export function filterSidebarMenuItems(
     const isStructuralSubmenuKey = (key: string) =>
         key.startsWith('grp-') || key.startsWith('rksv-grp-');
 
+    const platformAdminKeys = new Set([
+        '/admin/tenants',
+        '/admin/licenses',
+        '/admin/cash-registers',
+    ]);
+
     const leafAllowed = (key: string): boolean => {
         if (ctx.isSuperAdminRole(ctx.userRole)) return true;
+        if (platformAdminKeys.has(key)) return ctx.canShowPlatformAdminMenu(ctx.userRole);
         if (ctx.usePermissionFirst) {
             return ctx.isMenuItemAllowed(key, ctx.permissions);
         }
@@ -242,7 +250,9 @@ export function filterSidebarMenuItems(
             return false;
         }
         if (key === '/users' || key === '/admin/users') return ctx.canViewUsers(ctx.userRole);
-        if (key === '/rksv') return ctx.canShowRksvMenu(ctx.userRole);
+        if (key === '/rksv' || key.startsWith('/rksv/')) {
+            return isRksvRouteKeyAllowed(key, ctx.permissions, ctx.userRole);
+        }
         if (
             key === '/admin/tenants' ||
             key === '/admin/licenses' ||

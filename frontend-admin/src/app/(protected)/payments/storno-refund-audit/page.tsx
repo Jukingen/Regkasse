@@ -17,6 +17,7 @@ import type { CashRegister } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, createIntlFormatters } from '@/i18n/formatting';
 import { ApiErrorAlertDescription } from '@/shared/errors/ApiErrorAlertDescription';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -281,7 +282,7 @@ export default function StornoRefundAuditPage() {
 
             <Card style={{ marginBottom: 16 }}>
                 <Space wrap>
-                    <RangePicker
+                    <RangePicker format={DAYJS_DATE_FORMAT}
                         value={dateRange}
                         onChange={(v) => {
                             if (v?.[0] && v[1]) setDateRange([v[0], v[1]]);

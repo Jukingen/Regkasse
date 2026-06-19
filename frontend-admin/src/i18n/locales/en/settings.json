@@ -320,13 +320,12 @@
       "density": "Density",
       "defaultPage": "Home page after sign-in",
       "dateFormatLabel": "Date format",
+      "dateFormatDescription": "Fixed German format (day.month.year), regardless of UI language.",
       "timeFormat": "Time format",
       "reducedMotion": "Reduce animations",
       "reducedMotionHint": "For better performance",
       "dateFormatOptions": {
-        "DD_MM_YYYY": "DD.MM.YYYY (31.12.2024)",
-        "YYYY_MM_DD": "YYYY-MM-DD (2024-12-31)",
-        "MM_DD_YYYY": "MM/DD/YYYY (12/31/2024)"
+        "DD_MM_YYYY": "01.12.2025 (DD.MM.YYYY)"
       }
     },
     "theme": {

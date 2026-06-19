@@ -30,6 +30,7 @@ import type { CashRegister, CashierBucketDto, ClosingReferenceRowDto, PaymentMet
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -308,7 +309,7 @@ export default function ReportingPage() {
           <Col xs={24} md={10}>
             <Typography.Text type="secondary">{t('adminShell.reporting.dateRange')}</Typography.Text>
             <div style={{ marginTop: 4 }}>
-              <RangePicker
+              <RangePicker format={DAYJS_DATE_FORMAT}
                 style={{ width: '100%' }}
                 value={dateRange}
                 onChange={(d) => {

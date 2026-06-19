@@ -12,6 +12,7 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 import { useBackupVerificationReport } from '@/features/backup/hooks/useBackupVerificationReport';
 import { formatBackupBytes } from '@/features/backup-dr/logic/backupFormat';
 import type {
@@ -232,7 +233,7 @@ export function BackupVerificationReport({
           {report.sourceStatistics?.analyzedAtUtc ? (
             <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ant-color-text-secondary)' }}>
               {t('backupDr.verificationReport.sourceAnalyzedAt', {
-                time: new Date(report.sourceStatistics.analyzedAtUtc).toLocaleString(formatLocale),
+                time: formatDateTime(report.sourceStatistics.analyzedAtUtc, formatLocale),
               })}
             </div>
           ) : null}

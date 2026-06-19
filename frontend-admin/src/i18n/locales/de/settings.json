@@ -320,13 +320,12 @@
       "density": "Dichte",
       "defaultPage": "Standardseite nach Login",
       "dateFormatLabel": "Datumsformat",
+      "dateFormatDescription": "Festes deutsches Format (Tag.Monat.Jahr), unabhängig von der Oberflächensprache.",
       "timeFormat": "Zeitformat",
       "reducedMotion": "Reduzierte Animationen",
       "reducedMotionHint": "Für bessere Leistung",
       "dateFormatOptions": {
-        "DD_MM_YYYY": "DD.MM.YYYY (31.12.2024)",
-        "YYYY_MM_DD": "YYYY-MM-DD (2024-12-31)",
-        "MM_DD_YYYY": "MM/DD/YYYY (12/31/2024)"
+        "DD_MM_YYYY": "01.12.2025 (DD.MM.YYYY)"
       }
     },
     "theme": {

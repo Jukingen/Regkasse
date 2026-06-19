@@ -14,6 +14,7 @@ import { useI18n } from '@/i18n';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { useCreateAdminVoucher, type CreateAdminVoucherResponse } from '@/api/admin/vouchers';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 dayjs.extend(utc);
 
 export default function AdminVoucherCreatePage() {
@@ -111,7 +112,7 @@ function VoucherCreateForm() {
               label={t('vouchers.create.expiresAt')}
               rules={[{ required: true, message: t('vouchers.errors.createFailed') }]}
             >
-              <DatePicker style={{ width: '100%', maxWidth: 320 }} />
+              <DatePicker format={DAYJS_DATE_FORMAT} style={{ width: '100%', maxWidth: 320 }} />
             </Form.Item>
           ) : null}
           <Form.Item name="note" label={t('vouchers.create.note')}>

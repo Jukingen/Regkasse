@@ -31,6 +31,8 @@ import { LegalExportCompletenessBanner } from '@/components/reporting/LegalExpor
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
+import { formatDate, formatDateTime } from '@/i18n/formatting';
+import { DAYJS_DATE_FORMAT, formatUserMonthYear } from '@/lib/dateFormatter';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import { useGetApiAdminFinanzonlineOutbox } from '@/api/generated/admin/admin';
@@ -378,7 +380,7 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.reportCenter.colPeriod'),
         dataIndex: 'viennaBusinessDate',
-        render: (v: string) => dayjs(v).format('YYYY-MM-DD'),
+        render: (v: string) => formatDate(v, ''),
       },
       {
         title: t('adminShell.reporting.reportCenter.colRegister'),
@@ -412,7 +414,7 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.reportCenter.colPeriod'),
         dataIndex: 'viennaMonthStart',
-        render: (v: string) => dayjs(v).format('YYYY-MM'),
+        render: (v: string) => formatUserMonthYear(v) || '—',
       },
       {
         title: t('adminShell.reporting.reportCenter.colScope'),
@@ -482,7 +484,8 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.dateRange'),
         key: 'p',
-        render: (_, r) => `${dayjs(r.periodStartLocalDate).format('YYYY-MM-DD')} – ${dayjs(r.periodEndLocalDate).format('YYYY-MM-DD')}`,
+        render: (_, r) =>
+          `${formatDate(r.periodStartLocalDate, '')} – ${formatDate(r.periodEndLocalDate, '')}`,
       },
       { title: t('adminShell.reporting.periodPreset'), dataIndex: 'periodPreset' },
       {
@@ -520,7 +523,7 @@ export default function ReportCenterPage() {
     () => [
       { title: 'ID', dataIndex: 'id', render: (v: string) => <Typography.Text style={{ fontSize: 12 }}>{v}</Typography.Text> },
       { title: t('adminShell.reporting.reportCenter.register'), dataIndex: 'cashRegisterId', render: (v: string) => v.slice(0, 8) },
-      { title: t('adminShell.reporting.closingTime'), dataIndex: 'closingDateUtc', render: (v: string) => dayjs(v).format('YYYY-MM-DD HH:mm') },
+      { title: t('adminShell.reporting.closingTime'), dataIndex: 'closingDateUtc', render: (v: string) => formatDateTime(v, '') },
       { title: t('adminShell.reporting.closingStatus'), dataIndex: 'status' },
       { title: t('adminShell.reporting.closingAmount'), dataIndex: 'totalAmount' },
       { title: t('adminShell.reporting.closingTx'), dataIndex: 'transactionCount' },
@@ -566,7 +569,7 @@ export default function ReportCenterPage() {
       {
         title: t('adminShell.reporting.closingTime'),
         dataIndex: 'createdAtUtc',
-        render: (v: string | undefined) => (v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '—'),
+        render: (v: string | undefined) => (v ? formatDateTime(v, '') : '—'),
       },
     ],
     [t]
@@ -591,6 +594,7 @@ export default function ReportCenterPage() {
             <RangePicker
               style={{ width: '100%' }}
               picker={pickerMode as 'date' | 'month' | 'year'}
+              format={pickerMode === 'date' ? DAYJS_DATE_FORMAT : undefined}
               value={dateRange}
               onChange={(v) => {
                 if (v?.[0] && v[1]) setDateRange([v[0], v[1]]);
@@ -760,7 +764,7 @@ export default function ReportCenterPage() {
               <Col xs={24} md={12}>
                 <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.dateRange')}</Typography.Text>
                 <div style={{ marginTop: 4 }}>
-                  <RangePicker
+                  <RangePicker format={DAYJS_DATE_FORMAT}
                     style={{ width: '100%' }}
                     value={periodenRange}
                     onChange={(v) => {
@@ -809,7 +813,7 @@ export default function ReportCenterPage() {
             <Col xs={24} md={8}>
               <Typography.Text type="secondary">{t('adminShell.reporting.dateRange')}</Typography.Text>
               <div style={{ marginTop: 4 }}>
-                <DatePicker
+                <DatePicker format={DAYJS_DATE_FORMAT}
                   style={{ width: '100%' }}
                   value={xzBusinessDate}
                   onChange={(d) => {
@@ -875,10 +879,10 @@ export default function ReportCenterPage() {
                 {xzQ.data?.schemaVersion ?? '—'}
               </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.reportCenter.detailLabelUtc')}>
-                {xzQ.data?.generatedAtUtc ? dayjs(xzQ.data.generatedAtUtc).format('YYYY-MM-DD HH:mm:ss') : '—'}
+                {xzQ.data?.generatedAtUtc ? formatDateTime(xzQ.data.generatedAtUtc, '', { second: '2-digit' }) : '—'}
               </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.dateRange')}>
-                {xzQ.data?.viennaBusinessDate ? dayjs(xzQ.data.viennaBusinessDate).format('YYYY-MM-DD') : '—'}
+                {xzQ.data?.viennaBusinessDate ? formatDate(xzQ.data.viennaBusinessDate, '') : '—'}
               </Descriptions.Item>
               <Descriptions.Item label={t('adminShell.reporting.tabInterim')}>
                 {xzQ.data?.isCurrentBusinessDay ? t('adminShell.reporting.yes') : t('adminShell.reporting.no')}

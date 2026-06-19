@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useI18n } from '@/i18n';
+import { formatDateTime } from '@/i18n/formatting';
 import {
   usePitrAvailability,
   useValidatePitrRestorePoint,
@@ -33,11 +34,7 @@ export interface PitrRestoreModalProps {
 
 function formatPitrDateTime(iso: string | null | undefined, formatLocale: string): string {
   if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleString(formatLocale);
-  } catch {
-    return iso;
-  }
+  return formatDateTime(iso, formatLocale);
 }
 
 const MAX_SUPPORTED_POINTS_IN_TIMELINE = 6;

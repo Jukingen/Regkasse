@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

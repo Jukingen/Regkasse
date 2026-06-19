@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { Colors, Spacing, BorderRadius, Typography } from '../constants/Colors';
+import { formatUserDate } from '../utils/dateFormatter';
 import { CartItem } from '../types/cart';
 
 interface InvoiceCustomer {
@@ -179,9 +180,7 @@ const AdvancedInvoiceModal: React.FC<AdvancedInvoiceModalProps> = ({
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('de-DE');
-  };
+  const formatDate = (date: Date) => formatUserDate(date);
 
   const renderStepIndicator = () => (
     <View style={styles.stepIndicator}>

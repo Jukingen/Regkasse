@@ -4,23 +4,35 @@ namespace KasseAPI_Final.Authorization;
 
 /// <summary>
 /// Filters effective permissions for <see cref="ClientAppPolicy.Admin"/> JWT and <c>/api/Auth/me</c>.
-/// POS-terminal permissions (cart, payment.take, TSE at register, etc.) stay in the role matrix for POS
-/// <c>app_context=pos</c> but are not embedded in admin sessions — except SuperAdmin (full catalog).
-/// Cashier admin login uses a strict view-only allowlist aligned with FA menu matrix.
+/// POS-terminal <em>write</em> permissions (payment.take, sale.create, TSE sign at register, etc.) stay in the role
+/// matrix for POS <c>app_context=pos</c> but are not embedded in admin sessions — except SuperAdmin (full catalog).
 /// </summary>
+/// <remarks>
+/// <para><b>Manager / back-office (blacklist):</b> effective matrix minus <see cref="PosTerminalOperationalWriteStrip"/>.
+/// Oversight <em>read</em> keys are preserved, including:</para>
+/// <list type="bullet">
+/// <item><description><see cref="AppPermissions.PaymentView"/> — payment lists, admin payment APIs, signature forensics</description></item>
+/// <item><description><see cref="AppPermissions.SaleView"/> — receipts / Belege (no separate receipt.view catalog key)</description></item>
+/// <item><description><see cref="AppPermissions.ReportView"/>, <see cref="AppPermissions.ReportExport"/> — reporting and RKSV oversight exports</description></item>
+/// <item><description><see cref="AppPermissions.OrderView"/>, <see cref="AppPermissions.TableView"/>, <see cref="AppPermissions.CashRegisterView"/> — tenant-wide operational visibility</description></item>
+/// </list>
+/// <para><b>Cashier (whitelist):</b> strict FA menu subset via <see cref="CashierAdminAllowlist"/>.</para>
+/// <para><b>Stripped for admin (write / floor ops only):</b> see <see cref="PosTerminalOperationalWriteStrip"/>.</para>
+/// </remarks>
 public static class AdminAppPermissionProfile
 {
-    /// <summary>POS floor / register operations — excluded from admin JWT for non-SuperAdmin roles.</summary>
-    private static readonly FrozenSet<string> PosTerminalOnly = new[]
+    /// <summary>
+    /// POS floor mutations and register signing — excluded from admin JWT for non-SuperAdmin roles.
+    /// Does <b>not</b> include read-only oversight keys (payment.view, sale.view, report.view, cart.view, kitchen.view, …).
+    /// </summary>
+    private static readonly FrozenSet<string> PosTerminalOperationalWriteStrip = new[]
     {
         AppPermissions.PaymentTake,
-        AppPermissions.CartView,
         AppPermissions.CartManage,
         AppPermissions.CashdrawerOpen,
         AppPermissions.CashdrawerClose,
         AppPermissions.ShiftOpen,
         AppPermissions.ShiftClose,
-        AppPermissions.KitchenView,
         AppPermissions.KitchenUpdate,
         AppPermissions.VoucherIssue,
         AppPermissions.SaleCreate,
@@ -47,6 +59,25 @@ public static class AdminAppPermissionProfile
         AppPermissions.PaymentView,
         AppPermissions.ReportView,
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Manager admin oversight reads that must survive <see cref="Filter"/> when present in the role matrix.
+    /// Used by contract tests; not an allowlist (Manager keeps all non-stripped matrix permissions).
+    /// </summary>
+    public static readonly IReadOnlyList<string> ManagerOversightViewPermissions =
+    [
+        AppPermissions.UserView,
+        AppPermissions.RoleView,
+        AppPermissions.PaymentView,
+        AppPermissions.SaleView,
+        AppPermissions.ReportView,
+        AppPermissions.ReportExport,
+        AppPermissions.AuditView,
+        AppPermissions.SettingsView,
+        AppPermissions.CashRegisterView,
+        AppPermissions.FinanzOnlineView,
+        AppPermissions.FinanzOnlineManage,
+    ];
 
     /// <summary>
     /// Applies admin-app scoping. POS and legacy (null) contexts return <paramref name="effectivePermissions"/> unchanged.
@@ -77,7 +108,7 @@ public static class AdminAppPermissionProfile
         var admin = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var p in effectivePermissions)
         {
-            if (!PosTerminalOnly.Contains(p))
+            if (!PosTerminalOperationalWriteStrip.Contains(p))
                 admin.Add(p);
         }
 

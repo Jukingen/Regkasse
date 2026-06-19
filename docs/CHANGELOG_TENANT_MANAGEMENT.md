@@ -4,6 +4,21 @@ Chronological summary of notable changes tied to Super Admin tenant UX, mandant 
 
 ---
 
+## 2026-06-17 — Header Mandantenlizenz vs Server-Lizenz clarified
+
+**Summary:** Header badge shows **only** tenant (Mandantenlizenz) from `GET /api/tenants/switcher`; `/admin/license` emphasizes **Server-Lizenz (On-Premise)**. Deployment license no longer merged into header indicator.
+
+**Changes:**
+
+- `LicenseStatusIndicator` → `useHeaderTenantLicense` + `headerLicenseStatus.ts` (four visible states: keine / abgelaufen / bald ab / lizenziert)
+- `useHeaderTenantLicense` reads `licenseValidUntilUtc` / `licenseKey` / `licenseDaysRemaining` from `useCurrentTenant` (no duplicate switcher query)
+- i18n: `license.badge.headerShort.none`, `expiringSoon`, `mandantTooltip`; `license.page.subtitle`; `license.simpleUi.titleServer`
+- `/admin/license` page subtitle distinguishes deployment from header mandant badge
+- Docs: `LICENSE_SYSTEM.md`, `TENANT_MANAGEMENT.md`, `MULTI_TENANT.md`, `frontend-admin/README.md`
+- Tests: `tenantLicenseLabel.test.ts`, `headerLicenseStatus.test.ts`
+
+---
+
 ## 2026-05-21 — Tenant switcher synchronized with database
 
 **Summary:** Dev header switcher loads tenants from the API instead of static presets only; Super Admin sees all DB tenants; other users see membership-scoped rows.

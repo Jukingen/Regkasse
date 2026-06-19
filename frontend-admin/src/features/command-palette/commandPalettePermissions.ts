@@ -1,3 +1,4 @@
+import { isRksvRouteKeyAllowed } from '@/shared/auth/menuPermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { CommandItem } from '@/features/command-palette/types';
 
@@ -44,10 +45,17 @@ export function isCommandItemAllowed(
     if (!key) return true;
 
     if (ctx.usePermissionFirst) {
+        if (
+            key === '/admin/tenants' ||
+            key === '/admin/licenses' ||
+            key === '/admin/cash-registers'
+        ) {
+            return ctx.canShowPlatformAdminMenu(ctx.userRole);
+        }
         return ctx.isMenuItemAllowed(key, ctx.permissions);
     }
     if (key === '/admin/users' || key === '/users') return ctx.canViewUsers(ctx.userRole);
-    if (key.startsWith('/rksv')) return ctx.canShowRksvMenu(ctx.userRole);
+    if (key.startsWith('/rksv')) return isRksvRouteKeyAllowed(key, ctx.permissions, ctx.userRole);
     if (
         key === '/admin/tenants' ||
         key === '/admin/licenses' ||

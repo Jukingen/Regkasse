@@ -6,6 +6,7 @@ import {
   mapRestoreDrillToMetricStatus,
 } from '@/features/backup-dr/logic/backupMonitoringMetrics';
 import type { BackupDashboardHistoryPointDto, BackupDashboardStatsResponseDto } from '@/features/backup/logic/backupDashboardStatsApi';
+import { formatUserMonthDay } from '@/lib/dateFormatter';
 
 export interface BackupHistoryChartRow {
   key: string;
@@ -30,15 +31,8 @@ export function mapDashboardHistoryToChartRows(
   }));
 }
 
-function formatChartDate(iso: string, formatLocale: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(formatLocale, {
-      day: '2-digit',
-      month: '2-digit',
-    });
-  } catch {
-    return '—';
-  }
+function formatChartDate(iso: string, _formatLocale: string): string {
+  return formatUserMonthDay(iso) || '—';
 }
 
 export function statsToRecoverabilitySummary(

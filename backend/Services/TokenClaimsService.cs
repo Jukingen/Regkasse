@@ -111,6 +111,7 @@ public sealed class TokenClaimsService : ITokenClaimsService
             roleNamesForResolver,
             tenantGuid,
             cancellationToken);
+        // Admin login/me: strip POS write ops; Manager keeps oversight reads (payment.view, sale.view, report.*).
         var permissions = AdminAppPermissionProfile.Filter(appContext, canonicalRoles, effectivePermissions);
         foreach (var p in permissions)
             list.Add(new Claim(PermissionCatalog.PermissionClaimType, p));

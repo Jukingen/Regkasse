@@ -1,4 +1,5 @@
 import type { BackupVerificationReport } from '@/features/backup/logic/backupVerificationReportApi';
+import { formatDateTime } from '@/i18n/formatting';
 import {
   escapeHtml,
   getBackupVerificationRowDiff,
@@ -46,7 +47,7 @@ export function exportBackupVerificationReportPdf(
     .join('');
 
   const analyzedAt = report.sourceStatistics?.analyzedAtUtc
-    ? new Date(report.sourceStatistics.analyzedAtUtc).toLocaleString(formatLocale)
+    ? formatDateTime(report.sourceStatistics.analyzedAtUtc, formatLocale)
     : '—';
 
   popup.document.write(`
@@ -70,7 +71,7 @@ export function exportBackupVerificationReportPdf(
       </head>
       <body>
         <h1>${escapeHtml(t('backupDr.verificationReport.modalTitle'))}</h1>
-        <p class="meta">${escapeHtml(t('backupDr.verificationReport.generatedAt', { time: new Date(report.generatedAtUtc).toLocaleString(formatLocale) }))}</p>
+        <p class="meta">${escapeHtml(t('backupDr.verificationReport.generatedAt', { time: formatDateTime(report.generatedAtUtc, formatLocale) }))}</p>
         <div class="summary">
           <div><span>${escapeHtml(t('backupDr.verificationReport.score'))}</span><strong>${report.verificationScore}%</strong></div>
           <div><span>${escapeHtml(t('backupDr.verificationReport.backupSizeTitle'))}</span><strong>${escapeHtml(report.totalSizeFormatted)}</strong></div>

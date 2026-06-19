@@ -6,7 +6,8 @@ export type DensityMode = 'comfortable' | 'standard' | 'compact';
 
 export type TimeFormatPreference = '24h' | '12h';
 
-export const DATE_FORMAT_PATTERNS = ['DD.MM.YYYY', 'YYYY-MM-DD', 'MM/DD/YYYY'] as const;
+/** Admin UI uses German date display only (independent of text locale). */
+export const DATE_FORMAT_PATTERNS = ['DD.MM.YYYY'] as const;
 
 export type DateFormatPattern = (typeof DATE_FORMAT_PATTERNS)[number];
 

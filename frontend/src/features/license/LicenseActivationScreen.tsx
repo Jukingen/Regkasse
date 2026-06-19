@@ -21,6 +21,7 @@ import {
 } from '../../../constants/licenseRenewal';
 import { useLicenseStatus } from '../../../hooks/useLicenseStatus';
 import { adminRedirector } from '@/src/features/admin-navigation/openAdmin';
+import { formatUserDateTime } from '../../../utils/dateFormatter';
 
 const LICENSE_KEY_PATTERN = /^REGK-[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}$/i;
 
@@ -72,21 +73,9 @@ export default function LicenseActivationScreen() {
     if (!status) return null;
     if (unlimitedPaid) return t('license:expiryNone');
     if (status.expiryDate) {
-      try {
-        const d = new Date(status.expiryDate);
-        if (!Number.isNaN(d.getTime())) {
-          return t('license:activationExpiryLine', {
-            date: d.toLocaleString('de-AT', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-            }),
-          });
-        }
-      } catch {
-        /* ignore */
+      const formatted = formatUserDateTime(status.expiryDate);
+      if (formatted) {
+        return t('license:activationExpiryLine', { date: formatted });
       }
     }
     return t('license:daysRemainingValue', { count: status.daysRemaining });

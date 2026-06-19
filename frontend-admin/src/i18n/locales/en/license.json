@@ -1,6 +1,7 @@
 {
   "page": {
-    "title": "License (on-premise)"
+    "title": "Server license (on-premise)",
+    "subtitle": "License for this API instance (deployment). Do not confuse with the tenant license badge in the header."
   },
   "status": {
     "label": "License status",
@@ -46,10 +47,13 @@
   "badge": {
     "loading": "License status…",
     "headerShort": {
+      "none": "No tenant license",
       "expired": "License expired",
+      "expiringSoon": "License expiring soon",
       "daysRemaining": "{{days}} days",
       "trial": "Trial",
-      "licensed": "Licensed"
+      "licensed": "Licensed",
+      "mandantTooltip": "Tenant license: {{status}}"
     },
     "unavailable": "License unknown",
     "unavailableTooltip": "Could not load license status (missing permission or server error).",
@@ -179,7 +183,7 @@
   "simpleUi": {
     "titlePublic": "License status (summary)",
     "subtitlePublic": "Same essentials as on the POS app.",
-    "titleServer": "License status (server)",
+    "titleServer": "Server license (on-premise)",
     "status": "Status",
     "validUntil": "Valid until",
     "daysRemaining": "Days remaining",

@@ -22,6 +22,7 @@ import {
     type LicenseActivationAttemptsListParams,
 } from '@/api/manual/adminLicense';
 import { useI18n, formatDate } from '@/i18n';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 dayjs.extend(utc);
 
@@ -251,7 +252,7 @@ export function LicenseActivationHistoryCard() {
                         />
                     </Form.Item>
                     <Form.Item name="dateRange" label={t('license.activationHistory.dateRange')}>
-                        <DatePicker.RangePicker allowClear />
+                        <DatePicker.RangePicker format={DAYJS_DATE_FORMAT} allowClear />
                     </Form.Item>
                     <Form.Item name="onlyFailed" label={t('license.activationHistory.onlyFailedToggle')} valuePropName="checked">
                         <Switch />

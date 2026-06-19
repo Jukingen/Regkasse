@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { Alert, Col, Row, Space, Spin, Typography } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
+import { formatDateTime } from "@/i18n/formatting";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { hasPermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { MetricCard } from "@/features/backup/components/MetricCard";
@@ -35,11 +36,7 @@ import { buildBackupOperatorTruthModel } from "@/features/backup-dr/logic/backup
 
 function formatDt(iso: string | undefined | null, formatLocale: string): string {
   if (!iso) return "—";
-  try {
-    return new Date(iso).toLocaleString(formatLocale);
-  } catch {
-    return iso;
-  }
+  return formatDateTime(iso, formatLocale);
 }
 
 export function BackupDashboard() {

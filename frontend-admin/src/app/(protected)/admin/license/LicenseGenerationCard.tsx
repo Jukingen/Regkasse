@@ -13,6 +13,7 @@ import { Modal, Alert, Button, Card, Checkbox, DatePicker, Descriptions, Form, I
 import { CopyOutlined, KeyOutlined } from '@ant-design/icons';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useI18n, formatDate } from '@/i18n';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 import { deploymentLicenseAllows, LICENSE_DEPLOYMENT_FEATURE } from '@/shared/licenseDeploymentFeatures';
 import {
     licenseQueryKeys,
@@ -255,7 +256,7 @@ function LicenseGenerationFormCard({
                 >
                     <DatePicker
                         style={{ width: '100%' }}
-                        format="YYYY-MM-DD"
+                        format={DAYJS_DATE_FORMAT}
                         disabledDate={(d) => !d || d.startOf('day').isBefore(dayjs().startOf('day'))}
                     />
                 </Form.Item>

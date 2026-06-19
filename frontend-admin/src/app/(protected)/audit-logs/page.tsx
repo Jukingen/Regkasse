@@ -13,7 +13,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
-import { formatNumber } from '@/i18n/formatting';
+import { formatDate, formatNumber } from '@/i18n/formatting';
 import { useAuditLogSearchParams } from '@/features/audit-logs/hooks/useAuditLogSearchParams';
 import { toAuditLogStatusApiParam, type AuditLogStatusFilter } from '@/features/audit-logs/constants/auditLogFilters';
 import { AuditFilterBar } from '@/features/audit/components/AuditFilterBar';
@@ -164,7 +164,7 @@ function AuditLogsPageContent() {
         if (params.status) parts.push(t('common.auditLogs.scopeStatusIs', { status: statusLabel(params.status) }));
         if (params.startDate && params.endDate) {
             parts.push(
-                `${dayjs(params.startDate).format('DD.MM.YYYY')}–${dayjs(params.endDate).format('DD.MM.YYYY')}`,
+                `${formatDate(params.startDate, '')}–${formatDate(params.endDate, '')}`,
             );
         } else {
             parts.push(t('common.auditLogs.scopeNoDateFilter'));
@@ -276,8 +276,8 @@ function AuditLogsPageContent() {
                                     onClose={() => setParams({ startDate: undefined, endDate: undefined })}
                                 >
                                     {t('common.auditLogs.tagDateRangePrefix')}{' '}
-                                    {dayjs(params.startDate).format('DD.MM.YYYY')} –{' '}
-                                    {dayjs(params.endDate).format('DD.MM.YYYY')}
+                                    {formatDate(params.startDate, '')} –{' '}
+                                    {formatDate(params.endDate, '')}
                                 </Tag>
                             ) : null}
                             <Button type="link" size="small" onClick={handleResetFilters}>

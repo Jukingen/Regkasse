@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 
 import { API_BASE_URL } from '../config';
 import { useLicenseStatus } from '../hooks/useLicenseStatus';
+import { formatUserDateTime } from '../utils/dateFormatter';
 
 export type LicenseTransferRequestInfoDto = {
   eligible: boolean;
@@ -23,16 +24,7 @@ export type LicenseTransferRequestInfoDto = {
 
 function formatDeDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('de-AT', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+  return formatUserDateTime(iso, { includeSeconds: true }) || '—';
 }
 
 async function fetchTransferRequestInfo(licenseKey: string): Promise<LicenseTransferRequestInfoDto> {

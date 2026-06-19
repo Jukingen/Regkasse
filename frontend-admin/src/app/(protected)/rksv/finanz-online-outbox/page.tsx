@@ -52,6 +52,7 @@ import {
 } from '@/shared/finanzOnlineTransportPathPresentation';
 import { finanzOnlineReadinessFindingGermanTitle } from '@/shared/finanzOnlineReadinessFindingPresentation';
 import { parseAuthoritativePaymentGuid } from '@/shared/utils/registerIdentity';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 dayjs.extend(utc);
 
@@ -662,7 +663,7 @@ export default function FinanzOnlineOutboxPage() {
                         <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
                             {t('finanzOnlineOutbox.filters.createdDateRange')}
                         </Typography.Text>
-                        <DatePicker.RangePicker
+                        <DatePicker.RangePicker format={DAYJS_DATE_FORMAT}
                             value={dateRange}
                             onChange={(r) => setDateRange(r ?? [null, null])}
                         />

@@ -254,7 +254,16 @@ Backend must be `ASPNETCORE_ENVIRONMENT=Development`. See `REGKASSE_AI_ONBOARDIN
 
 **Dev switcher features:** search by name/slug/email; status icons (active + admin / no admin / suspended); mandant license tag per row; Super Admin warning when switching to tenant without owner admin (`TenantSwitcherNoAdminFlow`).
 
-**Header context:** `TenantBadge` (active company or Super Admin mode), `LicenseStatusIndicator` (Manager mandant license only — not server On-Premise license).
+**Header context:** `TenantBadge` (active company or Super Admin mode), `LicenseStatusIndicator` (**Mandantenlizenz** only via `useHeaderTenantLicense` — four states: keine / abgelaufen / bald ab / lizenziert; never Server-Lizenz).
+
+| Header badge (Manager) | Condition | Color |
+|------------------------|-----------|-------|
+| Keine Mandantenlizenz | `license_valid_until_utc` null | Red |
+| Lizenz abgelaufen | past end date | Red |
+| Lizenz läuft bald ab | ≤7 days | Orange |
+| Lizenziert | >7 days | Green |
+
+**Server license page:** `/admin/license` — `license.page.title` = *Server-Lizenz (On-Premise)*; uses `GET /api/admin/license/deployment-status` — separate from header mandant badge.
 
 Utilities: `src/features/super-admin/utils/tenantHeaderSwitcher.ts`, `src/features/tenancy/hooks/useTenantListForSwitcher.ts`.
 
@@ -270,7 +279,7 @@ Access: **`admin.regkasse.at`** (or local dev on platform host). Role: **`SuperA
 | Tenant detail (users, license, registers) | `/admin/tenants/[tenantId]` | `TenantDetailUsersTab`, `LicenseManager`, `TenantDetailCashRegistersTab` |
 | Impersonate (“Login as”) | list / detail / home selector | `impersonateAdminTenant`, `ImpersonationRedirectOverlay` |
 | Platform home (pick tenant) | `/admin` | `SuperAdminTenantSelector` |
-| Server license (On-Premise) | `/admin/license` | `api/manual/adminLicense.ts` — **not** the same as Mandantenlizenz |
+| Server license (On-Premise) | `/admin/license` | `api/manual/adminLicense.ts` — **Server-Lizenz**; not Mandantenlizenz (see header badge) |
 
 **Create tenant** runs backend `TenantProvisioningService` (cash register, demo products, owner admin, optional 30-day trial). Success modal shows one-time credentials.
 

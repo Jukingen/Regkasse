@@ -219,6 +219,39 @@ public class EndpointAuthorizationRepresentativeTests
         Assert.False(result.Succeeded);
     }
 
+    // --- POS: Payment oversight vs floor take ---
+    [Fact]
+    public async Task POS_PaymentView_Manager_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Manager), null, Policy(AppPermissions.PaymentView));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task POS_SaleView_Manager_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Manager), null, Policy(AppPermissions.SaleView));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task POS_PaymentTake_Manager_Denied()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Manager), null, Policy(AppPermissions.PaymentTake));
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task POS_PaymentTake_Cashier_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(UserWithRole(Roles.Cashier), null, Policy(AppPermissions.PaymentTake));
+        Assert.True(result.Succeeded);
+    }
+
     // --- POS: CartManage ---
     [Fact]
     public async Task POS_CartManage_Cashier_Allowed()

@@ -49,7 +49,7 @@ flowchart TB
 
 - **Purpose:** Entitle the **API host** (and features like `admin_license_manage`, RKSV tooling) and POS devices via activation JWT.
 - **Not tenant-scoped:** `activated_licenses` is machine/deployment-local; singleton `LicenseService` uses `IServiceScopeFactory` for DB (see `MULTI_TENANT.md` § Background services).
-- **FA route:** `/admin/license` — German title *„Lizenz (On-Premise)“*.
+- **FA route:** `/admin/license` — German title *„Server-Lizenz (On-Premise)“* (`license.page.title`).
 - **Client:** `frontend-admin/src/api/manual/adminLicense.ts`, `LicenseReportsCard`, generation/activation cards.
 
 ### Tenant (Mandant) license
@@ -75,23 +75,18 @@ flowchart TB
 | Component | File | When visible |
 |-----------|------|--------------|
 | `TenantBadge` | `components/admin-layout/TenantBadge.tsx` | Any authenticated user; platform vs mandant labels |
-| `LicenseStatusIndicator` | `components/admin-layout/LicenseStatusIndicator.tsx` | `useHeaderTenantLicense` → `mode === 'tenant'` |
-| `LicenseExpiryBanner` | `components/admin-layout/LicenseExpiryBanner.tsx` | Manager mandant; ≤15 days warning, expired error |
+| `LicenseStatusIndicator` | `components/admin-layout/LicenseStatusIndicator.tsx` | `useHeaderTenantLicense` → `mode === 'tenant'` (Manager mandant only) |
+| `LicenseExpiryBanner` | `components/admin-layout/LicenseExpiryBanner.tsx` | Manager mandant grace/lockdown; **not** deployment license |
 
-`useHeaderTenantLicense` loads mandant fields by matching `ctx.tenantSlug` against `GET /api/admin/tenants` (or switcher list) — **not** `/api/admin/license/status`.
+`useHeaderTenantLicense` reads mandant fields from **`useCurrentTenant`** (`licenseValidUntilUtc`, `licenseKey`, `licenseDaysRemaining`) resolved via `GET /api/tenants/switcher` — **not** `/api/admin/license/deployment-status`.
 
-```21:36:frontend-admin/src/features/tenant/hooks/useHeaderTenantLicense.ts
-    const mode: HeaderLicenseMode = useMemo(() => {
-        if (
-            !ctx.hasAuthToken ||
-            ctx.isSuperAdminPlatformMode ||
-            ctx.suppressLicenseWarnings ||
-            !ctx.showTenantLicenseInHeader
-        ) {
-            return 'hidden';
-        }
-        return 'tenant';
-    }, [/* … */]);
+```typescript
+// useHeaderTenantLicense — mandant row from useCurrentTenant (GET /api/tenants/switcher)
+resolveHeaderTenantLicenseLabel(
+    ctx.licenseValidUntilUtc,
+    ctx.licenseKey,
+    ctx.licenseDaysRemaining,
+);
 ```
 
 `showTenantLicenseInHeader` is true for **Manager** on a real tenant slug (`useCurrentTenant.ts`).
@@ -102,20 +97,20 @@ flowchart TB
 
 ### Header tag (`LicenseStatusIndicator`)
 
-Mapped in `mandantLicenseBadge.ts`:
+Uses `useHeaderTenantLicense` + `headerLicenseStatus.ts` (German short labels via `license.badge.headerShort.*`). **Always visible** for Manager on tenant host when mandant context resolves — including valid licenses (green).
 
-| State | Ant Design `color` | German label (i18n key) |
-|-------|-------------------|-------------------------|
-| Expired | `red` | `license.badge.tenant.expired.label` |
-| Trial / ≤31 days, >7 days | `blue` | `license.badge.tenant.trial.label` |
-| Trial / ≤7 days | `orange` | same trial label |
-| Paid / valid | `green` | `license.badge.tenant.licensed.label` |
+| Condition | CSS class | German label (i18n) |
+|-----------|-----------|---------------------|
+| `license_valid_until_utc` null | `expired` (red) | `license.badge.headerShort.none` — *Keine Mandantenlizenz* |
+| End date in the past | `expired` (red) | `license.badge.headerShort.expired` — *Lizenz abgelaufen* |
+| ≤7 days remaining | `warning` (orange) | `license.badge.headerShort.expiringSoon` — *Lizenz läuft bald ab* |
+| >7 days remaining | `valid` (green) | `license.badge.headerShort.licensed` — *Lizenziert* |
 
-Tooltips append `license.badge.tenant.baseTooltip` (*Mandantenlizenz*, not server).
+Tooltip prefix: `license.badge.headerShort.mandantTooltip` — *Mandantenlizenz: {status}*.
 
-**≤7 days remaining:** header tag uses **`orange`** (trial label); operators should renew before expiry.
+Classification input: `resolveTenantLicenseLabel` on switcher row fields; header treats missing `license_valid_until_utc` as `none` even if `license_key` is set.
 
-**Expired:** `red` tag + `LicenseExpiryBanner` **error** alert for Managers.
+Dev switcher rows still use `mandantLicenseBadge.ts` / `getTenantSwitcherLicenseBadge` (Ant Design `Tag` colors).
 
 ### Content banner (`LicenseExpiryBanner`)
 

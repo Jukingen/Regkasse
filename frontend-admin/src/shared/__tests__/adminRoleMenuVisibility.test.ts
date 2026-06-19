@@ -3,11 +3,12 @@ import type { MenuProps } from 'antd';
 import { buildAdminSidebarMenuItems } from '@/shared/buildAdminSidebar';
 import { filterSidebarMenuItems, type SidebarPermissionContext } from '@/shared/adminSidebarNavigation';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
+import { canAccessPath } from '@/shared/auth/canAccessPath';
 import {
-    canShowPlatformAdminMenu,
     canShowRksvMenu,
     canViewUsers,
     isSuperAdmin,
+    canShowPlatformAdminMenu,
 } from '@/features/auth/constants/roles';
 import {
     CASHIER_ADMIN_PERMISSIONS,
@@ -15,6 +16,7 @@ import {
     CASHIER_REQUIRED_MENU_KEYS,
     MANAGER_ADMIN_PERMISSIONS,
     MANAGER_REQUIRED_MENU_KEYS,
+    MANAGER_FORBIDDEN_MENU_KEYS,
 } from './fixtures/adminAppPermissionFixtures';
 
 const passthroughT = (k: string) => k;
@@ -79,6 +81,31 @@ describe('adminRoleMenuVisibility contract', () => {
         for (const required of MANAGER_REQUIRED_MENU_KEYS) {
             expect(keys, `Manager must see ${required}`).toContain(required);
         }
+    });
+
+    it('Manager admin session hides POS floor and platform admin menus', () => {
+        const keys = visibleMenuKeysForRole('Manager', MANAGER_ADMIN_PERMISSIONS);
+        for (const forbidden of MANAGER_FORBIDDEN_MENU_KEYS) {
+            expect(keys, `Manager must not see ${forbidden}`).not.toContain(forbidden);
+        }
+    });
+
+    it('Manager required menu fixture stays subset of permission-filtered sidebar', () => {
+        const visible = new Set(visibleMenuKeysForRole('Manager', MANAGER_ADMIN_PERMISSIONS));
+        const missing = MANAGER_REQUIRED_MENU_KEYS.filter((key) => !visible.has(key));
+        expect(
+            missing,
+            `MANAGER_REQUIRED_MENU_KEYS out of sync — add permissions or remove keys: ${missing.join(', ')}`,
+        ).toEqual([]);
+    });
+
+    it('Manager admin session forbidden paths denied by route guard contract', () => {
+        const perms = [...MANAGER_ADMIN_PERMISSIONS];
+        const allowed = MANAGER_FORBIDDEN_MENU_KEYS.filter((path) => canAccessPath(path, perms));
+        expect(
+            allowed,
+            `Route guard should deny manager-forbidden paths: ${allowed.join(', ')}`,
+        ).toEqual([]);
     });
 
     it('SuperAdmin sees platform admin leaves without explicit permissions', () => {

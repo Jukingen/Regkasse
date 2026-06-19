@@ -14,10 +14,11 @@ import { useI18n } from '@/i18n';
 import { isTenantLicenseBlockingModule } from '@/features/cash-registers/hooks/useCashRegisterModuleAccess';
 import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
-import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
+import { isMenuItemAllowed, isRksvMenuAreaAllowed } from '@/shared/auth/menuPermissions';
 import {
     canViewUsers,
     canShowRksvMenu,
+    canShowPlatformAdminMenu,
     isSuperAdmin,
 } from '@/features/auth/constants/roles';
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
@@ -81,10 +82,10 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
         [t],
     );
 
-    const canSeeRksv = useMemo(() => {
-        if (usePermissionFirst) return isMenuItemAllowed('/rksv', permissions);
-        return canShowRksvMenu(user?.role ?? '');
-    }, [usePermissionFirst, permissions, user?.role]);
+    const canSeeRksv = useMemo(
+        () => isRksvMenuAreaAllowed(usePermissionFirst ? permissions : undefined, user?.role),
+        [usePermissionFirst, permissions, user?.role],
+    );
 
     const sidebarPermissionCtx = useMemo<SidebarPermissionContext>(
         () => ({
@@ -94,8 +95,8 @@ export function useAdminSidebarMenu(): UseAdminSidebarMenuResult {
             isMenuItemAllowed,
             canViewUsers,
             canShowRksvMenu,
-            canShowPlatformAdminMenu: (role) => isSuperAdmin(role),
-            isSuperAdminRole: (role) => isSuperAdmin(role),
+            canShowPlatformAdminMenu,
+            isSuperAdminRole: isSuperAdmin,
         }),
         [usePermissionFirst, permissions, user?.role],
     );

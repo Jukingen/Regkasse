@@ -565,14 +565,14 @@ Two license types must not be conflated — see [`LICENSE_SYSTEM.md`](LICENSE_SY
 
 | License type | German UI | FA location | API |
 |--------------|-----------|-------------|-----|
-| **Deployment** | Lizenz (On-Premise) | `/admin/license` | `/api/admin/license/*` |
+| **Deployment** | Server-Lizenz (On-Premise) | `/admin/license` | `/api/admin/license/*` |
 | **Tenant (Mandant)** | Mandantenlizenz | Tenant list/detail; Manager header | `tenants.license_*`, `/api/admin/tenants/{id}/license` |
 
 | Role / host | Deployment in header | Mandant in header | Expiry banner |
 |-------------|---------------------|-------------------|---------------|
 | Super Admin on `admin.*` (no impersonation) | Hidden | Hidden (`suppressLicenseWarnings`) | Hidden |
 | Super Admin impersonating | Hidden | Via tenant context APIs | Hidden for SA user |
-| Manager on `{slug}.*` | Settings page only | `LicenseStatusIndicator` | `LicenseExpiryBanner` if ≤15 days or expired |
+| Manager on `{slug}.*` | `/admin/license` only (Server-Lizenz) | `LicenseStatusIndicator` (Mandantenlizenz, always when valid) | `LicenseExpiryBanner` mandant grace |
 
 Components:
 

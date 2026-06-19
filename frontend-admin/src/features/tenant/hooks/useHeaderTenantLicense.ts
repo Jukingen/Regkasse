@@ -2,7 +2,6 @@
 
 import { useMemo } from 'react';
 
-import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import {
     resolveTenantLicenseLabel,
@@ -11,9 +10,27 @@ import {
 
 export type HeaderLicenseMode = 'hidden' | 'tenant';
 
+function resolveHeaderTenantLicenseLabel(
+    licenseValidUntilUtc: string | null | undefined,
+    licenseKey: string | null | undefined,
+    licenseDaysRemaining: number | null | undefined,
+    now = Date.now(),
+): TenantLicenseLabel {
+    if (!licenseValidUntilUtc?.trim()) {
+        return { kind: 'none', label: '—', daysRemaining: null };
+    }
+
+    return resolveTenantLicenseLabel(
+        licenseValidUntilUtc,
+        licenseKey,
+        now,
+        licenseDaysRemaining,
+    );
+}
+
 /**
- * Mandant SaaS license for header/banner (Manager on tenant context only).
- * Super Admin platform mode is shown on TenantBadge only — not here.
+ * Mandant SaaS license for header badge (Manager on tenant context only).
+ * Data source: `useCurrentTenant` → `GET /api/tenants/switcher` resolved row — not deployment license.
  */
 export function useHeaderTenantLicense() {
     const ctx = useCurrentTenant();
@@ -35,43 +52,33 @@ export function useHeaderTenantLicense() {
         ctx.suppressLicenseWarnings,
     ]);
 
-    const tenantsQuery = useGetApiAdminTenants(
-        { includeDeleted: false },
-        { enabled: mode === 'tenant', staleTime: 60_000 },
-    );
-
     const license: TenantLicenseLabel | null = useMemo(() => {
-        if (mode !== 'tenant' || !ctx.tenantSlug) {
+        if (mode !== 'tenant' || !ctx.isRealTenantSlug) {
             return null;
         }
-        const row = tenantsQuery.data?.find(
-            (t) => t.slug.toLowerCase() === ctx.tenantSlug!.toLowerCase(),
-        );
-        if (!row) {
+        if (ctx.isTenantRecordLoading) {
             return null;
         }
-        return resolveTenantLicenseLabel(
-            row.licenseValidUntilUtc,
-            row.licenseKey,
-            Date.now(),
-            row.licenseDaysRemaining,
+        return resolveHeaderTenantLicenseLabel(
+            ctx.licenseValidUntilUtc,
+            ctx.licenseKey,
+            ctx.licenseDaysRemaining,
         );
-    }, [mode, ctx.tenantSlug, tenantsQuery.data]);
+    }, [
+        mode,
+        ctx.isRealTenantSlug,
+        ctx.isTenantRecordLoading,
+        ctx.licenseValidUntilUtc,
+        ctx.licenseKey,
+        ctx.licenseDaysRemaining,
+    ]);
 
-    const licenseValidUntilUtc = useMemo(() => {
-        if (mode !== 'tenant' || !ctx.tenantSlug) {
-            return null;
-        }
-        return (
-            tenantsQuery.data?.find((t) => t.slug.toLowerCase() === ctx.tenantSlug!.toLowerCase())
-                ?.licenseValidUntilUtc ?? null
-        );
-    }, [mode, ctx.tenantSlug, tenantsQuery.data]);
+    const licenseValidUntilUtc = mode === 'tenant' ? ctx.licenseValidUntilUtc : null;
 
     return {
         mode,
         license,
         licenseValidUntilUtc,
-        isLoading: mode === 'tenant' && tenantsQuery.isLoading && !tenantsQuery.data,
+        isLoading: mode === 'tenant' && ctx.isTenantRecordLoading,
     };
 }

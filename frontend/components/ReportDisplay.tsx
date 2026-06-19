@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 import ReportFilterPanel, { ReportFilter } from './ReportFilterPanel';
 import { WaveLoader } from '../src/components/common/WaveLoader';
+import { formatUserDate } from '../utils/dateFormatter';
 
 export interface ReportData {
   id: string;
@@ -324,7 +325,7 @@ const ReportDisplay: React.FC<ReportDisplayProps> = ({
           <View style={styles.reportHeaderInfo}>
             <Text style={styles.reportHeaderTitle}>{reportData.title}</Text>
             <Text style={styles.reportHeaderDate}>
-              {new Date(reportData.generatedAt).toLocaleDateString('de-DE')}
+              {formatUserDate(reportData.generatedAt)}
             </Text>
           </View>
           <View style={styles.reportHeaderActions}>

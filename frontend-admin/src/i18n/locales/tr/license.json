@@ -1,6 +1,7 @@
 {
   "page": {
-    "title": "Lisans (on-premise)"
+    "title": "Sunucu lisansı (on-premise)",
+    "subtitle": "Bu API örneği (deployment) için lisans. Üst çubuktaki kiracı lisansı rozeti ile karıştırmayın."
   },
   "status": {
     "label": "Lisans durumu",
@@ -46,10 +47,13 @@
   "badge": {
     "loading": "Lisans durumu…",
     "headerShort": {
+      "none": "Kiracı lisansı yok",
       "expired": "Lisans süresi doldu",
+      "expiringSoon": "Lisans yakında bitiyor",
       "daysRemaining": "{{days}} gün",
       "trial": "Deneme sürümü",
-      "licensed": "Lisanslı"
+      "licensed": "Lisanslı",
+      "mandantTooltip": "Kiracı lisansı: {{status}}"
     },
     "unavailable": "Lisans bilinmiyor",
     "unavailableTooltip": "Lisans durumu yüklenemedi (yetki eksikliği veya sunucu hatası).",
@@ -179,7 +183,7 @@
   "simpleUi": {
     "titlePublic": "Lisans durumu (özet)",
     "subtitlePublic": "POS uygulamasıyla aynı temel bilgiler.",
-    "titleServer": "Lisans durumu (sunucu)",
+    "titleServer": "Sunucu lisansı (on-premise)",
     "status": "Durum",
     "validUntil": "Geçerlilik",
     "daysRemaining": "Kalan gün",

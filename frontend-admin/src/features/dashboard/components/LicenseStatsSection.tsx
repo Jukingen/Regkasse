@@ -19,7 +19,7 @@ import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import { useI18n } from '@/i18n/I18nProvider';
-import { formatDate } from '@/i18n';
+import { formatDate, formatDateTime } from '@/i18n';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import {
@@ -250,16 +250,7 @@ export function LicenseStatsSection() {
                 dataIndex: 'timestampUtc',
                 key: 'timestampUtc',
                 width: 170,
-                render: (iso: string) =>
-                    dayjs(iso).isValid()
-                        ? dayjs(iso).format('DD.MM.YYYY HH:mm')
-                        : formatDate(iso, formatLocale, {
-                              year: 'numeric',
-                              month: '2-digit',
-                              day: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                          }),
+                render: (iso: string) => formatDateTime(iso, formatLocale),
             },
             {
                 title: t('license.dashboard.colKey'),

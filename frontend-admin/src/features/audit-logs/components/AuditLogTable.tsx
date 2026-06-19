@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Empty, Space, Table, Tag, Tooltip, Typography } from 'antd';
-import dayjs from 'dayjs';
+import { formatDateTime } from '@/i18n/formatting';
 
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import { AuditLogDetailsCell } from '@/features/audit-logs/components/AuditLogDetailsCell';
@@ -50,7 +50,13 @@ export function AuditLogTable({
                 width: 168,
                 render: (ts: string | undefined) => (
                     <Typography.Text strong style={{ fontVariantNumeric: 'tabular-nums' }}>
-                        {ts ? dayjs(ts).format('DD.MM.YYYY HH:mm:ss') : '—'}
+                        {ts
+                            ? formatDateTime(ts, '', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                              })
+                            : '—'}
                     </Typography.Text>
                 ),
             },

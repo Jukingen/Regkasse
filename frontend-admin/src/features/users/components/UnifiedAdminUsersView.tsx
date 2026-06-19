@@ -901,7 +901,7 @@ export function UnifiedAdminUsersView({
                 </head>
                 <body>
                     <h1>${escapeHtml(t('users.unified.export.button'))}</h1>
-                    <p>${escapeHtml(dayjs().format('DD.MM.YYYY HH:mm:ss'))}</p>
+                    <p>${escapeHtml(formatDateTime(new Date().toISOString(), '', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))}</p>
                     ${sections}
                 </body>
             </html>

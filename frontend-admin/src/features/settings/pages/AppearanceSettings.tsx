@@ -14,7 +14,7 @@ import { useDensity } from '@/hooks/useDensity';
 import { useTheme } from '@/hooks/useTheme';
 import { useI18n } from '@/i18n';
 import { useUserPreferences } from '@/lib/personalization/hooks/useUserPreferences';
-import { DATE_FORMAT_PATTERNS, DEFAULT_LANDING_PATHS } from '@/lib/personalization/types';
+import { DEFAULT_LANDING_PATHS } from '@/lib/personalization/types';
 import type { DensityMode, ThemeMode } from '@/lib/personalization/types';
 
 const { Option } = Select;
@@ -31,17 +31,6 @@ export function AppearanceSettings() {
       DEFAULT_LANDING_PATHS.map((path) => ({
         value: path,
         label: t(`settings.personalization.landing.${path.replace(/^\//, '').replace(/\//g, '_')}`),
-      })),
-    [t],
-  );
-
-  const dateFormatOptions = useMemo(
-    () =>
-      DATE_FORMAT_PATTERNS.map((pattern) => ({
-        value: pattern,
-        label: t(
-          `settings.personalization.appearance.dateFormatOptions.${pattern.replace(/\./g, '_').replace(/\//g, '_')}`,
-        ),
       })),
     [t],
   );
@@ -97,18 +86,13 @@ export function AppearanceSettings() {
           </Select>
         </Form.Item>
 
-        <Form.Item label={t('settings.personalization.appearance.dateFormatLabel')}>
-          <Select
-            value={preferences.dateFormat}
-            onChange={(value) => updatePreferences({ dateFormat: value })}
-            style={{ maxWidth: 360, width: '100%' }}
-          >
-            {dateFormatOptions.map((opt) => (
-              <Option key={opt.value} value={opt.value}>
-                {opt.label}
-              </Option>
-            ))}
-          </Select>
+        <Form.Item
+          label={t('settings.personalization.appearance.dateFormatLabel')}
+          extra={t('settings.personalization.appearance.dateFormatDescription')}
+        >
+          <Typography.Text>
+            {t('settings.personalization.appearance.dateFormatOptions.DD_MM_YYYY')}
+          </Typography.Text>
         </Form.Item>
 
         <Form.Item label={t('settings.personalization.appearance.timeFormat')}>

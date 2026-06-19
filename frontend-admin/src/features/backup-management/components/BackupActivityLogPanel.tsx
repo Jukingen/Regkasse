@@ -9,6 +9,7 @@ import type { AuditLogEntryDto } from "@/api/generated/model";
 import { fetchActivities, type ActivityDto } from "@/api/manual/activityEvents";
 import { useBackupManagementAccess } from "@/features/backup-management/hooks/useBackupManagementAccess";
 import { useI18n } from "@/i18n";
+import { formatDateTime } from "@/i18n/formatting";
 
 const BACKUP_ACTIVITY_TYPE_PREFIXES = ["backup_", "restore_"] as const;
 
@@ -89,11 +90,7 @@ export function BackupActivityLogPanel() {
   const formatDt = useCallback(
     (iso: string | undefined | null) => {
       if (!iso) return "—";
-      try {
-        return new Date(iso).toLocaleString(formatLocale);
-      } catch {
-        return iso;
-      }
+      return formatDateTime(iso, formatLocale);
     },
     [formatLocale],
   );

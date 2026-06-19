@@ -37,6 +37,7 @@ import { ReportConfigModal } from '@/features/reports/components/ReportConfigMod
 import { ReportSelector, type ReportCategoryId } from '@/features/reports/components/ReportSelector';
 import { ScheduleReportModal } from '@/features/reports/components/ScheduleReportModal';
 import { PERMISSIONS } from '@/shared/auth/permissions';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -323,7 +324,7 @@ export default function ComplianceReportingPage() {
                 ) : (
                     <Col xs={24} md={12}>
                         <Typography.Text type="secondary">{t('reporting.compliance.dateRange')}</Typography.Text>
-                        <RangePicker
+                        <RangePicker format={DAYJS_DATE_FORMAT}
                             style={{ width: '100%', marginTop: 4 }}
                             value={dateRange}
                             onChange={(d) => {

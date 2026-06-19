@@ -37,6 +37,7 @@ import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, formatNumber } from '@/i18n/formatting';
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { Title, Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -467,7 +468,7 @@ export default function TagesabschlussPage() {
         title={t('tagesabschluss.card.stats')}
         extra={
           <Space>
-            <RangePicker value={range} onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])} />
+            <RangePicker format={DAYJS_DATE_FORMAT} value={range} onChange={(v) => v && v[0] && v[1] && setRange([v[0], v[1]])} />
             <Button
               icon={<ReloadOutlined />}
               onClick={() => {

@@ -21,6 +21,7 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -174,7 +175,7 @@ export default function TagesberichtListPage() {
       <FormalReportLanguageNotice />
       <Card style={{ marginBottom: 16 }}>
         <Space wrap>
-          <RangePicker value={range} onChange={(v) => v && setRange(v as [dayjs.Dayjs, dayjs.Dayjs])} />
+          <RangePicker format={DAYJS_DATE_FORMAT} value={range} onChange={(v) => v && setRange(v as [dayjs.Dayjs, dayjs.Dayjs])} />
           <Select
             allowClear
             placeholder={t('reporting.listShared.registerPlaceholder')}

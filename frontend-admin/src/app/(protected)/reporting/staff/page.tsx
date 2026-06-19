@@ -41,6 +41,7 @@ import type {
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import Link from 'next/link';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -261,7 +262,7 @@ export default function StaffPerformanceReportingPage() {
                 <Space wrap size="large" align="start">
                     <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('adminShell.reporting.dateRange')}</Typography.Text>
-                        <RangePicker
+                        <RangePicker format={DAYJS_DATE_FORMAT}
                             value={dateRange}
                             onChange={(r) => {
                                 if (r?.[0] && r[1]) setDateRange([r[0], r[1]]);

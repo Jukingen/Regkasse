@@ -31,6 +31,7 @@ import {
     rksvFinanzOnlineSubmissionStatusTagColor,
 } from '@/features/receipts/utils/rksvFinanzOnlineSubmissionUi';
 
+import { formatDateTime } from '@/i18n/formatting';
 import { CreateMonatsbelegModal } from '@/features/rksv/components/CreateMonatsbelegModal';
 import { monatsbelegQueryKeys, useCashRegisterMonatsbeleg } from '@/features/rksv/hooks/useMonatsbeleg';
 import {
@@ -630,7 +631,7 @@ export default function RksvSonderbelegePage() {
                 title: 'Datum',
                 dataIndex: 'issuedAt',
                 key: 'issuedAt',
-                render: (d: string) => (d ? dayjs(d).format('DD.MM.YYYY HH:mm') : '—'),
+                render: (d: string) => (d ? formatDateTime(d, '') : '—'),
             },
             {
                 title: 'FinanzOnline',
@@ -1049,7 +1050,7 @@ export default function RksvSonderbelegePage() {
                                             </Space>
                                             <Typography.Text strong>{row.receiptNumber || 'Ohne Belegnummer'}</Typography.Text>
                                             <Typography.Text type="secondary">
-                                                Erstellt am: {row.issuedAt ? dayjs(row.issuedAt).format('DD.MM.YYYY HH:mm') : '—'}
+                                                Erstellt am: {row.issuedAt ? formatDateTime(row.issuedAt, '') : '—'}
                                             </Typography.Text>
                                             <Typography.Text>{periodText}</Typography.Text>
                                             <Typography.Text type="secondary">{specialReceiptPurposeDe(kind)}</Typography.Text>

@@ -33,6 +33,7 @@ import {
 import { rksvAdminQueryKeys } from '@/api/admin-rksv/query-keys';
 import type { CashRegisterRow } from '@/features/tagesabschluss/normalizers';
 import type { OfflineIntentCoverageByRegisterDto } from '@/api/generated/model';
+import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
 
 const { RangePicker } = DatePicker;
 
@@ -200,7 +201,7 @@ export default function OfflineIntentCoveragePage() {
                         <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                             <Space wrap align="center">
                                 <Typography.Text strong>{t('rksvHub.offlineIntentCoveragePage.filterDateRangeUtc')}</Typography.Text>
-                                <RangePicker
+                                <RangePicker format={DAYJS_DATE_FORMAT}
                                     showTime
                                     value={[dateRange[0], dateRange[1]]}
                                     onChange={(dates) => {

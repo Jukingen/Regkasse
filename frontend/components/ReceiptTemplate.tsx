@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { ReceiptDTO } from '../types/ReceiptDTO';
+import { formatUserDateTime } from '../utils/dateFormatter';
 
 interface ReceiptTemplateProps {
     receipt: ReceiptDTO;
@@ -24,13 +25,7 @@ export const ReceiptTemplate: React.FC<ReceiptTemplateProps> = ({ receipt }) => 
     const cashierLine =
         (cashierDisplayName && cashierDisplayName.trim()) || (cashierId && cashierId.trim()) || '—';
 
-    const formatDate = (dateStr: string) => {
-        try {
-            return new Date(dateStr).toLocaleString('de-AT');
-        } catch {
-            return dateStr;
-        }
-    };
+    const formatDate = (dateStr: string) => formatUserDateTime(dateStr) || dateStr;
 
     const formatCurrency = (amount: number) => {
         return amount.toFixed(2).replace('.', ',');
