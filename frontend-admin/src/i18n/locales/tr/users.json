@@ -14,6 +14,22 @@
   "messages": {
     "roleCreated": "Rol oluşturuldu."
   },
+  "roleChange": {
+    "modalTitle": "Rolü değiştir",
+    "description": "Rol «{{oldRole}}» iken «{{newRole}}» olacak.",
+    "preserveCheckbox": "Mevcut rolün izinlerini koru",
+    "preserveTooltip": "Mevcut rolün izinleri yeni rolün izinleriyle birleştirilir.",
+    "confirm": "Rolü ata",
+    "cancel": "İptal",
+    "success": "Rol güncellendi.",
+    "error": "Rol güncellenemedi.",
+    "noPreviousRoleTitle": "Önceki rol yok",
+    "noPreviousRoleDescription": "Önceki rol bulunamadı. İzinler aktarılamaz.",
+    "sameRoleTitle": "Değişiklik yok",
+    "sameRoleDescription": "Seçilen rol mevcut rol ile aynı. Güncelleme gerekmez.",
+    "superAdminWarningTitle": "SuperAdmin izinleri",
+    "superAdminWarningDescription": "SuperAdmin izinleri diğer rollere aktarılamaz."
+  },
   "username": {
     "editTitle": "Kullanıcı adını değiştir",
     "currentLabel": "Mevcut kullanıcı adı",

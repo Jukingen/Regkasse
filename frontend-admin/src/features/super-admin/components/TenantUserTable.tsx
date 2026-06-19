@@ -19,7 +19,7 @@ export type TenantUserTableProps = {
     resetPendingUserId?: string | null;
     onSetOwner: (userId: string) => void;
     onRemove: (userId: string) => void;
-    onRoleChange: (userId: string, role: string) => void;
+    onRoleChange: (userId: string, previousRole: string, newRole: string) => void;
     onResetPassword?: (userId: string) => void;
 };
 
@@ -74,7 +74,11 @@ export function TenantUserTable({
                     style={{ minWidth: 140 }}
                     value={role}
                     loading={roleChangeUserId === row.userId}
-                    onChange={(value) => onRoleChange(row.userId, value)}
+                    onChange={(value) => {
+                        if (value !== row.role) {
+                            onRoleChange(row.userId, row.role, value);
+                        }
+                    }}
                     options={ASSIGNABLE_ROLES.map((r) => ({ value: r, label: r }))}
                 />
             ),

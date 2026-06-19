@@ -82,6 +82,7 @@ public sealed class BulkUserImportServiceTests
             Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
             NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
+            Mock.Of<IUserRoleChangeService>(),
             Mock.Of<ILogger<TenantUserService>>());
 
         var resultStore = new Mock<IBulkUserImportResultStore>();

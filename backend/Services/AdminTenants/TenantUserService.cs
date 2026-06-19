@@ -47,6 +47,7 @@ public sealed class TenantUserService : ITenantUserService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly ActivityEventRecorder _activityEvents;
+    private readonly IUserRoleChangeService _userRoleChangeService;
     private readonly ILogger<TenantUserService> _logger;
 
     public TenantUserService(
@@ -61,6 +62,7 @@ public sealed class TenantUserService : ITenantUserService
         IHttpContextAccessor httpContextAccessor,
         ICurrentTenantAccessor tenantAccessor,
         ActivityEventRecorder activityEvents,
+        IUserRoleChangeService userRoleChangeService,
         ILogger<TenantUserService> logger)
     {
         _db = db;
@@ -74,6 +76,7 @@ public sealed class TenantUserService : ITenantUserService
         _httpContextAccessor = httpContextAccessor;
         _tenantAccessor = tenantAccessor;
         _activityEvents = activityEvents;
+        _userRoleChangeService = userRoleChangeService;
         _logger = logger;
     }
 
@@ -469,7 +472,12 @@ public sealed class TenantUserService : ITenantUserService
             if (!TryValidateAssignableRole(request.Role, out var roleError))
                 return (null, roleError);
 
-            var roleUpdateError = await ApplyUserRoleAsync(user, request.Role, cancellationToken).ConfigureAwait(false);
+            var roleUpdateError = await ChangeUserRoleAsync(
+                user,
+                request.Role,
+                preservePreviousPermissions: false,
+                tenantId,
+                cancellationToken).ConfigureAwait(false);
             if (roleUpdateError != null)
                 return (null, roleUpdateError);
         }
@@ -548,16 +556,40 @@ public sealed class TenantUserService : ITenantUserService
             ForcePasswordChangeOnNextLogin: true), null);
     }
 
-    public Task<(TenantUserDto? Result, string? Error)> UpdateRoleAsync(
+    public async Task<(TenantUserDto? Result, string? Error)> UpdateRoleAsync(
         Guid tenantId,
         string userId,
         UpdateTenantUserRoleRequest request,
-        CancellationToken cancellationToken = default) =>
-        UpdateAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (!await TenantExistsAsync(tenantId, cancellationToken).ConfigureAwait(false))
+            return (null, "Tenant not found.");
+
+        var membership = await MembershipsUnfiltered()
+            .FirstOrDefaultAsync(m => m.UserId == userId && m.TenantId == tenantId && m.IsActive, cancellationToken)
+            .ConfigureAwait(false);
+        if (membership == null)
+            return (null, "User is not assigned to this tenant.");
+
+        var user = await _userManager.FindByIdAsync(userId).ConfigureAwait(false);
+        if (user == null)
+            return (null, "User not found.");
+
+        if (!TryValidateAssignableRole(request.Role, out var roleError))
+            return (null, roleError);
+
+        var roleUpdateError = await ChangeUserRoleAsync(
+            user,
+            request.Role,
+            request.PreservePreviousPermissions,
             tenantId,
-            userId,
-            new UpdateAdminTenantUserRequest { Role = request.Role },
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
+        if (roleUpdateError != null)
+            return (null, roleUpdateError);
+
+        await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return (ToDto(user, membership), null);
+    }
 
     public async Task<(bool Success, string? Error)> RemoveAsync(
         Guid tenantId,
@@ -587,7 +619,12 @@ public sealed class TenantUserService : ITenantUserService
         bool isOwner,
         CancellationToken cancellationToken)
     {
-        var roleUpdateError = await ApplyUserRoleAsync(user, role, cancellationToken).ConfigureAwait(false);
+        var roleUpdateError = await ChangeUserRoleAsync(
+            user,
+            role,
+            preservePreviousPermissions: false,
+            tenantId,
+            cancellationToken).ConfigureAwait(false);
         if (roleUpdateError != null)
             return roleUpdateError;
 
@@ -633,32 +670,28 @@ public sealed class TenantUserService : ITenantUserService
         }
     }
 
-    private async Task<string?> ApplyUserRoleAsync(ApplicationUser user, string role, CancellationToken cancellationToken)
+    private string ResolveActorUserId()
     {
-        var normalized = role.Trim();
-        if (string.Equals(user.Role, normalized, StringComparison.OrdinalIgnoreCase))
-            return null;
+        var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return string.IsNullOrWhiteSpace(userId) ? "unknown" : userId.Trim();
+    }
 
-        var previousRoles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
-        if (previousRoles.Count > 0)
-        {
-            var remove = await _userManager.RemoveFromRolesAsync(user, previousRoles).ConfigureAwait(false);
-            if (!remove.Succeeded)
-                return string.Join("; ", remove.Errors.Select(e => e.Description));
-        }
-
-        var add = await _userManager.AddToRoleAsync(user, normalized).ConfigureAwait(false);
-        if (!add.Succeeded)
-            return string.Join("; ", add.Errors.Select(e => e.Description));
-
-        user.Role = normalized;
-        user.UpdatedAt = DateTime.UtcNow;
-        var update = await _userManager.UpdateAsync(user).ConfigureAwait(false);
-        if (!update.Succeeded)
-            return string.Join("; ", update.Errors.Select(e => e.Description));
-
-        _ = cancellationToken;
-        return null;
+    private async Task<string?> ChangeUserRoleAsync(
+        ApplicationUser user,
+        string role,
+        bool preservePreviousPermissions,
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        var (_, error) = await _userRoleChangeService.ChangeUserRoleAsync(
+            user,
+            role,
+            preservePreviousPermissions,
+            ResolveActorUserId(),
+            ResolveActorRole(),
+            tenantId,
+            cancellationToken).ConfigureAwait(false);
+        return error;
     }
 
     private static bool TryValidateAssignableRole(string? role, out string? error)

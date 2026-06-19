@@ -418,6 +418,7 @@ builder.Services.AddScoped<IUserSessionInvalidation>(sp => (RefreshTokenService)
 builder.Services.AddScoped<IRolePermissionResolver, RolePermissionResolver>();
 builder.Services.AddScoped<IEffectivePermissionResolver, EffectivePermissionResolver>();
 builder.Services.AddScoped<IUserPermissionOverrideService, UserPermissionOverrideService>();
+builder.Services.AddScoped<IUserRoleChangeService, UserRoleChangeService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();

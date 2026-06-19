@@ -263,6 +263,37 @@ export async function removeUserFromTenant(tenantId: string, userId: string): Pr
     });
 }
 
+export type UpdateUserRoleRequest = {
+    role: string;
+    preservePreviousPermissions?: boolean;
+};
+
+export type UpdateUserRoleResult = {
+    userId: string;
+    userName: string;
+    email: string;
+    name: string;
+    role: string;
+    isOwner: boolean;
+    joinedAtUtc: string;
+};
+
+/** Assign a new role to a tenant user; optionally preserve permissions from the previous role. */
+export async function updateUserRole(
+    tenantId: string,
+    userId: string,
+    body: UpdateUserRoleRequest,
+): Promise<UpdateUserRoleResult> {
+    return customInstance<UpdateUserRoleResult>({
+        url: `/api/admin/tenants/${tenantId}/users/${userId}/role`,
+        method: 'PUT',
+        data: {
+            role: body.role,
+            preservePreviousPermissions: Boolean(body.preservePreviousPermissions),
+        },
+    });
+}
+
 export function adminUserToUserInfo(dto: AdminUserDto): UserInfo {
     return {
         id: dto.id ?? undefined,

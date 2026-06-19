@@ -14,6 +14,8 @@ import Link from 'next/link';
 import { useI18n } from '@/i18n';
 import { formatRksvSpecialReceiptKindDisplay } from '@/features/receipts/utils/formatRksvSpecialReceiptKind';
 import { ReprintButton } from '@/features/payments/components/ReprintButton';
+import { usePermissions } from '@/shared/auth/usePermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
 interface ReceiptsTableProps {
@@ -38,7 +40,7 @@ interface ReceiptsTableProps {
     reprintEnabled?: boolean;
     reprintActionLabel?: string;
     onStartReprint?: (row: ReceiptListItemDto) => void;
-    /** Admin PDF reprint (GET /api/admin/payments/.../reprint) on the receipts list. */
+    /** Admin PDF reprint column (shown only when caller opts in and JWT has receipt.reprint). */
     showPaymentPdfReprint?: boolean;
 }
 
@@ -208,10 +210,13 @@ export default function ReceiptsTable({
     showPaymentPdfReprint,
 }: ReceiptsTableProps) {
     const { t, formatLocale } = useI18n();
+    const { hasPermission } = usePermissions();
+    const showPdfReprintColumn =
+        Boolean(showPaymentPdfReprint) && hasPermission(PERMISSIONS.RECEIPT_REPRINT);
 
     const columns = React.useMemo(
-        () => buildColumns(t, reprintEnabled, reprintActionLabel, onStartReprint, showPaymentPdfReprint),
-        [t, reprintEnabled, reprintActionLabel, onStartReprint, showPaymentPdfReprint],
+        () => buildColumns(t, reprintEnabled, reprintActionLabel, onStartReprint, showPdfReprintColumn),
+        [t, reprintEnabled, reprintActionLabel, onStartReprint, showPdfReprintColumn],
     );
 
     // Apply current sort indicator to the matching column
@@ -222,7 +227,7 @@ export default function ReceiptsTable({
         return col;
     });
 
-    const scrollX = 1230 + (reprintEnabled ? 180 : 0) + (showPaymentPdfReprint ? 170 : 0);
+    const scrollX = 1230 + (reprintEnabled ? 180 : 0) + (showPdfReprintColumn ? 170 : 0);
     const useVirtual = shouldUseAdminTableVirtual(data.length);
 
     return (

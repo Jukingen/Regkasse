@@ -46,9 +46,21 @@ public sealed class SuspiciousTransactionAlertService : ISuspiciousTransactionAl
 
     public async Task TryPublishAlertAsync(SuspiciousAlertDraft draft, CancellationToken cancellationToken = default)
     {
+        var hasOpenDuplicate = await _db.SuspiciousTransactionAlerts
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .AnyAsync(
+                a => a.TenantId == draft.TenantId
+                     && a.DedupKey == draft.DedupKey
+                     && a.Status == SuspiciousAlertStatus.Open,
+                cancellationToken);
+
+        if (hasOpenDuplicate)
+            return;
+
         var dedupHours = Math.Max(1, _options.CurrentValue.DedupWindowHours);
         var dedupSince = DateTime.UtcNow.AddHours(-dedupHours);
-        var exists = await _db.SuspiciousTransactionAlerts
+        var existsRecent = await _db.SuspiciousTransactionAlerts
             .IgnoreQueryFilters()
             .AsNoTracking()
             .AnyAsync(
@@ -57,7 +69,7 @@ public sealed class SuspiciousTransactionAlertService : ISuspiciousTransactionAl
                      && a.DetectedAtUtc >= dedupSince,
                 cancellationToken);
 
-        if (exists)
+        if (existsRecent)
             return;
 
         var detailsJson = draft.Details == null ? null : JsonSerializer.Serialize(draft.Details);

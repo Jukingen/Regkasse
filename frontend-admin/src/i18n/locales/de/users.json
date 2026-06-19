@@ -14,6 +14,22 @@
   "messages": {
     "roleCreated": "Rolle angelegt."
   },
+  "roleChange": {
+    "modalTitle": "Rolle ändern",
+    "description": "Die Rolle wird von „{{oldRole}}“ auf „{{newRole}}“ geändert.",
+    "preserveCheckbox": "Vorherige Berechtigungen von der aktuellen Rolle übernehmen",
+    "preserveTooltip": "Die Berechtigungen der aktuellen Rolle werden mit den Berechtigungen der neuen Rolle kombiniert.",
+    "confirm": "Rolle zuweisen",
+    "cancel": "Abbrechen",
+    "success": "Rolle wurde aktualisiert.",
+    "error": "Rolle konnte nicht aktualisiert werden.",
+    "noPreviousRoleTitle": "Keine vorherige Rolle",
+    "noPreviousRoleDescription": "Keine vorherige Rolle gefunden. Berechtigungen können nicht übernommen werden.",
+    "sameRoleTitle": "Keine Änderung",
+    "sameRoleDescription": "Die gewählte Rolle entspricht der aktuellen Rolle. Es ist keine Aktualisierung erforderlich.",
+    "superAdminWarningTitle": "SuperAdmin-Berechtigungen",
+    "superAdminWarningDescription": "SuperAdmin-Berechtigungen können nicht auf andere Rollen übertragen werden."
+  },
   "username": {
     "editTitle": "Benutzername ändern",
     "currentLabel": "Aktueller Benutzername",

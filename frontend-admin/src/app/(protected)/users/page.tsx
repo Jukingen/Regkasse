@@ -47,6 +47,7 @@ import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { EditUsernameModal } from '@/features/users/components/EditUsernameModal';
 import { UsersTable } from '@/features/users/components/UsersTable';
 import { UserFormDrawer, type UserFormSubmitValues } from '@/features/users/components/UserFormDrawer';
+import { ChangeRoleModal } from '@/features/users/components/ChangeRoleModal';
 import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
 import {
     CreateRoleModal,
@@ -60,7 +61,8 @@ import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
 import { DevOrphanedUsersCleanupButton } from '@/features/users/components/DevOrphanedUsersCleanupButton';
-import { createPlatformUser, updateUserTenants } from '@/features/users/api/users';
+import { createPlatformUser, getAdminUserTenants, updateUserRole, updateUserTenants } from '@/features/users/api/users';
+import { shouldPromptRoleChange } from '@/features/users/utils/roleChangePreservePolicy';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
@@ -211,6 +213,14 @@ export default function UsersPage() {
     const [resetPasswordUser, setResetPasswordUser] = useState<UserInfo | null>(null);
     const [usernameEditUser, setUsernameEditUser] = useState<UserInfo | null>(null);
     const [permissionsUser, setPermissionsUser] = useState<UserInfo | null>(null);
+    const [pendingEditRoleChange, setPendingEditRoleChange] = useState<{
+        userId: string;
+        tenantId?: string;
+        previousRole: string;
+        newRole: string;
+        submitValues: UserFormSubmitValues;
+    } | null>(null);
+    const [editRoleChangeSubmitting, setEditRoleChangeSubmitting] = useState(false);
     /** Backend validation error shown inside reset password modal (German); cleared when modal closes. */
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
@@ -523,32 +533,69 @@ export default function UsersPage() {
         };
         createMutation.mutate({ platform: createPlatformMode, data: createPayload });
     };
-    const handleEdit = async (values: UserFormSubmitValues) => {
-        if (!editUserId) return;
-        if (!policy.canEdit) {
-            message.error(usersCopy.noPermission);
-            return;
-        }
+    const submitEditUser = async (values: UserFormSubmitValues, userId: string) => {
         const { tenantIds, ...restValues } = values as UpdateUserRequest & { tenantIds?: string[] };
         const updatePayload: UpdateUserRequest = {
             ...restValues,
             employeeNumber: (restValues.employeeNumber ?? '').trim(),
         };
         try {
-            await updateMutation.mutateAsync({ id: editUserId, data: updatePayload });
+            await updateMutation.mutateAsync({ id: userId, data: updatePayload });
             if (isSuperAdminLayout && Array.isArray(tenantIds)) {
-                await updateUserTenantsMutation.mutateAsync({ id: editUserId, tenantIds });
-                await queryClient.invalidateQueries({ queryKey: ['admin', 'users', editUserId, 'tenants'] });
+                await updateUserTenantsMutation.mutateAsync({ id: userId, tenantIds });
+                await queryClient.invalidateQueries({ queryKey: ['admin', 'users', userId, 'tenants'] });
                 message.success(t('users.tenants.manageSaved'));
             } else {
                 message.success(usersCopy.successUpdate);
             }
-            await queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(editUserId) });
+            await queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(userId) });
             invalidateAllUserLists();
-            await queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${editUserId}`] });
+            await queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${userId}`] });
             setEditUserId(null);
         } catch (e: unknown) {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
+            throw e;
+        }
+    };
+
+    const handleEdit = async (values: UserFormSubmitValues) => {
+        if (!editUserId) return;
+        if (!policy.canEdit) {
+            message.error(usersCopy.noPermission);
+            return;
+        }
+        const previousRole = editUserFull?.role?.trim() ?? '';
+        const newRole = (values as UpdateUserRequest).role?.trim() ?? '';
+        if (shouldPromptRoleChange(previousRole, newRole)) {
+            const memberships = await getAdminUserTenants(editUserId);
+            setPendingEditRoleChange({
+                userId: editUserId,
+                tenantId: memberships[0]?.tenantId,
+                previousRole,
+                newRole,
+                submitValues: values,
+            });
+            return;
+        }
+        await submitEditUser(values, editUserId);
+    };
+
+    const handleEditRoleChangeConfirm = async (preservePreviousPermissions: boolean) => {
+        if (!pendingEditRoleChange) return;
+        setEditRoleChangeSubmitting(true);
+        try {
+            if (pendingEditRoleChange.tenantId) {
+                await updateUserRole(pendingEditRoleChange.tenantId, pendingEditRoleChange.userId, {
+                    role: pendingEditRoleChange.newRole,
+                    preservePreviousPermissions,
+                });
+            }
+            await submitEditUser(pendingEditRoleChange.submitValues, pendingEditRoleChange.userId);
+            setPendingEditRoleChange(null);
+        } catch {
+            /* submitEditUser already surfaces errors */
+        } finally {
+            setEditRoleChangeSubmitting(false);
         }
     };
     const handleDeactivateConfirm = (reason: string) => {
@@ -989,6 +1036,16 @@ export default function UsersPage() {
                     onClose={() => setPermissionsUser(null)}
                 />
             ) : null}
+
+            <ChangeRoleModal
+                open={!!pendingEditRoleChange}
+                previousRole={pendingEditRoleChange?.previousRole ?? ''}
+                newRole={pendingEditRoleChange?.newRole ?? ''}
+                hasTenantContext={Boolean(pendingEditRoleChange?.tenantId)}
+                confirmLoading={editRoleChangeSubmitting || updateMutation.isPending}
+                onCancel={() => setPendingEditRoleChange(null)}
+                onConfirm={(preservePreviousPermissions) => void handleEditRoleChangeConfirm(preservePreviousPermissions)}
+            />
         </AdminPageShell>
     );
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using KasseAPI_Final.Models.DTOs.UserManagement;
 
 namespace KasseAPI_Final.Services.AdminTenants;
 
@@ -34,12 +35,7 @@ public sealed record CreateTenantUserResultDto(
     Guid? TenantId = null,
     string? TenantSlug = null);
 
-public sealed class UpdateTenantUserRoleRequest
-{
-    [Required]
-    [MaxLength(64)]
-    public string Role { get; set; } = string.Empty;
-}
+public sealed class UpdateTenantUserRoleRequest : UpdateUserRoleRequest;
 
 public sealed record TenantUserPasswordResetResultDto(
     string UserId,

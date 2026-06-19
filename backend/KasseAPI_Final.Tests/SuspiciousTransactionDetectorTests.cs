@@ -125,6 +125,46 @@ public sealed class SuspiciousTransactionDetectorTests
         activityMock.Verify(
             x => x.PublishAsync(It.IsAny<ActivityEventPublishRequest>(), It.IsAny<CancellationToken>()),
             Times.Never);
-        Assert.Single(db.SuspiciousTransactionAlerts);
+        Assert.Single(db.SuspiciousTransactionAlerts.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public async Task AlertService_skips_when_open_duplicate_older_than_dedup_window()
+    {
+        await using var db = CreateContext();
+        db.SuspiciousTransactionAlerts.Add(new SuspiciousTransactionAlert
+        {
+            TenantId = TenantId,
+            AlertType = SuspiciousAlertType.UnusualTime,
+            Severity = SuspiciousAlertSeverity.Medium,
+            Status = SuspiciousAlertStatus.Open,
+            Message = "existing open",
+            DedupKey = "unusual_time_payment",
+            DetectedAtUtc = DateTime.UtcNow.AddDays(-3),
+            CreatedAt = DateTime.UtcNow.AddDays(-3),
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var activityMock = new Mock<IActivityEventService>();
+        var svc = new SuspiciousTransactionAlertService(
+            db,
+            activityMock.Object,
+            MonitorOf(new SuspiciousTransactionDetectionOptions { DedupWindowHours = 24 }),
+            NullLogger<SuspiciousTransactionAlertService>.Instance);
+
+        await svc.TryPublishAlertAsync(
+            new SuspiciousAlertDraft(
+                TenantId,
+                SuspiciousAlertType.UnusualTime,
+                SuspiciousAlertSeverity.Medium,
+                "duplicate",
+                "action",
+                "unusual_time_payment"));
+
+        activityMock.Verify(
+            x => x.PublishAsync(It.IsAny<ActivityEventPublishRequest>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        Assert.Single(db.SuspiciousTransactionAlerts.IgnoreQueryFilters());
     }
 }

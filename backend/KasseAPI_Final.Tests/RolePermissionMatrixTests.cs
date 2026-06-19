@@ -364,4 +364,33 @@ public class RolePermissionMatrixTests
         Assert.True(combined.Contains(AppPermissions.ReportView));
         Assert.True(combined.Contains(AppPermissions.OrderView));
     }
+
+    [Fact]
+    public void GetPermissionsForRole_Manager_Matches_GetPermissionsForRoles_SingleRole()
+    {
+        var single = RolePermissionMatrix.GetPermissionsForRole(Roles.Manager);
+        var fromEnumerable = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        Assert.Equal(fromEnumerable.Count, single.Count);
+        Assert.True(single.Contains(AppPermissions.AuditExport));
+    }
+
+    [Fact]
+    public void GetPermissionsForRole_UnknownRole_ReturnsEmpty()
+    {
+        var perms = RolePermissionMatrix.GetPermissionsForRole("CustomRole");
+        Assert.Empty(perms);
+    }
+
+    [Fact]
+    public void MergePermissions_ReturnsUnion_OfBothSets()
+    {
+        var previous = new[] { AppPermissions.AuditExport, AppPermissions.ReportView };
+        var next = new[] { AppPermissions.ReportView, AppPermissions.PaymentTake };
+        var merged = RolePermissionMatrix.MergePermissions(previous, next);
+
+        Assert.Contains(AppPermissions.AuditExport, merged);
+        Assert.Contains(AppPermissions.ReportView, merged);
+        Assert.Contains(AppPermissions.PaymentTake, merged);
+        Assert.Equal(3, merged.Count);
+    }
 }

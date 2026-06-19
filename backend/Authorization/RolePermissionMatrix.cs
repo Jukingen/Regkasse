@@ -36,6 +36,20 @@ public static class RolePermissionMatrix
     }
 
     /// <summary>
+    /// Returns permissions for a single role name (system roles only; custom roles return empty).
+    /// </summary>
+    public static IReadOnlySet<string> GetPermissionsForRole(string roleName)
+    {
+        if (string.IsNullOrWhiteSpace(roleName))
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (RolePermissions.TryGetValue(roleName, out var set))
+            return set.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Returns the union of all permissions for the given roles. Used by handler to check permission.
     /// </summary>
     public static IReadOnlySet<string> GetPermissionsForRoles(IEnumerable<string> roleNames)
@@ -53,6 +67,35 @@ public static class RolePermissionMatrix
                     result.Add(p);
             }
         }
+        return result;
+    }
+
+    /// <summary>
+    /// Union of permission sets (case-insensitive). Used when preserving permissions across role changes.
+    /// </summary>
+    public static IReadOnlySet<string> MergePermissions(
+        IEnumerable<string> previousPermissions,
+        IEnumerable<string> newPermissions)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (previousPermissions != null)
+        {
+            foreach (var permission in previousPermissions)
+            {
+                if (!string.IsNullOrWhiteSpace(permission))
+                    result.Add(permission);
+            }
+        }
+
+        if (newPermissions != null)
+        {
+            foreach (var permission in newPermissions)
+            {
+                if (!string.IsNullOrWhiteSpace(permission))
+                    result.Add(permission);
+            }
+        }
+
         return result;
     }
 

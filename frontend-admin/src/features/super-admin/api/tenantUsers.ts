@@ -1,4 +1,8 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
+import {
+    updateUserRole as updateUserRoleApi,
+    type UpdateUserRoleRequest,
+} from '@/features/users/api/users';
 
 export type TenantUser = {
     userId: string;
@@ -98,12 +102,12 @@ export async function updateTenantUserRole(
     tenantId: string,
     userId: string,
     role: string,
+    options?: Pick<UpdateUserRoleRequest, 'preservePreviousPermissions'>,
 ): Promise<TenantUser> {
-    const { data } = await AXIOS_INSTANCE.put<TenantUser>(
-        `/api/admin/tenants/${tenantId}/users/${userId}/role`,
-        { role },
-    );
-    return data;
+    return updateUserRoleApi(tenantId, userId, {
+        role,
+        preservePreviousPermissions: options?.preservePreviousPermissions,
+    });
 }
 
 export type TenantUserPasswordResetResult = {

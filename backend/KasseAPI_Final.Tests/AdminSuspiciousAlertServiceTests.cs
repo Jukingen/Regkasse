@@ -118,4 +118,94 @@ public sealed class AdminSuspiciousAlertServiceTests
         Assert.True(dto.IsRead);
         Assert.NotNull(dto.ReadAtUtc);
     }
+
+    [Fact]
+    public async Task ListAsync_unreadOnly_collapses_duplicate_dedup_keys()
+    {
+        await using var db = CreateContext();
+        var paymentId = Guid.NewGuid();
+        var dedupKey = $"unusual_time_{paymentId:N}";
+        db.SuspiciousTransactionAlerts.AddRange(
+            new SuspiciousTransactionAlert
+            {
+                Id = Guid.NewGuid(),
+                TenantId = TenantA,
+                PaymentId = paymentId,
+                AlertType = SuspiciousAlertType.UnusualTime,
+                Severity = SuspiciousAlertSeverity.Medium,
+                Status = SuspiciousAlertStatus.Open,
+                Message = "older",
+                DedupKey = dedupKey,
+                DetectedAtUtc = DateTime.UtcNow.AddDays(-2),
+                CreatedAt = DateTime.UtcNow.AddDays(-2),
+                IsActive = true,
+            },
+            new SuspiciousTransactionAlert
+            {
+                Id = Guid.NewGuid(),
+                TenantId = TenantA,
+                PaymentId = paymentId,
+                AlertType = SuspiciousAlertType.UnusualTime,
+                Severity = SuspiciousAlertSeverity.Medium,
+                Status = SuspiciousAlertStatus.Open,
+                Message = "newest",
+                DedupKey = dedupKey,
+                DetectedAtUtc = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            });
+        await db.SaveChangesAsync();
+
+        var svc = new AdminSuspiciousAlertService(db);
+        var unread = await svc.ListAsync(TenantA, unreadOnly: true);
+
+        Assert.Single(unread.Items);
+        Assert.Equal("newest", unread.Items[0].Message);
+    }
+
+    [Fact]
+    public async Task MarkAsReadAsync_acknowledges_sibling_open_alerts_with_same_dedup_key()
+    {
+        await using var db = CreateContext();
+        var dedupKey = "unusual_time_shared";
+        var primaryId = Guid.NewGuid();
+        var siblingId = Guid.NewGuid();
+        db.SuspiciousTransactionAlerts.AddRange(
+            new SuspiciousTransactionAlert
+            {
+                Id = primaryId,
+                TenantId = TenantA,
+                AlertType = SuspiciousAlertType.UnusualTime,
+                Severity = SuspiciousAlertSeverity.Medium,
+                Status = SuspiciousAlertStatus.Open,
+                Message = "primary",
+                DedupKey = dedupKey,
+                DetectedAtUtc = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true,
+            },
+            new SuspiciousTransactionAlert
+            {
+                Id = siblingId,
+                TenantId = TenantA,
+                AlertType = SuspiciousAlertType.UnusualTime,
+                Severity = SuspiciousAlertSeverity.Medium,
+                Status = SuspiciousAlertStatus.Open,
+                Message = "sibling",
+                DedupKey = dedupKey,
+                DetectedAtUtc = DateTime.UtcNow.AddDays(-1),
+                CreatedAt = DateTime.UtcNow.AddDays(-1),
+                IsActive = true,
+            });
+        await db.SaveChangesAsync();
+
+        var svc = new AdminSuspiciousAlertService(db);
+        var ok = await svc.MarkAsReadAsync(TenantA, primaryId, "manager1");
+        Assert.True(ok);
+
+        var primary = await db.SuspiciousTransactionAlerts.FindAsync(primaryId);
+        var sibling = await db.SuspiciousTransactionAlerts.FindAsync(siblingId);
+        Assert.Equal(SuspiciousAlertStatus.Acknowledged, primary!.Status);
+        Assert.Equal(SuspiciousAlertStatus.Acknowledged, sibling!.Status);
+    }
 }

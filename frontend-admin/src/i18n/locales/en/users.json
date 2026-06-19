@@ -14,6 +14,22 @@
   "messages": {
     "roleCreated": "Role created."
   },
+  "roleChange": {
+    "modalTitle": "Change role",
+    "description": "The role will change from \"{{oldRole}}\" to \"{{newRole}}\".",
+    "preserveCheckbox": "Keep permissions from the current role",
+    "preserveTooltip": "Permissions from the current role are combined with the permissions of the new role.",
+    "confirm": "Assign role",
+    "cancel": "Cancel",
+    "success": "Role updated.",
+    "error": "Could not update role.",
+    "noPreviousRoleTitle": "No previous role",
+    "noPreviousRoleDescription": "No previous role was found. Permissions cannot be carried over.",
+    "sameRoleTitle": "No change",
+    "sameRoleDescription": "The selected role matches the current role. No update is required.",
+    "superAdminWarningTitle": "SuperAdmin permissions",
+    "superAdminWarningDescription": "SuperAdmin permissions cannot be transferred to other roles."
+  },
   "username": {
     "editTitle": "Change username",
     "currentLabel": "Current username",

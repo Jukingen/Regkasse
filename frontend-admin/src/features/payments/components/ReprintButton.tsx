@@ -31,7 +31,7 @@ export function ReprintButton({ paymentId, receiptNumber, disabled, size = 'midd
 
   const handleReprint = useCallback(async () => {
     const id = paymentId?.trim();
-    if (!id || !canReprintPdf) return;
+    if (!id) return;
 
     setLoading(true);
     message.loading({ content: t('payments.detail.reprintPdfLoading'), key: REPRINT_MESSAGE_KEY });
@@ -59,10 +59,14 @@ export function ReprintButton({ paymentId, receiptNumber, disabled, size = 'midd
     } finally {
       setLoading(false);
     }
-  }, [paymentId, receiptNumber, canReprintPdf, t]);
+  }, [message, paymentId, receiptNumber, t]);
+
+  if (!canReprintPdf) {
+    return null;
+  }
 
   const id = paymentId?.trim();
-  const isDisabled = disabled || !id || !canReprintPdf || loading;
+  const isDisabled = disabled || !id || loading;
 
   return (
     <Button

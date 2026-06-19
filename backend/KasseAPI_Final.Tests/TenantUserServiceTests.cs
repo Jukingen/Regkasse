@@ -66,8 +66,30 @@ public sealed class TenantUserServiceTests
         IUserSessionInvalidation? sessionInvalidation = null,
         IQuickUserGeneratorService? quickUserGenerator = null,
         IAuditLogService? auditLog = null,
-        ICurrentTenantAccessor? tenantAccessor = null) =>
-        new(
+        ICurrentTenantAccessor? tenantAccessor = null,
+        IUserRoleChangeService? userRoleChangeService = null)
+    {
+        var audit = auditLog ?? Mock.Of<IAuditLogService>();
+        var roleManager = new RoleManager<IdentityRole>(
+            new RoleStore<IdentityRole>(db),
+            Array.Empty<IRoleValidator<IdentityRole>>(),
+            new UpperInvariantLookupNormalizer(),
+            new IdentityErrorDescriber(),
+            Mock.Of<ILogger<RoleManager<IdentityRole>>>());
+        var rolePermissionResolver = new RolePermissionResolver(roleManager);
+        var roleChange = userRoleChangeService ?? new UserRoleChangeService(
+            userManager,
+            rolePermissionResolver,
+            new UserPermissionOverrideService(
+                db,
+                rolePermissionResolver,
+                new EffectivePermissionResolver(db, rolePermissionResolver)),
+            audit,
+            sessionInvalidation ?? Mock.Of<IUserSessionInvalidation>(),
+            db,
+            Mock.Of<ILogger<UserRoleChangeService>>());
+
+        return new TenantUserService(
             db,
             userManager,
             new UserTenantMembershipProvisioner(db),
@@ -79,11 +101,13 @@ public sealed class TenantUserServiceTests
                 uniqueness ?? CreateUniquenessMock().Object,
                 CreateUserCreationService(db, userManager, uniqueness)),
             CreateUserCreationService(db, userManager, uniqueness),
-            auditLog ?? Mock.Of<IAuditLogService>(),
+            audit,
             Mock.Of<IHttpContextAccessor>(),
             tenantAccessor ?? NullCurrentTenantAccessor.Instance,
             ActivityEventTestSupport.CreateRecorder(),
+            roleChange,
             Mock.Of<ILogger<TenantUserService>>());
+    }
 
     private static Mock<IAuditLogService> CreateAuditMock()
     {

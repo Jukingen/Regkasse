@@ -177,17 +177,18 @@ public sealed class AdminPaymentListService : IAdminPaymentListService
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-        var receiptsTask = _context.Receipts.AsNoTracking()
+        // EF Core DbContext is not thread-safe — run enrichment queries sequentially (not Task.WhenAll).
+        var receipts = await _context.Receipts.AsNoTracking()
             .Where(r => paymentIds.Contains(r.PaymentId))
             .Select(r => new { r.PaymentId, r.ReceiptId })
             .ToListAsync(cancellationToken);
 
-        var invoicesTask = _context.Invoices.AsNoTracking()
+        var invoices = await _context.Invoices.AsNoTracking()
             .Where(i => i.SourcePaymentId != null && paymentIds.Contains(i.SourcePaymentId.Value))
             .Select(i => new { PaymentId = i.SourcePaymentId!.Value, i.Id, i.InvoiceNumber })
             .ToListAsync(cancellationToken);
 
-        var voucherAggTask = _context.VoucherLedgerEntries.AsNoTracking()
+        var voucherAgg = await _context.VoucherLedgerEntries.AsNoTracking()
             .Where(l => l.PaymentId != null
                 && paymentIds.Contains(l.PaymentId.Value)
                 && l.Type == VoucherTransactionType.Redeem)
@@ -195,16 +196,16 @@ public sealed class AdminPaymentListService : IAdminPaymentListService
             .Select(g => new { PaymentId = g.Key, Amount = g.Sum(l => -l.Amount) })
             .ToListAsync(cancellationToken);
 
-        Task<List<OriginalReceiptRow>> originalReceiptsTask = originalPaymentIds.Count == 0
-            ? Task.FromResult(new List<OriginalReceiptRow>())
-            : _context.PaymentDetails.AsNoTracking()
+        List<OriginalReceiptRow> originalReceipts = originalPaymentIds.Count == 0
+            ? []
+            : await _context.PaymentDetails.AsNoTracking()
                 .Where(p => originalPaymentIds.Contains(p.Id))
                 .Select(p => new OriginalReceiptRow { Id = p.Id, ReceiptNumber = p.ReceiptNumber })
                 .ToListAsync(cancellationToken);
 
-        Task<List<CashierNameRow>> cashiersTask = cashierIds.Count == 0
-            ? Task.FromResult(new List<CashierNameRow>())
-            : _context.Users.AsNoTracking()
+        List<CashierNameRow> cashiers = cashierIds.Count == 0
+            ? []
+            : await _context.Users.AsNoTracking()
                 .Where(u => cashierIds.Contains(u.Id))
                 .Select(u => new CashierNameRow
                 {
@@ -213,17 +214,15 @@ public sealed class AdminPaymentListService : IAdminPaymentListService
                 })
                 .ToListAsync(cancellationToken);
 
-        await Task.WhenAll(receiptsTask, invoicesTask, voucherAggTask, originalReceiptsTask, cashiersTask);
-
-        var receiptByPayment = receiptsTask.Result
+        var receiptByPayment = receipts
             .GroupBy(r => r.PaymentId)
             .ToDictionary(g => g.Key, g => (Guid?)g.First().ReceiptId);
-        var invoiceByPayment = invoicesTask.Result
+        var invoiceByPayment = invoices
             .GroupBy(i => i.PaymentId)
             .ToDictionary(g => g.Key, g => g.First());
-        var voucherByPayment = voucherAggTask.Result.ToDictionary(v => v.PaymentId, v => v.Amount);
-        var originalReceiptByPaymentId = originalReceiptsTask.Result.ToDictionary(p => p.Id, p => p.ReceiptNumber);
-        var cashierById = cashiersTask.Result.ToDictionary(c => c.Id, c => c.DisplayName, StringComparer.Ordinal);
+        var voucherByPayment = voucherAgg.ToDictionary(v => v.PaymentId, v => v.Amount);
+        var originalReceiptByPaymentId = originalReceipts.ToDictionary(p => p.Id, p => p.ReceiptNumber);
+        var cashierById = cashiers.ToDictionary(c => c.Id, c => c.DisplayName, StringComparer.Ordinal);
 
         return coreRows.Select(p =>
         {
@@ -286,14 +285,10 @@ public sealed class AdminPaymentListService : IAdminPaymentListService
         if (paymentMethods.Count == 0)
             return [];
 
-        var resolveTasks = paymentMethods
-            .Select(method => _paymentMethodCatalog.ResolveRawForFilterAsync(method, cancellationToken: cancellationToken))
-            .ToList();
-        var resolved = await Task.WhenAll(resolveTasks);
-
         var raws = new List<string>();
-        foreach (var raw in resolved)
+        foreach (var method in paymentMethods)
         {
+            var raw = await _paymentMethodCatalog.ResolveRawForFilterAsync(method, cancellationToken: cancellationToken);
             if (!raws.Contains(raw, StringComparer.Ordinal))
                 raws.Add(raw);
         }
