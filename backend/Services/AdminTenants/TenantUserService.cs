@@ -129,7 +129,8 @@ public sealed class TenantUserService : ITenantUserService
         if (string.IsNullOrWhiteSpace(request.UserId))
             return (null, "User id is required.");
 
-        if (!TryValidateAssignableRole(request.Role, out var roleError))
+        var (roleValid, roleError) = await ValidateAssignableRoleAsync(request.Role, cancellationToken).ConfigureAwait(false);
+        if (!roleValid)
             return (null, roleError);
 
         var user = await _userManager.FindByIdAsync(request.UserId).ConfigureAwait(false);
@@ -469,7 +470,8 @@ public sealed class TenantUserService : ITenantUserService
 
         if (request.Role != null)
         {
-            if (!TryValidateAssignableRole(request.Role, out var roleError))
+            var (roleValid, roleError) = await ValidateAssignableRoleAsync(request.Role, cancellationToken).ConfigureAwait(false);
+            if (!roleValid)
                 return (null, roleError);
 
             var roleUpdateError = await ChangeUserRoleAsync(
@@ -575,7 +577,8 @@ public sealed class TenantUserService : ITenantUserService
         if (user == null)
             return (null, "User not found.");
 
-        if (!TryValidateAssignableRole(request.Role, out var roleError))
+        var (roleValid, roleError) = await ValidateAssignableRoleAsync(request.Role, cancellationToken).ConfigureAwait(false);
+        if (!roleValid)
             return (null, roleError);
 
         var roleUpdateError = await ChangeUserRoleAsync(
@@ -694,23 +697,31 @@ public sealed class TenantUserService : ITenantUserService
         return error;
     }
 
-    private static bool TryValidateAssignableRole(string? role, out string? error)
+    private async Task<(bool Valid, string? Error)> ValidateAssignableRoleAsync(
+        string? role,
+        CancellationToken cancellationToken)
     {
-        error = null;
         var trimmed = role?.Trim();
         if (string.IsNullOrEmpty(trimmed))
+            return (false, "Role is required.");
+
+        if (string.Equals(trimmed, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase)
+            || Roles.ReservedRoleNames.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
         {
-            error = "Role is required.";
-            return false;
+            return (false, $"Role '{trimmed}' cannot be assigned to a tenant user.");
         }
 
-        if (!AssignableRoles.Contains(trimmed))
-        {
-            error = $"Role '{trimmed}' cannot be assigned to a tenant user.";
-            return false;
-        }
+        if (AssignableRoles.Contains(trimmed))
+            return (true, null);
 
-        return true;
+        var normalized = trimmed.ToUpperInvariant();
+        var roleExists = await _db.Roles.AsNoTracking()
+            .AnyAsync(r => r.NormalizedName == normalized, cancellationToken)
+            .ConfigureAwait(false);
+        if (roleExists)
+            return (true, null);
+
+        return (false, $"Role '{trimmed}' cannot be assigned to a tenant user.");
     }
 
     private static bool TryValidateTenantCreateRole(string? role, out string? error)

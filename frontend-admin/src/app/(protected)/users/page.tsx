@@ -63,6 +63,7 @@ import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminU
 import { DevOrphanedUsersCleanupButton } from '@/features/users/components/DevOrphanedUsersCleanupButton';
 import { createPlatformUser, getAdminUserTenants, updateUserRole, updateUserTenants } from '@/features/users/api/users';
 import { shouldPromptRoleChange } from '@/features/users/utils/roleChangePreservePolicy';
+import { resolveRoleChangeTenantId } from '@/features/users/utils/resolveRoleChangeTenantId';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
@@ -225,6 +226,7 @@ export default function UsersPage() {
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
     const { user: currentUser } = useAuth();
+    const { tenantId: currentTenantId, isRealTenantSlug } = useCurrentTenant();
     const policy = useUsersPolicy();
     const isSuperAdminLayout = isSuperAdmin(currentUser?.role);
 
@@ -568,9 +570,13 @@ export default function UsersPage() {
         const newRole = (values as UpdateUserRequest).role?.trim() ?? '';
         if (shouldPromptRoleChange(previousRole, newRole)) {
             const memberships = await getAdminUserTenants(editUserId);
+            const tenantId = resolveRoleChangeTenantId(
+                memberships,
+                isRealTenantSlug ? currentTenantId : null,
+            );
             setPendingEditRoleChange({
                 userId: editUserId,
-                tenantId: memberships[0]?.tenantId,
+                tenantId,
                 previousRole,
                 newRole,
                 submitValues: values,
@@ -584,8 +590,12 @@ export default function UsersPage() {
         if (!pendingEditRoleChange) return;
         setEditRoleChangeSubmitting(true);
         try {
-            if (pendingEditRoleChange.tenantId) {
-                await updateUserRole(pendingEditRoleChange.tenantId, pendingEditRoleChange.userId, {
+            const tenantId =
+                pendingEditRoleChange.tenantId ??
+                (isRealTenantSlug ? currentTenantId ?? undefined : undefined);
+
+            if (tenantId) {
+                await updateUserRole(tenantId, pendingEditRoleChange.userId, {
                     role: pendingEditRoleChange.newRole,
                     preservePreviousPermissions,
                 });

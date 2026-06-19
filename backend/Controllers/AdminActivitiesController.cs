@@ -78,6 +78,9 @@ public sealed class AdminActivitiesController : ControllerBase
 
         Response.ContentType = "text/event-stream";
         Response.StatusCode = StatusCodes.Status200OK;
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
+        Response.Headers.Append("X-Accel-Buffering", "no");
 
         await foreach (var message in _streamHub.SubscribeAsync(tenantId, cancellationToken).ConfigureAwait(false))
         {

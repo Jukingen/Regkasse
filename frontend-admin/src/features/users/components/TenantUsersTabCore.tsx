@@ -38,6 +38,7 @@ import { CreateUserModal } from '@/features/users/components/CreateUserModal';
 import { ChangeRoleModal } from '@/features/users/components/ChangeRoleModal';
 import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
 import { useCreateUser } from '@/features/users/hooks/useCreateUser';
+import { useRoles } from '@/features/users/hooks/useRoles';
 import { useUpdateUserRole } from '@/features/users/hooks/useUpdateUserRole';
 import { InviteTenantContextBanner } from '@/features/users/components/InviteTenantContextBanner';
 import { UserRoleBadge } from '@/features/users/components/UserRoleBadge';
@@ -94,6 +95,14 @@ export function TenantUsersTabCore({
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 300);
     const searchParam = debouncedSearch.trim() || undefined;
+    const { data: roleCatalog } = useRoles({ enabled: isFixedTenant && policy.canEdit });
+    const tableRoleOptions = useMemo(
+        () =>
+            (roleCatalog ?? [])
+                .filter((role) => !isPlatformUserRole(role))
+                .map((role) => ({ value: role, label: roleDisplayLabel(role) })),
+        [roleCatalog, roleDisplayLabel],
+    );
     const [addOpen, setAddOpen] = useState(false);
     const [createOpen, setCreateOpen] = useState(false);
     const [quickOpen, setQuickOpen] = useState(false);
@@ -513,6 +522,7 @@ export function TenantUsersTabCore({
                     setOwnerPending={setOwnerMutation.isPending}
                     removePending={removeMutation.isPending}
                     roleChangeUserId={roleChangeUserId}
+                    roleOptions={tableRoleOptions}
                     onSetOwner={(userId) => setOwnerMutation.mutate(userId)}
                     onRemove={(userId) => removeMutation.mutate(userId)}
                     onRoleChange={handleRoleChangeRequest}

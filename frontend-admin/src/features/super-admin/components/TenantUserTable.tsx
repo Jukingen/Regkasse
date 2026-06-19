@@ -8,7 +8,7 @@ import type { TenantUser } from '@/features/super-admin/api/tenantUsers';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 
-const ASSIGNABLE_ROLES = ['Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'] as const;
+const DEFAULT_ASSIGNABLE_ROLES = ['Manager', 'Cashier', 'Waiter', 'Kitchen', 'ReportViewer', 'Accountant'] as const;
 
 export type TenantUserTableProps = {
     users: TenantUser[];
@@ -17,6 +17,8 @@ export type TenantUserTableProps = {
     removePending?: boolean;
     roleChangeUserId?: string | null;
     resetPendingUserId?: string | null;
+    /** Full role catalog (system + custom). Falls back to default system roles. */
+    roleOptions?: { value: string; label: string }[];
     onSetOwner: (userId: string) => void;
     onRemove: (userId: string) => void;
     onRoleChange: (userId: string, previousRole: string, newRole: string) => void;
@@ -30,12 +32,18 @@ export function TenantUserTable({
     removePending,
     roleChangeUserId,
     resetPendingUserId,
+    roleOptions,
     onSetOwner,
     onRemove,
     onRoleChange,
     onResetPassword,
 }: TenantUserTableProps) {
     const { t, formatLocale } = useI18n();
+
+    const selectRoleOptions =
+        roleOptions && roleOptions.length > 0
+            ? roleOptions
+            : DEFAULT_ASSIGNABLE_ROLES.map((r) => ({ value: r, label: r }));
 
     const columns: ColumnsType<TenantUser> = [
         {
@@ -79,7 +87,7 @@ export function TenantUserTable({
                             onRoleChange(row.userId, row.role, value);
                         }
                     }}
-                    options={ASSIGNABLE_ROLES.map((r) => ({ value: r, label: r }))}
+                    options={selectRoleOptions}
                 />
             ),
         },
@@ -145,4 +153,4 @@ export function TenantUserTable({
     );
 }
 
-export { ASSIGNABLE_ROLES };
+export { DEFAULT_ASSIGNABLE_ROLES as ASSIGNABLE_ROLES };

@@ -440,6 +440,16 @@
     "colStatus": "Status",
     "colCapacity": "Covers"
   },
+  "search": {
+    "placeholder": "Search menu…",
+    "placeholderWithShortcut": "Search menu… ({shortcut})",
+    "ariaLabel": "Search menu",
+    "helpText": "Arrow keys to navigate, Enter to select, Escape to close.",
+    "noResults": "No results",
+    "hint": "Type to filter menu entries.",
+    "searching": "Searching…",
+    "resultsAria": "Search results"
+  },
   "commandPalette": {
     "placeholder": "Search pages, actions, or users…",
     "keyboardHint": "↑↓ navigate · Enter run · Esc close",

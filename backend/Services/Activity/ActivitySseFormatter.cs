@@ -18,10 +18,6 @@ internal static class ActivitySseFormatter
         ActivityStreamMessage message,
         CancellationToken cancellationToken = default)
     {
-        response.Headers.CacheControl = "no-cache";
-        response.Headers.Connection = "keep-alive";
-        response.Headers.Append("X-Accel-Buffering", "no");
-
         var json = message.Data == null
             ? "{}"
             : JsonSerializer.Serialize(message.Data, JsonOptions);

@@ -440,6 +440,16 @@
     "colStatus": "Durum",
     "colCapacity": "Kapasite"
   },
+  "search": {
+    "placeholder": "Menüde ara…",
+    "placeholderWithShortcut": "Menüde ara… ({shortcut})",
+    "ariaLabel": "Menüde ara",
+    "helpText": "Gezinmek için ok tuslari, secmek icin Enter, kapatmak icin Escape.",
+    "noResults": "Sonuç yok",
+    "hint": "Menü girdilerini filtrelemek için yazın.",
+    "searching": "Aranıyor…",
+    "resultsAria": "Arama sonuçları"
+  },
   "commandPalette": {
     "placeholder": "Sayfa, islem veya kullanici ara…",
     "keyboardHint": "↑↓ gezin · Enter calistir · Esc kapat",

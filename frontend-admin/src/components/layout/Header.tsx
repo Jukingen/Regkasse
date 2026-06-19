@@ -33,6 +33,7 @@ import { AlertBell } from '@/components/AlertBell';
 import { MonatsbelegGlobalBadge } from '@/features/dashboard/components/MonatsbelegGlobalBadge';
 
 import { AdminHeaderUserMenu } from '@/components/layout/AdminHeaderUserMenu';
+import { GlobalSearch } from '@/components/admin-layout/GlobalSearch';
 
 import type { AuthUser } from '@/shared/auth/types';
 
@@ -241,6 +242,8 @@ export function AdminShellHeader({
                     </div>
 
 
+
+                    <GlobalSearch isMobile={isMobile} />
 
                     <AdminHeaderUserMenu
 

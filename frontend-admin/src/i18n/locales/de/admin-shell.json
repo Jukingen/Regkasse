@@ -440,6 +440,16 @@
     "colStatus": "Status",
     "colCapacity": "Plätze"
   },
+  "search": {
+    "placeholder": "Menü durchsuchen…",
+    "placeholderWithShortcut": "Menü durchsuchen… ({shortcut})",
+    "ariaLabel": "Menü durchsuchen",
+    "helpText": "Pfeiltasten zum Navigieren, Eingabetaste zum Auswählen, Escape zum Schließen.",
+    "noResults": "Keine Ergebnisse",
+    "hint": "Tippen Sie, um Menüeinträge zu filtern.",
+    "searching": "Suchen…",
+    "resultsAria": "Suchergebnisse"
+  },
   "commandPalette": {
     "placeholder": "Seiten, Aktionen oder Benutzer suchen…",
     "keyboardHint": "↑↓ navigieren · Enter ausführen · Esc schließen",

@@ -294,3 +294,121 @@
     height: 44px !important;
   }
 }
+
+/* Global menu search (header) */
+.admin-header-nav-search {
+  position: relative;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 240px;
+}
+
+.admin-header-nav-search-compact {
+  max-width: 140px;
+}
+
+.admin-header-nav-search-compact .admin-header-nav-search-input {
+  min-width: 120px;
+}
+
+.admin-header-nav-search-input {
+  width: 100%;
+  min-width: 160px;
+}
+
+.admin-header-nav-search-kbd {
+  display: inline-block;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 1.4;
+  border-radius: 4px;
+  border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  background: var(--ant-color-fill-quaternary, #fafafa);
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+  font-family: inherit;
+}
+
+.admin-header-nav-search-popover .ant-popover-inner {
+  padding: 0;
+}
+
+.admin-header-nav-search-dropdown {
+  width: min(420px, calc(100vw - 32px));
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.admin-header-nav-search-hint {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.admin-header-nav-search-empty {
+  margin: 8px 0;
+}
+
+.admin-header-nav-search-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.admin-header-nav-search-option:hover,
+.admin-header-nav-search-option-selected {
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+}
+
+.admin-header-nav-search-option-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
+}
+
+.admin-header-nav-search-option-breadcrumb {
+  font-size: 12px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.admin-header-nav-search-option-path {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+}
+
+.admin-header-nav-search-mark {
+  padding: 0;
+  background: var(--ant-color-warning-bg, #fffbe6);
+  color: inherit;
+}
+
+.admin-header-nav-search-sr-help {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.admin-header-nav-search-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.45));
+}

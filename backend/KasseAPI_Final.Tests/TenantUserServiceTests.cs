@@ -592,4 +592,120 @@ public sealed class TenantUserServiceTests
         Assert.NotNull(result);
         Assert.False(string.IsNullOrEmpty(result!.GeneratedPassword));
     }
+
+    [Fact]
+    public async Task UpdateRoleAsync_Allows_Custom_Role_When_IdentityRole_Exists()
+    {
+        const string customRole = "custom_manager";
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        db.Roles.Add(new IdentityRole
+        {
+            Id = Guid.NewGuid().ToString("D"),
+            Name = customRole,
+            NormalizedName = customRole.ToUpperInvariant(),
+        });
+
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Custom Role Cafe",
+            Slug = "custom-role-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var userManager = CreateUserManager(db);
+        var user = new ApplicationUser
+        {
+            UserName = "mgr@custom.test",
+            Email = "mgr@custom.test",
+            FirstName = "M",
+            LastName = "G",
+            EmployeeNumber = "E2",
+            Role = Roles.Manager,
+            IsActive = true,
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        await userManager.CreateAsync(user, "OldPass123!");
+        await userManager.AddToRoleAsync(user, Roles.Manager);
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = user.Id,
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = false,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, userManager);
+        var (result, error) = await service.UpdateRoleAsync(
+            tenantId,
+            user.Id,
+            new UpdateTenantUserRoleRequest
+            {
+                Role = customRole,
+                PreservePreviousPermissions = true,
+            });
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.Equal(customRole, result!.Role);
+        Assert.Equal(customRole, user.Role);
+    }
+
+    [Fact]
+    public async Task UpdateRoleAsync_Rejects_Unknown_Role()
+    {
+        await using var db = CreateDb();
+        await SeedRolesAsync(db);
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Reject Cafe",
+            Slug = "reject-cafe",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+
+        var userManager = CreateUserManager(db);
+        var user = new ApplicationUser
+        {
+            UserName = "cashier@reject.test",
+            Email = "cashier@reject.test",
+            FirstName = "C",
+            LastName = "U",
+            EmployeeNumber = "E3",
+            Role = Roles.Cashier,
+            IsActive = true,
+            EmailConfirmed = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+        await userManager.CreateAsync(user, "OldPass123!");
+        await userManager.AddToRoleAsync(user, Roles.Cashier);
+        db.UserTenantMemberships.Add(new UserTenantMembership
+        {
+            UserId = user.Id,
+            TenantId = tenantId,
+            IsActive = true,
+            IsOwner = false,
+            CreatedAtUtc = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, userManager);
+        var (result, error) = await service.UpdateRoleAsync(
+            tenantId,
+            user.Id,
+            new UpdateTenantUserRoleRequest { Role = "does_not_exist" });
+
+        Assert.Null(result);
+        Assert.Contains("cannot be assigned", error ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -2,22 +2,16 @@
 
 import { useCallback, useState } from 'react';
 import { CommandPalette } from '@/components/CommandPalette/CommandPalette';
-import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 /**
- * Global command palette: Cmd+K / Ctrl+K on all protected pages.
+ * Global command palette modal (entity search, actions).
+ * Menu search shortcut (Ctrl+K / Cmd+K) is owned by `GlobalSearch` in the shell header.
  * Mount once in `(protected)/layout.tsx`.
  */
 export function CommandPaletteShell() {
     const [open, setOpen] = useState(false);
 
-    const openPalette = useCallback(() => setOpen(true), []);
     const closePalette = useCallback(() => setOpen(false), []);
-
-    useKeyboardShortcut('k', {
-        metaOrCtrl: true,
-        onTrigger: openPalette,
-    });
 
     return <CommandPalette open={open} onClose={closePalette} />;
 }
