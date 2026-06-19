@@ -22,8 +22,8 @@ export function useUpdateUserRole(options: UseUpdateUserRoleOptions = {}) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ tenantId, userId, role, preservePreviousPermissions }: UpdateUserRoleVariables) =>
-            updateUserRole(tenantId, userId, { role, preservePreviousPermissions }),
+        mutationFn: ({ tenantId, userId, role }: UpdateUserRoleVariables) =>
+            updateUserRole(tenantId, userId, { role }),
         onSuccess: (_data, variables) => {
             void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
             void queryClient.invalidateQueries({ queryKey: adminUsersQueryKeys.all() });

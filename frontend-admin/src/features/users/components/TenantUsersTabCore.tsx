@@ -35,7 +35,6 @@ import {
 } from '@/features/super-admin/api/tenantUsers';
 import { useSuperAdminPlatformPolicy } from '@/features/super-admin/auth/superAdminPlatformPolicy';
 import { CreateUserModal } from '@/features/users/components/CreateUserModal';
-import { ChangeRoleModal } from '@/features/users/components/ChangeRoleModal';
 import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
 import { useCreateUser } from '@/features/users/hooks/useCreateUser';
 import { useRoles } from '@/features/users/hooks/useRoles';
@@ -53,10 +52,6 @@ import {
 import { useGetApiAdminTenants } from '@/features/tenancy/api/getApiAdminTenants';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { isBusinessTenantSlug, isPlatformUserRole } from '@/features/users/utils/userScope';
-import {
-    isSameRoleName,
-    shouldPromptRoleChange,
-} from '@/features/users/utils/roleChangePreservePolicy';
 import { useI18n } from '@/i18n';
 import { useDebounce } from '@/hooks/useDebounce';
 import type { UsersPolicy } from '@/shared/auth/usersPolicy';
@@ -111,11 +106,6 @@ export function TenantUsersTabCore({
     const [resetRow, setResetRow] = useState<TenantUserRow | TenantUser | null>(null);
     const [permissionsUser, setPermissionsUser] = useState<TenantUserRow | TenantUser | null>(null);
     const [roleChangeUserId, setRoleChangeUserId] = useState<string | null>(null);
-    const [pendingRoleChange, setPendingRoleChange] = useState<{
-        userId: string;
-        previousRole: string;
-        newRole: string;
-    } | null>(null);
 
     const tenantsQuery = useGetApiAdminTenants();
     const { tenants: createTenants, isLoading: createTenantsLoading } = useTenantList();
@@ -237,27 +227,16 @@ export function TenantUsersTabCore({
     const updateUserRoleMutation = useUpdateUserRole({
         onSuccess: () => {
             message.success(t('users.roleChange.success'));
-            setPendingRoleChange(null);
             invalidate();
         },
         onError: () => message.error(t('users.roleChange.error')),
     });
 
     const handleRoleChangeRequest = (userId: string, previousRole: string, newRole: string) => {
-        if (!tenantId || !shouldPromptRoleChange(previousRole, newRole)) return;
-        setPendingRoleChange({ userId, previousRole, newRole });
-    };
-
-    const handleRoleChangeConfirm = (preservePreviousPermissions: boolean) => {
-        if (!pendingRoleChange || !tenantId) return;
-        setRoleChangeUserId(pendingRoleChange.userId);
+        if (!tenantId || previousRole === newRole) return;
+        setRoleChangeUserId(userId);
         updateUserRoleMutation.mutate(
-            {
-                tenantId,
-                userId: pendingRoleChange.userId,
-                role: pendingRoleChange.newRole,
-                preservePreviousPermissions,
-            },
+            { tenantId, userId, role: newRole },
             { onSettled: () => setRoleChangeUserId(null) },
         );
     };
@@ -643,16 +622,6 @@ export function TenantUsersTabCore({
                     onClose={() => setPermissionsUser(null)}
                 />
             ) : null}
-
-            <ChangeRoleModal
-                open={!!pendingRoleChange}
-                previousRole={pendingRoleChange?.previousRole ?? ''}
-                newRole={pendingRoleChange?.newRole ?? ''}
-                hasTenantContext={Boolean(tenantId)}
-                confirmLoading={updateUserRoleMutation.isPending}
-                onCancel={() => setPendingRoleChange(null)}
-                onConfirm={handleRoleChangeConfirm}
-            />
         </Space>
     );
 }

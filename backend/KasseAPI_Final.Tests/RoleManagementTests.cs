@@ -417,6 +417,49 @@ public class RoleManagementTests
     }
 
     [Fact]
+    public async Task CreateRoleAsync_WithInheritFromManager_CopiesPermissionClaims()
+    {
+        var (context, userManager, roleManager) = await CreateInMemorySetupAsync();
+        await roleManager.CreateAsync(new IdentityRole(Roles.Manager));
+        var resolver = new RolePermissionResolver(roleManager);
+        var roleMgmt = new RoleManagementService(roleManager, userManager, resolver);
+
+        var result = await roleMgmt.CreateRoleAsync("cstm_manager", Roles.Manager, CancellationToken.None);
+
+        Assert.Equal(CreateRoleResult.Success, result);
+        var created = await roleManager.FindByNameAsync("cstm_manager");
+        Assert.NotNull(created);
+        var claims = await roleManager.GetClaimsAsync(created!);
+        var permissions = claims.Where(c => c.Type == PermissionCatalog.PermissionClaimType).Select(c => c.Value).ToList();
+        Assert.Contains(AppPermissions.AuditExport, permissions);
+        Assert.Contains(AppPermissions.UserView, permissions);
+    }
+
+    [Fact]
+    public async Task CreateRoleAsync_CannotInheritFromSuperAdmin_DoesNotCreateRole()
+    {
+        var (_, userManager, roleManager) = await CreateInMemorySetupAsync();
+        var roleMgmt = new RoleManagementService(roleManager, userManager, new RolePermissionResolver(roleManager));
+
+        var result = await roleMgmt.CreateRoleAsync("cstm_admin", Roles.SuperAdmin, CancellationToken.None);
+
+        Assert.Equal(CreateRoleResult.CannotInheritFromSuperAdmin, result);
+        Assert.Null(await roleManager.FindByNameAsync("cstm_admin"));
+    }
+
+    [Fact]
+    public async Task CreateRoleAsync_SourceRoleNotFound_DoesNotCreateRole()
+    {
+        var (_, userManager, roleManager) = await CreateInMemorySetupAsync();
+        var roleMgmt = new RoleManagementService(roleManager, userManager, new RolePermissionResolver(roleManager));
+
+        var result = await roleMgmt.CreateRoleAsync("cstm_missing", "does_not_exist", CancellationToken.None);
+
+        Assert.Equal(CreateRoleResult.SourceRoleNotFound, result);
+        Assert.Null(await roleManager.FindByNameAsync("cstm_missing"));
+    }
+
+    [Fact]
     public async Task GetPermissionsCatalog_ReturnsOkWithItems()
     {
         var (context, userManager, roleManager) = await CreateInMemorySetupAsync();

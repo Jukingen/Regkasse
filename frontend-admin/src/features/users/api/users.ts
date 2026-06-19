@@ -265,7 +265,6 @@ export async function removeUserFromTenant(tenantId: string, userId: string): Pr
 
 export type UpdateUserRoleRequest = {
     role: string;
-    preservePreviousPermissions?: boolean;
 };
 
 export type UpdateUserRoleResult = {
@@ -278,7 +277,7 @@ export type UpdateUserRoleResult = {
     joinedAtUtc: string;
 };
 
-/** Assign a new role to a tenant user; optionally preserve permissions from the previous role. */
+/** Assign a new role to a tenant user. */
 export async function updateUserRole(
     tenantId: string,
     userId: string,
@@ -289,7 +288,6 @@ export async function updateUserRole(
         method: 'PUT',
         data: {
             role: body.role,
-            preservePreviousPermissions: Boolean(body.preservePreviousPermissions),
         },
     });
 }

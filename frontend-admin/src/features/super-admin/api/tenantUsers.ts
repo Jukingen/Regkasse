@@ -102,12 +102,8 @@ export async function updateTenantUserRole(
     tenantId: string,
     userId: string,
     role: string,
-    options?: Pick<UpdateUserRoleRequest, 'preservePreviousPermissions'>,
 ): Promise<TenantUser> {
-    return updateUserRoleApi(tenantId, userId, {
-        role,
-        preservePreviousPermissions: options?.preservePreviousPermissions,
-    });
+    return updateUserRoleApi(tenantId, userId, { role });
 }
 
 export type TenantUserPasswordResetResult = {

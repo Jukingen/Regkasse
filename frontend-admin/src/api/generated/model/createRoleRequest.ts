@@ -12,4 +12,6 @@ export interface CreateRoleRequest {
    * @maxLength 50
    */
   name: string;
+  /** Optional role name to copy permission claims from when creating the new role. */
+  inheritFromRole?: string;
 }

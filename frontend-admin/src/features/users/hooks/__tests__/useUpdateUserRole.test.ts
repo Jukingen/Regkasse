@@ -1,5 +1,5 @@
 /**
- * useUpdateUserRole – mutation forwards preservePreviousPermissions to API.
+ * useUpdateUserRole – mutation forwards role to API.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
@@ -32,7 +32,7 @@ describe('useUpdateUserRole', () => {
         vi.clearAllMocks();
     });
 
-    it('calls updateUserRole with preservePreviousPermissions when checked', async () => {
+    it('calls updateUserRole with role', async () => {
         mockUpdateUserRole.mockResolvedValue({ userId: 'u1', role: 'CustomRole' });
         const onSuccess = vi.fn();
         const { result } = renderHook(() => useUpdateUserRole({ onSuccess }), {
@@ -43,7 +43,6 @@ describe('useUpdateUserRole', () => {
             tenantId: 'tenant-1',
             userId: 'u1',
             role: 'CustomRole',
-            preservePreviousPermissions: true,
         });
 
         await waitFor(() => {
@@ -52,30 +51,7 @@ describe('useUpdateUserRole', () => {
 
         expect(mockUpdateUserRole).toHaveBeenCalledWith('tenant-1', 'u1', {
             role: 'CustomRole',
-            preservePreviousPermissions: true,
         });
         expect(onSuccess).toHaveBeenCalled();
-    });
-
-    it('defaults preservePreviousPermissions to undefined in API call', async () => {
-        mockUpdateUserRole.mockResolvedValue({ userId: 'u1', role: 'Cashier' });
-        const { result } = renderHook(() => useUpdateUserRole(), {
-            wrapper: createWrapper(),
-        });
-
-        result.current.mutate({
-            tenantId: 'tenant-1',
-            userId: 'u1',
-            role: 'Cashier',
-        });
-
-        await waitFor(() => {
-            expect(result.current.isSuccess).toBe(true);
-        });
-
-        expect(mockUpdateUserRole).toHaveBeenCalledWith('tenant-1', 'u1', {
-            role: 'Cashier',
-            preservePreviousPermissions: undefined,
-        });
     });
 });

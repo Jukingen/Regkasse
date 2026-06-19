@@ -14,21 +14,22 @@
   "messages": {
     "roleCreated": "Role created."
   },
+  "createRole": {
+    "inheritFromRole": "Inherit permissions from",
+    "inheritFromRoleHelp": "Optional: copy an existing role's permissions as a starting point.",
+    "inheritFromRolePlaceholder": "No inheritance",
+    "successWithInherit": "Role \"{{role}}\" created (permissions inherited from \"{{source}}\").",
+    "errors": {
+      "generic": "Could not create role.",
+      "alreadyExists": "This role already exists.",
+      "reservedName": "This role name is reserved for system roles.",
+      "inheritNotFound": "The selected source role for inheritance was not found.",
+      "inheritSuperAdminForbidden": "SuperAdmin permissions cannot be inherited onto custom roles."
+    }
+  },
   "roleChange": {
-    "modalTitle": "Change role",
-    "description": "The role will change from \"{{oldRole}}\" to \"{{newRole}}\".",
-    "preserveCheckbox": "Keep permissions from the current role",
-    "preserveTooltip": "Permissions from the current role are combined with the permissions of the new role.",
-    "confirm": "Assign role",
-    "cancel": "Cancel",
     "success": "Role updated.",
-    "error": "Could not update role.",
-    "noPreviousRoleTitle": "No previous role",
-    "noPreviousRoleDescription": "No previous role was found. Permissions cannot be carried over.",
-    "sameRoleTitle": "No change",
-    "sameRoleDescription": "The selected role matches the current role. No update is required.",
-    "superAdminWarningTitle": "SuperAdmin permissions",
-    "superAdminWarningDescription": "SuperAdmin permissions cannot be transferred to other roles."
+    "error": "Could not update role."
   },
   "username": {
     "editTitle": "Change username",

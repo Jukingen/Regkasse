@@ -30,6 +30,14 @@ public interface IRoleManagementService
     /// Deletes a custom role. Fails if system role or if any user is assigned to the role.
     /// </summary>
     Task<DeleteRoleResult> DeleteRoleAsync(string roleName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a custom role. Optionally copies permission claims from another role (system or custom).
+    /// </summary>
+    Task<CreateRoleResult> CreateRoleAsync(
+        string roleName,
+        string? inheritFromRole,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>POS/Admin login capability per role. For Role Capability Matrix UI only; does not change authorization.</summary>
@@ -84,4 +92,14 @@ public enum DeleteRoleResult
     RoleNotFound,
     SystemRoleNotDeletable,
     RoleHasAssignedUsers,
+}
+
+public enum CreateRoleResult
+{
+    Success,
+    ReservedName,
+    RoleAlreadyExists,
+    SourceRoleNotFound,
+    CannotInheritFromSuperAdmin,
+    Failed,
 }

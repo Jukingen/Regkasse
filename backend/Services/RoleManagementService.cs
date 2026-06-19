@@ -133,6 +133,62 @@ public sealed class RoleManagementService : IRoleManagementService
         return DeleteRoleResult.Success;
     }
 
+    public async Task<CreateRoleResult> CreateRoleAsync(
+        string roleName,
+        string? inheritFromRole,
+        CancellationToken cancellationToken = default)
+    {
+        var trimmedName = roleName?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(trimmedName))
+            return CreateRoleResult.Failed;
+
+        if (Roles.Canonical.Contains(trimmedName, StringComparer.OrdinalIgnoreCase)
+            || Roles.ReservedRoleNames.Contains(trimmedName, StringComparer.OrdinalIgnoreCase))
+        {
+            return CreateRoleResult.ReservedName;
+        }
+
+        if (await _roleManager.FindByNameAsync(trimmedName).ConfigureAwait(false) != null)
+            return CreateRoleResult.RoleAlreadyExists;
+
+        var sourceRole = inheritFromRole?.Trim();
+        IReadOnlyCollection<string>? permissionsToCopy = null;
+        if (!string.IsNullOrEmpty(sourceRole))
+        {
+            if (string.Equals(sourceRole, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+                return CreateRoleResult.CannotInheritFromSuperAdmin;
+
+            if (string.Equals(sourceRole, trimmedName, StringComparison.OrdinalIgnoreCase))
+                return CreateRoleResult.SourceRoleNotFound;
+
+            var sourceExists = await _roleManager.FindByNameAsync(sourceRole).ConfigureAwait(false) != null
+                || Roles.Canonical.Contains(sourceRole, StringComparer.OrdinalIgnoreCase);
+            if (!sourceExists)
+                return CreateRoleResult.SourceRoleNotFound;
+
+            permissionsToCopy = await _resolver.GetPermissionsForRolesAsync(new[] { sourceRole }, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
+        var create = await _roleManager.CreateAsync(new IdentityRole(trimmedName)).ConfigureAwait(false);
+        if (!create.Succeeded)
+            return CreateRoleResult.Failed;
+
+        if (permissionsToCopy == null || permissionsToCopy.Count == 0)
+            return CreateRoleResult.Success;
+
+        var setResult = await SetRolePermissionsAsync(trimmedName, permissionsToCopy.ToList(), cancellationToken)
+            .ConfigureAwait(false);
+        if (setResult == SetRolePermissionsResult.Success)
+            return CreateRoleResult.Success;
+
+        var createdRole = await _roleManager.FindByNameAsync(trimmedName).ConfigureAwait(false);
+        if (createdRole != null)
+            await _roleManager.DeleteAsync(createdRole).ConfigureAwait(false);
+
+        return CreateRoleResult.Failed;
+    }
+
     /// <summary>
     /// System role behavior is defined solely by Roles.Canonical membership (case-insensitive).
     /// Any name in that list is immutable at runtime, matrix-only for permissions, and not deletable.

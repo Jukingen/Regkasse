@@ -477,7 +477,6 @@ public sealed class TenantUserService : ITenantUserService
             var roleUpdateError = await ChangeUserRoleAsync(
                 user,
                 request.Role,
-                preservePreviousPermissions: false,
                 tenantId,
                 cancellationToken).ConfigureAwait(false);
             if (roleUpdateError != null)
@@ -582,11 +581,10 @@ public sealed class TenantUserService : ITenantUserService
             return (null, roleError);
 
         var roleUpdateError = await ChangeUserRoleAsync(
-            user,
-            request.Role,
-            request.PreservePreviousPermissions,
-            tenantId,
-            cancellationToken).ConfigureAwait(false);
+                user,
+                request.Role,
+                tenantId,
+                cancellationToken).ConfigureAwait(false);
         if (roleUpdateError != null)
             return (null, roleUpdateError);
 
@@ -625,7 +623,6 @@ public sealed class TenantUserService : ITenantUserService
         var roleUpdateError = await ChangeUserRoleAsync(
             user,
             role,
-            preservePreviousPermissions: false,
             tenantId,
             cancellationToken).ConfigureAwait(false);
         if (roleUpdateError != null)
@@ -682,14 +679,12 @@ public sealed class TenantUserService : ITenantUserService
     private async Task<string?> ChangeUserRoleAsync(
         ApplicationUser user,
         string role,
-        bool preservePreviousPermissions,
         Guid tenantId,
         CancellationToken cancellationToken)
     {
         var (_, error) = await _userRoleChangeService.ChangeUserRoleAsync(
             user,
             role,
-            preservePreviousPermissions,
             ResolveActorUserId(),
             ResolveActorRole(),
             tenantId,

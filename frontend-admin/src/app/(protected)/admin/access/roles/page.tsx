@@ -76,6 +76,7 @@ export default function AccessRolesPage() {
                     onConfirm={workspace.handleCreateRoleConfirm}
                     confirmLoading={workspace.createRoleLoading}
                     roleNameRules={modalRules.roleName}
+                    inheritRoleOptions={workspace.inheritRoleOptions}
                 />
             ) : null}
         </AdminPageShell>

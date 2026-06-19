@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { Alert, Form, Input, Modal } from 'antd';
+import React, { useEffect, useMemo } from 'react';
+import { Alert, Form, Input, Modal, Select } from 'antd';
 import type { Rule } from 'antd/es/form';
 
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import { usersCopy } from '@/features/users/constants/copy';
+import { useI18n } from '@/i18n';
 
 function fullName(record: UserInfo): string {
     const first = record.firstName ?? '';
@@ -141,9 +142,10 @@ export function ResetPasswordUserModal({
 
 type CreateRoleModalProps = {
     onCancel: () => void;
-    onConfirm: (name: string) => void;
+    onConfirm: (payload: { name: string; inheritFromRole?: string }) => void;
     confirmLoading?: boolean;
     roleNameRules: Rule[];
+    inheritRoleOptions?: { value: string; label: string }[];
 };
 
 export function CreateRoleModal({
@@ -151,13 +153,28 @@ export function CreateRoleModal({
     onConfirm,
     confirmLoading,
     roleNameRules,
+    inheritRoleOptions = [],
 }: CreateRoleModalProps) {
-    const [form] = Form.useForm<{ name: string }>();
+    const { t } = useI18n();
+    const [form] = Form.useForm<{ name: string; inheritFromRole?: string }>();
+
+    const selectableInheritOptions = useMemo(
+        () => inheritRoleOptions.filter((option) => option.value !== 'SuperAdmin'),
+        [inheritRoleOptions],
+    );
 
     const handleOk = () => {
-        void form.validateFields()
-            .then((values) => onConfirm(values.name.trim()))
-            .catch(() => { /* validation shown on form */ });
+        void form
+            .validateFields()
+            .then((values) =>
+                onConfirm({
+                    name: values.name.trim(),
+                    inheritFromRole: values.inheritFromRole?.trim() || undefined,
+                }),
+            )
+            .catch(() => {
+                /* validation shown on form */
+            });
     };
 
     const handleCancel = () => {
@@ -169,8 +186,10 @@ export function CreateRoleModal({
         <Modal
             title={usersCopy.createRole}
             open
+            destroyOnHidden
             onOk={handleOk}
             onCancel={handleCancel}
+            afterClose={() => form.resetFields()}
             okText={usersCopy.save}
             confirmLoading={confirmLoading}
         >
@@ -178,6 +197,19 @@ export function CreateRoleModal({
                 <Form.Item name="name" label={usersCopy.roleName} rules={roleNameRules}>
                     <Input placeholder="z. B. Manager" maxLength={50} showCount autoComplete="off" />
                 </Form.Item>
+                {selectableInheritOptions.length > 0 ? (
+                    <Form.Item
+                        name="inheritFromRole"
+                        label={t('users.createRole.inheritFromRole')}
+                        extra={t('users.createRole.inheritFromRoleHelp')}
+                    >
+                        <Select
+                            allowClear
+                            placeholder={t('users.createRole.inheritFromRolePlaceholder')}
+                            options={selectableInheritOptions}
+                        />
+                    </Form.Item>
+                ) : null}
             </Form>
         </Modal>
     );

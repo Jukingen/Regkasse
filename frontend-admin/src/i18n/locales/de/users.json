@@ -14,21 +14,22 @@
   "messages": {
     "roleCreated": "Rolle angelegt."
   },
+  "createRole": {
+    "inheritFromRole": "Berechtigungen übernehmen von",
+    "inheritFromRoleHelp": "Optional: Berechtigungen einer bestehenden Rolle als Ausgangspunkt kopieren.",
+    "inheritFromRolePlaceholder": "Keine Übernahme",
+    "successWithInherit": "Rolle „{{role}}“ wurde angelegt (Berechtigungen von „{{source}}“ übernommen).",
+    "errors": {
+      "generic": "Rolle konnte nicht angelegt werden.",
+      "alreadyExists": "Diese Rolle existiert bereits.",
+      "reservedName": "Dieser Rollenname ist für Systemrollen reserviert.",
+      "inheritNotFound": "Die gewählte Quellrolle für die Übernahme wurde nicht gefunden.",
+      "inheritSuperAdminForbidden": "SuperAdmin-Berechtigungen können nicht auf benutzerdefinierte Rollen übertragen werden."
+    }
+  },
   "roleChange": {
-    "modalTitle": "Rolle ändern",
-    "description": "Die Rolle wird von „{{oldRole}}“ auf „{{newRole}}“ geändert.",
-    "preserveCheckbox": "Vorherige Berechtigungen von der aktuellen Rolle übernehmen",
-    "preserveTooltip": "Die Berechtigungen der aktuellen Rolle werden mit den Berechtigungen der neuen Rolle kombiniert.",
-    "confirm": "Rolle zuweisen",
-    "cancel": "Abbrechen",
     "success": "Rolle wurde aktualisiert.",
-    "error": "Rolle konnte nicht aktualisiert werden.",
-    "noPreviousRoleTitle": "Keine vorherige Rolle",
-    "noPreviousRoleDescription": "Keine vorherige Rolle gefunden. Berechtigungen können nicht übernommen werden.",
-    "sameRoleTitle": "Keine Änderung",
-    "sameRoleDescription": "Die gewählte Rolle entspricht der aktuellen Rolle. Es ist keine Aktualisierung erforderlich.",
-    "superAdminWarningTitle": "SuperAdmin-Berechtigungen",
-    "superAdminWarningDescription": "SuperAdmin-Berechtigungen können nicht auf andere Rollen übertragen werden."
+    "error": "Rolle konnte nicht aktualisiert werden."
   },
   "username": {
     "editTitle": "Benutzername ändern",

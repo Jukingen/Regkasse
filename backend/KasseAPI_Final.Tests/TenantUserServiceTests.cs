@@ -70,23 +70,10 @@ public sealed class TenantUserServiceTests
         IUserRoleChangeService? userRoleChangeService = null)
     {
         var audit = auditLog ?? Mock.Of<IAuditLogService>();
-        var roleManager = new RoleManager<IdentityRole>(
-            new RoleStore<IdentityRole>(db),
-            Array.Empty<IRoleValidator<IdentityRole>>(),
-            new UpperInvariantLookupNormalizer(),
-            new IdentityErrorDescriber(),
-            Mock.Of<ILogger<RoleManager<IdentityRole>>>());
-        var rolePermissionResolver = new RolePermissionResolver(roleManager);
         var roleChange = userRoleChangeService ?? new UserRoleChangeService(
             userManager,
-            rolePermissionResolver,
-            new UserPermissionOverrideService(
-                db,
-                rolePermissionResolver,
-                new EffectivePermissionResolver(db, rolePermissionResolver)),
             audit,
             sessionInvalidation ?? Mock.Of<IUserSessionInvalidation>(),
-            db,
             Mock.Of<ILogger<UserRoleChangeService>>());
 
         return new TenantUserService(
@@ -649,7 +636,6 @@ public sealed class TenantUserServiceTests
             new UpdateTenantUserRoleRequest
             {
                 Role = customRole,
-                PreservePreviousPermissions = true,
             });
 
         Assert.Null(error);

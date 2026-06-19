@@ -27,6 +27,7 @@ import { useUsersList } from '@/features/users/hooks/useUsersList';
 import { useRoles } from '@/features/users/hooks/useRoles';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatNumber } from '@/i18n/formatting';
+import { useCreateRoleMutation } from '@/features/users/hooks/useCreateRoleMutation';
 import {
     listQueryKey,
     rolesQueryKey,
@@ -37,7 +38,6 @@ import {
     deactivateUser as gatewayDeactivateUser,
     reactivateUser as gatewayReactivateUser,
     resetPassword as gatewayResetPassword,
-    createRole as gatewayCreateRole,
     normalizeError,
     type UserInfo,
     type CreateUserRequest,
@@ -47,7 +47,6 @@ import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { EditUsernameModal } from '@/features/users/components/EditUsernameModal';
 import { UsersTable } from '@/features/users/components/UsersTable';
 import { UserFormDrawer, type UserFormSubmitValues } from '@/features/users/components/UserFormDrawer';
-import { ChangeRoleModal } from '@/features/users/components/ChangeRoleModal';
 import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
 import {
     CreateRoleModal,
@@ -61,9 +60,7 @@ import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
 import { DevOrphanedUsersCleanupButton } from '@/features/users/components/DevOrphanedUsersCleanupButton';
-import { createPlatformUser, getAdminUserTenants, updateUserRole, updateUserTenants } from '@/features/users/api/users';
-import { shouldPromptRoleChange } from '@/features/users/utils/roleChangePreservePolicy';
-import { resolveRoleChangeTenantId } from '@/features/users/utils/resolveRoleChangeTenantId';
+import { createPlatformUser, updateUserTenants } from '@/features/users/api/users';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
@@ -214,19 +211,9 @@ export default function UsersPage() {
     const [resetPasswordUser, setResetPasswordUser] = useState<UserInfo | null>(null);
     const [usernameEditUser, setUsernameEditUser] = useState<UserInfo | null>(null);
     const [permissionsUser, setPermissionsUser] = useState<UserInfo | null>(null);
-    const [pendingEditRoleChange, setPendingEditRoleChange] = useState<{
-        userId: string;
-        tenantId?: string;
-        previousRole: string;
-        newRole: string;
-        submitValues: UserFormSubmitValues;
-    } | null>(null);
-    const [editRoleChangeSubmitting, setEditRoleChangeSubmitting] = useState(false);
-    /** Backend validation error shown inside reset password modal (German); cleared when modal closes. */
-    const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
+    const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const { user: currentUser } = useAuth();
-    const { tenantId: currentTenantId, isRealTenantSlug } = useCurrentTenant();
     const policy = useUsersPolicy();
     const isSuperAdminLayout = isSuperAdmin(currentUser?.role);
 
@@ -511,16 +498,8 @@ export default function UsersPage() {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
         },
     });
-    const createRoleMutation = useMutation({
-        mutationFn: (data: { name: string }) => gatewayCreateRole({ name: data.name.trim() }),
-        onSuccess: () => {
-            message.success(t('users.messages.roleCreated'));
-            queryClient.invalidateQueries({ queryKey: rolesQueryKey });
-            setCreateRoleOpen(false);
-        },
-        onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorGeneric).message);
-        },
+    const createRoleMutation = useCreateRoleMutation({
+        onSuccess: () => setCreateRoleOpen(false),
     });
     const handleCreate = (values: CreateUserRequest | UpdateUserRequest) => {
         if (!policy.canCreate) {
@@ -566,47 +545,15 @@ export default function UsersPage() {
             message.error(usersCopy.noPermission);
             return;
         }
-        const previousRole = editUserFull?.role?.trim() ?? '';
-        const newRole = (values as UpdateUserRequest).role?.trim() ?? '';
-        if (shouldPromptRoleChange(previousRole, newRole)) {
-            const memberships = await getAdminUserTenants(editUserId);
-            const tenantId = resolveRoleChangeTenantId(
-                memberships,
-                isRealTenantSlug ? currentTenantId : null,
-            );
-            setPendingEditRoleChange({
-                userId: editUserId,
-                tenantId,
-                previousRole,
-                newRole,
-                submitValues: values,
-            });
-            return;
-        }
         await submitEditUser(values, editUserId);
     };
 
-    const handleEditRoleChangeConfirm = async (preservePreviousPermissions: boolean) => {
-        if (!pendingEditRoleChange) return;
-        setEditRoleChangeSubmitting(true);
-        try {
-            const tenantId =
-                pendingEditRoleChange.tenantId ??
-                (isRealTenantSlug ? currentTenantId ?? undefined : undefined);
-
-            if (tenantId) {
-                await updateUserRole(tenantId, pendingEditRoleChange.userId, {
-                    role: pendingEditRoleChange.newRole,
-                    preservePreviousPermissions,
-                });
-            }
-            await submitEditUser(pendingEditRoleChange.submitValues, pendingEditRoleChange.userId);
-            setPendingEditRoleChange(null);
-        } catch {
-            /* submitEditUser already surfaces errors */
-        } finally {
-            setEditRoleChangeSubmitting(false);
+    const handleCreateRoleConfirm = (payload: { name: string; inheritFromRole?: string }) => {
+        if (!policy.canCreateRole) {
+            message.error(usersCopy.noPermission);
+            return;
         }
+        createRoleMutation.mutate(payload);
     };
     const handleDeactivateConfirm = (reason: string) => {
         if (!deactivateUserRecord?.id) return;
@@ -631,13 +578,6 @@ export default function UsersPage() {
             return;
         }
         resetPasswordMutation.mutate({ id: resetPasswordUser.id, data: { newPassword } });
-    };
-    const handleCreateRoleConfirm = (name: string) => {
-        if (!policy.canCreateRole) {
-            message.error(usersCopy.noPermission);
-            return;
-        }
-        createRoleMutation.mutate({ name });
     };
     const handleClearResetPasswordValidationError = useCallback(() => {
         setResetPasswordValidationError(null);
@@ -1034,6 +974,7 @@ export default function UsersPage() {
                     onConfirm={handleCreateRoleConfirm}
                     confirmLoading={createRoleMutation.isPending}
                     roleNameRules={modalRules.roleName}
+                    inheritRoleOptions={roleOptions}
                 />
             ) : null}
 
@@ -1046,16 +987,6 @@ export default function UsersPage() {
                     onClose={() => setPermissionsUser(null)}
                 />
             ) : null}
-
-            <ChangeRoleModal
-                open={!!pendingEditRoleChange}
-                previousRole={pendingEditRoleChange?.previousRole ?? ''}
-                newRole={pendingEditRoleChange?.newRole ?? ''}
-                hasTenantContext={Boolean(pendingEditRoleChange?.tenantId)}
-                confirmLoading={editRoleChangeSubmitting || updateMutation.isPending}
-                onCancel={() => setPendingEditRoleChange(null)}
-                onConfirm={(preservePreviousPermissions) => void handleEditRoleChangeConfirm(preservePreviousPermissions)}
-            />
         </AdminPageShell>
     );
 }

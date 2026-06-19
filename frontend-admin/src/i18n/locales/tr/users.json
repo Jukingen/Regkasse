@@ -14,21 +14,22 @@
   "messages": {
     "roleCreated": "Rol oluşturuldu."
   },
+  "createRole": {
+    "inheritFromRole": "İzinleri şuradan devral",
+    "inheritFromRoleHelp": "İsteğe bağlı: mevcut bir rolün izinlerini başlangıç noktası olarak kopyalayın.",
+    "inheritFromRolePlaceholder": "Devralma yok",
+    "successWithInherit": "«{{role}}» rolü oluşturuldu (izinler «{{source}}» rolünden devralındı).",
+    "errors": {
+      "generic": "Rol oluşturulamadı.",
+      "alreadyExists": "Bu rol zaten mevcut.",
+      "reservedName": "Bu rol adı sistem rolleri için ayrılmış.",
+      "inheritNotFound": "Devralma için seçilen kaynak rol bulunamadı.",
+      "inheritSuperAdminForbidden": "SuperAdmin izinleri özel rollere devralınamaz."
+    }
+  },
   "roleChange": {
-    "modalTitle": "Rolü değiştir",
-    "description": "Rol «{{oldRole}}» iken «{{newRole}}» olacak.",
-    "preserveCheckbox": "Mevcut rolün izinlerini koru",
-    "preserveTooltip": "Mevcut rolün izinleri yeni rolün izinleriyle birleştirilir.",
-    "confirm": "Rolü ata",
-    "cancel": "İptal",
     "success": "Rol güncellendi.",
-    "error": "Rol güncellenemedi.",
-    "noPreviousRoleTitle": "Önceki rol yok",
-    "noPreviousRoleDescription": "Önceki rol bulunamadı. İzinler aktarılamaz.",
-    "sameRoleTitle": "Değişiklik yok",
-    "sameRoleDescription": "Seçilen rol mevcut rol ile aynı. Güncelleme gerekmez.",
-    "superAdminWarningTitle": "SuperAdmin izinleri",
-    "superAdminWarningDescription": "SuperAdmin izinleri diğer rollere aktarılamaz."
+    "error": "Rol güncellenemedi."
   },
   "username": {
     "editTitle": "Kullanıcı adını değiştir",

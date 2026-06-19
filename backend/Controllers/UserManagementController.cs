@@ -1425,27 +1425,24 @@ namespace KasseAPI_Final.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var trimmedName = request.Name.Trim();
-                if (Roles.Canonical.Contains(trimmedName, StringComparer.OrdinalIgnoreCase) ||
-                    Roles.ReservedRoleNames.Contains(trimmedName, StringComparer.OrdinalIgnoreCase))
-                {
-                    return BadRequest(new { message = "Role name is reserved for system roles. Choose a different name for a custom role.", code = "ROLE_NAME_RESERVED", errors = new { Name = new[] { "This role name is reserved." } } });
-                }
+                var result = await _roleManagementService
+                    .CreateRoleAsync(request.Name, request.InheritFromRole, CancellationToken.None)
+                    .ConfigureAwait(false);
 
-                var existingRole = await _roleManager.FindByNameAsync(request.Name);
-                if (existingRole != null)
+                return result switch
                 {
-                    return BadRequest(new { message = "Role already exists", code = "ROLE_ALREADY_EXISTS" });
-                }
-
-                var role = new IdentityRole(request.Name);
-                var result = await _roleManager.CreateAsync(role);
-                if (!result.Succeeded)
-                {
-                    return BadRequest(new { message = "Failed to create role", errors = result.Errors });
-                }
-
-                return Ok(new { message = "Role created successfully" });
+                    CreateRoleResult.Success => Ok(new { message = "Role created successfully" }),
+                    CreateRoleResult.ReservedName => BadRequest(new
+                    {
+                        message = "Role name is reserved for system roles. Choose a different name for a custom role.",
+                        code = "ROLE_NAME_RESERVED",
+                        errors = new { Name = new[] { "This role name is reserved." } },
+                    }),
+                    CreateRoleResult.RoleAlreadyExists => BadRequest(new { message = "Role already exists", code = "ROLE_ALREADY_EXISTS" }),
+                    CreateRoleResult.SourceRoleNotFound => BadRequest(new { message = "Source role for inheritance was not found.", code = "INHERIT_ROLE_NOT_FOUND" }),
+                    CreateRoleResult.CannotInheritFromSuperAdmin => BadRequest(new { message = "SuperAdmin permissions cannot be inherited onto custom roles.", code = "INHERIT_SUPERADMIN_FORBIDDEN" }),
+                    _ => BadRequest(new { message = "Failed to create role", code = "ROLE_CREATE_FAILED" }),
+                };
             }
             catch (Exception ex)
             {
@@ -1583,6 +1580,10 @@ namespace KasseAPI_Final.Controllers
         [Required]
         [MaxLength(50)]
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>Optional source role; permissions are copied to the new custom role.</summary>
+        [MaxLength(64)]
+        public string? InheritFromRole { get; set; }
     }
 
     /// <summary>RKSV/DSGVO: Deaktivasyon nedeni zorunlu (audit trail).</summary>

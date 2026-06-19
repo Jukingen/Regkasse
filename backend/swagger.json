@@ -29069,6 +29069,10 @@
             "maxLength": 50,
             "minLength": 1,
             "type": "string"
+          },
+          "inheritFromRole": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
