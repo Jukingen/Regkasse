@@ -1,4 +1,5 @@
 using KasseAPI_Final.Authorization;
+using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
@@ -14,10 +15,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text.Json;
 using Xunit;
@@ -26,13 +29,42 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class AdminTenantsControllerTests
 {
+    private static readonly ConditionalWeakTable<AppDbContext, IServiceScopeFactory> DbScopeFactories = new();
+
     private static AppDbContext CreateDb(ICurrentTenantAccessor? tenantAccessor = null)
     {
+        var (db, scopeFactory) = CreateDbWithScopeFactory(tenantAccessor);
+        DbScopeFactories.Add(db, scopeFactory);
+        return db;
+    }
+
+    private static (AppDbContext Db, IServiceScopeFactory ScopeFactory) CreateDbWithScopeFactory(
+        ICurrentTenantAccessor? tenantAccessor = null)
+    {
+        var dbName = $"AdminTenants_{Guid.NewGuid():N}";
+        var accessor = tenantAccessor ?? NullCurrentTenantAccessor.Instance;
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"AdminTenants_{Guid.NewGuid():N}")
+            .UseInMemoryDatabase(dbName)
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, tenantAccessor ?? NullCurrentTenantAccessor.Instance);
+        var db = new AppDbContext(options, accessor);
+
+        var services = new ServiceCollection();
+        services.AddSingleton<ICurrentTenantAccessor>(accessor);
+        services.AddDbContextFactory<AppDbContext>(builder =>
+            builder
+                .UseInMemoryDatabase(dbName)
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+        var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+        return (db, scopeFactory);
+    }
+
+    private static IServiceScopeFactory CreateScopeFactoryForDb(AppDbContext db)
+    {
+        if (DbScopeFactories.TryGetValue(db, out var scopeFactory))
+            return scopeFactory;
+
+        throw new InvalidOperationException("CreateDb() must be used before wiring TenantDeletionService for tests.");
     }
 
     private static UserManager<ApplicationUser> CreateUserManagerStub()
@@ -63,16 +95,52 @@ public sealed class AdminTenantsControllerTests
             Mock.Of<ILogger<TenantOnboardingService>>());
     }
 
+    private static ITenantHardDeletePolicy CreateHardDeletePolicy(
+        IHostEnvironment? environment = null,
+        TenantDeletionOptions? options = null) =>
+        new TenantHardDeletePolicy(
+            environment ?? Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+            Options.Create(options ?? new TenantDeletionOptions()));
+
+    private static ITenantDeletionService CreateTenantDeletionService(
+        IServiceScopeFactory scopeFactory,
+        IHostEnvironment? environment = null,
+        TenantDeletionOptions? options = null,
+        ITenantHardDeletePolicy? policy = null)
+    {
+        return new TenantDeletionService(
+            scopeFactory,
+            policy ?? CreateHardDeletePolicy(environment, options));
+    }
+
+    private static ITenantDeletionService CreateTenantDeletionService(
+        AppDbContext db,
+        IAuditLogService? auditLog = null,
+        IHostEnvironment? environment = null,
+        TenantDeletionOptions? options = null,
+        ITenantHardDeletePolicy? policy = null)
+    {
+        _ = auditLog;
+        return CreateTenantDeletionService(
+            CreateScopeFactoryForDb(db),
+            environment,
+            options,
+            policy);
+    }
+
     private static AdminTenantService CreateService(
         AppDbContext db,
         ITenantProvisioningService? provisioning = null,
         IAuditLogService? auditLog = null,
         ICashRegisterDecommissionService? decommissionService = null,
         IHttpContextAccessor? httpContextAccessor = null,
-        ICurrentTenantAccessor? tenantAccessor = null)
+        ICurrentTenantAccessor? tenantAccessor = null,
+        IHostEnvironment? environment = null,
+        TenantDeletionOptions? deletionOptions = null)
     {
         var audit = auditLog ?? Mock.Of<IAuditLogService>();
-        var tenantLifecycle = new TenantService(db, audit, Mock.Of<ILogger<TenantService>>());
+        var tenantDeletion = CreateTenantDeletionService(db, audit, environment, deletionOptions);
+        var tenantLifecycle = new TenantService(db, audit, tenantDeletion, Mock.Of<ILogger<TenantService>>());
         var tenantScopeAccessor = tenantAccessor ?? NullCurrentTenantAccessor.Instance;
         var accessor = httpContextAccessor ?? CreateHttpContextAccessor();
         return new AdminTenantService(
@@ -84,6 +152,7 @@ public sealed class AdminTenantsControllerTests
             Options.Create(new AuthOptions()),
             CreateOnboardingService(db, provisioning),
             tenantLifecycle,
+            tenantDeletion,
             decommissionService ?? Mock.Of<ICashRegisterDecommissionService>(),
             accessor,
             tenantScopeAccessor,
@@ -112,11 +181,13 @@ public sealed class AdminTenantsControllerTests
 
     private static AdminTenantsController CreateController(
         IAdminTenantService? tenantService = null,
+        ITenantDeletionService? tenantDeletionService = null,
         IHostEnvironment? environment = null,
         ClaimsPrincipal? user = null)
     {
         var controller = new AdminTenantsController(
             tenantService ?? Mock.Of<IAdminTenantService>(),
+            tenantDeletionService ?? Mock.Of<ITenantDeletionService>(),
             Mock.Of<IAuditLogService>(),
             environment ?? Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
             Mock.Of<ILogger<AdminTenantsController>>());
@@ -137,6 +208,16 @@ public sealed class AdminTenantsControllerTests
         };
 
         return controller;
+    }
+
+    private static AdminTenantsController CreateFullController(
+        AppDbContext db,
+        IHostEnvironment? environment = null,
+        IAuditLogService? auditLog = null)
+    {
+        var service = CreateService(db, auditLog: auditLog, environment: environment);
+        var tenantDeletion = CreateTenantDeletionService(db, environment: environment);
+        return CreateController(service, tenantDeletion, environment);
     }
 
     private static ITenantProvisioningService CreateSuccessfulProvisioningMock()
@@ -299,7 +380,7 @@ public sealed class AdminTenantsControllerTests
     {
         var service = new Mock<IAdminTenantService>(MockBehavior.Strict);
         var environment = Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production);
-        var controller = CreateController(service.Object, environment);
+        var controller = CreateController(service.Object, environment: environment);
 
         var result = await controller.HardDeleteDevelopment(Guid.NewGuid());
 
@@ -340,7 +421,7 @@ public sealed class AdminTenantsControllerTests
                 It.Is<HardDeleteAdminTenantRequest>(r => r.ConfirmSlug == "dev-tenant"),
                 "super-admin",
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync((true, (string?)null));
+            .ReturnsAsync(new TenantPermanentDeleteResult(Success: true));
 
         var controller = CreateController(service.Object);
 
@@ -1147,13 +1228,14 @@ public sealed class AdminTenantsControllerTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        var (blocked, blockedError) = await service.HardDeleteAsync(
+        var result = await service.HardDeleteAsync(
             tenantId,
             new HardDeleteAdminTenantRequest { ConfirmSlug = "empty-tenant" },
             "actor-1");
 
-        Assert.False(blocked);
-        Assert.Contains("soft-deleted", blockedError, StringComparison.OrdinalIgnoreCase);
+        Assert.False(result.Success);
+        Assert.Contains("soft-deleted", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(TenantPermanentDeleteFailureCodes.NotSoftDeleted, result.Code);
     }
 
     [Fact]
@@ -1186,13 +1268,16 @@ public sealed class AdminTenantsControllerTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        var (blocked, error) = await service.HardDeleteAsync(
+        var result = await service.HardDeleteAsync(
             tenantId,
             new HardDeleteAdminTenantRequest { ConfirmSlug = "busy-tenant" },
             "actor-1");
 
-        Assert.False(blocked);
-        Assert.Contains("cash register", error, StringComparison.OrdinalIgnoreCase);
+        Assert.False(result.Success);
+        Assert.Contains("cash register", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(TenantPermanentDeleteFailureCodes.CashRegistersPresent, result.Code);
+        Assert.NotNull(result.Dependencies);
+        Assert.Equal(1, result.Dependencies!.Dependencies.CashRegisters);
     }
 
     [Fact]
@@ -1242,16 +1327,16 @@ public sealed class AdminTenantsControllerTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        var (blocked, error) = await service.HardDeleteAsync(
+        var result = await service.HardDeleteAsync(
             tenantId,
             new HardDeleteAdminTenantRequest { ConfirmSlug = "fiscal-tenant" },
             "actor-1");
 
-        Assert.False(blocked);
-        Assert.True(
-            error != null && (error.Contains("cash register", StringComparison.OrdinalIgnoreCase)
-                || error.Contains("fiscal payment", StringComparison.OrdinalIgnoreCase)),
-            error);
+        Assert.False(result.Success);
+        Assert.Equal(TenantPermanentDeleteFailureCodes.FiscalFootprintPresent, result.Code);
+        Assert.NotNull(result.Dependencies);
+        Assert.True(result.Dependencies!.Dependencies.Payments > 0);
+        Assert.True(result.Dependencies.HasFiscalFootprint);
     }
 
     [Fact]
@@ -1297,13 +1382,13 @@ public sealed class AdminTenantsControllerTests
             .ReturnsAsync(new AuditLog { Id = Guid.NewGuid(), Action = AuditLogActions.TENANT_HARD_DELETED });
 
         var service = CreateService(db, auditLog: audit.Object);
-        var (success, error) = await service.HardDeleteAsync(
+        var result = await service.HardDeleteAsync(
             tenantId,
             new HardDeleteAdminTenantRequest { ConfirmSlug = "gone-forever" },
             "actor-1");
 
-        Assert.True(success);
-        Assert.Null(error);
+        Assert.True(result.Success);
+        Assert.Null(result.Message);
         Assert.False(await db.Tenants.AnyAsync(t => t.Id == tenantId));
         audit.Verify(
             a => a.LogSystemOperationAsync(
@@ -1348,15 +1433,248 @@ public sealed class AdminTenantsControllerTests
         await db.SaveChangesAsync();
 
         var service = CreateService(db);
-        var (success, error) = await service.HardDeleteAsync(
+        var result = await service.HardDeleteAsync(
             tenantId,
             new HardDeleteAdminTenantRequest { ConfirmSlug = "membership-cleanup" },
             "actor-1");
 
-        Assert.True(success);
-        Assert.Null(error);
+        Assert.True(result.Success);
+        Assert.Null(result.Message);
         Assert.False(await db.Tenants.AnyAsync(t => t.Id == tenantId));
         Assert.False(await db.UserTenantMemberships.AnyAsync(m => m.TenantId == tenantId));
+    }
+
+    [Fact]
+    public async Task GetDeleteDependenciesAsync_ReturnsCountsAndBlockersForTenantWithRegister()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Busy",
+            Slug = "busy-deps",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var dependencies = await service.GetDeleteDependenciesAsync(tenantId);
+
+        Assert.NotNull(dependencies);
+        Assert.Equal("busy-deps", dependencies!.TenantSlug);
+        Assert.False(dependencies.CanHardDelete);
+        Assert.True(dependencies.HasDependencies);
+        Assert.Equal(1, dependencies.Dependencies.CashRegisters);
+        Assert.Equal(TenantPermanentDeleteFailureCodes.CashRegistersPresent, dependencies.FailureCode);
+        Assert.Contains(
+            dependencies.BlockingDependencies,
+            b => b.Code == TenantPermanentDeleteFailureCodes.CashRegistersPresent);
+    }
+
+    [Fact]
+    public async Task HardDeleteAsync_ProductionEnvironment_ReturnsProductionDisabled()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Prod Tenant",
+            Slug = "prod-tenant",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var production = Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production);
+        var service = CreateService(db, environment: production);
+        var result = await service.HardDeleteAsync(
+            tenantId,
+            new HardDeleteAdminTenantRequest { ConfirmSlug = "prod-tenant" },
+            "actor-1");
+
+        Assert.False(result.Success);
+        Assert.Equal(TenantPermanentDeleteFailureCodes.ProductionPolicy, result.Code);
+        Assert.NotNull(result.Dependencies);
+    }
+
+    [Fact]
+    public async Task GetDeleteDependencies_Controller_ReturnsOk()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Deps",
+            Slug = "deps-tenant",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var tenantDeletion = CreateTenantDeletionService(db);
+        var controller = CreateController(service, tenantDeletion);
+
+        var actionResult = await controller.GetDeleteDependencies(tenantId);
+
+        var ok = Assert.IsType<OkObjectResult>(actionResult);
+        var dto = Assert.IsType<TenantDeleteDependenciesDto>(ok.Value);
+        Assert.Equal("deps-tenant", dto.TenantSlug);
+        Assert.False(dto.CanHardDelete);
+    }
+
+    [Fact]
+    public async Task GetDeleteDependencies_ReturnsDependencySummary()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Summary Tenant",
+            Slug = "summary-tenant",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateFullController(db);
+
+        var actionResult = await controller.GetDeleteDependencies(tenantId);
+
+        var ok = Assert.IsType<OkObjectResult>(actionResult);
+        var dto = Assert.IsType<TenantDeleteDependenciesDto>(ok.Value);
+        Assert.Equal("summary-tenant", dto.TenantSlug);
+        Assert.Equal(1, dto.Dependencies.CashRegisters);
+        Assert.False(dto.CanHardDelete);
+        Assert.Equal(TenantPermanentDeleteFailureCodes.CashRegistersPresent, dto.FailureCode);
+        Assert.Contains(
+            dto.BlockingDependencies,
+            b => b.Code == TenantPermanentDeleteFailureCodes.CashRegistersPresent);
+    }
+
+    [Fact]
+    public async Task DeletePermanent_InProduction_Returns403()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Prod Tenant",
+            Slug = "prod-tenant",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var production = Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production);
+        var controller = CreateFullController(db, environment: production);
+
+        var actionResult = await controller.HardDelete(
+            tenantId,
+            new HardDeleteAdminTenantRequest { ConfirmSlug = "prod-tenant" });
+
+        var forbidden = Assert.IsType<ObjectResult>(actionResult);
+        Assert.Equal(StatusCodes.Status403Forbidden, forbidden.StatusCode);
+        var body = Assert.IsType<TenantPermanentDeleteErrorResponse>(forbidden.Value);
+        Assert.Equal(TenantPermanentDeleteFailureCodes.ProductionPolicy, body.Code);
+        Assert.NotNull(body.Dependencies);
+    }
+
+    [Fact]
+    public async Task DeletePermanent_WithFiscalFootprint_Returns400WithCode()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Fiscal",
+            Slug = "fiscal-tenant",
+            Status = TenantStatuses.Deleted,
+            IsActive = false,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "KASSE-001",
+            Location = "Main",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Closed,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        db.PaymentDetails.Add(new PaymentDetails
+        {
+            Id = Guid.NewGuid(),
+            CustomerId = Guid.NewGuid(),
+            CustomerName = "Walk-in",
+            TableNumber = 1,
+            CashierId = "cashier-1",
+            TotalAmount = 10m,
+            TaxAmount = 2m,
+            Steuernummer = "ATU12345678",
+            CashRegisterId = registerId,
+            TseSignature = "sig-test",
+            TseTimestamp = DateTime.UtcNow,
+            ReceiptNumber = "AT-TEST-20260101-001",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateFullController(db);
+
+        var actionResult = await controller.HardDelete(
+            tenantId,
+            new HardDeleteAdminTenantRequest { ConfirmSlug = "fiscal-tenant" });
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(actionResult);
+        var body = Assert.IsType<TenantPermanentDeleteErrorResponse>(badRequest.Value);
+        Assert.Equal(TenantPermanentDeleteFailureCodes.FiscalFootprintPresent, body.Code);
+        Assert.NotNull(body.Dependencies);
+        Assert.True(body.Dependencies!.HasFiscalFootprint);
+        Assert.True(body.Dependencies.Dependencies.Payments > 0);
     }
 
     private static PaymentDetails CreatePendingPayment(Guid cashRegisterId)

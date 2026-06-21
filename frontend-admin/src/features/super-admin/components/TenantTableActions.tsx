@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useCallback, useState } from 'react';
-import {
-    Button,
-    Dropdown,
-    Input,
-    Modal,
-    Popconfirm,
-    Space,
-    Typography,
-} from 'antd';
+import { Button, Dropdown, Popconfirm, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import {
     DeleteOutlined,
@@ -21,59 +13,47 @@ import {
     KeyOutlined,
     TeamOutlined,
     UndoOutlined,
-    WarningOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
 
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
+import { TenantArchiveConfirmModal } from '@/features/super-admin/components/TenantArchiveConfirmModal';
+import { TenantPermanentDeleteModal } from '@/features/super-admin/components/TenantPermanentDeleteModal';
+import { buildTenantDeletePreparationHref } from '@/features/super-admin/utils/tenantDeleteDependencyUi';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { useI18n } from '@/i18n';
 
 export type TenantTableActionsProps = {
     tenant: AdminTenantListItem;
-    softDeletePending?: boolean;
     restorePending?: boolean;
-    hardDeletePending?: boolean;
     impersonatePending?: boolean;
     suspendPending?: boolean;
     onEdit: (tenant: AdminTenantListItem) => void;
     onSuspend: (id: string, status: string) => void;
     onImpersonate: (id: string) => void;
-    onSoftDelete: (id: string) => void;
     onRestore: (id: string) => void;
-    onHardDelete: (id: string, confirmSlug: string) => void | Promise<void>;
+    onArchiveSuccess?: (id: string) => void;
+    onPermanentDeleteSuccess?: (id: string) => void;
 };
 
 export function TenantTableActions({
     tenant,
-    softDeletePending,
     restorePending,
-    hardDeletePending,
     impersonatePending,
     suspendPending,
     onEdit,
     onSuspend,
     onImpersonate,
-    onSoftDelete,
     onRestore,
-    onHardDelete,
+    onArchiveSuccess,
+    onPermanentDeleteSuccess,
 }: TenantTableActionsProps) {
     const { t } = useI18n();
-    const [hardDeleteOpen, setHardDeleteOpen] = useState(false);
-    const [confirmSlug, setConfirmSlug] = useState('');
+    const [archiveOpen, setArchiveOpen] = useState(false);
+    const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false);
 
-    const slugMatches =
-        confirmSlug.trim().toLowerCase() === tenant.slug.trim().toLowerCase();
-
-    const closeHardDeleteModal = useCallback(() => {
-        setHardDeleteOpen(false);
-        setConfirmSlug('');
-    }, []);
-
-    const openHardDeleteModal = useCallback(() => {
-        setConfirmSlug('');
-        setHardDeleteOpen(true);
-    }, []);
+    const closeArchiveModal = useCallback(() => setArchiveOpen(false), []);
+    const closePermanentDeleteModal = useCallback(() => setPermanentDeleteOpen(false), []);
 
     if (tenant.status === 'deleted') {
         return (
@@ -90,68 +70,29 @@ export function TenantTableActions({
                     okText={t('common.yes', { defaultValue: 'Ja' })}
                     cancelText={t('common.no', { defaultValue: 'Nein' })}
                 >
-                    <Button
-                        size="small"
-                        icon={<UndoOutlined />}
-                        loading={restorePending}
-                    >
+                    <Button size="small" icon={<UndoOutlined />} loading={restorePending}>
                         {t('tenants.actions.restore')}
                     </Button>
                 </Popconfirm>
+                <Link href={buildTenantDeletePreparationHref(tenant.id)}>
+                    <Button size="small">{t('tenants.deleteDependencies.checkDependencies')}</Button>
+                </Link>
                 <Button
                     size="small"
                     danger
                     icon={<DeleteOutlined />}
-                    loading={hardDeletePending}
-                    onClick={openHardDeleteModal}
+                    onClick={() => setPermanentDeleteOpen(true)}
                 >
                     {t('tenants.actions.hardDelete')}
                 </Button>
-                <Modal
-                    title={
-                        <Space>
-                            <WarningOutlined style={{ color: '#cf1322' }} />
-                            {t('tenants.confirmHardDelete.title')}
-                        </Space>
-                    }
-                    open={hardDeleteOpen}
-                    onCancel={closeHardDeleteModal}
-                    okText={t('tenants.actions.hardDelete')}
-                    okButtonProps={{
-                        danger: true,
-                        disabled: !slugMatches,
-                        loading: hardDeletePending,
-                    }}
-                    cancelText={t('common.cancel', { defaultValue: 'Abbrechen' })}
-                    onOk={async () => {
-                        try {
-                            await onHardDelete(tenant.id, confirmSlug.trim());
-                            closeHardDeleteModal();
-                        } catch {
-                            /* keep modal open; parent shows error toast */
-                        }
-                    }}
-                    destroyOnHidden
-                >
-                    <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-                        <Typography.Text strong type="danger">
-                            {t('tenants.confirmHardDelete.irreversible')}
-                        </Typography.Text>
-                        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                            {t('tenants.confirmHardDelete.dataLoss', { name: tenant.name })}
-                        </Typography.Paragraph>
-                        <Typography.Text>
-                            {t('tenants.confirmHardDelete.confirmSlugLabel', { slug: tenant.slug })}
-                        </Typography.Text>
-                        <Input
-                            value={confirmSlug}
-                            onChange={(e) => setConfirmSlug(e.target.value)}
-                            placeholder={tenant.slug}
-                            autoComplete="off"
-                            status={confirmSlug.length > 0 && !slugMatches ? 'error' : undefined}
-                        />
-                    </Space>
-                </Modal>
+                <TenantPermanentDeleteModal
+                    open={permanentDeleteOpen}
+                    tenantId={tenant.id}
+                    tenantName={tenant.name}
+                    tenantSlug={tenant.slug}
+                    onClose={closePermanentDeleteModal}
+                    onSuccess={() => onPermanentDeleteSuccess?.(tenant.id)}
+                />
             </Space>
         );
     }
@@ -218,18 +159,9 @@ export function TenantTableActions({
                     {t('tenants.actions.view')}
                 </Button>
             </Link>
-            <Popconfirm
-                title={t('tenants.confirmDelete.title')}
-                description={t('tenants.confirmDelete.body')}
-                onConfirm={() => onSoftDelete(tenant.id)}
-                okText={t('tenants.actions.delete')}
-                okButtonProps={{ danger: true, loading: softDeletePending }}
-                cancelText={t('common.cancel', { defaultValue: 'Abbrechen' })}
-            >
-                <Button size="small" danger icon={<DeleteOutlined />} loading={softDeletePending}>
-                    {t('tenants.actions.delete')}
-                </Button>
-            </Popconfirm>
+            <Button size="small" danger icon={<DeleteOutlined />} onClick={() => setArchiveOpen(true)}>
+                {t('tenants.actions.archive')}
+            </Button>
             <Dropdown menu={{ items: moreItems }} trigger={['click']}>
                 <Button
                     size="small"
@@ -237,6 +169,13 @@ export function TenantTableActions({
                     loading={impersonatePending || suspendPending}
                 />
             </Dropdown>
+            <TenantArchiveConfirmModal
+                open={archiveOpen}
+                tenantId={tenant.id}
+                tenantName={tenant.name}
+                onClose={closeArchiveModal}
+                onSuccess={() => onArchiveSuccess?.(tenant.id)}
+            />
         </Space>
     );
 }

@@ -168,6 +168,8 @@ builder.Services.AddScoped<ProductImageThumbnailService>();
 builder.Services.AddScoped<ICashRegisterSettingsService, CashRegisterSettingsService>();
 builder.Services.Configure<CashRegisterComplianceOptions>(
     builder.Configuration.GetSection(CashRegisterComplianceOptions.SectionName));
+builder.Services.Configure<TenantDeletionOptions>(
+    builder.Configuration.GetSection(TenantDeletionOptions.SectionName));
 builder.Services.Configure<InventoryOptions>(builder.Configuration.GetSection(InventoryOptions.SectionName));
 builder.Services.Configure<TseOptions>(builder.Configuration.GetSection(TseOptions.SectionName));
 builder.Services.Configure<FiskalyOptions>(builder.Configuration.GetSection(FiskalyOptions.SectionName));
@@ -423,6 +425,8 @@ builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IRoleManagementService, RoleManagementService>();
 builder.Services.AddScoped<ITokenClaimsService, TokenClaimsService>();
 builder.Services.AddScoped<IJwtAccessTokenIssuer, JwtAccessTokenIssuer>();
+builder.Services.AddScoped<ITenantHardDeletePolicy, TenantHardDeletePolicy>();
+builder.Services.AddScoped<ITenantDeletionService, TenantDeletionService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

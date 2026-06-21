@@ -54,6 +54,50 @@ public sealed record TenantDecommissionChecksDto(
     int BlockedRegistersCount,
     bool CanDecommission);
 
+public sealed record TenantDeleteDependencyCountsDto(
+    int Users,
+    int Memberships,
+    int CashRegisters,
+    int Payments,
+    int Receipts,
+    int Vouchers,
+    int VoucherLedgerEntries,
+    int DailyClosings,
+    int Products,
+    int Categories,
+    int AuditLogs,
+    int FinanzOnlineSubmissions);
+
+public sealed record TenantDeleteDependencyBlockerDto(
+    string Code,
+    int Count,
+    string Severity,
+    string Message);
+
+public sealed record TenantDeleteDependenciesDto(
+    Guid TenantId,
+    string TenantSlug,
+    string TenantStatus,
+    bool CanHardDelete,
+    bool HasDependencies,
+    bool HasFiscalFootprint,
+    string? FailureCode,
+    string? FailureMessage,
+    TenantDeleteDependencyCountsDto Dependencies,
+    IReadOnlyList<TenantDeleteDependencyBlockerDto> BlockingDependencies,
+    IReadOnlyList<string> NextSteps);
+
+public sealed record TenantPermanentDeleteResult(
+    bool Success,
+    string? Message = null,
+    string? Code = null,
+    TenantDeleteDependenciesDto? Dependencies = null);
+
+public sealed record TenantPermanentDeleteErrorResponse(
+    string Message,
+    string Code,
+    TenantDeleteDependenciesDto? Dependencies = null);
+
 public sealed class CreateAdminTenantRequest
 {
     [Required]

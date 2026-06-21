@@ -172,7 +172,10 @@ Examples: `tenants` table, ASP.NET Identity users, some global settings. Super A
 | Create tenant | `POST /api/admin/tenants` |
 | Edit tenant | `PUT /api/admin/tenants/{id}` |
 | Suspend / reactivate | `PUT` with `status`: `suspended` / `active` |
-| Soft-delete | `DELETE /api/admin/tenants/{id}` |
+| Soft-delete (archive) | `DELETE /api/admin/tenants/{id}` |
+| Delete dependency summary | `GET /api/admin/tenants/{id}/delete-dependencies` |
+| Permanent hard-delete (dev-only) | `DELETE /api/admin/tenants/{id}/permanent` |
+| Restore archived tenant | `POST /api/admin/tenants/{id}/restore` |
 | Tenant license metadata | `licenseKey`, `licenseValidUntilUtc` on tenant row |
 | Issued licenses (full lifecycle) | `/api/admin/license/*` — **tenant-scoped**; use impersonation for other tenants |
 | Impersonate | `POST /api/admin/tenants/{tenantId}/impersonate` |
@@ -199,6 +202,29 @@ sequenceDiagram
 ```
 
 **Restrictions:** cannot impersonate deleted, suspended, or inactive tenants.
+
+### Tenant deletion policy (archive vs hard-delete)
+
+Permanent tenant removal is **compliance-gated**. Implementation: **`TenantDeletionService`** (`backend/Services/Tenancy/TenantDeletionService.cs`) with **`TenantHardDeletePolicy`** and stable failure codes in **`TenantPermanentDeleteFailureCodes`**.
+
+| Step | Operator action | API | Production |
+|------|-----------------|-----|------------|
+| **Archive (primary)** | *Mandant archivieren* | `DELETE /api/admin/tenants/{id}` | ✅ Allowed (except legacy default tenant) |
+| **Review dependencies** | *Abhängigkeiten prüfen* | `GET /api/admin/tenants/{id}/delete-dependencies` | ✅ Returns counts + `canHardDelete` |
+| **Permanent delete** | *Endgültig löschen* (archived only) | `DELETE /api/admin/tenants/{id}/permanent` | ❌ `403 production_policy` |
+| **Restore** | *Wiederherstellen* | `POST /api/admin/tenants/{id}/restore` | ✅ |
+
+**Hard-delete preconditions (development):**
+
+- Tenant must be **soft-deleted** (`status=deleted`) first
+- `confirmSlug` must match `tenants.slug`
+- No **cash registers** on tenant
+- No **fiscal footprint** (payments, signed receipts, daily closings, etc.)
+- Not the **legacy default tenant**
+
+**RKSV:** Payment and audit data may require **7-year retention**; archive (soft-delete) is the recommended path. See [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md) → Delete section.
+
+**FA delete-preparation UI:** `/admin/tenants/{tenantId}/delete-preparation` — full dependency table, archive/hard-delete CTAs, links to related admin pages.
 
 **Audit:** structured logs on server; `AuditLog.impersonated_by` field **not yet** in schema.
 
@@ -323,8 +349,25 @@ Body (`UpdateAdminTenantRequest`): partial fields including `status` (`active` |
 
 ### `DELETE /api/admin/tenants/{tenantId}`
 
-Soft-delete: `status=deleted`, `isActive=false`  
+Soft-delete (archive): `status=deleted`, `isActive=false`  
 `400` if legacy default tenant
+
+### `GET /api/admin/tenants/{tenantId}/delete-dependencies`
+
+Response: `TenantDeleteDependenciesDto` — dependency counts, `canHardDelete`, `hasFiscalFootprint`, `blockingDependencies`, optional `failureCode`  
+Used by FA delete-preparation page and permanent-delete modal.
+
+### `DELETE /api/admin/tenants/{tenantId}/permanent`
+
+Body: `{ "confirmSlug": "tenant-slug" }`  
+Success: `204 No Content`  
+Errors: `403` (`production_policy` in production), `400` with `TenantPermanentDeleteErrorResponse` (blockers + updated dependencies)
+
+Requires tenant to be soft-deleted first. Implemented by `TenantDeletionService`.
+
+### `POST /api/admin/tenants/{tenantId}/restore`
+
+Restores archived tenant to `status=active`, `isActive=true`.
 
 ### `POST /api/admin/tenants/{tenantId}/impersonate`
 
@@ -544,6 +587,7 @@ Operator UI is **German**; routes and code identifiers are **English**. Full det
 |---------|------|----------------|
 | Tenant list & CRUD | `frontend-admin/src/app/(protected)/admin/tenants/page.tsx` | `features/super-admin/` |
 | Tenant detail (tabs) | `frontend-admin/src/app/(protected)/admin/tenants/[tenantId]/page.tsx` | overview, users, registers, license, settings |
+| Delete preparation | `frontend-admin/src/app/(protected)/admin/tenants/[tenantId]/delete-preparation/page.tsx` | dependency table, archive / hard-delete |
 | Create tenant | `CreateTenantModal` | slug check, `grantTrialLicense`, provisioning success |
 | Platform home | `SuperAdminTenantSelector` | impersonate active tenants; link to tenant management |
 | Impersonation | `ImpersonationRedirectOverlay` | production subdomain handoff — [`IMPERSONATION_FLOW.md`](IMPERSONATION_FLOW.md) |

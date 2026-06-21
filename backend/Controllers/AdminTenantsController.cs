@@ -3,6 +3,7 @@ using KasseAPI_Final.Security;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Hosting;
@@ -17,17 +18,20 @@ namespace KasseAPI_Final.Controllers;
 public sealed class AdminTenantsController : ControllerBase
 {
     private readonly IAdminTenantService _tenantService;
+    private readonly ITenantDeletionService _tenantDeletionService;
     private readonly IAuditLogService _auditLogService;
     private readonly IHostEnvironment _environment;
     private readonly ILogger<AdminTenantsController> _logger;
 
     public AdminTenantsController(
         IAdminTenantService tenantService,
+        ITenantDeletionService tenantDeletionService,
         IAuditLogService auditLogService,
         IHostEnvironment environment,
         ILogger<AdminTenantsController> logger)
     {
         _tenantService = tenantService;
+        _tenantDeletionService = tenantDeletionService;
         _auditLogService = auditLogService;
         _environment = environment;
         _logger = logger;
@@ -273,10 +277,32 @@ public sealed class AdminTenantsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>Return tenant dependency counts and permanent-delete eligibility for Super Admin UI.</summary>
+    [HttpGet("{tenantId:guid}/delete-dependencies")]
+    [ProducesResponseType(typeof(TenantDeleteDependenciesDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDeleteDependencies(
+        Guid tenantId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var dto = await _tenantDeletionService
+                .GetDependencySummaryAsync(tenantId, ct)
+                .ConfigureAwait(false);
+            return Ok(dto);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Tenant not found." });
+        }
+    }
+
     /// <summary>Permanently delete a soft-deleted tenant without fiscal data (requires slug confirmation).</summary>
     [HttpDelete("{tenantId:guid}/permanent")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(TenantPermanentDeleteErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(TenantPermanentDeleteErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> HardDelete(
         Guid tenantId,
@@ -286,14 +312,52 @@ public sealed class AdminTenantsController : ControllerBase
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
-        var (success, error) = await _tenantService
+        TenantDeleteDependenciesDto dependencies;
+        try
+        {
+            dependencies = await _tenantDeletionService
+                .GetDependencySummaryAsync(tenantId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Tenant not found." });
+        }
+
+        if (!_environment.IsDevelopment())
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                new TenantPermanentDeleteErrorResponse(
+                    "Permanent tenant deletion is disabled outside Development. Use soft-delete to archive the tenant.",
+                    TenantPermanentDeleteFailureCodes.ProductionPolicy,
+                    dependencies));
+        }
+
+        var validation = await _tenantDeletionService
+            .ValidateHardDeleteAsync(tenantId, forceDelete: false, cancellationToken)
+            .ConfigureAwait(false);
+        if (!validation.Success)
+        {
+            if (string.Equals(
+                    validation.ErrorCode,
+                    TenantPermanentDeleteFailureCodes.TenantNotFound,
+                    StringComparison.Ordinal))
+            {
+                return NotFound(new { message = validation.ErrorMessage ?? "Tenant not found." });
+            }
+
+            return BadRequest(new TenantPermanentDeleteErrorResponse(
+                validation.ErrorMessage ?? "Permanent delete is not allowed for this tenant.",
+                validation.ErrorCode ?? TenantPermanentDeleteFailureCodes.RemainingDependencies,
+                dependencies));
+        }
+
+        var result = await _tenantService
             .HardDeleteAsync(tenantId, request, ActorUserId, cancellationToken)
             .ConfigureAwait(false);
-        if (error == "Tenant not found.")
-            return NotFound(new { message = error });
-        if (!success)
-            return BadRequest(new { message = error });
-        return NoContent();
+
+        return MapPermanentDeleteResult(result);
     }
 
     /// <summary>
@@ -324,7 +388,7 @@ public sealed class AdminTenantsController : ControllerBase
         if (!softDeleteSuccess)
             return BadRequest(new { message = softDeleteError });
 
-        var (hardDeleteSuccess, hardDeleteError) = await _tenantService
+        var hardDeleteResult = await _tenantService
             .HardDeleteAsync(
                 tenantId,
                 new HardDeleteAdminTenantRequest { ConfirmSlug = tenant.Slug },
@@ -332,12 +396,7 @@ public sealed class AdminTenantsController : ControllerBase
                 cancellationToken)
             .ConfigureAwait(false);
 
-        if (hardDeleteError == "Tenant not found.")
-            return NotFound(new { message = hardDeleteError });
-        if (!hardDeleteSuccess)
-            return BadRequest(new { message = hardDeleteError });
-
-        return NoContent();
+        return MapPermanentDeleteResult(hardDeleteResult);
     }
 
     /// <summary>Soft-delete tenant (status=deleted, is_active=false).</summary>
@@ -434,5 +493,25 @@ public sealed class AdminTenantsController : ControllerBase
         }
 
         return Ok(result);
+    }
+
+    private IActionResult MapPermanentDeleteResult(TenantPermanentDeleteResult result)
+    {
+        if (result.Success)
+            return NoContent();
+
+        if (string.Equals(result.Code, TenantPermanentDeleteFailureCodes.TenantNotFound, StringComparison.Ordinal))
+            return NotFound(new { message = result.Message, code = result.Code });
+
+        var body = new TenantPermanentDeleteErrorResponse(
+            result.Message ?? "Permanent delete failed.",
+            result.Code ?? TenantPermanentDeleteFailureCodes.RemainingDependencies,
+            result.Dependencies);
+
+        if (string.Equals(result.Code, TenantPermanentDeleteFailureCodes.ProductionPolicy, StringComparison.Ordinal)
+            || string.Equals(result.Code, TenantPermanentDeleteFailureCodes.ProductionDisabled, StringComparison.Ordinal))
+            return StatusCode(StatusCodes.Status403Forbidden, body);
+
+        return BadRequest(body);
     }
 }

@@ -1,5 +1,5 @@
 /**
- * Super-admin tenants list — deletion lifecycle UI (soft/restore/hard delete, includeDeleted).
+ * Super-admin tenants list — deletion lifecycle UI (archive/restore/hard delete, includeDeleted).
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
@@ -9,11 +9,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nProvider } from '@/i18n';
 import SuperAdminTenantsPage from '../page';
 import type { AdminTenantListItem } from '@/features/super-admin/api/adminTenants';
+import { TENANT_PERMANENT_DELETE_CONFIRM_PHRASE } from '@/features/super-admin/components/TenantPermanentDeleteModal';
 
 const mockListAdminTenants = vi.fn();
 const mockSoftDeleteAdminTenant = vi.fn();
 const mockRestoreAdminTenant = vi.fn();
-const mockHardDeleteAdminTenant = vi.fn();
+const mockDeletePermanent = vi.fn();
+const mockGetDeleteDependencies = vi.fn();
 
 vi.mock('@/features/super-admin/api/adminTenants', async (importOriginal) => {
     const actual = await importOriginal<typeof import('@/features/super-admin/api/adminTenants')>();
@@ -22,10 +24,18 @@ vi.mock('@/features/super-admin/api/adminTenants', async (importOriginal) => {
         listAdminTenants: (includeDeleted?: boolean) => mockListAdminTenants(includeDeleted),
         softDeleteAdminTenant: (id: string) => mockSoftDeleteAdminTenant(id),
         restoreAdminTenant: (id: string) => mockRestoreAdminTenant(id),
-        hardDeleteAdminTenant: (id: string, confirmSlug: string) =>
-            mockHardDeleteAdminTenant(id, confirmSlug),
         impersonateAdminTenant: vi.fn(),
         updateAdminTenant: vi.fn(),
+    };
+});
+
+vi.mock('@/api/generated/admin/admin', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@/api/generated/admin/admin')>();
+    return {
+        ...actual,
+        deleteApiAdminTenantsTenantIdPermanent: (...args: unknown[]) => mockDeletePermanent(...args),
+        getApiAdminTenantsTenantIdDeleteDependencies: (...args: unknown[]) =>
+            mockGetDeleteDependencies(...args),
     };
 });
 
@@ -45,11 +55,24 @@ vi.mock('next/link', () => ({
 
 const mockUseAuth = vi.fn();
 
+vi.mock('@/hooks/useAntdApp', () => ({
+    useAntdApp: () => ({
+        message: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
+    }),
+}));
+
 vi.mock('@/features/auth/hooks/useAuth', () => ({
     useAuth: () => mockUseAuth(),
 }));
 
 beforeAll(() => {
+    class ResizeObserverMock {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+    }
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+
     Object.defineProperty(window, 'matchMedia', {
         writable: true,
         value: vi.fn().mockImplementation((query: string) => ({
@@ -103,7 +126,14 @@ describe('SuperAdminTenantsPage', () => {
         mockListAdminTenants.mockResolvedValue([activeTenant]);
         mockSoftDeleteAdminTenant.mockResolvedValue(undefined);
         mockRestoreAdminTenant.mockResolvedValue(undefined);
-        mockHardDeleteAdminTenant.mockResolvedValue(undefined);
+        mockDeletePermanent.mockResolvedValue(undefined);
+        mockGetDeleteDependencies.mockResolvedValue({
+            tenantId: deletedTenant.id,
+            tenantSlug: deletedTenant.slug,
+            canHardDelete: true,
+            hasFiscalFootprint: false,
+            dependencies: { cashRegisters: 0 },
+        });
     });
 
     it('renders includeDeleted toggle for Super Admin', async () => {
@@ -123,40 +153,39 @@ describe('SuperAdminTenantsPage', () => {
         expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     });
 
-    it('soft delete button shows modal and calls API', async () => {
+    it('archive button opens modal and calls soft-delete API', async () => {
         renderPage();
         await waitFor(() => expect(screen.getByText('Cafe Demo')).toBeInTheDocument());
 
-        fireEvent.click(screen.getByRole('button', { name: /Löschen/i }));
+        fireEvent.click(screen.getByRole('button', { name: /Archivieren/i }));
 
-        const confirmTitle = await screen.findByText('Diesen Mandanten wirklich löschen?');
-        expect(confirmTitle).toBeInTheDocument();
+        expect(await screen.findByText('Mandant archivieren?')).toBeInTheDocument();
 
-        const pop = confirmTitle.closest('.ant-popover') ?? confirmTitle.parentElement;
-        const confirmButtons = within(pop as HTMLElement).getAllByRole('button', { name: /Löschen/i });
-        fireEvent.click(confirmButtons[confirmButtons.length - 1]);
+        const modal = document.querySelector('.ant-modal') as HTMLElement;
+        fireEvent.click(within(modal).getByRole('button', { name: /Mandant archivieren/i }));
 
         await waitFor(() => expect(mockSoftDeleteAdminTenant).toHaveBeenCalledWith(activeTenant.id));
     });
 
-    it('hard delete button disabled until tenant name confirmed', async () => {
+    it('hard delete submit disabled until slug, phrase and retention ack confirmed', async () => {
         mockListAdminTenants.mockResolvedValue([deletedTenant]);
         renderPage();
         await waitFor(() => expect(screen.getByText('Closed Shop')).toBeInTheDocument());
 
         fireEvent.click(screen.getByRole('button', { name: /Endgültig löschen/i }));
 
-        const modal = await waitFor(() => document.querySelector('.ant-modal'));
-        expect(modal).toBeTruthy();
+        const modal = await waitFor(() => document.querySelector('.ant-modal') as HTMLElement);
+        await waitFor(() => expect(mockGetDeleteDependencies).toHaveBeenCalled());
+        await waitFor(() => expect(within(modal).getByText('Bestätigung')).toBeInTheDocument());
 
-        const modalOk = within(modal as HTMLElement).getByRole('button', { name: /Endgültig löschen/i });
+        const modalOk = within(modal).getAllByRole('button', { name: /Endgültig löschen/i }).at(-1)!;
         expect(modalOk).toBeDisabled();
 
-        const input = within(modal as HTMLElement).getByRole('textbox');
-        fireEvent.change(input, { target: { value: 'wrong-slug' } });
-        expect(modalOk).toBeDisabled();
+        const inputs = within(modal).getAllByRole('textbox');
+        fireEvent.change(inputs[0], { target: { value: 'closed-shop' } });
+        fireEvent.change(inputs[1], { target: { value: TENANT_PERMANENT_DELETE_CONFIRM_PHRASE } });
+        fireEvent.click(within(modal).getByRole('checkbox'));
 
-        fireEvent.change(input, { target: { value: 'closed-shop' } });
         await waitFor(() => expect(modalOk).not.toBeDisabled());
     });
 
@@ -166,8 +195,7 @@ describe('SuperAdminTenantsPage', () => {
         await waitFor(() => expect(screen.getByText('Closed Shop')).toBeInTheDocument());
         expect(screen.getByRole('button', { name: /Wiederherstellen/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Endgültig löschen/i })).toBeInTheDocument();
-        // Soft-delete uses label "Löschen" (accessible name deleteLöschen), not hard-delete.
-        expect(screen.queryByRole('button', { name: /deleteLöschen/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Archivieren/i })).not.toBeInTheDocument();
     });
 
     it('hides deletion actions for Manager without system.critical', async () => {
@@ -178,7 +206,7 @@ describe('SuperAdminTenantsPage', () => {
 
         await waitFor(() => expect(screen.getByText('Zugriff verweigert')).toBeInTheDocument());
         expect(mockListAdminTenants).not.toHaveBeenCalled();
-        expect(screen.queryByRole('button', { name: /Löschen/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Archivieren/i })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Wiederherstellen/i })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Endgültig löschen/i })).not.toBeInTheDocument();
     });

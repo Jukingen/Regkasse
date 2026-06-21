@@ -280,12 +280,14 @@ import type {
   SuspiciousAlertsListResponseDto,
   SystemTimeSyncLogEntryDto,
   TenantDecommissionChecksDto,
+  TenantDeleteDependenciesDto,
   TenantImpersonationResponseDto,
   TenantLicenseConsistencyDto,
   TenantLicenseDto,
   TenantLicenseIssueDeploymentResultDto,
   TenantLicenseOverviewDto,
   TenantLicenseReminderResultDto,
+  TenantPermanentDeleteErrorResponse,
   TenantSlugAvailabilityDto,
   TenantSlugSuggestionsDto,
   TenantUserDto,
@@ -10252,7 +10254,62 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const deleteApiAdminTenantsTenantIdPermanent = (
+    export const getApiAdminTenantsTenantIdDeleteDependencies = (
+    tenantId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<TenantDeleteDependenciesDto>(
+      {url: `/api/admin/tenants/${tenantId}/delete-dependencies`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminTenantsTenantIdDeleteDependenciesQueryKey = (tenantId: string,) => {
+    return [`/api/admin/tenants/${tenantId}/delete-dependencies`] as const;
+    }
+
+    
+export const getGetApiAdminTenantsTenantIdDeleteDependenciesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>, TError = ProblemDetails>(tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminTenantsTenantIdDeleteDependenciesQueryKey(tenantId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>> = ({ signal }) => getApiAdminTenantsTenantIdDeleteDependencies(tenantId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(tenantId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminTenantsTenantIdDeleteDependenciesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>>
+export type GetApiAdminTenantsTenantIdDeleteDependenciesQueryError = ProblemDetails
+
+export const useGetApiAdminTenantsTenantIdDeleteDependencies = <TData = Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>, TError = ProblemDetails>(
+ tenantId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminTenantsTenantIdDeleteDependencies>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminTenantsTenantIdDeleteDependenciesQueryOptions(tenantId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const deleteApiAdminTenantsTenantIdPermanent = (
     tenantId: string,
     hardDeleteAdminTenantRequest: HardDeleteAdminTenantRequest,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -10268,7 +10325,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   
 
 
-export const getDeleteApiAdminTenantsTenantIdPermanentMutationOptions = <TError = ProblemDetails,
+export const getDeleteApiAdminTenantsTenantIdPermanentMutationOptions = <TError = TenantPermanentDeleteErrorResponse | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdPermanent>>, TError,{tenantId: string;data: HardDeleteAdminTenantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdPermanent>>, TError,{tenantId: string;data: HardDeleteAdminTenantRequest}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
@@ -10289,9 +10346,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type DeleteApiAdminTenantsTenantIdPermanentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdPermanent>>>
     export type DeleteApiAdminTenantsTenantIdPermanentMutationBody = HardDeleteAdminTenantRequest
-    export type DeleteApiAdminTenantsTenantIdPermanentMutationError = ProblemDetails
+    export type DeleteApiAdminTenantsTenantIdPermanentMutationError = TenantPermanentDeleteErrorResponse | ProblemDetails
 
-    export const useDeleteApiAdminTenantsTenantIdPermanent = <TError = ProblemDetails,
+    export const useDeleteApiAdminTenantsTenantIdPermanent = <TError = TenantPermanentDeleteErrorResponse | ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdPermanent>>, TError,{tenantId: string;data: HardDeleteAdminTenantRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof deleteApiAdminTenantsTenantIdPermanent>>,

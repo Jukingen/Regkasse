@@ -5,10 +5,9 @@ import {
     Alert,
     Button,
     Card,
-    Checkbox,
-    Input,
     Modal,
     Space,
+    Tooltip,
     Typography,
 } from 'antd';
 import { DeleteOutlined, StopOutlined, UndoOutlined, WarningOutlined } from '@ant-design/icons';
@@ -16,17 +15,22 @@ import Link from 'next/link';
 
 import { isDevelopment } from '@/features/auth/services/devTenant';
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
+import { TenantArchiveConfirmModal } from '@/features/super-admin/components/TenantArchiveConfirmModal';
+import { TenantPermanentDeleteModal } from '@/features/super-admin/components/TenantPermanentDeleteModal';
+import { useTenantDeleteDependencies } from '@/features/super-admin/hooks/useTenantDeleteDependencies';
+import {
+    buildTenantDeletePreparationHref,
+    resolveTenantDeleteFailureMessage,
+} from '@/features/super-admin/utils/tenantDeleteDependencyUi';
 import { useI18n } from '@/i18n';
 
 export type TenantDetailDangerZoneProps = {
     tenant: AdminTenantDetail;
-    softDeletePending?: boolean;
     restorePending?: boolean;
-    hardDeletePending?: boolean;
     developmentHardDeletePending?: boolean;
-    onSoftDelete: () => void | Promise<void>;
+    onArchiveSuccess: () => void;
+    onPermanentDeleteSuccess: () => void;
     onRestore: () => void | Promise<void>;
-    onHardDelete: (confirmSlug: string) => void | Promise<void>;
     onDevelopmentHardDelete?: () => void | Promise<void>;
 };
 
@@ -37,36 +41,50 @@ function buildTenantAuditLogsHref(tenantId: string): string {
 
 export function TenantDetailDangerZone({
     tenant,
-    softDeletePending,
     restorePending,
-    hardDeletePending,
     developmentHardDeletePending,
-    onSoftDelete,
+    onArchiveSuccess,
+    onPermanentDeleteSuccess,
     onRestore,
-    onHardDelete,
     onDevelopmentHardDelete,
 }: TenantDetailDangerZoneProps) {
     const { t } = useI18n();
-    const [softDeleteOpen, setSoftDeleteOpen] = useState(false);
+    const [archiveOpen, setArchiveOpen] = useState(false);
     const [restoreOpen, setRestoreOpen] = useState(false);
-    const [hardDeleteOpen, setHardDeleteOpen] = useState(false);
-    const [hardDeleteMode, setHardDeleteMode] = useState<'permanent' | 'development' | null>(null);
-    const [confirmSlug, setConfirmSlug] = useState('');
-    const [irreversibleAck, setIrreversibleAck] = useState(false);
-
-    const slugMatches =
-        confirmSlug.trim().toLowerCase() === tenant.slug.trim().toLowerCase();
-    const hardDeleteReady = slugMatches && irreversibleAck;
-    const showDevelopmentHardDelete = isDevelopment() && typeof onDevelopmentHardDelete === 'function';
-
-    const closeHardDelete = useCallback(() => {
-        setHardDeleteOpen(false);
-        setHardDeleteMode(null);
-        setConfirmSlug('');
-        setIrreversibleAck(false);
-    }, []);
+    const [permanentDeleteOpen, setPermanentDeleteOpen] = useState(false);
+    const [developmentHardDeleteOpen, setDevelopmentHardDeleteOpen] = useState(false);
 
     const isDeleted = tenant.status === 'deleted';
+    const showDevelopmentHardDelete = isDevelopment() && typeof onDevelopmentHardDelete === 'function';
+
+    const deleteDependenciesQuery = useTenantDeleteDependencies(tenant.id, isDeleted);
+    const canHardDelete = deleteDependenciesQuery.data?.canHardDelete === true;
+    const hardDeleteBlockedReason = resolveTenantDeleteFailureMessage(
+        t,
+        deleteDependenciesQuery.data?.failureCode,
+        deleteDependenciesQuery.data?.failureMessage,
+    );
+
+    const closeDevelopmentHardDelete = useCallback(() => {
+        setDevelopmentHardDeleteOpen(false);
+    }, []);
+
+    const permanentDeleteButton = (
+        <Button
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => setPermanentDeleteOpen(true)}
+        >
+            {t('tenants.actions.hardDelete')}
+        </Button>
+    );
+
+    const permanentDeleteControl =
+        !canHardDelete && !deleteDependenciesQuery.isLoading ? (
+            <Tooltip title={hardDeleteBlockedReason}>{permanentDeleteButton}</Tooltip>
+        ) : (
+            permanentDeleteButton
+        );
 
     return (
         <Card
@@ -87,6 +105,9 @@ export function TenantDetailDangerZone({
                 <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Alert type="error" showIcon title={t('tenants.detail.settings.danger.deletedWarning')} />
                     <Space wrap>
+                        <Link href={buildTenantDeletePreparationHref(tenant.id)}>
+                            <Button>{t('tenants.deleteDependencies.checkDependencies')}</Button>
+                        </Link>
                         <Button
                             icon={<UndoOutlined />}
                             loading={restorePending}
@@ -94,20 +115,7 @@ export function TenantDetailDangerZone({
                         >
                             {t('tenants.detail.settings.danger.restoreButton')}
                         </Button>
-                        <Button
-                            danger
-                            type="primary"
-                            icon={<DeleteOutlined />}
-                            loading={hardDeletePending}
-                            onClick={() => {
-                                setHardDeleteMode('permanent');
-                                setConfirmSlug('');
-                                setIrreversibleAck(false);
-                                setHardDeleteOpen(true);
-                            }}
-                        >
-                            {t('tenants.detail.settings.danger.hardDeleteButton')}
-                        </Button>
+                        {permanentDeleteControl}
                     </Space>
                 </Space>
             ) : (
@@ -126,26 +134,23 @@ export function TenantDetailDangerZone({
                         />
                     ) : null}
                     <Space wrap>
+                        <Link href={buildTenantDeletePreparationHref(tenant.id)}>
+                            <Button>{t('tenants.deleteDependencies.checkDependencies')}</Button>
+                        </Link>
                         <Link href={`/admin/tenants/${tenant.id}/decommission`}>
                             <Button icon={<StopOutlined />}>
                                 {t('tenants.detail.settings.danger.decommissionWizardButton')}
                             </Button>
                         </Link>
-                        <Button danger onClick={() => setSoftDeleteOpen(true)}>
-                            {t('tenants.detail.settings.danger.softDeleteButton')}
+                        <Button type="primary" danger onClick={() => setArchiveOpen(true)}>
+                            {t('tenants.detail.settings.danger.archiveButton')}
                         </Button>
                         {showDevelopmentHardDelete ? (
                             <Button
                                 danger
-                                type="primary"
                                 icon={<DeleteOutlined />}
                                 loading={developmentHardDeletePending}
-                                onClick={() => {
-                                    setHardDeleteMode('development');
-                                    setConfirmSlug('');
-                                    setIrreversibleAck(false);
-                                    setHardDeleteOpen(true);
-                                }}
+                                onClick={() => setDevelopmentHardDeleteOpen(true)}
                             >
                                 {t('tenants.detail.settings.danger.developmentHardDeleteButton')}
                             </Button>
@@ -160,30 +165,22 @@ export function TenantDetailDangerZone({
                 </Link>
             </Typography.Paragraph>
 
-            <Modal
-                title={t('tenants.detail.settings.danger.softDeleteModalTitle')}
-                open={softDeleteOpen}
-                onCancel={() => setSoftDeleteOpen(false)}
-                okText={t('tenants.detail.settings.danger.softDeleteConfirm')}
-                okButtonProps={{ danger: true, loading: softDeletePending }}
-                cancelText={t('common.cancel', { defaultValue: 'Abbrechen' })}
-                onOk={async () => {
-                    try {
-                        await onSoftDelete();
-                        setSoftDeleteOpen(false);
-                    } catch {
-                        /* parent toast */
-                    }
-                }}
-                destroyOnHidden
-            >
-                <Space orientation="vertical" size="small">
-                    <Typography.Text>{t('tenants.detail.settings.danger.softDeleteNoAccess')}</Typography.Text>
-                    <Typography.Text type="secondary">
-                        {t('tenants.detail.settings.danger.softDeleteRecoverable')}
-                    </Typography.Text>
-                </Space>
-            </Modal>
+            <TenantArchiveConfirmModal
+                open={archiveOpen}
+                tenantId={tenant.id}
+                tenantName={tenant.name}
+                onClose={() => setArchiveOpen(false)}
+                onSuccess={onArchiveSuccess}
+            />
+
+            <TenantPermanentDeleteModal
+                open={permanentDeleteOpen}
+                tenantId={tenant.id}
+                tenantName={tenant.name}
+                tenantSlug={tenant.slug}
+                onClose={() => setPermanentDeleteOpen(false)}
+                onSuccess={onPermanentDeleteSuccess}
+            />
 
             <Modal
                 title={t('tenants.detail.settings.danger.restoreModalTitle')}
@@ -207,70 +204,31 @@ export function TenantDetailDangerZone({
                 </Typography.Paragraph>
             </Modal>
 
-            <Modal
-                title={
-                    <Space>
-                        <WarningOutlined style={{ color: '#cf1322' }} />
-                        {t('tenants.detail.settings.danger.hardDeleteModalTitle')}
-                    </Space>
-                }
-                open={hardDeleteOpen}
-                onCancel={closeHardDelete}
-                okText={
-                    hardDeleteMode === 'development'
-                        ? t('tenants.detail.settings.danger.developmentHardDeleteButton')
-                        : t('tenants.detail.settings.danger.hardDeleteConfirm')
-                }
-                okButtonProps={{
-                    danger: true,
-                    disabled: !hardDeleteReady,
-                    loading: hardDeleteMode === 'development' ? developmentHardDeletePending : hardDeletePending,
-                }}
-                cancelText={t('common.cancel', { defaultValue: 'Abbrechen' })}
-                onOk={async () => {
-                    try {
-                        if (hardDeleteMode === 'development') {
+            {showDevelopmentHardDelete ? (
+                <Modal
+                    title={t('tenants.detail.settings.danger.developmentHardDeleteButton')}
+                    open={developmentHardDeleteOpen}
+                    onCancel={closeDevelopmentHardDelete}
+                    okText={t('tenants.detail.settings.danger.developmentHardDeleteButton')}
+                    okButtonProps={{ danger: true, loading: developmentHardDeletePending }}
+                    cancelText={t('common.cancel', { defaultValue: 'Abbrechen' })}
+                    onOk={async () => {
+                        try {
                             await onDevelopmentHardDelete?.();
-                        } else {
-                            await onHardDelete(confirmSlug.trim());
+                            closeDevelopmentHardDelete();
+                        } catch {
+                            /* parent toast */
                         }
-                        closeHardDelete();
-                    } catch {
-                        /* keep open */
-                    }
-                }}
-                destroyOnHidden
-            >
-                <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-                    {hardDeleteMode === 'development' ? (
-                        <Alert
-                            type="warning"
-                            showIcon
-                            title={t('tenants.detail.settings.danger.developmentHardDeleteHint')}
-                        />
-                    ) : null}
-                    <Alert type="error" showIcon title={t('tenants.confirmHardDelete.irreversible')} />
-                    <Typography.Paragraph style={{ marginBottom: 0 }}>
-                        {t('tenants.detail.settings.danger.hardDeleteDataLoss', { name: tenant.name })}
-                    </Typography.Paragraph>
-                    <Typography.Text>
-                        {t('tenants.detail.danger.confirmLabel', { slug: tenant.slug })}
-                    </Typography.Text>
-                    <Input
-                        value={confirmSlug}
-                        onChange={(e) => setConfirmSlug(e.target.value)}
-                        placeholder={tenant.slug}
-                        autoComplete="off"
-                        status={confirmSlug.length > 0 && !slugMatches ? 'error' : undefined}
+                    }}
+                    destroyOnHidden
+                >
+                    <Alert
+                        type="warning"
+                        showIcon
+                        title={t('tenants.detail.settings.danger.developmentHardDeleteHint')}
                     />
-                    <Checkbox
-                        checked={irreversibleAck}
-                        onChange={(e) => setIrreversibleAck(e.target.checked)}
-                    >
-                        {t('tenants.detail.settings.danger.hardDeleteAck')}
-                    </Checkbox>
-                </Space>
-            </Modal>
+                </Modal>
+            ) : null}
         </Card>
     );
 }

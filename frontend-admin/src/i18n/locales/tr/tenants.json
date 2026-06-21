@@ -57,7 +57,7 @@
   "status": {
     "active": "Aktif",
     "suspended": "Askıda",
-    "deleted": "Silindi"
+    "deleted": "Arşivlendi"
   },
   "fields": {
     "name": "Kiracı adı",
@@ -252,6 +252,7 @@
     "edit": "Düzenle",
     "decommission": "Kiracıyı decommission et",
     "delete": "Sil",
+    "archive": "Arşivle",
     "restore": "Geri yükle",
     "hardDelete": "Kalıcı olarak sil",
     "developmentHardDelete": "Hard Delete (Dev)",
@@ -358,6 +359,7 @@
         "decommissionWizardButton": "Stilllegung sihirbazını başlat",
         "decommissionWizardHint": "Bu akış önce ilgili tüm kasaları stilllegen eder, ardından kiracıyı güvenli şekilde arşivler.",
         "softDeleteButton": "Mandantı arşivle / sil",
+        "archiveButton": "Mandantı arşivle",
         "softDeleteHint": "Bu mandantı silerseniz kullanıcılar erişemez. Veriler saklanır ve geri yüklenebilir.",
         "softDeleteModalTitle": "Mandant silinsin mi?",
         "softDeleteNoAccess": "Kullanıcılar bu mandanta erişemez.",
@@ -515,6 +517,130 @@
     "title": "Kiracı geri yüklemek istediğinize emin misiniz?",
     "body": "Durum aktif olur ve üyelikler yeniden etkinleştirilir."
   },
+  "deleteDependencies": {
+    "pageTitle": "Silmeye hazırlık",
+    "pageTitleWithTenant": "Bağımlılıkları kontrol et: {{name}} ({{slug}})",
+    "checkDependencies": "Bağımlılıkları kontrol et",
+    "modalTitle": "Kalıcı silme engellendi",
+    "openPreparationPage": "Ayrıntıları göster",
+    "openDangerZone": "Tehlikeli bölgeye git",
+    "openRelated": "Aç",
+    "loadFailed": "Bağımlılıklar yüklenemedi.",
+    "preparationIntro": "Kalıcı silmeden önce „{{name}}“ ({{slug}}) için kalan veriler ve engeller.",
+    "tenantLine": "Mandant: {{name}} ({{slug}})",
+    "canHardDelete": "Engelleyici bağımlılık yok — kalıcı silme şu an mümkün (yalnızca development, fiscal footprint yok).",
+    "countsTitle": "Bağımlılıklar (adet)",
+    "noCounts": "Sayılan bağımlılık yok.",
+    "blockersTitle": "Engeller",
+    "nextStepsTitle": "Önerilen sonraki adımlar",
+    "fiscalFootprintTitle": "Fiscal footprint mevcut",
+    "fiscalFootprintBody": "Ödeme veya gün sonu kayıtları var. RKSV saklama — kalıcı silme yerine arşivleyin (soft-delete).",
+    "archiveHintTitle": "Silme yerine arşivle",
+    "archiveHintBody": "Soft-delete (arşiv) önerilen yoldur. Veriler compliance için saklanır; mandant geri yüklenebilir.",
+    "counts": {
+      "users": "Kullanıcılar",
+      "memberships": "Üyelikler",
+      "cashRegisters": "Kasalar",
+      "payments": "Ödemeler",
+      "receipts": "Fişler",
+      "dailyClosings": "Gün sonları",
+      "vouchers": "Kuponlar",
+      "voucherLedgerEntries": "Kupon defteri",
+      "products": "Ürünler",
+      "categories": "Kategoriler",
+      "finanzOnlineSubmissions": "FinanzOnline gönderimleri",
+      "auditLogs": "Denetim kayıtları"
+    },
+    "failureCodes": {
+      "generic": "Kalıcı silme şu an mümkün değil.",
+      "tenantNotFound": "Mandant bulunamadı.",
+      "legacyDefaultTenant": "Legacy varsayılan mandant kalıcı olarak silinemez.",
+      "productionPolicy": "Production ortamında kalıcı silme kapalı. Mandantı arşivleyin (soft-delete).",
+      "notSoftDeleted": "Mandant önce arşivlenmeli (soft-delete).",
+      "confirmSlugMismatch": "Girilen subdomain kısaltması eşleşmiyor.",
+      "cashRegistersPresent": "Hâlâ kasa var. Önce kaldırın veya stilllegen edin.",
+      "fiscalFootprintPresent": "Fiscal veri mevcut — kalıcı silmeye izin verilmez.",
+      "forceDeleteDevelopmentOnly": "Force delete yalnızca development ortamında.",
+      "remainingDependencies": "Engelleyici bağımlılıklar kaldı."
+    },
+    "blockers": {
+      "generic": "Engelleyici bağımlılık",
+      "memberships": "Kalıcı silmede kullanıcı üyelikleri kaldırılır.",
+      "catalog": "Kalıcı silmede ürünler ve kategoriler kaldırılır.",
+      "auditLogs": "Denetim kayıtları silinmez (compliance)."
+    },
+    "nextSteps": {
+      "softDeleteArchive": "Önce mandantı arşivleyin (soft-delete).",
+      "complianceSoftDeleteOnly": "Fiscal veri nedeniyle yalnızca arşivleyin — kalıcı silme yok.",
+      "removeCashRegisters": "Tüm kasaları stilllegen edin veya kaldırın.",
+      "reviewTenantUsers": "Kullanıcıları ve üyelikleri gözden geçirin.",
+      "reviewFiscalRecords": "Ödemeleri ve fişleri kontrol edin — saklama kuralları geçerli.",
+      "retainForRksvRetention": "RKSV saklama için mandantı arşivli tutun.",
+      "eligibleForDevPermanentDelete": "Development ortamında fiscal footprint yoksa kalıcı silme mümkün."
+    }
+  },
+  "permanentDeleteModal": {
+    "title": "Mandantı kalıcı olarak sil",
+    "complianceWarningTitle": "Compliance uyarısı",
+    "complianceWarningBody": "Fiscal fişler ve denetim verileri RKSV saklama süresine tabidir (en az 7 yıl). Kalıcı silme yalnızca fiscal footprint olmayan boş dev mandantlar içindir.",
+    "fiscalBlockedTitle": "Kalıcı silme engellendi",
+    "fiscalBlockedBody": "Bu mandantta fiscal veri var. Kalıcı silme yerine arşivleyin (soft-delete).",
+    "dependenciesCardTitle": "Bağımlılıklar",
+    "confirmationCardTitle": "Onay",
+    "phraseLabel": "Onay için „{{phrase}}“ yazın:",
+    "retentionAck": "RKSV saklama yükümlülüğünü (7 yıl) anladım.",
+    "columns": {
+      "category": "Kategori",
+      "count": "Adet",
+      "status": "Durum"
+    },
+    "status": {
+      "blocking": "Engelleyici",
+      "compliance": "Compliance",
+      "info": "Bilgi"
+    }
+  },
+  "archiveConfirmModal": {
+    "title": "Mandant arşivlensin mi?",
+    "alertTitle": "Veriler saklanır; geri yükleme mümkün",
+    "alertBody": "Mandant silinmiş olarak işaretlenir. Kullanıcılar erişemez; tüm veriler saklanır ve geri yüklenebilir.",
+    "tenantLine": "Mandant: {{name}}",
+    "confirm": "Mandantı arşivle"
+  },
+  "deletePreparation": {
+    "pageTitle": "Silme hazırlığı",
+    "archiveButton": "Mandantı arşivle",
+    "hardDeleteButton": "Kalıcı olarak sil",
+    "hardDeleteModalTitle": "Mandantı kalıcı olarak sil",
+    "hardDeleteModalIntro": "Mandant geri alınamaz şekilde silinir. Bu işlem iptal edilemez.",
+    "confirmSlugLabel": "Onay için mandant slug girin",
+    "confirmPhraseLabel": "Onay ifadesini girin",
+    "confirmPhrasePlaceholder": "löschen bestätigen",
+    "retentionAck": "RKSV saklama yükümlülüklerinin (7 yıl) dikkate alındığını onaylıyorum.",
+    "blockedTitle": "Silme mümkün değil",
+    "blockedBody": "Compliance gereksinimleri nedeniyle bu mandant kalıcı olarak silinemez. Bunun yerine arşivleyin.",
+    "dependenciesTitle": "Bağımlılıklar",
+    "tableCategory": "Kategori",
+    "tableCount": "Adet",
+    "tableStatus": "Durum",
+    "categories": {
+      "users": "Kullanıcılar",
+      "memberships": "Üyelikler",
+      "cashRegisters": "Kasalar",
+      "payments": "Ödemeler",
+      "receipts": "Fişler",
+      "vouchers": "Kuponlar",
+      "dailyClosings": "Gün sonları",
+      "products": "Ürünler",
+      "categories": "Kategoriler",
+      "auditLogs": "Denetim kayıtları"
+    },
+    "statusNone": "Yok",
+    "statusPresent": "Mevcut",
+    "statusBlocking": "Engelleyici",
+    "statusCompliance": "Compliance",
+    "complianceInfo": "RKSV, ödeme ve denetim verilerinin 7 yıl saklanmasını zorunlu kılar. Soft-delete (arşivleme) önerilen yoldur."
+  },
   "confirmHardDelete": {
     "title": "Kiracı kalıcı olarak sil",
     "irreversible": "Bu işlem GERİ ALINAMAZ.",
@@ -525,6 +651,7 @@
     "created": "Kiracı oluşturuldu.",
     "updated": "Kiracı kaydedildi.",
     "deleted": "Kiracı silindi.",
+    "archived": "Mandant arşivlendi.",
     "restored": "Kiracı geri yüklendi.",
     "hardDeleted": "Kiracı kalıcı olarak silindi.",
     "saveFailed": "Kaydetme başarısız.",

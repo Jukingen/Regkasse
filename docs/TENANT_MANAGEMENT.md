@@ -36,7 +36,7 @@ A **Mandant** is one SaaS customer company in Regkasse:
 |--------------|-------------|------------|-----------------|
 | `active` | Aktiv | `true` | Normal operation; impersonation allowed |
 | `suspended` | Gesperrt | usually `false` | Login/impersonation blocked; data retained |
-| `deleted` | Gelöscht | `false` | Soft-delete; hidden from default lists; optional hard-delete later |
+| `deleted` | Archiviert (soft-delete) | `false` | Archived; hidden from default lists; restore possible; hard-delete only in dev when eligible |
 
 **List filter:** *Gelöschte anzeigen* → `includeDeleted=true` on `GET /api/admin/tenants`.
 
@@ -61,7 +61,7 @@ A **Mandant** is one SaaS customer company in Regkasse:
 | **Benutzer** | Invite, roles, owner, reset password — see [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) |
 | **Kassen** | Registers, decommission — see [`CASH_REGISTER_LIFECYCLE.md`](CASH_REGISTER_LIFECYCLE.md) |
 | **Lizenz** | Mandantenlizenz (`LicenseManager`) — see [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md) |
-| **Einstellungen** | Address, status, danger zone (hard-delete mandant) |
+| **Einstellungen** | Address, status, danger zone (archive / permanent delete) |
 
 Route: `/admin/tenants/[tenantId]` — query `?tab=users|registers|license|settings`.
 
@@ -99,11 +99,67 @@ See [Auto-provisioning](#auto-provisioning-tenantprovisioningservice).
 - List actions: suspend → `status: suspended`; reactivate → `status: active`.
 - Impersonation is **disabled** for suspended, deleted, or inactive tenants (API `400`).
 
-### Delete
+### Delete (archive & permanent removal)
 
-- **Soft delete** from list: `DELETE /api/admin/tenants/{id}` — sets `status=deleted`, `isActive=false`.
-- **Hard delete** on detail (guarded): `hardDeleteAdminTenant` — only when safety checks pass (see backend tests).
-- Legacy default tenant cannot be deleted.
+Regkasse uses a **compliance-first** two-step lifecycle:
+
+1. **Soft-delete (archive)** — primary operator path; all data retained; restore possible.
+2. **Hard-delete (permanent)** — **development-only** for empty tenants without a fiscal footprint; **disabled in production**.
+
+#### Soft-delete (archive) — primary
+
+| Item | Detail |
+|------|--------|
+| **Operator label (DE)** | *Mandant archivieren* → status badge **Archiviert** |
+| **API** | `DELETE /api/admin/tenants/{id}` — sets `status=deleted`, `isActive=false` |
+| **UI entry points** | Tenant list **Archivieren**; detail → **Einstellungen** → danger zone; [delete-preparation](#delete-preparation-dependency-review) page |
+| **Toast** | *Mandant wurde archiviert.* |
+| **Restore** | List or danger zone **Wiederherstellen** → `POST /api/admin/tenants/{id}/restore` |
+
+#### Delete preparation (dependency review)
+
+Operators review blockers before archive or permanent delete:
+
+| Item | Detail |
+|------|--------|
+| **Route** | `/admin/tenants/{tenantId}/delete-preparation` |
+| **Entry** | Tenant detail header **Abhängigkeiten prüfen**; danger zone; list (archived rows) |
+| **API** | `GET /api/admin/tenants/{tenantId}/delete-dependencies` |
+| **Shows** | Full dependency table (users, registers, payments, audit logs, …) with status badges and links to related admin pages |
+| **CTAs** | **Mandant archivieren** (active tenants); **Endgültig löschen** (archived tenants, when eligible) |
+
+Components: `TenantDeletePreparationPage`, `TenantDeletePreparationPanel` — `frontend-admin/src/features/super-admin/components/`.
+
+#### Hard-delete (permanent) — dev-only
+
+| Item | Detail |
+|------|--------|
+| **Requires** | Tenant already **archived**; matching slug confirmation; no compliance blockers |
+| **API** | `DELETE /api/admin/tenants/{tenantId}/permanent` — body `{ "confirmSlug": "{slug}" }` |
+| **Production** | `403` with code `production_policy` — permanent deletion not available; use archive |
+| **Development** | Allowed when `TenantHardDeletePolicy` passes (no cash registers, no fiscal footprint) |
+| **Backend** | `TenantDeletionService` — `backend/Services/Tenancy/TenantDeletionService.cs` |
+| **UI** | `TenantPermanentDeleteModal` — slug + phrase *löschen bestätigen* + RKSV retention acknowledgement |
+| **Success** | `204 No Content` → redirect to `/admin/tenants` |
+
+Structured errors (`400`/`403`) return `TenantPermanentDeleteErrorResponse` with `code`, `message`, and optional `dependencies` for the modal.
+
+#### Compliance (RKSV retention)
+
+Payment receipts, daily closings, audit logs, and related fiscal data are subject to **7-year retention** under Austrian RKSV.
+
+- **Archive (soft-delete)** is the recommended operator path.
+- **Permanent deletion** is not offered in production and is blocked when a **fiscal footprint** exists (`fiscal_footprint_present`).
+
+#### Guards
+
+| Guard | Code | Effect |
+|-------|------|--------|
+| Legacy default tenant | `legacy_default_tenant` | Cannot archive or hard-delete |
+| Not archived | `tenant_not_soft_deleted` | Hard-delete requires prior archive |
+| Cash registers present | `cash_registers_present` | Hard-delete blocked |
+| Fiscal footprint | `fiscal_footprint_present` | Hard-delete blocked; compliance alert in UI |
+| Production environment | `production_policy` | Hard-delete API returns `403` |
 
 ### Impersonate (“Login as”)
 
@@ -290,6 +346,10 @@ Response includes `provisioning` DTO (one-time password, register id, product id
 |------|------|
 | Tenant CRUD page | `frontend-admin/src/app/(protected)/admin/tenants/page.tsx` |
 | Tenant detail | `frontend-admin/src/app/(protected)/admin/tenants/[tenantId]/page.tsx` |
+| Delete preparation | `frontend-admin/src/app/(protected)/admin/tenants/[tenantId]/delete-preparation/page.tsx` |
+| Archive / hard-delete modals | `TenantArchiveConfirmModal`, `TenantPermanentDeleteModal`, `TenantDeletePreparationPanel` |
+| Dependency API hook | `frontend-admin/src/features/super-admin/hooks/useTenantDeleteDependencies.ts` |
+| Permanent delete errors | `frontend-admin/src/features/super-admin/utils/parseTenantPermanentDeleteError.ts` |
 | Super Admin API | `frontend-admin/src/features/super-admin/api/adminTenants.ts` |
 | Tenant users API | `frontend-admin/src/features/super-admin/api/tenantUsers.ts` |
 | Mandant license API | `frontend-admin/src/features/super-admin/api/adminTenantLicense.ts` |
@@ -305,7 +365,13 @@ Response includes `provisioning` DTO (one-time password, register id, product id
 
 ## Tests
 
+- `frontend-admin/src/features/super-admin/components/__tests__/TenantDeletePreparationPanel.test.tsx`
+- `frontend-admin/src/features/super-admin/components/__tests__/TenantDetailDangerZone.test.tsx`
+- `frontend-admin/src/features/super-admin/components/__tests__/TenantPermanentDeleteModal.test.tsx`
+- `frontend-admin/src/features/super-admin/utils/__tests__/parseTenantPermanentDeleteError.test.ts`
+- `frontend-admin/src/app/(protected)/admin/tenants/__tests__/page.test.tsx`
 - `frontend-admin/src/features/super-admin/utils/__tests__/tenantHeaderSwitcher.test.ts`
 - `frontend-admin/src/features/super-admin/utils/__tests__/tenantLicenseLabel.test.ts`
+- `backend/KasseAPI_Final.Tests/TenantHardDeletePolicyTests.cs`
+- `backend/KasseAPI_Final.Tests/AdminTenantsControllerTests.cs` (delete-dependencies, permanent delete, restore)
 - `backend/KasseAPI_Final.Tests/TenantProvisioningServiceTests.cs`
-- `backend/KasseAPI_Final.Tests/AdminTenantsControllerTests.cs` (`ListForSwitcherAsync`, create/provision)

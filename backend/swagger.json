@@ -7187,6 +7187,46 @@
         }
       }
     },
+    "/api/admin/tenants/{tenantId}/delete-dependencies": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantDeleteDependenciesDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/tenants/{tenantId}/permanent": {
       "delete": {
         "tags": [
@@ -7221,7 +7261,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
+                  "$ref": "#/components/schemas/TenantPermanentDeleteErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantPermanentDeleteErrorResponse"
                 }
               }
             }
@@ -29071,6 +29121,7 @@
             "type": "string"
           },
           "inheritFromRole": {
+            "maxLength": 64,
             "type": "string",
             "nullable": true
           }
@@ -43298,6 +43349,134 @@
         },
         "additionalProperties": false
       },
+      "TenantDeleteDependenciesDto": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "tenantStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "canHardDelete": {
+            "type": "boolean"
+          },
+          "hasDependencies": {
+            "type": "boolean"
+          },
+          "hasFiscalFootprint": {
+            "type": "boolean"
+          },
+          "failureCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "dependencies": {
+            "$ref": "#/components/schemas/TenantDeleteDependencyCountsDto"
+          },
+          "blockingDependencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TenantDeleteDependencyBlockerDto"
+            },
+            "nullable": true
+          },
+          "nextSteps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TenantDeleteDependencyBlockerDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "severity": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TenantDeleteDependencyCountsDto": {
+        "type": "object",
+        "properties": {
+          "users": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "memberships": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cashRegisters": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "payments": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "receipts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "vouchers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "voucherLedgerEntries": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dailyClosings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "products": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "categories": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "auditLogs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "finanzOnlineSubmissions": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "TenantImpersonationResponseDto": {
         "type": "object",
         "properties": {
@@ -43545,6 +43724,23 @@
               "type": "string"
             },
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "TenantPermanentDeleteErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "dependencies": {
+            "$ref": "#/components/schemas/TenantDeleteDependenciesDto"
           }
         },
         "additionalProperties": false

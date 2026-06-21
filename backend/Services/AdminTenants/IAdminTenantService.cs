@@ -59,7 +59,11 @@ public interface IAdminTenantService
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
-    Task<(bool Success, string? Error)> HardDeleteAsync(
+    Task<TenantDeleteDependenciesDto?> GetDeleteDependenciesAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default);
+
+    Task<TenantPermanentDeleteResult> HardDeleteAsync(
         Guid tenantId,
         HardDeleteAdminTenantRequest request,
         string? actorUserId,

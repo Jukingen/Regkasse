@@ -15,13 +15,11 @@ import { useI18n } from '@/i18n';
 export type TenantDetailSettingsTabProps = {
     tenant: AdminTenantDetail;
     onUpdated: () => void;
-    softDeletePending?: boolean;
     restorePending?: boolean;
-    hardDeletePending?: boolean;
     developmentHardDeletePending?: boolean;
-    onSoftDelete?: () => void | Promise<void>;
+    onArchiveSuccess?: () => void;
+    onPermanentDeleteSuccess?: () => void;
     onRestore?: () => void | Promise<void>;
-    onHardDelete?: (confirmSlug: string) => void | Promise<void>;
     onDevelopmentHardDelete?: () => void | Promise<void>;
 };
 
@@ -36,13 +34,11 @@ type SettingsFormValues = {
 export function TenantDetailSettingsTab({
     tenant,
     onUpdated,
-    softDeletePending,
     restorePending,
-    hardDeletePending,
     developmentHardDeletePending,
-    onSoftDelete,
+    onArchiveSuccess,
+    onPermanentDeleteSuccess,
     onRestore,
-    onHardDelete,
     onDevelopmentHardDelete,
 }: TenantDetailSettingsTabProps) {
   const { message } = useAntdApp();
@@ -116,16 +112,14 @@ export function TenantDetailSettingsTab({
                 </Form>
             </Card>
 
-            {canManageDeletion && onSoftDelete && onRestore && onHardDelete ? (
+            {canManageDeletion && onArchiveSuccess && onPermanentDeleteSuccess && onRestore ? (
                 <TenantDetailDangerZone
                     tenant={tenant}
-                    softDeletePending={softDeletePending}
                     restorePending={restorePending}
-                    hardDeletePending={hardDeletePending}
                     developmentHardDeletePending={developmentHardDeletePending}
-                    onSoftDelete={onSoftDelete}
+                    onArchiveSuccess={onArchiveSuccess}
+                    onPermanentDeleteSuccess={onPermanentDeleteSuccess}
                     onRestore={onRestore}
-                    onHardDelete={onHardDelete}
                     onDevelopmentHardDelete={onDevelopmentHardDelete}
                 />
             ) : null}

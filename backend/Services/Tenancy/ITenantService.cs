@@ -15,7 +15,7 @@ public interface ITenantService
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
-    Task<(bool Success, string? Error)> HardDeleteAsync(
+    Task<TenantPermanentDeleteResult> HardDeleteAsync(
         Guid tenantId,
         HardDeleteAdminTenantRequest request,
         string? actorUserId,

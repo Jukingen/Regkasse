@@ -57,7 +57,7 @@
   "status": {
     "active": "Active",
     "suspended": "Suspended",
-    "deleted": "Deleted"
+    "deleted": "Archived"
   },
   "fields": {
     "name": "Tenant name",
@@ -252,6 +252,7 @@
     "edit": "Edit",
     "decommission": "Decommission tenant",
     "delete": "Delete",
+    "archive": "Archive",
     "restore": "Restore",
     "hardDelete": "Delete permanently",
     "developmentHardDelete": "Hard Delete (Dev)",
@@ -358,6 +359,7 @@
         "decommissionWizardButton": "Start decommission wizard",
         "decommissionWizardHint": "The wizard decommissions all related registers first and archives the tenant safely afterwards.",
         "softDeleteButton": "Archive / delete tenant",
+        "archiveButton": "Archive tenant",
         "softDeleteHint": "If you delete this tenant, users cannot sign in. Data is kept and can be restored.",
         "softDeleteModalTitle": "Delete tenant?",
         "softDeleteNoAccess": "Users will lose access to this tenant.",
@@ -515,6 +517,130 @@
     "title": "Restore tenant?",
     "body": "Status will be set to active and memberships reactivated."
   },
+  "deleteDependencies": {
+    "pageTitle": "Prepare deletion",
+    "pageTitleWithTenant": "Review dependencies: {{name}} ({{slug}})",
+    "checkDependencies": "Review dependencies",
+    "modalTitle": "Permanent delete blocked",
+    "openPreparationPage": "View details",
+    "openDangerZone": "Open danger zone",
+    "openRelated": "Open",
+    "loadFailed": "Could not load dependencies.",
+    "preparationIntro": "Overview of remaining data and blockers for “{{name}}” ({{slug}}) before permanent delete.",
+    "tenantLine": "Tenant: {{name}} ({{slug}})",
+    "canHardDelete": "No blocking dependencies — permanent delete is currently allowed (development only, no fiscal footprint).",
+    "countsTitle": "Dependencies (counts)",
+    "noCounts": "No counted dependencies.",
+    "blockersTitle": "Blockers",
+    "nextStepsTitle": "Recommended next steps",
+    "fiscalFootprintTitle": "Fiscal footprint present",
+    "fiscalFootprintBody": "Payments or daily closings exist. RKSV retention applies — archive (soft-delete) instead of permanent delete.",
+    "archiveHintTitle": "Archive instead of delete",
+    "archiveHintBody": "Soft-delete (archive) is the recommended path. Data is retained for compliance and the tenant can be restored.",
+    "counts": {
+      "users": "Users",
+      "memberships": "Memberships",
+      "cashRegisters": "Cash registers",
+      "payments": "Payments",
+      "receipts": "Receipts",
+      "dailyClosings": "Daily closings",
+      "vouchers": "Vouchers",
+      "voucherLedgerEntries": "Voucher ledger entries",
+      "products": "Products",
+      "categories": "Categories",
+      "finanzOnlineSubmissions": "FinanzOnline submissions",
+      "auditLogs": "Audit logs"
+    },
+    "failureCodes": {
+      "generic": "Permanent delete is not available right now.",
+      "tenantNotFound": "Tenant was not found.",
+      "legacyDefaultTenant": "The legacy default tenant cannot be permanently deleted.",
+      "productionPolicy": "Permanent delete is disabled in production. Archive the tenant (soft-delete).",
+      "notSoftDeleted": "The tenant must be archived (soft-deleted) first.",
+      "confirmSlugMismatch": "The entered subdomain slug does not match.",
+      "cashRegistersPresent": "Cash registers still exist. Remove or decommission them first.",
+      "fiscalFootprintPresent": "Fiscal data is present — permanent delete is not allowed.",
+      "forceDeleteDevelopmentOnly": "Force delete is allowed in development only.",
+      "remainingDependencies": "Blocking dependencies remain."
+    },
+    "blockers": {
+      "generic": "Blocking dependency",
+      "memberships": "User memberships will be removed on permanent delete.",
+      "catalog": "Products and categories will be removed on permanent delete.",
+      "auditLogs": "Audit logs are not purged (compliance)."
+    },
+    "nextSteps": {
+      "softDeleteArchive": "Archive the tenant first (soft-delete).",
+      "complianceSoftDeleteOnly": "Due to fiscal data, archive only — no permanent delete.",
+      "removeCashRegisters": "Decommission or remove all cash registers.",
+      "reviewTenantUsers": "Review users and memberships.",
+      "reviewFiscalRecords": "Review payments and receipts — retention rules apply.",
+      "retainForRksvRetention": "Keep the tenant archived for RKSV retention.",
+      "eligibleForDevPermanentDelete": "In development without fiscal footprint, permanent delete is allowed."
+    }
+  },
+  "permanentDeleteModal": {
+    "title": "Permanently delete tenant",
+    "complianceWarningTitle": "Compliance notice",
+    "complianceWarningBody": "Fiscal receipts and audit data are subject to RKSV retention (at least 7 years). Permanent delete is intended only for empty dev tenants without a fiscal footprint.",
+    "fiscalBlockedTitle": "Permanent delete blocked",
+    "fiscalBlockedBody": "This tenant has fiscal data. Archive (soft-delete) instead of permanent delete.",
+    "dependenciesCardTitle": "Dependencies",
+    "confirmationCardTitle": "Confirmation",
+    "phraseLabel": "Type “{{phrase}}” to confirm:",
+    "retentionAck": "I understand the RKSV retention requirement (7 years).",
+    "columns": {
+      "category": "Category",
+      "count": "Count",
+      "status": "Status"
+    },
+    "status": {
+      "blocking": "Blocking",
+      "compliance": "Compliance",
+      "info": "Info"
+    }
+  },
+  "archiveConfirmModal": {
+    "title": "Archive tenant?",
+    "alertTitle": "Data is retained; restoration is possible",
+    "alertBody": "The tenant will be marked as deleted. Users lose access; all data is kept and can be restored.",
+    "tenantLine": "Tenant: {{name}}",
+    "confirm": "Archive tenant"
+  },
+  "deletePreparation": {
+    "pageTitle": "Delete preparation",
+    "archiveButton": "Archive tenant",
+    "hardDeleteButton": "Delete permanently",
+    "hardDeleteModalTitle": "Permanently delete tenant",
+    "hardDeleteModalIntro": "The tenant will be permanently removed. This action cannot be undone.",
+    "confirmSlugLabel": "Enter tenant slug to confirm",
+    "confirmPhraseLabel": "Enter confirmation phrase",
+    "confirmPhrasePlaceholder": "löschen bestätigen",
+    "retentionAck": "I confirm that RKSV retention obligations (7 years) have been considered.",
+    "blockedTitle": "Deletion not possible",
+    "blockedBody": "This tenant cannot be permanently deleted due to compliance requirements. Archive the tenant instead.",
+    "dependenciesTitle": "Dependencies",
+    "tableCategory": "Category",
+    "tableCount": "Count",
+    "tableStatus": "Status",
+    "categories": {
+      "users": "Users",
+      "memberships": "Memberships",
+      "cashRegisters": "Cash registers",
+      "payments": "Payments",
+      "receipts": "Receipts",
+      "vouchers": "Vouchers",
+      "dailyClosings": "Daily closings",
+      "products": "Products",
+      "categories": "Categories",
+      "auditLogs": "Audit logs"
+    },
+    "statusNone": "None",
+    "statusPresent": "Present",
+    "statusBlocking": "Blocking",
+    "statusCompliance": "Compliance",
+    "complianceInfo": "RKSV requires 7-year retention of payment and audit data. Soft-delete (archiving) is the recommended approach."
+  },
   "confirmHardDelete": {
     "title": "Permanently delete tenant",
     "irreversible": "This action CANNOT be undone.",
@@ -525,6 +651,7 @@
     "created": "Tenant created.",
     "updated": "Tenant saved.",
     "deleted": "Tenant deleted.",
+    "archived": "Tenant archived.",
     "restored": "Tenant restored.",
     "hardDeleted": "Tenant permanently deleted.",
     "saveFailed": "Save failed.",
