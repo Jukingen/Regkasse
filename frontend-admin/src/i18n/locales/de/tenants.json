@@ -57,7 +57,7 @@
   "status": {
     "active": "Aktiv",
     "suspended": "Gesperrt",
-    "deleted": "Gelöscht"
+    "deleted": "Archiviert"
   },
   "fields": {
     "name": "Firmenname",
@@ -252,6 +252,7 @@
     "edit": "Bearbeiten",
     "decommission": "Mandant decommission",
     "delete": "Löschen",
+    "archive": "Archivieren",
     "restore": "Wiederherstellen",
     "hardDelete": "Endgültig löschen",
     "developmentHardDelete": "Hard Delete (Dev)",
@@ -358,6 +359,7 @@
         "decommissionWizardButton": "Stilllegung starten",
         "decommissionWizardHint": "Der Assistent legt zuerst alle zugehörigen Kassen still und archiviert danach den Mandanten sicher.",
         "softDeleteButton": "Mandant archivieren / löschen",
+        "archiveButton": "Mandant archivieren",
         "softDeleteHint": "Wenn Sie diesen Mandanten löschen, können sich Benutzer nicht mehr anmelden. Daten bleiben erhalten und können wiederhergestellt werden.",
         "softDeleteModalTitle": "Mandant löschen?",
         "softDeleteNoAccess": "Benutzer verlieren den Zugriff auf diesen Mandanten.",
@@ -515,6 +517,130 @@
     "title": "Mandant wiederherstellen?",
     "body": "Status wird auf aktiv gesetzt; Benutzer-Mitgliedschaften werden reaktiviert."
   },
+  "deleteDependencies": {
+    "pageTitle": "Löschen vorbereiten",
+    "pageTitleWithTenant": "Abhängigkeiten prüfen: {{name}} ({{slug}})",
+    "checkDependencies": "Abhängigkeiten prüfen",
+    "modalTitle": "Endgültiges Löschen blockiert",
+    "openPreparationPage": "Details anzeigen",
+    "openDangerZone": "Zur Gefahrenzone",
+    "openRelated": "Öffnen",
+    "loadFailed": "Abhängigkeiten konnten nicht geladen werden.",
+    "preparationIntro": "Übersicht der verbleibenden Daten und Blocker für „{{name}}“ ({{slug}}), bevor ein Mandant endgültig gelöscht werden kann.",
+    "tenantLine": "Mandant: {{name}} ({{slug}})",
+    "canHardDelete": "Keine blockierenden Abhängigkeiten — endgültiges Löschen ist derzeit möglich (nur Development, ohne fiscal footprint).",
+    "countsTitle": "Abhängigkeiten (Anzahl)",
+    "noCounts": "Keine gezählten Abhängigkeiten.",
+    "blockersTitle": "Blocker",
+    "nextStepsTitle": "Empfohlene nächste Schritte",
+    "fiscalFootprintTitle": "Fiskaler Footprint vorhanden",
+    "fiscalFootprintBody": "Belege oder Tagesabschlüsse sind vorhanden. RKSV verlangt Aufbewahrung — Mandant archivieren (Soft-Delete) statt endgültig löschen.",
+    "archiveHintTitle": "Archivieren statt löschen",
+    "archiveHintBody": "Soft-Delete (Archivieren) ist der empfohlene Weg. Daten bleiben für Compliance erhalten und der Mandant kann wiederhergestellt werden.",
+    "counts": {
+      "users": "Benutzer",
+      "memberships": "Mitgliedschaften",
+      "cashRegisters": "Kassen",
+      "payments": "Zahlungen",
+      "receipts": "Belege",
+      "dailyClosings": "Tagesabschlüsse",
+      "vouchers": "Gutscheine",
+      "voucherLedgerEntries": "Gutschein-Ledger",
+      "products": "Produkte",
+      "categories": "Kategorien",
+      "finanzOnlineSubmissions": "FinanzOnline-Einreichungen",
+      "auditLogs": "Audit-Protokolle"
+    },
+    "failureCodes": {
+      "generic": "Endgültiges Löschen ist derzeit nicht möglich.",
+      "tenantNotFound": "Mandant wurde nicht gefunden.",
+      "legacyDefaultTenant": "Der Legacy-Standardmandant kann nicht endgültig gelöscht werden.",
+      "productionPolicy": "Endgültiges Löschen ist in Production deaktiviert. Mandant archivieren (Soft-Delete).",
+      "notSoftDeleted": "Der Mandant muss zuerst archiviert (soft-gelöscht) werden.",
+      "confirmSlugMismatch": "Das eingegebene Subdomain-Kürzel stimmt nicht überein.",
+      "cashRegistersPresent": "Es sind noch Kassen vorhanden. Kassen zuerst entfernen oder stilllegen.",
+      "fiscalFootprintPresent": "Fiskale Daten vorhanden — endgültiges Löschen ist nicht zulässig.",
+      "forceDeleteDevelopmentOnly": "Force-Delete ist nur in Development erlaubt.",
+      "remainingDependencies": "Es verbleiben blockierende Abhängigkeiten."
+    },
+    "blockers": {
+      "generic": "Blockierende Abhängigkeit",
+      "memberships": "Benutzer-Mitgliedschaften werden beim endgültigen Löschen entfernt.",
+      "catalog": "Produkte und Kategorien werden beim endgültigen Löschen entfernt.",
+      "auditLogs": "Audit-Protokolle werden nicht gelöscht (Compliance)."
+    },
+    "nextSteps": {
+      "softDeleteArchive": "Mandant zuerst archivieren (Soft-Delete).",
+      "complianceSoftDeleteOnly": "Aufgrund fiskaler Daten nur archivieren — kein endgültiges Löschen.",
+      "removeCashRegisters": "Alle Kassen stilllegen oder entfernen (Decommission-Wizard).",
+      "reviewTenantUsers": "Benutzer und Mitgliedschaften prüfen.",
+      "reviewFiscalRecords": "Zahlungen und Belege prüfen — Aufbewahrungspflicht beachten.",
+      "retainForRksvRetention": "Mandant für RKSV-Aufbewahrung archiviert belassen.",
+      "eligibleForDevPermanentDelete": "In Development ohne fiscal footprint kann endgültig gelöscht werden."
+    }
+  },
+  "permanentDeleteModal": {
+    "title": "Mandant endgültig löschen",
+    "complianceWarningTitle": "Compliance-Hinweis",
+    "complianceWarningBody": "Fiskale Belege und Audit-Daten unterliegen der RKSV-Aufbewahrung (mindestens 7 Jahre). Endgültiges Löschen ist nur für leere Dev-Mandanten ohne fiscal footprint vorgesehen.",
+    "fiscalBlockedTitle": "Endgültiges Löschen blockiert",
+    "fiscalBlockedBody": "Für diesen Mandanten liegen fiskale Daten vor. Bitte archivieren (Soft-Delete) statt endgültig zu löschen.",
+    "dependenciesCardTitle": "Abhängigkeiten",
+    "confirmationCardTitle": "Bestätigung",
+    "phraseLabel": "Zur Bestätigung „{{phrase}}“ eingeben:",
+    "retentionAck": "Ich habe die RKSV-Aufbewahrungspflicht (7 Jahre) verstanden.",
+    "columns": {
+      "category": "Kategorie",
+      "count": "Anzahl",
+      "status": "Status"
+    },
+    "status": {
+      "blocking": "Blockierend",
+      "compliance": "Compliance",
+      "info": "Info"
+    }
+  },
+  "archiveConfirmModal": {
+    "title": "Mandant archivieren?",
+    "alertTitle": "Daten bleiben erhalten, Wiederherstellung möglich",
+    "alertBody": "Der Mandant wird als gelöscht markiert. Benutzer verlieren den Zugriff; alle Daten bleiben gespeichert und können wiederhergestellt werden.",
+    "tenantLine": "Mandant: {{name}}",
+    "confirm": "Mandant archivieren"
+  },
+  "deletePreparation": {
+    "pageTitle": "Löschvorbereitung",
+    "archiveButton": "Mandant archivieren",
+    "hardDeleteButton": "Endgültig löschen",
+    "hardDeleteModalTitle": "Mandant endgültig löschen",
+    "hardDeleteModalIntro": "Der Mandant wird unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "confirmSlugLabel": "Mandant-Slug zur Bestätigung eingeben",
+    "confirmPhraseLabel": "Bestätigungswort eingeben",
+    "confirmPhrasePlaceholder": "löschen bestätigen",
+    "retentionAck": "Ich bestätige, dass RKSV-Aufbewahrungspflichten (7 Jahre) beachtet wurden.",
+    "blockedTitle": "Löschen nicht möglich",
+    "blockedBody": "Dieser Mandant kann aufgrund von Compliance-Anforderungen nicht endgültig gelöscht werden. Archivieren Sie den Mandanten stattdessen.",
+    "dependenciesTitle": "Abhängigkeiten",
+    "tableCategory": "Kategorie",
+    "tableCount": "Anzahl",
+    "tableStatus": "Status",
+    "categories": {
+      "users": "Benutzer",
+      "memberships": "Mitgliedschaften",
+      "cashRegisters": "Kassen",
+      "payments": "Zahlungen",
+      "receipts": "Belege",
+      "vouchers": "Gutscheine",
+      "dailyClosings": "Tagesabschlüsse",
+      "products": "Produkte",
+      "categories": "Kategorien",
+      "auditLogs": "Audit-Logs"
+    },
+    "statusNone": "Keine",
+    "statusPresent": "Vorhanden",
+    "statusBlocking": "Blockierend",
+    "statusCompliance": "Compliance",
+    "complianceInfo": "RKSV schreibt 7-jährige Aufbewahrung von Zahlungs- und Audit-Daten vor. Soft-delete (Archivierung) ist die empfohlene Vorgehensweise."
+  },
   "confirmHardDelete": {
     "title": "Mandant endgültig löschen",
     "irreversible": "Diese Aktion kann NICHT rückgängig gemacht werden.",
@@ -525,6 +651,7 @@
     "created": "Mandant wurde angelegt.",
     "updated": "Mandant wurde gespeichert.",
     "deleted": "Mandant wurde gelöscht.",
+    "archived": "Mandant wurde archiviert.",
     "restored": "Mandant wurde wiederhergestellt.",
     "hardDeleted": "Mandant wurde endgültig gelöscht.",
     "saveFailed": "Speichern fehlgeschlagen.",

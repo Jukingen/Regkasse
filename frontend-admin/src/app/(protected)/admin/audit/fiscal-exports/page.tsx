@@ -16,8 +16,8 @@ import { ADMIN_NAV_LABEL_KEYS, adminOverviewCrumb } from '@/shared/adminShellLab
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
 import { FiscalRetentionNotice } from '@/features/fiscal-export-audit/components/FiscalRetentionNotice';
-import {
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import {
     buildFiscalExportAuditCsvExportUrl,
     fetchFiscalExportAuditDetail,
     fetchFiscalExportAuditLogs,
@@ -376,7 +376,8 @@ export default function FiscalExportAuditPage() {
                 <Flex wrap="wrap" gap={12}>
                     <Space orientation="vertical" size={4}>
                         <Typography.Text type="secondary">{t('fiscalExportAudit.filters.downloadRange')}</Typography.Text>
-                        <RangePicker format={DAYJS_DATE_FORMAT}
+                        <RangePicker
+                            format={`${DAYJS_DATE_FORMAT} HH:mm`}
                             allowEmpty={[true, true]}
                             value={downloadRange}
                             onChange={(v) => {
@@ -384,7 +385,6 @@ export default function FiscalExportAuditPage() {
                                 setPage(1);
                             }}
                             showTime
-                            format="DD.MM.YYYY HH:mm"
                         />
                     </Space>
                     <Space orientation="vertical" size={4}>

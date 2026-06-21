@@ -26,6 +26,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
     private readonly AuthOptions _authOptions;
     private readonly ITenantOnboardingService _onboardingService;
     private readonly ITenantService _tenantService;
+    private readonly ITenantDeletionService _tenantDeletion;
     private readonly ICashRegisterDecommissionService _cashRegisterDecommissionService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ICurrentTenantAccessor _tenantAccessor;
@@ -40,6 +41,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         IOptions<AuthOptions> authOptions,
         ITenantOnboardingService onboardingService,
         ITenantService tenantService,
+        ITenantDeletionService tenantDeletion,
         ICashRegisterDecommissionService cashRegisterDecommissionService,
         IHttpContextAccessor httpContextAccessor,
         ICurrentTenantAccessor tenantAccessor,
@@ -53,6 +55,7 @@ public sealed partial class AdminTenantService : IAdminTenantService
         _authOptions = authOptions.Value;
         _onboardingService = onboardingService;
         _tenantService = tenantService;
+        _tenantDeletion = tenantDeletion;
         _cashRegisterDecommissionService = cashRegisterDecommissionService;
         _httpContextAccessor = httpContextAccessor;
         _tenantAccessor = tenantAccessor;
@@ -377,7 +380,23 @@ public sealed partial class AdminTenantService : IAdminTenantService
         return (ToDetail(tenant), null);
     }
 
-    public Task<(bool Success, string? Error)> HardDeleteAsync(
+    public async Task<TenantDeleteDependenciesDto?> GetDeleteDependenciesAsync(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await _tenantDeletion
+                .GetDependencySummaryAsync(tenantId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (KeyNotFoundException)
+        {
+            return null;
+        }
+    }
+
+    public Task<TenantPermanentDeleteResult> HardDeleteAsync(
         Guid tenantId,
         HardDeleteAdminTenantRequest request,
         string? actorUserId,

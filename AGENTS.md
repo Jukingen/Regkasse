@@ -114,6 +114,7 @@ For medium or large changes, always provide:
 - Access via `admin.regkasse.at`
 - Can impersonate any tenant via `POST /api/admin/tenants/{id}/impersonate`
 - Tenant CRUD via `/api/admin/tenants/*`
+- **Tenant hard-delete is disabled in production; use soft-delete (archive) for tenant removal.**
 - Cross-tenant SaaS metrics API is not yet a separate surface
 
 ### Impersonation Flow

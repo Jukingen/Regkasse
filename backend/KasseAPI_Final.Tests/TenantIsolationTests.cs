@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text.Json;
 using KasseAPI_Final.Authorization;
@@ -22,6 +23,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -57,11 +59,38 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
 
     private static AppDbContext CreateContext(ICurrentTenantAccessor? tenantAccessor = null)
     {
+        var dbName = $"TenantIso_{Guid.NewGuid():N}";
+        var accessor = tenantAccessor ?? NullCurrentTenantAccessor.Instance;
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"TenantIso_{Guid.NewGuid():N}")
+            .UseInMemoryDatabase(dbName)
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, tenantAccessor ?? NullCurrentTenantAccessor.Instance);
+        var db = new AppDbContext(options, accessor);
+        DbScopeFactories.Add(db, CreateScopeFactoryForDbName(dbName, accessor));
+        return db;
+    }
+
+    private static readonly ConditionalWeakTable<AppDbContext, IServiceScopeFactory> DbScopeFactories = new();
+
+    private static IServiceScopeFactory CreateScopeFactoryForDbName(
+        string dbName,
+        ICurrentTenantAccessor accessor)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<ICurrentTenantAccessor>(accessor);
+        services.AddDbContextFactory<AppDbContext>(builder =>
+            builder
+                .UseInMemoryDatabase(dbName)
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
+        return services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+    }
+
+    private static IServiceScopeFactory CreateScopeFactoryForDb(AppDbContext db)
+    {
+        if (DbScopeFactories.TryGetValue(db, out var scopeFactory))
+            return scopeFactory;
+
+        throw new InvalidOperationException("CreateContext() must be used before wiring TenantDeletionService for tests.");
     }
 
     private static async Task<(AppDbContext Db, IsolationSeed Seed)> SeedTwoTenantPaymentsAsync(
@@ -359,6 +388,11 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
             new Tenant { Id = TenantBId, Name = "B", Slug = TenantBSlug, Status = TenantStatuses.Active, IsActive = true, CreatedAt = DateTime.UtcNow });
         await db.SaveChangesAsync();
 
+        var tenantDeletion = new TenantDeletionService(
+            CreateScopeFactoryForDb(db),
+            new TenantHardDeletePolicy(
+                Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
+                Options.Create(new TenantDeletionOptions())));
         var service = new AdminTenantService(
             db,
             CreateUserManagerStub(),
@@ -367,7 +401,8 @@ public sealed class TenantIsolationTests : IClassFixture<TenantIsolationWebAppli
             Mock.Of<IJwtAccessTokenIssuer>(),
             Options.Create(new AuthOptions()),
             Mock.Of<ITenantOnboardingService>(),
-            new TenantService(db, Mock.Of<IAuditLogService>(), Mock.Of<ILogger<TenantService>>()),
+            new TenantService(db, Mock.Of<IAuditLogService>(), tenantDeletion, Mock.Of<ILogger<TenantService>>()),
+            tenantDeletion,
             Mock.Of<ICashRegisterDecommissionService>(),
             new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
             NullCurrentTenantAccessor.Instance,

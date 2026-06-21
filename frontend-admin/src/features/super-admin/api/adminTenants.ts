@@ -1,5 +1,11 @@
 import type { DemoImportProductOverride } from '@/api/admin/products';
 import { AXIOS_INSTANCE } from '@/lib/axios';
+import {
+    parseTenantPermanentDeleteError,
+    TenantPermanentDeleteBlockedError,
+} from '@/features/super-admin/utils/parseTenantPermanentDeleteError';
+import { getApiAdminTenantsTenantIdDeleteDependencies } from '@/api/generated/admin/admin';
+import type { TenantDeleteDependenciesDto } from '@/api/generated/model';
 import { authStorage } from '@/features/auth/services/authStorage';
 import { beginTenantSwitch } from '@/features/auth/services/tenantSwitchController';
 import { writeDevTenantSlug } from '@/features/auth/services/devTenant';
@@ -179,11 +185,26 @@ export async function restoreAdminTenant(tenantId: string): Promise<void> {
     await AXIOS_INSTANCE.post(`/api/admin/tenants/${tenantId}/restore`);
 }
 
+/** Read-only dependency summary for permanent delete UI. */
+export async function fetchTenantDeleteDependencies(
+    tenantId: string,
+): Promise<TenantDeleteDependenciesDto> {
+    return getApiAdminTenantsTenantIdDeleteDependencies(tenantId);
+}
+
 /** Permanent delete; requires prior soft-delete and matching {@link confirmSlug}. */
 export async function hardDeleteAdminTenant(tenantId: string, confirmSlug: string): Promise<void> {
-    await AXIOS_INSTANCE.delete(`/api/admin/tenants/${tenantId}/permanent`, {
-        data: { confirmSlug },
-    });
+    try {
+        await AXIOS_INSTANCE.delete(`/api/admin/tenants/${tenantId}/permanent`, {
+            data: { confirmSlug },
+        });
+    } catch (error) {
+        const structured = parseTenantPermanentDeleteError(error);
+        if (structured && (structured.dependencies || structured.code)) {
+            throw new TenantPermanentDeleteBlockedError(structured);
+        }
+        throw error;
+    }
 }
 
 /** Development-only shortcut: immediately soft-deletes and permanently deletes the tenant server-side. */
@@ -265,3 +286,5 @@ export function applyTenantImpersonationSession(res: TenantImpersonationResponse
         window.location.reload();
     }
 }
+
+export { TenantPermanentDeleteBlockedError } from '@/features/super-admin/utils/parseTenantPermanentDeleteError';

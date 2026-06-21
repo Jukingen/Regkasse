@@ -25,18 +25,19 @@ import { TenantStatusBadge } from '@/features/super-admin/components/TenantStatu
 import { TenantTableActions } from '@/features/super-admin/components/TenantTableActions';
 import {
     applyTenantImpersonationSession,
-    hardDeleteAdminTenant,
     impersonateAdminTenant,
     listAdminTenants,
     restoreAdminTenant,
-    softDeleteAdminTenant,
     updateAdminTenant,
     type AdminTenantListItem,
 } from '@/features/super-admin/api/adminTenants';
 import Link from 'next/link';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
-const TENANT_QUERY_KEY = ['admin', 'tenants'] as const;
+import {
+    invalidateTenantLifecycleQueries,
+    ADMIN_TENANTS_QUERY_KEY,
+} from '@/features/super-admin/utils/invalidateTenantLifecycleQueries';
 
 function isTenantRowDeleted(row: Pick<AdminTenantListItem, 'status' | 'isActive'>): boolean {
     return row.status === 'deleted' || !row.isActive;
@@ -70,13 +71,13 @@ export default function SuperAdminTenantsPage() {
     const canManageDeletion = useCanManageTenantDeletion();
 
     const tenantsQuery = useQuery({
-        queryKey: [...TENANT_QUERY_KEY, includeDeleted],
+        queryKey: [...ADMIN_TENANTS_QUERY_KEY, includeDeleted],
         queryFn: () => listAdminTenants(includeDeleted),
         enabled: canAccess,
     });
 
     const invalidateTenants = useCallback(
-        () => void queryClient.invalidateQueries({ queryKey: TENANT_QUERY_KEY }),
+        () => void queryClient.invalidateQueries({ queryKey: ADMIN_TENANTS_QUERY_KEY }),
         [queryClient],
     );
 
@@ -109,17 +110,6 @@ export default function SuperAdminTenantsPage() {
         onError: () => message.error(t('tenants.messages.saveFailed')),
     });
 
-    const deleteMutation = useMutation({
-        mutationFn: (id: string) => softDeleteAdminTenant(id),
-        onMutate: (id) => setActionTenantId(id),
-        onSettled: () => setActionTenantId(null),
-        onSuccess: () => {
-            message.success(t('tenants.messages.deleted'));
-            invalidateTenants();
-        },
-        onError: () => message.error(t('tenants.messages.deleteFailed')),
-    });
-
     const restoreMutation = useMutation({
         mutationFn: (id: string) => restoreAdminTenant(id),
         onMutate: (id) => setActionTenantId(id),
@@ -129,18 +119,6 @@ export default function SuperAdminTenantsPage() {
             invalidateTenants();
         },
         onError: () => message.error(t('tenants.messages.restoreFailed')),
-    });
-
-    const hardDeleteMutation = useMutation({
-        mutationFn: ({ id, confirmSlug }: { id: string; confirmSlug: string }) =>
-            hardDeleteAdminTenant(id, confirmSlug),
-        onMutate: ({ id }) => setActionTenantId(id),
-        onSettled: () => setActionTenantId(null),
-        onSuccess: () => {
-            message.success(t('tenants.messages.hardDeleted'));
-            invalidateTenants();
-        },
-        onError: () => message.error(t('tenants.messages.hardDeleteFailed')),
     });
 
     const impersonateMutation = useMutation({
@@ -224,9 +202,7 @@ export default function SuperAdminTenantsPage() {
                     canManageDeletion ? (
                         <TenantTableActions
                             tenant={row}
-                            softDeletePending={deleteMutation.isPending && actionTenantId === row.id}
                             restorePending={restoreMutation.isPending && actionTenantId === row.id}
-                            hardDeletePending={hardDeleteMutation.isPending && actionTenantId === row.id}
                             impersonatePending={
                                 impersonateMutation.isPending && actionTenantId === row.id
                             }
@@ -234,11 +210,9 @@ export default function SuperAdminTenantsPage() {
                             onEdit={openEdit}
                             onSuspend={(id, status) => suspendMutation.mutate({ id, status })}
                             onImpersonate={(id) => impersonateMutation.mutate(id)}
-                            onSoftDelete={(id) => deleteMutation.mutate(id)}
                             onRestore={(id) => restoreMutation.mutate(id)}
-                            onHardDelete={async (id, confirmSlug) => {
-                                await hardDeleteMutation.mutateAsync({ id, confirmSlug });
-                            }}
+                            onArchiveSuccess={() => invalidateTenants()}
+                            onPermanentDeleteSuccess={() => invalidateTenants()}
                         />
                     ) : (
                         <Typography.Text type="secondary">—</Typography.Text>
@@ -249,9 +223,7 @@ export default function SuperAdminTenantsPage() {
             t,
             formatLocale,
             openEdit,
-            deleteMutation.isPending,
             restoreMutation.isPending,
-            hardDeleteMutation,
             impersonateMutation.isPending,
             suspendMutation.isPending,
             actionTenantId,

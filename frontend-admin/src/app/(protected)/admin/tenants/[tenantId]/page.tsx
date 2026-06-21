@@ -29,11 +29,9 @@ import { hasPermission, PERMISSIONS } from '@/shared/auth/permissions';
 import {
     applyTenantImpersonationSession,
     getAdminTenantById,
-    hardDeleteAdminTenant,
     hardDeleteAdminTenantDevelopment,
     impersonateAdminTenant,
     restoreAdminTenant,
-    softDeleteAdminTenant,
     updateAdminTenant,
 } from '@/features/super-admin/api/adminTenants';
 import { ImpersonationRedirectOverlay } from '@/features/super-admin/components/ImpersonationRedirectOverlay';
@@ -48,9 +46,12 @@ import {
 } from '@/features/super-admin/components/TenantDetailTabs';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
 import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
+import { buildTenantDeletePreparationHref } from '@/features/super-admin/utils/tenantDeleteDependencyUi';
 import { DemoImportModal } from '@/features/tenants/components/DemoImportModal';
-
-const TENANT_DETAIL_QUERY_KEY = ['admin', 'tenant-detail'] as const;
+import {
+    invalidateTenantLifecycleQueries,
+    TENANT_DETAIL_QUERY_KEY,
+} from '@/features/super-admin/utils/invalidateTenantLifecycleQueries';
 
 export default function SuperAdminTenantDetailPage() {
   const { message } = useAntdApp();
@@ -78,8 +79,7 @@ export default function SuperAdminTenantDetailPage() {
     });
 
     const invalidateTenant = useCallback(() => {
-        void queryClient.invalidateQueries({ queryKey: [...TENANT_DETAIL_QUERY_KEY, tenantId] });
-        void queryClient.invalidateQueries({ queryKey: ['admin', 'tenants'] });
+        invalidateTenantLifecycleQueries(queryClient, tenantId);
     }, [queryClient, tenantId]);
 
     const refetchProducts = useCallback(() => {
@@ -96,15 +96,6 @@ export default function SuperAdminTenantDetailPage() {
         onError: () => message.error(t('tenants.messages.saveFailed')),
     });
 
-    const softDeleteMutation = useMutation({
-        mutationFn: () => softDeleteAdminTenant(tenantId),
-        onSuccess: () => {
-            message.success(t('tenants.messages.deleted'));
-            invalidateTenant();
-        },
-        onError: () => message.error(t('tenants.messages.deleteFailed')),
-    });
-
     const restoreMutation = useMutation({
         mutationFn: () => restoreAdminTenant(tenantId),
         onSuccess: () => {
@@ -112,21 +103,6 @@ export default function SuperAdminTenantDetailPage() {
             invalidateTenant();
         },
         onError: () => message.error(t('tenants.messages.restoreFailed')),
-    });
-
-    const hardDeleteMutation = useMutation({
-        mutationFn: (confirmSlug: string) => hardDeleteAdminTenant(tenantId, confirmSlug),
-        onSuccess: () => {
-            message.success(t('tenants.messages.hardDeleted'));
-            router.push('/admin/tenants');
-        },
-        onError: (err: unknown) => {
-            const msg =
-                err && typeof err === 'object' && 'response' in err
-                    ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
-                    : null;
-            message.error(msg ?? t('tenants.messages.hardDeleteFailed'));
-        },
     });
 
     const developmentHardDeleteMutation = useMutation({
@@ -206,13 +182,11 @@ export default function SuperAdminTenantDetailPage() {
                     <TenantDetailSettingsTab
                         tenant={tenant}
                         onUpdated={invalidateTenant}
-                        softDeletePending={softDeleteMutation.isPending}
                         restorePending={restoreMutation.isPending}
-                        hardDeletePending={hardDeleteMutation.isPending}
                         developmentHardDeletePending={developmentHardDeleteMutation.isPending}
-                        onSoftDelete={() => softDeleteMutation.mutateAsync()}
+                        onArchiveSuccess={invalidateTenant}
+                        onPermanentDeleteSuccess={() => router.push('/admin/tenants')}
                         onRestore={() => restoreMutation.mutateAsync()}
-                        onHardDelete={(confirmSlug) => hardDeleteMutation.mutateAsync(confirmSlug)}
                         onDevelopmentHardDelete={() => developmentHardDeleteMutation.mutateAsync()}
                     />
                 ),
@@ -223,12 +197,11 @@ export default function SuperAdminTenantDetailPage() {
         tenantQuery.data,
         tenantId,
         statusMutation.isPending,
-        softDeleteMutation,
         restoreMutation,
-        hardDeleteMutation,
         developmentHardDeleteMutation,
         impersonateMutation.isPending,
         invalidateTenant,
+        router,
     ]);
 
     if (!canAccess) {
@@ -270,6 +243,11 @@ export default function SuperAdminTenantDetailPage() {
                         <Button icon={<ReloadOutlined />} onClick={() => invalidateTenant()}>
                             {t('common.refresh')}
                         </Button>
+                        {tenant ? (
+                            <Link href={buildTenantDeletePreparationHref(tenantId)}>
+                                <Button>{t('tenants.deleteDependencies.checkDependencies')}</Button>
+                            </Link>
+                        ) : null}
                         {tenant && tenant.status !== 'deleted' ? (
                             <>
                                 <Button
