@@ -126,7 +126,7 @@ function QuickUserModalContent({
                         {fixedTenantName} ({fixedTenantSlug})
                     </Typography.Paragraph>
                 ) : null}
-                <Form.Item name="role" label={t('tenants.users.quick.role')} rules={[{ required: true }]}>
+                <Form.Item name="role" label={t('tenants.users.quick.role')} rules={[{ required: true, message: t('users.create.roleRequired') }]}>
                     <Select options={roleOptions} />
                 </Form.Item>
                 <Alert

@@ -285,7 +285,7 @@ export default function ModifierGroupsPage() {
         cancelText={t('common.buttons.cancel')}
       >
         <Form form={groupForm} layout="vertical" initialValues={{ minSelections: 0, sortOrder: 0, isRequired: false }}>
-          <Form.Item name="name" label={t('modifierGroups.form.name')} rules={[{ required: true }]}>
+          <Form.Item name="name" label={t('modifierGroups.form.name')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Input placeholder={t('modifierGroups.form.placeholderGroupName')} />
           </Form.Item>
           <Form.Item name="minSelections" label={t('modifierGroups.form.minSelections')}>
@@ -377,10 +377,10 @@ export default function ModifierGroupsPage() {
               label: t('modifierGroups.tabs.newAddon'),
               children: (
                 <Form form={productForm} layout="vertical" initialValues={{ price: 0, taxType: 1, sortOrder: 0 }}>
-                  <Form.Item name="name" label={t('modifierGroups.form.name')} rules={productModalTab === 'new' ? [{ required: true }] : []}>
+                  <Form.Item name="name" label={t('modifierGroups.form.name')} rules={productModalTab === 'new' ? [{ required: true, message: t('common.validation.fieldRequired') }] : []}>
                     <Input placeholder={t('modifierGroups.form.placeholderNewAddonName')} />
                   </Form.Item>
-                  <Form.Item name="price" label={t('modifierGroups.form.price')} rules={productModalTab === 'new' ? [{ required: true }] : []}>
+                  <Form.Item name="price" label={t('modifierGroups.form.price')} rules={productModalTab === 'new' ? [{ required: true, message: t('common.validation.fieldRequired') }] : []}>
                     <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
                   </Form.Item>
                   <Form.Item name="taxType" label={t('modifierGroups.form.taxType')}>

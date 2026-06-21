@@ -135,20 +135,20 @@ function getLicensePhaseIcon(kind: LicenseStatus['kind']) {
     }
 }
 
-function getLicensePhaseLabel(status: LicenseStatus): string {
-    switch (status.kind) {
+function licensePhaseLabelKey(kind: LicenseStatus['kind']): string {
+    switch (kind) {
         case 'active':
-            return 'Aktiv';
+            return 'license.phase.labels.active';
         case 'grace_write':
-            return 'Grace Write';
+            return 'license.phase.labels.graceWrite';
         case 'grace_readonly':
-            return 'Grace Readonly';
+            return 'license.phase.labels.graceReadonly';
         case 'lockdown':
-            return 'Lockdown';
+            return 'license.phase.labels.lockdown';
         case 'expired':
-            return 'Abgelaufen';
+            return 'license.phase.labels.expired';
         default:
-            return 'Keine Lizenz';
+            return 'license.phase.labels.noLicense';
     }
 }
 
@@ -159,9 +159,11 @@ function LicenseStatsCard({
     title: string;
     status: LicenseStatus;
 }) {
+    const { t } = useI18n();
     const phaseColor = getLicensePhaseColor(status.kind);
     const value = status.daysRemaining > 0 ? status.daysRemaining : status.daysExpired;
-    const suffix = status.daysRemaining > 0 ? 'Tage' : 'abgelaufen';
+    const suffix =
+        status.daysRemaining > 0 ? t('license.dashboard.daysSuffix') : t('license.dashboard.expiredSuffix');
 
     return (
                             <Card variant="borderless">
@@ -173,7 +175,7 @@ function LicenseStatsCard({
                 styles={{ content: {  color: phaseColor  } }}
             />
             <div style={{ marginTop: 8 }}>
-                <Tag color={phaseColor}>{getLicensePhaseLabel(status)}</Tag>
+                <Tag color={phaseColor}>{t(licensePhaseLabelKey(status.kind))}</Tag>
             </div>
         </Card>
     );
@@ -304,12 +306,18 @@ export function LicenseStatsSection() {
             <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                 {tenantLicenseStatus ? (
                     <Col xs={24} md={12}>
-                        <LicenseStatsCard title="Aktueller Mandant" status={tenantLicenseStatus} />
+                        <LicenseStatsCard
+                            title={t('license.dashboard.cardCurrentTenant')}
+                            status={tenantLicenseStatus}
+                        />
                     </Col>
                 ) : null}
                 {deploymentLicenseStatus ? (
                     <Col xs={24} md={12}>
-                        <LicenseStatsCard title="Aktuelles Deployment" status={deploymentLicenseStatus} />
+                        <LicenseStatsCard
+                            title={t('license.dashboard.cardCurrentDeployment')}
+                            status={deploymentLicenseStatus}
+                        />
                     </Col>
                 ) : null}
             </Row>

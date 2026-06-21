@@ -9,6 +9,7 @@ import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
+import { useI18n } from '@/i18n/I18nProvider';
 
 type InventoryRow = {
     id: string;
@@ -20,6 +21,7 @@ type InventoryRow = {
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
 export function LowStockAlertsWidget({ title, dragHandleProps, onRefresh }: Props) {
+    const { t } = useI18n();
     const query = useAuthorizedQuery({
         queryKey: ['dashboard', 'low-stock'],
         queryFn: () =>
@@ -54,18 +56,21 @@ export function LowStockAlertsWidget({ title, dragHandleProps, onRefresh }: Prop
             refreshing={query.isFetching}
         >
             <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-                {lowStock.length} Artikel unter Mindestbestand
+                {t('dashboard.widgets.lowStock.summary', { count: lowStock.length })}
             </Typography.Text>
             <List
                 size="small"
                 loading={query.isLoading}
                 dataSource={lowStock}
-                locale={{ emptyText: 'Keine Warnungen' }}
+                locale={{ emptyText: t('dashboard.widgets.lowStock.empty') }}
                 renderItem={(item) => (
                     <List.Item>
                         <List.Item.Meta
-                            title={item.productName ?? 'Produkt'}
-                            description={`Bestand: ${item.currentStock} / Min: ${item.minStockLevel}`}
+                            title={item.productName ?? t('dashboard.widgets.lowStock.productFallback')}
+                            description={t('dashboard.widgets.lowStock.stockDescription', {
+                                current: item.currentStock,
+                                min: item.minStockLevel,
+                            })}
                         />
                     </List.Item>
                 )}

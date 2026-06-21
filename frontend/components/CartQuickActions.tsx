@@ -36,19 +36,19 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
   onHoldOrder,
   onPrintReceipt,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['cart', 'common']);
   const [showDiscountOptions, setShowDiscountOptions] = useState(false);
 
   const handleClearCart = () => {
     if (cart?.items?.length === 0) return;
     
     Alert.alert(
-      t('cart.clearCart', 'Sepeti Temizle'),
-      t('cart.clearCartConfirm', 'Tüm ürünler sepetten kaldırılacak. Bu işlem geri alınamaz.'),
+      t('cart:clearCart', 'Sepeti Temizle'),
+      t('cart:clearCartConfirm', 'Tüm ürünler sepetten kaldırılacak. Bu işlem geri alınamaz.'),
       [
-        { text: t('common.cancel', 'İptal'), style: 'cancel' },
+        { text: t('common:cancel'), style: 'cancel' },
         {
-          text: t('cart.clear', 'Temizle'),
+          text: t('cart:clear', 'Temizle'),
           style: 'destructive',
           onPress: () => {
             onClearCart();
@@ -61,14 +61,20 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
 
   const handleDiscount = (discountType: string) => {
     setShowDiscountOptions(false);
-    
+    const discountLabel =
+      discountType === 'percentage'
+        ? t('cart:percentage')
+        : discountType === 'amount'
+          ? t('cart:fixedAmount')
+          : t('cart:buyOneGetOne');
+
     Alert.prompt(
-      t('cart.applyDiscount', 'Apply Discount'),
-      t('cart.enterDiscountValue', `Enter ${discountType} value:`),
+      t('cart:applyDiscount'),
+      t('cart:enterDiscountValue', { discountType: discountLabel }),
       [
-        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        { text: t('common:cancel'), style: 'cancel' },
         {
-          text: t('cart.apply', 'Apply'),
+          text: t('cart:apply', 'Apply'),
           onPress: (value) => {
             const numValue = parseFloat(value || '0');
             if (!isNaN(numValue) && numValue > 0) {
@@ -84,35 +90,35 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
 
   const handleSplitBill = () => {
     if (cart?.items?.length === 0) {
-      Alert.alert(t('cart.emptyCart', 'Empty Cart'), t('cart.emptyCartMsg', 'Cart is empty. Add items first.'));
+      Alert.alert(t('cart:emptyCart', 'Empty Cart'), t('cart:emptyCartMsg', 'Cart is empty. Add items first.'));
       return;
     }
     
     Alert.alert(
-      t('cart.splitBill', 'Split Bill'),
-      t('cart.splitBillHowMany', 'How many ways to split?'),
+      t('cart:splitBill', 'Split Bill'),
+      t('cart:splitBillHowMany', 'How many ways to split?'),
       [
-        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-        { text: t('cart.split2', '2 Ways'), onPress: () => onSplitBill() },
-        { text: t('cart.split3', '3 Ways'), onPress: () => onSplitBill() },
-        { text: t('cart.split4', '4 Ways'), onPress: () => onSplitBill() },
+        { text: t('common:cancel'), style: 'cancel' },
+        { text: t('cart:split2', '2 Ways'), onPress: () => onSplitBill() },
+        { text: t('cart:split3', '3 Ways'), onPress: () => onSplitBill() },
+        { text: t('cart:split4', '4 Ways'), onPress: () => onSplitBill() },
       ]
     );
   };
 
   const handleHoldOrder = () => {
     if (cart?.items?.length === 0) {
-      Alert.alert(t('cart.emptyCart', 'Empty Cart'), t('cart.emptyCartMsg', 'Cart is empty. Add items first.'));
+      Alert.alert(t('cart:emptyCart', 'Empty Cart'), t('cart:emptyCartMsg', 'Cart is empty. Add items first.'));
       return;
     }
     
     Alert.alert(
-      t('cart.holdOrder', 'Hold Order'),
-      t('cart.holdOrderMsg', 'This will save the current cart and clear it. Continue?'),
+      t('cart:holdOrder', 'Hold Order'),
+      t('cart:holdOrderMsg', 'This will save the current cart and clear it. Continue?'),
       [
-        { text: t('common.cancel', 'Cancel'), style: 'cancel' },
+        { text: t('common:cancel'), style: 'cancel' },
         {
-          text: t('cart.hold', 'Hold'),
+          text: t('cart:hold', 'Hold'),
           onPress: () => {
             onHoldOrder();
             Vibration.vibrate(50);
@@ -126,7 +132,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
     {
       id: 'clear',
       icon: 'trash-outline',
-      label: t('cart.clear', 'Clear'),
+      label: t('cart:clear', 'Clear'),
       color: Colors.light.error,
       onPress: handleClearCart,
       disabled: cart?.items?.length === 0,
@@ -134,7 +140,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
     {
       id: 'save',
       icon: 'save-outline',
-      label: t('cart.save', 'Save'),
+      label: t('cart:save', 'Save'),
       color: Colors.light.primary,
       onPress: onSaveCart,
       disabled: cart?.items?.length === 0,
@@ -142,14 +148,14 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
     {
       id: 'load',
       icon: 'folder-open-outline',
-      label: t('cart.load', 'Load'),
+      label: t('cart:load', 'Load'),
       color: Colors.light.primary,
       onPress: onLoadCart,
     },
     {
       id: 'discount',
       icon: 'pricetag-outline',
-      label: t('cart.discount', 'Discount'),
+      label: t('cart:discount', 'Discount'),
       color: Colors.light.warning,
       onPress: () => setShowDiscountOptions(true),
       disabled: cart?.items?.length === 0,
@@ -157,7 +163,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
     {
       id: 'split',
       icon: 'git-branch-outline',
-      label: t('cart.split', 'Split'),
+      label: t('cart:split', 'Split'),
       color: Colors.light.info,
       onPress: handleSplitBill,
       disabled: cart?.items?.length === 0,
@@ -165,7 +171,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
     {
       id: 'hold',
       icon: 'pause-outline',
-      label: t('cart.hold', 'Hold'),
+      label: t('cart:hold', 'Hold'),
       color: Colors.light.secondary,
       onPress: handleHoldOrder,
       disabled: cart?.items?.length === 0,
@@ -173,7 +179,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
     {
       id: 'print',
       icon: 'print-outline',
-      label: t('cart.print', 'Print'),
+      label: t('cart:print', 'Print'),
       color: Colors.light.success,
       onPress: onPrintReceipt,
       disabled: cart?.items?.length === 0,
@@ -185,11 +191,11 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
       {/* Cart Summary */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>{t('cart.items', 'Items')}</Text>
+          <Text style={styles.summaryLabel}>{t('cart:items', 'Items')}</Text>
           <Text style={styles.summaryValue}>{cart?.items?.length ?? 0}</Text>
         </View>
         <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>{t('cart.total', 'Total')}</Text>
+          <Text style={styles.summaryLabel}>{t('cart:total', 'Total')}</Text>
           <Text style={styles.summaryValue}>€{cart?.totalAmount.toFixed(2) ?? '0.00'}</Text>
         </View>
       </View>
@@ -226,7 +232,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
         <View style={styles.discountOverlay}>
           <View style={styles.discountModal}>
             <View style={styles.discountHeader}>
-              <Text style={styles.discountTitle}>{t('cart.selectDiscountType', 'Select Discount Type')}</Text>
+              <Text style={styles.discountTitle}>{t('cart:selectDiscountType', 'Select Discount Type')}</Text>
               <TouchableOpacity onPress={() => setShowDiscountOptions(false)}>
                 <Ionicons name="close" size={24} color={Colors.light.text} />
               </TouchableOpacity>
@@ -238,7 +244,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
                 onPress={() => handleDiscount('percentage')}
               >
                 <Ionicons name="percent" size={24} color={Colors.light.primary} />
-                <Text style={styles.discountOptionText}>{t('cart.percentage', 'Percentage (%)')}</Text>
+                <Text style={styles.discountOptionText}>{t('cart:percentage', 'Percentage (%)')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -246,7 +252,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
                 onPress={() => handleDiscount('amount')}
               >
                 <Ionicons name="cash" size={24} color={Colors.light.primary} />
-                <Text style={styles.discountOptionText}>{t('cart.fixedAmount', 'Fixed Amount (€)')}</Text>
+                <Text style={styles.discountOptionText}>{t('cart:fixedAmount', 'Fixed Amount (€)')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -254,7 +260,7 @@ const CartQuickActions: React.FC<CartQuickActionsProps> = ({
                 onPress={() => handleDiscount('buyOneGetOne')}
               >
                 <Ionicons name="gift" size={24} color={Colors.light.primary} />
-                <Text style={styles.discountOptionText}>{t('cart.buyOneGetOne', 'Buy 1 Get 1')}</Text>
+                <Text style={styles.discountOptionText}>{t('cart:buyOneGetOne', 'Buy 1 Get 1')}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -136,6 +136,84 @@
         "retryReadiness": "Kassenbereitschaft erneut versuchen",
         "reloadRegisterList": "Kassenliste erneut laden"
       },
+      "steps": {
+        "sum": "Summe",
+        "cash": "Barzahlung",
+        "voucherRedeem": "Gutschein einlösen"
+      },
+      "cash": {
+        "receivedLabel": "Erhaltener Betrag",
+        "receivedA11y": "Erhaltener Betrag in Euro",
+        "changeLabel": "Rückgeld",
+        "placeholder": "0,00"
+      },
+      "remainingAmount": "Restbetrag",
+      "notes": {
+        "title": "Notizen",
+        "placeholder": "Optionale Notizen…",
+        "a11y": "Optionale Notizen zur Zahlung"
+      },
+      "benefits": {
+        "previewTitle": "Vorteile (Vorschau)",
+        "possibleSavings": "Möglicher Vorteil: ca. {{amount}}",
+        "loading": "Vorteile werden geladen…",
+        "disclaimer": "Vorschau – maßgeblich ist die Abrechnung beim Bezahlen."
+      },
+      "voucherToggle": {
+        "redeem": "Gutschein einlösen",
+        "offlineUnavailable": "Gutscheine offline nicht verfügbar",
+        "offlineNotPossible": "Gutschein ist offline nicht möglich.",
+        "offlineAlertTitle": "Offline",
+        "scanA11y": "Gutschein scannen"
+      },
+      "blockedHints": {
+        "timeSyncCritical": "Systemzeit fehlerhaft — Zahlungen blockiert. Administrator kontaktieren.",
+        "methodsLoading": "Zahlungsarten werden geladen…",
+        "selectMethod": "Bitte eine Zahlungsart wählen (Schritt 2).",
+        "coverageMissing": "Deckung fehlt: Gutschein + Barbetrag erreicht nicht den Gesamtbetrag.",
+        "voucherInvalid": "Gutschein ungültig — bitte „Prüfen“ und Betrag prüfen.",
+        "tseNotReady": "TSE nicht bereit — fiskalische Zahlung nicht möglich.",
+        "voucherOffline": "Gutschein ist offline nicht möglich."
+      },
+      "timeSync": {
+        "banner": "SYSTEMZEIT FEHLERHAFT – Zahlungen blockiert! Bitte Admin kontaktieren",
+        "contactAdmin": "Admin kontaktieren",
+        "contactAdminA11y": "Administrator kontaktieren"
+      },
+      "footer": {
+        "registerSettingsLoading": "Kasseneinstellungen werden geladen…",
+        "processing": "Wird verarbeitet…",
+        "payA11y": "Zahlen {{amount}}",
+        "payMethodSuffix": "{{amount}} {{method}} zahlen",
+        "payGeneric": "{{amount}} zahlen",
+        "licenseHintA11y": "Lizenz-Hinweis"
+      },
+      "success": {
+        "title": "Zahlung erfolgreich",
+        "receiptPdf": "Beleg-PDF",
+        "done": "Fertig",
+        "doneA11y": "Fertig"
+      },
+      "print": {
+        "printing": "Beleg wird gedruckt…",
+        "failedTitle": "Beleg konnte nicht gedruckt werden",
+        "skip": "Überspringen",
+        "retry": "Erneut drucken"
+      },
+      "startbelegBlock": {
+        "title": "Startbeleg erforderlich",
+        "body": "Für diese Registrierkasse fehlt der fiskalische Startbeleg (RKSV). Erstellen Sie zuerst den Startbeleg, danach sind Verkäufe möglich.",
+        "understood": "Verstanden",
+        "understoodA11y": "Verstanden"
+      },
+      "registerAssignA11y": "Kasse {{register}} zuweisen",
+      "methodSelectedA11ySuffix": ", ausgewählt",
+      "offlineQueued": "Zahlung offline gespeichert – wird automatisch signiert wenn TSE wieder online",
+      "tseSimulation": {
+        "title": "TSE-Simulation",
+        "enabled": "EIN (Bypass)",
+        "disabled": "AUS (Echte TSE)"
+      },
       "voucher": {
         "codeLabel": "Gutscheincode",
         "checkButton": "Gutschein prüfen",
@@ -146,6 +224,16 @@
         "maskedHint": "Gutschein: {{masked}}",
         "expiresHint": "Gültig bis: {{date}}",
         "invalid": "Gutschein ungültig",
+        "invalidTitle": "Ungültiger Gutschein",
+        "scanner": {
+          "title": "Gutschein scannen",
+          "closeA11y": "Schließen",
+          "overlayHint": "Gutscheincode scannen",
+          "validating": "Gutschein wird geprüft…",
+          "cameraRequired": "Kamerazugriff wird benötigt.",
+          "allowCamera": "Kamera erlauben",
+          "webFallback": "Kamera-Scan ist im Browser nicht verfügbar. Bitte Gutscheincode manuell eingeben."
+        },
         "expired": "Gutschein abgelaufen",
         "cancelled": "Gutschein storniert",
         "redeemed": "Gutschein vollständig eingelöst",

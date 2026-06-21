@@ -5,6 +5,7 @@ import { Alert, Button, Card, Select, Space, Typography } from 'antd';
 import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
 import { useAntdApp } from '@/hooks/useAntdApp';
+import { useI18n } from '@/i18n/I18nProvider';
 import { MonatsbelegPastMonthsAlert } from '@/features/rksv/components/MonatsbelegPastMonthsAlert';
 import { PastMonthsMonatsbelegModal } from '@/features/rksv/components/PastMonthsMonatsbelegModal';
 import { useCreateMonatsbeleg } from '@/features/rksv/hooks/useCreateMonatsbeleg';
@@ -35,6 +36,7 @@ function registerLabel(register: CashRegister | undefined, registerId: string): 
 
 export function RksvReminderWidget() {
     const { message } = useAntdApp();
+    const { t } = useI18n();
     const { hasPermission } = usePermissions();
     const canCreate = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
 
@@ -82,18 +84,18 @@ export function RksvReminderWidget() {
 
     const handleCreateMissing = async () => {
         if (!canCreate) {
-            message.warning('Sie haben keine Berechtigung für diese Aktion.');
+            message.warning(t('dashboard.rksvReminder.permission_denied'));
             return;
         }
 
         if (!selectedRegisterId || !selectedMissing) {
-            message.info('Monatsbeleg für aktuellen Monat bereits vorhanden');
+            message.info(t('dashboard.rksvReminder.monatsbeleg_already_exists'));
             return;
         }
 
         const { year, month } = getViennaCalendarYearMonth();
         if (selectedMissing.year !== year || selectedMissing.month !== month) {
-            message.error('Nur der aktuelle Kalendermonat (Europe/Vienna) kann erstellt werden.');
+            message.error(t('dashboard.rksvReminder.only_current_month'));
             return;
         }
 
@@ -106,10 +108,10 @@ export function RksvReminderWidget() {
                     reason: 'Monatsbeleg für aktuellen Kalendermonat',
                 },
             });
-            message.success('Monatsbeleg für aktuellen Monat erstellt');
+            message.success(t('dashboard.rksvReminder.monatsbeleg_created_success'));
             await refetch();
         } catch {
-            message.error('Fehler beim Erstellen des Monatsbelegs');
+            message.error(t('dashboard.rksvReminder.monatsbeleg_create_failed'));
         }
     };
 
@@ -119,16 +121,24 @@ export function RksvReminderWidget() {
 
     if (isLoading || pastMissingLoading) {
         return (
-            <Card title="RKSV Sonderbelege (Erinnerungen)" variant="borderless" style={{ marginBottom: 24 }}>
-                <Typography.Text type="secondary">Lade Monatsbeleg-Status…</Typography.Text>
+            <Card
+                title={t('dashboard.rksvReminder.card_title')}
+                variant="borderless"
+                style={{ marginBottom: 24 }}
+            >
+                <Typography.Text type="secondary">{t('dashboard.rksvReminder.loading_monatsbeleg')}</Typography.Text>
             </Card>
         );
     }
 
     if (isError) {
         return (
-            <Card title="RKSV Sonderbelege (Erinnerungen)" variant="borderless" style={{ marginBottom: 24 }}>
-                <Alert type="error" title="Monatsbeleg-Status konnte nicht geladen werden." />
+            <Card
+                title={t('dashboard.rksvReminder.card_title')}
+                variant="borderless"
+                style={{ marginBottom: 24 }}
+            >
+                <Alert type="error" title={t('dashboard.rksvReminder.monatsbeleg_load_failed')} />
             </Card>
         );
     }
@@ -136,7 +146,7 @@ export function RksvReminderWidget() {
     const allCurrentOk = missingMonths.length === 0;
 
     return (
-        <Card title="RKSV Sonderbelege (Erinnerungen)" variant="borderless" style={{ marginBottom: 24 }}>
+        <Card title={t('dashboard.rksvReminder.card_title')} variant="borderless" style={{ marginBottom: 24 }}>
             <MonatsbelegPastMonthsAlert
                 otherMissingCount={otherMissingCount}
                 canCreate={canCreate}
@@ -147,7 +157,7 @@ export function RksvReminderWidget() {
                 <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                     {missingMonths.length > 1 ? (
                         <Space wrap>
-                            <Typography.Text strong>Kasse</Typography.Text>
+                            <Typography.Text strong>{t('dashboard.rksvReminder.register_short')}</Typography.Text>
                             <Select
                                 style={{ minWidth: 280 }}
                                 value={selectedRegisterId}
@@ -163,8 +173,10 @@ export function RksvReminderWidget() {
                     {currentMonthMissing ? (
                         <Alert
                             type={selectedMissing?.isOverdue || anyOverdue ? 'error' : 'warning'}
-                            title="Aktion erforderlich"
-                            description={`Monatsbeleg für ${currentYearMonth} fehlt für die ausgewählte Kasse.`}
+                            title={t('dashboard.rksvReminder.action_required')}
+                            description={t('dashboard.rksvReminder.monatsbeleg_missing_for_register', {
+                                month: currentYearMonth,
+                            })}
                             action={
                                 canCreate ? (
                                     <Button
@@ -173,7 +185,7 @@ export function RksvReminderWidget() {
                                         onClick={() => void handleCreateMissing()}
                                         loading={createMonatsbeleg.isPending}
                                     >
-                                        Jetzt erstellen
+                                        {t('dashboard.rksvReminder.create_now')}
                                     </Button>
                                 ) : undefined
                             }
@@ -182,21 +194,28 @@ export function RksvReminderWidget() {
 
                     {missingMonths.length > 1 ? (
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            {missingMonths.length} Kassen benötigen den Monatsbeleg für {currentYearMonth}.
+                            {t('dashboard.rksvReminder.registers_need_monatsbeleg', {
+                                count: missingMonths.length,
+                                month: currentYearMonth,
+                            })}
                         </Typography.Text>
                     ) : null}
                 </Space>
             ) : allCurrentOk && otherMissingCount === 0 ? (
                 <Alert
                     type="success"
-                    title="Alles aktuell"
-                    description={`Der Monatsbeleg für ${currentYearMonth} ist für alle Kassen vorhanden.`}
+                    title={t('dashboard.rksvReminder.all_current_widget_title')}
+                    description={t('dashboard.rksvReminder.all_current_widget_description', {
+                        month: currentYearMonth,
+                    })}
                 />
             ) : allCurrentOk ? (
                 <Alert
                     type="info"
-                    title="Aktueller Monat abgeschlossen"
-                    description={`Der Monatsbeleg für ${currentYearMonth} ist für alle Kassen vorhanden. Bitte fehlende Monate aus früheren Perioden nachholen.`}
+                    title={t('dashboard.rksvReminder.current_month_complete_title')}
+                    description={t('dashboard.rksvReminder.current_month_complete_description', {
+                        month: currentYearMonth,
+                    })}
                 />
             ) : null}
 

@@ -15,7 +15,7 @@ import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
 export function RecentUsersWidget({ title, dragHandleProps, onRefresh }: Props) {
-    const { formatLocale } = useI18n();
+    const { t, formatLocale } = useI18n();
     const query = useAuthorizedQuery({
         queryKey: ['dashboard', 'recent-users'],
         queryFn: () => listAllAdminUsers({ isActive: true }),
@@ -49,7 +49,7 @@ export function RecentUsersWidget({ title, dragHandleProps, onRefresh }: Props) 
                 size="small"
                 loading={query.isLoading}
                 dataSource={recent}
-                locale={{ emptyText: 'Keine Benutzer' }}
+                locale={{ emptyText: t('dashboard.widgets.recentUsers.empty') }}
                 renderItem={(user) => {
                     const name =
                         [user.firstName, user.lastName].filter(Boolean).join(' ') ||

@@ -154,6 +154,10 @@ backend/**/appsettings.*.json
 !backend/appsettings.example.json
 !backend/appsettings.Development.example.json
 backend/**/appsettings.Development.json
+backend/**/App_Data/
+scripts/dev-mail.local.env
+scripts/dev-mail.local.env.*
+!scripts/dev-mail.local.env.example
 backend/**/appsettings.Production.json
 backend/**/appsettings.Staging.json
 backend/**/secrets.json
@@ -250,8 +254,16 @@ tools/**/appsettings.json
 
 # Local-only dev scripts (passwords, tokens, machine paths) — keep on disk, never commit
 scripts/local/
-scripts/dev-*
+scripts/dev-purge-tenant-catalog.*
 scripts/parse-demo-menu-html.*
+
+# Root HTTP client scratch files (manual API testing; may embed bearer tokens)
+/*.http
+
+# Dangerous / environment-specific SQL (prefer EF migrations + user-secrets)
+scripts/**/*.sql
+scripts/sql/
+backend/Scripts/
 
 # Legacy one-off DB scripts (use EF migrations + user-secrets instead)
 backend/UpdateDatabase.cs

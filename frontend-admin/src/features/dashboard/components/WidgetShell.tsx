@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button, Card, Space, Tooltip } from 'antd';
 import { HolderOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useI18n } from '@/i18n/I18nProvider';
 
 export type WidgetShellProps = {
     title: string;
@@ -22,6 +23,10 @@ export function WidgetShell({
     extra,
     children,
 }: WidgetShellProps) {
+    const { t } = useI18n();
+    const refreshLabel = t('dashboard.widgetShell.refresh');
+    const dragLabel = t('dashboard.widgetShell.drag_widget');
+
     return (
         <Card
             variant="borderless"
@@ -30,7 +35,7 @@ export function WidgetShell({
                     {dragHandleProps ? (
                         <button
                             type="button"
-                            aria-label="Widget verschieben"
+                            aria-label={dragLabel}
                             {...dragHandleProps}
                             style={{
                                 cursor: 'grab',
@@ -51,14 +56,14 @@ export function WidgetShell({
                 <Space>
                     {extra}
                     {onRefresh ? (
-                        <Tooltip title="Aktualisieren">
+                        <Tooltip title={refreshLabel}>
                             <Button
                                 type="text"
                                 size="small"
                                 icon={<ReloadOutlined spin={refreshing} />}
                                 onClick={onRefresh}
                                 disabled={refreshing}
-                                aria-label="Aktualisieren"
+                                aria-label={refreshLabel}
                             />
                         </Tooltip>
                     ) : null}

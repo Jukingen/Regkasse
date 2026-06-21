@@ -8,7 +8,7 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
-        setupFiles: [],
+        setupFiles: ['./src/test/vitest.setup.ts'],
         testTimeout: 15000,
         env: {
             // axios.ts requires a base URL when NODE_ENV is not "development" (e.g. vitest uses "test")

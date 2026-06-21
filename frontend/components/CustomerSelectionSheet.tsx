@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -27,6 +28,7 @@ export default function CustomerSelectionSheet({
   onClose,
   onSelect,
 }: CustomerSelectionSheetProps) {
+  const { t } = useTranslation(['customers']);
   const [customerNumber, setCustomerNumber] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
   const [showList, setShowList] = useState(false);
@@ -42,12 +44,15 @@ export default function CustomerSelectionSheet({
       setListCustomers(arr);
     } catch (e) {
       console.warn('[CustomerSelectionSheet] Failed to load customer list:', e);
-      Alert.alert('Hinweis', 'Kundenliste konnte nicht geladen werden.');
+      Alert.alert(
+        t('customers:selectionSheet.alertListFailedTitle'),
+        t('customers:selectionSheet.alertListFailedMessage')
+      );
       setListCustomers([]);
     } finally {
       setListLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (visible && showList && listCustomers.length === 0 && !listLoading) {
@@ -65,15 +70,21 @@ export default function CustomerSelectionSheet({
         onSelect(customer);
         onClose();
       } else {
-        Alert.alert('Nicht gefunden', 'Kein Kunde mit dieser Nummer gefunden.');
+        Alert.alert(
+          t('customers:selectionSheet.alertNotFoundTitle'),
+          t('customers:selectionSheet.alertNotFoundMessage')
+        );
       }
     } catch (e) {
       console.warn('[CustomerSelectionSheet] Lookup failed:', e);
-      Alert.alert('Fehler', 'Suche fehlgeschlagen. Bitte erneut versuchen.');
+      Alert.alert(
+        t('customers:selectionSheet.alertSearchFailedTitle'),
+        t('customers:selectionSheet.alertSearchFailedMessage')
+      );
     } finally {
       setLookupLoading(false);
     }
-  }, [customerNumber, onSelect, onClose]);
+  }, [customerNumber, onSelect, onClose, t]);
 
   const filteredList = listFilter.trim()
     ? listCustomers.filter(
@@ -100,19 +111,23 @@ export default function CustomerSelectionSheet({
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn} accessibilityLabel="Schließen">
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeBtn}
+            accessibilityLabel={t('customers:selectionSheet.closeA11y')}
+          >
             <Ionicons name="close" size={24} color={SoftColors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Kunde</Text>
+          <Text style={styles.title}>{t('customers:selectionSheet.title')}</Text>
           <View style={styles.placeholder} />
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Kunden-Nr.</Text>
+          <Text style={styles.label}>{t('customers:selectionSheet.customerNumberLabel')}</Text>
           <View style={styles.row}>
             <TextInput
               style={styles.input}
-              placeholder="Nummer eingeben"
+              placeholder={t('customers:selectionSheet.numberPlaceholder')}
               placeholderTextColor={SoftColors.textMuted}
               value={customerNumber}
               onChangeText={setCustomerNumber}
@@ -128,49 +143,49 @@ export default function CustomerSelectionSheet({
               {lookupLoading ? (
                 <WaveLoader size={18} color={SoftColors.textInverse} />
               ) : (
-                <Text style={styles.primaryBtnText}>Suchen</Text>
+                <Text style={styles.primaryBtnText}>{t('customers:selectionSheet.search')}</Text>
               )}
             </Pressable>
             <Pressable
               style={styles.scanBtn}
               onPress={() => setScannerVisible(true)}
-              accessibilityLabel="QR-Code scannen"
+              accessibilityLabel={t('customers:selectionSheet.scanQrA11y')}
             >
               <Ionicons name="scan-outline" size={22} color={SoftColors.accent} />
             </Pressable>
           </View>
-          <Text style={styles.hint}>Vorteile werden bei Zahlung angewendet.</Text>
+          <Text style={styles.hint}>{t('customers:selectionSheet.benefitsHint')}</Text>
         </View>
 
         <View style={styles.divider}>
           <View style={styles.line} />
-          <Text style={styles.dividerText}>oder</Text>
+          <Text style={styles.dividerText}>{t('customers:selectionSheet.or')}</Text>
           <View style={styles.line} />
         </View>
 
         {!showList ? (
           <Pressable style={styles.secondaryBtn} onPress={() => setShowList(true)}>
             <Ionicons name="list" size={20} color={SoftColors.accent} />
-            <Text style={styles.secondaryBtnText}>Aus Liste wählen</Text>
+            <Text style={styles.secondaryBtnText}>{t('customers:selectionSheet.chooseFromList')}</Text>
           </Pressable>
         ) : (
           <View style={styles.listSection}>
             <View style={styles.listHeader}>
               <TextInput
                 style={styles.filterInput}
-                placeholder="Name oder Nr. filtern"
+                placeholder={t('customers:selectionSheet.filterPlaceholder')}
                 placeholderTextColor={SoftColors.textMuted}
                 value={listFilter}
                 onChangeText={setListFilter}
               />
               <TouchableOpacity onPress={() => setShowList(false)} style={styles.backToListBtn}>
-                <Text style={styles.backToListText}>Zurück</Text>
+                <Text style={styles.backToListText}>{t('customers:selectionSheet.back')}</Text>
               </TouchableOpacity>
             </View>
             {listLoading ? (
               <View style={styles.loadingBox}>
                 <WaveLoader size={28} color={SoftColors.accent} />
-                <Text style={styles.loadingText}>Lade Liste…</Text>
+                <Text style={styles.loadingText}>{t('customers:selectionSheet.loadingList')}</Text>
               </View>
             ) : (
               <FlatList
@@ -184,13 +199,15 @@ export default function CustomerSelectionSheet({
                   >
                     <Text style={styles.listItemName}>{item.name}</Text>
                     {item.customerNumber ? (
-                      <Text style={styles.listItemNumber}>Nr. {item.customerNumber}</Text>
+                      <Text style={styles.listItemNumber}>
+                        {t('customers:selectionSheet.numberPrefix')} {item.customerNumber}
+                      </Text>
                     ) : null}
                   </Pressable>
                 )}
                 ListEmptyComponent={
                   <View style={styles.emptyBox}>
-                    <Text style={styles.emptyText}>Keine Einträge</Text>
+                    <Text style={styles.emptyText}>{t('customers:selectionSheet.emptyList')}</Text>
                   </View>
                 }
               />

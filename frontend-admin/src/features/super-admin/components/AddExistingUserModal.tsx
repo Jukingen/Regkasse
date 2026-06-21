@@ -71,7 +71,7 @@ function AddExistingUserModalContent({
                         placeholder={t('tenants.users.add.userPlaceholder')}
                     />
                 </Form.Item>
-                <Form.Item name="role" label={t('tenants.users.add.role')} rules={[{ required: true }]}>
+                <Form.Item name="role" label={t('tenants.users.add.role')} rules={[{ required: true, message: t('users.create.roleRequired') }]}>
                     <Select
                         options={ASSIGNABLE_ROLES.map((role) => ({
                             value: role,

@@ -24,7 +24,6 @@ import { useQuery } from '@tanstack/react-query';
 
 import { fetchUserActivityReport } from '@/features/users/api/userActivityReport';
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
-import { usersCopy } from '@/features/users/constants/copy';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 
@@ -59,17 +58,17 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
     });
 
     if (validUserId.length === 0) {
-        return <Alert type="info" title={usersCopy.emptyActivity} showIcon />;
+        return <Alert type="info" title={t('users.activity.empty')} showIcon />;
     }
 
     if (isError) {
         return (
             <Alert
                 type="warning"
-                title={usersCopy.errorLoadActivity}
+                title={t('users.activity.errorLoad')}
                 action={
                     <Button size="small" onClick={() => refetch()}>
-                        {usersCopy.retry}
+                        {t('users.list.retry')}
                     </Button>
                 }
             />
@@ -80,14 +79,14 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
 
     const timelineColumns = [
         {
-            title: usersCopy.activityTime,
+            title: t('users.activity.time'),
             dataIndex: 'date',
             key: 'date',
             width: 170,
             render: (v: string) => (v ? formatDateTime(v, formatLocale) : NA),
         },
         {
-            title: usersCopy.action,
+            title: t('users.activity.action'),
             dataIndex: 'action',
             key: 'action',
             width: 160,
@@ -100,13 +99,13 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
             },
         },
         {
-            title: usersCopy.activityEntityType,
+            title: t('users.activity.entityType'),
             dataIndex: 'entityType',
             key: 'entityType',
             width: 120,
         },
         {
-            title: usersCopy.ipAddress,
+            title: t('users.activity.ipAddress'),
             dataIndex: 'ipAddress',
             key: 'ipAddress',
             width: 120,
@@ -118,12 +117,12 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
         <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             {userName && (
                 <Text type="secondary">
-                    {usersCopy.activityReportFor}: {userName}
+                    {t('reporting.userActivity.reportForUser')}: {userName}
                 </Text>
             )}
 
             <Space wrap>
-                <Text type="secondary">{usersCopy.filterDateRange}:</Text>
+                <Text type="secondary">{t('users.activity.filterDateRange')}:</Text>
                 <DatePicker.RangePicker
                     value={dateRange[0] && dateRange[1] ? dateRange : null}
                     onChange={(dates) =>
@@ -137,13 +136,13 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
                 </Button>
             </Space>
 
-            <Card size="small" title={usersCopy.activityReportIdentity} loading={isLoading}>
+            <Card size="small" title={t('reporting.userActivity.identity')} loading={isLoading}>
                 <Descriptions column={{ xs: 1, sm: 2 }} size="small">
-                    <Descriptions.Item label={usersCopy.userName}>
+                    <Descriptions.Item label={t('users.form.userName')}>
                         {data?.userName ?? NA}
                     </Descriptions.Item>
-                    <Descriptions.Item label={usersCopy.email}>{data?.email ?? NA}</Descriptions.Item>
-                    <Descriptions.Item label={usersCopy.role}>
+                    <Descriptions.Item label={t('users.list.columnEmail')}>{data?.email ?? NA}</Descriptions.Item>
+                    <Descriptions.Item label={t('users.list.columnRole')}>
                         <Tag>{data?.role ?? NA}</Tag>
                     </Descriptions.Item>
                     <Descriptions.Item label={t('users.tabs.tenant.columnTenant')}>
@@ -156,7 +155,7 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
                 <Col xs={24} sm={12} lg={6}>
                     <Card size="small" loading={isLoading}>
                         <Statistic
-                            title={usersCopy.lastLogin}
+                            title={t('reporting.userActivity.lastLogin')}
                             value={
                                 data?.lastLoginAt
                                     ? formatDateTime(data.lastLoginAt, formatLocale)
@@ -164,19 +163,19 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
                             }
                         />
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                            {usersCopy.ipAddress}: {data?.lastLoginIp?.trim() || NA}
+                            {t('users.activity.ipAddress')}: {data?.lastLoginIp?.trim() || NA}
                         </Text>
                     </Card>
                 </Col>
                 <Col xs={12} sm={6} lg={3}>
                     <Card size="small" loading={isLoading}>
-                        <Statistic title={usersCopy.activityReportTotalLogins} value={data?.totalLogins ?? 0} />
+                        <Statistic title={t('reporting.userActivity.totalLogins')} value={data?.totalLogins ?? 0} />
                     </Card>
                 </Col>
                 <Col xs={12} sm={6} lg={3}>
                     <Card size="small" loading={isLoading}>
                         <Statistic
-                            title={usersCopy.activityReportFailedLogins}
+                            title={t('reporting.userActivity.failedLogins')}
                             value={data?.failedLoginAttempts ?? 0}
                             styles={
                                 (data?.failedLoginAttempts ?? 0) > 0 ? { content: { color: '#cf1322' } } : undefined
@@ -187,7 +186,7 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
                 <Col xs={12} sm={6} lg={4}>
                     <Card size="small" loading={isLoading}>
                         <Statistic
-                            title={usersCopy.activityReportActiveSessions}
+                            title={t('reporting.userActivity.activeSessions')}
                             value={data?.activeSessions ?? 0}
                         />
                     </Card>
@@ -195,16 +194,16 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
                 <Col xs={12} sm={6} lg={4}>
                     <Card size="small" loading={isLoading}>
                         <Statistic
-                            title={usersCopy.activityReportAvgSessionMin}
+                            title={t('reporting.userActivity.avgSession')}
                             value={data?.averageSessionDurationMinutes ?? 0}
-                            suffix="min"
+                            suffix={t('reporting.userActivity.minutesSuffix')}
                         />
                     </Card>
                 </Col>
                 <Col xs={24} sm={12} lg={4}>
                     <Card size="small" loading={isLoading}>
                         <Statistic
-                            title={usersCopy.activityReportLastSessionEnd}
+                            title={t('reporting.userActivity.lastSessionEnd')}
                             value={
                                 data?.lastSessionEndAt
                                     ? formatDateTime(data.lastSessionEndAt, formatLocale)
@@ -215,33 +214,33 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
                 </Col>
             </Row>
 
-            <Card size="small" title={usersCopy.activityReportActionSummary} loading={isLoading}>
+            <Card size="small" title={t('reporting.userActivity.actionSummary')} loading={isLoading}>
                 <Row gutter={[16, 16]}>
                     <Col xs={12} sm={8} md={4}>
-                        <Statistic title={usersCopy.activityReportUserCreates} value={actions?.userCreates ?? 0} />
+                        <Statistic title={t('reporting.userActivity.userCreates')} value={actions?.userCreates ?? 0} />
                     </Col>
                     <Col xs={12} sm={8} md={4}>
-                        <Statistic title={usersCopy.activityReportUserEdits} value={actions?.userEdits ?? 0} />
+                        <Statistic title={t('reporting.userActivity.userEdits')} value={actions?.userEdits ?? 0} />
                     </Col>
                     <Col xs={12} sm={8} md={4}>
                         <Statistic
-                            title={usersCopy.activityReportPayments}
+                            title={t('reporting.userActivity.payments')}
                             value={actions?.paymentsProcessed ?? 0}
                         />
                     </Col>
                     <Col xs={12} sm={8} md={4}>
-                        <Statistic title={usersCopy.activityReportStornos} value={actions?.stornos ?? 0} />
+                        <Statistic title={t('reporting.userActivity.stornos')} value={actions?.stornos ?? 0} />
                     </Col>
                     <Col xs={12} sm={8} md={4}>
-                        <Statistic title={usersCopy.activityReportRefunds} value={actions?.refunds ?? 0} />
+                        <Statistic title={t('reporting.userActivity.refunds')} value={actions?.refunds ?? 0} />
                     </Col>
                     <Col xs={12} sm={8} md={4}>
-                        <Statistic title={usersCopy.activityReportExports} value={actions?.exports ?? 0} />
+                        <Statistic title={t('reporting.userActivity.exports')} value={actions?.exports ?? 0} />
                     </Col>
                 </Row>
             </Card>
 
-            <Card size="small" title={usersCopy.activityReportTimeline} loading={isLoading}>
+            <Card size="small" title={t('reporting.userActivity.timelineTitle')} loading={isLoading}>
                 <Table
                     size="small"
                     rowKey={(r, i) => `${r.date}-${r.action}-${i}`}

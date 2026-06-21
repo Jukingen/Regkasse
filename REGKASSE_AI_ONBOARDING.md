@@ -309,7 +309,7 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 - Backend: `TenantUserService.CreateAsync`, `TenantUserService.CreateQuickAsync`, `AdminUsersController.Create` → `PasswordGenerator.GenerateSecurePassword`, `UserCreationService` / `UniqueUsernameGenerator` for login names.
 - **Add existing user:** `AddExistingUserModal` — assign membership only.
 - Audit: `USER_CREATED` with `createdByUserId`, `tenantId`, `role`; password **not** in audit metadata.
-- Optional `Email:Smtp` is for **onboarding welcome** only — see `docs/CUSTOMER_ONBOARDING.md`, `backend/CONFIGURATION.md`.
+- Optional `Email:Smtp` — see **`docs/EMAIL_CONFIGURATION.md`** (onboarding welcome, forgot-username/password, activity alerts, license reports, etc.).
 
 ##### Creating users with username
 

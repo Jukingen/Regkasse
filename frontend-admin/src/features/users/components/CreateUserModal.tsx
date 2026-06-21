@@ -323,7 +323,7 @@ export function CreateUserModal({
 
     const copyPassword = async () => {
         if (!password) {
-            message.error('Kein Passwort zum Kopieren vorhanden');
+            message.error(t('users.password.noPasswordToCopy'));
             return;
         }
 
@@ -381,7 +381,7 @@ export function CreateUserModal({
                 <Input placeholder="Mustermann" maxLength={50} />
             </Form.Item>
 
-            <Form.Item name="role" label={t('users.create.role')} rules={[{ required: true }]}>
+            <Form.Item name="role" label={t('users.create.role')} rules={[{ required: true, message: t('users.create.roleRequired') }]}>
                 <Select options={roleOptions} />
             </Form.Item>
 
@@ -415,7 +415,7 @@ export function CreateUserModal({
                 </Form.Item>
             ) : null}
 
-            <Form.Item name="role" label={t('tenants.users.quick.role')} rules={[{ required: true }]}>
+            <Form.Item name="role" label={t('tenants.users.quick.role')} rules={[{ required: true, message: t('users.create.roleRequired') }]}>
                 <Select options={quickRoleOptions} />
             </Form.Item>
 

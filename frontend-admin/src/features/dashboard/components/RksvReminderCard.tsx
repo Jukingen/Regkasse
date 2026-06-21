@@ -9,16 +9,19 @@ import {
 import { useRksvReminderOverview } from '@/features/rksv-operations/hooks/useRksvReminderOverview';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { formatDateTime } from '@/i18n/formatting';
+import { useI18n } from '@/i18n/I18nProvider';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 
 export function RksvReminderCard() {
+    const { t } = useI18n();
     const { data, isLoading, error, refetch, isError, isFetching } = useRksvReminderOverview();
     const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
+    const cardTitle = t('dashboard.rksvReminder.card_title');
 
     if (isLoading) {
         return (
             <Card
-                title="RKSV Sonderbelege (Erinnerungen)"
+                title={cardTitle}
                 extra={<Button icon={<ReloadOutlined />} onClick={() => void refetch()} />}
                 variant="borderless"
                 style={{ marginBottom: 24 }}
@@ -34,10 +37,10 @@ export function RksvReminderCard() {
     if (hasLoadError) {
         return (
             <Card
-                title="RKSV Sonderbelege (Erinnerungen)"
+                title={cardTitle}
                 extra={
                     <Button icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()}>
-                        Erneut laden
+                        {t('dashboard.rksvReminderCard.reload')}
                     </Button>
                 }
                 variant="borderless"
@@ -45,8 +48,8 @@ export function RksvReminderCard() {
             >
                 <Alert
                     type="error"
-                    title="Fehler beim Laden der RKSV-Daten"
-                    description="Die RKSV-Erinnerungen konnten nicht geladen werden. Bitte versuchen Sie es später erneut."
+                    title={t('dashboard.rksvReminderCard.load_error_title')}
+                    description={t('dashboard.rksvReminderCard.load_error_description')}
                     showIcon
                 />
             </Card>
@@ -56,14 +59,14 @@ export function RksvReminderCard() {
     if (!data || data.totalRegisters === 0) {
         return (
             <Card
-                title="RKSV Sonderbelege (Erinnerungen)"
+                title={cardTitle}
                 extra={<Button icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()} />}
                 variant="borderless"
                 style={{ marginBottom: 24 }}
             >
                 <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Keine Kassen vorhanden oder keine RKSV-Daten verfügbar"
+                    description={t('dashboard.rksvReminderCard.empty_description')}
                 />
             </Card>
         );
@@ -75,18 +78,26 @@ export function RksvReminderCard() {
         data.overdueMonatsbeleg > 0 ||
         data.missingJahresbeleg > 0;
 
+    const lastUpdatedLabel = data.lastUpdated
+        ? t('dashboard.rksvReminderCard.last_updated', {
+              time: formatDateTime(data.lastUpdated, ''),
+          })
+        : t('dashboard.rksvReminderCard.last_updated', {
+              time: t('dashboard.rksvReminderCard.last_updated_unknown'),
+          });
+
     return (
         <Card
             title={
                 <Space>
-                    <span>RKSV Sonderbelege (Erinnerungen)</span>
+                    <span>{cardTitle}</span>
                     {hasIssues ? (
                         <Tag color="red" icon={<WarningOutlined />}>
-                            Aktion erforderlich
+                            {t('dashboard.rksvReminderCard.action_required')}
                         </Tag>
                     ) : (
                         <Tag color="green" icon={<CheckCircleOutlined />}>
-                            Alles in Ordnung
+                            {t('dashboard.rksvReminderCard.all_ok')}
                         </Tag>
                     )}
                 </Space>
@@ -96,7 +107,7 @@ export function RksvReminderCard() {
                     <Button size="small" icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()} />
                     {canOpenSonderbelege ? (
                         <Button size="small" type="link" href={RKSV_SONDERBELEGE_PATH}>
-                            Verwalten
+                            {t('dashboard.rksvReminderCard.manage')}
                         </Button>
                     ) : null}
                 </Space>
@@ -109,8 +120,11 @@ export function RksvReminderCard() {
                     <Alert
                         type="warning"
                         showIcon
-                        title="Startbeleg fehlt"
-                        description={`${data.missingStartbeleg} von ${data.totalRegisters} Kassen haben noch keinen Startbeleg.`}
+                        title={t('dashboard.rksvReminderCard.startbeleg_missing_title')}
+                        description={t('dashboard.rksvReminderCard.startbeleg_missing_description', {
+                            missing: data.missingStartbeleg,
+                            total: data.totalRegisters,
+                        })}
                     />
                 ) : null}
 
@@ -118,8 +132,10 @@ export function RksvReminderCard() {
                     <Alert
                         type="error"
                         showIcon
-                        title="Monatsbeleg überfällig"
-                        description={`${data.overdueMonatsbeleg} Kassen haben den Monatsbeleg nicht rechtzeitig erstellt.`}
+                        title={t('dashboard.rksvReminderCard.monatsbeleg_overdue_title')}
+                        description={t('dashboard.rksvReminderCard.monatsbeleg_overdue_description', {
+                            count: data.overdueMonatsbeleg,
+                        })}
                     />
                 ) : null}
 
@@ -127,8 +143,10 @@ export function RksvReminderCard() {
                     <Alert
                         type="info"
                         showIcon
-                        title="Monatsbeleg ausstehend"
-                        description={`${data.missingMonatsbeleg} Kassen benötigen einen Monatsbeleg.`}
+                        title={t('dashboard.rksvReminderCard.monatsbeleg_pending_title')}
+                        description={t('dashboard.rksvReminderCard.monatsbeleg_pending_description', {
+                            count: data.missingMonatsbeleg,
+                        })}
                     />
                 ) : null}
 
@@ -136,8 +154,10 @@ export function RksvReminderCard() {
                     <Alert
                         type="warning"
                         showIcon
-                        title="Jahresbeleg ausstehend"
-                        description={`${data.missingJahresbeleg} Kassen benötigen einen Jahresbeleg.`}
+                        title={t('dashboard.rksvReminderCard.jahresbeleg_pending_title')}
+                        description={t('dashboard.rksvReminderCard.jahresbeleg_pending_description', {
+                            count: data.missingJahresbeleg,
+                        })}
                     />
                 ) : null}
 
@@ -145,14 +165,12 @@ export function RksvReminderCard() {
                     <Alert
                         type="success"
                         showIcon
-                        title="Alle RKSV-Sonderbelege sind aktuell"
-                        description="Alle Kassen haben die erforderlichen Startbelege, Monatsbelege und Jahresbelege."
+                        title={t('dashboard.rksvReminderCard.all_current_title')}
+                        description={t('dashboard.rksvReminderCard.all_current_description')}
                     />
                 ) : null}
 
-                <div style={{ fontSize: 12, color: '#8c8c8c', textAlign: 'right' }}>
-                    Letzte Aktualisierung: {data.lastUpdated ? formatDateTime(data.lastUpdated, '') : 'unbekannt'}
-                </div>
+                <div style={{ fontSize: 12, color: '#8c8c8c', textAlign: 'right' }}>{lastUpdatedLabel}</div>
             </Space>
         </Card>
     );

@@ -80,5 +80,18 @@
     "reason": "Cancellation reason",
     "cancelledBy": "Cancelled by",
     "cancelledAt": "Cancelled at"
+  },
+  "cardPayment": {
+    "title": "Card payment",
+    "testHint": "Test: 4242424242424242 = success",
+    "cardNumberPlaceholder": "Card number",
+    "expiryPlaceholder": "MM/YY",
+    "cvcPlaceholder": "CVC",
+    "pay": "Pay",
+    "cancel": "Cancel",
+    "invalidCardNumber": "Please enter a valid card number.",
+    "noRegisterAssigned": "No cash register assigned.",
+    "declined": "Card payment declined.",
+    "failed": "Card payment failed."
   }
 }

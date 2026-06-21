@@ -94,25 +94,24 @@ If a password or JWT key was ever stored in a tracked file, shared screenshot, o
 
 ## Email and user management
 
+> **Full guide:** [`docs/EMAIL_CONFIGURATION.md`](../docs/EMAIL_CONFIGURATION.md) — SMTP keys, dev capture, feature matrix, production checklist, troubleshooting.
+
 **Email is no longer required for day-to-day user management.** Tenant and platform users are created via admin APIs; a one-time generated password is returned in the HTTP response and must be delivered to the operator out of band. Audit logs record `USER_CREATED` with `createdByUserId`, `tenantId`, and `role` — never the password value.
 
-Optional SMTP (`Email:Smtp` in `appsettings`) may be used for **tenant onboarding welcome mail** (`WelcomeEmailService`), **username change notifications** (`UsernameChangeEmailService`), and **forgot-username recovery** (`ForgotUsernameEmailService` on `POST /api/Auth/forgot-username`). Optional `SupportContact` is shown in transactional user emails (falls back to `From`). It is **not** used for user invitations (removed) or for tenant user password reset (password returned in API/UI only).
+Optional SMTP (`Email:Smtp`) powers welcome mail, username change notices, forgot-username/password (admin app), activity alerts, license reports, invoice resend, restore approval, and payment-reversal approval. Optional `SupportContact` is shown in transactional user emails (falls back to `From`).
 
-Username changes are stored in `user_username_history` for compliance review (`UserUsernameHistoryService`).
+Username changes are stored in `user_username_history` for compliance review (`UserUsernameHistoryService`). Forgot-username emails include the **current** username only (not history).
 
-Example shape (welcome/onboarding only — do not commit real credentials):
+### Local dev (quick start)
 
-```json
-"Email": {
-  "Smtp": {
-    "Host": "smtp.example.com",
-    "Port": 587,
-    "From": "noreply@regkasse.at"
-  }
-}
+In **Development**, forgot-username / forgot-password emails are written to `backend/App_Data/dev-mail/*.txt` when `Email:DevCapture:Enabled` is `true` (default). Real inbox delivery requires separate `Email:Smtp` configuration.
+
+```powershell
+cd backend && dotnet run
+.\scripts\dev-mail-test.bat
 ```
 
-If `Host` or `From` is empty, welcome email is skipped; onboarding success UI shows credentials once instead.
+See [`docs/EMAIL_CONFIGURATION.md`](../docs/EMAIL_CONFIGURATION.md) for all settings, verification steps, and production setup.
 
 ## Logging
 

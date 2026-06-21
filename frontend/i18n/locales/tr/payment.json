@@ -80,5 +80,18 @@
     "reason": "İptal sebebi",
     "cancelledBy": "İptal eden",
     "cancelledAt": "İptal zamanı"
+  },
+  "cardPayment": {
+    "title": "Kart ödemesi",
+    "testHint": "Test: 4242424242424242 = başarılı",
+    "cardNumberPlaceholder": "Kart numarası",
+    "expiryPlaceholder": "AA/YY",
+    "cvcPlaceholder": "CVC",
+    "pay": "Öde",
+    "cancel": "İptal",
+    "invalidCardNumber": "Lütfen geçerli bir kart numarası girin.",
+    "noRegisterAssigned": "Atanmış kasa yok.",
+    "declined": "Kart ödemesi reddedildi.",
+    "failed": "Kart ödemesi başarısız."
   }
 }

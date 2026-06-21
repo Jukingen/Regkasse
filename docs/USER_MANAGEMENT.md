@@ -5,7 +5,7 @@
 
 Explains **platform users** vs **tenant (Mandant) users**, **direct user creation** (no invitation emails), password handoff, reset, and remove-vs-delete semantics.
 
-Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`API_CONTRACTS.md`](API_CONTRACTS.md) (login `loginIdentifier`, `userName`, Quick Create API).
+Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md), [`API_CONTRACTS.md`](API_CONTRACTS.md) (login `loginIdentifier`, `userName`, Quick Create API).
 
 ---
 
@@ -153,7 +153,7 @@ Use when the person already has an account (e.g. works at another mandant). Does
 | **Force change** | Same flag as create; operator delivers password securely |
 | **Onboarding admin** | Provisioning wizard still may use welcome email (`WelcomeEmailService`) — separate from day-to-day user create |
 
-SMTP is **not** required for tenant user creation or password reset. Optional `Email:Smtp` remains only for **tenant onboarding welcome** mail (see [`CUSTOMER_ONBOARDING.md`](CUSTOMER_ONBOARDING.md)).
+SMTP is **not** required for tenant user creation or password reset. Optional `Email:Smtp` is documented in [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md) (onboarding welcome, forgot-username/password, activity alerts, etc.).
 
 ---
 

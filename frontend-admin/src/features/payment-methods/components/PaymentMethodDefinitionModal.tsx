@@ -80,15 +80,15 @@ export function PaymentMethodDefinitionModal({
         <Form.Item
           name="code"
           label={t('settings.paymentMethods.form.code')}
-          rules={[{ required: true }]}
+          rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
           extra={t('settings.paymentMethods.form.codeHint')}
         >
           <Input disabled={!!editing} autoComplete="off" />
         </Form.Item>
-        <Form.Item name="name" label={t('settings.paymentMethods.form.name')} rules={[{ required: true }]}>
+        <Form.Item name="name" label={t('settings.paymentMethods.form.name')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
           <Input />
         </Form.Item>
-        <Form.Item name="legacyPaymentMethodValue" label={t('settings.paymentMethods.form.legacy')} rules={[{ required: true }]}>
+        <Form.Item name="legacyPaymentMethodValue" label={t('settings.paymentMethods.form.legacy')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
           <Select options={legacyPaymentMethodOptions} />
         </Form.Item>
         <Form.Item name="fiscalCategory" label={t('settings.paymentMethods.form.fiscalCategory')}>

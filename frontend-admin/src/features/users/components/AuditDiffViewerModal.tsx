@@ -9,7 +9,7 @@ import React from 'react';
 import { Modal, Table, Typography, Button } from 'antd';
 import type { DiffRow } from '../utils/auditDiffUtils';
 import { getDiffRowsFromEntry, EMPTY_PLACEHOLDER } from '../utils/auditDiffUtils';
-import { usersCopy } from '../constants/copy';
+import { useI18n } from '@/i18n';
 
 const { Text } = Typography;
 
@@ -30,11 +30,15 @@ type Props = {
 };
 
 export function AuditDiffViewerModal({ open, onClose, entry, getLabel, formatOptions }: Props) {
+    const { t } = useI18n();
+    const labelActive = formatOptions?.labelActive ?? t('users.list.statusActive');
+    const labelInactive = formatOptions?.labelInactive ?? t('users.list.statusInactive');
+
     const diffRows: DiffRow[] | null = entry
         ? getDiffRowsFromEntry(entry, getLabel, {
               emptyPlaceholder: formatOptions?.emptyPlaceholder ?? EMPTY_PLACEHOLDER,
-              labelActive: formatOptions?.labelActive ?? usersCopy.statusActive,
-              labelInactive: formatOptions?.labelInactive ?? usersCopy.statusInactive,
+              labelActive,
+              labelInactive,
           })
         : null;
 
@@ -42,12 +46,12 @@ export function AuditDiffViewerModal({ open, onClose, entry, getLabel, formatOpt
 
     return (
         <Modal
-            title={usersCopy.fieldChangesTitle}
+            title={t('users.auditDiff.title')}
             open={open}
             onCancel={onClose}
             footer={[
                 <Button key="close" onClick={onClose}>
-                    {usersCopy.close}
+                    {t('common.buttons.close')}
                 </Button>,
             ]}
             destroyOnHidden
@@ -61,14 +65,14 @@ export function AuditDiffViewerModal({ open, onClose, entry, getLabel, formatOpt
                     pagination={false}
                     columns={[
                         {
-                            title: usersCopy.fieldLabel,
+                            title: t('users.auditDiff.field'),
                             dataIndex: 'label',
                             key: 'label',
                             width: 160,
                             render: (val: string) => (val != null && String(val).trim() ? String(val).trim() : EMPTY_PLACEHOLDER),
                         },
                         {
-                            title: usersCopy.oldValue,
+                            title: t('users.auditDiff.oldValue'),
                             dataIndex: 'oldVal',
                             key: 'oldVal',
                             render: (val: string) => (
@@ -85,7 +89,7 @@ export function AuditDiffViewerModal({ open, onClose, entry, getLabel, formatOpt
                             render: () => <Text type="secondary">→</Text>,
                         },
                         {
-                            title: usersCopy.newValue,
+                            title: t('users.auditDiff.newValue'),
                             dataIndex: 'newVal',
                             key: 'newVal',
                             render: (val: string) => (
@@ -97,7 +101,7 @@ export function AuditDiffViewerModal({ open, onClose, entry, getLabel, formatOpt
                     ]}
                 />
             ) : (
-                <Text type="secondary">{usersCopy.noFieldChanges}</Text>
+                <Text type="secondary">{t('users.auditDiff.noChanges')}</Text>
             )}
         </Modal>
     );

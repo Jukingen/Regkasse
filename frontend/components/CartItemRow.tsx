@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { formatPrice, formatPercent } from '../utils/formatPrice';
 import { WaveLoader } from '../src/components/common/WaveLoader';
@@ -38,10 +39,11 @@ interface CartItemRowProps {
 }
 
 export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDecrease, onIncrementModifier, onDecrementModifier, onRemoveModifier }) => {
+    const { t } = useTranslation(['cart']);
     const [updating, setUpdating] = React.useState(false);
     const quantity = item.quantity || item.qty || 0;
     const taxRate = item.taxRate || 0.20;
-    const taxLabel = `inkl. ${formatPercent(taxRate)} MwSt.`;
+    const taxLabel = t('cart:itemRow.taxIncluded', { rate: formatPercent(taxRate) });
 
     return (
         <View style={styles.container}>
@@ -49,7 +51,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
             <View style={styles.mainRow}>
                 <View style={styles.nameBlock}>
                     <Text style={styles.productName} numberOfLines={2}>
-                        {item.productName || 'Unbekanntes Produkt'}
+                        {item.productName || t('cart:itemRow.unknownProduct')}
                     </Text>
                     {item.modifiers && item.modifiers.length > 0 && (
                         <View style={styles.modifiersBlock}>
@@ -73,7 +75,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                                                       (state as { focused?: boolean }).focused && SoftState.focusVisible,
                                                     ]}
                                                     hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
-                                                    accessibilityLabel={modQty <= 1 ? `${m.name} entfernen` : `${m.name} verringern`}
+                                                    accessibilityLabel={modQty <= 1 ? t('cart:itemRow.removeModifierA11y', { name: m.name }) : t('cart:itemRow.decreaseModifierA11y', { name: m.name })}
                                                     accessibilityRole="button"
                                                 >
                                                     <Text style={styles.modifierQtyBtnText}>−</Text>
@@ -87,7 +89,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                                                       (state as { focused?: boolean }).focused && SoftState.focusVisible,
                                                     ]}
                                                     hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
-                                                    accessibilityLabel={`${m.name} erhöhen`}
+                                                    accessibilityLabel={t('cart:itemRow.increaseModifierA11y', { name: m.name })}
                                                     accessibilityRole="button"
                                                 >
                                                     <Text style={styles.modifierQtyBtnText}>+</Text>
@@ -103,7 +105,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                                                   (state as { focused?: boolean }).focused && SoftState.focusVisible,
                                                 ]}
                                                 hitSlop={{ top: 11, bottom: 11, left: 11, right: 11 }}
-                                                accessibilityLabel={`${m.name} entfernen`}
+                                                accessibilityLabel={t('cart:itemRow.removeModifierA11y', { name: m.name })}
                                                 accessibilityRole="button"
                                             >
                                                 <Text style={styles.removeModifierBtnText}>×</Text>
@@ -141,7 +143,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                             (state as { focused?: boolean }).focused && SoftState.focusVisible,
                         ]}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        accessibilityLabel="Menge verringern"
+                        accessibilityLabel={t('cart:itemRow.decreaseQtyA11y')}
                         accessibilityRole="button"
                     >
                         <Text style={[styles.qtyBtnText, updating && styles.qtyBtnTextDisabled]}>-</Text>
@@ -169,7 +171,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                             (state as { focused?: boolean }).focused && SoftState.focusVisible,
                         ]}
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        accessibilityLabel="Menge erhöhen"
+                        accessibilityLabel={t('cart:itemRow.increaseQtyA11y')}
                         accessibilityRole="button"
                     >
                         <Text style={[styles.qtyBtnText, (!onIncrease || updating) && styles.qtyBtnTextDisabled]}>+</Text>
@@ -179,7 +181,7 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item, onIncrease, onDe
                 {/* Price Calculation */}
                 <View style={styles.priceContainer}>
                     <Text style={styles.unitPrice}>
-                        {formatPrice(item.unitPrice)} / Stk.
+                        {formatPrice(item.unitPrice)} {t('cart:itemRow.unitPerPiece')}
                     </Text>
                     <Text style={styles.taxInfo}>{taxLabel}</Text>
                 </View>

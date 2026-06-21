@@ -15,7 +15,7 @@ import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps'>;
 
 export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
-    const { formatLocale } = useI18n();
+    const { t, formatLocale } = useI18n();
     const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.SETTINGS_MANAGE });
     const { licenseValidUntilUtc, licenseDaysRemaining } = useCurrentTenant();
 
@@ -37,7 +37,7 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
             {licenseValidUntilUtc ? (
                 <>
                     <Statistic
-                        title="Verbleibende Tage"
+                        title={t('dashboard.widgets.licenseExpiry.daysRemaining')}
                         value={days ?? '—'}
                         styles={{ content: { 
                             color:
@@ -49,7 +49,9 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
                          } }}
                     />
                     <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-                        Gültig bis: {formatDate(licenseValidUntilUtc, formatLocale)}
+                        {t('dashboard.widgets.licenseExpiry.validUntil', {
+                            date: formatDate(licenseValidUntilUtc, formatLocale),
+                        })}
                     </Typography.Paragraph>
                     {days != null && days <= 30 ? (
                         <Alert
@@ -58,8 +60,8 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
                             showIcon
                             title={
                                 days <= 7
-                                    ? 'Lizenz läuft in Kürze ab — bitte verlängern.'
-                                    : 'Lizenz läuft innerhalb von 30 Tagen ab.'
+                                    ? t('dashboard.widgets.licenseExpiry.expiresSoon7')
+                                    : t('dashboard.widgets.licenseExpiry.expiresSoon30')
                             }
                         />
                     ) : null}
@@ -68,9 +70,9 @@ export function LicenseExpiryWidget({ title, dragHandleProps }: Props) {
                 <Alert
                     type="info"
                     showIcon
-                    title="Kein Lizenzablaufdatum hinterlegt"
+                    title={t('dashboard.widgets.licenseExpiry.noExpiryDate')}
                     description={
-                        <Link href="/settings">Einstellungen öffnen</Link>
+                        <Link href="/settings">{t('dashboard.widgets.licenseExpiry.openSettings')}</Link>
                     }
                 />
             )}

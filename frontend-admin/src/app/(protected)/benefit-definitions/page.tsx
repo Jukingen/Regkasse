@@ -243,7 +243,7 @@ export default function BenefitDefinitionsPage() {
           <Form.Item name="name" label={t('benefits.shared.name')} rules={[{ required: true, message: t('benefits.definitions.formNameRequired') }]}>
             <Input placeholder={t('benefits.definitions.namePlaceholder')} maxLength={100} />
           </Form.Item>
-          <Form.Item name="benefitKind" label={t('benefits.shared.kind')} rules={[{ required: true }]}>
+          <Form.Item name="benefitKind" label={t('benefits.shared.kind')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Select
               options={[
                 { value: AppliedBenefitKind.PercentageDiscount, label: benefitKindLabel(AppliedBenefitKind.PercentageDiscount) },

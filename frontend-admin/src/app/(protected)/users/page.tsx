@@ -53,8 +53,7 @@ import {
     DeactivateUserModal,
     ResetPasswordUserModal,
 } from '@/features/users/components/UsersPageActionModals';
-import { usersCopy, mapBackendPasswordErrorToGerman } from '@/features/users/constants/copy';
-import { createUsersFormRules } from '@/features/users/constants/validation';
+import { createUsersFormRules, buildUsersFormRulesContext, mapBackendPasswordError } from '@/features/users/constants/validation';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
@@ -86,16 +85,6 @@ const CANONICAL_ROLE_VALUES = [
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
-
-const modalFormRulesContext = {
-  requiredMessage: usersCopy.validationRequired,
-  emailInvalidMessage: usersCopy.validationEmail,
-  passwordMinMessage: usersCopy.validationPasswordMin,
-  passwordPolicyMessage: usersCopy.validationPasswordPolicy,
-  maxLengthMessage: usersCopy.validationMaxLength,
-  reasonRequiredMessage: usersCopy.reasonRequiredMessage,
-  roleNameRequiredMessage: usersCopy.roleNameRequired,
-};
 
 function isCanonicalRoleName(roleName: string): roleName is (typeof CANONICAL_ROLE_VALUES)[number] {
     return (CANONICAL_ROLE_VALUES as readonly string[]).includes(roleName);
@@ -253,7 +242,7 @@ export default function UsersPage() {
         if (userId) {
             void getUserById(userId)
                 .then((u) => setDetailUser(u))
-                .catch(() => message.error(usersCopy.errorLoadUser));
+                .catch(() => message.error(t('users.messages.errorLoadUser')));
         }
     }, [searchParams, policy.canView, pathname, router, message]);
 
@@ -376,7 +365,7 @@ export default function UsersPage() {
         queryFn: () => getUserById(editUserId!),
         enabled: !!editUserId,
     });
-    const modalRules = useMemo(() => createUsersFormRules(modalFormRulesContext), []);
+    const modalRules = useMemo(() => createUsersFormRules(buildUsersFormRulesContext(t)), [t]);
 
     // Role list for form + filter: always from full catalog (useRoles). Never from selected user or assigned subset.
     const roleOptions = useMemo(
@@ -424,7 +413,7 @@ export default function UsersPage() {
                   }).then(() => undefined)
                 : gatewayCreateUser(payload.data),
         onSuccess: (_data, { platform }) => {
-            message.success(usersCopy.successCreate);
+            message.success(t('users.messages.successCreate'));
             if (platform) {
                 invalidateAllUserLists();
             } else {
@@ -434,7 +423,7 @@ export default function UsersPage() {
             setCreatePlatformMode(false);
         },
         onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorGeneric).message);
+            message.error(normalizeError(e, t('users.messages.errorGeneric')).message);
         },
     });
     const updateUserRoleMutation = useUpdateUserRole();
@@ -447,7 +436,7 @@ export default function UsersPage() {
     const resetPasswordMutation = useMutation({
         mutationFn: ({ id, data }: { id: string; data: { newPassword: string } }) => gatewayResetPassword(id, data),
         onSuccess: (_data, { id }) => {
-            message.success(usersCopy.successResetPassword);
+            message.success(t('users.messages.successResetPassword'));
             invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setResetPasswordUser(null);
@@ -461,16 +450,16 @@ export default function UsersPage() {
             const is404 = status === 404;
             const is400 = status === 400;
             const fallback =
-                is401 ? usersCopy.sessionExpiredOrUnauthorized
-                : is403 ? usersCopy.errorResetPasswordForbidden
-                : is404 ? usersCopy.errorResetPasswordUserNotFound
-                : usersCopy.errorResetPassword;
+                is401 ? t('users.messages.sessionExpiredOrUnauthorized')
+                : is403 ? t('users.messages.errorResetPasswordForbidden')
+                : is404 ? t('users.messages.errorResetPasswordUserNotFound')
+                : t('users.messages.errorResetPassword');
             const normalized = normalizeError(e, fallback);
             const data = err.response?.data as { errors?: Record<string, string[]> } | undefined;
             const errors = data?.errors;
             const fieldErrors = errors?.newPassword ?? errors?.NewPassword;
             const firstBackendMessage = Array.isArray(fieldErrors) && fieldErrors.length > 0 ? fieldErrors[0] : normalized.message;
-            const displayMessage = mapBackendPasswordErrorToGerman(firstBackendMessage, usersCopy);
+            const displayMessage = mapBackendPasswordError(t, firstBackendMessage);
 
             if (is400) {
                 setResetPasswordValidationError(displayMessage);
@@ -482,25 +471,25 @@ export default function UsersPage() {
     const deactivateMutation = useMutation({
         mutationFn: ({ id, reason }: { id: string; reason: string }) => gatewayDeactivateUser(id, { reason }),
         onSuccess: (_data, { id }) => {
-            message.success(usersCopy.successDeactivate);
+            message.success(t('users.messages.successDeactivate'));
             invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setDeactivateUserRecord(null);
         },
         onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorGeneric).message);
+            message.error(normalizeError(e, t('users.messages.errorGeneric')).message);
         },
     });
     const reactivateMutation = useMutation({
         mutationFn: (id: string) => gatewayReactivateUser(id),
         onSuccess: (_data, id) => {
-            message.success(usersCopy.successReactivate);
+            message.success(t('users.messages.successReactivate'));
             invalidateAllUserLists();
             queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${id}`] });
             setReactivateUserRecord(null);
         },
         onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorGeneric).message);
+            message.error(normalizeError(e, t('users.messages.errorGeneric')).message);
         },
     });
     const createRoleMutation = useCreateRoleMutation({
@@ -508,7 +497,7 @@ export default function UsersPage() {
     });
     const handleCreate = (values: CreateUserRequest | UpdateUserRequest) => {
         if (!policy.canCreate) {
-            message.error(usersCopy.noPermission);
+            message.error(t('users.messages.noPermission'));
             return;
         }
         const raw = values as CreateUserRequest;
@@ -557,14 +546,14 @@ export default function UsersPage() {
                 await queryClient.invalidateQueries({ queryKey: ['admin', 'users', userId, 'tenants'] });
                 message.success(t('users.tenants.manageSaved'));
             } else {
-                message.success(usersCopy.successUpdate);
+                message.success(t('users.messages.successUpdate'));
             }
             await queryClient.invalidateQueries({ queryKey: getUserByIdQueryKey(userId) });
             invalidateAllUserLists();
             await queryClient.invalidateQueries({ queryKey: [`/api/AuditLog/user/${userId}`] });
             setEditUserId(null);
         } catch (e: unknown) {
-            message.error(normalizeError(e, usersCopy.errorGeneric).message);
+            message.error(normalizeError(e, t('users.messages.errorGeneric')).message);
             throw e;
         }
     };
@@ -572,7 +561,7 @@ export default function UsersPage() {
     const handleEdit = async (values: UserFormSubmitValues) => {
         if (!editUserId) return;
         if (!policy.canEdit) {
-            message.error(usersCopy.noPermission);
+            message.error(t('users.messages.noPermission'));
             return;
         }
         await submitEditUser(values, editUserId);
@@ -580,7 +569,7 @@ export default function UsersPage() {
 
     const handleCreateRoleConfirm = (payload: { name: string; inheritFromRole?: string }) => {
         if (!policy.canCreateRole) {
-            message.error(usersCopy.noPermission);
+            message.error(t('users.messages.noPermission'));
             return;
         }
         createRoleMutation.mutate(payload);
@@ -588,7 +577,7 @@ export default function UsersPage() {
     const handleDeactivateConfirm = (reason: string) => {
         if (!deactivateUserRecord?.id) return;
         if (!policy.canDeactivate) {
-            message.error(usersCopy.noPermission);
+            message.error(t('users.messages.noPermission'));
             return;
         }
         deactivateMutation.mutate({ id: deactivateUserRecord.id, reason });
@@ -596,7 +585,7 @@ export default function UsersPage() {
     const handleReactivate = () => {
         if (!reactivateUserRecord?.id) return;
         if (!policy.canReactivate) {
-            message.error(usersCopy.noPermission);
+            message.error(t('users.messages.noPermission'));
             return;
         }
         reactivateMutation.mutate(reactivateUserRecord.id);
@@ -604,7 +593,7 @@ export default function UsersPage() {
     const handleResetPasswordConfirm = (newPassword: string) => {
         if (!resetPasswordUser?.id) return;
         if (!policy.canResetPassword(resetPasswordUser.role)) {
-            message.error(usersCopy.noPermission);
+            message.error(t('users.messages.noPermission'));
             return;
         }
         resetPasswordMutation.mutate({ id: resetPasswordUser.id, data: { newPassword } });
@@ -968,17 +957,17 @@ export default function UsersPage() {
             ) : null}
 
             <Modal
-                title={usersCopy.reactivateUser}
+                title={t('users.reactivate.title')}
                 open={!!reactivateUserRecord}
                 onOk={handleReactivate}
                 onCancel={() => setReactivateUserRecord(null)}
-                okText={usersCopy.okReactivate}
+                okText={t('users.reactivate.confirm')}
                 confirmLoading={reactivateMutation.isPending}
                 destroyOnHidden
             >
                 {reactivateUserRecord && (
                     <p>
-                        <strong>{fullName(reactivateUserRecord)}</strong> {usersCopy.confirmReactivate}
+                        <strong>{fullName(reactivateUserRecord)}</strong> {t('users.reactivate.confirmBody')}
                     </p>
                 )}
             </Modal>

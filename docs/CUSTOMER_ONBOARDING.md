@@ -5,7 +5,7 @@
 
 Guides the **foolproof customer onboarding wizard** in Frontend Admin: one form, atomic server provisioning, progress UI, success handoff, optional welcome email, and automatic rollback on failure.
 
-Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`MULTI_TENANT.md`](MULTI_TENANT.md).
+Related: [`TENANT_MANAGEMENT.md`](TENANT_MANAGEMENT.md), [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md), [`MULTI_TENANT.md`](MULTI_TENANT.md), [`EMAIL_CONFIGURATION.md`](EMAIL_CONFIGURATION.md).
 
 ---
 

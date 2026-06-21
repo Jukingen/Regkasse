@@ -9,6 +9,7 @@ import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
+import { useI18n } from '@/i18n/I18nProvider';
 
 type Period = 'today' | 'week';
 
@@ -36,6 +37,7 @@ export function TopSellingProductsWidget({
     period,
     onPeriodChange,
 }: Props) {
+    const { t } = useI18n();
     const range = useMemo(() => rangeForPeriod(period), [period]);
     const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.REPORT_VIEW });
     const query = useGetApiReportsProducts(range, {
@@ -64,8 +66,8 @@ export function TopSellingProductsWidget({
                     size="small"
                     value={period}
                     options={[
-                        { label: 'Heute', value: 'today' },
-                        { label: 'Woche', value: 'week' },
+                        { label: t('dashboard.widgets.topProducts.periodToday'), value: 'today' },
+                        { label: t('dashboard.widgets.topProducts.periodWeek'), value: 'week' },
                     ]}
                     onChange={(v) => onPeriodChange(v as Period)}
                 />
@@ -78,10 +80,10 @@ export function TopSellingProductsWidget({
                 dataSource={rows}
                 rowKey="productId"
                 columns={[
-                    { title: 'Produkt', dataIndex: 'productName' },
-                    { title: 'Menge', dataIndex: 'quantitySold', width: 80 },
+                    { title: t('dashboard.widgets.topProducts.colProduct'), dataIndex: 'productName' },
+                    { title: t('dashboard.widgets.topProducts.colQuantity'), dataIndex: 'quantitySold', width: 80 },
                     {
-                        title: 'Umsatz',
+                        title: t('dashboard.widgets.topProducts.colRevenue'),
                         dataIndex: 'revenue',
                         width: 100,
                         render: (val: number) => `€${Number(val ?? 0).toFixed(2)}`,

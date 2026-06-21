@@ -1,6 +1,6 @@
 import React from 'react';
 import '@testing-library/jest-dom';
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import { I18nProvider } from '@/i18n';
@@ -16,22 +16,6 @@ vi.mock('@/features/users/hooks/useAdminUserTenants', () => ({
 vi.mock('@/features/tenancy/hooks/useTenantList', () => ({
     useTenantList: (...args: unknown[]) => mockUseTenantList(...args),
 }));
-
-beforeAll(() => {
-    Object.defineProperty(window, 'matchMedia', {
-        writable: true,
-        value: vi.fn().mockImplementation((query: string) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: vi.fn(),
-            removeListener: vi.fn(),
-            addEventListener: vi.fn(),
-            removeEventListener: vi.fn(),
-            dispatchEvent: vi.fn(),
-        })),
-    });
-});
 
 describe('UserFormDrawer', () => {
     beforeEach(() => {

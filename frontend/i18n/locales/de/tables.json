@@ -8,5 +8,24 @@
   "capacity": "Kapazität",
   "occupied": "Besetzt",
   "free": "Frei",
-  "reserved": "Reserviert"
+  "reserved": "Reserviert",
+  "billSplitMerge": {
+    "splitTitle": "Rechnung teilen",
+    "mergeTitle": "Tische zusammenführen",
+    "splitSubtitle": "Positionen von Tisch {{table}} auf anderen Tisch verschieben",
+    "mergeSubtitle": "Alle Positionen von Tisch {{table}} mit Zieltisch verbinden",
+    "targetTable": "Zieltisch",
+    "positions": "Positionen",
+    "noPositions": "Keine Positionen",
+    "split": "Teilen",
+    "merge": "Zusammenführen",
+    "alerts": {
+      "hintTitle": "Hinweis",
+      "errorTitle": "Fehler",
+      "selectTargetTable": "Bitte Zieltisch wählen.",
+      "selectAtLeastOne": "Bitte mindestens eine Position auswählen.",
+      "splitFailed": "Teilen fehlgeschlagen.",
+      "mergeFailed": "Zusammenführen fehlgeschlagen."
+    }
+  }
 }

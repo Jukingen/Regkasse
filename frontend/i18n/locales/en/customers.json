@@ -17,5 +17,28 @@
   "premium": "Premium",
   "noResults": "No customer found",
   "noSearchResults": "No search results found",
-  "discount": "Discount"
+  "discount": "Discount",
+  "errorLoading": "Could not load customers.",
+  "selectionSheet": {
+    "title": "Customer",
+    "customerNumberLabel": "Customer no.",
+    "numberPlaceholder": "Enter number",
+    "search": "Search",
+    "scanQrA11y": "Scan QR code",
+    "benefitsHint": "Benefits are applied at payment.",
+    "or": "or",
+    "chooseFromList": "Choose from list",
+    "filterPlaceholder": "Filter by name or no.",
+    "back": "Back",
+    "loadingList": "Loading list…",
+    "emptyList": "No entries",
+    "numberPrefix": "No.",
+    "closeA11y": "Close",
+    "alertNotFoundTitle": "Not found",
+    "alertNotFoundMessage": "No customer with this number found.",
+    "alertSearchFailedTitle": "Error",
+    "alertSearchFailedMessage": "Search failed. Please try again.",
+    "alertListFailedTitle": "Notice",
+    "alertListFailedMessage": "Could not load customer list."
+  }
 }

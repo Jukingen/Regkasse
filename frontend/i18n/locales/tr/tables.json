@@ -8,5 +8,24 @@
   "capacity": "Kapasite",
   "occupied": "Dolu",
   "free": "Boş",
-  "reserved": "Rezerve"
+  "reserved": "Rezerve",
+  "billSplitMerge": {
+    "splitTitle": "Hesabı böl",
+    "mergeTitle": "Masaları birleştir",
+    "splitSubtitle": "Masa {{table}} kalemlerini başka masaya taşı",
+    "mergeSubtitle": "Masa {{table}} tüm kalemlerini hedef masa ile birleştir",
+    "targetTable": "Hedef masa",
+    "positions": "Kalemler",
+    "noPositions": "Kalem yok",
+    "split": "Böl",
+    "merge": "Birleştir",
+    "alerts": {
+      "hintTitle": "Bilgi",
+      "errorTitle": "Hata",
+      "selectTargetTable": "Lütfen hedef masa seçin.",
+      "selectAtLeastOne": "Lütfen en az bir kalem seçin.",
+      "splitFailed": "Bölme başarısız.",
+      "mergeFailed": "Birleştirme başarısız."
+    }
+  }
 }

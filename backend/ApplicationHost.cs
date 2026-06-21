@@ -207,6 +207,8 @@ if (isDevelopment)
 }
 builder.Services.Configure<AppUpdateOptions>(builder.Configuration.GetSection(AppUpdateOptions.SectionName));
 builder.Services.Configure<EmailSmtpOptions>(builder.Configuration.GetSection(EmailSmtpOptions.SectionName));
+builder.Services.Configure<EmailDevCaptureOptions>(builder.Configuration.GetSection(EmailDevCaptureOptions.SectionName));
+builder.Services.AddSingleton<DevEmailOutboxWriter>();
 builder.Services.AddActivityServices(builder.Configuration);
 builder.Services.AddHttpClient("LicenseRemote", client =>
 {
@@ -446,8 +448,18 @@ builder.Services.AddScoped<ITenantProvisioningService, TenantProvisioningService
 builder.Services.AddScoped<ITenantOnboardingService, TenantOnboardingService>();
 builder.Services.AddScoped<IWelcomeEmailService, WelcomeEmailService>();
 builder.Services.AddScoped<IUsernameChangeEmailService, UsernameChangeEmailService>();
-builder.Services.AddScoped<IForgotUsernameEmailService, ForgotUsernameEmailService>();
-builder.Services.AddScoped<IForgotPasswordEmailService, ForgotPasswordEmailService>();
+builder.Services.AddScoped<ForgotUsernameEmailService>();
+builder.Services.AddScoped<ForgotPasswordEmailService>();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddScoped<IForgotUsernameEmailService, DevCapturingForgotUsernameEmailService>();
+    builder.Services.AddScoped<IForgotPasswordEmailService, DevCapturingForgotPasswordEmailService>();
+}
+else
+{
+    builder.Services.AddScoped<IForgotUsernameEmailService, ForgotUsernameEmailService>();
+    builder.Services.AddScoped<IForgotPasswordEmailService, ForgotPasswordEmailService>();
+}
 builder.Services.AddScoped<IUserUsernameHistoryService, UserUsernameHistoryService>();
 builder.Services.AddScoped<IScopeCheckService, ScopeCheckService>();
 // Wave 0–1 follow-through: JWT + /me tenant snapshot (claim when valid, else legacy default row).

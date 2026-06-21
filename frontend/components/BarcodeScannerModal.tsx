@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   View,
@@ -31,6 +32,7 @@ export function BarcodeScannerModal({
   onClose,
   onScan,
 }: BarcodeScannerModalProps) {
+  const { t } = useTranslation(['common']);
   const [permission, requestPermission] = useCameraPermissions();
   const scannedRef = useRef(false);
   const [permissionRequested, setPermissionRequested] = useState(false);
@@ -63,7 +65,7 @@ export function BarcodeScannerModal({
     <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Pressable onPress={onClose} style={styles.closeBtn} accessibilityLabel="Schließen">
+          <Pressable onPress={onClose} style={styles.closeBtn} accessibilityLabel={t('common:barcodeScanner.closeA11y')}>
             <Ionicons name="close" size={28} color={SoftColors.textInverse} />
           </Pressable>
           <Text style={styles.title}>{title}</Text>
@@ -74,14 +76,14 @@ export function BarcodeScannerModal({
           <View style={styles.fallback}>
             <Ionicons name="scan-outline" size={48} color={SoftColors.textMuted} />
             <Text style={styles.fallbackText}>
-              Kamera-Scan ist im Browser nicht verfügbar. Bitte Code manuell eingeben.
+              {t('common:barcodeScanner.webFallback')}
             </Text>
           </View>
         ) : !permission?.granted ? (
           <View style={styles.fallback}>
-            <Text style={styles.fallbackText}>Kamerazugriff wird benötigt.</Text>
+            <Text style={styles.fallbackText}>{t('common:barcodeScanner.cameraRequired')}</Text>
             <Pressable style={styles.permissionBtn} onPress={() => void requestPermission()}>
-              <Text style={styles.permissionBtnText}>Kamera erlauben</Text>
+              <Text style={styles.permissionBtnText}>{t('common:barcodeScanner.allowCamera')}</Text>
             </Pressable>
           </View>
         ) : (

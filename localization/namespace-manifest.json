@@ -13,6 +13,7 @@
       "csvPath": "localization/out/frontend.csv",
       "namespaces": [
         "auth",
+        "cart",
         "checkout",
         "common",
         "customers",
@@ -26,7 +27,8 @@
         "reports",
         "settings",
         "system",
-        "tables"
+        "tables",
+        "license"
       ]
     },
     "frontend-admin": {

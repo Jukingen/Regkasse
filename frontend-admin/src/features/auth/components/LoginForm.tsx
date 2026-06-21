@@ -22,6 +22,7 @@ import { userPreferencesQueryKey } from '@/lib/personalization/userPreferencesAp
 import { technicalConsole } from '@/shared/dev/technicalConsole';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
+import { buildLoginFormRules } from '@/features/auth/constants/loginValidation';
 
 const { Title, Text } = Typography;
 
@@ -36,6 +37,7 @@ export const LoginForm: FC = () => {
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
     const { t } = useI18n();
+    const loginRules = buildLoginFormRules(t);
 
     useEffect(() => {
         if (searchParams.get('passwordChanged') === '1') {
@@ -98,18 +100,13 @@ export const LoginForm: FC = () => {
                 });
             },
             onError: (error: unknown) => {
-                getUserFacingApiErrorMessage(t, error, {
-                    logContext: 'LoginForm',
-                    loginContext: true,
-                    fallbackKey: 'common.auth.invalidCredentials',
-                });
-                const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data
-                    ?.message;
-                const displayMessage =
-                    typeof apiMessage === 'string' && apiMessage.trim()
-                        ? apiMessage.trim()
-                        : t('common.auth.invalidCredentials');
-                message.error(displayMessage);
+                message.error(
+                    getUserFacingApiErrorMessage(t, error, {
+                        logContext: 'LoginForm',
+                        loginContext: true,
+                        fallbackKey: 'common.auth.invalidCredentials',
+                    }),
+                );
             },
         },
     });
@@ -166,7 +163,7 @@ export const LoginForm: FC = () => {
                                 {t('common.auth.loginIdentifierCaseHint')}
                             </Text>
                         }
-                        rules={[{ required: true, message: t('common.auth.validation.loginIdentifierRequired') }]}
+                        rules={loginRules.loginIdentifier}
                     >
                         <Input
                             prefix={<UserOutlined />}
@@ -178,11 +175,11 @@ export const LoginForm: FC = () => {
                     <Form.Item
                         name="password"
                         label={t('common.auth.password')}
-                        rules={[{ required: true, message: t('common.auth.validation.passwordRequired') }]}
+                        rules={loginRules.password}
                     >
                         <Input.Password
                             prefix={<LockOutlined />}
-                            placeholder={t('common.auth.password')}
+                            placeholder={t('common.auth.passwordPlaceholder')}
                             autoComplete="current-password"
                         />
                     </Form.Item>

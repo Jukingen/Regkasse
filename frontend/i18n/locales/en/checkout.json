@@ -136,6 +136,84 @@
         "retryReadiness": "Retry register readiness",
         "reloadRegisterList": "Reload register list"
       },
+      "steps": {
+        "sum": "Total",
+        "cash": "Cash payment",
+        "voucherRedeem": "Redeem voucher"
+      },
+      "cash": {
+        "receivedLabel": "Amount received",
+        "receivedA11y": "Amount received in euros",
+        "changeLabel": "Change",
+        "placeholder": "0.00"
+      },
+      "remainingAmount": "Remaining amount",
+      "notes": {
+        "title": "Notes",
+        "placeholder": "Optional notes…",
+        "a11y": "Optional payment notes"
+      },
+      "benefits": {
+        "previewTitle": "Benefits (preview)",
+        "possibleSavings": "Possible benefit: approx. {{amount}}",
+        "loading": "Loading benefits…",
+        "disclaimer": "Preview only — final settlement applies at payment."
+      },
+      "voucherToggle": {
+        "redeem": "Redeem voucher",
+        "offlineUnavailable": "Vouchers unavailable offline",
+        "offlineNotPossible": "Voucher is not available offline.",
+        "offlineAlertTitle": "Offline",
+        "scanA11y": "Scan voucher"
+      },
+      "blockedHints": {
+        "timeSyncCritical": "System time invalid — payments blocked. Contact administrator.",
+        "methodsLoading": "Loading payment methods…",
+        "selectMethod": "Please select a payment method (step 2).",
+        "coverageMissing": "Insufficient coverage: voucher + cash do not reach the total.",
+        "voucherInvalid": "Invalid voucher — please check and validate.",
+        "tseNotReady": "TSE not ready — fiscal payment not possible.",
+        "voucherOffline": "Voucher is not available offline."
+      },
+      "timeSync": {
+        "banner": "SYSTEM TIME INVALID – payments blocked! Please contact admin",
+        "contactAdmin": "Contact admin",
+        "contactAdminA11y": "Contact administrator"
+      },
+      "footer": {
+        "registerSettingsLoading": "Loading register settings…",
+        "processing": "Processing…",
+        "payA11y": "Pay {{amount}}",
+        "payMethodSuffix": "Pay {{amount}} {{method}}",
+        "payGeneric": "Pay {{amount}}",
+        "licenseHintA11y": "License notice"
+      },
+      "success": {
+        "title": "Payment successful",
+        "receiptPdf": "Receipt PDF",
+        "done": "Done",
+        "doneA11y": "Done"
+      },
+      "print": {
+        "printing": "Printing receipt…",
+        "failedTitle": "Could not print receipt",
+        "skip": "Skip",
+        "retry": "Print again"
+      },
+      "startbelegBlock": {
+        "title": "Startbeleg required",
+        "body": "This register is missing the fiscal Startbeleg (RKSV). Create the Startbeleg first, then sales are allowed.",
+        "understood": "Understood",
+        "understoodA11y": "Understood"
+      },
+      "registerAssignA11y": "Assign register {{register}}",
+      "methodSelectedA11ySuffix": ", selected",
+      "offlineQueued": "Payment saved offline — will be signed automatically when TSE is online again",
+      "tseSimulation": {
+        "title": "TSE simulation",
+        "enabled": "ON (bypass)",
+        "disabled": "OFF (real TSE)"
+      },
       "operatorWarnings": {
         "largeCashTitle": "Notice",
         "largeCashMessage": "Cash payment from {{threshold}} € — please verify the amount before continuing.",
@@ -154,7 +232,17 @@
         "redeemAmountLabel": "Einzulösender Betrag",
         "maskedHint": "Gutschein: {{masked}}",
         "expiresHint": "Gültig bis: {{date}}",
-        "invalid": "Gutschein ungültig",
+        "invalid": "Invalid voucher",
+        "invalidTitle": "Invalid voucher",
+        "scanner": {
+          "title": "Scan voucher",
+          "closeA11y": "Close",
+          "overlayHint": "Scan voucher code",
+          "validating": "Validating voucher…",
+          "cameraRequired": "Camera access is required.",
+          "allowCamera": "Allow camera",
+          "webFallback": "Camera scan is not available in the browser. Please enter the voucher code manually."
+        },
         "expired": "Gutschein abgelaufen",
         "cancelled": "Gutschein storniert",
         "redeemed": "Gutschein vollständig eingelöst",

@@ -19,7 +19,7 @@ import {
     type UserActivityReport,
 } from '@/features/reports/api/userActivityReport';
 import { UserActivityChart } from '@/features/reports/components/UserActivityChart';
-import { userActivityReportCopy as copy, ACTION_TYPE_OPTIONS } from '@/features/reports/constants/copy';
+import { ACTION_TYPE_FILTER_VALUES } from '@/features/reports/constants/actionTypeFilters';
 import { listTenantUsers, type TenantUserRowDto } from '@/features/users/api/users';
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
 import { useI18n } from '@/i18n';
@@ -63,6 +63,15 @@ export function UserActivityReport({ initialUserId }: Props) {
                 label: `${u.name} (${u.userName}) — ${u.role}`,
             })),
         [userRows],
+    );
+
+    const actionTypeOptions = useMemo(
+        () =>
+            ACTION_TYPE_FILTER_VALUES.map((value) => ({
+                value,
+                label: value === '' ? t('reporting.userActivity.actionTypeAll') : value,
+            })),
+        [t],
     );
 
     const reportParams = useMemo(() => {
@@ -114,10 +123,10 @@ export function UserActivityReport({ initialUserId }: Props) {
                 a.click();
                 URL.revokeObjectURL(url);
             } catch {
-                message.error(copy.loadError);
+                message.error(t('reporting.userActivity.loadError'));
             }
         },
-        [reportParams, report?.userName, filters?.userId],
+        [reportParams, report?.userName, filters?.userId, message, t],
     );
 
     const handleSchedule = async () => {
@@ -138,7 +147,7 @@ export function UserActivityReport({ initialUserId }: Props) {
                 toDate: reportParams.toDate,
                 actionType: reportParams.actionType,
             });
-            message.success(copy.scheduleSuccess);
+            message.success(t('reporting.userActivity.scheduleSuccess'));
             setScheduleOpen(false);
         } catch {
             /* validation */
@@ -161,12 +170,12 @@ export function UserActivityReport({ initialUserId }: Props) {
                         <Col xs={24} md={10}>
                             <Form.Item
                                 name="userId"
-                                label={copy.selectUser}
-                                rules={[{ required: true, message: copy.selectUser }]}
+                                label={t('reporting.userActivity.selectUser')}
+                                rules={[{ required: true, message: t('reporting.userActivity.selectUserRequired') }]}
                             >
                                 <Select
                                     showSearch
-                                    placeholder={copy.selectUserPlaceholder}
+                                    placeholder={t('reporting.userActivity.selectUserPlaceholder')}
                                     options={userOptions}
                                     loading={usersLoading}
                                     filterOption={false}
@@ -178,55 +187,57 @@ export function UserActivityReport({ initialUserId }: Props) {
                         <Col xs={24} md={8}>
                             <Form.Item
                                 name="dateRange"
-                                label={copy.dateRange}
-                                rules={[{ required: true }]}
+                                label={t('reporting.userActivity.dateRange')}
+                                rules={[{ required: true, message: t('reporting.userActivity.dateRangeRequired') }]}
                             >
                                 <DatePicker.RangePicker format="DD.MM.YYYY" style={{ width: '100%' }} />
                             </Form.Item>
                         </Col>
                         <Col xs={24} md={6}>
-                            <Form.Item name="actionType" label={copy.actionType}>
-                                <Select options={ACTION_TYPE_OPTIONS} />
+                            <Form.Item name="actionType" label={t('reporting.userActivity.actionType')}>
+                                <Select options={actionTypeOptions} />
                             </Form.Item>
                         </Col>
                     </Row>
                     <Space wrap>
                         <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
-                            {copy.generate}
+                            {t('reporting.userActivity.generate')}
                         </Button>
                         <Button
                             icon={<DownloadOutlined />}
                             disabled={!report}
                             onClick={() => handleExport('csv')}
                         >
-                            {copy.exportCsv}
+                            {t('reporting.userActivity.exportCsv')}
                         </Button>
                         <Button disabled={!report} onClick={() => handleExport('pdf')}>
-                            {copy.exportPdf}
+                            {t('reporting.userActivity.exportPdf')}
                         </Button>
                         <Button
                             icon={<MailOutlined />}
                             disabled={!reportParams}
                             onClick={() => {
                                 scheduleForm.setFieldsValue({
-                                    name: `User activity — ${report?.userName ?? ''}`,
+                                    name: t('reporting.userActivity.scheduleNameDefault', {
+                                        userName: report?.userName ?? '',
+                                    }),
                                     schedule: 'weekly',
                                 });
                                 setScheduleOpen(true);
                             }}
                         >
-                            {copy.scheduleReport}
+                            {t('reporting.userActivity.scheduleReport')}
                         </Button>
                     </Space>
                 </Form>
             </Card>
 
-            {!filters && <Alert type="info" title={copy.noData} showIcon />}
+            {!filters && <Alert type="info" title={t('reporting.userActivity.noData')} showIcon />}
 
             {isError && (
                 <Alert
                     type="error"
-                    title={copy.loadError}
+                    title={t('reporting.userActivity.loadError')}
                     action={<Button size="small" onClick={() => refetch()}>{t('common.buttons.retry')}</Button>}
                 />
             )}
@@ -236,14 +247,14 @@ export function UserActivityReport({ initialUserId }: Props) {
                     <Card size="small" loading={isLoading || isFetching}>
                         <Row gutter={[16, 16]}>
                             <Col xs={12} sm={8} md={4}>
-                                <Statistic title={copy.totalActions} value={report.totalActions} />
+                                <Statistic title={t('reporting.userActivity.totalActions')} value={report.totalActions} />
                             </Col>
                             <Col xs={12} sm={8} md={4}>
-                                <Statistic title={copy.totalLogins} value={report.totalLogins} />
+                                <Statistic title={t('reporting.userActivity.totalLogins')} value={report.totalLogins} />
                             </Col>
                             <Col xs={12} sm={8} md={4}>
                                 <Statistic
-                                    title={copy.failedLogins}
+                                    title={t('reporting.userActivity.failedLogins')}
                                     value={report.failedLoginAttempts}
                                     styles={
                                         report.failedLoginAttempts > 0 ? { content: { color: '#cf1322' } } : undefined
@@ -251,18 +262,18 @@ export function UserActivityReport({ initialUserId }: Props) {
                                 />
                             </Col>
                             <Col xs={12} sm={8} md={4}>
-                                <Statistic title={copy.activeSessions} value={report.activeSessions} />
+                                <Statistic title={t('reporting.userActivity.activeSessions')} value={report.activeSessions} />
                             </Col>
                             <Col xs={12} sm={8} md={4}>
                                 <Statistic
-                                    title={copy.avgSession}
+                                    title={t('reporting.userActivity.avgSession')}
                                     value={report.averageSessionDurationMinutes}
-                                    suffix="min"
+                                    suffix={t('reporting.userActivity.minutesSuffix')}
                                 />
                             </Col>
                             <Col xs={24} sm={12} md={8}>
                                 <Statistic
-                                    title={copy.lastLogin}
+                                    title={t('reporting.userActivity.lastLogin')}
                                     value={
                                         report.lastLoginAt
                                             ? formatDateTime(report.lastLoginAt, formatLocale)
@@ -286,17 +297,17 @@ export function UserActivityReport({ initialUserId }: Props) {
                     />
 
                     {report.topActiveUsers.length > 0 && (
-                        <Card size="small" title={copy.topActiveUsers}>
+                        <Card size="small" title={t('reporting.userActivity.topActiveUsers')}>
                             <Table
                                 size="small"
                                 pagination={false}
                                 rowKey="userId"
                                 dataSource={report.topActiveUsers}
                                 columns={[
-                                    { title: copy.selectUser, dataIndex: 'userName', key: 'userName' },
-                                    { title: 'Rolle', dataIndex: 'role', key: 'role' },
+                                    { title: t('reporting.userActivity.selectUser'), dataIndex: 'userName', key: 'userName' },
+                                    { title: t('users.list.columnRole'), dataIndex: 'role', key: 'role' },
                                     {
-                                        title: copy.totalActions,
+                                        title: t('reporting.userActivity.totalActions'),
                                         dataIndex: 'actionCount',
                                         key: 'actionCount',
                                     },
@@ -305,37 +316,48 @@ export function UserActivityReport({ initialUserId }: Props) {
                         </Card>
                     )}
 
-                    <Card size="small" title={copy.timeline}>
+                    <Card size="small" title={t('reporting.userActivity.timelineTitle')}>
                         <TimelineTable report={report} formatLocale={formatLocale} t={t} />
                     </Card>
                 </>
             )}
 
             <Modal
-                title={copy.scheduleTitle}
+                title={t('reporting.userActivity.scheduleTitle')}
                 open={scheduleOpen}
                 onCancel={() => setScheduleOpen(false)}
                 onOk={handleSchedule}
-                okText={copy.scheduleReport}
+                okText={t('reporting.userActivity.scheduleReport')}
             >
                 <Form form={scheduleForm} layout="vertical">
-                    <Form.Item name="name" label={copy.scheduleName} rules={[{ required: true }]}>
+                    <Form.Item
+                        name="name"
+                        label={t('reporting.userActivity.scheduleName')}
+                        rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+                    >
                         <Input />
                     </Form.Item>
-                    <Form.Item name="schedule" label="Intervall" rules={[{ required: true }]}>
+                    <Form.Item
+                        name="schedule"
+                        label={t('reporting.userActivity.scheduleInterval')}
+                        rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+                    >
                         <Select
                             options={[
-                                { value: 'weekly', label: copy.scheduleWeekly },
-                                { value: 'monthly', label: copy.scheduleMonthly },
+                                { value: 'weekly', label: t('reporting.userActivity.scheduleWeekly') },
+                                { value: 'monthly', label: t('reporting.userActivity.scheduleMonthly') },
                             ]}
                         />
                     </Form.Item>
                     <Form.Item
                         name="recipients"
-                        label={copy.scheduleRecipients}
-                        rules={[{ required: true }]}
+                        label={t('reporting.userActivity.scheduleRecipients')}
+                        rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
                     >
-                        <Input.TextArea rows={2} placeholder="audit@firma.at, buchhaltung@firma.at" />
+                        <Input.TextArea
+                            rows={2}
+                            placeholder={t('reporting.userActivity.scheduleRecipientsPlaceholder')}
+                        />
                     </Form.Item>
                 </Form>
             </Modal>
@@ -354,14 +376,14 @@ function TimelineTable({
 }) {
     const columns = [
         {
-            title: 'Zeit',
+            title: t('reporting.userActivity.timeline.time'),
             dataIndex: 'date',
             key: 'date',
             width: 170,
             render: (v: string) => formatDateTime(v, formatLocale),
         },
         {
-            title: 'Aktion',
+            title: t('reporting.userActivity.timeline.action'),
             dataIndex: 'action',
             key: 'action',
             render: (action: string) => {
@@ -370,13 +392,13 @@ function TimelineTable({
                 return <Tag color="blue">{label}</Tag>;
             },
         },
-        { title: 'Entität', dataIndex: 'entityType', key: 'entityType', width: 100 },
-        { title: 'Status', dataIndex: 'status', key: 'status', width: 90 },
-        { title: 'IP', dataIndex: 'ipAddress', key: 'ip', width: 110 },
-        { title: 'Session', dataIndex: 'sessionId', key: 'session', ellipsis: true },
-        { title: 'Correlation', dataIndex: 'correlationId', key: 'corr', ellipsis: true },
+        { title: t('reporting.userActivity.timeline.entityType'), dataIndex: 'entityType', key: 'entityType', width: 100 },
+        { title: t('reporting.userActivity.timeline.status'), dataIndex: 'status', key: 'status', width: 90 },
+        { title: t('reporting.userActivity.timeline.ip'), dataIndex: 'ipAddress', key: 'ip', width: 110 },
+        { title: t('reporting.userActivity.timeline.session'), dataIndex: 'sessionId', key: 'session', ellipsis: true },
+        { title: t('reporting.userActivity.timeline.correlation'), dataIndex: 'correlationId', key: 'corr', ellipsis: true },
         {
-            title: 'TSE',
+            title: t('reporting.userActivity.timeline.tse'),
             dataIndex: 'tseSignature',
             key: 'tse',
             ellipsis: true,

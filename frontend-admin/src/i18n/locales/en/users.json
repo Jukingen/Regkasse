@@ -12,12 +12,30 @@
     "manageRoles": "Manage roles"
   },
   "messages": {
-    "roleCreated": "Role created."
+    "roleCreated": "Role created.",
+    "successCreate": "User created.",
+    "successUpdate": "User updated.",
+    "successDeactivate": "User deactivated.",
+    "successReactivate": "User reactivated.",
+    "successResetPassword": "Password reset. The user's sessions have been invalidated.",
+    "errorGeneric": "Error.",
+    "errorLoadUser": "Could not load user data.",
+    "noPermission": "Only SuperAdmin (or users with the appropriate permission) can manage users.",
+    "errorResetPassword": "Could not reset password.",
+    "errorResetPasswordForbidden": "No permission to reset this password.",
+    "errorResetPasswordUserNotFound": "User not found.",
+    "sessionExpiredOrUnauthorized": "Session expired or not signed in. Please sign in again.",
+    "successPermissionsSaved": "Permissions saved.",
+    "successRoleDeleted": "Role deleted.",
+    "errorSavePermissions": "Could not save permissions.",
+    "errorDeleteRole": "Could not delete role."
   },
   "createRole": {
     "inheritFromRole": "Inherit permissions from",
     "inheritFromRoleHelp": "Optional: copy an existing role's permissions as a starting point.",
     "inheritFromRolePlaceholder": "No inheritance",
+    "nameLabel": "Role name",
+    "namePlaceholder": "e.g. Manager",
     "successWithInherit": "Role \"{{role}}\" created (permissions inherited from \"{{source}}\").",
     "errors": {
       "generic": "Could not create role.",
@@ -172,6 +190,11 @@
     "presetPlaceholder": "Choose template …",
     "roleHasUsers": "Cannot delete role: at least one user is assigned.",
     "roleDeleteBlockedReassignFirst": "This role cannot be deleted because users are still assigned. Reassign those users to another role first.",
+    "successPermissionsSaved": "Permissions saved.",
+    "successRoleDeleted": "Role deleted.",
+    "errorSavePermissions": "Could not save permissions.",
+    "errorDeleteRole": "Could not delete role.",
+    "noPermission": "Only SuperAdmin (or users with the appropriate permission) can manage users.",
     "groups": {
       "user_role": "Users & Roles",
       "product": "Product",
@@ -470,6 +493,7 @@
       "quick": "Quick create"
     },
     "tenantRequired": "Please select a tenant.",
+    "roleRequired": "Please select a role.",
     "tenantPlaceholder": "Select tenant …",
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "No license",
@@ -489,6 +513,103 @@
       "Accountant": { "label": "Accountant" },
       "Waiter": { "label": "Waiter" },
       "Kitchen": { "label": "Kitchen" }
+    }
+  },
+  "form": {
+    "editTitle": "Edit user",
+    "employeeNumber": "Employee number",
+    "taxNumber": "Tax number",
+    "notes": "Notes",
+    "userName": "Username",
+    "errorLoadUser": "Could not load user.",
+    "platformCreateHint": "Platform operators receive the Super Admin role and are not assigned to a business tenant.",
+    "rolesLoading": "Loading roles…"
+  },
+  "formValidation": {
+    "required": "This field is required.",
+    "emailInvalid": "Invalid email address.",
+    "passwordMin": "At least {{min}} characters.",
+    "passwordPolicy": "Must include an uppercase letter, a lowercase letter, a number, and a special character.",
+    "maxLength": "Maximum {{max}} characters.",
+    "reasonRequired": "Please enter a reason.",
+    "roleNameRequired": "Please enter a role name."
+  },
+  "passwordErrors": {
+    "minLength": "Password must be at least {{min}} characters.",
+    "digit": "Password must contain at least one digit.",
+    "lowercase": "Password must contain at least one lowercase letter.",
+    "uppercase": "Password must contain at least one uppercase letter.",
+    "nonAlphanumeric": "Password must contain at least one special character.",
+    "generic": "Password does not meet the requirements."
+  },
+  "password": {
+    "titleForEmail": "Password for {{email}}",
+    "generateTemporary": "Generate temporary password",
+    "showButtonTitle": "Generate and show temporary password",
+    "noPasswordToCopy": "No password available to copy"
+  },
+  "modals": {
+    "deactivate": {
+      "title": "Deactivate user",
+      "confirmSuffix": "will be deactivated. Receipt and invoice references are preserved; the account can be reactivated later.",
+      "reasonLabel": "Reason (required for audit)",
+      "reasonPlaceholder": "e.g. leaving company, leave, …",
+      "confirm": "Deactivate"
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "securityNote": "All user sessions will be ended. The new password must be at least {{min}} characters and include uppercase, lowercase, a number, and a special character.",
+      "newPasswordLabel": "New password (min. {{min}} chars, upper/lowercase, number, special character)"
+    }
+  },
+  "reactivate": {
+    "title": "Reactivate user",
+    "confirm": "Reactivate",
+    "confirmBody": "reactivate?"
+  },
+  "activity": {
+    "tabLabel": "Activity",
+    "reportTabLabel": "Compliance report",
+    "openFullReport": "Open full report",
+    "forUser": "Activity timeline for",
+    "empty": "No activity.",
+    "errorLoad": "Could not load activity timeline.",
+    "errorLoadHint": "Other user details remain available.",
+    "filterActionType": "Action type",
+    "filterDateRange": "Date range",
+    "filterAll": "All",
+    "filterRoleChanges": "Role changes",
+    "filterUserUpdates": "User updates",
+    "filterSecurityActions": "Security actions",
+    "filterReset": "Reset",
+    "time": "Time",
+    "action": "Action",
+    "actor": "Performed by",
+    "ipAddress": "IP",
+    "description": "Description",
+    "entityType": "Entity",
+    "viewChanges": "View changes",
+    "fieldLabels": {
+      "isDemo": "Demo"
+    }
+  },
+  "auditDiff": {
+    "title": "Changed fields",
+    "field": "Field",
+    "oldValue": "Before",
+    "newValue": "After",
+    "noChanges": "No field changes."
+  },
+  "bulkImport": {
+    "preview": "Preview ({{shown}} of {{total}} rows)",
+    "columns": {
+      "row": "Row",
+      "email": "Email",
+      "username": "Username",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "role": "Role",
+      "tenant": "Tenant"
     }
   }
 }

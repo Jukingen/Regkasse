@@ -4,6 +4,8 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   View,
   Text,
@@ -37,16 +39,16 @@ function formatDate(iso: string): string {
 }
 
 /** User-friendly status and error text (no raw NON_FISCAL_PENDING / codes only). */
-function getStatusLabel(status: OfflineTransactionStatus): string {
+function getStatusLabel(status: OfflineTransactionStatus, t: TFunction): string {
   switch (status) {
     case 'Pending':
-      return 'In Warteschlange';
+      return t('settings:offlineQueueScreen.statusPending');
     case 'Synced':
-      return 'Synchronisiert';
+      return t('settings:offlineQueueScreen.statusSynced');
     case 'Failed':
-      return 'Fehlgeschlagen';
+      return t('settings:offlineQueueScreen.statusFailed');
     case 'Unknown':
-      return 'Manuelle Prüfung';
+      return t('settings:offlineQueueScreen.statusUnknown');
     default:
       return status ?? '—';
   }
@@ -68,19 +70,19 @@ function getStatusColor(status: OfflineTransactionStatus): string {
 }
 
 /** Map raw lastError to short user-friendly message. */
-function getErrorSummary(lastError: string | undefined): string {
+function getErrorSummary(lastError: string | undefined, t: TFunction): string {
   if (!lastError) return '—';
   if (lastError.includes('sync_transport_failed') || lastError.includes('Network')) {
-    return 'Verbindung fehlgeschlagen';
+    return t('settings:offlineQueueScreen.errorConnectionFailed');
   }
   if (lastError.toLowerCase().includes('duplicate') || lastError.toLowerCase().includes('already')) {
-    return 'Bereits übertragen / Duplikat';
+    return t('settings:offlineQueueScreen.errorDuplicate');
   }
   if (lastError.includes('replay_response_incomplete')) {
-    return 'Server-Antwort unvollständig — erneut synchronisieren oder Support';
+    return t('settings:offlineQueueScreen.errorIncompleteResponse');
   }
   if (lastError.includes('NON_FISCAL_PENDING') || lastError.includes('offline')) {
-    return 'Noch nicht an Server gesendet';
+    return t('settings:offlineQueueScreen.errorNotSent');
   }
   if (lastError.length > 60) return lastError.slice(0, 57) + '…';
   return lastError;
@@ -107,6 +109,7 @@ function buildIncidentHandoffPayload(correlationId: string, queueId?: string): s
 
 export default function OfflineQueueScreen() {
   const router = useRouter();
+  const { t } = useTranslation(['settings']);
   const [entries, setEntries] = useState<PendingPaymentEntry[]>([]);
   const [filter, setFilter] = useState<string>(FILTER_ALL);
   const [loading, setLoading] = useState(true);
@@ -143,18 +146,30 @@ export default function OfflineQueueScreen() {
       if (processed > 0 || failed > 0) {
         const syncMsg =
           processed === 0 && failed > 0
-            ? `Keine Zahlung synchronisiert. ${failed} fehlgeschlagen — bitte Fehlermeldung prüfen oder erneut senden.`
-            : `${processed} Zahlung(en) synchronisiert.${failed > 0 ? ` ${failed} fehlgeschlagen.` : ''}`;
-        Alert.alert('Synchronisation', syncMsg);
+            ? t('settings:offlineQueueScreen.syncNoneFailed', { failed })
+            : t('settings:offlineQueueScreen.syncResult', {
+                processed,
+                failedSuffix:
+                  failed > 0
+                    ? t('settings:offlineQueueScreen.syncFailedSuffix', { failed })
+                    : '',
+              });
+        Alert.alert(t('settings:offlineQueueScreen.syncTitle'), syncMsg);
       } else {
-        Alert.alert('Hinweis', 'Keine ausstehenden Zahlungen in der Warteschlange.');
+        Alert.alert(
+          t('settings:offlineQueueScreen.syncEmptyTitle'),
+          t('settings:offlineQueueScreen.syncEmptyMessage')
+        );
       }
     } catch (e) {
-      Alert.alert('Fehler', e instanceof Error ? e.message : 'Sync fehlgeschlagen');
+      Alert.alert(
+        t('settings:offlineQueueScreen.syncErrorTitle'),
+        e instanceof Error ? e.message : String(e)
+      );
     } finally {
       setSyncing(false);
     }
-  }, [load]);
+  }, [load, t]);
 
   const handleRetrySingle = useCallback(
     async (queueId: string) => {
@@ -163,39 +178,54 @@ export default function OfflineQueueScreen() {
         const { processed, failed } = await retrySinglePending(queueId);
         await load();
         if (processed > 0) {
-          Alert.alert('Erfolg', 'Zahlung wurde synchronisiert.');
+          Alert.alert(
+            t('settings:offlineQueueScreen.retrySuccessTitle'),
+            t('settings:offlineQueueScreen.retrySuccessMessage')
+          );
         } else if (failed > 0) {
-          Alert.alert('Hinweis', 'Synchronisation fehlgeschlagen. Bitte Fehlermeldung prüfen.');
+          Alert.alert(
+            t('settings:offlineQueueScreen.retryFailedTitle'),
+            t('settings:offlineQueueScreen.retryFailedMessage')
+          );
         }
       } catch (e) {
-        Alert.alert('Fehler', e instanceof Error ? e.message : 'Retry fehlgeschlagen');
+        Alert.alert(
+          t('settings:offlineQueueScreen.syncErrorTitle'),
+          e instanceof Error ? e.message : String(e)
+        );
       } finally {
         setRetryingId(null);
       }
     },
-    [load]
+    [load, t]
   );
 
-  const copyToClipboard = useCallback(async (label: string, value: string) => {
-    const v = value.trim();
-    if (!v) return;
-    try {
-      await Clipboard.setStringAsync(v);
-      Alert.alert('Kopiert', `${label} wurde in die Zwischenablage kopiert.`);
-    } catch {
+  const copyToClipboard = useCallback(
+    async (label: string, value: string) => {
+      const v = value.trim();
+      if (!v) return;
       try {
-        await Share.share({ message: v, title: label });
+        await Clipboard.setStringAsync(v);
+        Alert.alert(
+          t('settings:offlineQueueScreen.copiedTitle'),
+          t('settings:offlineQueueScreen.copiedMessage', { label })
+        );
       } catch {
-        Alert.alert(label, v);
+        try {
+          await Share.share({ message: v, title: label });
+        } catch {
+          Alert.alert(label, v);
+        }
       }
-    }
-  }, []);
+    },
+    [t]
+  );
 
   const handleCopyId = useCallback(
     async (queueId: string) => {
-      await copyToClipboard('Offline-Queue-ID', queueId);
+      await copyToClipboard(t('settings:offlineQueueScreen.offlineQueueIdLabel'), queueId);
     },
-    [copyToClipboard]
+    [copyToClipboard, t]
   );
 
   const handleShareReplayBatchId = useCallback(
@@ -209,13 +239,13 @@ export default function OfflineQueueScreen() {
             `Replay-Batch-Correlation-ID (Support): ${v}\n` +
             `Admin Incident Path: /rksv/incident?correlationId=${encodeURIComponent(v)}\n` +
             `${handoffPayload}`,
-          title: 'Support: Replay-Batch',
+          title: t('settings:offlineQueueScreen.shareReplayTitle'),
         });
       } catch {
-        await copyToClipboard('Support-Handoff', handoffPayload);
+        await copyToClipboard(t('settings:offlineQueueScreen.supportHandoffLabel'), handoffPayload);
       }
     },
-    [copyToClipboard]
+    [copyToClipboard, t]
   );
 
   const pendingCount = entries.filter((e) => e.status === 'Pending').length;
@@ -226,26 +256,19 @@ export default function OfflineQueueScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Zurück</Text>
+          <Text style={styles.backText}>{t('settings:offlineQueueScreen.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Offline-Warteschlange</Text>
+        <Text style={styles.title}>{t('settings:offlineQueueScreen.title')}</Text>
       </View>
 
       <View style={styles.toolbar}>
         <View style={styles.supportBanner}>
-          <Text style={styles.supportBannerTitle}>Support-Hinweis</Text>
-          <Text style={styles.supportBannerText}>
-            Die Replay-Batch-Correlation-ID verknüpft einen Server-Replay mit Zahlungen und Logs. Bitte diese ID
-            (und nach erfolgreicher Sync die Payment-ID) an den Support melden — schneller als nur die lokale
-            Queue-ID.
-          </Text>
+          <Text style={styles.supportBannerTitle}>{t('settings:offlineQueueScreen.supportTitle')}</Text>
+          <Text style={styles.supportBannerText}>{t('settings:offlineQueueScreen.supportText')}</Text>
         </View>
         <View style={styles.operatorHint}>
-          <Text style={styles.operatorHintTitle}>Vor erneuter Zahlung</Text>
-          <Text style={styles.operatorHintText}>
-            Offene Einträge hier oder unter Einstellungen prüfen und zuerst synchronisieren. Eine zweite Zahlung für
-            denselben Tisch/Vorgang kann sonst zu doppelten Buchungen führen.
-          </Text>
+          <Text style={styles.operatorHintTitle}>{t('settings:offlineQueueScreen.operatorHintTitle')}</Text>
+          <Text style={styles.operatorHintText}>{t('settings:offlineQueueScreen.operatorHintText')}</Text>
         </View>
         <View style={styles.filterRow}>
           {[FILTER_ALL, FILTER_PENDING, FILTER_FAILED, FILTER_UNKNOWN].map((f) => (
@@ -256,12 +279,12 @@ export default function OfflineQueueScreen() {
             >
               <Text style={[styles.filterChipText, filter === f && styles.filterChipTextActive]}>
                 {f === FILTER_ALL
-                  ? 'Alle'
+                  ? t('settings:offlineQueueScreen.filterAll')
                   : f === FILTER_PENDING
-                    ? `Ausstehend (${pendingCount})`
+                    ? t('settings:offlineQueueScreen.filterPending', { count: pendingCount })
                     : f === FILTER_FAILED
-                      ? `Fehlgeschlagen (${failedCount})`
-                      : `Prüfung (${unknownCount})`}
+                      ? t('settings:offlineQueueScreen.filterFailed', { count: failedCount })
+                      : t('settings:offlineQueueScreen.filterUnknown', { count: unknownCount })}
               </Text>
             </TouchableOpacity>
           ))}
@@ -274,7 +297,7 @@ export default function OfflineQueueScreen() {
           {syncing ? (
             <WaveLoader size={18} color="#fff" />
           ) : (
-            <Text style={styles.syncAllText}>Alle synchronisieren</Text>
+            <Text style={styles.syncAllText}>{t('settings:offlineQueueScreen.syncAll')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -282,18 +305,18 @@ export default function OfflineQueueScreen() {
       {loading ? (
         <View style={styles.centered}>
           <WaveLoader size={32} color="#007AFF" />
-          <Text style={styles.loadingText}>Lade Warteschlange…</Text>
+          <Text style={styles.loadingText}>{t('settings:offlineQueueScreen.loading')}</Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={styles.centered}>
           <Text style={styles.emptyText}>
             {filter === FILTER_ALL
-              ? 'Keine Einträge in der Offline-Warteschlange.'
+              ? t('settings:offlineQueueScreen.emptyAll')
               : filter === FILTER_PENDING
-                ? 'Keine Einträge mit Status „Ausstehend“.'
+                ? t('settings:offlineQueueScreen.emptyPending')
                 : filter === FILTER_FAILED
-                  ? 'Keine Einträge mit Status „Fehlgeschlagen“.'
-                  : 'Keine Einträge mit Status „Manuelle Prüfung“.'}
+                  ? t('settings:offlineQueueScreen.emptyFailed')
+                  : t('settings:offlineQueueScreen.emptyUnknown')}
           </Text>
         </View>
       ) : (
@@ -308,7 +331,7 @@ export default function OfflineQueueScreen() {
               <View style={styles.cardRow}>
                 <Text style={styles.cardDate}>{formatDate(entry.createdAt)}</Text>
                 <View style={[styles.badge, { backgroundColor: getStatusColor(entry.status) }]}>
-                  <Text style={styles.badgeText}>{getStatusLabel(entry.status)}</Text>
+                  <Text style={styles.badgeText}>{getStatusLabel(entry.status, t)}</Text>
                 </View>
               </View>
               <View style={styles.cardRow}>
@@ -322,14 +345,16 @@ export default function OfflineQueueScreen() {
                 )}
               </View>
               {entry.lastAttemptAt && (
-                <Text style={styles.meta}>Letzter Versuch: {formatDate(entry.lastAttemptAt)}</Text>
+                <Text style={styles.meta}>
+                  {t('settings:offlineQueueScreen.lastAttempt', { time: formatDate(entry.lastAttemptAt) })}
+                </Text>
               )}
               {entry.lastError && (
-                <Text style={styles.errorText}>{getErrorSummary(entry.lastError)}</Text>
+                <Text style={styles.errorText}>{getErrorSummary(entry.lastError, t)}</Text>
               )}
               {entry.replayBatchCorrelationId ? (
                 <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>Replay-Batch-Correlation-ID (Support, beste Korrelation):</Text>
+                  <Text style={styles.metaLabel}>{t('settings:offlineQueueScreen.replayBatchLabel')}</Text>
                   <Text style={styles.metaId} selectable>
                     {entry.replayBatchCorrelationId}
                   </Text>
@@ -338,21 +363,18 @@ export default function OfflineQueueScreen() {
                       style={styles.copySmallBtn}
                       onPress={() => copyToClipboard('Replay-Batch-ID', entry.replayBatchCorrelationId!)}
                     >
-                      <Text style={styles.copySmallBtnText}>Kopieren</Text>
+                      <Text style={styles.copySmallBtnText}>{t('settings:offlineQueueScreen.copy')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.copySmallBtn}
                       onPress={() => handleShareReplayBatchId(entry.replayBatchCorrelationId!, entry.queueId)}
                     >
-                      <Text style={styles.copySmallBtnText}>Teilen</Text>
+                      <Text style={styles.copySmallBtnText}>{t('settings:offlineQueueScreen.share')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               ) : (
-                <Text style={styles.metaMuted}>
-                  Replay-Batch-ID erscheint nach einem Replay-Versuch (Sync), sobald der Server eine Batch-ID
-                  liefert.
-                </Text>
+                <Text style={styles.metaMuted}>{t('settings:offlineQueueScreen.replayBatchPending')}</Text>
               )}
               <View style={styles.actions}>
                 {(entry.status === 'Pending' ||
@@ -366,7 +388,7 @@ export default function OfflineQueueScreen() {
                     {retryingId === entry.queueId ? (
                       <WaveLoader size={18} color="#fff" />
                     ) : (
-                      <Text style={styles.retryBtnText}>Erneut senden</Text>
+                      <Text style={styles.retryBtnText}>{t('settings:offlineQueueScreen.retrySend')}</Text>
                     )}
                   </TouchableOpacity>
                 )}
@@ -374,7 +396,7 @@ export default function OfflineQueueScreen() {
                   style={styles.copyBtn}
                   onPress={() => handleCopyId(entry.queueId)}
                 >
-                  <Text style={styles.copyBtnText}>Queue-ID</Text>
+                  <Text style={styles.copyBtnText}>{t('settings:offlineQueueScreen.queueIdButton')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

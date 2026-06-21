@@ -334,7 +334,7 @@ export default function SuperAdminTenantsPage() {
                     layout="vertical"
                     onFinish={(values) => editRow && updateMutation.mutate({ id: editRow.id, body: values })}
                 >
-                    <Form.Item name="name" label={t('tenants.fields.name')} rules={[{ required: true }]}>
+                    <Form.Item name="name" label={t('tenants.fields.name')} rules={[{ required: true, message: t('tenants.validation.nameRequired') }]}>
                         <Input />
                     </Form.Item>
                     <Form.Item label={t('tenants.fields.slug')}>

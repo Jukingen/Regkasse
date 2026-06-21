@@ -218,16 +218,18 @@
   },
   "auth": {
     "appTitle": "Regkasse Admin",
-    "subtitle": "POS sisteminizi yonetmek icin giris yapin",
-    "username": "Kullanici adi",
-    "loginIdentifierLabel": "E-posta veya kullanici adi",
-    "loginIdentifierPlaceholder": "ornegin manager1, mustafa veya ornek@regkasse.at",
-    "loginIdentifierTooltip": "Buyuk/kucuk harf ayirt edilmez",
-    "loginIdentifierCaseHint": "Kullanici adi buyuk/kucuk harfe duyarsizdir: \"Manager1\", \"manager1\" ve \"MANAGER1\" aynidir.",
-    "password": "Sifre",
-    "login": "Giris yap",
-    "loginSubmitLoading": "Giris yapiliyor…",
-    "checkingSession": "Kimlik dogrulaniyor…",
+    "subtitle": "POS sisteminizi yönetmek için giriş yapın",
+    "username": "Kullanıcı adı",
+    "loginIdentifierLabel": "E-posta veya kullanıcı adı",
+    "loginIdentifierPlaceholder": "örn. manager1 veya ad@firma.com",
+    "loginIdentifierTooltip": "Büyük/küçük harf ayırt edilmez",
+    "loginIdentifierCaseHint": "Kullanıcı adı büyük/küçük harfe duyarsız: \"Manager1\", \"manager1\" ve \"MANAGER1\" aynıdır.",
+    "password": "Şifre",
+    "passwordPlaceholder": "Şifre",
+    "passwordMaskedPlaceholder": "••••••••",
+    "login": "Giriş yap",
+    "loginSubmitLoading": "Giriş yapılıyor…",
+    "checkingSession": "Kimlik doğrulanıyor…",
     "sessionTimeout": {
       "warningTitle": "Oturum yakinda sona erecek",
       "warningBody": "Hareketsizlik nedeniyle otomatik olarak cikis yapilacaksiniz.",
@@ -254,15 +256,15 @@
       "terminateFailed": "Oturum sonlandirilamadi",
       "cannotTerminateCurrent": "Mevcut oturum buradan sonlandirilamaz"
     },
-    "logoutSuccess": "Cikis basarili.",
-    "loginSuccess": "Giris basarili",
-    "passwordChangedLoginPrompt": "Sifre guncellendi. Yeni sifrenizle tekrar giris yapin.",
+    "logoutSuccess": "Çıkış başarılı.",
+    "loginSuccess": "Giriş başarılı",
+    "passwordChangedLoginPrompt": "Şifre güncellendi. Yeni şifrenizle tekrar giriş yapın.",
     "invalidCredentials": "Kullanıcı adı veya şifre geçersiz",
     "loginFailed": "Giriş başarısız",
     "loginFailedWithStatus": "Giris basarisiz ({{status}}): {{details}}",
     "loginInvalidCredentials": "Kullanıcı adı veya şifre geçersiz",
-    "loginFailedGeneric": "Giris basarisiz. Lutfen tekrar deneyin.",
-    "forgotUsernameLink": "Kullanici adini mi unuttunuz?",
+    "loginFailedGeneric": "Giriş başarısız. Lütfen tekrar deneyin.",
+    "forgotUsernameLink": "Kullanıcı adını mı unuttunuz?",
     "forgotUsername": {
       "title": "Kullanici adini unuttum",
       "subtitle": "E-posta adresinizi girin; giris kullanici adlarinizi gonderelim.",
@@ -277,9 +279,13 @@
       "backToLogin": "Girise don"
     },
     "validation": {
-      "usernameRequired": "Lutfen kullanici adini girin!",
-      "loginIdentifierRequired": "Lutfen e-posta veya kullanici adi girin",
-      "passwordRequired": "Lutfen sifreyi girin!"
+      "usernameRequired": "Lütfen kullanıcı adını girin",
+      "loginIdentifierRequired": "Lütfen e-posta veya kullanıcı adı girin",
+      "loginIdentifierMin": "En az 3 karakter",
+      "loginIdentifierMax": "En fazla 50 karakter",
+      "loginIdentifierPattern": "Yalnızca harf, rakam, alt çizgi ve tire kullanılabilir",
+      "passwordRequired": "Lütfen şifreyi girin",
+      "passwordMax": "Şifre en fazla 128 karakter olabilir"
     }
   },
   "tenant": {

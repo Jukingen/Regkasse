@@ -19,8 +19,7 @@ import { UserTenantSummary } from '@/features/users/components/UserTenantSummary
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useI18n } from '@/i18n';
-import { usersCopy } from '../constants/copy';
-import { createUsersFormRules, NAME_MAX_LENGTH, EMAIL_MAX_LENGTH, SHORT_FIELD_MAX_LENGTH, NOTES_MAX_LENGTH } from '../constants/validation';
+import { createUsersFormRules, buildUsersFormRulesContext, NAME_MAX_LENGTH, EMAIL_MAX_LENGTH, SHORT_FIELD_MAX_LENGTH, NOTES_MAX_LENGTH } from '../constants/validation';
 
 type Mode = 'create' | 'edit';
 type UserFormTenantValues = {
@@ -52,16 +51,6 @@ type Props = {
   loading?: boolean;
   /** Super Admin: edit tenant memberships (edit mode only). */
   canManageTenants?: boolean;
-};
-
-const formRulesContext = {
-  requiredMessage: usersCopy.validationRequired,
-  emailInvalidMessage: usersCopy.validationEmail,
-  passwordMinMessage: usersCopy.validationPasswordMin,
-  passwordPolicyMessage: usersCopy.validationPasswordPolicy,
-  maxLengthMessage: usersCopy.validationMaxLength,
-  reasonRequiredMessage: usersCopy.reasonRequiredMessage,
-  roleNameRequiredMessage: usersCopy.roleNameRequired,
 };
 
 /**
@@ -106,7 +95,7 @@ export function UserFormDrawer({
 }: Props) {
   const { t } = useI18n();
   const [form] = Form.useForm();
-  const rules = useMemo(() => createUsersFormRules(formRulesContext), []);
+  const rules = useMemo(() => createUsersFormRules(buildUsersFormRulesContext(t)), [t]);
   const editUserId = mode === 'edit' && user?.id ? user.id : null;
   const {
     data: memberships = [],
@@ -121,7 +110,7 @@ export function UserFormDrawer({
 
   const isPlatformCreate = mode === 'create' && createVariant === 'platform';
   const effectiveRoleOptions = isPlatformCreate
-    ? [{ value: 'SuperAdmin', label: usersCopy.roleDisplayName('SuperAdmin') }]
+    ? [{ value: 'SuperAdmin', label: t('users.roles.displayNames.SuperAdmin') }]
     : roleOptions;
   const editableTenantOptions = useMemo(
     () =>
@@ -182,9 +171,9 @@ export function UserFormDrawer({
   const title =
     mode === 'create'
       ? isPlatformCreate
-        ? usersCopy.createPlatformUser
-        : usersCopy.createUser
-      : usersCopy.editUser;
+        ? t('users.page.createPlatformAdmin')
+        : t('users.create.title')
+      : t('users.form.editTitle');
   const saveDisabled = mode === 'edit' && (initialLoading || !!fetchError);
   // Edit: never render form until user detail is loaded (avoids empty form + initialValues-only hydration).
   const showForm = mode === 'create' || (mode === 'edit' && user != null);
@@ -199,9 +188,9 @@ export function UserFormDrawer({
       destroyOnHidden
       footer={
         <Space>
-          <Button onClick={onClose}>{usersCopy.cancel}</Button>
+          <Button onClick={onClose}>{t('common.buttons.cancel')}</Button>
           <Button type="primary" onClick={handleSubmit} loading={loading} disabled={saveDisabled}>
-            {usersCopy.save}
+            {t('common.buttons.save')}
           </Button>
         </Space>
       }
@@ -209,16 +198,16 @@ export function UserFormDrawer({
       {mode === 'edit' && (initialLoading || user == null) ? (
         // Spin tip only works in nest pattern (child required); avoid useForm-disconnected phase without Form mounted.
         <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
-          <Spin spinning description="Laden…">
+          <Spin spinning description={t('common.loading.data')}>
             <div style={{ minHeight: 80 }} />
           </Spin>
         </div>
       ) : mode === 'edit' && fetchError ? (
         <Alert
           type="error"
-          title={usersCopy.errorLoadUser}
+          title={t('users.form.errorLoadUser')}
           description={((fetchError as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ?? (fetchError as { message?: string })?.message) ?? String(fetchError)}
-          action={onRetryFetch && <Button size="small" onClick={onRetryFetch}>Erneut versuchen</Button>}
+          action={onRetryFetch && <Button size="small" onClick={onRetryFetch}>{t('common.buttons.retry')}</Button>}
           showIcon
         />
       ) : showForm ? (
@@ -231,51 +220,54 @@ export function UserFormDrawer({
         >
           {mode === 'create' && (
             <>
-              <Form.Item name="userName" label={usersCopy.userName} rules={rules.userName}>
-                <Input maxLength={NAME_MAX_LENGTH} showCount placeholder={usersCopy.userName} />
+              <Form.Item name="userName" label={t('users.form.userName')} rules={rules.userName}>
+                <Input maxLength={NAME_MAX_LENGTH} showCount placeholder={t('users.username.placeholder')} />
               </Form.Item>
-              <Form.Item name="password" label={usersCopy.password} rules={rules.password}>
-                <Input.Password autoComplete="new-password" placeholder="••••••••" />
+              <Form.Item name="password" label={t('users.create.password')} rules={rules.password}>
+                <Input.Password
+                  autoComplete="new-password"
+                  placeholder={t('common.auth.passwordMaskedPlaceholder')}
+                />
               </Form.Item>
             </>
           )}
-          <Form.Item name="firstName" label={usersCopy.firstName} rules={rules.firstName}>
+          <Form.Item name="firstName" label={t('users.create.firstName')} rules={rules.firstName}>
             <Input maxLength={NAME_MAX_LENGTH} />
           </Form.Item>
-          <Form.Item name="lastName" label={usersCopy.lastName} rules={rules.lastName}>
+          <Form.Item name="lastName" label={t('users.create.lastName')} rules={rules.lastName}>
             <Input maxLength={NAME_MAX_LENGTH} />
           </Form.Item>
-          <Form.Item name="email" label={usersCopy.email} rules={rules.email}>
+          <Form.Item name="email" label={t('users.create.email')} rules={rules.email}>
             <Input type="email" maxLength={EMAIL_MAX_LENGTH} />
           </Form.Item>
-          <Form.Item name="employeeNumber" label={usersCopy.employeeNumber} rules={rules.employeeNumber}>
+          <Form.Item name="employeeNumber" label={t('users.form.employeeNumber')} rules={rules.employeeNumber}>
             <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
           </Form.Item>
           {isPlatformCreate ? (
             <Alert
               type="info"
               showIcon
-              title={usersCopy.platformCreateHint}
+              title={t('users.form.platformCreateHint')}
               style={{ marginBottom: 16 }}
             />
           ) : null}
-          <Form.Item name="role" label={usersCopy.role} rules={rules.role}>
+          <Form.Item name="role" label={t('users.create.role')} rules={rules.role}>
             {rolesLoading && effectiveRoleOptions.length === 0 ? (
-              <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>{usersCopy.rolesLoading}</span>
+              <span style={{ color: 'rgba(0,0,0,0.45)', fontSize: 13 }}>{t('users.form.rolesLoading')}</span>
             ) : (
               <Radio.Group
                 disabled={isPlatformCreate}
                 options={effectiveRoleOptions.map((opt) => ({
                   value: opt.value,
-                  label: opt.label ?? usersCopy.roleDisplayName(opt.value),
+                  label: opt.label ?? t(`users.roles.displayNames.${opt.value}`),
                 }))}
               />
             )}
           </Form.Item>
-          <Form.Item name="taxNumber" label={usersCopy.taxNumber} rules={rules.taxNumber}>
+          <Form.Item name="taxNumber" label={t('users.form.taxNumber')} rules={rules.taxNumber}>
             <Input maxLength={SHORT_FIELD_MAX_LENGTH} />
           </Form.Item>
-          <Form.Item name="notes" label={usersCopy.notes} rules={rules.notes}>
+          <Form.Item name="notes" label={t('users.form.notes')} rules={rules.notes}>
             <Input.TextArea rows={2} maxLength={NOTES_MAX_LENGTH} showCount />
           </Form.Item>
           {mode === 'edit' && user?.id ? (

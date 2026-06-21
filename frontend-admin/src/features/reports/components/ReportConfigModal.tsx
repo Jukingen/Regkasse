@@ -61,7 +61,7 @@ function ReportConfigModalContent({
                     <Form.Item
                         name="businessDay"
                         label={t('reporting.compliance.config.businessDay')}
-                        rules={[{ required: true }]}
+                        rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
                     >
                         <DatePicker format={DAYJS_DATE_FORMAT} style={{ width: '100%' }} />
                     </Form.Item>
@@ -69,7 +69,7 @@ function ReportConfigModalContent({
                     <Form.Item
                         name="dateRange"
                         label={t('reporting.compliance.config.dateRange')}
-                        rules={[{ required: true }]}
+                        rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
                     >
                         <DatePicker.RangePicker format={DAYJS_DATE_FORMAT} style={{ width: '100%' }} />
                     </Form.Item>

@@ -99,13 +99,13 @@ export function VoucherScanner({ visible, onClose, onVoucherValidated }: Voucher
           return;
         }
         Alert.alert(
-          t('checkout:posFlow.payment.voucher.invalidTitle', { defaultValue: 'Ungültiger Gutschein' }),
+          t('checkout:posFlow.payment.voucher.invalidTitle'),
           resolveVoucherErrorMessage(t, result)
         );
         resumeScanning();
       } catch {
         Alert.alert(
-          t('checkout:posFlow.payment.voucher.invalidTitle', { defaultValue: 'Ungültiger Gutschein' }),
+          t('checkout:posFlow.payment.voucher.invalidTitle'),
           t('checkout:posFlow.payment.voucher.networkError')
         );
         resumeScanning();
@@ -123,10 +123,14 @@ export function VoucherScanner({ visible, onClose, onVoucherValidated }: Voucher
     >
       <View style={styles.container}>
         <View style={styles.header}>
-          <Pressable onPress={onClose} style={styles.closeBtn} accessibilityLabel="Schließen">
+          <Pressable
+            onPress={onClose}
+            style={styles.closeBtn}
+            accessibilityLabel={t('checkout:posFlow.payment.voucher.scanner.closeA11y')}
+          >
             <Ionicons name="close" size={28} color={SoftColors.textInverse} />
           </Pressable>
-          <Text style={styles.title}>Gutschein scannen</Text>
+          <Text style={styles.title}>{t('checkout:posFlow.payment.voucher.scanner.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -134,14 +138,18 @@ export function VoucherScanner({ visible, onClose, onVoucherValidated }: Voucher
           <View style={styles.fallback}>
             <Ionicons name="scan-outline" size={48} color={SoftColors.textMuted} />
             <Text style={styles.fallbackText}>
-              Kamera-Scan ist im Browser nicht verfügbar. Bitte Gutscheincode manuell eingeben.
+              {t('checkout:posFlow.payment.voucher.scanner.webFallback')}
             </Text>
           </View>
         ) : !permission?.granted ? (
           <View style={styles.fallback}>
-            <Text style={styles.fallbackText}>Kamerazugriff wird benötigt.</Text>
+            <Text style={styles.fallbackText}>
+              {t('checkout:posFlow.payment.voucher.scanner.cameraRequired')}
+            </Text>
             <Pressable style={styles.permissionBtn} onPress={() => void requestPermission()}>
-              <Text style={styles.permissionBtnText}>Kamera erlauben</Text>
+              <Text style={styles.permissionBtnText}>
+                {t('checkout:posFlow.payment.voucher.scanner.allowCamera')}
+              </Text>
             </Pressable>
           </View>
         ) : (
@@ -155,11 +163,15 @@ export function VoucherScanner({ visible, onClose, onVoucherValidated }: Voucher
           >
             <View style={styles.overlay}>
               <View style={styles.frame} />
-              <Text style={styles.overlayText}>Gutscheincode scannen</Text>
+              <Text style={styles.overlayText}>
+                {t('checkout:posFlow.payment.voucher.scanner.overlayHint')}
+              </Text>
               {validating ? (
                 <View style={styles.busyRow}>
                   <WaveLoader size={20} color={SoftColors.textInverse} />
-                  <Text style={styles.busyText}>Gutschein wird geprüft…</Text>
+                  <Text style={styles.busyText}>
+                    {t('checkout:posFlow.payment.voucher.scanner.validating')}
+                  </Text>
                 </View>
               ) : null}
             </View>

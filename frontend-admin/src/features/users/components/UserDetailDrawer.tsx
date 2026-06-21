@@ -13,13 +13,11 @@ import Link from 'next/link';
 import { UserActivityReportPanel } from './UserActivityReportPanel';
 import { UserTenantSummary } from './UserTenantSummary';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
-import { usersCopy } from '../constants/copy';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatDateTime } from '@/i18n/formatting';
 import type { UpdateAdminUsernameResponse } from '@/features/users/api/users';
 
 const { Text } = Typography;
-const NA = usersCopy.branchNotAvailable;
 
 function fullName(record: UserInfo): string {
   const first = record.firstName ?? '';
@@ -46,6 +44,7 @@ export function UserDetailDrawer({
   const [activeTab, setActiveTab] = useState('report');
   const [usernameModalOpen, setUsernameModalOpen] = useState(false);
   const { t, formatLocale } = useI18n();
+  const na = t('users.list.branchNotAvailable');
   const userId = user?.id ?? null;
   const { data: memberships = [], isLoading: tenantsLoading } = useAdminUserTenants(userId, open && !!userId);
 
@@ -66,7 +65,7 @@ export function UserDetailDrawer({
         items={[
           {
             key: 'report',
-            label: usersCopy.activityReport,
+            label: t('users.activity.reportTabLabel'),
             children: (
               <>
                 {user.id && (
@@ -75,7 +74,7 @@ export function UserDetailDrawer({
                     style={{ marginBottom: 12, display: 'inline-block' }}
                   >
                     <Button type="link" size="small">
-                      {usersCopy.openFullActivityReport}
+                      {t('users.activity.openFullReport')}
                     </Button>
                   </Link>
                 )}
@@ -88,7 +87,7 @@ export function UserDetailDrawer({
           },
           {
             key: 'activity',
-            label: usersCopy.activity,
+            label: t('users.activity.tabLabel'),
             children: (
               <UserActivityTimeline
                 userId={user.id ?? ''}
@@ -98,17 +97,17 @@ export function UserDetailDrawer({
           },
           {
             key: 'details',
-            label: usersCopy.details,
+            label: t('users.list.details'),
             children: (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <Descriptions column={1} size="small" bordered title={null}>
-                  <Descriptions.Item label={usersCopy.status}>
+                  <Descriptions.Item label={t('users.list.columnStatus')}>
                     <Tag color={user.isActive ? 'green' : 'red'}>
-                      {user.isActive ? usersCopy.statusActive : usersCopy.statusInactive}
+                      {user.isActive ? t('users.list.statusActive') : t('users.list.statusInactive')}
                     </Tag>
                   </Descriptions.Item>
-                  <Descriptions.Item label={usersCopy.role}>
-                    <Tag color="gold">{user.role ?? NA}</Tag>
+                  <Descriptions.Item label={t('users.list.columnRole')}>
+                    <Tag color="gold">{user.role ?? na}</Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label={t('users.tabs.tenant.columnTenant')}>
                     <UserTenantSummary
@@ -117,9 +116,9 @@ export function UserDetailDrawer({
                       loading={tenantsLoading}
                     />
                   </Descriptions.Item>
-                  <Descriptions.Item label={usersCopy.userName}>
+                  <Descriptions.Item label={t('users.form.userName')}>
                     <Space wrap>
-                      <span>{user.userName?.trim() || NA}</span>
+                      <span>{user.userName?.trim() || na}</span>
                       {canEditUsername && user.id ? (
                         <Button
                           type="link"
@@ -132,17 +131,17 @@ export function UserDetailDrawer({
                       ) : null}
                     </Space>
                   </Descriptions.Item>
-                  <Descriptions.Item label={usersCopy.email}>{user.email ?? NA}</Descriptions.Item>
+                  <Descriptions.Item label={t('users.list.columnEmail')}>{user.email ?? na}</Descriptions.Item>
                 </Descriptions>
                 <Descriptions column={1} size="small" bordered>
-                  <Descriptions.Item label={usersCopy.employeeNumber}>{user.employeeNumber ?? NA}</Descriptions.Item>
-                  <Descriptions.Item label={usersCopy.lastLogin}>
-                    {user.lastLoginAt ? formatDateTime(user.lastLoginAt, formatLocale) : '—'}
+                  <Descriptions.Item label={t('users.form.employeeNumber')}>{user.employeeNumber ?? na}</Descriptions.Item>
+                  <Descriptions.Item label={t('users.list.columnLastLogin')}>
+                    {user.lastLoginAt ? formatDateTime(user.lastLoginAt, formatLocale) : na}
                   </Descriptions.Item>
                 </Descriptions>
                 {user.notes ? (
                   <>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{usersCopy.notes}</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{t('users.form.notes')}</Text>
                     <Text>{user.notes}</Text>
                   </>
                 ) : null}

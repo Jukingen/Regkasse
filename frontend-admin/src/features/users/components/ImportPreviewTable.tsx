@@ -3,6 +3,7 @@
 import React from 'react';
 import { Table, Typography } from 'antd';
 import type { BulkImportPreviewRow } from '@/features/users/api/bulkImport';
+import { useI18n } from '@/i18n';
 
 type Props = {
     rows: BulkImportPreviewRow[];
@@ -12,10 +13,12 @@ type Props = {
 
 /** First N rows of a bulk import file before starting the job. */
 export function ImportPreviewTable({ rows, totalRows, loading }: Props) {
+    const { t } = useI18n();
+
     return (
         <>
             <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-                Vorschau ({rows.length} von {totalRows} Zeilen)
+                {t('users.bulkImport.preview', { shown: rows.length, total: totalRows })}
             </Typography.Text>
             <Table
                 size="small"
@@ -25,13 +28,13 @@ export function ImportPreviewTable({ rows, totalRows, loading }: Props) {
                 dataSource={rows}
                 scroll={{ x: 640 }}
                 columns={[
-                    { title: 'Zeile', dataIndex: 'row', width: 64 },
-                    { title: 'E-Mail', dataIndex: 'email', ellipsis: true },
-                    { title: 'Benutzername', dataIndex: 'username', ellipsis: true },
-                    { title: 'Vorname', dataIndex: 'firstName', width: 100 },
-                    { title: 'Nachname', dataIndex: 'lastName', width: 100 },
-                    { title: 'Rolle', dataIndex: 'role', width: 100 },
-                    { title: 'Mandant', dataIndex: 'tenantSlug', width: 100 },
+                    { title: t('users.bulkImport.columns.row'), dataIndex: 'row', width: 64 },
+                    { title: t('users.bulkImport.columns.email'), dataIndex: 'email', ellipsis: true },
+                    { title: t('users.bulkImport.columns.username'), dataIndex: 'username', ellipsis: true },
+                    { title: t('users.bulkImport.columns.firstName'), dataIndex: 'firstName', width: 100 },
+                    { title: t('users.bulkImport.columns.lastName'), dataIndex: 'lastName', width: 100 },
+                    { title: t('users.bulkImport.columns.role'), dataIndex: 'role', width: 100 },
+                    { title: t('users.bulkImport.columns.tenant'), dataIndex: 'tenantSlug', width: 100 },
                 ]}
             />
         </>

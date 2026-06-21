@@ -12,12 +12,30 @@
     "manageRoles": "Rollen verwalten"
   },
   "messages": {
-    "roleCreated": "Rolle angelegt."
+    "roleCreated": "Rolle angelegt.",
+    "successCreate": "Benutzer angelegt.",
+    "successUpdate": "Benutzer aktualisiert.",
+    "successDeactivate": "Benutzer deaktiviert.",
+    "successReactivate": "Benutzer reaktiviert.",
+    "successResetPassword": "Passwort wurde zurückgesetzt. Sitzungen des Benutzers wurden ungültig.",
+    "errorGeneric": "Fehler.",
+    "errorLoadUser": "Benutzerdaten konnten nicht geladen werden.",
+    "noPermission": "Nur SuperAdmin (bzw. Benutzer mit entsprechender Berechtigung) können Benutzer verwalten.",
+    "errorResetPassword": "Passwort konnte nicht zurückgesetzt werden.",
+    "errorResetPasswordForbidden": "Keine Berechtigung, dieses Passwort zurückzusetzen.",
+    "errorResetPasswordUserNotFound": "Benutzer wurde nicht gefunden.",
+    "sessionExpiredOrUnauthorized": "Sitzung abgelaufen oder nicht angemeldet. Bitte erneut anmelden.",
+    "successPermissionsSaved": "Berechtigungen gespeichert.",
+    "successRoleDeleted": "Rolle gelöscht.",
+    "errorSavePermissions": "Berechtigungen konnten nicht gespeichert werden.",
+    "errorDeleteRole": "Rolle konnte nicht gelöscht werden."
   },
   "createRole": {
     "inheritFromRole": "Berechtigungen übernehmen von",
     "inheritFromRoleHelp": "Optional: Berechtigungen einer bestehenden Rolle als Ausgangspunkt kopieren.",
     "inheritFromRolePlaceholder": "Keine Übernahme",
+    "nameLabel": "Rollenname",
+    "namePlaceholder": "z. B. Manager",
     "successWithInherit": "Rolle „{{role}}“ wurde angelegt (Berechtigungen von „{{source}}“ übernommen).",
     "errors": {
       "generic": "Rolle konnte nicht angelegt werden.",
@@ -172,6 +190,11 @@
     "presetPlaceholder": "Vorlage wählen …",
     "roleHasUsers": "Rolle kann nicht gelöscht werden: mindestens ein Benutzer ist zugewiesen.",
     "roleDeleteBlockedReassignFirst": "Diese Rolle kann nicht gelöscht werden, weil noch Benutzer zugewiesen sind. Weisen Sie diese Benutzer zuerst einer anderen Rolle zu.",
+    "successPermissionsSaved": "Berechtigungen gespeichert.",
+    "successRoleDeleted": "Rolle gelöscht.",
+    "errorSavePermissions": "Berechtigungen konnten nicht gespeichert werden.",
+    "errorDeleteRole": "Rolle konnte nicht gelöscht werden.",
+    "noPermission": "Nur SuperAdmin (bzw. Benutzer mit entsprechender Berechtigung) können Benutzer verwalten.",
     "groups": {
       "user_role": "Benutzer & Rollen",
       "product": "Produkt & Kategorien",
@@ -470,6 +493,7 @@
       "quick": "Schnell anlegen"
     },
     "tenantRequired": "Bitte einen Mandanten wählen.",
+    "roleRequired": "Bitte eine Rolle wählen.",
     "tenantPlaceholder": "Mandant wählen …",
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "Keine Lizenz",
@@ -489,6 +513,103 @@
       "Accountant": { "label": "Buchhaltung" },
       "Waiter": { "label": "Kellner" },
       "Kitchen": { "label": "Küche" }
+    }
+  },
+  "form": {
+    "editTitle": "Benutzer bearbeiten",
+    "employeeNumber": "Mitarbeiternummer",
+    "taxNumber": "Steuernummer",
+    "notes": "Notizen",
+    "userName": "Benutzername",
+    "errorLoadUser": "Benutzer konnte nicht geladen werden.",
+    "platformCreateHint": "Plattform-Betreiber erhalten die Rolle Super-Administrator und werden keinem Geschäftsmandanten zugewiesen.",
+    "rolesLoading": "Rollen werden geladen…"
+  },
+  "formValidation": {
+    "required": "Pflichtfeld.",
+    "emailInvalid": "Ungültige E-Mail-Adresse.",
+    "passwordMin": "Min. {{min}} Zeichen.",
+    "passwordPolicy": "Mindestens ein Großbuchstabe, ein Kleinbuchstabe, eine Zahl und ein Sonderzeichen.",
+    "maxLength": "Max. {{max}} Zeichen.",
+    "reasonRequired": "Bitte einen Grund angeben.",
+    "roleNameRequired": "Bitte Rollennamen eingeben."
+  },
+  "passwordErrors": {
+    "minLength": "Das Passwort muss mindestens {{min}} Zeichen haben.",
+    "digit": "Das Passwort muss mindestens eine Ziffer enthalten.",
+    "lowercase": "Das Passwort muss mindestens einen Kleinbuchstaben enthalten.",
+    "uppercase": "Das Passwort muss mindestens einen Großbuchstaben enthalten.",
+    "nonAlphanumeric": "Das Passwort muss mindestens ein Sonderzeichen enthalten.",
+    "generic": "Das Passwort erfüllt die Anforderungen nicht."
+  },
+  "password": {
+    "titleForEmail": "Passwort für {{email}}",
+    "generateTemporary": "Temporäres Passwort generieren",
+    "showButtonTitle": "Temporäres Passwort erzeugen und anzeigen",
+    "noPasswordToCopy": "Kein Passwort zum Kopieren vorhanden"
+  },
+  "modals": {
+    "deactivate": {
+      "title": "Benutzer deaktivieren",
+      "confirmSuffix": "wird deaktiviert. Beleg- und Rechnungsbezüge bleiben erhalten; das Konto kann später reaktiviert werden.",
+      "reasonLabel": "Grund (für Audit erforderlich)",
+      "reasonPlaceholder": "z. B. Ausscheiden, Urlaub, …",
+      "confirm": "Deaktivieren"
+    },
+    "resetPassword": {
+      "title": "Passwort zurücksetzen",
+      "securityNote": "Alle Sitzungen des Benutzers werden beendet. Das neue Passwort muss mindestens {{min}} Zeichen haben sowie Groß- und Kleinbuchstaben, eine Zahl und ein Sonderzeichen.",
+      "newPasswordLabel": "Neues Passwort (min. {{min}} Zeichen, Groß-/Kleinbuchstaben, Zahl, Sonderzeichen)"
+    }
+  },
+  "reactivate": {
+    "title": "Benutzer reaktivieren",
+    "confirm": "Reaktivieren",
+    "confirmBody": "wieder aktivieren?"
+  },
+  "activity": {
+    "tabLabel": "Aktivität",
+    "reportTabLabel": "Compliance-Bericht",
+    "openFullReport": "Vollständigen Bericht öffnen",
+    "forUser": "Aktivitätsverlauf für",
+    "empty": "Keine Aktivität.",
+    "errorLoad": "Aktivitätsverlauf konnte nicht geladen werden.",
+    "errorLoadHint": "Übrige Benutzerdetails sind weiterhin nutzbar.",
+    "filterActionType": "Aktionstyp",
+    "filterDateRange": "Zeitraum",
+    "filterAll": "Alle",
+    "filterRoleChanges": "Rollenänderungen",
+    "filterUserUpdates": "Benutzeränderungen",
+    "filterSecurityActions": "Sicherheitsrelevante Aktionen",
+    "filterReset": "Zurücksetzen",
+    "time": "Zeit",
+    "action": "Aktion",
+    "actor": "Durchgeführt von",
+    "ipAddress": "IP",
+    "description": "Beschreibung",
+    "entityType": "Entität",
+    "viewChanges": "Änderungen ansehen",
+    "fieldLabels": {
+      "isDemo": "Demo"
+    }
+  },
+  "auditDiff": {
+    "title": "Geänderte Felder",
+    "field": "Feld",
+    "oldValue": "Vorher",
+    "newValue": "Nachher",
+    "noChanges": "Keine Feldänderungen."
+  },
+  "bulkImport": {
+    "preview": "Vorschau ({{shown}} von {{total}} Zeilen)",
+    "columns": {
+      "row": "Zeile",
+      "email": "E-Mail",
+      "username": "Benutzername",
+      "firstName": "Vorname",
+      "lastName": "Nachname",
+      "role": "Rolle",
+      "tenant": "Mandant"
     }
   }
 }

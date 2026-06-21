@@ -94,13 +94,13 @@ function VoucherCreateForm() {
           >
             <InputNumber min={0.01} step={0.01} style={{ width: '100%', maxWidth: 320 }} />
           </Form.Item>
-          <Form.Item name="currency" label={t('vouchers.create.currency')} rules={[{ required: true }]}>
+          <Form.Item name="currency" label={t('vouchers.create.currency')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Select
               options={[{ value: 'EUR', label: 'EUR' }]}
               style={{ maxWidth: 200 }}
             />
           </Form.Item>
-          <Form.Item name="expiryMode" label={t('vouchers.create.expiryMode')} rules={[{ required: true }]}>
+          <Form.Item name="expiryMode" label={t('vouchers.create.expiryMode')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Radio.Group>
               <Radio value="DefaultOneYear">{t('vouchers.create.expiryDefaultYear')}</Radio>
               <Radio value="Custom">{t('vouchers.create.expiryCustom')}</Radio>

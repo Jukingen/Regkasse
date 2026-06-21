@@ -18,10 +18,12 @@ import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
+import { useI18n } from '@/i18n/I18nProvider';
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
 export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
+    const { t } = useI18n();
     const today = dayjs().format('YYYY-MM-DD');
     const { isAuthorized } = useAuthorizationGate({ requiredPermission: PERMISSIONS.REPORT_VIEW });
     const query = useGetApiReportsSales(
@@ -59,14 +61,16 @@ export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
             <Row gutter={16}>
                 <Col xs={24} sm={12}>
                     <Statistic
-                        title="Gesamtumsatz heute"
+                        title={t('dashboard.widgets.todaySales.totalToday')}
                         value={query.data?.totalSales ?? 0}
                         precision={2}
                         suffix="€"
                         loading={query.isLoading}
                     />
                     <Typography.Text type="secondary">
-                        {query.data?.totalInvoices ?? 0} Verkäufe
+                        {t('dashboard.widgets.todaySales.salesCount', {
+                            count: query.data?.totalInvoices ?? 0,
+                        })}
                     </Typography.Text>
                 </Col>
                 <Col xs={24} sm={12} style={{ minHeight: 120 }}>
@@ -80,7 +84,9 @@ export function TodaySalesWidget({ title, dragHandleProps, onRefresh }: Props) {
                             </LineChart>
                         </ResponsiveContainer>
                     ) : (
-                        <Typography.Text type="secondary">Keine Verkäufe heute</Typography.Text>
+                        <Typography.Text type="secondary">
+                            {t('dashboard.widgets.todaySales.noSalesToday')}
+                        </Typography.Text>
                     )}
                 </Col>
             </Row>

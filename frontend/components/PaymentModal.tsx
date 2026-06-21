@@ -695,21 +695,21 @@ export default function PaymentModal({
       ? licenseBlocksPaymentUi
         ? tLicense('criticalGuard.expiredBody')
         : timeSyncCritical
-        ? 'Systemzeit fehlerhaft — Zahlungen blockiert. Administrator kontaktieren.'
+        ? t('checkout:posFlow.payment.blockedHints.timeSyncCritical')
         : methodsLoading
-          ? 'Zahlungsarten werden geladen…'
+          ? t('checkout:posFlow.payment.blockedHints.methodsLoading')
           : !hasValidSettlementMethod
-            ? 'Bitte eine Zahlungsart wählen (Schritt 2).'
+            ? t('checkout:posFlow.payment.blockedHints.selectMethod')
             : !paymentCoverageOk
-              ? 'Deckung fehlt: Gutschein + Barbetrag erreicht nicht den Gesamtbetrag.'
+              ? t('checkout:posFlow.payment.blockedHints.coverageMissing')
               : voucherEnabled && !voucherSettlementValid
-                ? 'Gutschein ungültig — bitte „Prüfen“ und Betrag prüfen.'
+                ? t('checkout:posFlow.payment.blockedHints.voucherInvalid')
                 : isRegisterGateBlockingPayment
                   ? registerGateFooterHint(registerGateCtx)
                   : payGateTseBlocked
-                    ? 'TSE nicht bereit — fiskalische Zahlung nicht möglich.'
+                    ? t('checkout:posFlow.payment.blockedHints.tseNotReady')
                     : offlineBlocksVoucher
-                      ? 'Gutschein ist offline nicht möglich.'
+                      ? t('checkout:posFlow.payment.blockedHints.voucherOffline')
                       : undefined
       : undefined;
 
@@ -1292,8 +1292,7 @@ export default function PaymentModal({
         setPurchaseState('input');
         onPosToast?.({
           type: 'success',
-          message:
-            'Zahlung offline gespeichert – wird automatisch signiert wenn TSE wieder online',
+          message: t('checkout:posFlow.payment.offlineQueued'),
         });
         try {
           await cartService.resetCartAfterPayment(currentCartId, 'Payment queued offline (TSE)');
@@ -1503,7 +1502,7 @@ export default function PaymentModal({
             {/* Step 1: Summe */}
             <View style={styles.section}>
               <Text style={styles.stepLabel}>1</Text>
-              <Text style={styles.sectionTitle}>Summe</Text>
+              <Text style={styles.sectionTitle}>{t('checkout:posFlow.payment.steps.sum')}</Text>
               {calculatedCartItems.map((item, index) => (
                 <View key={index} style={styles.cartItem}>
                   <Text style={styles.itemName}>{item.productName}</Text>
@@ -1513,7 +1512,7 @@ export default function PaymentModal({
                 </View>
               ))}
               <View style={styles.totalRow}>
-                <Text style={styles.totalLabel}>Gesamt</Text>
+                <Text style={styles.totalLabel}>{t('checkout:posFlow.payment.totalLabel')}</Text>
                 <Text style={styles.totalAmount}>{formatPrice(totalAmount)}</Text>
               </View>
             </View>
@@ -1557,7 +1556,9 @@ export default function PaymentModal({
                         disabled={!!savingRegisterId}
                         onPress={() => handlePersistCashRegister(r.id)}
                         accessibilityRole="button"
-                        accessibilityLabel={`Kasse ${r.registerNumber || r.id} zuweisen`}
+                        accessibilityLabel={t('checkout:posFlow.payment.registerAssignA11y', {
+                          register: r.registerNumber || r.id,
+                        })}
                       >
                         <Text style={styles.registerChipText} numberOfLines={1}>
                           {r.registerNumber || r.id.slice(0, 8)}
@@ -1570,27 +1571,33 @@ export default function PaymentModal({
                     onPress={retryUserSettingsLoad}
                     style={styles.retryLink}
                     accessibilityRole="button"
-                    accessibilityLabel="Kasseneinstellungen erneut laden"
+                    accessibilityLabel={t('checkout:posFlow.payment.retryActions.retrySettings')}
                   >
-                    <Text style={styles.retryLinkText}>Kasseneinstellungen erneut versuchen</Text>
+                    <Text style={styles.retryLinkText}>
+                      {t('checkout:posFlow.payment.retryActions.retrySettings')}
+                    </Text>
                   </Pressable>
                 ) : posReadinessError ? (
                   <Pressable
                     onPress={() => refreshPosReadiness()}
                     style={styles.retryLink}
                     accessibilityRole="button"
-                    accessibilityLabel="Kassenbereitschaft erneut laden"
+                    accessibilityLabel={t('checkout:posFlow.payment.retryActions.retryReadiness')}
                   >
-                    <Text style={styles.retryLinkText}>Kassenbereitschaft erneut versuchen</Text>
+                    <Text style={styles.retryLinkText}>
+                      {t('checkout:posFlow.payment.retryActions.retryReadiness')}
+                    </Text>
                   </Pressable>
                 ) : registerListFailureKind === 'network' || registerListFailureKind === 'unknown' ? (
                   <Pressable
                     onPress={refetchRegisterList}
                     style={styles.retryLink}
                     accessibilityRole="button"
-                    accessibilityLabel="Kassenliste erneut laden"
+                    accessibilityLabel={t('checkout:posFlow.payment.retryActions.reloadRegisterList')}
                   >
-                    <Text style={styles.retryLinkText}>Kassenliste erneut laden</Text>
+                    <Text style={styles.retryLinkText}>
+                      {t('checkout:posFlow.payment.retryActions.reloadRegisterList')}
+                    </Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -1599,18 +1606,22 @@ export default function PaymentModal({
             {/* Benefit eligibility preview: read-only info when customer selected (not guest) and cart has items */}
             {shouldFetchEligibility && (
               <View style={styles.benefitPreviewSection}>
-                <Text style={styles.benefitPreviewTitle}>Vorteile (Vorschau)</Text>
+                <Text style={styles.benefitPreviewTitle}>
+                  {t('checkout:posFlow.payment.benefits.previewTitle')}
+                </Text>
                 {/* Preview-only savings indicator: do not imply final discount; for cashier awareness only */}
                 {!eligibilityPreviewLoading && eligibilityPreview && typeof eligibilityPreview.totalDiscountAmount === 'number' && eligibilityPreview.totalDiscountAmount > 0 && (
                   <Text style={styles.savingsIndicatorText}>
-                    Möglicher Vorteil: ca. {formatPrice(eligibilityPreview.totalDiscountAmount)}
+                    {t('checkout:posFlow.payment.benefits.possibleSavings', {
+                      amount: formatPrice(eligibilityPreview.totalDiscountAmount),
+                    })}
                   </Text>
                 )}
                 {eligibilityPreviewLoading ? (
                   <View style={styles.benefitPreviewLoading}>
                     <WaveLoader size={22} color={SoftColors.accent} />
                     <Text style={[styles.benefitPreviewMuted, styles.benefitPreviewLoadingLabel]}>
-                      Vorteile werden geladen…
+                      {t('checkout:posFlow.payment.benefits.loading')}
                     </Text>
                   </View>
                 ) : eligibilityPreview ? (
@@ -1635,7 +1646,7 @@ export default function PaymentModal({
                     )}
                     {(eligibilityPreview.applicableBenefits.length > 0 || eligibilityPreview.blockedBenefits.length > 0) && (
                       <Text style={styles.benefitPreviewDisclaimer}>
-                        Vorschau – maßgeblich ist die Abrechnung beim Bezahlen.
+                        {t('checkout:posFlow.payment.benefits.disclaimer')}
                       </Text>
                     )}
                   </>
@@ -1683,7 +1694,7 @@ export default function PaymentModal({
                         }}
                         accessibilityRole="button"
                         accessibilityState={{ selected: isSelected, disabled: methodDisabled }}
-                        accessibilityLabel={`${method.name}${isSelected ? ', ausgewählt' : ''}`}
+                        accessibilityLabel={`${method.name}${isSelected ? t('checkout:posFlow.payment.methodSelectedA11ySuffix') : ''}`}
                       >
                         <Ionicons
                           name={method.icon as any}
@@ -1720,7 +1731,7 @@ export default function PaymentModal({
             {shouldCollectCashAmount && (
               <View style={styles.section}>
                 <Text style={styles.stepLabel}>3</Text>
-                <Text style={styles.sectionTitle}>Barzahlung</Text>
+                <Text style={styles.sectionTitle}>{t('checkout:posFlow.payment.steps.cash')}</Text>
 
                 <View style={styles.presetsContainer}>
                   {cashPresets.map((preset) => {
@@ -1753,7 +1764,7 @@ export default function PaymentModal({
 
                 <View style={styles.inputRow}>
                   <View style={styles.cashLabelWithHint}>
-                    <Text style={styles.label}>Erhaltener Betrag</Text>
+                    <Text style={styles.label}>{t('checkout:posFlow.payment.cash.receivedLabel')}</Text>
                     {!isAmountValid ? (
                       <Text style={styles.cashAmountWarnIcon} accessibilityRole="image" accessibilityLabel="⚠">
                         ⚠️
@@ -1764,16 +1775,16 @@ export default function PaymentModal({
                     style={styles.amountInput}
                     value={amountReceived}
                     onChangeText={setAmountReceived}
-                    placeholder="0,00"
+                    placeholder={t('checkout:posFlow.payment.cash.placeholder')}
                     keyboardType="decimal-pad"
                     editable={!paymentInteractionsLocked}
-                    accessibilityLabel="Erhaltener Betrag in Euro"
+                    accessibilityLabel={t('checkout:posFlow.payment.cash.receivedA11y')}
                     accessibilityHint="Mindestens den zu zahlenden Betrag eingeben"
                   />
                 </View>
                 {parseLocaleDecimal(amountReceived) >= settlementAmountDue && (
                   <View style={styles.changeRow}>
-                    <Text style={styles.changeLabel}>Rückgeld</Text>
+                    <Text style={styles.changeLabel}>{t('checkout:posFlow.payment.cash.changeLabel')}</Text>
                     <Text style={styles.changeAmount}>{formatPrice(changeAmount)}</Text>
                   </View>
                 )}
@@ -1788,7 +1799,10 @@ export default function PaymentModal({
                     onPress={() => {
                       if (paymentInteractionsLocked || tseServerOffline) return;
                       if (!isOnline && !voucherEnabled) {
-                        Alert.alert('Offline', 'Gutschein ist offline nicht möglich.');
+                        Alert.alert(
+                          t('checkout:posFlow.payment.voucherToggle.offlineAlertTitle'),
+                          t('checkout:posFlow.payment.voucherToggle.offlineNotPossible')
+                        );
                         return;
                       }
                       if (voucherEnabled) {
@@ -1810,7 +1824,7 @@ export default function PaymentModal({
                       selected: voucherEnabled,
                       disabled: paymentInteractionsLocked || tseServerOffline,
                     }}
-                    accessibilityLabel={`Gutschein einlösen${voucherEnabled ? ', ausgewählt' : ''}`}
+                    accessibilityLabel={`${t('checkout:posFlow.payment.voucherToggle.redeem')}${voucherEnabled ? t('checkout:posFlow.payment.methodSelectedA11ySuffix') : ''}`}
                   >
                     <Ionicons
                       name="gift-outline"
@@ -1823,14 +1837,18 @@ export default function PaymentModal({
                         voucherEnabled && styles.selectedPaymentMethodText,
                       ]}
                     >
-                      Gutschein einlösen
+                      {t('checkout:posFlow.payment.voucherToggle.redeem')}
                     </Text>
                   </Pressable>
                 </View>
                 {tseServerOffline ? (
-                  <Text style={styles.voucherInlineError}>Gutscheine offline nicht verfügbar</Text>
+                  <Text style={styles.voucherInlineError}>
+                    {t('checkout:posFlow.payment.voucherToggle.offlineUnavailable')}
+                  </Text>
                 ) : !isOnline && voucherEnabled ? (
-                  <Text style={styles.voucherInlineError}>Gutschein ist offline nicht möglich.</Text>
+                  <Text style={styles.voucherInlineError}>
+                    {t('checkout:posFlow.payment.voucherToggle.offlineNotPossible')}
+                  </Text>
                 ) : null}
                 {voucherEnabled ? (
                   <>
@@ -1876,7 +1894,7 @@ export default function PaymentModal({
                       pressed && styles.voucherScanBtnPressed,
                     ]}
                     accessibilityRole="button"
-                    accessibilityLabel="Gutschein scannen"
+                    accessibilityLabel={t('checkout:posFlow.payment.voucherToggle.scanA11y')}
                   >
                     <Ionicons name="scan-outline" size={22} color={SoftColors.accent} />
                   </Pressable>
@@ -1940,7 +1958,7 @@ export default function PaymentModal({
                 </View>
                 {voucherSnapshot && Number.isFinite(voucherRedeemParsed) ? (
                   <View style={styles.inputRow}>
-                    <Text style={styles.label}>Restbetrag</Text>
+                    <Text style={styles.label}>{t('checkout:posFlow.payment.remainingAmount')}</Text>
                     <Text style={styles.voucherInfoLine}>{formatPrice(voucherRemainingToPay)}</Text>
                   </View>
                 ) : null}
@@ -1954,15 +1972,15 @@ export default function PaymentModal({
             )}
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Notizen</Text>
+              <Text style={styles.sectionTitle}>{t('checkout:posFlow.payment.notes.title')}</Text>
               <TextInput
                 style={styles.notesInput}
                 value={notes}
                 onChangeText={setNotes}
-                placeholder="Optionale Notizen…"
+                placeholder={t('checkout:posFlow.payment.notes.placeholder')}
                 multiline
                 numberOfLines={2}
-                accessibilityLabel="Optionale Notizen zur Zahlung"
+                accessibilityLabel={t('checkout:posFlow.payment.notes.a11y')}
               />
             </View>
 
@@ -1977,8 +1995,14 @@ export default function PaymentModal({
               <View style={styles.section}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff3e0', padding: 10, borderRadius: 8 }}>
                   <View>
-                    <Text style={{ fontWeight: 'bold', color: '#e65100' }}>TSE Simülasyonu</Text>
-                    <Text style={{ fontSize: 12, color: '#f57c00' }}>{isTseSimulationEnabled ? 'AÇIK (Bypass)' : 'KAPALI (Gerçek TSE)'}</Text>
+                    <Text style={{ fontWeight: 'bold', color: '#e65100' }}>
+                      {t('checkout:posFlow.payment.tseSimulation.title')}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#f57c00' }}>
+                      {isTseSimulationEnabled
+                        ? t('checkout:posFlow.payment.tseSimulation.enabled')
+                        : t('checkout:posFlow.payment.tseSimulation.disabled')}
+                    </Text>
                   </View>
                   <Switch
                     value={isTseSimulationEnabled}
@@ -1997,17 +2021,22 @@ export default function PaymentModal({
               {timeSyncCritical ? (
                 <View style={styles.timeSyncCriticalBanner} accessibilityRole="alert">
                   <Text style={styles.timeSyncCriticalText}>
-                    SYSTEMZEIT FEHLERHAFT – Zahlungen blockiert! Bitte Admin kontaktieren
+                    {t('checkout:posFlow.payment.timeSync.banner')}
                   </Text>
                   <Pressable
                     onPress={() =>
-                      Alert.alert('Administrator kontaktieren', POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE)
+                      Alert.alert(
+                        t('checkout:posFlow.payment.timeSync.contactAdminA11y'),
+                        POS_TIME_SYNC_ADMIN_CONTACT_MESSAGE_DE
+                      )
                     }
                     style={({ pressed }) => [styles.timeSyncAdminButton, pressed && SoftState.pressed]}
                     accessibilityRole="button"
-                    accessibilityLabel="Administrator kontaktieren"
+                    accessibilityLabel={t('checkout:posFlow.payment.timeSync.contactAdminA11y')}
                   >
-                    <Text style={styles.timeSyncAdminButtonText}>Admin kontaktieren</Text>
+                    <Text style={styles.timeSyncAdminButtonText}>
+                      {t('checkout:posFlow.payment.timeSync.contactAdmin')}
+                    </Text>
                   </Pressable>
                 </View>
               ) : null}
@@ -2027,10 +2056,10 @@ export default function PaymentModal({
                   ]}
                   disabled={showPayWorking}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  accessibilityLabel="Abbrechen"
+                  accessibilityLabel={t('common:cancel')}
                   accessibilityRole="button"
                 >
-                  <Text style={styles.cancelButtonText}>Abbrechen</Text>
+                  <Text style={styles.cancelButtonText}>{t('checkout:posFlow.payment.buttons.cancel')}</Text>
                 </Pressable>
                 {showStornoRefundEntry ? (
                   <Pressable
@@ -2060,7 +2089,9 @@ export default function PaymentModal({
                   ]}
                   disabled={paySubmitDisabled}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  accessibilityLabel={`Zahlen ${formatPrice(settlementAmountDue)}`}
+                  accessibilityLabel={t('checkout:posFlow.payment.footer.payA11y', {
+                    amount: formatPrice(settlementAmountDue),
+                  })}
                   accessibilityHint={paySubmitBlockedHint}
                   accessibilityRole="button"
                   accessibilityState={{
@@ -2070,26 +2101,33 @@ export default function PaymentModal({
                   {showPayWorking ? (
                     <View style={styles.payButtonContent}>
                       <WaveLoader size={18} color={SoftColors.textInverse} />
-                      <Text style={styles.payButtonText}>Wird verarbeitet…</Text>
+                      <Text style={styles.payButtonText}>{t('checkout:posFlow.payment.footer.processing')}</Text>
                     </View>
                   ) : (
                     <View style={styles.payButtonContent}>
                       {showPayTrialWarningIcon ? (
-                        <Ionicons name="warning" size={18} color="#FFB300" accessibilityLabel="Lizenz-Hinweis" />
+                        <Ionicons name="warning" size={18} color="#FFB300" accessibilityLabel={t('checkout:posFlow.payment.footer.licenseHintA11y')} />
                       ) : null}
                       <Text style={styles.payButtonText} numberOfLines={2}>
                         {voucherEnabled && voucherSettlementValid && paymentCoverageOk && settlementAmountDue <= 0.01
                           ? t('checkout:posFlow.payment.voucher.payCta', { amount: formatPrice(totalAmount) })
                           : settlementAmountDue > 0.01 && selectedSettlementMethod
-                            ? `${formatPrice(settlementAmountDue)} ${selectedSettlementMethod.name.toLowerCase()} zahlen`
-                            : `${formatPrice(totalAmount)} zahlen`}
+                            ? t('checkout:posFlow.payment.footer.payMethodSuffix', {
+                                amount: formatPrice(settlementAmountDue),
+                                method: selectedSettlementMethod.name.toLowerCase(),
+                              })
+                            : t('checkout:posFlow.payment.footer.payGeneric', {
+                                amount: formatPrice(totalAmount),
+                              })}
                       </Text>
                     </View>
                   )}
                 </Pressable>
               </View>
               {!cashRegisterResolved ? (
-                <Text style={styles.footerBlockedHint}>Kasseneinstellungen werden geladen…</Text>
+                <Text style={styles.footerBlockedHint}>
+                  {t('checkout:posFlow.payment.footer.registerSettingsLoading')}
+                </Text>
               ) : !hasValidCashRegisterId ? (
                 <Text style={styles.footerBlockedHint}>
                   {registerGateFooterHint(registerGateCtx)}
@@ -2103,14 +2141,14 @@ export default function PaymentModal({
               {purchaseState === 'printing' && (
                 <View style={styles.statusBlock}>
                   <WaveLoader size={36} color={SoftColors.accent} />
-                  <Text style={styles.statusText}>Beleg wird gedruckt…</Text>
+                  <Text style={styles.statusText}>{t('checkout:posFlow.payment.print.printing')}</Text>
                 </View>
               )}
 
               {purchaseState === 'completed' && (
                 <View style={styles.statusBlock}>
                   <Ionicons name="checkmark-circle" size={48} color={SoftColors.success} />
-                  <Text style={styles.successTitle}>Zahlung erfolgreich</Text>
+                  <Text style={styles.successTitle}>{t('checkout:posFlow.payment.success.title')}</Text>
                   {(() => {
                     // Receipt: GET /api/pos/payment/{id}/receipt
                     const summaryReceipt = toSummaryReceipt(receiptData ?? null);
@@ -2136,21 +2174,23 @@ export default function PaymentModal({
                         (pdfLoading || !completedPaymentId) && styles.payButtonDisabled,
                       ]}
                       accessibilityRole="button"
-                      accessibilityLabel="Beleg-PDF"
+                      accessibilityLabel={t('checkout:posFlow.payment.success.receiptPdf')}
                     >
                       {pdfLoading ? (
                         <WaveLoader size={20} color={SoftColors.accent} />
                       ) : (
-                        <Text style={styles.successSecondaryBtnText}>Beleg-PDF</Text>
+                        <Text style={styles.successSecondaryBtnText}>
+                          {t('checkout:posFlow.payment.success.receiptPdf')}
+                        </Text>
                       )}
                     </Pressable>
                     <Pressable
                       onPress={() => completedPaymentId && handleSuccessAndClose(completedPaymentId)}
                       style={({ pressed }) => [styles.successPrimaryBtn, pressed && SoftState.pressedScale]}
                       accessibilityRole="button"
-                      accessibilityLabel="Fertig"
+                      accessibilityLabel={t('checkout:posFlow.payment.success.doneA11y')}
                     >
-                      <Text style={styles.payButtonText}>Fertig</Text>
+                      <Text style={styles.payButtonText}>{t('checkout:posFlow.payment.success.done')}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -2158,7 +2198,7 @@ export default function PaymentModal({
 
               {purchaseState === 'print_error' && (
                 <View style={styles.printErrorBlock}>
-                  <Text style={styles.printErrorTitle}>Beleg konnte nicht gedruckt werden</Text>
+                  <Text style={styles.printErrorTitle}>{t('checkout:posFlow.payment.print.failedTitle')}</Text>
                   {(() => {
                     const summaryReceipt = toSummaryReceipt(receiptData ?? null);
                     return summaryReceipt ? (
@@ -2182,14 +2222,18 @@ export default function PaymentModal({
                       {pdfLoading ? (
                         <WaveLoader size={20} color={SoftColors.accent} />
                       ) : (
-                        <Text style={styles.printErrorBtnSecondaryText}>Beleg-PDF</Text>
+                        <Text style={styles.printErrorBtnSecondaryText}>
+                          {t('checkout:posFlow.payment.success.receiptPdf')}
+                        </Text>
                       )}
                     </Pressable>
                     <Pressable onPress={handleSkipPrint} style={styles.printErrorBtnSecondary}>
-                      <Text style={styles.printErrorBtnSecondaryText}>Überspringen</Text>
+                      <Text style={styles.printErrorBtnSecondaryText}>
+                        {t('checkout:posFlow.payment.print.skip')}
+                      </Text>
                     </Pressable>
                     <Pressable onPress={handleRetryPrint} style={styles.payButton}>
-                      <Text style={styles.payButtonText}>Erneut drucken</Text>
+                      <Text style={styles.payButtonText}>{t('checkout:posFlow.payment.print.retry')}</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -2208,18 +2252,17 @@ export default function PaymentModal({
     >
       <View style={styles.startbelegBlockBackdrop}>
         <View style={styles.startbelegBlockCard}>
-          <Text style={styles.startbelegBlockTitle}>Startbeleg erforderlich</Text>
-          <Text style={styles.startbelegBlockBody}>
-            Für diese Registrierkasse fehlt der fiskalische Startbeleg (RKSV). Erstellen Sie zuerst den Startbeleg, danach
-            sind Verkäufe möglich.
-          </Text>
+          <Text style={styles.startbelegBlockTitle}>{t('checkout:posFlow.payment.startbelegBlock.title')}</Text>
+          <Text style={styles.startbelegBlockBody}>{t('checkout:posFlow.payment.startbelegBlock.body')}</Text>
           <Pressable
             onPress={() => setShowStartbelegSaleModal(false)}
             style={({ pressed }) => [styles.startbelegBlockBtn, pressed && SoftState.pressedScale]}
             accessibilityRole="button"
-            accessibilityLabel="Verstanden"
+            accessibilityLabel={t('checkout:posFlow.payment.startbelegBlock.understoodA11y')}
           >
-            <Text style={styles.startbelegBlockBtnText}>Verstanden</Text>
+            <Text style={styles.startbelegBlockBtnText}>
+              {t('checkout:posFlow.payment.startbelegBlock.understood')}
+            </Text>
           </Pressable>
         </View>
       </View>

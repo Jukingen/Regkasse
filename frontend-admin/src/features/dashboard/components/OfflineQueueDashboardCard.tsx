@@ -6,6 +6,7 @@ import { InboxOutlined, LinkOutlined } from '@ant-design/icons';
 import NextLink from 'next/link';
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { formatDateTime } from '@/i18n/formatting';
+import { useI18n } from '@/i18n/I18nProvider';
 import {
     getApiAdminOfflineTransactionsSummary,
     getGetApiAdminOfflineTransactionsSummaryQueryKey,
@@ -17,9 +18,9 @@ const REFETCH_MS = 30_000;
 
 /**
  * Dashboard signal block: TSE offline replay queue (server-queued non-fiscal intents).
- * German operator copy; auto-refresh to match /admin/tse/offline-transactions page.
  */
 export function OfflineQueueDashboardCard() {
+    const { t } = useI18n();
     const { hasPermission } = usePermissions();
     const enabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
 
@@ -45,9 +46,9 @@ export function OfflineQueueDashboardCard() {
             title={
                 <Space>
                     <InboxOutlined />
-                    <span>Offline-Warteschlange (TSE)</span>
+                    <span>{t('dashboard.offlineQueue.title')}</span>
                     <NextLink href="/admin/tse/offline-transactions" style={{ fontWeight: 500 }}>
-                        <LinkOutlined /> Verwalten
+                        <LinkOutlined /> {t('dashboard.offlineQueue.manage')}
                     </NextLink>
                 </Space>
             }
@@ -58,19 +59,29 @@ export function OfflineQueueDashboardCard() {
                     type="warning"
                     showIcon
                     style={{ marginBottom: 12 }}
-                    title="Erhöhter Rückstau"
-                    description={`${pending} Zahlungen warten auf fiskalische Signatur (Schwelle &gt; 10).`}
+                    title={t('dashboard.offlineQueue.backlog_title')}
+                    description={t('dashboard.offlineQueue.backlog_description', { pending })}
                 />
             ) : null}
             <Row gutter={16}>
                 <Col xs={24} sm={8}>
-                    <Statistic title="Ausstehend" value={pending} loading={summaryQuery.isLoading} />
+                    <Statistic
+                        title={t('dashboard.offlineQueue.pending')}
+                        value={pending}
+                        loading={summaryQuery.isLoading}
+                    />
                 </Col>
                 <Col xs={24} sm={8}>
-                    <Statistic title="Fehlgeschlagen" value={failed} loading={summaryQuery.isLoading} />
+                    <Statistic
+                        title={t('dashboard.offlineQueue.failed')}
+                        value={failed}
+                        loading={summaryQuery.isLoading}
+                    />
                 </Col>
                 <Col xs={24} sm={8}>
-                    <Typography.Text type="secondary">Letzter Replay (UTC)</Typography.Text>
+                    <Typography.Text type="secondary">
+                        {t('dashboard.offlineQueue.last_replay_utc')}
+                    </Typography.Text>
                     <div>
                         <Typography.Text strong>
                             {lastReplay

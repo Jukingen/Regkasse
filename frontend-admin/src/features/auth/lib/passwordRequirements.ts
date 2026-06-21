@@ -8,8 +8,10 @@ export const PASSWORD_REQUIREMENT_KEYS = [
 
 export type PasswordRequirementKey = (typeof PASSWORD_REQUIREMENT_KEYS)[number];
 
+import { PASSWORD_MIN_LENGTH } from '@/features/users/constants/validation';
+
 const PASSWORD_REQUIREMENT_TESTS: Record<PasswordRequirementKey, (password: string) => boolean> = {
-    minLength: (password) => password.length >= 8,
+    minLength: (password) => password.length >= PASSWORD_MIN_LENGTH,
     uppercase: (password) => /[A-Z]/.test(password),
     lowercase: (password) => /[a-z]/.test(password),
     digit: (password) => /\d/.test(password),

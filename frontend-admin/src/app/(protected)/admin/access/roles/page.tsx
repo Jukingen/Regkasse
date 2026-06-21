@@ -9,23 +9,12 @@ import { useI18n } from '@/i18n';
 import { RoleManagementDrawer } from '@/features/users/components/RoleManagementDrawer';
 import { CreateRoleModal } from '@/features/users/components/UsersPageActionModals';
 import { useRoleManagementWorkspace } from '@/features/access/hooks/useRoleManagementWorkspace';
-import { createUsersFormRules } from '@/features/users/constants/validation';
-import { usersCopy } from '@/features/users/constants/copy';
-
-const modalFormRulesContext = {
-    requiredMessage: usersCopy.validationRequired,
-    emailInvalidMessage: usersCopy.validationEmail,
-    passwordMinMessage: usersCopy.validationPasswordMin,
-    passwordPolicyMessage: usersCopy.validationPasswordPolicy,
-    maxLengthMessage: usersCopy.validationMaxLength,
-    reasonRequiredMessage: usersCopy.reasonRequiredMessage,
-    roleNameRequiredMessage: usersCopy.roleNameRequired,
-};
+import { createUsersFormRules, buildUsersFormRulesContext } from '@/features/users/constants/validation';
 
 export default function AccessRolesPage() {
     const { t } = useI18n();
     const workspace = useRoleManagementWorkspace();
-    const modalRules = useMemo(() => createUsersFormRules(modalFormRulesContext), []);
+    const modalRules = useMemo(() => createUsersFormRules(buildUsersFormRulesContext(t)), [t]);
 
     const breadcrumbs = [
         adminOverviewCrumb(t),

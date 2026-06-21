@@ -221,10 +221,12 @@
     "subtitle": "Sign in to manage your POS system",
     "username": "Username",
     "loginIdentifierLabel": "Email or username",
-    "loginIdentifierPlaceholder": "e.g. manager1, mustafa, or example@regkasse.at",
+    "loginIdentifierPlaceholder": "e.g. manager1 or name@company.com",
     "loginIdentifierTooltip": "Upper and lower case are treated the same",
     "loginIdentifierCaseHint": "Usernames are not case-sensitive: \"Manager1\", \"manager1\", and \"MANAGER1\" are the same.",
     "password": "Password",
+    "passwordPlaceholder": "Password",
+    "passwordMaskedPlaceholder": "••••••••",
     "login": "Log in",
     "loginSubmitLoading": "Signing in…",
     "checkingSession": "Checking authentication…",
@@ -277,9 +279,13 @@
       "backToLogin": "Back to login"
     },
     "validation": {
-      "usernameRequired": "Please input your username!",
+      "usernameRequired": "Please enter your username",
       "loginIdentifierRequired": "Please enter your email or username",
-      "passwordRequired": "Please input your password!"
+      "loginIdentifierMin": "At least 3 characters",
+      "loginIdentifierMax": "At most 50 characters",
+      "loginIdentifierPattern": "Only letters, digits, underscore and hyphen allowed",
+      "passwordRequired": "Please enter your password",
+      "passwordMax": "Password must be at most 128 characters"
     }
   },
   "tenant": {

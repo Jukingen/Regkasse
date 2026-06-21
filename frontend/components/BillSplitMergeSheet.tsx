@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   FlatList,
@@ -36,6 +37,7 @@ export function BillSplitMergeSheet({
   onSplitItems,
   onMergeTables,
 }: BillSplitMergeSheetProps) {
+  const { t } = useTranslation(['tables', 'common']);
   const [targetTable, setTargetTable] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -58,14 +60,14 @@ export function BillSplitMergeSheet({
 
   const handleConfirm = useCallback(async () => {
     if (targetTable == null) {
-      Alert.alert('Hinweis', 'Bitte Zieltisch wählen.');
+      Alert.alert(t('tables:billSplitMerge.alerts.hintTitle'), t('tables:billSplitMerge.alerts.selectTargetTable'));
       return;
     }
     setBusy(true);
     try {
       if (mode === 'split') {
         if (selectedIds.size === 0) {
-          Alert.alert('Hinweis', 'Bitte mindestens eine Position auswählen.');
+          Alert.alert(t('tables:billSplitMerge.alerts.hintTitle'), t('tables:billSplitMerge.alerts.selectAtLeastOne'));
           return;
         }
         await onSplitItems(targetTable, Array.from(selectedIds));
@@ -74,17 +76,22 @@ export function BillSplitMergeSheet({
       }
       onClose();
     } catch {
-      Alert.alert('Fehler', mode === 'split' ? 'Teilen fehlgeschlagen.' : 'Zusammenführen fehlgeschlagen.');
+      Alert.alert(
+        t('tables:billSplitMerge.alerts.errorTitle'),
+        mode === 'split'
+          ? t('tables:billSplitMerge.alerts.splitFailed')
+          : t('tables:billSplitMerge.alerts.mergeFailed')
+      );
     } finally {
       setBusy(false);
     }
-  }, [targetTable, mode, selectedIds, onSplitItems, onMergeTables, activeTableId, onClose]);
+  }, [targetTable, mode, selectedIds, onSplitItems, onMergeTables, activeTableId, onClose, t]);
 
-  const title = mode === 'split' ? 'Rechnung teilen' : 'Tische zusammenführen';
+  const title = mode === 'split' ? t('tables:billSplitMerge.splitTitle') : t('tables:billSplitMerge.mergeTitle');
   const subtitle =
     mode === 'split'
-      ? `Positionen von Tisch ${activeTableId} auf anderen Tisch verschieben`
-      : `Alle Positionen von Tisch ${activeTableId} mit Zieltisch verbinden`;
+      ? t('tables:billSplitMerge.splitSubtitle', { table: activeTableId })
+      : t('tables:billSplitMerge.mergeSubtitle', { table: activeTableId });
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -99,7 +106,7 @@ export function BillSplitMergeSheet({
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>Zieltisch</Text>
+        <Text style={styles.sectionLabel}>{t('tables:billSplitMerge.targetTable')}</Text>
         <View style={styles.tableRow}>
           {tableOptions.map((n) => (
             <Pressable
@@ -116,7 +123,7 @@ export function BillSplitMergeSheet({
 
         {mode === 'split' ? (
           <>
-            <Text style={styles.sectionLabel}>Positionen</Text>
+            <Text style={styles.sectionLabel}>{t('tables:billSplitMerge.positions')}</Text>
             <FlatList
               data={cartItems}
               keyExtractor={(item) => resolveItemId(item)}
@@ -137,7 +144,7 @@ export function BillSplitMergeSheet({
                   </Pressable>
                 );
               }}
-              ListEmptyComponent={<Text style={styles.empty}>Keine Positionen</Text>}
+              ListEmptyComponent={<Text style={styles.empty}>{t('tables:billSplitMerge.noPositions')}</Text>}
             />
           </>
         ) : null}
@@ -150,7 +157,9 @@ export function BillSplitMergeSheet({
           {busy ? (
             <WaveLoader size={20} color={SoftColors.textInverse} />
           ) : (
-            <Text style={styles.confirmText}>{mode === 'split' ? 'Teilen' : 'Zusammenführen'}</Text>
+            <Text style={styles.confirmText}>
+              {mode === 'split' ? t('tables:billSplitMerge.split') : t('tables:billSplitMerge.merge')}
+            </Text>
           )}
         </Pressable>
       </View>

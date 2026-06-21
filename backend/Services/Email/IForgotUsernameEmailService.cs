@@ -11,4 +11,6 @@ public interface IForgotUsernameEmailService
 
 public sealed record ForgotUsernameEmailRequest(
     string ToEmail,
-    IReadOnlyList<string> Usernames);
+    IReadOnlyList<string> Usernames,
+    /// <summary>Development-only footer for dev-mail capture (never sent via SMTP).</summary>
+    string? DevAccountSummary = null);

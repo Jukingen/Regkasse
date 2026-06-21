@@ -94,7 +94,9 @@ interface CartItemCardProps {
 const getItemName = (item: any) => item.productName || (item.product && item.product.name) || item.name || '';
 const getUnitPrice = (item: any) => item.unitPrice ?? item.price ?? 0;
 
-const CartItemCard = React.memo(({ item, isSelected, onUpdateQty, onRemove, setSelectedItemId }: CartItemCardProps) => (
+const CartItemCard = React.memo(({ item, isSelected, onUpdateQty, onRemove, setSelectedItemId }: CartItemCardProps) => {
+  const { t } = useTranslation(['cart']);
+  return (
   <TouchableOpacity
     key={item.id}
     style={[styles.itemBox, isSelected && styles.itemBoxSelected]}
@@ -110,7 +112,7 @@ const CartItemCard = React.memo(({ item, isSelected, onUpdateQty, onRemove, setS
       <TouchableOpacity
         style={[styles.qtyBtn, isSelected && styles.qtyBtnActive]}
         onPress={() => onUpdateQty(item.id, item.quantity - 1)}
-        accessibilityLabel="Miktarı azalt"
+        accessibilityLabel={t('cart:decreaseQuantity')}
       >
         <Ionicons name="remove-circle-outline" size={22} color={COLORS.danger} />
       </TouchableOpacity>
@@ -118,23 +120,24 @@ const CartItemCard = React.memo(({ item, isSelected, onUpdateQty, onRemove, setS
       <TouchableOpacity
         style={[styles.qtyBtn, isSelected && styles.qtyBtnActive]}
         onPress={() => onUpdateQty(item.id, item.quantity + 1)}
-        accessibilityLabel="Miktarı arttır"
+        accessibilityLabel={t('cart:increaseQuantity')}
       >
         <Ionicons name="add-circle-outline" size={22} color={COLORS.success} />
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.removeBtn, isSelected && styles.removeBtnActive]}
         onPress={() => onRemove(item.id)}
-        accessibilityLabel="Ürünü sil"
+        accessibilityLabel={t('cart:removeItem')}
       >
         <Ionicons name="trash-outline" size={20} color={COLORS.danger} />
       </TouchableOpacity>
     </View>
   </TouchableOpacity>
-));
+  );
+});
 
 const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty, onClear, onConfirmOrder }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['cart']);
   const safeCart = useMemo(() => cart ?? defaultCart, [cart]);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
@@ -162,7 +165,7 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
     return null;
   }
   if (!hasItems) {
-    return <Text style={styles.emptyText}>Sepet boş</Text>;
+    return <Text style={styles.emptyText}>{t('cart:empty')}</Text>;
   }
 
   return (
@@ -185,13 +188,13 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
         ))}
       </ScrollView>
       <View style={styles.summaryRow}>
-        <Text style={styles.totalText}>{t('cart.items', 'Ürünler')}: {safeCart.totalItems ?? 0}</Text>
-        <Text style={styles.totalText}>{t('cart.subtotal', 'Ara Toplam')}: {Number(safeCart.subtotalGross ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.vat', 'KDV')}: {Number(safeCart.includedTaxTotal ?? 0).toFixed(2)} €</Text>
-        <Text style={styles.totalText}>{t('cart.grandTotal', 'Genel Toplam')}: {Number(safeCart.grandTotalGross ?? 0).toFixed(2)} €</Text>
-        <TouchableOpacity style={styles.clearBtn} onPress={onClear} accessibilityLabel="Sepeti Temizle">
+        <Text style={styles.totalText}>{t('cart:items')}: {safeCart.totalItems ?? 0}</Text>
+        <Text style={styles.totalText}>{t('cart:subtotal')}: {Number(safeCart.subtotalGross ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart:vat')}: {Number(safeCart.includedTaxTotal ?? 0).toFixed(2)} €</Text>
+        <Text style={styles.totalText}>{t('cart:grandTotal')}: {Number(safeCart.grandTotalGross ?? 0).toFixed(2)} €</Text>
+        <TouchableOpacity style={styles.clearBtn} onPress={onClear} accessibilityLabel={t('cart:bar.clearA11y')}>
           <Ionicons name="trash" size={18} color="#fff" style={{ marginRight: 4 }} />
-          <Text style={styles.clearBtnText}>{t('cart.clear', 'Sepeti Temizle')}</Text>
+          <Text style={styles.clearBtnText}>{t('cart:clear')}</Text>
         </TouchableOpacity>
       </View>
       
@@ -201,10 +204,10 @@ const CartBar: React.FC<CartBarProps> = ({ cart, loading, onRemove, onUpdateQty,
           <TouchableOpacity 
             style={styles.confirmOrderBtn} 
             onPress={onConfirmOrder}
-            accessibilityLabel="Siparişi Onayla"
+            accessibilityLabel={t('cart:bar.confirmOrderA11y')}
           >
             <Ionicons name="checkmark-circle" size={20} color="#fff" style={{ marginRight: 8 }} />
-            <Text style={styles.confirmOrderBtnText}>Siparişi Onayla</Text>
+            <Text style={styles.confirmOrderBtnText}>{t('cart:confirmOrder')}</Text>
           </TouchableOpacity>
         </View>
       )}

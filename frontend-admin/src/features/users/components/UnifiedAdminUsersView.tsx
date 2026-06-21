@@ -79,7 +79,6 @@ const TABLE_SCROLL_X = 1520;
 const TABLE_SCROLL_Y = 'calc(100vh - 250px)';
 const SEARCH_DEBOUNCE_MS = 300;
 const TEMP_PASSWORD_MASK = '***';
-const PASSWORD_SHOW_TITLE = 'Temporäres Passwort erzeugen und anzeigen';
 const PLATFORM_GROUP_KEY = '__platform__';
 
 function generateQuickPlatformEmail(role: string): string {
@@ -602,12 +601,12 @@ export function UnifiedAdminUsersView({
             <Space size="small">
                 <Typography.Text type="secondary">{TEMP_PASSWORD_MASK}</Typography.Text>
                 {canRevealPassword ? (
-                    <Tooltip title={PASSWORD_SHOW_TITLE}>
+                    <Tooltip title={t('users.password.showButtonTitle')}>
                         <Button
                             type="text"
                             size="small"
                             icon={<EyeOutlined />}
-                            aria-label={PASSWORD_SHOW_TITLE}
+                            aria-label={t('users.password.showButtonTitle')}
                             onClick={() => setPasswordRow(row)}
                         />
                     </Tooltip>

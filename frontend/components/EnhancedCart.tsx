@@ -44,7 +44,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
   onLoadCart,
   onBulkAction,
 }) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['cart', 'common']);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [showDiscountInput, setShowDiscountInput] = useState<string | null>(null);
   const [discountValue, setDiscountValue] = useState('');
@@ -109,13 +109,13 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
   const handleDiscountApply = (productId: string) => {
     const discount = parseFloat(discountValue);
     if (isNaN(discount) || discount < 0) {
-      Alert.alert(t('cart.invalidDiscount'), t('cart.enterValidAmount'));
+      Alert.alert(t('cart:invalidDiscount'), t('cart:enterValidAmount'));
       return;
     }
     
     const item = cart?.items.find(i => i.product.id === productId);
     if (item && discount > item.product.price * item.quantity) {
-      Alert.alert(t('cart.discountTooHigh'), t('cart.discountExceedsTotal'));
+      Alert.alert(t('cart:discountTooHigh'), t('cart:discountExceedsTotal'));
       return;
     }
     
@@ -186,12 +186,12 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
         break;
       case 'remove':
         Alert.alert(
-          t('cart.bulkRemoveTitle'),
-          t('cart.bulkRemoveMessage', { count: selectedItems.size }),
+          t('cart:bulkRemoveTitle'),
+          t('cart:bulkRemoveMessage', { count: selectedItems.size }),
           [
             { text: t('common.cancel'), style: 'cancel' },
             {
-              text: t('cart.remove'),
+              text: t('cart:remove'),
               style: 'destructive',
               onPress: () => {
                 selectedIds.forEach(id => onRemoveItem(id));
@@ -249,12 +249,12 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
         <Animated.View style={{ transform: [{ scale: scaleAnimation }] }}>
           <Ionicons name="cart-outline" size={64} color={Colors.light.textSecondary} />
         </Animated.View>
-        <Text style={styles.emptyCartTitle}>{t('cart.emptyCart')}</Text>
-        <Text style={styles.emptyCartSubtitle}>{t('cart.addItemsToStart')}</Text>
+        <Text style={styles.emptyCartTitle}>{t('cart:emptyCart')}</Text>
+        <Text style={styles.emptyCartSubtitle}>{t('cart:addItemsToStart')}</Text>
         <View style={styles.emptyCartActions}>
           <TouchableOpacity style={styles.loadCartButton} onPress={onLoadCart}>
             <Ionicons name="folder-open-outline" size={20} color={Colors.light.primary} />
-            <Text style={styles.loadCartText}>{t('cart.loadSavedCart')}</Text>
+            <Text style={styles.loadCartText}>{t('cart:loadSavedCart')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -322,7 +322,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
             </Text>
             {item.discountAmount && item.discountAmount > 0 && (
               <Text style={styles.discountText}>
-                -€{item.discountAmount.toFixed(2)} {t('cart.discount')}
+                -€{item.discountAmount.toFixed(2)} {t('cart:discount')}
               </Text>
             )}
           </View>
@@ -404,10 +404,10 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
           >
             {/* Notlar */}
             <View style={styles.detailSection}>
-              <Text style={styles.detailLabel}>{t('cart.notes')}:</Text>
+              <Text style={styles.detailLabel}>{t('cart:notes')}:</Text>
               <TextInput
                 style={styles.notesInput}
-                placeholder={t('cart.addNotes')}
+                placeholder={t('cart:addNotes')}
                 value={item.notes || ''}
                 onChangeText={(text) => onUpdateNotes(item.product.id, text)}
                 multiline
@@ -418,14 +418,14 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
             {/* İndirim */}
             <View style={styles.detailSection}>
               <View style={styles.discountRow}>
-                <Text style={styles.detailLabel}>{t('cart.discount')}:</Text>
+                <Text style={styles.detailLabel}>{t('cart:discount')}:</Text>
                 <TouchableOpacity
                   style={styles.discountButton}
                   onPress={() => setShowDiscountInput(isDiscountInputVisible ? null : item.product.id)}
                 >
                   <Ionicons name="pricetag-outline" size={16} color={Colors.light.primary} />
                   <Text style={styles.discountButtonText}>
-                    {item.discountAmount ? `€${item.discountAmount.toFixed(2)}` : t('cart.addDiscount')}
+                    {item.discountAmount ? `€${item.discountAmount.toFixed(2)}` : t('cart:addDiscount')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -443,7 +443,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
                     style={styles.applyDiscountButton}
                     onPress={() => handleDiscountApply(item.product.id)}
                   >
-                    <Text style={styles.applyDiscountText}>{t('cart.apply')}</Text>
+                    <Text style={styles.applyDiscountText}>{t('cart:apply')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -452,14 +452,14 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
             {/* Ürün Detayları */}
             <View style={styles.productDetails}>
               <Text style={styles.detailText}>
-                {t('cart.unitPrice')}: €{item.product.price.toFixed(2)}
+                {t('cart:unitPrice')}: €{item.product.price.toFixed(2)}
               </Text>
               <Text style={styles.detailText}>
-                {t('cart.tax')}: {t(`tax.${item.product.taxType}`)} ({Math.round(getTaxRate(item.product.taxType) * 100)}%)
+                {t('cart:tax')}: {t(`tax.${item.product.taxType}`)} ({Math.round(getTaxRate(item.product.taxType) * 100)}%)
               </Text>
               {/* Stock info intentionally hidden from cashier UI. Stock management is handled in admin panel. Kept in code for potential future POS usage. */}
               {/* <Text style={styles.detailText}>
-                {t('cart.stock')}: {item.product.stockQuantity}
+                {t('cart:stock')}: {item.product.stockQuantity}
               </Text> */}
             </View>
 
@@ -468,12 +468,12 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
               style={styles.removeButton}
               onPress={() => {
                 Alert.alert(
-                  t('cart.removeItem'),
-                  t('cart.removeItemConfirm'),
+                  t('cart:removeItem'),
+                  t('cart:removeItemConfirm'),
                   [
                     { text: t('common.cancel'), style: 'cancel' },
                     { 
-                      text: t('cart.remove'), 
+                      text: t('cart:remove'), 
                       style: 'destructive', 
                       onPress: () => {
                         // Kaldırma animasyonu
@@ -491,7 +491,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
               }}
             >
               <Ionicons name="trash-outline" size={16} color={Colors.light.error} />
-              <Text style={styles.removeButtonText}>{t('cart.removeItem')}</Text>
+              <Text style={styles.removeButtonText}>{t('cart:removeItem')}</Text>
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -535,7 +535,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
         >
           <View style={styles.selectionInfo}>
             <Text style={styles.selectionText}>
-              {selectedItems.size} {t('cart.itemsSelected')}
+              {selectedItems.size} {t('cart:itemsSelected')}
             </Text>
           </View>
           
@@ -575,7 +575,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
       <View style={styles.cartHeader}>
         <View style={styles.cartTitleContainer}>
           <Ionicons name="cart" size={20} color={Colors.light.primary} />
-          <Text style={styles.cartTitle}>{t('cart.cart')}</Text>
+          <Text style={styles.cartTitle}>{t('cart:cart')}</Text>
           <Text style={styles.itemCount}>({cart?.items.length})</Text>
         </View>
       </View>
@@ -592,14 +592,14 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
       {/* Sepet Özeti - Kompakt */}
       <View style={styles.cartSummary}>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Zwischensumme:</Text>
+          <Text style={styles.summaryLabel}>{t('cart:summary.subtotal')}</Text>
           <Text style={styles.summaryValue}>€{subtotal.toFixed(2)}</Text>
         </View>
         
         {/* Toplam İndirim */}
         {discountAmount > 0 && (
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Rabatt:</Text>
+            <Text style={styles.summaryLabel}>{t('cart:summary.discount')}</Text>
             <Text style={styles.summaryDiscount}>
               -€{discountAmount.toFixed(2)}
             </Text>
@@ -609,7 +609,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
         {getTaxDetails().map((taxDetail, index) => (
           <View key={index} style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>
-              MwSt. ({Math.round(taxDetail.rate * 100)}%):
+              {t('cart:summary.vatRate', { rate: Math.round(taxDetail.rate * 100) })}
             </Text>
             <Text style={styles.summaryValue}>€{taxDetail.amount.toFixed(2)}</Text>
           </View>
@@ -618,7 +618,7 @@ const EnhancedCart: React.FC<EnhancedCartProps> = ({
         <View style={styles.summaryDivider} />
         
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Gesamtsumme:</Text>
+          <Text style={styles.summaryLabel}>{t('cart:summary.grandTotal')}</Text>
           <Animated.Text style={[styles.summaryTotal, { transform: [{ scale: totalAnim }] }]}>€{totalAmount.toFixed(2)}</Animated.Text>
         </View>
       </View>

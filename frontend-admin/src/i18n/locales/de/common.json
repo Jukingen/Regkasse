@@ -221,10 +221,12 @@
     "subtitle": "Melden Sie sich an, um Ihr Kassensystem zu verwalten",
     "username": "Benutzername",
     "loginIdentifierLabel": "E-Mail oder Benutzername",
-    "loginIdentifierPlaceholder": "z. B. manager1, mustafa oder beispiel@regkasse.at",
+    "loginIdentifierPlaceholder": "z. B. manager1 oder name@firma.at",
     "loginIdentifierTooltip": "Groß-/Kleinschreibung wird nicht unterschieden",
     "loginIdentifierCaseHint": "Benutzername ist nicht case-sensitive: „Manager1“, „manager1“ und „MANAGER1“ sind gleich.",
     "password": "Passwort",
+    "passwordPlaceholder": "Passwort",
+    "passwordMaskedPlaceholder": "••••••••",
     "login": "Anmelden",
     "loginSubmitLoading": "Anmeldung läuft …",
     "checkingSession": "Authentifizierung wird geprueft …",
@@ -257,10 +259,10 @@
     "logoutSuccess": "Abmeldung erfolgreich.",
     "loginSuccess": "Anmeldung erfolgreich",
     "passwordChangedLoginPrompt": "Passwort aktualisiert. Bitte melden Sie sich mit Ihrem neuen Passwort an.",
-    "invalidCredentials": "Ungültiger Benutzername oder Passwort",
+    "invalidCredentials": "Benutzername oder Passwort ist falsch.",
     "loginFailed": "Anmeldung fehlgeschlagen",
     "loginFailedWithStatus": "Anmeldung fehlgeschlagen ({{status}}): {{details}}",
-    "loginInvalidCredentials": "Ungültiger Benutzername oder Passwort",
+    "loginInvalidCredentials": "Benutzername oder Passwort ist falsch.",
     "loginFailedGeneric": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
     "forgotUsernameLink": "Benutzername vergessen?",
     "forgotUsername": {
@@ -277,9 +279,13 @@
       "backToLogin": "Zurück zur Anmeldung"
     },
     "validation": {
-      "usernameRequired": "Bitte Benutzernamen eingeben!",
+      "usernameRequired": "Bitte Benutzernamen eingeben",
       "loginIdentifierRequired": "Bitte E-Mail oder Benutzername eingeben",
-      "passwordRequired": "Bitte Passwort eingeben!"
+      "loginIdentifierMin": "Mindestens 3 Zeichen",
+      "loginIdentifierMax": "Maximal 50 Zeichen",
+      "loginIdentifierPattern": "Nur Buchstaben, Zahlen, Unterstrich und Bindestrich erlaubt",
+      "passwordRequired": "Bitte Passwort eingeben",
+      "passwordMax": "Passwort darf maximal 128 Zeichen haben"
     }
   },
   "tenant": {

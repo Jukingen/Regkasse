@@ -22,6 +22,7 @@ import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { LanguageSelector } from '@/features/settings/components/LanguageSelector';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
+import { allPasswordRequirementsMet } from '@/features/auth/lib/passwordRequirements';
 
 const ATU_REGEX = /^ATU\d{8}$/;
 
@@ -504,9 +505,20 @@ function TSETab() {
 }
 
 function ChangeMyPasswordTab() {
+    const { message } = useAntdApp();
     const { t } = useI18n();
     const [form] = Form.useForm<{ currentPassword: string; newPassword: string; confirmPassword: string }>();
     const [loading, setLoading] = useState(false);
+
+    const validateNewPassword = (_: unknown, value: string) => {
+        if (!value) {
+            return Promise.reject(new Error(t('settings.changePassword.newPasswordRequired')));
+        }
+        if (!allPasswordRequirementsMet(value)) {
+            return Promise.reject(new Error(t('settings.changePassword.requirementsNotMet')));
+        }
+        return Promise.resolve();
+    };
 
     const onFinish = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
         if (values.newPassword !== values.confirmPassword) {
@@ -542,17 +554,23 @@ function ChangeMyPasswordTab() {
                     label={t('settings.changePassword.currentPassword')}
                     rules={[{ required: true, message: t('settings.changePassword.currentPasswordRequired') }]}
                 >
-                    <Input.Password placeholder="••••••••" autoComplete="current-password" />
+                    <Input.Password
+                        placeholder={t('settings.changePassword.currentPasswordPlaceholder')}
+                        autoComplete="current-password"
+                    />
                 </Form.Item>
                 <Form.Item
                     name="newPassword"
                     label={t('settings.changePassword.newPassword')}
                     rules={[
                         { required: true, message: t('settings.changePassword.newPasswordRequired') },
-                        { min: 8, message: t('settings.changePassword.minLength') },
+                        { validator: validateNewPassword },
                     ]}
                 >
-                    <Input.Password placeholder="••••••••" autoComplete="new-password" />
+                    <Input.Password
+                        placeholder={t('settings.changePassword.newPasswordPlaceholder')}
+                        autoComplete="new-password"
+                    />
                 </Form.Item>
                 <Form.Item
                     name="confirmPassword"
@@ -568,7 +586,10 @@ function ChangeMyPasswordTab() {
                         }),
                     ]}
                 >
-                    <Input.Password placeholder="••••••••" autoComplete="new-password" />
+                    <Input.Password
+                        placeholder={t('settings.changePassword.confirmPasswordPlaceholder')}
+                        autoComplete="new-password"
+                    />
                 </Form.Item>
                 <Form.Item>
                     <Button type="primary" htmlType="submit" loading={loading} icon={<LockOutlined />}>
@@ -588,6 +609,7 @@ type DemoResetApiResponse = {
 };
 
 function DemoResetTab() {
+    const { message } = useAntdApp();
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmText, setConfirmText] = useState('');
     const isDevelopment = process.env.NODE_ENV !== 'production';

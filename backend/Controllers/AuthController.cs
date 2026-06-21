@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using KasseAPI_Final.Auth;
@@ -49,7 +50,6 @@ namespace KasseAPI_Final.Controllers
         private readonly ILoginTenantResolver _loginTenantResolver;
         private readonly IAuthService _authService;
         private readonly IUserTenantMembershipProvisioner _tenantMembershipProvisioner;
-        private readonly IUserUsernameHistoryService _usernameHistory;
         private readonly IForgotUsernameEmailService _forgotUsernameEmail;
         private readonly IForgotPasswordEmailService _forgotPasswordEmail;
         private readonly ITenantSessionPolicyService _sessionPolicyService;
@@ -74,7 +74,6 @@ namespace KasseAPI_Final.Controllers
             ILoginTenantResolver loginTenantResolver,
             IAuthService authService,
             IUserTenantMembershipProvisioner tenantMembershipProvisioner,
-            IUserUsernameHistoryService usernameHistory,
             IForgotUsernameEmailService forgotUsernameEmail,
             IForgotPasswordEmailService forgotPasswordEmail,
             ITenantSessionPolicyService sessionPolicyService,
@@ -94,7 +93,6 @@ namespace KasseAPI_Final.Controllers
             _loginTenantResolver = loginTenantResolver;
             _authService = authService;
             _tenantMembershipProvisioner = tenantMembershipProvisioner;
-            _usernameHistory = usernameHistory;
             _forgotUsernameEmail = forgotUsernameEmail;
             _forgotPasswordEmail = forgotPasswordEmail;
             _sessionPolicyService = sessionPolicyService;
@@ -123,7 +121,8 @@ namespace KasseAPI_Final.Controllers
         }
 
         /// <summary>
-        /// Sends login usernames for the given email (admin app). Always returns success to avoid account enumeration.
+        /// Sends the current login username for the given email (admin app). Always returns success to avoid account enumeration.
+        /// Username change history remains in audit tables only — not included in this email.
         /// </summary>
         [AllowAnonymous]
         [HttpPost("forgot-username")]
@@ -149,14 +148,21 @@ namespace KasseAPI_Final.Controllers
                 return Ok(new { message = genericMessage });
             }
 
-            var usernames = await _usernameHistory
-                .GetKnownUsernamesForUserAsync(user.Id, user.UserName, cancellationToken)
-                .ConfigureAwait(false);
+            var usernames = string.IsNullOrWhiteSpace(user.UserName)
+                ? Array.Empty<string>()
+                : new[] { user.UserName.Trim() };
 
-            if (usernames.Count > 0)
+            if (usernames.Length > 0)
             {
+                string? devSummary = null;
+                if (HttpContext.RequestServices.GetService<IWebHostEnvironment>()?.IsDevelopment() == true)
+                {
+                    devSummary =
+                        $"Matched account: role={user.Role}, current username={user.UserName}, userId={user.Id}";
+                }
+
                 var sent = await _forgotUsernameEmail.TrySendForgotUsernameAsync(
-                    new ForgotUsernameEmailRequest(email, usernames),
+                    new ForgotUsernameEmailRequest(email, usernames, devSummary),
                     cancellationToken).ConfigureAwait(false);
 
                 if (!sent)

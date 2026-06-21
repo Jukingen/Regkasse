@@ -47,7 +47,7 @@ export function PasswordViewModal({
 
     const handleCopy = async () => {
         if (!password) {
-            message.error('Kein Passwort zum Kopieren vorhanden');
+            message.error(t('users.password.noPasswordToCopy'));
             return;
         }
 
@@ -61,13 +61,13 @@ export function PasswordViewModal({
 
     return (
         <Modal
-            title={`Passwort für ${userEmail}`}
+            title={t('users.password.titleForEmail', { email: userEmail })}
             open={open}
             onCancel={onClose}
             destroyOnHidden
             footer={[
                 <Button key="close" onClick={onClose}>
-                    Schließen
+                    {t('common.buttons.close')}
                 </Button>,
                 <Button
                     key="copy"
@@ -82,7 +82,7 @@ export function PasswordViewModal({
         >
             <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                 <Alert
-                    title="Sicherheitshinweis"
+                    title={t('users.create.passwordWarningTitle')}
                     description={t('users.create.generatedPasswordInfo')}
                     type="warning"
                     showIcon
@@ -94,7 +94,7 @@ export function PasswordViewModal({
                         onClick={() => void handleGenerate()}
                         loading={generateTemporaryPasswordMutation.isPending}
                     >
-                        Temporäres Passwort generieren
+                        {t('users.password.generateTemporary')}
                     </Button>
                 ) : (
                     <Space.Compact style={{ width: '100%' }}>

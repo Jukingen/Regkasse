@@ -32,7 +32,6 @@ import { EditUsernameModal } from '@/features/users/components/EditUsernameModal
 import { UserActivityTimeline } from '@/features/users/components/UserActivityTimeline';
 import { UserTenantSummary } from '@/features/users/components/UserTenantSummary';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
-import { usersCopy } from '@/features/users/constants/copy';
 
 function displayName(firstName?: string | null, lastName?: string | null, userName?: string | null): string {
     const name = `${firstName ?? ''} ${lastName ?? ''}`.trim();
@@ -124,14 +123,14 @@ export function AdminUserDetailPage() {
 
             {user ? (
                 <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-                    <Card title={usersCopy.details}>
+                    <Card title={t('users.list.details')}>
                         <Descriptions column={1} bordered size="small">
-                            <Descriptions.Item label={usersCopy.status}>
+                            <Descriptions.Item label={t('users.list.columnStatus')}>
                                 <Tag color={user.isActive ? 'green' : 'red'}>
-                                    {user.isActive ? usersCopy.statusActive : usersCopy.statusInactive}
+                                    {user.isActive ? t('users.list.statusActive') : t('users.list.statusInactive')}
                                 </Tag>
                             </Descriptions.Item>
-                            <Descriptions.Item label={usersCopy.role}>
+                            <Descriptions.Item label={t('users.list.columnRole')}>
                                 <Tag color="gold">{user.role ?? '—'}</Tag>
                             </Descriptions.Item>
                             <Descriptions.Item label={t('users.tabs.tenant.columnTenant')}>
@@ -141,7 +140,7 @@ export function AdminUserDetailPage() {
                                     loading={tenantsLoading}
                                 />
                             </Descriptions.Item>
-                            <Descriptions.Item label={usersCopy.userName}>
+                            <Descriptions.Item label={t('users.form.userName')}>
                                 <Space wrap>
                                     <Typography.Text>{user.userName?.trim() || '—'}</Typography.Text>
                                     {policy.canEdit && userId ? (
@@ -156,13 +155,13 @@ export function AdminUserDetailPage() {
                                     ) : null}
                                 </Space>
                             </Descriptions.Item>
-                            <Descriptions.Item label={usersCopy.email}>
+                            <Descriptions.Item label={t('users.list.columnEmail')}>
                                 {user.email ?? '—'}
                             </Descriptions.Item>
-                            <Descriptions.Item label={usersCopy.employeeNumber}>
+                            <Descriptions.Item label={t('users.form.employeeNumber')}>
                                 {user.employeeNumber ?? '—'}
                             </Descriptions.Item>
-                            <Descriptions.Item label={usersCopy.lastLogin}>
+                            <Descriptions.Item label={t('users.list.columnLastLogin')}>
                                 {user.lastLoginAt
                                     ? formatDateTime(user.lastLoginAt, formatLocale)
                                     : '—'}
@@ -171,12 +170,12 @@ export function AdminUserDetailPage() {
                     </Card>
 
                     <Card
-                        title={usersCopy.activity}
+                        title={t('users.activity.tabLabel')}
                         extra={
                             userId ? (
                                 <Link href={`/admin/reports/user-activity?userId=${encodeURIComponent(userId)}`}>
                                     <Button type="link" size="small">
-                                        {usersCopy.openFullActivityReport}
+                                        {t('users.activity.openFullReport')}
                                     </Button>
                                 </Link>
                             ) : null

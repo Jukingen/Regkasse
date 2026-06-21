@@ -6,6 +6,7 @@ import { useGetApiTseHealth } from '@/api/generated/tse/tse';
 import type { TseHealthResponseDto } from '@/api/generated/model';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { formatDateTime } from '@/i18n/formatting';
+import { useI18n } from '@/i18n/I18nProvider';
 import { AppPermissions } from '@/shared/auth/permissions';
 
 const REFETCH_MS = 30_000;
@@ -19,23 +20,11 @@ function healthPercentFromSnapshot(data: TseHealthResponseDto | undefined): numb
     return 55;
 }
 
-function statusBadge(data: TseHealthResponseDto | undefined) {
-    switch (data?.status) {
-        case 'Online':
-            return <Badge status="success" text="Gesund" />;
-        case 'Degraded':
-            return <Badge status="warning" text="Eingeschränkt" />;
-        case 'Offline':
-            return <Badge status="error" text="Offline" />;
-        default:
-            return <Badge status="default" text="Unbekannt" />;
-    }
-}
-
 /**
  * Cached TSE operational health from `/api/tse/health` (background probe snapshot).
  */
 export function TseHealthCard() {
+    const { t } = useI18n();
     const { isAuthorized } = useAuthorizationGate({
         requiredPermission: AppPermissions.CashRegisterView,
     });
@@ -49,6 +38,19 @@ export function TseHealthCard() {
         },
     });
 
+    const statusBadge = (snapshot: TseHealthResponseDto | undefined) => {
+        switch (snapshot?.status) {
+            case 'Online':
+                return <Badge status="success" text={t('dashboard.tseHealth.status_healthy')} />;
+            case 'Degraded':
+                return <Badge status="warning" text={t('dashboard.tseHealth.status_degraded')} />;
+            case 'Offline':
+                return <Badge status="error" text={t('dashboard.tseHealth.status_offline')} />;
+            default:
+                return <Badge status="default" text={t('dashboard.tseHealth.status_unknown')} />;
+        }
+    };
+
     if (!isAuthorized) {
         return null;
     }
@@ -60,15 +62,35 @@ export function TseHealthCard() {
             ? formatDateTime(data.estimatedRecoveryTimeUtc, '')
             : null;
 
+    const failureDescription = (snapshot: TseHealthResponseDto) => (
+        <>
+            {t('dashboard.tseHealth.failures_in_row', { count: snapshot.consecutiveFailures ?? 0 })}
+            {nextProbeHint ? (
+                <>
+                    {' '}
+                    {t('dashboard.tseHealth.next_probe_eta', { time: nextProbeHint })}
+                </>
+            ) : null}
+            {snapshot.lastErrorMessageSafe ? (
+                <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                    {snapshot.lastErrorMessageSafe}
+                </Typography.Paragraph>
+            ) : null}
+        </>
+    );
+
     return (
-        <Card title="TSE-Status" loading={isLoading} style={{ marginBottom: 24 }}>
+        <Card title={t('dashboard.tseHealth.title')} loading={isLoading} style={{ marginBottom: 24 }}>
             <Row gutter={16}>
                 <Col xs={24} sm={12}>
-                    <Statistic title="Aktueller Status" valueRender={() => statusBadge(data)} />
+                    <Statistic
+                        title={t('dashboard.tseHealth.current_status')}
+                        valueRender={() => statusBadge(data)}
+                    />
                 </Col>
                 <Col xs={24} sm={12}>
                     <Statistic
-                        title="Letzter erfolgreicher TSE-Check"
+                        title={t('dashboard.tseHealth.last_successful_check')}
                         value={
                             data?.lastSuccessfulPingUtc
                                 ? formatDateTime(data.lastSuccessfulPingUtc, '')
@@ -81,37 +103,25 @@ export function TseHealthCard() {
             <Row gutter={16} style={{ marginTop: 16 }}>
                 <Col xs={24} sm={12}>
                     <Statistic
-                        title="Letzte Prüfung (UTC)"
+                        title={t('dashboard.tseHealth.last_check_utc')}
                         value={
                             data?.lastCheckUtc ? formatDateTime(data.lastCheckUtc, '') : '—'
                         }
                     />
                 </Col>
                 <Col xs={24} sm={12}>
-                    <Statistic title="Aufeinanderfolgende Fehler" value={data?.consecutiveFailures ?? 0} />
+                    <Statistic
+                        title={t('dashboard.tseHealth.consecutive_failures')}
+                        value={data?.consecutiveFailures ?? 0}
+                    />
                 </Col>
             </Row>
 
             {data?.status === 'Degraded' && (
                 <Alert
                     type="warning"
-                    title="TSE eingeschränkt"
-                    description={
-                        <>
-                            Fehler in Folge: {data.consecutiveFailures ?? 0}.
-                            {nextProbeHint ? (
-                                <>
-                                    {' '}
-                                    Nächste geplante Prüfung (ETA): {nextProbeHint}.
-                                </>
-                            ) : null}
-                            {data.lastErrorMessageSafe ? (
-                                <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-                                    {data.lastErrorMessageSafe}
-                                </Typography.Paragraph>
-                            ) : null}
-                        </>
-                    }
+                    title={t('dashboard.tseHealth.degraded_title')}
+                    description={failureDescription(data)}
                     style={{ marginTop: 16 }}
                     showIcon
                 />
@@ -120,23 +130,8 @@ export function TseHealthCard() {
             {data?.status === 'Offline' && (
                 <Alert
                     type="error"
-                    title="TSE offline"
-                    description={
-                        <>
-                            Fehler in Folge: {data.consecutiveFailures ?? 0}.
-                            {nextProbeHint ? (
-                                <>
-                                    {' '}
-                                    Nächste geplante Prüfung (ETA): {nextProbeHint}.
-                                </>
-                            ) : null}
-                            {data.lastErrorMessageSafe ? (
-                                <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-                                    {data.lastErrorMessageSafe}
-                                </Typography.Paragraph>
-                            ) : null}
-                        </>
-                    }
+                    title={t('dashboard.tseHealth.offline_title')}
+                    description={failureDescription(data)}
                     style={{ marginTop: 16 }}
                     showIcon
                 />

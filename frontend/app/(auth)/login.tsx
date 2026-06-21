@@ -16,6 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { storage } from '../../utils/storage';
 import { useAuth } from '../../contexts/AuthContext';
 import { getLoginFailure } from '@/utils/loginErrorHandler';
+import { validateUsername, validatePassword } from '../../utils/validation';
 import { useTranslation } from 'react-i18next';
 
 import { WaveLoader } from '../../src/components/common/WaveLoader';
@@ -68,17 +69,19 @@ export default function LoginScreen() {
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
 
-    if (!loginIdentifier.trim()) {
-      newErrors.loginIdentifier = t('validation.loginIdentifierRequired');
+    const identifierResult = validateUsername(loginIdentifier);
+    if (!identifierResult.isValid) {
+      newErrors.loginIdentifier = identifierResult.message;
     }
 
-    if (!password) {
-      newErrors.password = t('validation.passwordRequired');
+    const passwordResult = validatePassword(password);
+    if (!passwordResult.isValid) {
+      newErrors.password = passwordResult.message;
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [loginIdentifier, password, t]);
+  }, [loginIdentifier, password]);
 
   // Handle login
   const handleLogin = useCallback(async () => {

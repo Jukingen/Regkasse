@@ -70,7 +70,7 @@ export function ResetPasswordModal({
 
     const copyPassword = async () => {
         if (!password) {
-            message.error('Kein Passwort zum Kopieren vorhanden');
+            message.error(t('users.password.noPasswordToCopy'));
             return;
         }
 

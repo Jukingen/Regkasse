@@ -80,5 +80,18 @@
     "reason": "Stornierungsgrund",
     "cancelledBy": "Storniert von",
     "cancelledAt": "Storniert am"
+  },
+  "cardPayment": {
+    "title": "Kartenzahlung",
+    "testHint": "Test: 4242424242424242 = Erfolg",
+    "cardNumberPlaceholder": "Kartennummer",
+    "expiryPlaceholder": "MM/JJ",
+    "cvcPlaceholder": "CVC",
+    "pay": "Bezahlen",
+    "cancel": "Abbrechen",
+    "invalidCardNumber": "Bitte geben Sie eine gültige Kartennummer ein.",
+    "noRegisterAssigned": "Keine Kasse zugewiesen.",
+    "declined": "Kartenzahlung abgelehnt.",
+    "failed": "Kartenzahlung fehlgeschlagen."
   }
 }

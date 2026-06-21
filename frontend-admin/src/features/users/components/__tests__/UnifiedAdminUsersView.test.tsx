@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import '@testing-library/jest-dom';
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -12,22 +12,6 @@ import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminU
 
 const mockListTenantUsers = vi.fn();
 const mockGenerateTemporaryPassword = vi.fn();
-
-beforeAll(() => {
-    Object.defineProperty(window, 'matchMedia', {
-        writable: true,
-        value: vi.fn().mockImplementation((query: string) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: vi.fn(),
-            removeListener: vi.fn(),
-            addEventListener: vi.fn(),
-            removeEventListener: vi.fn(),
-            dispatchEvent: vi.fn(),
-        })),
-    });
-});
 
 vi.mock('next/navigation', () => ({
     useRouter: () => ({
@@ -38,6 +22,7 @@ vi.mock('next/navigation', () => ({
         forward: vi.fn(),
         prefetch: vi.fn(),
     }),
+    usePathname: () => '/admin/users',
     useSearchParams: () => new URLSearchParams('tenantId=tenant-1'),
 }));
 
@@ -73,6 +58,24 @@ vi.mock('@/features/users/hooks/useCreateUser', () => ({
     useCreateUser: () => ({
         mutateAsync: vi.fn(),
         isPending: false,
+    }),
+}));
+
+vi.mock('@/hooks/useAntdApp', () => ({
+    useAntdApp: () => ({
+        message: {
+            success: vi.fn(),
+            error: vi.fn(),
+            info: vi.fn(),
+            warning: vi.fn(),
+        },
+        notification: {
+            success: vi.fn(),
+            error: vi.fn(),
+        },
+        modal: {
+            confirm: vi.fn(),
+        },
     }),
 }));
 

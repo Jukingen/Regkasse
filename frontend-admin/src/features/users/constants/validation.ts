@@ -64,7 +64,45 @@ export type RuleFactoryContext = {
   maxLengthMessage: (max: number) => string;
   reasonRequiredMessage?: string;
   roleNameRequiredMessage?: string;
+  /** When set, create-user username field uses login username rules (min/pattern). */
+  loginUserNameMessages?: LoginUserNameRuleMessages;
 };
+
+export type UsersFormTranslate = (key: string, options?: Record<string, string | number>) => string;
+
+/** Builds locale-aware validation messages for user forms. */
+export function buildUsersFormRulesContext(t: UsersFormTranslate): RuleFactoryContext {
+  return {
+    requiredMessage: t('users.formValidation.required'),
+    emailInvalidMessage: t('users.formValidation.emailInvalid'),
+    passwordMinMessage: t('users.formValidation.passwordMin', { min: PASSWORD_MIN_LENGTH }),
+    passwordPolicyMessage: t('users.formValidation.passwordPolicy'),
+    maxLengthMessage: (max: number) => t('users.formValidation.maxLength', { max }),
+    reasonRequiredMessage: t('users.formValidation.reasonRequired'),
+    roleNameRequiredMessage: t('users.formValidation.roleNameRequired'),
+    loginUserNameMessages: {
+      required: t('users.username.validation.required'),
+      min: t('users.username.validation.min'),
+      max: t('users.username.validation.max'),
+      pattern: t('users.username.validation.pattern'),
+    },
+  };
+}
+
+/** Maps backend Identity password errors to localized validation messages. */
+export function mapBackendPasswordError(t: UsersFormTranslate, backendMessage: string): string {
+  const lower = backendMessage.toLowerCase();
+  if (lower.includes('at least') && lower.includes('character')) {
+    return t('users.passwordErrors.minLength', { min: PASSWORD_MIN_LENGTH });
+  }
+  if (lower.includes('digit') || lower.includes('number')) return t('users.passwordErrors.digit');
+  if (lower.includes('lowercase') || lower.includes('lower case')) return t('users.passwordErrors.lowercase');
+  if (lower.includes('uppercase') || lower.includes('upper case')) return t('users.passwordErrors.uppercase');
+  if (lower.includes('non-alphanumeric') || lower.includes('non alphanumeric') || lower.includes('special')) {
+    return t('users.passwordErrors.nonAlphanumeric');
+  }
+  return t('users.passwordErrors.generic');
+}
 
 /** Returns first policy violation message or null if valid. Aligns with backend Identity. */
 export function getPasswordPolicyError(
@@ -103,11 +141,15 @@ export function createLoginUserNameRules(messages: LoginUserNameRuleMessages) {
 }
 
 export function createUsersFormRules(copy: RuleFactoryContext) {
+  const userNameRules = copy.loginUserNameMessages
+    ? createLoginUserNameRules(copy.loginUserNameMessages)
+    : [
+        { required: true, message: copy.requiredMessage },
+        maxLen(NAME_MAX_LENGTH, copy.maxLengthMessage(NAME_MAX_LENGTH)),
+      ];
+
   return {
-    userName: [
-      { required: true, message: copy.requiredMessage },
-      maxLen(NAME_MAX_LENGTH, copy.maxLengthMessage(NAME_MAX_LENGTH)),
-    ],
+    userName: userNameRules,
     password: [
       { required: true, message: copy.requiredMessage },
       { min: PASSWORD_MIN_LENGTH, message: copy.passwordMinMessage },

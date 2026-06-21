@@ -7,6 +7,8 @@ namespace KasseAPI_Final.Services.Email;
 
 public sealed class ForgotUsernameEmailService : IForgotUsernameEmailService
 {
+    internal const string Subject = "Ihre Regkasse-Anmeldenamen";
+
     private readonly EmailSmtpOptions _options;
     private readonly ILogger<ForgotUsernameEmailService> _logger;
 
@@ -33,7 +35,7 @@ public sealed class ForgotUsernameEmailService : IForgotUsernameEmailService
         using var msg = new MailMessage
         {
             From = new MailAddress(_options.From!.Trim()),
-            Subject = "Ihre Regkasse-Anmeldenamen",
+            Subject = Subject,
             Body = BuildBody(request),
             IsBodyHtml = false,
         };
@@ -66,31 +68,25 @@ public sealed class ForgotUsernameEmailService : IForgotUsernameEmailService
         }
     }
 
-    private static string BuildBody(ForgotUsernameEmailRequest request)
+    internal static string BuildBody(ForgotUsernameEmailRequest request)
     {
-        var lines = new List<string>
-        {
-            "Guten Tag,",
-            string.Empty,
-            "Sie haben angefordert, Ihre Anmeldenamen für Regkasse Admin abzurufen.",
-            string.Empty,
-            "Folgende Benutzernamen sind mit Ihrer E-Mail-Adresse verknüpft:",
-            string.Empty,
-        };
-
-        foreach (var name in request.Usernames)
-            lines.Add($"  • {name}");
-
-        lines.AddRange(
-        [
-            string.Empty,
-            "Sie können sich mit einem dieser Benutzernamen (oder Ihrer E-Mail-Adresse) anmelden.",
-            "Passwörter werden aus Sicherheitsgründen nicht per E-Mail versendet.",
-            string.Empty,
-            "Wenn Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail.",
-        ]);
-
-        return string.Join(Environment.NewLine, lines);
+        var username = request.Usernames[0];
+        return string.Join(
+            Environment.NewLine,
+            [
+                "Guten Tag,",
+                string.Empty,
+                "Sie haben angefordert, Ihren Anmeldenamen für Regkasse Admin abzurufen.",
+                string.Empty,
+                "Ihr Benutzername lautet:",
+                string.Empty,
+                $"  • {username}",
+                string.Empty,
+                "Sie können sich mit diesem Benutzernamen (oder Ihrer E-Mail-Adresse) anmelden.",
+                "Passwörter werden aus Sicherheitsgründen nicht per E-Mail versendet.",
+                string.Empty,
+                "Wenn Sie diese Anfrage nicht gestellt haben, ignorieren Sie diese E-Mail.",
+            ]);
     }
 
     private static string MaskEmail(string email)

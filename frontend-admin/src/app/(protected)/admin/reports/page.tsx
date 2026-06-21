@@ -5,7 +5,6 @@ import { Card, Col, Row, Typography } from 'antd';
 import { TeamOutlined } from '@ant-design/icons';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
-import { userActivityReportCopy as copy } from '@/features/reports/constants/copy';
 import { useI18n } from '@/i18n';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 
@@ -16,9 +15,9 @@ export default function AdminReportsHubPage() {
     return (
         <AdminPageShell>
             <AdminPageHeader
-                title={copy.hubTitle}
-                description={copy.hubIntro}
-                breadcrumbs={[adminOverviewCrumb(t), { title: copy.hubTitle }]}
+                title={t('reporting.userActivity.hubTitle')}
+                description={t('reporting.userActivity.hubIntro')}
+                breadcrumbs={[adminOverviewCrumb(t), { title: t('reporting.userActivity.hubTitle') }]}
             />
             <Row gutter={[16, 16]}>
                 <Col xs={24} sm={12} lg={8}>
@@ -26,9 +25,9 @@ export default function AdminReportsHubPage() {
                         <Card hoverable>
                             <TeamOutlined style={{ fontSize: 28, color: '#1677ff' }} />
                             <Paragraph strong style={{ marginTop: 12, marginBottom: 4 }}>
-                                {copy.openUserActivity}
+                                {t('reporting.userActivity.openUserActivity')}
                             </Paragraph>
-                            <Text type="secondary">{copy.pageIntro}</Text>
+                            <Text type="secondary">{t('reporting.userActivity.pageIntro')}</Text>
                         </Card>
                     </Link>
                 </Col>

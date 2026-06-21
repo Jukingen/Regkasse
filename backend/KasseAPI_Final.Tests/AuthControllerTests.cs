@@ -292,13 +292,6 @@ public class AuthControllerTests
                 .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
                 .Options,
             NullCurrentTenantAccessor.Instance);
-        var usernameHistory = new Mock<IUserUsernameHistoryService>();
-        usernameHistory.Setup(x => x.GetKnownUsernamesForUserAsync(
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { "cashier1" });
-
         var forgotUsernameEmail = CreateForgotUsernameEmailMock();
         var forgotPasswordEmail = CreateForgotPasswordEmailMock();
 
@@ -317,7 +310,6 @@ public class AuthControllerTests
             loginTenant.Object,
             authService.Object,
             provisioner.Object,
-            usernameHistory.Object,
             forgotUsernameEmail.Object,
             forgotPasswordEmail.Object,
             sessionPolicy.Object,
@@ -919,11 +911,7 @@ public class AuthControllerTests
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        var history = new Mock<IUserUsernameHistoryService>();
-        history.Setup(x => x.GetKnownUsernamesForUserAsync("u1", "cashier1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new[] { "cashier1", "oldcashier" });
-
-        var controller = CreateForgotUsernameController(user, forgotEmail, history);
+        var controller = CreateForgotUsernameController(user, forgotEmail);
 
         var result = await controller.ForgotUsername(
             new ForgotUsernameRequest { Email = "user@test.com", ClientApp = "admin" });
@@ -933,7 +921,8 @@ public class AuthControllerTests
             x => x.TrySendForgotUsernameAsync(
                 It.Is<ForgotUsernameEmailRequest>(r =>
                     r.ToEmail == "user@test.com"
-                    && r.Usernames.Count == 2),
+                    && r.Usernames.Count == 1
+                    && r.Usernames[0] == "cashier1"),
                 It.IsAny<CancellationToken>()),
             Times.Once);
         Assert.NotNull(ok.Value);
@@ -1040,7 +1029,6 @@ public class AuthControllerTests
             CreateLoginTenantResolverMock().Object,
             CreateAuthServiceMock(CreateLoginTenantResolverMock()).Object,
             CreateMembershipProvisionerMock().Object,
-            new Mock<IUserUsernameHistoryService>().Object,
             CreateForgotUsernameEmailMock().Object,
             forgotPasswordEmail.Object,
             sessionPolicy.Object,
@@ -1051,19 +1039,9 @@ public class AuthControllerTests
 
     private static AuthController CreateForgotUsernameController(
         ApplicationUser user,
-        Mock<IForgotUsernameEmailService>? forgotUsernameEmail = null,
-        Mock<IUserUsernameHistoryService>? usernameHistory = null)
+        Mock<IForgotUsernameEmailService>? forgotUsernameEmail = null)
     {
         forgotUsernameEmail ??= new Mock<IForgotUsernameEmailService>();
-        if (usernameHistory == null)
-        {
-            usernameHistory = new Mock<IUserUsernameHistoryService>();
-            usernameHistory.Setup(x => x.GetKnownUsernamesForUserAsync(
-                    It.IsAny<string>(),
-                    It.IsAny<string?>(),
-                    It.IsAny<CancellationToken>()))
-                .ReturnsAsync(new[] { user.UserName ?? "user" });
-        }
 
         var sessionPolicy = new Mock<ITenantSessionPolicyService>();
         sessionPolicy.Setup(s => s.GetPolicyAsync(It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
@@ -1087,7 +1065,6 @@ public class AuthControllerTests
             CreateLoginTenantResolverMock().Object,
             CreateAuthServiceMock(CreateLoginTenantResolverMock()).Object,
             CreateMembershipProvisionerMock().Object,
-            usernameHistory.Object,
             forgotUsernameEmail.Object,
             CreateForgotPasswordEmailMock().Object,
             sessionPolicy.Object,

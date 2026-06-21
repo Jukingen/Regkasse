@@ -192,7 +192,7 @@ Recover login usernames for an email address.
 }
 ```
 
-Always returns **200** with a generic message (no account enumeration). When an active user exists and SMTP is configured, sends a **German** email listing current username plus all names from `user_username_history`.
+Always returns **200** with a generic message (no account enumeration). When an active user exists and SMTP is configured, sends a **German** email with the **current** login username only (not `user_username_history`).
 
 **FA:** `/login/forgot-username` — `requestForgotUsername` in `frontend-admin/src/features/auth/api/forgotUsername.ts`.
 

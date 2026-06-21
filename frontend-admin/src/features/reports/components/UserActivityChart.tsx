@@ -21,7 +21,7 @@ import {
 import { formatUserMonthDay } from '@/lib/dateFormatter';
 
 import type { UserActivityActionSummary, UserActivityDailyCount } from '@/features/reports/api/userActivityReport';
-import { userActivityReportCopy as copy } from '@/features/reports/constants/copy';
+import { useI18n } from '@/i18n';
 
 const PIE_COLORS = ['#1677ff', '#52c41a', '#faad14', '#ff4d4f', '#722ed1', '#13c2c2'];
 
@@ -31,6 +31,8 @@ type Props = {
 };
 
 export function UserActivityChart({ dailyActivity, actionsPerformed }: Props) {
+    const { t } = useI18n();
+
     const lineData = useMemo(
         () =>
             dailyActivity.map((d) => ({
@@ -43,19 +45,19 @@ export function UserActivityChart({ dailyActivity, actionsPerformed }: Props) {
     const pieData = useMemo(() => {
         const a = actionsPerformed;
         return [
-            { name: copy.userCreates, value: a.userCreates },
-            { name: copy.userEdits, value: a.userEdits },
-            { name: copy.payments, value: a.paymentsProcessed },
-            { name: copy.stornos, value: a.stornos },
-            { name: copy.refunds, value: a.refunds },
-            { name: copy.exports, value: a.exports },
+            { name: t('reporting.userActivity.userCreates'), value: a.userCreates },
+            { name: t('reporting.userActivity.userEdits'), value: a.userEdits },
+            { name: t('reporting.userActivity.payments'), value: a.paymentsProcessed },
+            { name: t('reporting.userActivity.stornos'), value: a.stornos },
+            { name: t('reporting.userActivity.refunds'), value: a.refunds },
+            { name: t('reporting.userActivity.exports'), value: a.exports },
         ].filter((x) => x.value > 0);
-    }, [actionsPerformed]);
+    }, [actionsPerformed, t]);
 
     return (
         <Row gutter={[16, 16]}>
             <Col xs={24} lg={14}>
-                <Card size="small" title={copy.activityOverTime}>
+                <Card size="small" title={t('reporting.userActivity.activityOverTime')}>
                     {lineData.length === 0 ? (
                         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
                     ) : (
@@ -72,7 +74,7 @@ export function UserActivityChart({ dailyActivity, actionsPerformed }: Props) {
                 </Card>
             </Col>
             <Col xs={24} lg={10}>
-                <Card size="small" title={copy.actionBreakdown}>
+                <Card size="small" title={t('reporting.userActivity.actionBreakdown')}>
                     {pieData.length === 0 ? (
                         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
                     ) : (

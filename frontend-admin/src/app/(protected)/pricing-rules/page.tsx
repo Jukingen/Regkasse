@@ -228,34 +228,34 @@ export default function PricingRulesPage() {
         destroyOnHidden
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label={t('settings.pricingRules.form.name')} rules={[{ required: true }]}>
+          <Form.Item name="name" label={t('settings.pricingRules.form.name')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="priority" label={t('settings.pricingRules.form.priority')} rules={[{ required: true }]}>
+          <Form.Item name="priority" label={t('settings.pricingRules.form.priority')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <InputNumber style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="isActive" label={t('settings.pricingRules.form.active')} valuePropName="checked">
             <Switch />
           </Form.Item>
-          <Form.Item name="validFromDate" label={t('settings.pricingRules.form.validFrom')} rules={[{ required: true }]}>
+          <Form.Item name="validFromDate" label={t('settings.pricingRules.form.validFrom')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Input type="date" />
           </Form.Item>
-          <Form.Item name="validToDate" label={t('settings.pricingRules.form.validTo')} rules={[{ required: true }]}>
+          <Form.Item name="validToDate" label={t('settings.pricingRules.form.validTo')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Input type="date" />
           </Form.Item>
-          <Form.Item name="daysOfWeekMask" label={t('settings.pricingRules.form.daysMask')} rules={[{ required: true }]}>
+          <Form.Item name="daysOfWeekMask" label={t('settings.pricingRules.form.daysMask')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <InputNumber min={1} max={127} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="timeWindowEnabled" label={t('settings.pricingRules.form.timeWindow')} valuePropName="checked">
             <Switch />
           </Form.Item>
-          <Form.Item name="timeStartMinutes" label={t('settings.pricingRules.form.timeStart')} rules={[{ required: true }]}>
+          <Form.Item name="timeStartMinutes" label={t('settings.pricingRules.form.timeStart')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <InputNumber min={0} max={1439} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="timeEndMinutes" label={t('settings.pricingRules.form.timeEnd')} rules={[{ required: true }]}>
+          <Form.Item name="timeEndMinutes" label={t('settings.pricingRules.form.timeEnd')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <InputNumber min={0} max={1439} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="targetScope" label={t('settings.pricingRules.form.targetScope')} rules={[{ required: true }]}>
+          <Form.Item name="targetScope" label={t('settings.pricingRules.form.targetScope')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Select
               options={TARGET_OPTIONS.map((o) => ({
                 value: o.value,
@@ -263,10 +263,10 @@ export default function PricingRulesPage() {
               }))}
             />
           </Form.Item>
-          <Form.Item name="targetId" label={t('settings.pricingRules.form.targetId')} rules={[{ required: true }]}>
+          <Form.Item name="targetId" label={t('settings.pricingRules.form.targetId')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="actionType" label={t('settings.pricingRules.form.actionType')} rules={[{ required: true }]}>
+          <Form.Item name="actionType" label={t('settings.pricingRules.form.actionType')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <Select
               options={ACTION_OPTIONS.map((o) => ({
                 value: o.value,
@@ -274,7 +274,7 @@ export default function PricingRulesPage() {
               }))}
             />
           </Form.Item>
-          <Form.Item name="actionValue" label={t('settings.pricingRules.form.actionValue')} rules={[{ required: true }]}>
+          <Form.Item name="actionValue" label={t('settings.pricingRules.form.actionValue')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
             <InputNumber min={0} step={0.01} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="cashRegisterId" label={t('settings.pricingRules.form.cashRegisterId')}>

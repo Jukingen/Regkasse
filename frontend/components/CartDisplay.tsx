@@ -1,10 +1,10 @@
 // Compact POS cart display - optimized for speed and minimal space
 import React, { useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SoftColors, SoftRadius, SoftShadows, SoftSpacing, SoftState, SoftTypography } from '../constants/SoftTheme';
 import { getCartDisplayTotals } from '../contexts/CartContext';
 import { CartItemRow } from './CartItemRow';
-import { formatPrice } from '../utils/formatPrice';
 
 interface CartItem {
   itemId?: string;
@@ -46,18 +46,20 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
   onIncrementModifier,
   onDecrementModifier,
 }) => {
+  const { t } = useTranslation(['cart']);
   const totals = useMemo(() => getCartDisplayTotals(cart), [cart]);
 
   const itemCount = totals.itemCount;
+  const tableTitle = t('cart:display.tableTitle', { table: selectedTable });
 
   // Loading state
   if (loading) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
+          <Text style={styles.headerTitle}>{tableTitle}</Text>
         </View>
-        <Text style={styles.loadingText}>Lädt...</Text>
+        <Text style={styles.loadingText}>{t('cart:display.loading')}</Text>
       </View>
     );
   }
@@ -69,8 +71,8 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
-          <Text style={styles.emptyBadge}>Leer</Text>
+          <Text style={styles.headerTitle}>{tableTitle}</Text>
+          <Text style={styles.emptyBadge}>{t('cart:display.emptyBadge')}</Text>
         </View>
       </View>
     );
@@ -80,17 +82,17 @@ export const CartDisplay: React.FC<CartDisplayProps> = ({
     <View style={styles.container}>
       {/* Compact header with summary */}
         <View style={styles.header}>
-        <Text style={styles.headerTitle}>Tisch {selectedTable}</Text>
+        <Text style={styles.headerTitle}>{tableTitle}</Text>
         <View style={styles.headerRight}>
-          <Text style={styles.itemCount}>{itemCount} Artikel</Text>
+          <Text style={styles.itemCount}>{t('cart:display.itemCount', { count: itemCount })}</Text>
           <Pressable
             onPress={onClearCart}
             style={({ pressed, focused }) => [styles.clearBtn, pressed && SoftState.pressed, focused && SoftState.focusVisible]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Warenkorb leeren"
+            accessibilityLabel={t('cart:display.clearCartA11y')}
             accessibilityRole="button"
           >
-            <Text style={styles.clearBtnLabel}>Leeren</Text>
+            <Text style={styles.clearBtnLabel}>{t('cart:display.clearLabel')}</Text>
             <Text style={styles.clearBtnText}>×</Text>
           </Pressable>
         </View>
@@ -204,13 +206,12 @@ const styles = StyleSheet.create({
     marginRight: SoftSpacing.sm,
   },
   qtyBtn: {
-    width: 32, // Increased from 28
-    height: 32, // Increased from 28
+    width: 32,
+    height: 32,
     borderRadius: 16,
     backgroundColor: SoftColors.bgSecondary,
     alignItems: 'center',
     justifyContent: 'center',
-    // 🚀 VISIBILITY & TOUCH FIXES
     zIndex: 10,
     elevation: 5,
     borderWidth: 1,
@@ -221,10 +222,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   qtyBtnText: {
-    fontSize: 18, // Increased from 16
+    fontSize: 18,
     fontWeight: '600',
     color: SoftColors.accent,
-    // Ensure text doesn't block press
     zIndex: -1,
   },
   qtyValue: {

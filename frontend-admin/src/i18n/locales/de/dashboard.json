@@ -27,6 +27,152 @@
     "jahresbeleg_not_required": "keine offene Pflicht",
     "open_sonderbelege": "RKSV Sonderbelege öffnen",
     "open_compliance": "Compliance-Diagnose",
-    "multi_register_summary": "{{startbeleg}} Kasse(n) ohne Startbeleg · {{jahresbeleg}} Jahresbeleg-Hinweis(e) · {{monatsbeleg}} überfällige Monatsbelege"
+    "multi_register_summary": "{{startbeleg}} Kasse(n) ohne Startbeleg · {{jahresbeleg}} Jahresbeleg-Hinweis(e) · {{monatsbeleg}} überfällige Monatsbelege",
+    "loading_monatsbeleg": "Lade Monatsbeleg-Status…",
+    "monatsbeleg_load_failed": "Monatsbeleg-Status konnte nicht geladen werden.",
+    "register_short": "Kasse",
+    "reload": "Erneut laden",
+    "permission_denied": "Sie haben keine Berechtigung für diese Aktion.",
+    "monatsbeleg_already_exists": "Monatsbeleg für aktuellen Monat bereits vorhanden",
+    "only_current_month": "Nur der aktuelle Kalendermonat (Europe/Vienna) kann erstellt werden.",
+    "monatsbeleg_created_success": "Monatsbeleg für aktuellen Monat erstellt",
+    "monatsbeleg_create_failed": "Fehler beim Erstellen des Monatsbelegs",
+    "monatsbeleg_missing_for_register": "Monatsbeleg für {{month}} fehlt für die ausgewählte Kasse.",
+    "registers_need_monatsbeleg": "{{count}} Kassen benötigen den Monatsbeleg für {{month}}.",
+    "all_current_widget_title": "Alles aktuell",
+    "all_current_widget_description": "Der Monatsbeleg für {{month}} ist für alle Kassen vorhanden.",
+    "current_month_complete_title": "Aktueller Monat abgeschlossen",
+    "current_month_complete_description": "Der Monatsbeleg für {{month}} ist für alle Kassen vorhanden. Bitte fehlende Monate aus früheren Perioden nachholen.",
+    "action_required": "Aktion erforderlich"
+  },
+  "rksvReminderCard": {
+    "action_required": "Aktion erforderlich",
+    "all_ok": "Alles in Ordnung",
+    "manage": "Verwalten",
+    "reload": "Erneut laden",
+    "load_error_title": "Fehler beim Laden der RKSV-Daten",
+    "load_error_description": "Die RKSV-Erinnerungen konnten nicht geladen werden. Bitte versuchen Sie es später erneut.",
+    "empty_description": "Keine Kassen vorhanden oder keine RKSV-Daten verfügbar",
+    "startbeleg_missing_title": "Startbeleg fehlt",
+    "startbeleg_missing_description": "{{missing}} von {{total}} Kassen haben noch keinen Startbeleg.",
+    "monatsbeleg_overdue_title": "Monatsbeleg überfällig",
+    "monatsbeleg_overdue_description": "{{count}} Kassen haben den Monatsbeleg nicht rechtzeitig erstellt.",
+    "monatsbeleg_pending_title": "Monatsbeleg ausstehend",
+    "monatsbeleg_pending_description": "{{count}} Kassen benötigen einen Monatsbeleg.",
+    "jahresbeleg_pending_title": "Jahresbeleg ausstehend",
+    "jahresbeleg_pending_description": "{{count}} Kassen benötigen einen Jahresbeleg.",
+    "all_current_title": "Alle RKSV-Sonderbelege sind aktuell",
+    "all_current_description": "Alle Kassen haben die erforderlichen Startbelege, Monatsbelege und Jahresbelege.",
+    "last_updated": "Letzte Aktualisierung: {{time}}",
+    "last_updated_unknown": "unbekannt"
+  },
+  "offlineQueue": {
+    "title": "Offline-Warteschlange (TSE)",
+    "manage": "Verwalten",
+    "backlog_title": "Erhöhter Rückstau",
+    "backlog_description": "{{pending}} Zahlungen warten auf fiskalische Signatur (Schwelle > 10).",
+    "pending": "Ausstehend",
+    "failed": "Fehlgeschlagen",
+    "last_replay_utc": "Letzter Replay (UTC)"
+  },
+  "tseHealth": {
+    "title": "TSE-Status",
+    "current_status": "Aktueller Status",
+    "last_successful_check": "Letzter erfolgreicher TSE-Check",
+    "last_check_utc": "Letzte Prüfung (UTC)",
+    "consecutive_failures": "Aufeinanderfolgende Fehler",
+    "status_healthy": "Gesund",
+    "status_degraded": "Eingeschränkt",
+    "status_offline": "Offline",
+    "status_unknown": "Unbekannt",
+    "degraded_title": "TSE eingeschränkt",
+    "offline_title": "TSE offline",
+    "failures_in_row": "Fehler in Folge: {{count}}.",
+    "next_probe_eta": "Nächste geplante Prüfung (ETA): {{time}}."
+  },
+  "cashRegistersWidget": {
+    "open_count_title": "Geöffnete Kassen",
+    "status_open": "Geöffnet",
+    "status_closed": "Geschlossen",
+    "empty": "Keine Kassen",
+    "more_count": "+{{count}} weitere"
+  },
+  "finanzOnlineWidget": {
+    "pending": "Ausstehend",
+    "failed": "Fehlgeschlagen",
+    "hint_failed": "Fehlgeschlagene Übermittlungen prüfen",
+    "hint_pending": "Ausstehende Übermittlungen in der Warteschlange",
+    "hint_ok": "Keine offenen Probleme",
+    "details": "Details"
+  },
+  "widgetShell": {
+    "refresh": "Aktualisieren",
+    "drag_widget": "Widget verschieben"
+  },
+  "widgets": {
+    "todaySales": {
+      "totalToday": "Gesamtumsatz heute",
+      "salesCount": "{{count}} Verkäufe",
+      "noSalesToday": "Keine Verkäufe heute"
+    },
+    "licenseExpiry": {
+      "daysRemaining": "Verbleibende Tage",
+      "validUntil": "Gültig bis: {{date}}",
+      "expiresSoon7": "Lizenz läuft in Kürze ab — bitte verlängern.",
+      "expiresSoon30": "Lizenz läuft innerhalb von 30 Tagen ab.",
+      "noExpiryDate": "Kein Lizenzablaufdatum hinterlegt",
+      "openSettings": "Einstellungen öffnen"
+    },
+    "recentUsers": {
+      "empty": "Keine Benutzer"
+    },
+    "lowStock": {
+      "summary": "{{count}} Artikel unter Mindestbestand",
+      "empty": "Keine Warnungen",
+      "productFallback": "Produkt",
+      "stockDescription": "Bestand: {{current}} / Min: {{min}}"
+    },
+    "topProducts": {
+      "periodToday": "Heute",
+      "periodWeek": "Woche",
+      "colProduct": "Produkt",
+      "colQuantity": "Menge",
+      "colRevenue": "Umsatz"
+    }
+  },
+  "monatsbeleg": {
+    "title": "Monatsbeleg (RKSV)",
+    "retry": "Wiederholen",
+    "refresh": "Aktualisieren",
+    "loadFailedTitle": "Daten konnten nicht geladen werden",
+    "loadFailedDescription": "Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.",
+    "loadTimeout": "Anfrage-Timeout nach 10 Sekunden. Bitte erneut versuchen.",
+    "loading": "Lade Monatsbeleg-Daten…",
+    "noDataTitle": "Keine Daten verfügbar",
+    "noDataDescription": "Es wurden noch keine Kassen gefunden. Monatsbeleg-Daten erscheinen, sobald Kassen angelegt sind.",
+    "refreshInterval": "Aktualisierung alle 5 Minuten",
+    "colRegister": "Kasse",
+    "colLastMonatsbeleg": "Letzter Monatsbeleg",
+    "colMissingMonths": "Fehlende Monate",
+    "colProgress": "Fortschritt",
+    "colAction": "Aktion",
+    "noMonatsbeleg": "Kein Monatsbeleg vorhanden",
+    "noMissingMonths": "Keine fehlenden Monate",
+    "overdueSuffix": " (überfällig)",
+    "loadingTag": "Laden…",
+    "statusFailed": "Status fehlgeschlagen",
+    "progressSummary": "{{completed}} von {{total}} Monaten im aktuellen Jahr abgeschlossen",
+    "noPermission": "Keine Berechtigung",
+    "createForMonth": "Monatsbeleg für {{month}} erstellen",
+    "createTestCurrentMonth": "Monatsbeleg für aktuellen Monat als Test erstellen",
+    "alreadyExists": "Monatsbeleg für aktuellen Monat bereits vorhanden",
+    "createSuccess": "Monatsbeleg für {{month}} erfolgreich erstellt",
+    "createFailed": "Monatsbeleg für den aktuellen Monat konnte nicht erstellt werden.",
+    "refreshA11y": "Monatsbeleg-Daten aktualisieren",
+    "demoModeTitle": "Demo-Modus: Sie können Monatsbelege zu Testzwecken jederzeit erstellen. Im Produktivbetrieb sind sie gesetzlich vorgeschrieben.",
+    "intro": "Übersicht aller Kassen: Monatsbeleg-Frist nach Kalendermonat (Europe/Vienna). Aktualisierung alle 5 Minuten und bei Fenster-Fokus.",
+    "statusLoadFailed": "Monatsbeleg-Status konnte nicht geladen werden",
+    "noRegisters": "Keine Kassen vorhanden.",
+    "emptyTable": "Keine Kassen gefunden."
   }
 }

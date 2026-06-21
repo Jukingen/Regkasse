@@ -79,7 +79,7 @@ export function TenantDetailSettingsTab({
                     }}
                     onFinish={(values) => saveMutation.mutate(values)}
                 >
-                    <Form.Item name="name" label={t('tenants.fields.name')} rules={[{ required: true }]}>
+                    <Form.Item name="name" label={t('tenants.fields.name')} rules={[{ required: true, message: t('tenants.validation.nameRequired') }]}>
                         <Input disabled={tenant.status === 'deleted'} />
                     </Form.Item>
                     <Form.Item label={t('tenants.fields.slug')}>

@@ -27,6 +27,152 @@
     "jahresbeleg_not_required": "no open obligation",
     "open_sonderbelege": "Open RKSV special receipts",
     "open_compliance": "Compliance diagnostics",
-    "multi_register_summary": "{{startbeleg}} register(s) without Startbeleg · {{jahresbeleg}} Jahresbeleg notice(s) · {{monatsbeleg}} overdue Monatsbelege"
+    "multi_register_summary": "{{startbeleg}} register(s) without Startbeleg · {{jahresbeleg}} Jahresbeleg notice(s) · {{monatsbeleg}} overdue Monatsbelege",
+    "loading_monatsbeleg": "Loading Monatsbeleg status…",
+    "monatsbeleg_load_failed": "Could not load Monatsbeleg status.",
+    "register_short": "Register",
+    "reload": "Reload",
+    "permission_denied": "You do not have permission for this action.",
+    "monatsbeleg_already_exists": "Monatsbeleg for the current month already exists",
+    "only_current_month": "Only the current calendar month (Europe/Vienna) can be created.",
+    "monatsbeleg_created_success": "Monatsbeleg for current month created",
+    "monatsbeleg_create_failed": "Failed to create Monatsbeleg",
+    "monatsbeleg_missing_for_register": "Monatsbeleg for {{month}} is missing for the selected register.",
+    "registers_need_monatsbeleg": "{{count}} registers need the Monatsbeleg for {{month}}.",
+    "all_current_widget_title": "All up to date",
+    "all_current_widget_description": "The Monatsbeleg for {{month}} exists for all registers.",
+    "current_month_complete_title": "Current month complete",
+    "current_month_complete_description": "The Monatsbeleg for {{month}} exists for all registers. Please catch up on missing months from earlier periods.",
+    "action_required": "Action required"
+  },
+  "rksvReminderCard": {
+    "action_required": "Action required",
+    "all_ok": "All OK",
+    "manage": "Manage",
+    "reload": "Reload",
+    "load_error_title": "Failed to load RKSV data",
+    "load_error_description": "RKSV reminders could not be loaded. Please try again later.",
+    "empty_description": "No cash registers or no RKSV data available",
+    "startbeleg_missing_title": "Startbeleg missing",
+    "startbeleg_missing_description": "{{missing}} of {{total}} registers still have no Startbeleg.",
+    "monatsbeleg_overdue_title": "Monatsbeleg overdue",
+    "monatsbeleg_overdue_description": "{{count}} registers did not create the Monatsbeleg in time.",
+    "monatsbeleg_pending_title": "Monatsbeleg pending",
+    "monatsbeleg_pending_description": "{{count}} registers need a Monatsbeleg.",
+    "jahresbeleg_pending_title": "Jahresbeleg pending",
+    "jahresbeleg_pending_description": "{{count}} registers need a Jahresbeleg.",
+    "all_current_title": "All RKSV special receipts are up to date",
+    "all_current_description": "All registers have the required Startbelege, Monatsbelege and Jahresbelege.",
+    "last_updated": "Last updated: {{time}}",
+    "last_updated_unknown": "unknown"
+  },
+  "offlineQueue": {
+    "title": "Offline queue (TSE)",
+    "manage": "Manage",
+    "backlog_title": "Elevated backlog",
+    "backlog_description": "{{pending}} payments waiting for fiscal signature (threshold > 10).",
+    "pending": "Pending",
+    "failed": "Failed",
+    "last_replay_utc": "Last replay (UTC)"
+  },
+  "tseHealth": {
+    "title": "TSE status",
+    "current_status": "Current status",
+    "last_successful_check": "Last successful TSE check",
+    "last_check_utc": "Last check (UTC)",
+    "consecutive_failures": "Consecutive failures",
+    "status_healthy": "Healthy",
+    "status_degraded": "Degraded",
+    "status_offline": "Offline",
+    "status_unknown": "Unknown",
+    "degraded_title": "TSE degraded",
+    "offline_title": "TSE offline",
+    "failures_in_row": "Failures in a row: {{count}}.",
+    "next_probe_eta": "Next scheduled check (ETA): {{time}}."
+  },
+  "cashRegistersWidget": {
+    "open_count_title": "Open registers",
+    "status_open": "Open",
+    "status_closed": "Closed",
+    "empty": "No registers",
+    "more_count": "+{{count}} more"
+  },
+  "finanzOnlineWidget": {
+    "pending": "Pending",
+    "failed": "Failed",
+    "hint_failed": "Review failed submissions",
+    "hint_pending": "Pending submissions in queue",
+    "hint_ok": "No open issues",
+    "details": "Details"
+  },
+  "widgetShell": {
+    "refresh": "Refresh",
+    "drag_widget": "Move widget"
+  },
+  "widgets": {
+    "todaySales": {
+      "totalToday": "Total revenue today",
+      "salesCount": "{{count}} sales",
+      "noSalesToday": "No sales today"
+    },
+    "licenseExpiry": {
+      "daysRemaining": "Days remaining",
+      "validUntil": "Valid until: {{date}}",
+      "expiresSoon7": "License expiring soon — please renew.",
+      "expiresSoon30": "License expires within 30 days.",
+      "noExpiryDate": "No license expiry date configured",
+      "openSettings": "Open settings"
+    },
+    "recentUsers": {
+      "empty": "No users"
+    },
+    "lowStock": {
+      "summary": "{{count}} items below minimum stock",
+      "empty": "No alerts",
+      "productFallback": "Product",
+      "stockDescription": "Stock: {{current}} / Min: {{min}}"
+    },
+    "topProducts": {
+      "periodToday": "Today",
+      "periodWeek": "Week",
+      "colProduct": "Product",
+      "colQuantity": "Qty",
+      "colRevenue": "Revenue"
+    }
+  },
+  "monatsbeleg": {
+    "title": "Monatsbeleg (RKSV)",
+    "retry": "Retry",
+    "refresh": "Refresh",
+    "loadFailedTitle": "Could not load data",
+    "loadFailedDescription": "Please try again later or contact support.",
+    "loadTimeout": "Request timed out after 10 seconds. Please try again.",
+    "loading": "Loading Monatsbeleg data…",
+    "noDataTitle": "No data available",
+    "noDataDescription": "No cash registers found yet. Monatsbeleg data appears once registers are set up.",
+    "refreshInterval": "Refreshes every 5 minutes",
+    "colRegister": "Register",
+    "colLastMonatsbeleg": "Last Monatsbeleg",
+    "colMissingMonths": "Missing months",
+    "colProgress": "Progress",
+    "colAction": "Action",
+    "noMonatsbeleg": "No Monatsbeleg on file",
+    "noMissingMonths": "No missing months",
+    "overdueSuffix": " (overdue)",
+    "loadingTag": "Loading…",
+    "statusFailed": "Status failed",
+    "progressSummary": "{{completed}} of {{total}} months completed this year",
+    "noPermission": "No permission",
+    "createForMonth": "Create Monatsbeleg for {{month}}",
+    "createTestCurrentMonth": "Create Monatsbeleg for current month (test)",
+    "alreadyExists": "Monatsbeleg for current month already exists",
+    "createSuccess": "Monatsbeleg for {{month}} created successfully",
+    "createFailed": "Could not create Monatsbeleg for the current month.",
+    "refreshA11y": "Refresh Monatsbeleg data",
+    "demoModeTitle": "Demo mode: you can create Monatsbelege anytime for testing. In production they are legally required.",
+    "intro": "Overview of all registers: Monatsbeleg deadline by calendar month (Europe/Vienna). Refreshes every 5 minutes and on window focus.",
+    "statusLoadFailed": "Could not load Monatsbeleg status",
+    "noRegisters": "No registers available.",
+    "emptyTable": "No registers found."
   }
 }

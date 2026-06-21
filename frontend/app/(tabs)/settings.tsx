@@ -53,7 +53,21 @@ export default function SettingsScreen() {
     paymentHistoryOpen: t('settings:paymentHistory.open'),
     licenseHeading: t('license:settingsSectionTitle'),
     licenseTransferHeading: t('license:transferSectionTitle'),
-  }), [t]);
+    adminMenuTitle: t('settings:adminMenu.title'),
+    adminMenuDescription: t('settings:adminMenu.description'),
+    adminMenuOpen: t('settings:adminMenu.open'),
+    ntpTitle: t('settings:ntp.title'),
+    ntpLastSync: t('settings:ntp.lastSync', { time: formatDeDateTime(status?.lastSyncAt) }),
+    ntpOffset:
+      typeof status?.offsetSeconds === 'number' && Number.isFinite(status.offsetSeconds)
+        ? t('settings:ntp.offset', {
+            seconds: Math.round(status.offsetSeconds * 10) / 10,
+            level: status.warningLevel ?? '—',
+          })
+        : null,
+    ntpLoadError: t('settings:ntp.loadError'),
+    ntpRefresh: t('settings:ntp.refresh'),
+  }), [t, status?.lastSyncAt, status?.offsetSeconds, status?.warningLevel]);
 
   return (
     <ScrollView style={styles.container}>
@@ -90,32 +104,26 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Admin-Menü</Text>
-        <Text style={styles.description}>
-          Öffnet Verwaltungsfunktionen wie Lizenz, RKSV und Berichte im Admin-Bereich.
-        </Text>
+        <Text style={styles.sectionTitle}>{translations.adminMenuTitle}</Text>
+        <Text style={styles.description}>{translations.adminMenuDescription}</Text>
         <TouchableOpacity
           style={styles.queueLinkButton}
           onPress={() => router.push('/(screens)/admin-menu' as any)}
         >
-          <Text style={styles.queueLinkText}>Admin-Menü öffnen</Text>
+          <Text style={styles.queueLinkText}>{translations.adminMenuOpen}</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Systemzeit (NTP)</Text>
-        <Text style={styles.description}>
-          Letzter Abgleich (Server): {formatDeDateTime(status?.lastSyncAt)}
-        </Text>
-        {typeof status?.offsetSeconds === 'number' && Number.isFinite(status.offsetSeconds) ? (
-          <Text style={styles.descriptionMuted}>
-            Abweichung: {Math.round(status.offsetSeconds * 10) / 10} s ({status.warningLevel})
-          </Text>
+        <Text style={styles.sectionTitle}>{translations.ntpTitle}</Text>
+        <Text style={styles.description}>{translations.ntpLastSync}</Text>
+        {translations.ntpOffset ? (
+          <Text style={styles.descriptionMuted}>{translations.ntpOffset}</Text>
         ) : null}
         {loading ? (
           <ActivityIndicator style={{ marginTop: 8 }} color="#007AFF" />
         ) : error ? (
-          <Text style={styles.syncError}>Status konnte nicht geladen werden.</Text>
+          <Text style={styles.syncError}>{translations.ntpLoadError}</Text>
         ) : null}
         <TouchableOpacity
           style={styles.queueLinkButton}
@@ -123,7 +131,7 @@ export default function SettingsScreen() {
             refetch().catch(() => undefined);
           }}
         >
-          <Text style={styles.queueLinkText}>Zeitstatus aktualisieren</Text>
+          <Text style={styles.queueLinkText}>{translations.ntpRefresh}</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.section}>

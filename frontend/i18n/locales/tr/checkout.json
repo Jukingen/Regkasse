@@ -136,6 +136,84 @@
         "retryReadiness": "Kasa hazirligini tekrar dene",
         "reloadRegisterList": "Kasa listesini yeniden yukle"
       },
+      "steps": {
+        "sum": "Toplam",
+        "cash": "Nakit odeme",
+        "voucherRedeem": "Kupon kullan"
+      },
+      "cash": {
+        "receivedLabel": "Alinan tutar",
+        "receivedA11y": "Euro cinsinden alinan tutar",
+        "changeLabel": "Para ustu",
+        "placeholder": "0,00"
+      },
+      "remainingAmount": "Kalan tutar",
+      "notes": {
+        "title": "Notlar",
+        "placeholder": "Istege bagli notlar…",
+        "a11y": "Istege bagli odeme notlari"
+      },
+      "benefits": {
+        "previewTitle": "Avantajlar (onizleme)",
+        "possibleSavings": "Olası avantaj: yakl. {{amount}}",
+        "loading": "Avantajlar yukleniyor…",
+        "disclaimer": "Onizleme — odeme sirasinda gecerli olan nihai hesaplamadir."
+      },
+      "voucherToggle": {
+        "redeem": "Kupon kullan",
+        "offlineUnavailable": "Kuponlar cevrimdisi kullanilamaz",
+        "offlineNotPossible": "Kupon cevrimdisi kullanilamaz.",
+        "offlineAlertTitle": "Cevrimdisi",
+        "scanA11y": "Kupon tara"
+      },
+      "blockedHints": {
+        "timeSyncCritical": "Sistem saati hatali — odemeler engellendi. Yoneticiye basvurun.",
+        "methodsLoading": "Odeme yontemleri yukleniyor…",
+        "selectMethod": "Lutfen bir odeme yontemi secin (adim 2).",
+        "coverageMissing": "Yetersiz kapsam: kupon + nakit toplama ulasmiyor.",
+        "voucherInvalid": "Gecersiz kupon — lutfen kontrol edin ve dogrulayin.",
+        "tseNotReady": "TSE hazir degil — mali odeme mumkun degil.",
+        "voucherOffline": "Kupon cevrimdisi kullanilamaz."
+      },
+      "timeSync": {
+        "banner": "SISTEM SAATI HATALI – odemeler engellendi! Lutfen yoneticiye basvurun",
+        "contactAdmin": "Yoneticiye basvur",
+        "contactAdminA11y": "Yoneticiye basvur"
+      },
+      "footer": {
+        "registerSettingsLoading": "Kasa ayarlari yukleniyor…",
+        "processing": "Isleniyor…",
+        "payA11y": "Ode {{amount}}",
+        "payMethodSuffix": "{{amount}} {{method}} ode",
+        "payGeneric": "{{amount}} ode",
+        "licenseHintA11y": "Lisans uyarisi"
+      },
+      "success": {
+        "title": "Odeme basarili",
+        "receiptPdf": "Fis PDF",
+        "done": "Tamam",
+        "doneA11y": "Tamam"
+      },
+      "print": {
+        "printing": "Fis yazdiriliyor…",
+        "failedTitle": "Fis yazdirilamadi",
+        "skip": "Atla",
+        "retry": "Tekrar yazdir"
+      },
+      "startbelegBlock": {
+        "title": "Startbeleg gerekli",
+        "body": "Bu kasada mali Startbeleg (RKSV) eksik. Once Startbeleg olusturun, ardindan satis yapilabilir.",
+        "understood": "Anladim",
+        "understoodA11y": "Anladim"
+      },
+      "registerAssignA11y": "Kasa {{register}} ata",
+      "methodSelectedA11ySuffix": ", secildi",
+      "offlineQueued": "Odeme cevrimdisi kaydedildi — TSE tekrar cevrimici oldugunda otomatik imzalanir",
+      "tseSimulation": {
+        "title": "TSE simulasyonu",
+        "enabled": "ACIK (bypass)",
+        "disabled": "KAPALI (gercek TSE)"
+      },
       "operatorWarnings": {
         "largeCashTitle": "Uyari",
         "largeCashMessage": "{{threshold}} € ve uzeri nakit — devam etmeden tutari dogrulayin.",
@@ -154,7 +232,17 @@
         "redeemAmountLabel": "Einzulösender Betrag",
         "maskedHint": "Gutschein: {{masked}}",
         "expiresHint": "Gültig bis: {{date}}",
-        "invalid": "Gutschein ungültig",
+        "invalid": "Geçersiz kupon",
+        "invalidTitle": "Geçersiz kupon",
+        "scanner": {
+          "title": "Kupon tara",
+          "closeA11y": "Kapat",
+          "overlayHint": "Kupon kodunu tara",
+          "validating": "Kupon doğrulanıyor…",
+          "cameraRequired": "Kamera erişimi gerekli.",
+          "allowCamera": "Kameraya izin ver",
+          "webFallback": "Tarayıcıda kamera taraması kullanılamıyor. Lütfen kupon kodunu manuel girin."
+        },
         "expired": "Gutschein abgelaufen",
         "cancelled": "Gutschein storniert",
         "redeemed": "Gutschein vollständig eingelöst",

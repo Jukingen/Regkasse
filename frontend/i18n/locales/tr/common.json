@@ -37,5 +37,11 @@
   "unauthorized": "Yetkisiz Erişim",
   "noAccess": "Bu ekrana erişim yetkiniz bulunmamaktadır",
   "tableRestoring": "Masalar geri yukleniyor",
-  "table": "Masa"
+  "table": "Masa",
+  "barcodeScanner": {
+    "closeA11y": "Kapat",
+    "webFallback": "Tarayıcıda kamera taraması kullanılamaz. Lütfen kodu manuel girin.",
+    "cameraRequired": "Kamera erişimi gerekli.",
+    "allowCamera": "Kameraya izin ver"
+  }
 }

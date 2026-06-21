@@ -17,5 +17,28 @@
   "premium": "Premium",
   "noResults": "Müşteri bulunamadı",
   "noSearchResults": "Arama sonucu bulunamadı",
-  "discount": "İndirim"
+  "discount": "İndirim",
+  "errorLoading": "Müşteriler yüklenemedi.",
+  "selectionSheet": {
+    "title": "Müşteri",
+    "customerNumberLabel": "Müşteri no.",
+    "numberPlaceholder": "Numara girin",
+    "search": "Ara",
+    "scanQrA11y": "QR kod tara",
+    "benefitsHint": "Avantajlar ödeme sırasında uygulanır.",
+    "or": "veya",
+    "chooseFromList": "Listeden seç",
+    "filterPlaceholder": "Ad veya no. ile filtrele",
+    "back": "Geri",
+    "loadingList": "Liste yükleniyor…",
+    "emptyList": "Kayıt yok",
+    "numberPrefix": "No.",
+    "closeA11y": "Kapat",
+    "alertNotFoundTitle": "Bulunamadı",
+    "alertNotFoundMessage": "Bu numaraya sahip müşteri bulunamadı.",
+    "alertSearchFailedTitle": "Hata",
+    "alertSearchFailedMessage": "Arama başarısız. Lütfen tekrar deneyin.",
+    "alertListFailedTitle": "Bilgi",
+    "alertListFailedMessage": "Müşteri listesi yüklenemedi."
+  }
 }

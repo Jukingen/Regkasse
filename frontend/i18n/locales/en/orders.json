@@ -6,6 +6,9 @@
   "ready": "Ready",
   "served": "Served",
   "cancelled": "Cancelled",
+  "orderNumber": "Order Number",
+  "orderTime": "Order Time",
+  "estimatedTime": "Estimated Time",
   "status": {
     "pending": "Pending",
     "preparing": "Preparing",
@@ -13,9 +16,6 @@
     "served": "Served",
     "cancelled": "Cancelled"
   },
-  "orderNumber": "Order Number",
-  "orderTime": "Order Time",
-  "estimatedTime": "Estimated Time",
   "manager": "Order Manager",
   "no_orders": "No orders found",
   "no_my_orders": "You have no active orders",

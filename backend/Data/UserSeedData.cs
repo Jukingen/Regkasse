@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Tenancy;
@@ -34,9 +35,9 @@ namespace KasseAPI_Final.Data
                     Email = "admin@admin.com",
                     FirstName = "Admin",
                     LastName = "User",
-                    EmployeeNumber = "EMP001",
+                    EmployeeNumber = "SUPER-ADMIN-001",
                     Role = Roles.SuperAdmin,
-                    TaxNumber = "ATU12345678",
+                    TaxNumber = "ATU99999901",
                     Notes = "Initial admin user",
                     IsActive = true,
                     AccountType = "Admin",
@@ -45,18 +46,26 @@ namespace KasseAPI_Final.Data
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                var result = await userManager.CreateAsync(adminUser, "Admin123!");
-                if (result.Succeeded)
+                try
                 {
-                    await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
-                    await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, LegacyDefaultTenantIds.Primary);
-                    Console.WriteLine("Admin user created successfully (role: SuperAdmin)");
+                    var result = await userManager.CreateAsync(adminUser, "Admin123!");
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(adminUser, Roles.SuperAdmin);
+                        await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(adminUser.Id, LegacyDefaultTenantIds.Primary);
+                        Console.WriteLine("Admin user created successfully (role: SuperAdmin)");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Failed to create admin user:");
+                        foreach (var error in result.Errors)
+                            Console.WriteLine($"- {error.Description}");
+                    }
                 }
-                else
+                catch (DbUpdateException ex)
                 {
-                    Console.WriteLine("Failed to create admin user:");
-                    foreach (var error in result.Errors)
-                        Console.WriteLine($"- {error.Description}");
+                    Console.WriteLine($"Admin user seed skipped (database conflict): {ex.InnerException?.Message ?? ex.Message}");
+                    adminUser = await userManager.FindByEmailAsync("admin@admin.com");
                 }
             }
             else
@@ -86,9 +95,9 @@ namespace KasseAPI_Final.Data
                     Email = "demo@demo.com",
                     FirstName = "Demo",
                     LastName = "Cashier",
-                    EmployeeNumber = "EMP002",
+                    EmployeeNumber = "DEMO-CASHIER-001",
                     Role = Roles.Cashier,
-                    TaxNumber = "ATU87654321",
+                    TaxNumber = "ATU99999902",
                     Notes = "Demo cashier user",
                     IsActive = true,
                     AccountType = "Cashier",
@@ -97,21 +106,26 @@ namespace KasseAPI_Final.Data
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                var result = await userManager.CreateAsync(demoUser, "Demo123!");
-                
-                if (result.Succeeded)
+                try
                 {
-                    await userManager.AddToRoleAsync(demoUser, Roles.Cashier);
-                    await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(demoUser.Id, LegacyDefaultTenantIds.Primary);
-                    Console.WriteLine("Demo cashier user created successfully");
-                }
-                else
-                {
-                    Console.WriteLine("Failed to create demo user:");
-                    foreach (var error in result.Errors)
+                    var result = await userManager.CreateAsync(demoUser, "Demo123!");
+
+                    if (result.Succeeded)
                     {
-                        Console.WriteLine($"- {error.Description}");
+                        await userManager.AddToRoleAsync(demoUser, Roles.Cashier);
+                        await tenantMembershipProvisioner.ProvisionActiveMembershipAsync(demoUser.Id, LegacyDefaultTenantIds.Primary);
+                        Console.WriteLine("Demo cashier user created successfully");
                     }
+                    else
+                    {
+                        Console.WriteLine("Failed to create demo user:");
+                        foreach (var error in result.Errors)
+                            Console.WriteLine($"- {error.Description}");
+                    }
+                }
+                catch (DbUpdateException ex)
+                {
+                    Console.WriteLine($"Demo user seed skipped (database conflict): {ex.InnerException?.Message ?? ex.Message}");
                 }
             }
 

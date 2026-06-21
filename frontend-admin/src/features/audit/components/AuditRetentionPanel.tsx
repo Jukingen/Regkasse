@@ -111,10 +111,10 @@ export function AuditRetentionPanel() {
 
                 <Typography.Text strong>{t('common.auditLogs.legalHoldTitle')}</Typography.Text>
                 <Form form={holdForm} layout="inline">
-                    <Form.Item name="fromDate" rules={[{ required: true }]}>
+                    <Form.Item name="fromDate" rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
                         <DatePicker placeholder={t('common.auditLogs.legalHoldFrom')} format={DAYJS_DATE_FORMAT} />
                     </Form.Item>
-                    <Form.Item name="toDate" rules={[{ required: true }]}>
+                    <Form.Item name="toDate" rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
                         <DatePicker placeholder={t('common.auditLogs.legalHoldTo')} format={DAYJS_DATE_FORMAT} />
                     </Form.Item>
                     <Form.Item name="reason">

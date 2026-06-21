@@ -5,7 +5,7 @@ import { Alert, Form, Input, Modal, Select } from 'antd';
 import type { Rule } from 'antd/es/form';
 
 import type { UserInfo } from '@/features/users/api/usersGateway';
-import { usersCopy } from '@/features/users/constants/copy';
+import { PASSWORD_MIN_LENGTH } from '@/features/users/constants/validation';
 import { useI18n } from '@/i18n';
 
 function fullName(record: UserInfo): string {
@@ -30,6 +30,7 @@ export function DeactivateUserModal({
     confirmLoading,
     reasonRules,
 }: DeactivateUserModalProps) {
+    const { t } = useI18n();
     const [form] = Form.useForm<{ reason: string }>();
 
     const handleOk = () => {
@@ -46,20 +47,26 @@ export function DeactivateUserModal({
 
     return (
         <Modal
-            title={usersCopy.deactivateUser}
+            title={t('users.modals.deactivate.title')}
             open
             onOk={handleOk}
             onCancel={handleCancel}
-            okText={usersCopy.okDeactivate}
+            okText={t('users.modals.deactivate.confirm')}
             okButtonProps={{ danger: true }}
             confirmLoading={confirmLoading}
         >
             <p style={{ marginBottom: 16 }}>
-                <strong>{fullName(user)}</strong> ({user.email ?? user.userName}) {usersCopy.confirmDeactivate}
+                <strong>{fullName(user)}</strong> ({user.email ?? user.userName}){' '}
+                {t('users.modals.deactivate.confirmSuffix')}
             </p>
             <Form form={form} layout="vertical">
-                <Form.Item name="reason" label={usersCopy.reasonRequired} rules={reasonRules}>
-                    <Input.TextArea rows={3} placeholder={usersCopy.reasonPlaceholder} maxLength={500} showCount />
+                <Form.Item name="reason" label={t('users.modals.deactivate.reasonLabel')} rules={reasonRules}>
+                    <Input.TextArea
+                        rows={3}
+                        placeholder={t('users.modals.deactivate.reasonPlaceholder')}
+                        maxLength={500}
+                        showCount
+                    />
                 </Form.Item>
             </Form>
         </Modal>
@@ -85,7 +92,9 @@ export function ResetPasswordUserModal({
     validationError,
     onClearValidationError,
 }: ResetPasswordUserModalProps) {
+    const { t } = useI18n();
     const [form] = Form.useForm<{ newPassword: string }>();
+    const passwordMin = PASSWORD_MIN_LENGTH;
 
     useEffect(() => {
         form.resetFields();
@@ -112,11 +121,11 @@ export function ResetPasswordUserModal({
 
     return (
         <Modal
-            title={usersCopy.resetPasswordUser}
+            title={t('users.modals.resetPassword.title')}
             open
             onOk={handleOk}
             onCancel={handleCancel}
-            okText={usersCopy.save}
+            okText={t('common.buttons.save')}
             confirmLoading={confirmLoading}
         >
             <p style={{ marginBottom: 8 }}>
@@ -124,7 +133,7 @@ export function ResetPasswordUserModal({
             </p>
             <Alert
                 type="info"
-                title={usersCopy.resetPasswordSecurityNote}
+                title={t('users.modals.resetPassword.securityNote', { min: passwordMin })}
                 showIcon
                 style={{ marginBottom: 16 }}
             />
@@ -132,8 +141,15 @@ export function ResetPasswordUserModal({
                 <Alert type="error" title={validationError} showIcon style={{ marginBottom: 16 }} />
             ) : null}
             <Form form={form} layout="vertical">
-                <Form.Item name="newPassword" label={usersCopy.newPassword} rules={passwordRules}>
-                    <Input.Password placeholder="••••••••" autoComplete="new-password" />
+                <Form.Item
+                    name="newPassword"
+                    label={t('users.modals.resetPassword.newPasswordLabel', { min: passwordMin })}
+                    rules={passwordRules}
+                >
+                    <Input.Password
+                        placeholder={t('common.auth.passwordMaskedPlaceholder')}
+                        autoComplete="new-password"
+                    />
                 </Form.Item>
             </Form>
         </Modal>
@@ -184,18 +200,23 @@ export function CreateRoleModal({
 
     return (
         <Modal
-            title={usersCopy.createRole}
+            title={t('users.page.createRole')}
             open
             destroyOnHidden
             onOk={handleOk}
             onCancel={handleCancel}
             afterClose={() => form.resetFields()}
-            okText={usersCopy.save}
+            okText={t('common.buttons.save')}
             confirmLoading={confirmLoading}
         >
             <Form form={form} layout="vertical">
-                <Form.Item name="name" label={usersCopy.roleName} rules={roleNameRules}>
-                    <Input placeholder="z. B. Manager" maxLength={50} showCount autoComplete="off" />
+                <Form.Item name="name" label={t('users.createRole.nameLabel')} rules={roleNameRules}>
+                    <Input
+                        placeholder={t('users.createRole.namePlaceholder')}
+                        maxLength={50}
+                        showCount
+                        autoComplete="off"
+                    />
                 </Form.Item>
                 {selectableInheritOptions.length > 0 ? (
                     <Form.Item

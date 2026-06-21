@@ -67,7 +67,7 @@ const COLORS = {
 };
 
 const CartScreen: React.FC = () => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['cart', 'common']);
   // Sepet işlemleri için hook'u kullan
   const {
     cart,
@@ -123,8 +123,8 @@ const CartScreen: React.FC = () => {
     return (
       <View style={styles.emptyBox}>
         <Text style={styles.emptyEmoji}>🛒</Text>
-        <Text style={styles.emptyText}>{t('cart.empty', 'Sepetiniz boş!')}</Text>
-        <Text style={styles.emptyMotivation}>{t('cart.emptyMotivation', 'Hadi alışverişe başlayın ve favori ürünlerinizi ekleyin.')}</Text>
+        <Text style={styles.emptyText}>{t('cart:empty', 'Sepetiniz boş!')}</Text>
+        <Text style={styles.emptyMotivation}>{t('cart:emptyMotivation', 'Hadi alışverişe başlayın ve favori ürünlerinizi ekleyin.')}</Text>
       </View>
     );
   }
@@ -136,12 +136,12 @@ const CartScreen: React.FC = () => {
     try {
       if (newQuantity <= 0) {
         Alert.alert(
-          t('cart.removeConfirmTitle', 'Ürünü Kaldır'),
-          t('cart.removeConfirmMessage', 'Bu ürünü sepetten kaldırmak istediğinizden emin misiniz?'),
+          t('cart:removeConfirmTitle', 'Ürünü Kaldır'),
+          t('cart:removeConfirmMessage', 'Bu ürünü sepetten kaldırmak istediğinizden emin misiniz?'),
           [
-            { text: t('cart.cancel', 'İptal'), style: 'cancel', onPress: () => setProcessingItem(null) },
+            { text: t('cart:cancel', 'İptal'), style: 'cancel', onPress: () => setProcessingItem(null) },
             {
-              text: t('cart.remove', 'Kaldır'),
+              text: t('cart:remove', 'Kaldır'),
               style: 'destructive',
               onPress: async () => {
                 await removeItem(itemId);
@@ -169,7 +169,7 @@ const CartScreen: React.FC = () => {
         setProcessingItem(null);
       }
     } catch (error) {
-      Alert.alert(t('cart.connectionError', 'Bağlantı hatası! Tekrar deneyin.'));
+      Alert.alert(t('cart:connectionError', 'Bağlantı hatası! Tekrar deneyin.'));
       setProcessingItem(null);
     }
   };
@@ -188,19 +188,19 @@ const CartScreen: React.FC = () => {
   // Sepeti temizleme
   const handleClearCart = () => {
     Alert.alert(
-      t('cart.clearCartTitle', 'Sepeti Temizle'),
-      t('cart.clearCartMessage', 'Tüm ürünler sepetten kaldırılacak. Bu işlem geri alınamaz.'),
+      t('cart:clearCartTitle', 'Sepeti Temizle'),
+      t('cart:clearCartMessage', 'Tüm ürünler sepetten kaldırılacak. Bu işlem geri alınamaz.'),
       [
-        { text: t('cart.cancel', 'İptal'), style: 'cancel' },
+        { text: t('cart:cancel', 'İptal'), style: 'cancel' },
         {
-          text: t('cart.clear', 'Temizle'),
+          text: t('cart:clear', 'Temizle'),
           style: 'destructive',
           onPress: async () => {
             try {
               await clearCart();
               Vibration.vibrate(10);
             } catch (error) {
-              Alert.alert(t('cart.connectionError', 'Bağlantı hatası! Tekrar deneyin.'));
+              Alert.alert(t('cart:connectionError', 'Bağlantı hatası! Tekrar deneyin.'));
             }
           },
         },
@@ -211,7 +211,7 @@ const CartScreen: React.FC = () => {
   // Ödeme öncesi doğrulama
   const handleCheckout = () => {
     if (!cart || cart.items.length === 0) {
-      Alert.alert(t('cart.emptyCartWarning', 'Sepetiniz boş!'));
+      Alert.alert(t('cart:emptyCartWarning', 'Sepetiniz boş!'));
       return;
     }
     setShowConfirmation(true);
@@ -243,8 +243,8 @@ const CartScreen: React.FC = () => {
     // Ödeme iptal bildirimini göster
     addNotification({
       type: 'info',
-      title: t('cart.paymentCancelled', 'Ödeme İptal Edildi'),
-      message: `${t('cart.cancellationReason', 'İptal Sebebi')}: ${cancelResponse.cancellationReason}`,
+      title: t('cart:paymentCancelled', 'Ödeme İptal Edildi'),
+      message: `${t('cart:cancellationReason', 'İptal Sebebi')}: ${cancelResponse.cancellationReason}`,
       duration: 5000
     });
     
@@ -308,7 +308,7 @@ const CartScreen: React.FC = () => {
       setErrorModal({
         visible: true,
         code: 'PAYMENT_ERROR',
-        message: t('cart.paymentError', 'Ödeme işlemi başarısız')
+        message: t('cart:paymentError', 'Ödeme işlemi başarısız')
       });
     }
   };
@@ -317,12 +317,12 @@ const CartScreen: React.FC = () => {
   const printReceipt = async () => {
     try {
       console.log('Printing receipt...');
-      Alert.alert(t('cart.printSuccess', 'Başarılı'), t('cart.printSuccessMessage', 'Fiş yazdırılıyor...'));
+      Alert.alert(t('cart:printSuccess', 'Başarılı'), t('cart:printSuccessMessage', 'Fiş yazdırılıyor...'));
     } catch (error) {
       setErrorModal({
         visible: true,
         code: 'PRINT_ERROR',
-        message: t('cart.printError', 'Yazdırma hatası')
+        message: t('cart:printError', 'Yazdırma hatası')
       });
     }
   };
@@ -346,16 +346,16 @@ const CartScreen: React.FC = () => {
     setCouponError(null);
     setCouponSuccess(null);
     if (!couponCode || couponCode.length < 3) {
-      setCouponError(t('cart.invalidCouponCode', 'Lütfen geçerli bir kod girin.'));
+      setCouponError(t('cart:invalidCouponCode', 'Lütfen geçerli bir kod girin.'));
       return;
     }
     setIsApplyingCoupon(true);
     try {
       await applyCoupon(couponCode);
-      setCouponSuccess(t('cart.couponApplied', 'Kupon başarıyla uygulandı!'));
+      setCouponSuccess(t('cart:couponApplied', 'Kupon başarıyla uygulandı!'));
       setCouponError(null);
     } catch (e: any) {
-      setCouponError(t('cart.invalidOrExpiredCoupon', 'Kupon kodu geçersiz veya süresi dolmuş.'));
+      setCouponError(t('cart:invalidOrExpiredCoupon', 'Kupon kodu geçersiz veya süresi dolmuş.'));
       setCouponSuccess(null);
     } finally {
       setIsApplyingCoupon(false);
@@ -371,9 +371,9 @@ const CartScreen: React.FC = () => {
     setCouponCode('');
     try {
       await removeCoupon();
-      setCouponSuccess(t('cart.couponRemoved', 'Kupon kaldırıldı.'));
+      setCouponSuccess(t('cart:couponRemoved', 'Kupon kaldırıldı.'));
     } catch (e: any) {
-      setCouponError(t('cart.couponRemoveError', 'Kupon kodu kaldırılamadı.'));
+      setCouponError(t('cart:couponRemoveError', 'Kupon kodu kaldırılamadı.'));
     }
   };
 
@@ -384,16 +384,16 @@ const CartScreen: React.FC = () => {
       setNetworkError(null);
       setRetryAction(null);
     } catch (e: any) {
-      setNetworkError(t('cart.networkError', 'Netzwerkfehler! Bitte überprüfen Sie Ihre Verbindung.'));
+      setNetworkError(t('cart:networkError', 'Netzwerkfehler! Bitte überprüfen Sie Ihre Verbindung.'));
       setRetryAction(() => async () => await fn(...args));
     }
   };
 
   // Sepet işlemlerini ağ hatası ile sarmala
-  const safeHandleQuantityChange = withNetworkError(handleQuantityChange, t('cart.updateQuantity', 'Miktar güncelle'));
-  const safeHandleClearCart = withNetworkError(async () => { await handleClearCart(); }, t('cart.clearCart', 'Sepeti temizle'));
-  const safeHandleApplyCoupon = withNetworkError(handleApplyCoupon, t('cart.applyCoupon', 'Kupon uygula'));
-  const safeHandleRemoveCoupon = withNetworkError(handleRemoveCoupon, t('cart.removeCoupon', 'Kupon kaldır'));
+  const safeHandleQuantityChange = withNetworkError(handleQuantityChange, t('cart:updateQuantity', 'Miktar güncelle'));
+  const safeHandleClearCart = withNetworkError(async () => { await handleClearCart(); }, t('cart:clearCart', 'Sepeti temizle'));
+  const safeHandleApplyCoupon = withNetworkError(handleApplyCoupon, t('cart:applyCoupon', 'Kupon uygula'));
+  const safeHandleRemoveCoupon = withNetworkError(handleRemoveCoupon, t('cart:removeCoupon', 'Kupon kaldır'));
 
   // Sepet toplamı ve alt bilgi değerleri - backend'den gelen gross model (useApiCart: grandTotal / gross variants)
   const subtotal = (cart as any)?.subtotalGross ?? (cart as any)?.subtotal ?? 0;
@@ -419,21 +419,21 @@ const CartScreen: React.FC = () => {
           )}
         </View>
         <View style={styles.cardDetailsRow}>
-          <Text style={styles.cardDetail}>{t('cart.quantity', 'Miktar')}: <Text style={styles.bold}>{mapped.quantity}</Text></Text>
-          <Text style={styles.cardDetail}>{t('cart.unitPrice', 'Birim')}: <Text style={styles.bold}>{mapped.unitPrice.toFixed(2)} €</Text></Text>
+          <Text style={styles.cardDetail}>{t('cart:quantity', 'Miktar')}: <Text style={styles.bold}>{mapped.quantity}</Text></Text>
+          <Text style={styles.cardDetail}>{t('cart:unitPrice', 'Birim')}: <Text style={styles.bold}>{mapped.unitPrice.toFixed(2)} €</Text></Text>
         </View>
         <View style={styles.cardDetailsRow}>
-          <Text style={styles.cardDetail}>{t('cart.totalAmount', 'Toplam')}: <Text style={styles.bold}>{mapped.totalAmount.toFixed(2)} €</Text></Text>
+          <Text style={styles.cardDetail}>{t('cart:totalAmount', 'Toplam')}: <Text style={styles.bold}>{mapped.totalAmount.toFixed(2)} €</Text></Text>
         </View>
         {mapped.notes && (
-          <Text style={styles.cardNote}>{t('cart.notes', 'Not')}: {mapped.notes}</Text>
+          <Text style={styles.cardNote}>{t('cart:notes', 'Not')}: {mapped.notes}</Text>
         )}
         <View style={styles.cardActionsRow}>
           <TouchableOpacity
             style={[styles.cardQtyBtn, isSelected && styles.cardQtyBtnActive]}
             onPress={() => safeHandleQuantityChange(mapped.id, mapped.quantity - 1)}
             disabled={processingItem === mapped.id}
-            accessibilityLabel={t('cart.decreaseQuantity', 'Miktarı azalt')}
+            accessibilityLabel={t('cart:decreaseQuantity', 'Miktarı azalt')}
           >
             <Ionicons name="remove-circle-outline" size={26} color={COLORS.danger} />
           </TouchableOpacity>
@@ -442,7 +442,7 @@ const CartScreen: React.FC = () => {
             style={[styles.cardQtyBtn, isSelected && styles.cardQtyBtnActive]}
             onPress={() => safeHandleQuantityChange(mapped.id, mapped.quantity + 1)}
             disabled={processingItem === mapped.id}
-            accessibilityLabel={t('cart.increaseQuantity', 'Miktarı arttır')}
+            accessibilityLabel={t('cart:increaseQuantity', 'Miktarı arttır')}
           >
             <Ionicons name="add-circle-outline" size={26} color={COLORS.success} />
           </TouchableOpacity>
@@ -450,7 +450,7 @@ const CartScreen: React.FC = () => {
             style={[styles.cardDeleteBtn, isSelected && styles.cardDeleteBtnActive]}
             onPress={() => safeHandleQuantityChange(mapped.id, 0)}
             disabled={processingItem === mapped.id}
-            accessibilityLabel={t('cart.removeItem', 'Ürünü sil')}
+            accessibilityLabel={t('cart:removeItem', 'Ürünü sil')}
           >
             <Ionicons name="trash-outline" size={24} color={COLORS.danger} />
           </TouchableOpacity>
@@ -461,7 +461,7 @@ const CartScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('cart.cartTitle', 'Sepet')}</Text>
+      <Text style={styles.title}>{t('cart:cartTitle', 'Sepet')}</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {/* Modern kart grid/listesi */}
       <FlatList
@@ -478,11 +478,11 @@ const CartScreen: React.FC = () => {
       />
       {/* Kupon/Promosyon kodu alanı */}
       <View style={styles.couponBox}>
-        <Text style={styles.couponLabel}>{t('cart.discountCoupon', 'İndirim / Kupon Kodu')}</Text>
+        <Text style={styles.couponLabel}>{t('cart:discountCoupon', 'İndirim / Kupon Kodu')}</Text>
         <View style={styles.couponRow}>
           <TextInput
             style={styles.couponInput}
-            placeholder={t('cart.couponCodePlaceholder', 'Kupon kodu girin')}
+            placeholder={t('cart:couponCodePlaceholder', 'Kupon kodu girin')}
             value={couponCode}
             onChangeText={setCouponCode}
             editable={!isApplyingCoupon}
@@ -493,7 +493,7 @@ const CartScreen: React.FC = () => {
             onPress={safeHandleApplyCoupon}
             disabled={isApplyingCoupon || !couponCode}
           >
-            <Text style={styles.couponBtnText}>{t('cart.applyCouponBtn', 'Uygula')}</Text>
+            <Text style={styles.couponBtnText}>{t('cart:applyCouponBtn', 'Uygula')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.couponRemoveBtn}
@@ -509,9 +509,9 @@ const CartScreen: React.FC = () => {
       {/* Sepet özeti ve toplamlar */}
       <View style={styles.summaryRow}>
         {discount > 0 && (
-          <Text style={styles.discountText}>{t('cart.discount', 'İndirim')}: -{discount.toFixed(2)} €</Text>
+          <Text style={styles.discountText}>{t('cart:discount', 'İndirim')}: -{discount.toFixed(2)} €</Text>
         )}
-        <Animated.Text style={[styles.totalText, { transform: [{ scale: totalAnimation }] }]}>{t('cart.total', 'Toplam')}: {totalAmount.toFixed(2)} €</Animated.Text>
+        <Animated.Text style={[styles.totalText, { transform: [{ scale: totalAnimation }] }]}>{t('cart:total', 'Toplam')}: {totalAmount.toFixed(2)} €</Animated.Text>
       </View>
       {/* Sepet alt bilgi (footer) */}
       <CartFooter subtotal={subtotal} vat={vat} serviceFee={serviceFee} grandTotal={totalAmount} />
@@ -524,10 +524,10 @@ const CartScreen: React.FC = () => {
       />
       <View style={[styles.buttonRow, { marginTop: 4 }]}> {/* marginTop küçültüldü */}
         <TouchableOpacity style={[styles.clearButton, { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 }]} onPress={safeHandleClearCart}>
-          <Text style={styles.buttonText}>{t('cart.clearCartButton', 'Sepeti Temizle')}</Text>
+          <Text style={styles.buttonText}>{t('cart:clearCartButton', 'Sepeti Temizle')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.checkoutButton, { minHeight: 0, minWidth: 0, paddingVertical: 0, paddingHorizontal: 0 }]} onPress={handleCheckout}>
-          <Text style={styles.buttonText}>{t('cart.checkoutButton', 'Ödeme Yap')}</Text>
+          <Text style={styles.buttonText}>{t('cart:checkoutButton', 'Ödeme Yap')}</Text>
         </TouchableOpacity>
       </View>
       {/* PaymentScreen modal entegrasyonu */}
@@ -574,7 +574,7 @@ const CartScreen: React.FC = () => {
       <Modal visible={!!networkError} transparent animationType="fade">
         <View style={styles.networkModalContainer}>
           <View style={styles.networkModalContent}>
-            <Text style={styles.networkModalTitle}>{t('cart.networkErrorTitle', 'Verbindungsfehler')}</Text>
+            <Text style={styles.networkModalTitle}>{t('cart:networkErrorTitle', 'Verbindungsfehler')}</Text>
             <Text style={styles.networkModalText}>{networkError}</Text>
             <View style={styles.networkModalBtnRow}>
               <TouchableOpacity
@@ -584,13 +584,13 @@ const CartScreen: React.FC = () => {
                   setNetworkError(null);
                 }}
               >
-                <Text style={styles.networkModalBtnText}>{t('cart.retry', 'Erneut versuchen')}</Text>
+                <Text style={styles.networkModalBtnText}>{t('cart:retry', 'Erneut versuchen')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.networkModalCancelBtn}
                 onPress={() => setNetworkError(null)}
               >
-                <Text style={styles.networkModalBtnText}>{t('cart.cancel', 'Abbrechen')}</Text>
+                <Text style={styles.networkModalBtnText}>{t('cart:cancel', 'Abbrechen')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -599,14 +599,14 @@ const CartScreen: React.FC = () => {
       <Modal visible={showConfirmation} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{t('cart.checkoutConfirmationTitle', 'Ödeme Onayı')}</Text>
-            <Text style={styles.modalTotal}>{t('cart.checkoutConfirmationTotal', 'Toplam')}: {totalAmount.toFixed(2)} €</Text>
+            <Text style={styles.modalTitle}>{t('cart:checkoutConfirmationTitle', 'Ödeme Onayı')}</Text>
+            <Text style={styles.modalTotal}>{t('cart:checkoutConfirmationTotal', 'Toplam')}: {totalAmount.toFixed(2)} €</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity onPress={() => setShowConfirmation(false)} style={styles.cancelBtn}>
-                <Text style={styles.buttonText}>{t('cart.cancel', 'İptal')}</Text>
+                <Text style={styles.buttonText}>{t('cart:cancel', 'İptal')}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmCheckout} style={styles.confirmBtn}>
-                <Text style={styles.buttonText}>{t('cart.confirmCheckout', 'Onayla')}</Text>
+                <Text style={styles.buttonText}>{t('cart:confirmCheckout', 'Onayla')}</Text>
               </TouchableOpacity>
             </View>
           </View>

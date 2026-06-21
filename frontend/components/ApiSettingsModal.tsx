@@ -9,6 +9,7 @@ import {
   Alert,
   ScrollView
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { setApiServerIP } from '../services/api/config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocalIPInstructions, getTestIPs, isValidIPAddress, findWorkingIP } from '../utils/networkUtils';
@@ -22,6 +23,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
   visible,
   onClose
 }) => {
+  const { t } = useTranslation(['settings']);
   const [ipAddress, setIpAddress] = useState('192.168.1.100');
   const [port, setPort] = useState('5184');
 
@@ -42,28 +44,37 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
 
   const saveSettings = async () => {
     if (!isValidIPAddress(ipAddress)) {
-      Alert.alert('Hata', 'Geçersiz IP adresi formatı. Lütfen doğru IP adresini girin.');
+      Alert.alert(
+        t('settings:apiServer.invalidIpTitle'),
+        t('settings:apiServer.invalidIpMessage')
+      );
       return;
     }
 
     try {
       await setApiServerIP(ipAddress);
       Alert.alert(
-        'Başarılı',
-        'API sunucu ayarları kaydedildi. Uygulamayı yeniden başlatmanız gerekebilir.',
-        [{ text: 'Tamam', onPress: onClose }]
+        t('settings:apiServer.saveSuccessTitle'),
+        t('settings:apiServer.saveSuccessMessage'),
+        [{ text: t('settings:apiServer.ok'), onPress: onClose }]
       );
-    } catch (error) {
-      Alert.alert('Hata', 'Ayarlar kaydedilemedi.');
+    } catch {
+      Alert.alert(
+        t('settings:apiServer.saveFailedTitle'),
+        t('settings:apiServer.saveFailedMessage')
+      );
     }
   };
 
   const getCurrentIP = async () => {
     try {
       const instructions = getLocalIPInstructions();
-      Alert.alert('IP Adresi Bulma', instructions);
-    } catch (error) {
-      Alert.alert('Hata', 'IP adresi alınamadı.');
+      Alert.alert(t('settings:apiServer.findIpTitle'), instructions);
+    } catch {
+      Alert.alert(
+        t('settings:apiServer.findIpFailedTitle'),
+        t('settings:apiServer.findIpFailedMessage')
+      );
     }
   };
 
@@ -73,17 +84,29 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
 
   const autoFindIP = async () => {
     try {
-      Alert.alert('Bilgi', 'IP adresi aranıyor... Bu işlem biraz zaman alabilir.');
-      
+      Alert.alert(
+        t('settings:apiServer.searchingTitle'),
+        t('settings:apiServer.searchingMessage')
+      );
+
       const workingIP = await findWorkingIP();
       if (workingIP) {
         setIpAddress(workingIP);
-        Alert.alert('Başarılı', `Çalışan IP adresi bulundu: ${workingIP}`);
+        Alert.alert(
+          t('settings:apiServer.autoFindSuccessTitle'),
+          t('settings:apiServer.autoFindSuccessMessage', { ip: workingIP })
+        );
       } else {
-        Alert.alert('Hata', 'Çalışan IP adresi bulunamadı. Manuel olarak girmeyi deneyin.');
+        Alert.alert(
+          t('settings:apiServer.autoFindFailedTitle'),
+          t('settings:apiServer.autoFindFailedMessage')
+        );
       }
-    } catch (error) {
-      Alert.alert('Hata', 'IP adresi arama sırasında hata oluştu.');
+    } catch {
+      Alert.alert(
+        t('settings:apiServer.autoFindErrorTitle'),
+        t('settings:apiServer.autoFindErrorMessage')
+      );
     }
   };
 
@@ -96,10 +119,10 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
     >
       <View style={styles.centeredView}>
         <View style={styles.modalView}>
-          <Text style={styles.title}>API Sunucu Ayarları</Text>
-          
+          <Text style={styles.title}>{t('settings:apiServer.title')}</Text>
+
           <ScrollView style={styles.scrollView}>
-            <Text style={styles.label}>Sunucu IP Adresi:</Text>
+            <Text style={styles.label}>{t('settings:apiServer.serverIpLabel')}</Text>
             <TextInput
               style={styles.input}
               value={ipAddress}
@@ -109,7 +132,7 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
               autoCapitalize="none"
             />
 
-            <Text style={styles.label}>Port:</Text>
+            <Text style={styles.label}>{t('settings:apiServer.portLabel')}</Text>
             <TextInput
               style={styles.input}
               value={port}
@@ -120,15 +143,15 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
             />
 
             <TouchableOpacity style={styles.helpButton} onPress={getCurrentIP}>
-              <Text style={styles.helpButtonText}>IP Adresimi Nasıl Bulurum?</Text>
+              <Text style={styles.helpButtonText}>{t('settings:apiServer.findIpHelp')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.autoFindButton} onPress={autoFindIP}>
-              <Text style={styles.autoFindButtonText}>Otomatik IP Bul</Text>
+              <Text style={styles.autoFindButtonText}>{t('settings:apiServer.autoFindIp')}</Text>
             </TouchableOpacity>
 
             <View style={styles.infoContainer}>
-              <Text style={styles.infoTitle}>Test IP Adresleri:</Text>
+              <Text style={styles.infoTitle}>{t('settings:apiServer.testIpsTitle')}</Text>
               {getTestIPs().map((group, groupIndex) => (
                 <View key={groupIndex} style={styles.ipGroup}>
                   <Text style={styles.ipGroupTitle}>{group.label}:</Text>
@@ -148,10 +171,10 @@ export const ApiSettingsModal: React.FC<ApiSettingsModalProps> = ({
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>İptal</Text>
+              <Text style={styles.cancelButtonText}>{t('settings:apiServer.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.saveButton} onPress={saveSettings}>
-              <Text style={styles.saveButtonText}>Kaydet</Text>
+              <Text style={styles.saveButtonText}>{t('settings:apiServer.save')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -304,4 +327,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-}); 
+});

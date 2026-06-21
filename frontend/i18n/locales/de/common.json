@@ -37,5 +37,11 @@
   "unauthorized": "Nicht autorisiert",
   "noAccess": "Sie haben keinen Zugriff auf diesen Bildschirm",
   "tableRestoring": "Tische werden wiederhergestellt",
-  "table": "Tisch"
+  "table": "Tisch",
+  "barcodeScanner": {
+    "closeA11y": "Schließen",
+    "webFallback": "Kamera-Scan ist im Browser nicht verfügbar. Bitte Code manuell eingeben.",
+    "cameraRequired": "Kamerazugriff wird benötigt.",
+    "allowCamera": "Kamera erlauben"
+  }
 }

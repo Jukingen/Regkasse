@@ -66,7 +66,7 @@ export function ScheduleReportModal({
                 <Form.Item
                     name="schedule"
                     label={t('reporting.compliance.schedule.cron')}
-                    rules={[{ required: true }]}
+                    rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
                     extra={t('reporting.compliance.schedule.cronHint')}
                 >
                     <Input placeholder="0 8 * * *" />
@@ -74,11 +74,11 @@ export function ScheduleReportModal({
                 <Form.Item
                     name="recipients"
                     label={t('reporting.compliance.schedule.recipients')}
-                    rules={[{ required: true }]}
+                    rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
                 >
                     <Input.TextArea rows={2} placeholder="manager@example.com" />
                 </Form.Item>
-                <Form.Item name="format" label={t('reporting.compliance.schedule.format')} rules={[{ required: true }]}>
+                <Form.Item name="format" label={t('reporting.compliance.schedule.format')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>
                     <Select
                         options={[
                             { value: 'pdf', label: 'PDF' },

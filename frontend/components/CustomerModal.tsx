@@ -53,7 +53,7 @@ export default function CustomerModal({
       setCustomers(allCustomers);
     } catch (error) {
       console.error('Failed to load customers:', error);
-      Alert.alert(t('common:error'), t('customers:errorLoading', 'Failed to load customers'));
+      Alert.alert(t('common:error'), t('customers:errorLoading'));
     } finally {
       setLoading(false);
     }

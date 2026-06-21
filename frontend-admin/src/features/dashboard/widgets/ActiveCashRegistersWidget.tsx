@@ -13,17 +13,14 @@ import { DASHBOARD_AUTO_REFRESH_MS } from '@/features/dashboard/types';
 import { AppPermissions } from '@/shared/auth/permissions';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
 import { WidgetShell } from '@/features/dashboard/components/WidgetShell';
+import { useI18n } from '@/i18n/I18nProvider';
 
 type Props = Pick<WidgetShellProps, 'title' | 'dragHandleProps' | 'onRefresh'>;
 
 const OPEN_STATUS = 1;
 
-function statusTag(status: number) {
-    if (status === OPEN_STATUS) return <Tag color="green">Geöffnet</Tag>;
-    return <Tag>Geschlossen</Tag>;
-}
-
 export function ActiveCashRegistersWidget({ title, dragHandleProps, onRefresh }: Props) {
+    const { t } = useI18n();
     const query = useAuthorizedQuery({
         queryKey: [...cashRegisterListQueryKey, 'dashboard'],
         queryFn: () => listAdminCashRegisters({ page: 1, pageSize: 50 }),
@@ -34,6 +31,13 @@ export function ActiveCashRegistersWidget({ title, dragHandleProps, onRefresh }:
 
     const items = (query.data?.items ?? []) as AdminCashRegisterListItem[];
     const openCount = useMemo(() => items.filter((r) => r.status === OPEN_STATUS).length, [items]);
+
+    const statusTag = (status: number) => {
+        if (status === OPEN_STATUS) {
+            return <Tag color="green">{t('dashboard.cashRegistersWidget.status_open')}</Tag>;
+        }
+        return <Tag>{t('dashboard.cashRegistersWidget.status_closed')}</Tag>;
+    };
 
     const handleRefresh = () => {
         void query.refetch();
@@ -47,13 +51,17 @@ export function ActiveCashRegistersWidget({ title, dragHandleProps, onRefresh }:
             onRefresh={handleRefresh}
             refreshing={query.isFetching}
         >
-            <Statistic title="Geöffnete Kassen" value={openCount} suffix={`/ ${items.length}`} />
+            <Statistic
+                title={t('dashboard.cashRegistersWidget.open_count_title')}
+                value={openCount}
+                suffix={`/ ${items.length}`}
+            />
             <List
                 style={{ marginTop: 12 }}
                 size="small"
                 loading={query.isLoading}
                 dataSource={items.slice(0, 6)}
-                locale={{ emptyText: 'Keine Kassen' }}
+                locale={{ emptyText: t('dashboard.cashRegistersWidget.empty') }}
                 renderItem={(item) => (
                     <List.Item>
                         <List.Item.Meta
@@ -64,7 +72,9 @@ export function ActiveCashRegistersWidget({ title, dragHandleProps, onRefresh }:
                 )}
             />
             {items.length > 6 ? (
-                <Typography.Text type="secondary">+{items.length - 6} weitere</Typography.Text>
+                <Typography.Text type="secondary">
+                    {t('dashboard.cashRegistersWidget.more_count', { count: items.length - 6 })}
+                </Typography.Text>
             ) : null}
         </WidgetShell>
     );

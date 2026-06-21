@@ -12,7 +12,6 @@ import {
     rolesWithPermissionsQueryKey,
     updateRolePermissions as gatewayUpdateRolePermissions,
 } from '@/features/users/api/usersGateway';
-import { usersCopy } from '@/features/users/constants/copy';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatRoleDisplayLabel } from '@/features/users/utils/roleDisplayLabel';
@@ -38,24 +37,24 @@ export function useRoleManagementWorkspace() {
         mutationFn: ({ roleName, permissions }: { roleName: string; permissions: string[] }) =>
             gatewayUpdateRolePermissions(roleName, permissions),
         onSuccess: () => {
-            message.success(usersCopy.successPermissionsSaved);
+            message.success(t('users.roleDrawer.successPermissionsSaved'));
             void queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
             void queryClient.invalidateQueries({ queryKey: rolesQueryKey });
         },
         onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorSavePermissions).message);
+            message.error(normalizeError(e, t('users.roleDrawer.errorSavePermissions')).message);
         },
     });
 
     const deleteRoleMutation = useMutation({
         mutationFn: (roleName: string) => gatewayDeleteRole(roleName),
         onSuccess: () => {
-            message.success(usersCopy.successRoleDeleted);
+            message.success(t('users.roleDrawer.successRoleDeleted'));
             void queryClient.invalidateQueries({ queryKey: rolesWithPermissionsQueryKey });
             void queryClient.invalidateQueries({ queryKey: rolesQueryKey });
         },
         onError: (e: unknown) => {
-            message.error(normalizeError(e, usersCopy.errorDeleteRole).message);
+            message.error(normalizeError(e, t('users.roleDrawer.errorDeleteRole')).message);
         },
     });
 
@@ -76,12 +75,12 @@ export function useRoleManagementWorkspace() {
     const handleCreateRoleConfirm = useCallback(
         (payload: { name: string; inheritFromRole?: string }) => {
             if (!policy.canCreateRole) {
-                message.error(usersCopy.noPermission);
+                message.error(t('users.roleDrawer.noPermission'));
                 return;
             }
             createRoleMutation.mutate(payload);
         },
-        [createRoleMutation, message, policy.canCreateRole],
+        [createRoleMutation, message, policy.canCreateRole, t],
     );
 
     const handleSaveRolePermissions = useCallback(

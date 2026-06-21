@@ -5,6 +5,7 @@ import { DEFAULT_TEXT_LOCALE, SUPPORTED_TEXT_LOCALES } from './localeUtils';
 import 'intl-pluralrules';
 
 // Import translation resources
+import enCart from './locales/en/cart.json';
 import enAuth from './locales/en/auth.json';
 import enCheckout from './locales/en/checkout.json';
 import enCommon from './locales/en/common.json';
@@ -22,6 +23,7 @@ import enSettings from './locales/en/settings.json';
 import enSystem from './locales/en/system.json';
 import enTables from './locales/en/tables.json';
 
+import deCart from './locales/de/cart.json';
 import deAuth from './locales/de/auth.json';
 import deCheckout from './locales/de/checkout.json';
 import deCommon from './locales/de/common.json';
@@ -39,6 +41,7 @@ import deSettings from './locales/de/settings.json';
 import deSystem from './locales/de/system.json';
 import deTables from './locales/de/tables.json';
 
+import trCart from './locales/tr/cart.json';
 import trAuth from './locales/tr/auth.json';
 import trCheckout from './locales/tr/checkout.json';
 import trCommon from './locales/tr/common.json';
@@ -74,6 +77,7 @@ function trackMissingRuntimeKey(lng: string, key: string) {
  */
 export const FRONTEND_REGISTERED_NAMESPACES = [
   'auth',
+  'cart',
   'checkout',
   'common',
   'customers',
@@ -94,6 +98,7 @@ export const FRONTEND_REGISTERED_NAMESPACES = [
 export const resources = {
   en: {
     auth: enAuth,
+    cart: enCart,
     checkout: enCheckout,
     common: enCommon,
     customers: enCustomers,
@@ -112,6 +117,7 @@ export const resources = {
   },
   de: {
     auth: deAuth,
+    cart: deCart,
     checkout: deCheckout,
     common: deCommon,
     customers: deCustomers,
@@ -130,6 +136,7 @@ export const resources = {
   },
   tr: {
     auth: trAuth,
+    cart: trCart,
     checkout: trCheckout,
     common: trCommon,
     customers: trCustomers,

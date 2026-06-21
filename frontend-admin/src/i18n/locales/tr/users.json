@@ -12,12 +12,30 @@
     "manageRoles": "Rolleri yönet"
   },
   "messages": {
-    "roleCreated": "Rol oluşturuldu."
+    "roleCreated": "Rol oluşturuldu.",
+    "successCreate": "Kullanıcı oluşturuldu.",
+    "successUpdate": "Kullanıcı güncellendi.",
+    "successDeactivate": "Kullanıcı devre dışı bırakıldı.",
+    "successReactivate": "Kullanıcı yeniden etkinleştirildi.",
+    "successResetPassword": "Şifre sıfırlandı. Kullanıcının oturumları geçersiz kılındı.",
+    "errorGeneric": "Hata.",
+    "errorLoadUser": "Kullanıcı verileri yüklenemedi.",
+    "noPermission": "Kullanıcıları yalnızca SuperAdmin (veya uygun izne sahip kullanıcılar) yönetebilir.",
+    "errorResetPassword": "Şifre sıfırlanamadı.",
+    "errorResetPasswordForbidden": "Bu şifreyi sıfırlama izniniz yok.",
+    "errorResetPasswordUserNotFound": "Kullanıcı bulunamadı.",
+    "sessionExpiredOrUnauthorized": "Oturum süresi doldu veya oturum açılmadı. Lütfen tekrar giriş yapın.",
+    "successPermissionsSaved": "İzinler kaydedildi.",
+    "successRoleDeleted": "Rol silindi.",
+    "errorSavePermissions": "İzinler kaydedilemedi.",
+    "errorDeleteRole": "Rol silinemedi."
   },
   "createRole": {
     "inheritFromRole": "İzinleri şuradan devral",
     "inheritFromRoleHelp": "İsteğe bağlı: mevcut bir rolün izinlerini başlangıç noktası olarak kopyalayın.",
     "inheritFromRolePlaceholder": "Devralma yok",
+    "nameLabel": "Rol adı",
+    "namePlaceholder": "örn. Manager",
     "successWithInherit": "«{{role}}» rolü oluşturuldu (izinler «{{source}}» rolünden devralındı).",
     "errors": {
       "generic": "Rol oluşturulamadı.",
@@ -172,6 +190,11 @@
     "presetPlaceholder": "Şablon seçin …",
     "roleHasUsers": "Rol silinemez: en az bir kullanıcı atanmış.",
     "roleDeleteBlockedReassignFirst": "Bu rol atanmış kullanıcılar olduğu için silinemez. Önce bu kullanıcıları başka bir role taşıyın.",
+    "successPermissionsSaved": "İzinler kaydedildi.",
+    "successRoleDeleted": "Rol silindi.",
+    "errorSavePermissions": "İzinler kaydedilemedi.",
+    "errorDeleteRole": "Rol silinemedi.",
+    "noPermission": "Kullanıcıları yalnızca SuperAdmin (veya uygun izne sahip kullanıcılar) yönetebilir.",
     "groups": {
       "user_role": "Kullanıcılar & Roller",
       "product": "Ürün",
@@ -470,6 +493,7 @@
       "quick": "Hızlı oluştur"
     },
     "tenantRequired": "Lütfen bir mandant seçin.",
+    "roleRequired": "Lütfen bir rol seçin.",
     "tenantPlaceholder": "Mandant seçin …",
     "tenantOption": "{{name}} ({{slug}})",
     "licenseNone": "Lisans yok",
@@ -489,6 +513,103 @@
       "Accountant": { "label": "Muhasebe" },
       "Waiter": { "label": "Garson" },
       "Kitchen": { "label": "Mutfak" }
+    }
+  },
+  "form": {
+    "editTitle": "Kullaniciyi duzenle",
+    "employeeNumber": "Calisan numarasi",
+    "taxNumber": "Vergi numarasi",
+    "notes": "Notlar",
+    "userName": "Kullanici adi",
+    "errorLoadUser": "Kullanici yuklenemedi.",
+    "platformCreateHint": "Platform operatorleri Super Admin rolunu alir ve bir is mandantina atanmaz.",
+    "rolesLoading": "Roller yukleniyor…"
+  },
+  "formValidation": {
+    "required": "Bu alan zorunludur.",
+    "emailInvalid": "Geçersiz e-posta adresi.",
+    "passwordMin": "En az {{min}} karakter.",
+    "passwordPolicy": "En az bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter içermelidir.",
+    "maxLength": "En fazla {{max}} karakter.",
+    "reasonRequired": "Lütfen bir gerekçe girin.",
+    "roleNameRequired": "Lütfen rol adını girin."
+  },
+  "passwordErrors": {
+    "minLength": "Şifre en az {{min}} karakter olmalıdır.",
+    "digit": "Şifre en az bir rakam içermelidir.",
+    "lowercase": "Şifre en az bir küçük harf içermelidir.",
+    "uppercase": "Şifre en az bir büyük harf içermelidir.",
+    "nonAlphanumeric": "Şifre en az bir özel karakter içermelidir.",
+    "generic": "Şifre gereksinimleri karşılanmıyor."
+  },
+  "password": {
+    "titleForEmail": "{{email}} için şifre",
+    "generateTemporary": "Geçici şifre oluştur",
+    "showButtonTitle": "Geçici şifre oluştur ve göster",
+    "noPasswordToCopy": "Kopyalanacak şifre yok"
+  },
+  "modals": {
+    "deactivate": {
+      "title": "Kullanıcıyı devre dışı bırak",
+      "confirmSuffix": "devre dışı bırakılacak. Fiş ve fatura bağlantıları korunur; hesap daha sonra yeniden etkinleştirilebilir.",
+      "reasonLabel": "Gerekçe (denetim için zorunlu)",
+      "reasonPlaceholder": "örn. ayrılma, izin, …",
+      "confirm": "Devre dışı bırak"
+    },
+    "resetPassword": {
+      "title": "Şifreyi sıfırla",
+      "securityNote": "Kullanıcının tüm oturumları sonlandırılır. Yeni şifre en az {{min}} karakter olmalı; büyük/küçük harf, rakam ve özel karakter içermelidir.",
+      "newPasswordLabel": "Yeni şifre (en az {{min}} karakter, büyük/küçük harf, rakam, özel karakter)"
+    }
+  },
+  "reactivate": {
+    "title": "Kullanıcıyı yeniden etkinleştir",
+    "confirm": "Yeniden etkinleştir",
+    "confirmBody": "yeniden etkinleştirilsin mi?"
+  },
+  "activity": {
+    "tabLabel": "Aktivite",
+    "reportTabLabel": "Uyumluluk raporu",
+    "openFullReport": "Tam raporu aç",
+    "forUser": "Aktivite zaman çizelgesi:",
+    "empty": "Aktivite yok.",
+    "errorLoad": "Aktivite zaman çizelgesi yüklenemedi.",
+    "errorLoadHint": "Diğer kullanıcı bilgileri kullanılabilir durumda.",
+    "filterActionType": "Eylem türü",
+    "filterDateRange": "Tarih aralığı",
+    "filterAll": "Tümü",
+    "filterRoleChanges": "Rol değişiklikleri",
+    "filterUserUpdates": "Kullanıcı güncellemeleri",
+    "filterSecurityActions": "Güvenlik eylemleri",
+    "filterReset": "Sıfırla",
+    "time": "Zaman",
+    "action": "Eylem",
+    "actor": "Gerçekleştiren",
+    "ipAddress": "IP",
+    "description": "Açıklama",
+    "entityType": "Varlık",
+    "viewChanges": "Değişiklikleri gör",
+    "fieldLabels": {
+      "isDemo": "Demo"
+    }
+  },
+  "auditDiff": {
+    "title": "Değiştirilen alanlar",
+    "field": "Alan",
+    "oldValue": "Önce",
+    "newValue": "Sonra",
+    "noChanges": "Alan değişikliği yok."
+  },
+  "bulkImport": {
+    "preview": "Önizleme ({{shown}} / {{total}} satır)",
+    "columns": {
+      "row": "Satır",
+      "email": "E-posta",
+      "username": "Kullanıcı adı",
+      "firstName": "Ad",
+      "lastName": "Soyad",
+      "role": "Rol",
+      "tenant": "Mandant"
     }
   }
 }

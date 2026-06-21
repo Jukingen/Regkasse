@@ -6,13 +6,12 @@
  * Invariant 5: Gracefully handle incomplete historical records (null actor, missing timestamp/action/description;
  * use EMPTY_PLACEHOLDER and safe fallbacks so UI never crashes on legacy or partial data).
  */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Table, Tag, Typography, Empty, Alert, Button, Select, DatePicker, Space } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { useGetApiAuditLogUserUserId } from '@/api/generated/audit-log/audit-log';
 import type { AuditLog as AuditLogType } from '@/api/generated/model/auditLog';
 import dayjs from 'dayjs';
-import { usersCopy } from '../constants/copy';
 import { formatAuditLogDescription } from '@/features/audit-logs/utils/formatAuditLogDescription';
 import { getAuditActionLabelKey } from '@/features/audit-logs/utils/auditActionLabels';
 import { useI18n } from '@/i18n';
@@ -32,13 +31,6 @@ const PAGE_SIZE = 10;
 
 type ActionFilter = 'all' | 'role' | 'updates' | 'security';
 
-const ACTION_FILTER_OPTIONS: { value: ActionFilter; label: string }[] = [
-    { value: 'all', label: usersCopy.filterAll },
-    { value: 'role', label: usersCopy.filterRoleChanges },
-    { value: 'updates', label: usersCopy.filterUserUpdates },
-    { value: 'security', label: usersCopy.filterSecurityActions },
-];
-
 const SECURITY_ACTIONS = new Set([
     'USER_DEACTIVATE',
     'USER_REACTIVATE',
@@ -56,32 +48,43 @@ function matchesActionFilter(action: string | null | undefined, filter: ActionFi
     return true;
 }
 
-/** German labels for audit diff. All editable user fields (incl. Steuernummer, Notizen, Mitarbeiternummer). */
-const AUDIT_FIELD_LABELS: Record<string, string> = {
-    firstName: usersCopy.firstName,
-    lastName: usersCopy.lastName,
-    email: usersCopy.email,
-    userName: usersCopy.userName,
-    role: usersCopy.role,
-    isActive: usersCopy.status,
-    isDemo: 'Demo',
-    taxNumber: usersCopy.taxNumber,
-    notes: usersCopy.notes,
-    employeeNumber: usersCopy.employeeNumber,
-    FirstName: usersCopy.firstName,
-    LastName: usersCopy.lastName,
-    Email: usersCopy.email,
-    UserName: usersCopy.userName,
-    Role: usersCopy.role,
-    IsActive: usersCopy.status,
-    IsDemo: 'Demo',
-    TaxNumber: usersCopy.taxNumber,
-    Notes: usersCopy.notes,
-    EmployeeNumber: usersCopy.employeeNumber,
-};
+/** Audit diff field labels for editable user fields. */
+function buildAuditFieldLabels(t: (key: string) => string): Record<string, string> {
+    const labels: Record<string, string> = {
+        firstName: t('users.create.firstName'),
+        lastName: t('users.create.lastName'),
+        email: t('users.create.email'),
+        userName: t('users.form.userName'),
+        role: t('users.list.columnRole'),
+        isActive: t('users.list.columnStatus'),
+        isDemo: t('users.activity.fieldLabels.isDemo'),
+        taxNumber: t('users.form.taxNumber'),
+        notes: t('users.form.notes'),
+        employeeNumber: t('users.form.employeeNumber'),
+    };
+    return {
+        ...labels,
+        FirstName: labels.firstName,
+        LastName: labels.lastName,
+        Email: labels.email,
+        UserName: labels.userName,
+        Role: labels.role,
+        IsActive: labels.isActive,
+        IsDemo: labels.isDemo,
+        TaxNumber: labels.taxNumber,
+        Notes: labels.notes,
+        EmployeeNumber: labels.employeeNumber,
+    };
+}
 
-function getAuditDiffLabel(key: string): string {
-    return AUDIT_FIELD_LABELS[key] ?? key;
+function getActorDisplay(record: AuditEntry): string {
+    const name = (record.actorDisplayName != null && String(record.actorDisplayName).trim())
+        ? String(record.actorDisplayName).trim()
+        : null;
+    const uid = (record.userId != null && String(record.userId).trim())
+        ? String(record.userId).trim()
+        : null;
+    return name ?? uid ?? EMPTY_PLACEHOLDER;
 }
 
 /** Entry may include extended API fields (actorDisplayName, changes). */
@@ -99,22 +102,27 @@ function hasDiff(entry: AuditEntry): boolean {
         (typeof n === 'string' && n.trim().length > 0);
 }
 
-function getActorDisplay(record: AuditEntry): string {
-    const name = (record.actorDisplayName != null && String(record.actorDisplayName).trim())
-        ? String(record.actorDisplayName).trim()
-        : null;
-    const uid = (record.userId != null && String(record.userId).trim())
-        ? String(record.userId).trim()
-        : null;
-    return name ?? uid ?? EMPTY_PLACEHOLDER;
-}
-
 export function UserActivityTimeline({ userId, userName }: Props) {
-    const { t } = useI18n();
+    const { t, formatLocale } = useI18n();
     const [page, setPage] = useState(1);
     const [diffModalEntry, setDiffModalEntry] = useState<AuditEntry | null>(null);
     const [actionFilter, setActionFilter] = useState<ActionFilter>('all');
     const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null]>([null, null]);
+
+    const auditFieldLabels = useMemo(() => buildAuditFieldLabels(t), [t]);
+    const getAuditDiffLabel = useCallback(
+        (key: string) => auditFieldLabels[key] ?? key,
+        [auditFieldLabels],
+    );
+    const actionFilterOptions = useMemo(
+        (): { value: ActionFilter; label: string }[] => [
+            { value: 'all', label: t('users.activity.filterAll') },
+            { value: 'role', label: t('users.activity.filterRoleChanges') },
+            { value: 'updates', label: t('users.activity.filterUserUpdates') },
+            { value: 'security', label: t('users.activity.filterSecurityActions') },
+        ],
+        [t],
+    );
 
     const validUserId = (userId ?? '').trim();
     const params = useMemo(() => {
@@ -159,24 +167,24 @@ export function UserActivityTimeline({ userId, userName }: Props) {
 
     const columns = [
         {
-            title: usersCopy.activityTime,
+            title: t('users.activity.time'),
             dataIndex: 'timestamp',
             key: 'timestamp',
             width: 160,
             render: (v: string | null | undefined) =>
                 v && String(v).trim()
-                    ? formatDateTime(v, '', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                    ? formatDateTime(v, formatLocale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                     : EMPTY_PLACEHOLDER,
         },
         {
-            title: usersCopy.actor,
+            title: t('users.activity.actor'),
             key: 'actor',
             width: 160,
             ellipsis: true,
             render: (_: unknown, record: AuditEntry) => getActorDisplay(record),
         },
         {
-            title: usersCopy.ipAddress,
+            title: t('users.activity.ipAddress'),
             dataIndex: 'ipAddress',
             key: 'ipAddress',
             width: 110,
@@ -185,7 +193,7 @@ export function UserActivityTimeline({ userId, userName }: Props) {
                 v != null && String(v).trim() ? String(v).trim() : EMPTY_PLACEHOLDER,
         },
         {
-            title: usersCopy.action,
+            title: t('users.activity.action'),
             dataIndex: 'action',
             key: 'action',
             width: 150,
@@ -199,7 +207,7 @@ export function UserActivityTimeline({ userId, userName }: Props) {
             },
         },
         {
-            title: usersCopy.description,
+            title: t('users.activity.description'),
             dataIndex: 'description',
             key: 'description',
             width: 240,
@@ -214,7 +222,7 @@ export function UserActivityTimeline({ userId, userName }: Props) {
             },
         },
         {
-            title: usersCopy.status,
+            title: t('users.list.columnStatus'),
             dataIndex: 'status',
             key: 'status',
             width: 90,
@@ -236,25 +244,25 @@ export function UserActivityTimeline({ userId, userName }: Props) {
                         size="small"
                         onClick={() => openDiffModalWithFreshEntry(record)}
                     >
-                        {usersCopy.viewChanges}
+                        {t('users.activity.viewChanges')}
                     </Button>
                 ) : null,
         },
     ];
 
     if (validUserId.length === 0) {
-        return <Alert type="info" title={usersCopy.emptyActivity} showIcon />;
+        return <Alert type="info" title={t('users.activity.empty')} showIcon />;
     }
 
     if (isError) {
         return (
             <Alert
                 type="warning"
-                title={usersCopy.errorLoadActivity}
-                description={usersCopy.errorLoadActivityHint}
+                title={t('users.activity.errorLoad')}
+                description={t('users.activity.errorLoadHint')}
                 action={
                     <Button size="small" onClick={() => refetch()}>
-                        {usersCopy.retry}
+                        {t('users.list.retry')}
                     </Button>
                 }
             />
@@ -265,21 +273,21 @@ export function UserActivityTimeline({ userId, userName }: Props) {
         <div>
             {userName && (
                 <Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-                    {usersCopy.activityFor}: {userName}
+                    {t('users.activity.forUser')}: {userName}
                 </Text>
             )}
             <Space wrap style={{ marginBottom: 12 }} size="middle">
                 <Space>
-                    <Text type="secondary">{usersCopy.filterActionType}:</Text>
+                    <Text type="secondary">{t('users.activity.filterActionType')}:</Text>
                     <Select
                         value={actionFilter}
                         onChange={setActionFilter}
-                        options={ACTION_FILTER_OPTIONS}
+                        options={actionFilterOptions}
                         style={{ minWidth: 200 }}
                     />
                 </Space>
                 <Space>
-                    <Text type="secondary">{usersCopy.filterDateRange}:</Text>
+                    <Text type="secondary">{t('users.activity.filterDateRange')}:</Text>
                     <DatePicker.RangePicker
                         value={dateRange[0] && dateRange[1] ? dateRange : null}
                         onChange={(dates) => setDateRange(dates ? [dates[0] ?? null, dates[1] ?? null] : [null, null])}
@@ -287,7 +295,7 @@ export function UserActivityTimeline({ userId, userName }: Props) {
                     />
                     {(dateRange[0] || dateRange[1]) && (
                         <Button size="small" onClick={() => setDateRange([null, null])}>
-                            {usersCopy.filterReset}
+                            {t('users.activity.filterReset')}
                         </Button>
                     )}
                 </Space>
@@ -307,7 +315,7 @@ export function UserActivityTimeline({ userId, userName }: Props) {
                     onChange: setPage,
                 }}
                 locale={{
-                    emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={usersCopy.emptyActivity} />,
+                    emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('users.activity.empty')} />,
                 }}
             />
             <AuditDiffViewerModal
@@ -317,8 +325,8 @@ export function UserActivityTimeline({ userId, userName }: Props) {
                 getLabel={getAuditDiffLabel}
                 formatOptions={{
                     emptyPlaceholder: EMPTY_PLACEHOLDER,
-                    labelActive: usersCopy.statusActive,
-                    labelInactive: usersCopy.statusInactive,
+                    labelActive: t('users.list.statusActive'),
+                    labelInactive: t('users.list.statusInactive'),
                 }}
             />
         </div>

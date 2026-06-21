@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Modal,
   View,
@@ -32,6 +33,7 @@ export function CardPaymentModal({
   onSuccess,
   onClose,
 }: CardPaymentModalProps) {
+  const { t } = useTranslation(['payment', 'common']);
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
@@ -56,11 +58,11 @@ export function CardPaymentModal({
   const handlePayment = async () => {
     const digits = cardNumber.replace(/\D/g, '');
     if (digits.length < 13) {
-      setError('Bitte geben Sie eine gültige Kartennummer ein.');
+      setError(t('payment:cardPayment.invalidCardNumber'));
       return;
     }
     if (!cashRegisterId) {
-      Alert.alert('Fehler', 'Keine Kasse zugewiesen.');
+      Alert.alert(t('common:error'), t('payment:cardPayment.noRegisterAssigned'));
       return;
     }
 
@@ -79,14 +81,14 @@ export function CardPaymentModal({
       });
 
       if (!confirm.success || !confirm.transactionId) {
-        setError(confirm.errorMessage ?? 'Kartenzahlung abgelehnt.');
+        setError(confirm.errorMessage ?? t('payment:cardPayment.declined'));
         return;
       }
 
       onSuccess(confirm.transactionId);
       onClose();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Kartenzahlung fehlgeschlagen.';
+      const msg = e instanceof Error ? e.message : t('payment:cardPayment.failed');
       setError(msg);
     } finally {
       setLoading(false);
@@ -97,13 +99,13 @@ export function CardPaymentModal({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <View style={styles.container}>
-          <Text style={styles.title}>Kartenzahlung</Text>
+          <Text style={styles.title}>{t('payment:cardPayment.title')}</Text>
           <Text style={styles.amount}>{amount.toFixed(2)} €</Text>
-          <Text style={styles.hint}>Test: 4242424242424242 = Erfolg</Text>
+          <Text style={styles.hint}>{t('payment:cardPayment.testHint')}</Text>
 
           <TextInput
             style={styles.input}
-            placeholder="Kartennummer"
+            placeholder={t('payment:cardPayment.cardNumberPlaceholder')}
             value={cardNumber}
             onChangeText={setCardNumber}
             keyboardType="number-pad"
@@ -114,7 +116,7 @@ export function CardPaymentModal({
           <View style={styles.row}>
             <TextInput
               style={[styles.input, styles.halfInput]}
-              placeholder="MM/JJ"
+              placeholder={t('payment:cardPayment.expiryPlaceholder')}
               value={expiry}
               onChangeText={(v) => setExpiry(formatExpiry(v))}
               keyboardType="number-pad"
@@ -123,7 +125,7 @@ export function CardPaymentModal({
             />
             <TextInput
               style={[styles.input, styles.halfInput]}
-              placeholder="CVC"
+              placeholder={t('payment:cardPayment.cvcPlaceholder')}
               value={cvc}
               onChangeText={(v) => setCvc(v.replace(/\D/g, '').slice(0, 4))}
               keyboardType="number-pad"
@@ -139,12 +141,12 @@ export function CardPaymentModal({
             <ActivityIndicator size="large" style={styles.loader} />
           ) : (
             <Pressable style={styles.payButton} onPress={handlePayment}>
-              <Text style={styles.payButtonText}>Bezahlen</Text>
+              <Text style={styles.payButtonText}>{t('payment:cardPayment.pay')}</Text>
             </Pressable>
           )}
 
           <Pressable onPress={onClose} disabled={loading} style={styles.cancelWrap}>
-            <Text style={styles.cancelText}>Abbrechen</Text>
+            <Text style={styles.cancelText}>{t('payment:cardPayment.cancel')}</Text>
           </Pressable>
         </View>
       </View>
