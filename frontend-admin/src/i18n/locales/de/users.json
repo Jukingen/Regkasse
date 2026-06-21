@@ -1,6 +1,9 @@
 {
   "detail": {
-    "backToList": "Zurück zur Liste"
+    "backToList": "Zurück zur Liste",
+    "notFoundTitle": "Benutzer nicht gefunden",
+    "notFoundDescription": "Der Benutzer existiert nicht oder Sie haben in diesem Mandantenkontext keinen Zugriff.",
+    "errorLoadTitle": "Benutzerdetails konnten nicht geladen werden."
   },
   "page": {
     "title": "Benutzerverwaltung",

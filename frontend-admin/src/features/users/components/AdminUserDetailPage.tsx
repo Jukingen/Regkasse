@@ -33,6 +33,13 @@ import { UserActivityTimeline } from '@/features/users/components/UserActivityTi
 import { UserTenantSummary } from '@/features/users/components/UserTenantSummary';
 import { useAdminUserTenants } from '@/features/users/hooks/useAdminUserTenants';
 
+function isNotFoundError(error: unknown): boolean {
+    const status =
+        (error as { response?: { status?: number } })?.response?.status ??
+        (error as { normalized?: { status?: number } })?.normalized?.status;
+    return status === 404;
+}
+
 function displayName(firstName?: string | null, lastName?: string | null, userName?: string | null): string {
     const name = `${firstName ?? ''} ${lastName ?? ''}`.trim();
     return name || userName?.trim() || '—';
@@ -108,11 +115,25 @@ export function AdminUserDetailPage() {
                 <Spin />
             ) : null}
 
-            {userQuery.isError ? (
+            {userQuery.isError && isNotFoundError(userQuery.error) ? (
+                <Alert
+                    type="warning"
+                    showIcon
+                    title={t('users.detail.notFoundTitle')}
+                    description={t('users.detail.notFoundDescription')}
+                    action={
+                        <Link href="/admin/users">
+                            <Button size="small">{t('users.detail.backToList')}</Button>
+                        </Link>
+                    }
+                />
+            ) : null}
+
+            {userQuery.isError && !isNotFoundError(userQuery.error) ? (
                 <Alert
                     type="error"
                     showIcon
-                    title={t('users.list.errorLoad')}
+                    title={t('users.detail.errorLoadTitle')}
                     action={
                         <Button size="small" onClick={() => void userQuery.refetch()}>
                             {t('users.list.retry')}

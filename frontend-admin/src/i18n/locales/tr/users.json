@@ -1,6 +1,9 @@
 {
   "detail": {
-    "backToList": "Listeye dön"
+    "backToList": "Listeye dön",
+    "notFoundTitle": "Kullanıcı bulunamadı",
+    "notFoundDescription": "Kullanıcı yok veya mevcut kiracı bağlamında erişiminiz yok.",
+    "errorLoadTitle": "Kullanıcı detayları yüklenemedi."
   },
   "page": {
     "title": "Kullanıcı yönetimi",

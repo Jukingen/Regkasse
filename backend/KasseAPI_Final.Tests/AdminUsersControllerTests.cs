@@ -272,6 +272,93 @@ public class AdminUsersControllerTests
     }
 
     [Fact]
+    public async Task GetById_PlatformUserWithoutMembership_WhenActorSuperAdminAndAmbientTenant_ReturnsOk()
+    {
+        var ambientTenantId = Guid.NewGuid();
+        await using var db = CreateEphemeralContext();
+        db.Tenants.Add(new Tenant
+        {
+            Id = ambientTenantId,
+            Name = "Tenant A",
+            Slug = "tenant-a",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "platform-admin-1",
+            UserName = "manager2",
+            Email = "a.terziev@live.at",
+            FirstName = "Admin",
+            LastName = "User",
+            Role = Roles.SuperAdmin,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            ConcurrencyStamp = "etag-platform",
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>().Object;
+        var session = new Mock<IUserSessionInvalidation>().Object;
+        var controller = CreateController(
+            db,
+            audit,
+            session,
+            tenantAccessor: new CurrentTenantAccessor { TenantId = ambientTenantId });
+
+        var result = await controller.GetById("platform-admin-1");
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var dto = Assert.IsType<AdminUserDto>(ok.Value);
+        Assert.Equal("platform-admin-1", dto.Id);
+        Assert.Equal("Platform", dto.UserType);
+        Assert.Equal(Roles.SuperAdmin, dto.Role);
+    }
+
+    [Fact]
+    public async Task GetById_PlatformUserWithoutMembership_WhenActorManagerAndAmbientTenant_ReturnsNotFound()
+    {
+        var ambientTenantId = Guid.NewGuid();
+        await using var db = CreateEphemeralContext();
+        db.Tenants.Add(new Tenant
+        {
+            Id = ambientTenantId,
+            Name = "Tenant A",
+            Slug = "tenant-a",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "platform-admin-1",
+            UserName = "manager2",
+            Email = "a.terziev@live.at",
+            FirstName = "Admin",
+            LastName = "User",
+            Role = Roles.SuperAdmin,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            ConcurrencyStamp = "etag-platform",
+        });
+        await db.SaveChangesAsync();
+
+        var audit = new Mock<IAuditLogService>().Object;
+        var session = new Mock<IUserSessionInvalidation>().Object;
+        var controller = CreateController(
+            db,
+            audit,
+            session,
+            actorRole: Roles.Manager,
+            tenantAccessor: new CurrentTenantAccessor { TenantId = ambientTenantId });
+
+        var result = await controller.GetById("platform-admin-1");
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
     public async Task Deactivate_WhenReasonEmpty_ReturnsBadRequest()
     {
         var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", IsActive = true };

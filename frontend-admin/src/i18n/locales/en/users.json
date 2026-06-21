@@ -1,6 +1,9 @@
 {
   "detail": {
-    "backToList": "Back to list"
+    "backToList": "Back to list",
+    "notFoundTitle": "User not found",
+    "notFoundDescription": "The user does not exist or you do not have access in the current tenant context.",
+    "errorLoadTitle": "Could not load user details."
   },
   "page": {
     "title": "User management",

@@ -115,7 +115,59 @@ public partial class AdminUsersController : ControllerBase
         if (_tenantAccessor.TenantId is not Guid ambientTenantId)
             return true;
 
-        return await ValidateUserInTenantAsync(userId, ambientTenantId, cancellationToken).ConfigureAwait(false);
+        if (await ValidateUserInTenantAsync(userId, ambientTenantId, cancellationToken).ConfigureAwait(false))
+            return true;
+
+        if (!IsActorSuperAdmin())
+            return false;
+
+        var businessTenantIdSet = (await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
+        var user = await UsersWithMembershipsQuery()
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return user != null && IsPlatformOperator(user, businessTenantIdSet);
+    }
+
+    private static bool HasActiveMembershipInTenant(ApplicationUser user, Guid tenantId) =>
+        user.UserTenantMemberships.Any(m =>
+            m.IsActive
+            && m.TenantId == tenantId
+            && m.Tenant != null
+            && m.Tenant.IsActive
+            && m.Tenant.Status != TenantStatuses.Deleted);
+
+    /// <summary>
+    /// SuperAdmin role or no active business-tenant membership (platform operator).
+    /// </summary>
+    private static bool IsPlatformOperator(ApplicationUser user, IReadOnlySet<Guid> businessTenantIds)
+    {
+        if (string.Equals(user.Role, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (businessTenantIds.Count == 0)
+            return false;
+
+        return !user.UserTenantMemberships.Any(m =>
+            m.IsActive
+            && businessTenantIds.Contains(m.TenantId)
+            && m.Tenant != null
+            && m.Tenant.IsActive
+            && m.Tenant.Status != TenantStatuses.Deleted);
+    }
+
+    private bool CanAccessUserInAmbientTenant(
+        ApplicationUser user,
+        Guid ambientTenantId,
+        IReadOnlySet<Guid> businessTenantIds)
+    {
+        if (HasActiveMembershipInTenant(user, ambientTenantId))
+            return true;
+
+        if (!IsPlatformOperator(user, businessTenantIds))
+            return false;
+
+        return IsActorSuperAdmin();
     }
 
     private async Task<List<Guid>> GetBusinessTenantIdsAsync(CancellationToken cancellationToken) =>
@@ -558,17 +610,10 @@ public partial class AdminUsersController : ControllerBase
         if (user == null)
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
-        if (_tenantAccessor.TenantId is Guid ambientTenantId)
+        if (_tenantAccessor.TenantId is Guid ambientTenantId
+            && !CanAccessUserInAmbientTenant(user, ambientTenantId, businessTenantIdSet))
         {
-            var hasActiveMembershipInAmbientTenant = user.UserTenantMemberships.Any(m =>
-                m.IsActive
-                && m.TenantId == ambientTenantId
-                && m.Tenant != null
-                && m.Tenant.IsActive
-                && m.Tenant.Status != TenantStatuses.Deleted);
-
-            if (!hasActiveMembershipInAmbientTenant)
-                return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
         }
 
         return Ok(ToDto(user, businessTenantIdSet));
