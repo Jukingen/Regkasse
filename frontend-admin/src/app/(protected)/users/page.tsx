@@ -60,7 +60,10 @@ import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { getTenantSwitcherLicenseBadge } from '@/features/super-admin/utils/tenantHeaderSwitcher';
 import { UnifiedAdminUsersView } from '@/features/users/components/UnifiedAdminUsersView';
 import { DevOrphanedUsersCleanupButton } from '@/features/users/components/DevOrphanedUsersCleanupButton';
-import { createPlatformUser, updateUserTenants } from '@/features/users/api/users';
+import { createPlatformUser, getAdminUserTenants, updateUserTenants } from '@/features/users/api/users';
+import { useUpdateUserRole } from '@/features/users/hooks/useUpdateUserRole';
+import { resolveRoleChangeTenantId } from '@/features/users/utils/resolveRoleChangeTenantId';
+import { shouldUseTenantRoleChangeApi } from '@/features/users/utils/roleChangeTenantApi';
 import { isPlatformUserRole } from '@/features/users/utils/userScope';
 import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
@@ -214,6 +217,7 @@ export default function UsersPage() {
     const [createRoleOpen, setCreateRoleOpen] = useState(false);
     const [resetPasswordValidationError, setResetPasswordValidationError] = useState<string | null>(null);
     const { user: currentUser } = useAuth();
+    const { tenantId: currentTenantId, isRealTenantSlug } = useCurrentTenant();
     const policy = useUsersPolicy();
     const isSuperAdminLayout = isSuperAdmin(currentUser?.role);
 
@@ -433,6 +437,7 @@ export default function UsersPage() {
             message.error(normalizeError(e, usersCopy.errorGeneric).message);
         },
     });
+    const updateUserRoleMutation = useUpdateUserRole();
     const updateMutation = useMutation({
         mutationFn: ({ id, data }: { id: string; data: UpdateUserRequest }) => gatewayUpdateUser(id, data),
     });
@@ -520,7 +525,32 @@ export default function UsersPage() {
             ...restValues,
             employeeNumber: (restValues.employeeNumber ?? '').trim(),
         };
+        const previousRole = editUserFull?.role?.trim() ?? '';
+        const newRole = updatePayload.role?.trim() ?? '';
+
         try {
+            if (shouldUseTenantRoleChangeApi(previousRole, newRole)) {
+                let tenantIdForRole: string | undefined;
+
+                if (isRealTenantSlug && currentTenantId) {
+                    tenantIdForRole = currentTenantId;
+                } else {
+                    const memberships = await getAdminUserTenants(userId);
+                    tenantIdForRole = resolveRoleChangeTenantId(
+                        memberships,
+                        isRealTenantSlug ? currentTenantId : null,
+                    );
+                }
+
+                if (tenantIdForRole) {
+                    await updateUserRoleMutation.mutateAsync({
+                        tenantId: tenantIdForRole,
+                        userId,
+                        role: newRole,
+                    });
+                }
+            }
+
             await updateMutation.mutateAsync({ id: userId, data: updatePayload });
             if (isSuperAdminLayout && Array.isArray(tenantIds)) {
                 await updateUserTenantsMutation.mutateAsync({ id: userId, tenantIds });
@@ -900,7 +930,7 @@ export default function UsersPage() {
                     roleOptions={roleOptions}
                     rolesLoading={rolesLoading}
                     onSubmit={handleEdit}
-                    loading={updateMutation.isPending || updateUserTenantsMutation.isPending}
+                    loading={updateMutation.isPending || updateUserTenantsMutation.isPending || updateUserRoleMutation.isPending}
                     canManageTenants={isSuperAdminLayout}
                 />
             ) : null}

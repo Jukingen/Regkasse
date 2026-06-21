@@ -53,7 +53,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.Manager) }, "Test")) }
@@ -76,7 +76,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.Manager) }, "Test")) }
@@ -100,7 +100,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -123,7 +123,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -151,7 +151,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -174,7 +174,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -197,7 +197,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -220,7 +220,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -244,7 +244,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -266,7 +266,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -294,7 +294,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -316,7 +316,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -342,7 +342,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, "a1"), new Claim(ClaimTypes.Role, Roles.SuperAdmin) }, "Test")) }
@@ -469,7 +469,7 @@ public class RoleManagementTests
         var session = new Mock<IUserSessionInvalidation>().Object;
         var uniqueness = new Mock<IUserUniquenessValidationService>().Object;
         var logger = new Mock<ILogger<UserManagementController>>().Object;
-        var controller = new UserManagementController(context, userManager, roleManager, audit, session, uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
+        var controller = new UserManagementController(context, userManager, roleManager, audit, session, Mock.Of<IUserRoleChangeService>(), uniqueness, roleMgmt.Object, Mock.Of<IUserPermissionOverrideService>(), logger, TenantTestDoubles.NoOpProvisioner(), NullCurrentTenantAccessor.Instance, LocalizationTestDoubles.ApiMessageLocalizer(), LocalizationTestDoubles.I18nErrorService(), LocalizationTestDoubles.PasswordErrorTranslator(), Mock.Of<IUserUsernameHistoryService>(), Mock.Of<IUsernameChangeEmailService>());
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

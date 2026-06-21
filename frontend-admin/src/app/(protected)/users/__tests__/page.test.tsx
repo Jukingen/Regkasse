@@ -286,10 +286,12 @@ vi.mock('@/features/users/api/users', () => ({
     userTenants: (userId: string) => ['admin', 'users', userId, 'tenants'] as const,
   },
   createPlatformUser: (data: unknown) => mockCreatePlatformUser(data),
+  getAdminUserTenants: vi.fn().mockResolvedValue([]),
   listAllAdminUsers: vi.fn().mockResolvedValue({ items: [], totalCount: 0 }),
   listPlatformUsers: vi.fn().mockResolvedValue([]),
   listTenantUsers: vi.fn().mockResolvedValue([]),
   removeUserFromTenant: vi.fn(),
+  updateUserRole: vi.fn().mockResolvedValue({ userId: 'user-1', role: 'Cashier' }),
   updateUserTenants: vi.fn(),
 }));
 

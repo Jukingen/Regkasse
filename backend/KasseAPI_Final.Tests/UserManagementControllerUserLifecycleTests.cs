@@ -93,17 +93,24 @@ public class UserManagementControllerUserLifecycleTests
         IRoleManagementService? roleManagementService = null,
         string? actorId = "admin-id",
         string actorRole = "SuperAdmin",
-        IUserTenantMembershipProvisioner? tenantMembershipProvisioner = null)
+        IUserTenantMembershipProvisioner? tenantMembershipProvisioner = null,
+        IUserRoleChangeService? userRoleChangeService = null)
     {
         var logger = new Mock<ILogger<UserManagementController>>().Object;
         var roleMgmt = roleManagementService ?? new Mock<IRoleManagementService>().Object;
         var provisioner = tenantMembershipProvisioner ?? TenantTestDoubles.NoOpProvisioner();
+        var roleChange = userRoleChangeService ?? new UserRoleChangeService(
+            userManager,
+            auditLogService,
+            sessionInvalidation,
+            Mock.Of<ILogger<UserRoleChangeService>>());
         var controller = new UserManagementController(
             context,
             userManager,
             roleManager,
             auditLogService,
             sessionInvalidation,
+            roleChange,
             uniquenessValidation ?? CreateUniquenessValidationMock(),
             roleMgmt,
             Mock.Of<IUserPermissionOverrideService>(),
@@ -536,6 +543,109 @@ public class UserManagementControllerUserLifecycleTests
         Assert.Equal("User updated successfully", message);
         auditMock.Verify(
             x => x.LogUserLifecycleAsync(AuditLogActions.USER_UPDATE, It.IsAny<string>(), It.IsAny<string>(), "u1", null, null, AuditLogStatus.Success, It.IsAny<string>(), It.IsAny<object?>(), It.IsAny<object?>()),
+            Times.Once);
+    }
+
+    /// <summary>Role changes delegate to IUserRoleChangeService (Identity swap, audit, session invalidation).</summary>
+    [Fact]
+    public async Task UpdateUser_WhenRoleChanges_DelegatesToUserRoleChangeService()
+    {
+        var user = new ApplicationUser
+        {
+            Id = "u1",
+            UserName = "staff1",
+            FirstName = "A",
+            LastName = "B",
+            EmployeeNumber = "E1",
+            Role = Roles.Manager,
+            IsActive = true,
+        };
+        var (userManager, roleManager) = CreateMockUserAndRoleManagers(existingUser: user);
+        using var context = CreateContext();
+
+        var auditMock = new Mock<IAuditLogService>();
+        var sessionMock = new Mock<IUserSessionInvalidation>();
+        var roleChangeMock = new Mock<IUserRoleChangeService>();
+        roleChangeMock
+            .Setup(x => x.ChangeUserRoleAsync(
+                It.IsAny<ApplicationUser>(),
+                Roles.Cashier,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<ApplicationUser, string, string, string, Guid?, CancellationToken>((u, role, _, _, _, _) =>
+            {
+                u.Role = role;
+            })
+            .ReturnsAsync((new UserRoleChangeResult
+            {
+                RoleChanged = true,
+                PreviousRole = Roles.Manager,
+                NewRole = Roles.Cashier,
+            }, null));
+
+        var controller = CreateController(
+            context,
+            userManager,
+            roleManager,
+            auditMock.Object,
+            sessionMock.Object,
+            userRoleChangeService: roleChangeMock.Object);
+
+        var result = await controller.UpdateUser("u1", new UpdateUserRequest
+        {
+            FirstName = "Updated",
+            LastName = "User",
+            EmployeeNumber = "E1",
+            Role = Roles.Cashier,
+        });
+
+        var ok = Assert.IsAssignableFrom<ObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+
+        roleChangeMock.Verify(
+            x => x.ChangeUserRoleAsync(
+                It.Is<ApplicationUser>(u => u.Id == "u1" && u.FirstName == "Updated"),
+                Roles.Cashier,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+
+        sessionMock.Verify(
+            x => x.InvalidateSessionsForUserAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+
+        auditMock.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditEventType.UserRoleChanged,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<Guid?>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<AuditLogStatus>(),
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>()),
+            Times.Never);
+
+        auditMock.Verify(
+            x => x.LogUserLifecycleAsync(
+                AuditLogActions.USER_UPDATE,
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                "u1",
+                null,
+                null,
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                null),
             Times.Once);
     }
 

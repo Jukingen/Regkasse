@@ -33,6 +33,7 @@ namespace KasseAPI_Final.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IAuditLogService _auditLogService;
         private readonly IUserSessionInvalidation _sessionInvalidation;
+        private readonly IUserRoleChangeService _userRoleChangeService;
         private readonly IUserUniquenessValidationService _uniquenessValidation;
         private readonly IRoleManagementService _roleManagementService;
         private readonly IUserPermissionOverrideService _permissionOverrideService;
@@ -51,6 +52,7 @@ namespace KasseAPI_Final.Controllers
             RoleManager<IdentityRole> roleManager,
             IAuditLogService auditLogService,
             IUserSessionInvalidation sessionInvalidation,
+            IUserRoleChangeService userRoleChangeService,
             IUserUniquenessValidationService uniquenessValidation,
             IRoleManagementService roleManagementService,
             IUserPermissionOverrideService permissionOverrideService,
@@ -68,6 +70,7 @@ namespace KasseAPI_Final.Controllers
             _roleManager = roleManager;
             _auditLogService = auditLogService;
             _sessionInvalidation = sessionInvalidation;
+            _userRoleChangeService = userRoleChangeService;
             _uniquenessValidation = uniquenessValidation;
             _roleManagementService = roleManagementService;
             _permissionOverrideService = permissionOverrideService;
@@ -698,8 +701,6 @@ namespace KasseAPI_Final.Controllers
                     return NotFound(new { message = "User not found" });
                 }
 
-                var previousRole = user.Role;
-
                 // Audit diff: only whitelisted safe fields (UserAuditDiffHelper). No credentials, no Notes/TaxNumber/EmployeeNumber.
                 object? oldSnapshot = UserAuditDiffHelper.CreateSafeSnapshot(user);
 
@@ -731,60 +732,57 @@ namespace KasseAPI_Final.Controllers
                 if (request.IsDemo.HasValue)
                     user.IsDemo = request.IsDemo.Value;
 
-                // Role is required and already validated; update if changed
-                var roleChanged = request.Role != user.Role;
-                if (roleChanged)
-                {
-                    user.Role = request.Role;
-                }
+                var roleWillChange = !string.Equals(
+                    request.Role.Trim(),
+                    user.Role?.Trim() ?? string.Empty,
+                    StringComparison.OrdinalIgnoreCase);
 
-                // Auto-clear IsDemo when role is not allowed for demo and caller did not explicitly keep it true.
                 if (!request.IsDemo.HasValue
                     && user.IsDemo
-                    && !DemoUserHelper.IsRoleAllowedForDemo(user.Role))
+                    && !DemoUserHelper.IsRoleAllowedForDemo(request.Role))
                 {
                     user.IsDemo = false;
-                    _logger.LogInformation("IsDemo auto-cleared for user {UserId}: role {Role} is not allowed for demo", id, user.Role);
+                    _logger.LogInformation("IsDemo auto-cleared for user {UserId}: role {Role} is not allowed for demo", id, request.Role);
                 }
 
                 user.UpdatedAt = DateTime.UtcNow;
 
-                var result = await _userManager.UpdateAsync(user);
-                if (!result.Succeeded)
+                if (roleWillChange)
                 {
-                    return BadRequest(new { message = "Failed to update user", errors = result.Errors });
-                }
+                    var actorId = GetCurrentUserId() ?? "unknown";
+                    var actorRole = GetCurrentUserRole();
+                    var (_, roleError) = await _userRoleChangeService.ChangeUserRoleAsync(
+                        user,
+                        request.Role,
+                        actorId,
+                        actorRole,
+                        ResolveActorTenantScope(),
+                        CancellationToken.None).ConfigureAwait(false);
 
-                if (roleChanged)
-                {
-                    var currentRoles = await _userManager.GetRolesAsync(user);
-                    if (currentRoles.Any())
+                    if (roleError != null)
                     {
-                        await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                        return BadRequest(new { message = roleError, code = "ROLE_ASSIGN_FAILED" });
                     }
-                    await _userManager.AddToRoleAsync(user, request.Role);
+                }
+                else
+                {
+                    var result = await _userManager.UpdateAsync(user);
+                    if (!result.Succeeded)
+                    {
+                        return BadRequest(new { message = "Failed to update user", errors = result.Errors });
+                    }
                 }
 
                 await _context.SaveChangesAsync();
 
-                var actorId = GetCurrentUserId();
-                var actorRole = GetCurrentUserRole();
-                if (!string.IsNullOrEmpty(actorId))
+                var actorIdForAudit = GetCurrentUserId();
+                var actorRoleForAudit = GetCurrentUserRole();
+                if (!string.IsNullOrEmpty(actorIdForAudit))
                 {
                     object newSnapshot = UserAuditDiffHelper.CreateSafeSnapshot(user);
                     await TryLogUserLifecycleAsync(
-                        AuditEventType.UserUpdated, actorId, actorRole, id, null, null,
+                        AuditEventType.UserUpdated, actorIdForAudit, actorRoleForAudit, id, null, null,
                         AuditLogStatus.Success, $"User updated: {user.UserName}", oldSnapshot, newSnapshot);
-                    if (!string.IsNullOrEmpty(request.Role) && request.Role != previousRole)
-                    {
-                        await TryLogUserLifecycleAsync(
-                            AuditEventType.UserRoleChanged, actorId, actorRole, id,
-                            $"Role changed from {previousRole} to {request.Role}", null,
-                            AuditLogStatus.Success, $"Role change: {previousRole} -> {request.Role}",
-                            oldValues: new { Role = previousRole },
-                            newValues: new { Role = request.Role });
-                        await _sessionInvalidation.InvalidateSessionsForUserAsync(id);
-                    }
                 }
 
                 return Ok(new { message = "User updated successfully" });
