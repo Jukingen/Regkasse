@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 
 import {
     getLicenseStatusDayText,
@@ -70,7 +71,7 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
     const licenseQuery = useAuthorizedQuery({
         queryKey: ['admin', 'tenant-license', tenant.id],
         queryFn: () => getAdminTenantLicense(tenant.id),
-        requiredRole: 'SuperAdmin',
+        requiredPermission: PERMISSIONS.LICENSE_MANAGE,
     });
 
     const invalidate = () => {

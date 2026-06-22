@@ -1,5 +1,7 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
+using KasseAPI_Final.Middleware;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
@@ -34,6 +36,7 @@ public sealed class AdminTenantLicenseServiceTests
             Mock.Of<ILicenseSyncService>(),
             Mock.Of<ILicenseIssuanceService>(),
             reminderSender ?? Mock.Of<ILicenseReminderEmailSender>(),
+            Mock.Of<IAuditLogService>(),
             Mock.Of<ILogger<AdminTenantLicenseService>>(),
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production),
             Options.Create(new TseOptions { TseMode = "Device" }),
@@ -62,6 +65,7 @@ public sealed class AdminTenantLicenseServiceTests
             Mock.Of<ILicenseSyncService>(),
             Mock.Of<ILicenseIssuanceService>(),
             Mock.Of<ILicenseReminderEmailSender>(),
+            Mock.Of<IAuditLogService>(),
             Mock.Of<ILogger<AdminTenantLicenseService>>(),
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
             Options.Create(new TseOptions { TseMode = "Device" }),
@@ -227,5 +231,97 @@ public sealed class AdminTenantLicenseServiceTests
         Assert.NotNull(result);
         Assert.True(result!.Success);
         Assert.Equal("owner@reminder.test", result.RecipientEmail);
+    }
+
+    [Fact]
+    public async Task ExtendAsync_WithKeyAndValidUntil_AppliesRequestedExpiry()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        var key = "REGK-AAAAA-BBBBB-CCCCC";
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Extend Co",
+            Slug = "extend-co",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            LicenseValidUntilUtc = DateTime.UtcNow.AddDays(5),
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var requestedUntil = DateTime.UtcNow.AddDays(90);
+        var audit = new Mock<IAuditLogService>();
+        var service = new AdminTenantLicenseService(
+            db,
+            Mock.Of<ILicenseSyncService>(),
+            Mock.Of<ILicenseIssuanceService>(),
+            Mock.Of<ILicenseReminderEmailSender>(),
+            audit.Object,
+            Mock.Of<ILogger<AdminTenantLicenseService>>(),
+            Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production),
+            Options.Create(new TseOptions { TseMode = "Device" }),
+            Options.Create(new LicenseOptions { Enabled = true }),
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false));
+
+        var (result, error) = await service.ExtendAsync(
+            tenantId,
+            new ExtendTenantLicenseRequest { LicenseKey = key, ValidUntilUtc = requestedUntil },
+            "manager-1",
+            Roles.Manager);
+
+        Assert.Null(error);
+        Assert.NotNull(result);
+        Assert.Equal(key, result!.Status.LicenseKey);
+        Assert.NotNull(result.Status.ValidUntilUtc);
+        Assert.Equal(
+            requestedUntil.ToUniversalTime().Date,
+            result.Status.ValidUntilUtc!.Value.ToUniversalTime().Date);
+
+        audit.Verify(
+            x => x.LogSystemOperationAsync(
+                AuditLogActions.LICENSE_UPDATED,
+                AuditLogEntityTypes.SYSTEM_CONFIG,
+                "manager-1",
+                Roles.Manager,
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                AuditLogStatus.Success,
+                It.IsAny<string?>(),
+                It.IsAny<object?>(),
+                It.IsAny<object?>(),
+                It.IsAny<string?>(),
+                It.IsAny<ImpersonationAuditContext.Snapshot?>(),
+                AuditEventType.LicenseUpdated,
+                tenantId,
+                tenantId),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExtendAsync_InvalidKeyFormat_ReturnsError()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Bad Key",
+            Slug = "bad-key",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db);
+        var (result, error) = await service.ExtendAsync(
+            tenantId,
+            new ExtendTenantLicenseRequest { LicenseKey = "not-a-key", ValidUntilUtc = DateTime.UtcNow.AddDays(30) },
+            "manager-1");
+
+        Assert.Null(result);
+        Assert.Equal(RegkTenantLicenseKeyFormat.InvalidFormatMessage, error);
     }
 }

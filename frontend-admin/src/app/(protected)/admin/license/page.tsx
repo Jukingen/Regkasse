@@ -22,7 +22,7 @@ import {
     StopOutlined,
     SyncOutlined,
 } from '@ant-design/icons';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb, ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
 import { useI18n, formatDate } from '@/i18n';
@@ -47,6 +47,9 @@ import {
     type GenerateLicenseResponse,
     type IssuedLicenseActivationDto,
     type IssuedLicenseListItemDto,
+    type LicenseActivationResult,
+    type LicensePublicStatusDto,
+    type LicenseStatusResponse,
 } from '@/api/manual/adminLicense';
 import {
     getLicenseStatusDayText,
@@ -60,6 +63,11 @@ import { LicenseGenerationCard } from './LicenseGenerationCard';
 import { IssuedLicenseUpgradeModal } from './IssuedLicenseUpgradeModal';
 import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
 import { LicenseReportsCard } from './LicenseReportsCard';
+import { TenantLicenseSection } from '@/features/license/components/TenantLicenseSection';
+import { TenantLicenseOverview } from '@/features/license/components/TenantLicenseOverview';
+import { tenantLicenseOverviewQueryKey } from '@/features/license/api/tenantLicenseOverview';
+import { resolveLicensePageSectionVisibility } from '@/features/license/utils/licensePageVisibility';
+import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 
 type LicenseFormValues = {
     licenseKey: string;
@@ -943,19 +951,31 @@ export default function AdminLicensePage() {
     const { t, formatLocale } = useI18n();
     const queryClient = useQueryClient();
     const { user } = useAuth();
+    const currentTenant = useCurrentTenant();
     const [form] = Form.useForm<LicenseFormValues>();
     const searchParams = useSearchParams();
 
-    const canActivate = Boolean(user?.permissions?.includes(PERMISSIONS.SETTINGS_MANAGE));
+    const { showAllTenantLicensesSection, showTenantLicenseSection, showDeploymentSection } =
+        resolveLicensePageSectionVisibility(
+        user,
+        {
+            hasTenantContext: Boolean(currentTenant.tenantId && currentTenant.isRealTenantSlug),
+            role: user?.role,
+            isSuperAdminPlatformMode: currentTenant.isSuperAdminPlatformMode,
+        },
+    );
+    const canActivate = showDeploymentSection;
 
     const statusQuery = useQuery({
         queryKey: licenseQueryKeys.deploymentStatus,
         queryFn: () => getDeploymentLicenseStatus(),
+        enabled: showDeploymentSection,
     });
 
     const publicStatusQuery = useQuery({
         queryKey: licenseQueryKeys.publicStatus,
         queryFn: () => getPublicLicenseStatus(),
+        enabled: showDeploymentSection,
     });
 
     const activateMutation = useMutation({
@@ -1011,6 +1031,17 @@ export default function AdminLicensePage() {
                     <Button
                         icon={<ReloadOutlined />}
                         onClick={() => {
+                            if (showAllTenantLicensesSection) {
+                                void queryClient.invalidateQueries({
+                                    queryKey: tenantLicenseOverviewQueryKey,
+                                });
+                            }
+                            if (showTenantLicenseSection && currentTenant.tenantId) {
+                                void queryClient.invalidateQueries({
+                                    queryKey: ['admin', 'tenant-license', currentTenant.tenantId],
+                                });
+                                void queryClient.invalidateQueries({ queryKey: ['tenant-license-status'] });
+                            }
                             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.deploymentStatus });
                             void queryClient.invalidateQueries({ queryKey: licenseQueryKeys.publicStatus });
                             if (canActivate) {
@@ -1028,9 +1059,123 @@ export default function AdminLicensePage() {
             />
 
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                {t('license.page.subtitle')}
+                {showAllTenantLicensesSection
+                    ? t('license.superAdmin.subtitle')
+                    : showTenantLicenseSection && showDeploymentSection
+                      ? t('license.page.subtitleWithMandant')
+                      : showTenantLicenseSection
+                        ? t('license.page.subtitleWithMandant')
+                        : t('license.page.subtitle')}
             </Typography.Paragraph>
 
+            {showAllTenantLicensesSection && showDeploymentSection ? (
+                <Tabs
+                    defaultActiveKey="server"
+                    items={[
+                        {
+                            key: 'server',
+                            label: t('license.page.serverLicense'),
+                            children: (
+                                <DeploymentLicensePanel
+                                    t={t}
+                                    formatLocale={formatLocale}
+                                    statusQuery={statusQuery}
+                                    publicStatusQuery={publicStatusQuery}
+                                    resolvedStatus={resolvedStatus}
+                                    s={s}
+                                    machineHash={machineHash}
+                                    showDeploymentActivation={showDeploymentActivation}
+                                    canActivate={canActivate}
+                                    form={form}
+                                    activateMutation={activateMutation}
+                                    licensePagePrefill={licensePagePrefill}
+                                    enabledPublicLicenseFeatures={enabledPublicLicenseFeatures}
+                                    showIssuedLicenses={showIssuedLicenses}
+                                />
+                            ),
+                        },
+                        {
+                            key: 'all-tenants',
+                            label: t('license.superAdmin.tabTitle'),
+                            children: <TenantLicenseOverview />,
+                        },
+                    ]}
+                />
+            ) : showAllTenantLicensesSection ? (
+                <TenantLicenseOverview />
+            ) : (
+                <>
+            {showTenantLicenseSection ? <TenantLicenseSection /> : null}
+
+            {showDeploymentSection ? (
+                <DeploymentLicensePanel
+                    t={t}
+                    formatLocale={formatLocale}
+                    statusQuery={statusQuery}
+                    publicStatusQuery={publicStatusQuery}
+                    resolvedStatus={resolvedStatus}
+                    s={s}
+                    machineHash={machineHash}
+                    showDeploymentActivation={showDeploymentActivation}
+                    canActivate={canActivate}
+                    form={form}
+                    activateMutation={activateMutation}
+                    licensePagePrefill={licensePagePrefill}
+                    enabledPublicLicenseFeatures={enabledPublicLicenseFeatures}
+                    showIssuedLicenses={showIssuedLicenses}
+                />
+            ) : null}
+                </>
+            )}
+        </div>
+    );
+}
+
+type DeploymentLicensePanelProps = {
+    t: ReturnType<typeof useI18n>['t'];
+    formatLocale: ReturnType<typeof useI18n>['formatLocale'];
+    statusQuery: UseQueryResult<LicenseStatusResponse | undefined>;
+    publicStatusQuery: UseQueryResult<LicensePublicStatusDto | undefined>;
+    resolvedStatus: ReturnType<typeof resolveDeploymentLicenseStatus> | null;
+    s: LicenseStatusResponse | undefined;
+    machineHash: string;
+    showDeploymentActivation: boolean;
+    canActivate: boolean;
+    form: ReturnType<typeof Form.useForm<LicenseFormValues>>[0];
+    activateMutation: UseMutationResult<LicenseActivationResult, unknown, ActivateLicenseRequest, unknown>;
+    licensePagePrefill: ReturnType<typeof readAdminLicensePagePrefill>;
+    enabledPublicLicenseFeatures: string[] | null;
+    showIssuedLicenses: boolean;
+};
+
+function DeploymentLicensePanel({
+    t,
+    formatLocale,
+    statusQuery,
+    publicStatusQuery,
+    resolvedStatus,
+    s,
+    machineHash,
+    showDeploymentActivation,
+    canActivate,
+    form,
+    activateMutation,
+    licensePagePrefill,
+    enabledPublicLicenseFeatures,
+    showIssuedLicenses,
+}: DeploymentLicensePanelProps) {
+    const { message } = useAntdApp();
+
+    return (
+        <>
+            <div>
+                <Typography.Title level={4} style={{ margin: 0 }}>
+                    {t('license.page.serverLicense')}
+                </Typography.Title>
+                <Typography.Paragraph type="secondary" style={{ marginBottom: 16, marginTop: 8 }}>
+                    {t('license.page.subtitle')}
+                </Typography.Paragraph>
+            </div>
             <Card title={t('license.simpleUi.titlePublic')}>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
                     {t('license.simpleUi.subtitlePublic')}
@@ -1251,6 +1396,6 @@ export default function AdminLicensePage() {
                     prefill={licensePagePrefill}
                 />
             )}
-        </div>
+        </>
     );
 }

@@ -1,7 +1,80 @@
 {
   "page": {
-    "title": "Sunucu lisansı (on-premise)",
-    "subtitle": "Bu API örneği (deployment) için lisans. Üst çubuktaki kiracı lisansı rozeti ile karıştırmayın."
+    "title": "Lisans yönetimi",
+    "tenantLicense": "Kiracı lisansı",
+    "serverLicense": "Sunucu lisansı (on-premise)",
+    "subtitle": "Bu API örneği (deployment) için lisans. Üst çubuktaki kiracı lisansı rozeti ile karıştırmayın.",
+    "subtitleWithMandant": "Kiracı lisansınızı yönetin ve sunucu (on-premise) lisansını görüntüleyin. Kiracı lisansı şirketiniz içindir; sunucu lisansı bu API örneği içindir."
+  },
+  "tenant": {
+    "status": "Durum",
+    "validUntil": "Geçerlilik",
+    "licenseKey": "Lisans anahtarı",
+    "extendButton": "Lisansı uzat",
+    "noLicense": "Aktif kiracı lisansı yok",
+    "valid": "Aktif",
+    "expired": "Süresi doldu",
+    "expiresSoon": "Yakında sona eriyor",
+    "trial": "Deneme"
+  },
+  "superAdmin": {
+    "tabTitle": "Tüm kiracı lisansları",
+    "subtitle": "Tüm kiracı (SaaS) lisanslarının özeti. Kiracı başına anahtar ve geçerlilik düzenleyin.",
+    "searchPlaceholder": "Kiracı veya slug ara…",
+    "statusFilter": "Lisans durumu",
+    "exported": "{{count}} satır dışa aktarıldı",
+    "noRowsToExport": "Dışa aktarılacak satır yok",
+    "exportButton": "Raporu dışa aktar (CSV)",
+    "table": {
+      "tenant": "Kiracı",
+      "slug": "Slug",
+      "licenseKey": "Lisans anahtarı",
+      "validUntil": "Geçerlilik",
+      "status": "Durum",
+      "actions": "İşlemler",
+      "add": "Ekle",
+      "edit": "Düzenle",
+      "noLicense": "Lisans yok",
+      "active": "Aktif",
+      "expired": "Süresi doldu",
+      "expiresSoon": "Yakında sona eriyor",
+      "trial": "Deneme",
+      "noResults": "Kiracı bulunamadı"
+    },
+    "filters": {
+      "all": "Tümü",
+      "active": "Aktif",
+      "expired": "Süresi doldu",
+      "expiresSoon": "Yakında sona eriyor",
+      "noLicense": "Lisans yok",
+      "trial": "Deneme"
+    },
+    "editModal": {
+      "title": "Kiracı lisansını düzenle",
+      "tenantLabel": "Kiracı",
+      "licenseKeyLabel": "Lisans anahtarı",
+      "validUntilLabel": "Geçerlilik",
+      "statusLabel": "Durum",
+      "dateRequired": "Lütfen bir geçerlilik tarihi seçin.",
+      "licenseKeyTooltip": "REGK kiracı anahtarı (isteğe bağlı). Anahtar olmadan deneme süresi devam eder.",
+      "addHint": "Geçerlilik tarihi zorunludur. Lisans anahtarı isteğe bağlıdır.",
+      "saveButton": "Kaydet",
+      "success": "Lisans güncellendi",
+      "error": "Lisans güncellenemedi",
+      "clearLicense": "Lisansı kaldır"
+    }
+  },
+  "extendModal": {
+    "title": "Kiracı lisansını uzat",
+    "currentStatus": "Güncel durum",
+    "licenseKeyLabel": "Yeni lisans anahtarı",
+    "durationLabel": "Uzatma süresi",
+    "duration30": "30 gün",
+    "duration90": "90 gün",
+    "duration365": "365 gün (1 yıl)",
+    "confirmButton": "Lisansı uzat",
+    "success": "Lisans başarıyla uzatıldı",
+    "error": "Lisans uzatma başarısız"
   },
   "status": {
     "label": "Lisans durumu",

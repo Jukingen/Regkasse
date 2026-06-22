@@ -1,26 +1,22 @@
 import { AXIOS_INSTANCE } from '@/lib/axios';
+import type {
+    TenantLicenseHistoryItem,
+    TenantLicenseOverview,
+    TenantLicenseStatus,
+    UpdateTenantLicenseRequest,
+} from '@/features/license/api/tenantLicense';
 
-export type TenantLicenseStatus = {
-    kind: string;
-    licenseKey?: string | null;
-    validUntilUtc?: string | null;
-    daysRemaining?: number | null;
-    tier?: string | null;
-    features: string[];
-};
-
-export type TenantLicenseHistoryItem = {
-    issuedLicenseId?: string | null;
-    eventType: string;
-    atUtc: string;
-    summary: string;
-    licenseKey?: string | null;
-};
-
-export type TenantLicenseOverview = {
-    status: TenantLicenseStatus;
-    history: TenantLicenseHistoryItem[];
-};
+export type {
+    TenantLicenseHistoryItem,
+    TenantLicenseOverview,
+    TenantLicenseStatus,
+    UpdateTenantLicenseRequest,
+} from '@/features/license/api/tenantLicense';
+export {
+    getTenantLicense as getAdminTenantLicense,
+    putTenantLicense as putAdminTenantLicense,
+    tenantLicenseQueryKeys,
+} from '@/features/license/api/tenantLicense';
 
 export type TenantLicenseConsistency = {
     isConsistent: boolean;
@@ -46,6 +42,7 @@ export type TenantLicenseReminderResult = {
     message?: string | null;
 };
 
+/** @deprecated Prefer {@link UpdateTenantLicenseRequest} for Manager PUT; optional fields for Super Admin POST extend. */
 export type ExtendTenantLicenseRequest = {
     licenseKey?: string | null;
     validUntilUtc?: string | null;
@@ -69,9 +66,19 @@ export type LicenseRenewalResult = {
     message?: string;
 };
 
-export async function getAdminTenantLicense(tenantId: string): Promise<TenantLicenseOverview> {
-    const { data } = await AXIOS_INSTANCE.get<TenantLicenseOverview>(
-        `/api/admin/tenants/${tenantId}/license`,
+/** GET /api/admin/license/mandant — effective-tenant overview (Manager self-service). */
+export async function getMandantLicenseOverview(): Promise<TenantLicenseOverview> {
+    const { data } = await AXIOS_INSTANCE.get<TenantLicenseOverview>('/api/admin/license/mandant');
+    return data;
+}
+
+/** POST /api/admin/license/mandant/extend — extend effective tenant with REGK key. */
+export async function extendMandantLicense(
+    body: ExtendTenantLicenseRequest,
+): Promise<TenantLicenseOverview> {
+    const { data } = await AXIOS_INSTANCE.post<TenantLicenseOverview>(
+        '/api/admin/license/mandant/extend',
+        body,
     );
     return data;
 }
@@ -91,6 +98,14 @@ export async function extendAdminTenantLicense(
         `/api/admin/tenants/${tenantId}/license/extend`,
         body,
     );
+    return data;
+}
+
+/** POST /api/admin/license/mandant/renew — mandant SaaS renewal for effective tenant. */
+export async function renewMandantLicense(
+    body: RenewTenantLicenseRequest,
+): Promise<LicenseRenewalResult> {
+    const { data } = await AXIOS_INSTANCE.post<LicenseRenewalResult>('/api/admin/license/mandant/renew', body);
     return data;
 }
 

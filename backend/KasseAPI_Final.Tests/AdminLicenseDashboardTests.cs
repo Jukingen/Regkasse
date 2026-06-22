@@ -40,6 +40,7 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<IAdminTenantLicenseService>(),
             db,
             Mock.Of<IAdminTenantService>(),
+            TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             NullLogger<AdminLicenseController>.Instance);
@@ -72,6 +73,7 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<IAdminTenantLicenseService>(),
             db,
             adminTenantService,
+            TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             NullLogger<AdminLicenseController>.Instance);

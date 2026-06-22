@@ -1,7 +1,80 @@
 {
   "page": {
-    "title": "Server license (on-premise)",
-    "subtitle": "License for this API instance (deployment). Do not confuse with the tenant license badge in the header."
+    "title": "License management",
+    "tenantLicense": "Tenant license",
+    "serverLicense": "Server license (on-premise)",
+    "subtitle": "License for this API instance (deployment). Do not confuse with the tenant license badge in the header.",
+    "subtitleWithMandant": "Manage your tenant license and view the server (on-premise) license. Tenant license applies to your company; server license applies to this API instance."
+  },
+  "tenant": {
+    "status": "Status",
+    "validUntil": "Valid until",
+    "licenseKey": "License key",
+    "extendButton": "Extend license",
+    "noLicense": "No active tenant license",
+    "valid": "Active",
+    "expired": "Expired",
+    "expiresSoon": "Expiring soon",
+    "trial": "Trial"
+  },
+  "superAdmin": {
+    "tabTitle": "All tenant licenses",
+    "subtitle": "Overview of all tenant (SaaS) licenses. Edit key and validity per tenant.",
+    "searchPlaceholder": "Search tenant or slug…",
+    "statusFilter": "License status",
+    "exported": "Exported {{count}} rows",
+    "noRowsToExport": "No rows to export",
+    "exportButton": "Export report (CSV)",
+    "table": {
+      "tenant": "Tenant",
+      "slug": "Slug",
+      "licenseKey": "License key",
+      "validUntil": "Valid until",
+      "status": "Status",
+      "actions": "Actions",
+      "add": "Add",
+      "edit": "Edit",
+      "noLicense": "No license",
+      "active": "Active",
+      "expired": "Expired",
+      "expiresSoon": "Expiring soon",
+      "trial": "Trial",
+      "noResults": "No tenants found"
+    },
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "expired": "Expired",
+      "expiresSoon": "Expiring soon",
+      "noLicense": "No license",
+      "trial": "Trial"
+    },
+    "editModal": {
+      "title": "Edit tenant license",
+      "tenantLabel": "Tenant",
+      "licenseKeyLabel": "License key",
+      "validUntilLabel": "Valid until",
+      "statusLabel": "Status",
+      "dateRequired": "Please select a validity date.",
+      "licenseKeyTooltip": "REGK tenant key (optional). Without a key the trial period remains active.",
+      "addHint": "A validity date is required. The license key is optional.",
+      "saveButton": "Save",
+      "success": "License was updated",
+      "error": "License could not be updated",
+      "clearLicense": "Remove license"
+    }
+  },
+  "extendModal": {
+    "title": "Extend tenant license",
+    "currentStatus": "Current status",
+    "licenseKeyLabel": "New license key",
+    "durationLabel": "Extension period",
+    "duration30": "30 days",
+    "duration90": "90 days",
+    "duration365": "365 days (1 year)",
+    "confirmButton": "Extend license",
+    "success": "License was extended successfully",
+    "error": "License extension failed"
   },
   "status": {
     "label": "License status",

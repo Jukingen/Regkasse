@@ -34,6 +34,9 @@ public sealed class RenewTenantLicenseRequest
 {
     [Range(1, 120)]
     public int AdditionalMonths { get; set; }
+
+    /// <summary>Manager self-service renewal requires explicit payment acknowledgement.</summary>
+    public bool PaymentConfirmed { get; set; }
 }
 
 public sealed class SetTenantLicenseTierRequest
@@ -69,3 +72,14 @@ public sealed record TenantLicenseReminderResultDto(
     bool Success,
     string RecipientEmail,
     string? Message);
+
+/// <summary>Super Admin license inventory row for <c>GET /api/admin/tenants/license-overview</c>.</summary>
+public sealed record TenantLicenseOverviewListItemDto(
+    Guid TenantId,
+    string TenantName,
+    string TenantSlug,
+    string? LicenseKey,
+    DateTime? ValidUntilUtc,
+    string Status,
+    bool HasOwnerAdmin,
+    DateTime CreatedAt);

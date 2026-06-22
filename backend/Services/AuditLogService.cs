@@ -617,6 +617,8 @@ namespace KasseAPI_Final.Services
                 AuditEventType.CategoryUpdated => AuditLogActions.CATEGORY_UPDATED,
                 AuditEventType.CategoryDemoReset => AuditLogActions.CATEGORY_DEMO_RESET,
                 AuditEventType.LicenseRenewed => AuditLogActions.LICENSE_RENEWED,
+                AuditEventType.LicenseExtended => AuditLogActions.LICENSE_EXTENDED,
+                AuditEventType.LicenseUpdated => AuditLogActions.LICENSE_UPDATED,
                 AuditEventType.InvoiceResent => AuditLogActions.INVOICE_RESENT,
                 _ => AuditLogActions.USER_UPDATE
             };
@@ -652,6 +654,8 @@ namespace KasseAPI_Final.Services
                 AuditLogActions.CATEGORY_UPDATED => AuditEventType.CategoryUpdated,
                 AuditLogActions.CATEGORY_DEMO_RESET => AuditEventType.CategoryDemoReset,
                 AuditLogActions.LICENSE_RENEWED => AuditEventType.LicenseRenewed,
+                AuditLogActions.LICENSE_EXTENDED => AuditEventType.LicenseExtended,
+                AuditLogActions.LICENSE_UPDATED => AuditEventType.LicenseUpdated,
                 AuditLogActions.INVOICE_RESENT => AuditEventType.InvoiceResent,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_CREATED => AuditEventType.RestoreRequested,
                 AuditLogActions.MANUAL_RESTORE_REQUEST_APPROVED => AuditEventType.RestoreApproved,

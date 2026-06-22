@@ -433,6 +433,7 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
+builder.Services.AddSingleton<ITenantLicenseExtensionRateLimiter, TenantLicenseExtensionRateLimiter>();
 builder.Services.AddScoped<ILicenseRenewalService, LicenseRenewalService>();
 builder.Services.AddScoped<IQuickUserGeneratorService, QuickUserGeneratorService>();
 builder.Services.AddScoped<ITenantUserService, TenantUserService>();

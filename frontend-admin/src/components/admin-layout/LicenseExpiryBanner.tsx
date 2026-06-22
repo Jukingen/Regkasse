@@ -35,10 +35,7 @@ export function LicenseExpiryBanner() {
     }
 
     const openTenantLicensePage = () => {
-        if (!tenant.tenantId) {
-            return;
-        }
-        router.push(`/admin/tenants/${tenant.tenantId}?tab=license`);
+        router.push('/admin/license');
     };
 
     const openDeploymentLicensePage = () => {
@@ -46,7 +43,7 @@ export function LicenseExpiryBanner() {
     };
 
     const renderTenantRenewAction = () =>
-        tenant.isSuperAdminUser && tenant.tenantId ? (
+        tenant.tenantId ? (
             <Button size="small" type="primary" onClick={openTenantLicensePage}>
                 {t('license.banner.actions.renewTenant')}
             </Button>
@@ -92,7 +89,7 @@ export function LicenseExpiryBanner() {
                                 : t('license.banner.tenant.graceWrite.contactAdminDescription', {
                                       daysExpired: license.daysExpired,
                                   }),
-                            tenant.isSuperAdminUser ? renderTenantRenewAction() : null,
+                            renderTenantRenewAction(),
                         )}
                     />
                 );
@@ -112,7 +109,7 @@ export function LicenseExpiryBanner() {
                                       daysExpired: license.daysExpired,
                                   })
                                 : t('license.banner.tenant.lockdown.contactAdminDescription'),
-                            tenant.isSuperAdminUser ? renderTenantRenewAction() : null,
+                            renderTenantRenewAction(),
                         )}
                     />
                 );

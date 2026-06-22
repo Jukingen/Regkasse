@@ -139,6 +139,7 @@ public static class RolePermissionMatrix
                 AppPermissions.RksvSchlussbelegCreate,
                 AppPermissions.AuditView, AppPermissions.AuditExport,
                 AppPermissions.SettingsView,
+                AppPermissions.LicenseManage,
                 AppPermissions.KitchenView, AppPermissions.KitchenUpdate,
                 AppPermissions.VoucherRead,
                 AppPermissions.VoucherCreate,

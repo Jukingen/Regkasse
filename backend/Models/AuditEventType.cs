@@ -38,5 +38,8 @@ public enum AuditEventType
     InvoiceResent = 24,
     UserPermissionOverridesChanged = 25,
     LicenseRenewed = 26,
+    LicenseExtended = 27,
+    /// <summary>Super Admin or Manager updated mandant license key and/or validity.</summary>
+    LicenseUpdated = 28,
     Other = 99
 }

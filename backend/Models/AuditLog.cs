@@ -261,6 +261,12 @@ namespace KasseAPI_Final.Models
     /// <summary>Super Admin renewed mandant license (grace-period days may be deducted).</summary>
     public const string LICENSE_RENEWED = "LICENSE_RENEWED";
 
+    /// <summary>Mandant license extended via REGK key and/or valid-until update.</summary>
+    public const string LICENSE_EXTENDED = "LICENSE_EXTENDED";
+
+    /// <summary>Mandant license key and/or validity updated (masked keys in audit payload).</summary>
+    public const string LICENSE_UPDATED = "LICENSE_UPDATED";
+
         /// <summary>Super Admin manual validation restore request created (pending approval).</summary>
         public const string RESTORE_REQUESTED = "RESTORE_REQUESTED";
 

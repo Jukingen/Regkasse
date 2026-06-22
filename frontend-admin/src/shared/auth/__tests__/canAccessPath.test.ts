@@ -69,5 +69,10 @@ describe('canAccessPath', () => {
         expect(canAccessPath('/payments', perms)).toBe(true);
         expect(canAccessPath('/receipts', perms)).toBe(false);
         expect(canAccessPath('/kassenverwaltung', perms)).toBe(false);
+        expect(canAccessPath('/admin/license', perms)).toBe(false);
+    });
+
+    it('Manager can access /admin/license with license.manage', () => {
+        expect(canAccessPath('/admin/license', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
     });
 });

@@ -163,6 +163,9 @@ public static class AppPermissions
     /// <summary>Read-only tenant license inventory across the SaaS platform (SuperAdmin-only by default matrix).</summary>
     public const string LicenseView = "license.view";
 
+    /// <summary>View and update the effective tenant (Mandant) license row — own tenant only for Manager.</summary>
+    public const string LicenseManage = "license.manage";
+
     // --- Legacy / convenience (price override, receipt reprint) ---
     public const string PriceOverride = "price.override";
     public const string ReceiptReprint = "receipt.reprint";

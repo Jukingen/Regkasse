@@ -7,6 +7,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Tenancy;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ public sealed partial class AdminLicenseController : ControllerBase
     private readonly IAdminTenantLicenseService _adminTenantLicenseService;
     private readonly AppDbContext _db;
     private readonly IAdminTenantService _adminTenantService;
+    private readonly ISettingsTenantResolver _settingsTenantResolver;
     private readonly ILicenseReminderNotificationStore _licenseReminderNotificationStore;
     private readonly IAuditLogService _auditLogService;
     private readonly ILogger<AdminLicenseController> _logger;
@@ -40,6 +42,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         IAdminTenantLicenseService adminTenantLicenseService,
         AppDbContext db,
         IAdminTenantService adminTenantService,
+        ISettingsTenantResolver settingsTenantResolver,
         ILicenseReminderNotificationStore licenseReminderNotificationStore,
         IAuditLogService auditLogService,
         ILogger<AdminLicenseController> logger)
@@ -50,6 +53,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         _adminTenantLicenseService = adminTenantLicenseService;
         _db = db;
         _adminTenantService = adminTenantService;
+        _settingsTenantResolver = settingsTenantResolver;
         _licenseReminderNotificationStore = licenseReminderNotificationStore;
         _auditLogService = auditLogService;
         _logger = logger;

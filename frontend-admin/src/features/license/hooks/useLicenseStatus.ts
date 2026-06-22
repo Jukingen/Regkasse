@@ -6,7 +6,7 @@ import {
 } from '@/api/manual/adminLicense';
 import { useAuthorizationGate, useAuthorizedQuery } from '@/hooks/useAuthorizedQuery';
 import { useI18n } from '@/i18n';
-import { getAdminTenantLicense } from '@/features/super-admin/api/adminTenantLicense';
+import { getTenantLicense } from '@/features/license/api/tenantLicense';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import {
@@ -30,9 +30,12 @@ export interface LicenseStatus {
 export const useTenantLicenseStatus = (tenantId?: string) => {
     const { t, textLocale } = useI18n();
     const currentTenant = useCurrentTenant();
-    const { isAuthorized: canFetchRemoteLicense } = useAuthorizationGate({ requiredRole: 'SuperAdmin' });
+    const { isAuthorized: canFetchTenantLicense } = useAuthorizationGate({
+        requiredPermission: PERMISSIONS.LICENSE_MANAGE,
+    });
     const resolvedTenantId = tenantId ?? currentTenant.tenantId ?? undefined;
-    const shouldFetchRemote = canFetchRemoteLicense && Boolean(resolvedTenantId);
+    const shouldFetchRemote =
+        canFetchTenantLicense && Boolean(resolvedTenantId && currentTenant.isRealTenantSlug);
 
     return useQuery({
         queryKey: [
@@ -42,20 +45,20 @@ export const useTenantLicenseStatus = (tenantId?: string) => {
             shouldFetchRemote ? 'remote' : 'local',
         ],
         queryFn: async () => {
-            if (!shouldFetchRemote) {
-                const status = resolveTenantRowLicenseStatus({
-                    licenseValidUntilUtc: currentTenant.licenseValidUntilUtc,
-                    licenseKey: currentTenant.licenseKey,
-                    licenseDaysRemaining: currentTenant.licenseDaysRemaining,
-                });
+            if (shouldFetchRemote && resolvedTenantId) {
+                const response = await getTenantLicense(resolvedTenantId);
+                const status = resolveTenantLicenseStatus(response.status);
                 return {
                     ...status,
                     message: getLicenseStatusMessage(status, 'tenant', t),
                 } satisfies LicenseStatus;
             }
 
-            const response = await getAdminTenantLicense(resolvedTenantId!);
-            const status = resolveTenantLicenseStatus(response.status);
+            const status = resolveTenantRowLicenseStatus({
+                licenseValidUntilUtc: currentTenant.licenseValidUntilUtc,
+                licenseKey: currentTenant.licenseKey,
+                licenseDaysRemaining: currentTenant.licenseDaysRemaining,
+            });
             return {
                 ...status,
                 message: getLicenseStatusMessage(status, 'tenant', t),

@@ -1,5 +1,5 @@
 import type { LicenseStatusResponse } from '@/api/manual/adminLicense';
-import type { TenantLicenseStatus as TenantLicenseStatusDto } from '@/features/super-admin/api/adminTenantLicense';
+import type { TenantLicenseStatus as TenantLicenseStatusDto } from '@/features/license/api/tenantLicense';
 import {
     DEPLOYMENT_GRACE_WRITE_DAYS,
     DEPLOYMENT_LOCKDOWN_DAYS,

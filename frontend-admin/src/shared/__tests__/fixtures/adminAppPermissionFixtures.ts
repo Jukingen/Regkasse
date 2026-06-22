@@ -36,6 +36,7 @@ export const MANAGER_ADMIN_PERMISSIONS: readonly string[] = [
     PERMISSIONS.CASHREGISTER_VIEW,
     PERMISSIONS.CASHREGISTER_MANAGE,
     PERMISSIONS.SETTINGS_VIEW,
+    PERMISSIONS.LICENSE_MANAGE,
     PERMISSIONS.AUDIT_VIEW,
     PERMISSIONS.FINANZONLINE_MANAGE,
     PERMISSIONS.FINANZONLINE_VIEW,
@@ -62,6 +63,7 @@ export const CASHIER_FORBIDDEN_MENU_KEYS: readonly string[] = [
     '/users',
     '/admin/users',
     '/settings',
+    '/admin/license',
     '/rksv/operations',
     '/audit-logs',
 ];

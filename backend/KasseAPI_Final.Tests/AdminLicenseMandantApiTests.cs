@@ -87,17 +87,133 @@ public sealed class AdminLicenseMandantApiTests
     [Fact]
     public async Task GetMandantHistory_WhenTenantMissing_Returns404()
     {
+        var tenantId = Guid.NewGuid();
         await using var db = CreateDb();
         var licenseServiceMock = new Mock<IAdminTenantLicenseService>();
         licenseServiceMock
-            .Setup(x => x.GetOverviewAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.GetOverviewAsync(tenantId, It.IsAny<CancellationToken>()))
             .ReturnsAsync((TenantLicenseOverviewDto?)null);
 
-        var controller = CreateController(db, Mock.Of<ILicenseRenewalService>(), licenseServiceMock.Object);
+        var controller = CreateController(
+            db,
+            Mock.Of<ILicenseRenewalService>(),
+            licenseServiceMock.Object,
+            Roles.SuperAdmin,
+            TenantTestDoubles.SettingsResolverReturning(tenantId));
 
-        var result = await controller.GetMandantHistory(Guid.NewGuid(), CancellationToken.None);
+        var result = await controller.GetMandantHistory(tenantId, CancellationToken.None);
 
         Assert.IsType<NotFoundObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task GetMandantHistory_Manager_CrossTenant_Returns404()
+    {
+        var ownTenantId = Guid.NewGuid();
+        var otherTenantId = Guid.NewGuid();
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = ownTenantId,
+            Name = "Own",
+            Slug = "own",
+            IsActive = true,
+            Status = TenantStatuses.Active,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Tenants.Add(new Tenant
+        {
+            Id = otherTenantId,
+            Name = "Other",
+            Slug = "other",
+            IsActive = true,
+            Status = TenantStatuses.Active,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var licenseServiceMock = new Mock<IAdminTenantLicenseService>();
+        var controller = CreateController(
+            db,
+            Mock.Of<ILicenseRenewalService>(),
+            licenseServiceMock.Object,
+            Roles.Manager,
+            TenantTestDoubles.SettingsResolverReturning(ownTenantId));
+
+        var result = await controller.GetMandantHistory(otherTenantId, CancellationToken.None);
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+        licenseServiceMock.Verify(
+            x => x.GetOverviewAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetMandantOverview_Manager_ReturnsOverviewForEffectiveTenant()
+    {
+        var tenantId = Guid.NewGuid();
+        var overview = new TenantLicenseOverviewDto(
+            new TenantLicenseStatusDto("active", "REGK-TEST", DateTime.UtcNow.AddDays(30), 30, "basic", []),
+            []);
+
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe",
+            IsActive = true,
+            Status = TenantStatuses.Active,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var licenseServiceMock = new Mock<IAdminTenantLicenseService>();
+        licenseServiceMock
+            .Setup(x => x.GetOverviewAsync(tenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(overview);
+
+        var controller = CreateController(
+            db,
+            Mock.Of<ILicenseRenewalService>(),
+            licenseServiceMock.Object,
+            Roles.Manager,
+            TenantTestDoubles.SettingsResolverReturning(tenantId));
+
+        var result = await controller.GetMandantOverview(CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        Assert.Same(overview, ok.Value);
+    }
+
+    [Fact]
+    public async Task ExtendMandantLicense_Manager_RequiresLicenseKey()
+    {
+        var tenantId = Guid.NewGuid();
+        await using var db = CreateDb();
+        db.Tenants.Add(new Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe",
+            IsActive = true,
+            Status = TenantStatuses.Active,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var controller = CreateController(
+            db,
+            Mock.Of<ILicenseRenewalService>(),
+            Mock.Of<IAdminTenantLicenseService>(),
+            Roles.Manager,
+            TenantTestDoubles.SettingsResolverReturning(tenantId));
+
+        var result = await controller.ExtendMandantLicense(
+            new ExtendTenantLicenseRequest { LicenseKey = null, ValidUntilUtc = DateTime.UtcNow.AddYears(1) },
+            CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
     }
 
     private static AdminLicenseController CreateController(
@@ -112,7 +228,8 @@ public sealed class AdminLicenseMandantApiTests
         AppDbContext db,
         ILicenseRenewalService renewalService,
         IAdminTenantLicenseService tenantLicenseService,
-        string role = Roles.Manager)
+        string role = Roles.Manager,
+        ISettingsTenantResolver? tenantResolver = null)
     {
         var controller = new AdminLicenseController(
             Mock.Of<ILicenseService>(),
@@ -121,6 +238,7 @@ public sealed class AdminLicenseMandantApiTests
             tenantLicenseService,
             db,
             Mock.Of<IAdminTenantService>(),
+            tenantResolver ?? TenantTestDoubles.SettingsResolverReturning(Guid.Empty),
             Mock.Of<ILicenseReminderNotificationStore>(),
             Mock.Of<IAuditLogService>(),
             NullLogger<AdminLicenseController>.Instance);

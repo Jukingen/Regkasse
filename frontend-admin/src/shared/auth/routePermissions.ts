@@ -57,7 +57,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/system/time-sync': PERMISSIONS.SETTINGS_MANAGE,
-  '/admin/license': PERMISSIONS.SETTINGS_VIEW,
+  '/admin/license': [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
   /** Cross-tenant platform register list — not tenant `/kassenverwaltung` (cash_register.manage). */

@@ -44,6 +44,8 @@ export const PERMISSIONS = {
   SETTINGS_VIEW: 'settings.view',
   SETTINGS_MANAGE: 'settings.manage',
   LICENSE_VIEW: AppPermissions.LicenseView,
+  /** Mandant (tenant) license view/update for own tenant — align with backend `AppPermissions.LicenseManage`. */
+  LICENSE_MANAGE: 'license.manage',
   /** Issued-license lifecycle (extend/revoke/cancel/soft-delete/unregister); align with backend `AppPermissions.LicenseLifecycleSuper`. */
   LICENSE_LIFECYCLE_SUPER: 'license.super',
   AUDIT_VIEW: 'audit.view',

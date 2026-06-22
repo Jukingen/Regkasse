@@ -1,7 +1,80 @@
 {
   "page": {
-    "title": "Server-Lizenz (On-Premise)",
-    "subtitle": "Lizenz für diese API-Instanz (Deployment). Nicht mit der Mandantenlizenz im Header verwechseln."
+    "title": "Lizenzverwaltung",
+    "tenantLicense": "Mandantenlizenz",
+    "serverLicense": "Server-Lizenz (On-Premise)",
+    "subtitle": "Lizenz für diese API-Instanz (Deployment). Nicht mit der Mandantenlizenz im Header verwechseln.",
+    "subtitleWithMandant": "Mandantenlizenz verwalten und Server-Lizenz (On-Premise) einsehen. Die Mandantenlizenz gilt für Ihr Unternehmen; die Server-Lizenz für diese API-Instanz."
+  },
+  "tenant": {
+    "status": "Status",
+    "validUntil": "Gültig bis",
+    "licenseKey": "Lizenzschlüssel",
+    "extendButton": "Lizenz verlängern",
+    "noLicense": "Keine aktive Mandantenlizenz",
+    "valid": "Aktiv",
+    "expired": "Abgelaufen",
+    "expiresSoon": "Läuft bald ab",
+    "trial": "Testversion"
+  },
+  "superAdmin": {
+    "tabTitle": "Alle Mandantenlizenzen",
+    "subtitle": "Übersicht aller Mandantenlizenzen (SaaS). Schlüssel und Gültigkeit pro Mandant bearbeiten.",
+    "searchPlaceholder": "Mandant oder Slug suchen…",
+    "statusFilter": "Lizenzstatus",
+    "exported": "{{count}} Einträge exportiert",
+    "noRowsToExport": "Keine Einträge zum Exportieren",
+    "exportButton": "Bericht exportieren (CSV)",
+    "table": {
+      "tenant": "Mandant",
+      "slug": "Slug",
+      "licenseKey": "Lizenzschlüssel",
+      "validUntil": "Gültig bis",
+      "status": "Status",
+      "actions": "Aktionen",
+      "add": "Hinzufügen",
+      "edit": "Bearbeiten",
+      "noLicense": "Keine Lizenz",
+      "active": "Aktiv",
+      "expired": "Abgelaufen",
+      "expiresSoon": "Läuft bald ab",
+      "trial": "Testversion",
+      "noResults": "Keine Mandanten gefunden"
+    },
+    "filters": {
+      "all": "Alle",
+      "active": "Aktiv",
+      "expired": "Abgelaufen",
+      "expiresSoon": "Läuft bald ab",
+      "noLicense": "Keine Lizenz",
+      "trial": "Testversion"
+    },
+    "editModal": {
+      "title": "Mandantenlizenz bearbeiten",
+      "tenantLabel": "Mandant",
+      "licenseKeyLabel": "Lizenzschlüssel",
+      "validUntilLabel": "Gültig bis",
+      "statusLabel": "Status",
+      "dateRequired": "Bitte ein Gültigkeitsdatum wählen.",
+      "licenseKeyTooltip": "REGK-Mandantenschlüssel (optional). Ohne Schlüssel bleibt die Testversion aktiv.",
+      "addHint": "Mindestens ein Gültigkeitsdatum ist erforderlich. Der Lizenzschlüssel ist optional.",
+      "saveButton": "Speichern",
+      "success": "Lizenz wurde aktualisiert",
+      "error": "Lizenz konnte nicht aktualisiert werden",
+      "clearLicense": "Lizenz entfernen"
+    }
+  },
+  "extendModal": {
+    "title": "Mandantenlizenz verlängern",
+    "currentStatus": "Aktueller Status",
+    "licenseKeyLabel": "Neuer Lizenzschlüssel",
+    "durationLabel": "Verlängerungsdauer",
+    "duration30": "30 Tage",
+    "duration90": "90 Tage",
+    "duration365": "365 Tage (1 Jahr)",
+    "confirmButton": "Lizenz verlängern",
+    "success": "Lizenz wurde erfolgreich verlängert",
+    "error": "Lizenzverlängerung fehlgeschlagen"
   },
   "status": {
     "label": "Lizenzstatus",

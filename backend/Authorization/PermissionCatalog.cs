@@ -132,6 +132,7 @@ public static class PermissionCatalog
         AppPermissions.TenantImpersonate,
         AppPermissions.LicenseLifecycleSuper,
         AppPermissions.LicenseView,
+        AppPermissions.LicenseManage,
         // Legacy / convenience
         AppPermissions.PriceOverride,
         AppPermissions.ReceiptReprint,

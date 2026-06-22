@@ -18,6 +18,7 @@ namespace KasseAPI_Final.Controllers;
 public sealed class AdminTenantsController : ControllerBase
 {
     private readonly IAdminTenantService _tenantService;
+    private readonly IAdminTenantLicenseService _tenantLicenseService;
     private readonly ITenantDeletionService _tenantDeletionService;
     private readonly IAuditLogService _auditLogService;
     private readonly IHostEnvironment _environment;
@@ -25,12 +26,14 @@ public sealed class AdminTenantsController : ControllerBase
 
     public AdminTenantsController(
         IAdminTenantService tenantService,
+        IAdminTenantLicenseService tenantLicenseService,
         ITenantDeletionService tenantDeletionService,
         IAuditLogService auditLogService,
         IHostEnvironment environment,
         ILogger<AdminTenantsController> logger)
     {
         _tenantService = tenantService;
+        _tenantLicenseService = tenantLicenseService;
         _tenantDeletionService = tenantDeletionService;
         _auditLogService = auditLogService;
         _environment = environment;
@@ -47,6 +50,16 @@ public sealed class AdminTenantsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var items = await _tenantService.ListAsync(includeDeleted, cancellationToken).ConfigureAwait(false);
+        return Ok(items);
+    }
+
+    /// <summary>Super Admin mandant license inventory for <c>/admin/license</c> overview table.</summary>
+    [HttpGet("license-overview")]
+    [ProducesResponseType(typeof(IReadOnlyList<TenantLicenseOverviewListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<TenantLicenseOverviewListItemDto>>> ListLicenseOverview(
+        CancellationToken cancellationToken = default)
+    {
+        var items = await _tenantLicenseService.ListOverviewAsync(cancellationToken).ConfigureAwait(false);
         return Ok(items);
     }
 

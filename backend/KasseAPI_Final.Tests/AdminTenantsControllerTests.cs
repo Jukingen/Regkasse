@@ -181,12 +181,14 @@ public sealed class AdminTenantsControllerTests
 
     private static AdminTenantsController CreateController(
         IAdminTenantService? tenantService = null,
+        IAdminTenantLicenseService? tenantLicenseService = null,
         ITenantDeletionService? tenantDeletionService = null,
         IHostEnvironment? environment = null,
         ClaimsPrincipal? user = null)
     {
         var controller = new AdminTenantsController(
             tenantService ?? Mock.Of<IAdminTenantService>(),
+            tenantLicenseService ?? Mock.Of<IAdminTenantLicenseService>(),
             tenantDeletionService ?? Mock.Of<ITenantDeletionService>(),
             Mock.Of<IAuditLogService>(),
             environment ?? Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Development),
@@ -217,7 +219,10 @@ public sealed class AdminTenantsControllerTests
     {
         var service = CreateService(db, auditLog: auditLog, environment: environment);
         var tenantDeletion = CreateTenantDeletionService(db, environment: environment);
-        return CreateController(service, tenantDeletion, environment);
+        return CreateController(
+            tenantService: service,
+            tenantDeletionService: tenantDeletion,
+            environment: environment);
     }
 
     private static ITenantProvisioningService CreateSuccessfulProvisioningMock()
@@ -1533,7 +1538,7 @@ public sealed class AdminTenantsControllerTests
 
         var service = CreateService(db);
         var tenantDeletion = CreateTenantDeletionService(db);
-        var controller = CreateController(service, tenantDeletion);
+        var controller = CreateController(tenantService: service, tenantDeletionService: tenantDeletion);
 
         var actionResult = await controller.GetDeleteDependencies(tenantId);
 
