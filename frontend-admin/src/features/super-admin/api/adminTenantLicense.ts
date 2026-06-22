@@ -11,10 +11,17 @@ export type {
     TenantLicenseOverview,
     TenantLicenseStatus,
     UpdateTenantLicenseRequest,
+    ExtendTenantLicenseResult,
+    TenantLicensePreviewResult,
+    PreviewTenantLicenseRequest,
 } from '@/features/license/api/tenantLicense';
 export {
     getTenantLicense as getAdminTenantLicense,
     putTenantLicense as putAdminTenantLicense,
+    previewTenantLicense,
+    previewTenantLicense as previewMandantLicense,
+    extendTenantLicense,
+    extendTenantLicense as extendMandantLicense,
     tenantLicenseQueryKeys,
 } from '@/features/license/api/tenantLicense';
 
@@ -72,16 +79,11 @@ export async function getMandantLicenseOverview(): Promise<TenantLicenseOverview
     return data;
 }
 
+/** POST /api/admin/license/mandant/preview — validate key without applying. */
+export { previewTenantLicense as previewMandantLicense } from '@/features/license/api/tenantLicense';
+
 /** POST /api/admin/license/mandant/extend — extend effective tenant with REGK key. */
-export async function extendMandantLicense(
-    body: ExtendTenantLicenseRequest,
-): Promise<TenantLicenseOverview> {
-    const { data } = await AXIOS_INSTANCE.post<TenantLicenseOverview>(
-        '/api/admin/license/mandant/extend',
-        body,
-    );
-    return data;
-}
+export { extendTenantLicense as extendMandantLicense } from '@/features/license/api/tenantLicense';
 
 export async function activateAdminTenantTrial(tenantId: string): Promise<TenantLicenseOverview> {
     const { data } = await AXIOS_INSTANCE.post<TenantLicenseOverview>(
@@ -93,8 +95,8 @@ export async function activateAdminTenantTrial(tenantId: string): Promise<Tenant
 export async function extendAdminTenantLicense(
     tenantId: string,
     body: ExtendTenantLicenseRequest,
-): Promise<TenantLicenseOverview> {
-    const { data } = await AXIOS_INSTANCE.post<TenantLicenseOverview>(
+): Promise<ExtendTenantLicenseResult> {
+    const { data } = await AXIOS_INSTANCE.post<ExtendTenantLicenseResult>(
         `/api/admin/tenants/${tenantId}/license/extend`,
         body,
     );

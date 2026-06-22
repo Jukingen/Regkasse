@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using KasseAPI_Final.Models;
 
 namespace KasseAPI_Final.Services.AdminTenants;
 
@@ -23,11 +25,69 @@ public sealed record TenantLicenseOverviewDto(
 
 public sealed class ExtendTenantLicenseRequest
 {
-    /// <summary>REGK display key; when set, expiry is taken from issued_licenses when found.</summary>
-    [MaxLength(64)]
+    /// <summary>
+    /// Mandant billing key (<c>license_sales</c>) for Managers; deployment REGK key for Super Admin when omitted <see cref="ValidUntilUtc"/>.
+    /// </summary>
+    [MaxLength(100)]
     public string? LicenseKey { get; set; }
 
+    /// <summary>Super Admin override only; Managers must omit (validity comes from the billing or issued key).</summary>
     public DateTime? ValidUntilUtc { get; set; }
+}
+
+public sealed class PreviewTenantLicenseRequest
+{
+    [Required]
+    [MaxLength(100)]
+    public string LicenseKey { get; set; } = string.Empty;
+}
+
+/// <summary>Outcome of resolving a REGK key against <c>issued_licenses</c>.</summary>
+public sealed record IssuedLicenseResolveResult(
+    IssuedLicense? Issued,
+    string? ErrorCode,
+    string? ErrorMessage);
+
+/// <summary>Outcome of resolving a billing key against <c>license_sales</c> (Manager mandant activation).</summary>
+public sealed record BillingLicenseSaleResolveResult(
+    LicenseSale? Sale,
+    string? ErrorCode,
+    string? ErrorMessage);
+
+/// <summary>Read-only preview of a REGK license key before extend confirmation.</summary>
+public sealed record LicensePreviewResult(
+    bool Valid,
+    string? LicenseKey,
+    DateTime? ValidFromUtc,
+    DateTime? ValidUntilUtc,
+    int? DurationDays,
+    string? DurationDisplay,
+    string? Status,
+    string? PlanName,
+    string? ErrorCode,
+    string? ErrorMessage);
+
+/// <summary>Result of <c>POST …/license/extend</c> and <c>POST /api/admin/license/mandant/extend</c>.</summary>
+public sealed record ExtendTenantLicenseResultDto(
+    bool Success,
+    string LicenseKey,
+    DateTime ValidUntilUtc,
+    string Status,
+    string Message)
+{
+    public static ExtendTenantLicenseResultDto FromOverview(TenantLicenseOverviewDto overview)
+    {
+        var status = overview.Status;
+        var validUntil = status.ValidUntilUtc ?? DateTime.UtcNow;
+        var utc = DateTime.SpecifyKind(validUntil, DateTimeKind.Utc);
+        var dateLabel = utc.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture);
+        return new ExtendTenantLicenseResultDto(
+            Success: true,
+            LicenseKey: status.LicenseKey ?? string.Empty,
+            ValidUntilUtc: utc,
+            Status: status.Kind,
+            Message: $"License extended until {dateLabel}.");
+    }
 }
 
 public sealed class RenewTenantLicenseRequest

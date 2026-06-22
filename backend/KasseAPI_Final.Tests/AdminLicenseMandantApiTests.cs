@@ -236,6 +236,7 @@ public sealed class AdminLicenseMandantApiTests
             Mock.Of<ILicenseIssuanceService>(),
             renewalService,
             tenantLicenseService,
+            Mock.Of<ITenantLicenseService>(),
             db,
             Mock.Of<IAdminTenantService>(),
             tenantResolver ?? TenantTestDoubles.SettingsResolverReturning(Guid.Empty),

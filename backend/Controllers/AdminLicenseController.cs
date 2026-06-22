@@ -28,6 +28,7 @@ public sealed partial class AdminLicenseController : ControllerBase
     private readonly ILicenseIssuanceService _licenseIssuanceService;
     private readonly ILicenseRenewalService _licenseRenewalService;
     private readonly IAdminTenantLicenseService _adminTenantLicenseService;
+    private readonly ITenantLicenseService _tenantLicenseService;
     private readonly AppDbContext _db;
     private readonly IAdminTenantService _adminTenantService;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
@@ -40,6 +41,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         ILicenseIssuanceService licenseIssuanceService,
         ILicenseRenewalService licenseRenewalService,
         IAdminTenantLicenseService adminTenantLicenseService,
+        ITenantLicenseService tenantLicenseService,
         AppDbContext db,
         IAdminTenantService adminTenantService,
         ISettingsTenantResolver settingsTenantResolver,
@@ -51,6 +53,7 @@ public sealed partial class AdminLicenseController : ControllerBase
         _licenseIssuanceService = licenseIssuanceService;
         _licenseRenewalService = licenseRenewalService;
         _adminTenantLicenseService = adminTenantLicenseService;
+        _tenantLicenseService = tenantLicenseService;
         _db = db;
         _adminTenantService = adminTenantService;
         _settingsTenantResolver = settingsTenantResolver;

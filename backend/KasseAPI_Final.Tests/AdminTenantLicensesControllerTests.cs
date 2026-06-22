@@ -5,6 +5,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -66,7 +67,7 @@ public sealed class AdminTenantLicensesControllerTests
             otherTenantId,
             new ExtendTenantLicenseRequest
             {
-                LicenseKey = "REGK-AAAAA-BBBBB-CCCCC",
+                LicenseKey = "REGK-20270101-cafe-A7F3K2D9",
                 ValidUntilUtc = DateTime.UtcNow.AddDays(30),
             },
             CancellationToken.None);
@@ -78,7 +79,7 @@ public sealed class AdminTenantLicensesControllerTests
     }
 
     [Fact]
-    public async Task Put_Manager_RequiresLicenseKeyAndValidUntil()
+    public async Task Put_Manager_RequiresLicenseKey_RejectsManualValidUntil()
     {
         var tenantId = Guid.NewGuid();
         await using var db = CreateDb();
@@ -105,11 +106,15 @@ public sealed class AdminTenantLicensesControllerTests
             CancellationToken.None);
         Assert.IsType<BadRequestObjectResult>(missingKey.Result);
 
-        var missingDate = await controller.Put(
+        var manualDate = await controller.Put(
             tenantId,
-            new ExtendTenantLicenseRequest { LicenseKey = "REGK-AAAAA-BBBBB-CCCCC" },
+            new ExtendTenantLicenseRequest
+            {
+                LicenseKey = "REGK-20270101-cafe-A7F3K2D9",
+                ValidUntilUtc = DateTime.UtcNow.AddDays(30),
+            },
             CancellationToken.None);
-        Assert.IsType<BadRequestObjectResult>(missingDate.Result);
+        Assert.IsType<BadRequestObjectResult>(manualDate.Result);
     }
 
     [Fact]
@@ -148,13 +153,11 @@ public sealed class AdminTenantLicensesControllerTests
             Roles.Manager,
             TenantTestDoubles.SettingsResolverReturning(tenantId));
 
-        var validUntil = DateTime.UtcNow.AddDays(90);
         var result = await controller.Put(
             tenantId,
             new ExtendTenantLicenseRequest
             {
-                LicenseKey = "REGK-AAAAA-BBBBB-CCCCC",
-                ValidUntilUtc = validUntil,
+                LicenseKey = "REGK-20270101-cafe-A7F3K2D9",
             },
             CancellationToken.None);
 
@@ -228,8 +231,7 @@ public sealed class AdminTenantLicensesControllerTests
             tenantId,
             new ExtendTenantLicenseRequest
             {
-                LicenseKey = "REGK-AAAAA-BBBBB-CCCCC",
-                ValidUntilUtc = DateTime.UtcNow.AddDays(30),
+                LicenseKey = "REGK-20270101-cafe-A7F3K2D9",
             },
             CancellationToken.None);
 
@@ -247,6 +249,8 @@ public sealed class AdminTenantLicensesControllerTests
     {
         var controller = new AdminTenantLicensesController(
             licenseService,
+            Mock.Of<ITenantLicenseService>(),
+            new LicenseKeyGenerator(),
             Mock.Of<ILicenseRenewalService>(),
             Mock.Of<IAuthorizationService>(),
             tenantResolver,

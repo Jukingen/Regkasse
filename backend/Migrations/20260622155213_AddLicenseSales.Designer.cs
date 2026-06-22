@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622155213_AddLicenseSales")]
+    partial class AddLicenseSales
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1262,91 +1265,6 @@ namespace KasseAPI_Final.Migrations
                         .IsUnique();
 
                     b.ToTable("benefit_definitions");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.BillingAuditLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("ActorUserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("character varying(450)")
-                        .HasColumnName("actor_user_id");
-
-                    b.Property<string>("CancellationReason")
-                        .HasColumnType("text")
-                        .HasColumnName("cancellation_reason");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at_utc");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(3)
-                        .HasColumnType("character varying(3)")
-                        .HasDefaultValue("EUR")
-                        .HasColumnName("currency");
-
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("event_type");
-
-                    b.Property<string>("InvoiceNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("invoice_number");
-
-                    b.Property<string>("LicenseKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("license_key");
-
-                    b.Property<string>("LicensePlan")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("license_plan");
-
-                    b.Property<Guid>("LicenseSaleId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("license_sale_id");
-
-                    b.Property<decimal>("PriceGross")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("price_gross");
-
-                    b.Property<decimal>("PriceNet")
-                        .HasColumnType("decimal(10,2)")
-                        .HasColumnName("price_net");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("tenant_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActorUserId");
-
-                    b.HasIndex("CreatedAtUtc")
-                        .HasDatabaseName("idx_billing_audit_log_created_at");
-
-                    b.HasIndex("EventType")
-                        .HasDatabaseName("idx_billing_audit_log_event_type");
-
-                    b.HasIndex("LicenseSaleId")
-                        .HasDatabaseName("idx_billing_audit_log_license_sale_id");
-
-                    b.HasIndex("TenantId")
-                        .HasDatabaseName("idx_billing_audit_log_tenant_id");
-
-                    b.ToTable("billing_audit_log", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CardPaymentTransaction", b =>
@@ -8678,33 +8596,6 @@ namespace KasseAPI_Final.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("AllowanceCategory");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.BillingAuditLog", b =>
-                {
-                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "ActorUser")
-                        .WithMany()
-                        .HasForeignKey("ActorUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("KasseAPI_Final.Models.LicenseSale", "LicenseSale")
-                        .WithMany()
-                        .HasForeignKey("LicenseSaleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
-                        .WithMany()
-                        .HasForeignKey("TenantId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ActorUser");
-
-                    b.Navigation("LicenseSale");
-
-                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CardPaymentTransaction", b =>

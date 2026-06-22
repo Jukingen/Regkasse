@@ -40,10 +40,10 @@ public sealed partial class AdminLicenseController
     /// </summary>
     [HttpPost("mandant/extend")]
     [HasPermission(AppPermissions.LicenseManage)]
-    [ProducesResponseType(typeof(TenantLicenseOverviewDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ExtendTenantLicenseResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<TenantLicenseOverviewDto>> ExtendMandantLicense(
+    public async Task<ActionResult<ExtendTenantLicenseResultDto>> ExtendMandantLicense(
         [FromBody] ExtendTenantLicenseRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -55,7 +55,7 @@ public sealed partial class AdminLicenseController
         var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
         if (!isSuperAdmin && request.ValidUntilUtc.HasValue)
         {
-            return BadRequest(new { message = "Only Super Admin can set validUntilUtc without a license key." });
+            return BadRequest(new { message = "validUntilUtc is determined by the license key and cannot be set manually." });
         }
 
         if (!isSuperAdmin && string.IsNullOrWhiteSpace(request.LicenseKey))
@@ -78,6 +78,36 @@ public sealed partial class AdminLicenseController
             "Mandant license extended for tenant {TenantId} by user {ActorUserId}",
             tenantId,
             actorUserId ?? "(unknown)");
+
+        return Ok(ExtendTenantLicenseResultDto.FromOverview(result!));
+    }
+
+    /// <summary>Preview mandant license extension for the effective tenant (no mutation).</summary>
+    [HttpPost("mandant/preview")]
+    [HasPermission(AppPermissions.LicenseManage)]
+    [ProducesResponseType(typeof(LicensePreviewResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LicensePreviewResult>> PreviewMandantLicense(
+        [FromBody] PreviewTenantLicenseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var (tenantId, error) = await ResolveAccessibleMandantTenantIdAsync(null, cancellationToken)
+            .ConfigureAwait(false);
+        if (error != null)
+            return error;
+
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var (result, previewError) = await _tenantLicenseService
+            .PreviewLicenseAsync(tenantId!.Value, request.LicenseKey, isSuperAdmin, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (previewError == "Tenant not found.")
+            return NotFound(new { message = previewError });
+        if (previewError != null)
+            return BadRequest(new { message = previewError });
 
         return Ok(result);
     }

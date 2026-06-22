@@ -5,6 +5,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
@@ -64,7 +65,8 @@ public sealed class AdminTenantLicenseOverviewServiceTests
             Mock.Of<IHostEnvironment>(e => e.EnvironmentName == Environments.Production),
             Options.Create(new TseOptions { TseMode = "Device" }),
             Options.Create(new LicenseOptions { Enabled = true }),
-            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false));
+            Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassLicense() == false),
+            new TenantLicenseService(db, new LicenseKeyGenerator()));
 
     [Fact]
     public async Task ListOverviewAsync_ReturnsNonDeletedTenantsWithOwnerFlag()

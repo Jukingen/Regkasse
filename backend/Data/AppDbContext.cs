@@ -191,6 +191,12 @@ namespace KasseAPI_Final.Data
 
         public DbSet<LicenseActivationAttempt> LicenseActivationAttempts { get; set; }
 
+        /// <summary>Super Admin Mandanten license billing (platform-scoped, not tenant-filtered).</summary>
+        public DbSet<LicenseSale> LicenseSales { get; set; }
+
+        /// <summary>Non-fiscal Super Admin billing audit trail.</summary>
+        public DbSet<BillingAuditLog> BillingAuditLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -1132,6 +1138,72 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.IssuedAtUtc).IsRequired();
                 entity.Property(e => e.ExpiryAtUtc).IsRequired();
                 entity.Property(e => e.FeaturesJson).HasMaxLength(4096);
+            });
+
+            builder.Entity<LicenseSale>(entity =>
+            {
+                entity.ToTable("license_sales");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_license_sales_tenant_id");
+                entity.HasIndex(e => e.LicenseKey).HasDatabaseName("idx_license_sales_license_key");
+                entity.HasIndex(e => e.InvoiceNumber)
+                    .IsUnique()
+                    .HasDatabaseName("idx_license_sales_invoice_number");
+                entity.HasIndex(e => e.SoldAtUtc).HasDatabaseName("idx_license_sales_sold_at");
+                entity.Property(e => e.LicenseKey).IsRequired();
+                entity.Property(e => e.LicensePlan).IsRequired();
+                entity.Property(e => e.ValidFromUtc).IsRequired();
+                entity.Property(e => e.ValidUntilUtc).IsRequired();
+                entity.Property(e => e.PriceNet).IsRequired();
+                entity.Property(e => e.VatRate).IsRequired().HasDefaultValue(20.00m);
+                entity.Property(e => e.VatAmount).IsRequired();
+                entity.Property(e => e.PriceGross).IsRequired();
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("EUR");
+                entity.Property(e => e.SoldAtUtc).IsRequired();
+                entity.Property(e => e.SoldByUserId).IsRequired();
+                entity.Property(e => e.InvoiceNumber).IsRequired();
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue(LicenseSaleStatuses.Active);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.SoldByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.SoldByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.CancelledByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CancelledByUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<BillingAuditLog>(entity =>
+            {
+                entity.ToTable("billing_audit_log");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_billing_audit_log_tenant_id");
+                entity.HasIndex(e => e.LicenseSaleId).HasDatabaseName("idx_billing_audit_log_license_sale_id");
+                entity.HasIndex(e => e.CreatedAtUtc).HasDatabaseName("idx_billing_audit_log_created_at");
+                entity.HasIndex(e => e.EventType).HasDatabaseName("idx_billing_audit_log_event_type");
+                entity.Property(e => e.EventType).IsRequired();
+                entity.Property(e => e.ActorUserId).IsRequired();
+                entity.Property(e => e.PriceNet).IsRequired();
+                entity.Property(e => e.PriceGross).IsRequired();
+                entity.Property(e => e.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("EUR");
+                entity.Property(e => e.CreatedAtUtc).IsRequired();
+                entity.HasOne(e => e.LicenseSale)
+                    .WithMany()
+                    .HasForeignKey(e => e.LicenseSaleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasOne(e => e.ActorUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.ActorUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             builder.Entity<ActivatedLicense>(entity =>

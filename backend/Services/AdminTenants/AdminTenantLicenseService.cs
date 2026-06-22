@@ -1,3 +1,4 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
@@ -50,6 +51,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
     private readonly TseOptions _tseOptions;
     private readonly LicenseOptions _licenseOptions;
     private readonly IDevelopmentModeService _developmentModeService;
+    private readonly ITenantLicenseService _tenantLicenseService;
 
     public AdminTenantLicenseService(
         AppDbContext db,
@@ -61,7 +63,8 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         IHostEnvironment hostEnvironment,
         IOptions<TseOptions> tseOptions,
         IOptions<LicenseOptions> licenseOptions,
-        IDevelopmentModeService developmentModeService)
+        IDevelopmentModeService developmentModeService,
+        ITenantLicenseService tenantLicenseService)
     {
         _db = db;
         _licenseSync = licenseSync;
@@ -73,6 +76,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         _tseOptions = tseOptions.Value;
         _licenseOptions = licenseOptions.Value;
         _developmentModeService = developmentModeService;
+        _tenantLicenseService = tenantLicenseService;
     }
 
     public async Task<TenantLicenseOverviewDto?> GetOverviewAsync(
@@ -162,6 +166,15 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         if (tenant.Status == TenantStatuses.Deleted)
             return (null, "Deleted tenants cannot be updated.");
 
+        var isSuperAdmin = string.Equals(actorRole, Roles.SuperAdmin, StringComparison.OrdinalIgnoreCase);
+        if (!isSuperAdmin)
+        {
+            if (request.ValidUntilUtc.HasValue)
+                return (null, "validUntilUtc is determined by the license key and cannot be set manually.");
+            if (string.IsNullOrWhiteSpace(request.LicenseKey))
+                return (null, "licenseKey is required.");
+        }
+
         var now = DateTime.UtcNow;
         var previousValidUntil = tenant.LicenseValidUntilUtc;
         var previousKey = tenant.LicenseKey;
@@ -169,26 +182,44 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         if (!string.IsNullOrWhiteSpace(request.LicenseKey))
         {
             var key = request.LicenseKey.Trim();
-            if (!RegkTenantLicenseKeyFormat.IsValid(key))
-                return (null, RegkTenantLicenseKeyFormat.InvalidFormatMessage);
 
-            tenant.LicenseKey = key;
-
-            if (request.ValidUntilUtc.HasValue)
+            if (!isSuperAdmin)
             {
-                tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(request.ValidUntilUtc.Value, DateTimeKind.Utc);
+                var billing = await _tenantLicenseService.ResolveBillingLicenseSaleForKeyAsync(
+                        tenantId,
+                        key,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (billing.ErrorCode != null)
+                    return (null, billing.ErrorMessage);
+
+                tenant.LicenseKey = key;
+                tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(billing.Sale!.ValidUntilUtc, DateTimeKind.Utc);
             }
             else
             {
-                var issued = await _db.IssuedLicenses.AsNoTracking()
-                    .Where(il => il.LicenseKey == key && !il.IsDeleted && !il.IsRevoked && !il.IsCancelled && il.SupersededByLicenseId == null)
-                    .OrderByDescending(il => il.IssuedAtUtc)
-                    .FirstOrDefaultAsync(cancellationToken)
-                    .ConfigureAwait(false);
-                if (issued == null)
-                    return (null, "Issued license key was not found.");
+                if (!RegkTenantLicenseKeyFormat.IsValid(key))
+                    return (null, RegkTenantLicenseKeyFormat.InvalidFormatMessage);
 
-                tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(issued.ExpiryAtUtc, DateTimeKind.Utc);
+                tenant.LicenseKey = key;
+
+                if (request.ValidUntilUtc.HasValue)
+                {
+                    tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(request.ValidUntilUtc.Value, DateTimeKind.Utc);
+                }
+                else
+                {
+                    var resolved = await _tenantLicenseService.ResolveIssuedLicenseForKeyAsync(
+                            tenantId,
+                            key,
+                            isSuperAdmin,
+                            cancellationToken)
+                        .ConfigureAwait(false);
+                    if (resolved.ErrorCode != null)
+                        return (null, resolved.ErrorMessage);
+
+                    tenant.LicenseValidUntilUtc = DateTime.SpecifyKind(resolved.Issued!.ExpiryAtUtc, DateTimeKind.Utc);
+                }
             }
         }
         else if (request.ValidUntilUtc.HasValue)
@@ -206,7 +237,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
         if (!string.IsNullOrWhiteSpace(tenant.LicenseKey))
             await _licenseSync.SyncTenantLicenseExpiryAsync(tenantId, cancellationToken).ConfigureAwait(false);
 
-        await LogLicenseUpdatedAuditAsync(
+        await LogLicenseExtendedAuditAsync(
             tenantId,
             actorUserId,
             actorRole,
@@ -218,6 +249,47 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
 
         _logger.LogInformation("Tenant license extended for tenant {TenantId}", tenantId);
         return (await GetOverviewAsync(tenantId, cancellationToken).ConfigureAwait(false), null);
+    }
+
+    private async Task LogLicenseExtendedAuditAsync(
+        Guid tenantId,
+        string? actorUserId,
+        string? actorRole,
+        string? previousKey,
+        DateTime? previousValidUntilUtc,
+        string? newKey,
+        DateTime? newValidUntilUtc,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(actorUserId))
+            return;
+
+        try
+        {
+            await _auditLogService.LogSystemOperationAsync(
+                AuditLogActions.LICENSE_EXTENDED,
+                AuditLogEntityTypes.SYSTEM_CONFIG,
+                actorUserId,
+                actorRole ?? "Manager",
+                description: "Tenant license extended.",
+                requestData: new
+                {
+                    tenantId,
+                    old_key = MaskLicenseKeyForAudit(previousKey),
+                    new_key = MaskLicenseKeyForAudit(newKey),
+                    old_valid_until_utc = previousValidUntilUtc,
+                    new_valid_until_utc = newValidUntilUtc,
+                },
+                actionType: AuditEventType.LicenseExtended,
+                entityId: tenantId,
+                tenantId: tenantId).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Audit log failed for tenant license extend TenantId={TenantId}", tenantId);
+        }
+
+        _ = cancellationToken;
     }
 
     private async Task LogLicenseUpdatedAuditAsync(
@@ -635,7 +707,7 @@ public sealed class AdminTenantLicenseService : IAdminTenantLicenseService
 
         var marker = TenantLicenseLink.Marker(tenant.Id);
         var byMarker = await _db.IssuedLicenses.AsNoTracking()
-            .Where(il => !il.IsDeleted && EF.Functions.ILike(il.CustomerName, $"%{marker}%"))
+            .Where(il => !il.IsDeleted && il.CustomerName != null && il.CustomerName.Contains(marker))
             .OrderByDescending(il => il.IssuedAtUtc)
             .Take(10)
             .ToListAsync(cancellationToken)
