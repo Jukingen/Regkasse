@@ -72,7 +72,9 @@ public sealed class TenantLicenseService : ITenantLicenseService
                 LicenseKeyGenerator.InvalidFormatMessage);
         }
 
-        var sale = await _db.LicenseSales.AsNoTracking()
+        var sale = await _db.LicenseSales
+            .IgnoreQueryFilters()
+            .AsNoTracking()
             .Where(s => s.LicenseKey == key)
             .OrderByDescending(s => s.SoldAtUtc)
             .FirstOrDefaultAsync(cancellationToken)

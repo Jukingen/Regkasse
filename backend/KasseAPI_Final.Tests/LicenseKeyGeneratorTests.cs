@@ -44,4 +44,35 @@ public sealed class LicenseKeyGeneratorTests
         Assert.Throws<ArgumentException>(() =>
             _generator.GenerateLicenseKey("   ", DateTime.UtcNow.AddYears(1)));
     }
+
+    [Fact]
+    public void ParseLicenseKey_ReturnsComponentsForValidKey()
+    {
+        var (slug, validUntil, randomPart) = _generator.ParseLicenseKey("REGK-20261231-cafe-A7F3K2D9");
+
+        Assert.Equal("cafe", slug);
+        Assert.Equal(new DateTime(2026, 12, 31), validUntil);
+        Assert.Equal("A7F3K2D9", randomPart);
+    }
+
+    [Fact]
+    public void ParseLicenseKey_SupportsMultiSegmentSlug()
+    {
+        var (slug, validUntil, randomPart) =
+            _generator.ParseLicenseKey("REGK-20260601-my-cafe-shop-A7F3K2D9");
+
+        Assert.Equal("my-cafe-shop", slug);
+        Assert.Equal(new DateTime(2026, 6, 1), validUntil);
+        Assert.Equal("A7F3K2D9", randomPart);
+    }
+
+    [Fact]
+    public void ParseLicenseKey_ReturnsNullsForInvalidKey()
+    {
+        var (slug, validUntil, randomPart) = _generator.ParseLicenseKey("invalid-key");
+
+        Assert.Null(slug);
+        Assert.Null(validUntil);
+        Assert.Null(randomPart);
+    }
 }

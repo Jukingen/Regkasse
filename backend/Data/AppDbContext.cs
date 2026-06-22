@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -19,6 +20,14 @@ namespace KasseAPI_Final.Data
 {
     public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
+        private static readonly ValueConverter<Guid, string> AspNetUserIdConverter = new(
+            v => v.ToString("D"),
+            v => Guid.Parse(v));
+
+        private static readonly ValueConverter<Guid?, string?> NullableAspNetUserIdConverter = new(
+            v => v.HasValue ? v.Value.ToString("D") : null,
+            v => string.IsNullOrEmpty(v) ? null : Guid.Parse(v));
+
         private readonly ICurrentTenantAccessor _tenantAccessor;
         private readonly ILogger<AppDbContext> _logger;
 
@@ -191,11 +200,13 @@ namespace KasseAPI_Final.Data
 
         public DbSet<LicenseActivationAttempt> LicenseActivationAttempts { get; set; }
 
-        /// <summary>Super Admin Mandanten license billing (platform-scoped, not tenant-filtered).</summary>
         public DbSet<LicenseSale> LicenseSales { get; set; }
 
-        /// <summary>Non-fiscal Super Admin billing audit trail.</summary>
         public DbSet<BillingAuditLog> BillingAuditLogs { get; set; }
+
+        public DbSet<LicenseReminder> LicenseReminders { get; set; }
+
+        public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -1081,8 +1092,16 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.LicenseValidUntilUtc);
                 entity.Property(e => e.LicenseGracePeriodStartedAt);
                 entity.Property(e => e.LicenseGracePeriodUsedDays).HasDefaultValue(0);
+                entity.Property(e => e.LastLicenseActivationUtc);
+                entity.Property(e => e.LicenseActivationCount).HasDefaultValue(0);
                 entity.Property(e => e.DeletedAtUtc);
                 entity.Property(e => e.DeletedByUserId).HasMaxLength(450);
+                entity.HasIndex(e => e.CurrentLicenseSaleId)
+                    .HasDatabaseName("idx_tenants_current_license_sale_id");
+                entity.HasOne(e => e.CurrentLicenseSale)
+                    .WithMany()
+                    .HasForeignKey(e => e.CurrentLicenseSaleId)
+                    .OnDelete(DeleteBehavior.SetNull);
                 entity.HasIndex(e => e.Slug).IsUnique();
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.LicenseValidUntilUtc)
@@ -1145,37 +1164,45 @@ namespace KasseAPI_Final.Data
                 entity.ToTable("license_sales");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_license_sales_tenant_id");
-                entity.HasIndex(e => e.LicenseKey).HasDatabaseName("idx_license_sales_license_key");
+                entity.HasIndex(e => e.LicenseKey)
+                    .IsUnique()
+                    .HasDatabaseName("idx_license_sales_license_key");
                 entity.HasIndex(e => e.InvoiceNumber)
                     .IsUnique()
                     .HasDatabaseName("idx_license_sales_invoice_number");
                 entity.HasIndex(e => e.SoldAtUtc).HasDatabaseName("idx_license_sales_sold_at");
-                entity.Property(e => e.LicenseKey).IsRequired();
-                entity.Property(e => e.LicensePlan).IsRequired();
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_license_sales_status");
+                entity.HasIndex(e => e.ValidUntilUtc).HasDatabaseName("idx_license_sales_valid_until_utc");
+
+                entity.Property(e => e.LicenseKey).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.LicensePlan).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Currency).HasMaxLength(3).HasDefaultValue("EUR").IsRequired();
+                entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue(LicenseSaleStatuses.Active).IsRequired();
+                entity.Property(e => e.InvoiceNumber).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.PriceNet).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(e => e.VatRate).HasColumnType("decimal(5,2)").HasDefaultValue(20.00m).IsRequired();
+                entity.Property(e => e.VatAmount).HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(e => e.PriceGross).HasColumnType("decimal(10,2)").IsRequired();
                 entity.Property(e => e.ValidFromUtc).IsRequired();
                 entity.Property(e => e.ValidUntilUtc).IsRequired();
-                entity.Property(e => e.PriceNet).IsRequired();
-                entity.Property(e => e.VatRate).IsRequired().HasDefaultValue(20.00m);
-                entity.Property(e => e.VatAmount).IsRequired();
-                entity.Property(e => e.PriceGross).IsRequired();
-                entity.Property(e => e.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("EUR");
                 entity.Property(e => e.SoldAtUtc).IsRequired();
-                entity.Property(e => e.SoldByUserId).IsRequired();
-                entity.Property(e => e.InvoiceNumber).IsRequired();
-                entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue(LicenseSaleStatuses.Active);
+                entity.Property(e => e.SoldByUserId)
+                    .IsRequired()
+                    .HasMaxLength(450)
+                    .HasConversion(AspNetUserIdConverter);
+                entity.Property(e => e.CancelledByUserId)
+                    .HasMaxLength(450)
+                    .HasConversion(NullableAspNetUserIdConverter);
+                entity.Property(e => e.ExtendedByUserId)
+                    .HasMaxLength(450)
+                    .HasConversion(NullableAspNetUserIdConverter);
                 entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(e => e.SoldByUser)
-                    .WithMany()
-                    .HasForeignKey(e => e.SoldByUserId)
-                    .OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(e => e.CancelledByUser)
-                    .WithMany()
-                    .HasForeignKey(e => e.CancelledByUserId)
-                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             builder.Entity<BillingAuditLog>(entity =>
@@ -1183,27 +1210,61 @@ namespace KasseAPI_Final.Data
                 entity.ToTable("billing_audit_log");
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_billing_audit_log_tenant_id");
-                entity.HasIndex(e => e.LicenseSaleId).HasDatabaseName("idx_billing_audit_log_license_sale_id");
-                entity.HasIndex(e => e.CreatedAtUtc).HasDatabaseName("idx_billing_audit_log_created_at");
-                entity.HasIndex(e => e.EventType).HasDatabaseName("idx_billing_audit_log_event_type");
-                entity.Property(e => e.EventType).IsRequired();
-                entity.Property(e => e.ActorUserId).IsRequired();
-                entity.Property(e => e.PriceNet).IsRequired();
-                entity.Property(e => e.PriceGross).IsRequired();
-                entity.Property(e => e.Currency).IsRequired().HasMaxLength(3).HasDefaultValue("EUR");
-                entity.Property(e => e.CreatedAtUtc).IsRequired();
-                entity.HasOne(e => e.LicenseSale)
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.Action).HasDatabaseName("idx_billing_audit_log_action");
+                entity.HasIndex(e => e.TimestampUtc).HasDatabaseName("idx_billing_audit_log_timestamp_utc");
+                entity.HasIndex(e => e.SaleId).HasDatabaseName("idx_billing_audit_log_sale_id");
+
+                entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Details).HasColumnType("jsonb");
+                entity.Property(e => e.UserId)
+                    .IsRequired()
+                    .HasMaxLength(450)
+                    .HasConversion(AspNetUserIdConverter);
+                entity.Property(e => e.TimestampUtc).IsRequired();
+
+                entity.HasOne(e => e.Sale)
                     .WithMany()
-                    .HasForeignKey(e => e.LicenseSaleId)
-                    .OnDelete(DeleteBehavior.Restrict);
+                    .HasForeignKey(e => e.SaleId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<LicenseReminder>(entity =>
+            {
+                entity.ToTable("license_reminders");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_license_reminders_tenant_id");
+                entity.HasIndex(e => e.ReminderDateUtc).HasDatabaseName("idx_license_reminders_reminder_date");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_license_reminders_status");
+                entity.HasIndex(e => e.LicenseSaleId).HasDatabaseName("idx_license_reminders_license_sale_id");
+
+                entity.Property(e => e.ReminderDateUtc).IsRequired();
+                entity.Property(e => e.ReminderType).HasMaxLength(20).HasDefaultValue(LicenseReminderTypes.Expiry).IsRequired();
+                entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue(LicenseReminderStatuses.Pending).IsRequired();
+
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
                     .OnDelete(DeleteBehavior.Restrict);
-                entity.HasOne(e => e.ActorUser)
+                entity.HasOne(e => e.LicenseSale)
                     .WithMany()
-                    .HasForeignKey(e => e.ActorUserId)
+                    .HasForeignKey(e => e.LicenseSaleId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<InvoiceSequence>(entity =>
+            {
+                entity.ToTable("invoice_sequences");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.Year, e.Month }).IsUnique();
+                entity.Property(e => e.Year).IsRequired();
+                entity.Property(e => e.Month).IsRequired();
+                entity.Property(e => e.LastSequence).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
             });
 
             builder.Entity<ActivatedLicense>(entity =>

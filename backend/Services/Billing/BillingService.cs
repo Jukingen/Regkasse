@@ -112,8 +112,8 @@ public sealed class BillingService : IBillingService
         Guid soldByUserId,
         CancellationToken ct = default)
     {
-        var actorUserId = ResolveActorUserId(soldByUserId);
-        await EnsureUserExistsAsync(actorUserId, ct).ConfigureAwait(false);
+        EnsureActorUserId(soldByUserId);
+        await EnsureUserExistsAsync(soldByUserId, ct).ConfigureAwait(false);
 
         var tenant = await _db.Tenants
             .FirstOrDefaultAsync(t => t.Id == request.TenantId, ct)
@@ -153,7 +153,7 @@ public sealed class BillingService : IBillingService
                 PriceGross = prepared.PriceGross,
                 Currency = "EUR",
                 SoldAtUtc = soldAtUtc,
-                SoldByUserId = actorUserId,
+                SoldByUserId = soldByUserId,
                 InvoiceNumber = invoiceNumber,
                 Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
                 Status = LicenseSaleStatuses.Active,
@@ -171,7 +171,7 @@ public sealed class BillingService : IBillingService
             await _db.SaveChangesAsync(ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
 
-            await LogLicenseSaleAuditAsync(sale, actorUserId, ct).ConfigureAwait(false);
+            await LogLicenseSaleAuditAsync(sale, soldByUserId, ct).ConfigureAwait(false);
 
             sale.Tenant = tenant;
             return MapResponse(sale);
@@ -200,7 +200,7 @@ public sealed class BillingService : IBillingService
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
 
-        IQueryable<LicenseSale> salesQuery = _db.LicenseSales
+        IQueryable<LicenseSale> salesQuery = LicenseSalesScope()
             .AsNoTracking()
             .Include(s => s.Tenant);
 
@@ -263,10 +263,10 @@ public sealed class BillingService : IBillingService
         if (string.IsNullOrWhiteSpace(request.CancellationReason))
             throw new ArgumentException("Cancellation reason is required.", nameof(request));
 
-        var actorUserId = ResolveActorUserId(cancelledByUserId);
-        await EnsureUserExistsAsync(actorUserId, ct).ConfigureAwait(false);
+        EnsureActorUserId(cancelledByUserId);
+        await EnsureUserExistsAsync(cancelledByUserId, ct).ConfigureAwait(false);
 
-        var sale = await _db.LicenseSales
+        var sale = await LicenseSalesScope()
             .Include(s => s.Tenant)
             .FirstOrDefaultAsync(s => s.Id == saleId, ct)
             .ConfigureAwait(false)
@@ -278,17 +278,18 @@ public sealed class BillingService : IBillingService
         var now = DateTime.UtcNow;
         sale.Status = LicenseSaleStatuses.Cancelled;
         sale.CancelledAtUtc = now;
-        sale.CancelledByUserId = actorUserId;
+        sale.CancelledByUserId = cancelledByUserId;
         sale.CancellationReason = request.CancellationReason.Trim();
         sale.UpdatedAt = now;
 
         await _db.SaveChangesAsync(ct).ConfigureAwait(false);
         await _billingAudit.LogLicenseCancelledAsync(
             sale,
-            actorUserId,
+            cancelledByUserId,
             sale.CancellationReason ?? request.CancellationReason.Trim(),
-            ct).ConfigureAwait(false);
-        _logger.LogInformation("License sale {SaleId} cancelled by {UserId}", saleId, actorUserId);
+            ipAddress: null,
+            cancellationToken: ct).ConfigureAwait(false);
+        _logger.LogInformation("License sale {SaleId} cancelled by {UserId}", saleId, cancelledByUserId);
         return MapResponse(sale);
     }
 
@@ -300,7 +301,7 @@ public sealed class BillingService : IBillingService
         var now = DateTime.UtcNow;
         var expiringThreshold = now.AddDays(ExpiringSoonDays);
 
-        IQueryable<LicenseSale> query = _db.LicenseSales
+        IQueryable<LicenseSale> query = LicenseSalesScope()
             .AsNoTracking()
             .Where(s => s.Status == LicenseSaleStatuses.Active);
 
@@ -325,7 +326,7 @@ public sealed class BillingService : IBillingService
         Guid saleId,
         CancellationToken ct = default)
     {
-        var sale = await _db.LicenseSales
+        var sale = await LicenseSalesScope()
             .Include(s => s.Tenant)
             .FirstOrDefaultAsync(s => s.Id == saleId, ct)
             .ConfigureAwait(false)
@@ -368,7 +369,7 @@ public sealed class BillingService : IBillingService
             return false;
 
         var key = licenseKey.Trim();
-        var hasActiveSale = await _db.LicenseSales.AsNoTracking()
+        var hasActiveSale = await LicenseSalesScope().AsNoTracking()
             .AnyAsync(s => s.LicenseKey == key && s.Status == LicenseSaleStatuses.Active, ct)
             .ConfigureAwait(false);
         if (hasActiveSale)
@@ -394,11 +395,14 @@ public sealed class BillingService : IBillingService
     }
 
     private async Task<LicenseSale?> LoadSaleAsync(Guid saleId, CancellationToken ct) =>
-        await _db.LicenseSales
+        await LicenseSalesScope()
             .Include(s => s.Tenant)
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == saleId, ct)
             .ConfigureAwait(false);
+
+    /// <summary>Super Admin billing crosses tenants; bypass tenant query filter.</summary>
+    private IQueryable<LicenseSale> LicenseSalesScope() => _db.LicenseSales.IgnoreQueryFilters();
 
     private async Task<(string Address, string VatId, string Email)> LoadTenantBillingProfileAsync(
         Tenant tenant,
@@ -494,14 +498,15 @@ public sealed class BillingService : IBillingService
             InvoicePdfPath: sale.InvoicePdfPath,
             Status: sale.Status,
             SoldAtUtc: sale.SoldAtUtc,
-            SoldByUserId: sale.SoldByUserId,
+            SoldByUserId: sale.SoldByUserId.ToString("D"),
             Notes: sale.Notes);
     }
 
-    private async Task EnsureUserExistsAsync(string actorUserId, CancellationToken ct)
+    private async Task EnsureUserExistsAsync(Guid actorUserId, CancellationToken ct)
     {
+        var actorUserIdText = actorUserId.ToString("D");
         var exists = await _db.Users.AsNoTracking()
-            .AnyAsync(u => u.Id == actorUserId, ct)
+            .AnyAsync(u => u.Id == actorUserIdText, ct)
             .ConfigureAwait(false);
         if (!exists)
             throw new ArgumentException("User not found.");
@@ -509,16 +514,14 @@ public sealed class BillingService : IBillingService
 
     private Task LogLicenseSaleAuditAsync(
         LicenseSale sale,
-        string actorUserId,
+        Guid actorUserId,
         CancellationToken ct) =>
-        _billingAudit.LogLicenseSoldAsync(sale, actorUserId, ct);
+        _billingAudit.LogLicenseSoldAsync(sale, actorUserId, ipAddress: null, cancellationToken: ct);
 
-    private static string ResolveActorUserId(Guid userId)
+    private static void EnsureActorUserId(Guid userId)
     {
         if (userId == Guid.Empty)
             throw new ArgumentException("User id is required.", nameof(userId));
-
-        return userId.ToString("D");
     }
 
     private static DateTime ToUtcInstant(DateTime value) =>

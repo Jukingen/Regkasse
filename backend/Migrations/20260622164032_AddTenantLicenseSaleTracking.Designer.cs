@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622164032_AddTenantLicenseSaleTracking")]
+    partial class AddTenantLicenseSaleTracking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3456,37 +3459,6 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("invoices");
                 });
 
-            modelBuilder.Entity("KasseAPI_Final.Models.InvoiceSequence", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<int>("LastSequence")
-                        .HasColumnType("integer")
-                        .HasColumnName("last_sequence");
-
-                    b.Property<int>("Month")
-                        .HasColumnType("integer")
-                        .HasColumnName("month");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("integer")
-                        .HasColumnName("year");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Year", "Month")
-                        .IsUnique();
-
-                    b.ToTable("invoice_sequences", (string)null);
-                });
-
             modelBuilder.Entity("KasseAPI_Final.Models.IssuedLicense", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4001,7 +3973,7 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -4025,6 +3997,10 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CancelledByUserId");
+
+                    b.HasIndex("ExtendedByUserId");
+
                     b.HasIndex("InvoiceNumber")
                         .IsUnique()
                         .HasDatabaseName("idx_license_sales_invoice_number");
@@ -4036,14 +4012,10 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("SoldAtUtc")
                         .HasDatabaseName("idx_license_sales_sold_at");
 
-                    b.HasIndex("Status")
-                        .HasDatabaseName("idx_license_sales_status");
+                    b.HasIndex("SoldByUserId");
 
                     b.HasIndex("TenantId")
                         .HasDatabaseName("idx_license_sales_tenant_id");
-
-                    b.HasIndex("ValidUntilUtc")
-                        .HasDatabaseName("idx_license_sales_valid_until_utc");
 
                     b.ToTable("license_sales", (string)null);
                 });
@@ -8786,9 +8758,17 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Sale");
 
                     b.Navigation("Tenant");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.CardPaymentTransaction", b =>
@@ -9124,11 +9104,33 @@ namespace KasseAPI_Final.Migrations
 
             modelBuilder.Entity("KasseAPI_Final.Models.LicenseSale", b =>
                 {
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "CancelledByUser")
+                        .WithMany()
+                        .HasForeignKey("CancelledByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "ExtendedByUser")
+                        .WithMany()
+                        .HasForeignKey("ExtendedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.ApplicationUser", "SoldByUser")
+                        .WithMany()
+                        .HasForeignKey("SoldByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("CancelledByUser");
+
+                    b.Navigation("ExtendedByUser");
+
+                    b.Navigation("SoldByUser");
 
                     b.Navigation("Tenant");
                 });

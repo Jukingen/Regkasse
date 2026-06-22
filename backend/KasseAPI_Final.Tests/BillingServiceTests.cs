@@ -128,11 +128,11 @@ public sealed class BillingServiceTests
         var updatedTenant = await db.Tenants.SingleAsync(t => t.Id == tenant.Id);
         Assert.Equal(response.LicenseKey, updatedTenant.LicenseKey);
         Assert.NotNull(updatedTenant.LicenseValidUntilUtc);
-        Assert.Equal(1, await db.LicenseSales.CountAsync());
+        Assert.Equal(1, await db.LicenseSales.IgnoreQueryFilters().CountAsync());
         Assert.Equal(1, await db.BillingAuditLogs.CountAsync());
         var auditRow = await db.BillingAuditLogs.SingleAsync();
-        Assert.Equal(BillingAuditEventTypes.LicenseSold, auditRow.EventType);
-        Assert.Equal(60m, auditRow.PriceGross);
+        Assert.Equal(BillingAuditEventTypes.SaleCreated, auditRow.Action);
+        Assert.Contains("\"priceGross\":60", auditRow.Details, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public sealed class BillingServiceTests
             new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m),
             Guid.Parse(userId));
 
-        var row = await db.LicenseSales.SingleAsync(s => s.Id == sale.Id);
+        var row = await db.LicenseSales.IgnoreQueryFilters().SingleAsync(s => s.Id == sale.Id);
         row.SoldAtUtc = new DateTime(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
 
@@ -326,10 +326,10 @@ public sealed class BillingServiceTests
 
         Assert.Equal(LicenseSaleStatuses.Cancelled, cancelled.Status);
         var auditRow = await db.BillingAuditLogs
-            .OrderByDescending(x => x.CreatedAtUtc)
+            .OrderByDescending(x => x.TimestampUtc)
             .FirstAsync();
-        Assert.Equal(BillingAuditEventTypes.LicenseCancelled, auditRow.EventType);
-        Assert.Equal("Customer refund", auditRow.CancellationReason);
+        Assert.Equal(BillingAuditEventTypes.SaleCancelled, auditRow.Action);
+        Assert.Contains("Customer refund", auditRow.Details, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -418,7 +418,7 @@ public sealed class BillingServiceTests
             Assert.Equal(0x44, pdf[2]); // D
             Assert.Equal(0x46, pdf[3]); // F
 
-            var stored = await db.LicenseSales.AsNoTracking().SingleAsync(s => s.Id == sale.Id);
+            var stored = await db.LicenseSales.IgnoreQueryFilters().AsNoTracking().SingleAsync(s => s.Id == sale.Id);
             Assert.NotNull(stored.InvoicePdfPath);
             Assert.Contains(sale.InvoiceNumber, stored.InvoicePdfPath, StringComparison.Ordinal);
 

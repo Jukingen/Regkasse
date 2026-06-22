@@ -3,6 +3,7 @@ using System;
 using KasseAPI_Final.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KasseAPI_Final.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622164703_AddLicenseSaleStatusIndexes")]
+    partial class AddLicenseSaleStatusIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -3454,37 +3457,6 @@ namespace KasseAPI_Final.Migrations
                         .IsDescending(false, true);
 
                     b.ToTable("invoices");
-                });
-
-            modelBuilder.Entity("KasseAPI_Final.Models.InvoiceSequence", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<int>("LastSequence")
-                        .HasColumnType("integer")
-                        .HasColumnName("last_sequence");
-
-                    b.Property<int>("Month")
-                        .HasColumnType("integer")
-                        .HasColumnName("month");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<int>("Year")
-                        .HasColumnType("integer")
-                        .HasColumnName("year");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Year", "Month")
-                        .IsUnique();
-
-                    b.ToTable("invoice_sequences", (string)null);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.IssuedLicense", b =>

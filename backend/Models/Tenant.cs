@@ -50,6 +50,19 @@ public class Tenant : BaseEntity
     [Column("license_grace_period_used_days")]
     public int LicenseGracePeriodUsedDays { get; set; }
 
+    /// <summary>Active Mandanten billing sale row when provisioned via Super Admin license sales.</summary>
+    [Column("current_license_sale_id")]
+    public Guid? CurrentLicenseSaleId { get; set; }
+
+    [ForeignKey(nameof(CurrentLicenseSaleId))]
+    public virtual LicenseSale? CurrentLicenseSale { get; set; }
+
+    [Column("last_license_activation_utc")]
+    public DateTime? LastLicenseActivationUtc { get; set; }
+
+    [Column("license_activation_count")]
+    public int LicenseActivationCount { get; set; }
+
     [Column("deleted_at_utc")]
     public DateTime? DeletedAtUtc { get; set; }
 

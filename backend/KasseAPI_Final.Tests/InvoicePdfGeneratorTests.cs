@@ -66,7 +66,7 @@ public sealed class InvoicePdfGeneratorTests
             PriceGross = 120m,
             Currency = "EUR",
             SoldAtUtc = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc),
-            SoldByUserId = Guid.NewGuid().ToString("D"),
+            SoldByUserId = Guid.NewGuid(),
             InvoiceNumber = "RE2026081",
             Status = LicenseSaleStatuses.Active,
         };

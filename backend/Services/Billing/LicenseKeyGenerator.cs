@@ -9,6 +9,7 @@ public interface ILicenseKeyGenerator
 {
     string GenerateLicenseKey(string tenantSlug, DateTime validUntil);
     bool ValidateLicenseKeyFormat(string licenseKey);
+    (string? TenantSlug, DateTime? ValidUntil, string? RandomPart) ParseLicenseKey(string licenseKey);
 }
 
 /// <summary>
@@ -79,6 +80,25 @@ public sealed partial class LicenseKeyGenerator : ILicenseKeyGenerator
 
         var slug = string.Join('-', parts.AsSpan(2, parts.Length - 3));
         return TenantSlugSuggestions.IsValidSlug(slug);
+    }
+
+    public (string? TenantSlug, DateTime? ValidUntil, string? RandomPart) ParseLicenseKey(string licenseKey)
+    {
+        if (!ValidateLicenseKeyFormat(licenseKey))
+            return (null, null, null);
+
+        var parts = licenseKey.Trim().Split('-');
+        var datePart = parts[1];
+        var randomPart = parts[^1];
+        var slug = string.Join('-', parts.AsSpan(2, parts.Length - 3));
+
+        var validUntil = DateTime.ParseExact(
+            datePart,
+            "yyyyMMdd",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None);
+
+        return (slug, validUntil, randomPart);
     }
 
     private static string GenerateRandomSuffix()

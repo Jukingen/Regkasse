@@ -61,7 +61,7 @@ public sealed class AdminTenantLicenseServiceTests
             VatRate = 20m,
             VatAmount = 20m,
             PriceGross = 120m,
-            SoldByUserId = "super-admin-1",
+            SoldByUserId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
             InvoiceNumber = $"RE{validUntil:yyyyMM}0001",
             Status = status,
         };

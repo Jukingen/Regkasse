@@ -74,6 +74,48 @@ public sealed class InvoiceNumberGeneratorTests
         Assert.Equal("RE2026091", invoiceNumber);
     }
 
+    [Theory]
+    [InlineData("RE20260841", 2026, 8, 41)]
+    [InlineData("RE2026081", 2026, 8, 1)]
+    [InlineData("RE202612999", 2026, 12, 999)]
+    public void ParseInvoiceNumber_ParsesValidNumbers(string invoiceNumber, int year, int month, int sequence)
+    {
+        using var db = CreateDb();
+        var generator = new InvoiceNumberGenerator(db);
+
+        var parsed = generator.ParseInvoiceNumber(invoiceNumber);
+
+        Assert.Equal((year, month, sequence), parsed);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("INV-20260841")]
+    [InlineData("RE202607")]
+    [InlineData("RE2026131")]
+    public void ParseInvoiceNumber_ThrowsForInvalidNumbers(string invoiceNumber)
+    {
+        using var db = CreateDb();
+        var generator = new InvoiceNumberGenerator(db);
+
+        Assert.Throws<ArgumentException>(() => generator.ParseInvoiceNumber(invoiceNumber));
+    }
+
+    [Fact]
+    public void ParseInvoiceNumber_RoundTripsWithFormat()
+    {
+        var formatted = InvoiceNumberGenerator.FormatInvoiceNumber(2026, 8, 41);
+        using var db = CreateDb();
+        var generator = new InvoiceNumberGenerator(db);
+
+        var (year, month, sequence) = generator.ParseInvoiceNumber(formatted);
+
+        Assert.Equal(2026, year);
+        Assert.Equal(8, month);
+        Assert.Equal(41, sequence);
+    }
+
     private static AppDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -97,7 +139,7 @@ public sealed class InvoiceNumberGeneratorTests
             VatAmount = 20m,
             PriceGross = 120m,
             SoldAtUtc = DateTime.UtcNow,
-            SoldByUserId = "super-admin-user",
+            SoldByUserId = Guid.NewGuid(),
             InvoiceNumber = invoiceNumber,
         };
 }

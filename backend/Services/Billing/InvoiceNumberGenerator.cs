@@ -7,6 +7,7 @@ namespace KasseAPI_Final.Services.Billing;
 public interface IInvoiceNumberGenerator
 {
     string GenerateInvoiceNumber(DateTime date);
+    (int Year, int Month, int Sequence) ParseInvoiceNumber(string invoiceNumber);
 }
 
 /// <summary>
@@ -15,6 +16,7 @@ public interface IInvoiceNumberGenerator
 /// </summary>
 public sealed class InvoiceNumberGenerator : IInvoiceNumberGenerator
 {
+    private const string Prefix = "RE";
     private readonly AppDbContext _db;
 
     public InvoiceNumberGenerator(AppDbContext db) => _db = db;
@@ -38,8 +40,32 @@ public sealed class InvoiceNumberGenerator : IInvoiceNumberGenerator
         }
     }
 
+    public (int Year, int Month, int Sequence) ParseInvoiceNumber(string invoiceNumber)
+    {
+        if (string.IsNullOrWhiteSpace(invoiceNumber)
+            || !invoiceNumber.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Invalid invoice number format.", nameof(invoiceNumber));
+        }
+
+        var numericPart = invoiceNumber[Prefix.Length..];
+        if (numericPart.Length < 7)
+            throw new ArgumentException("Invalid invoice number format.", nameof(invoiceNumber));
+
+        if (!int.TryParse(numericPart.AsSpan(0, 4), NumberStyles.None, CultureInfo.InvariantCulture, out var year)
+            || !int.TryParse(numericPart.AsSpan(4, 2), NumberStyles.None, CultureInfo.InvariantCulture, out var month)
+            || !int.TryParse(numericPart[6..], NumberStyles.None, CultureInfo.InvariantCulture, out var sequence)
+            || sequence < 1
+            || month is < 1 or > 12)
+        {
+            throw new ArgumentException("Invalid invoice number format.", nameof(invoiceNumber));
+        }
+
+        return (year, month, sequence);
+    }
+
     internal static string FormatPrefix(int year, int month) =>
-        FormattableString.Invariant($"RE{year:D4}{month:D2}");
+        FormattableString.Invariant($"{Prefix}{year:D4}{month:D2}");
 
     internal static string FormatInvoiceNumber(int year, int month, int sequence)
     {
@@ -78,6 +104,7 @@ public sealed class InvoiceNumberGenerator : IInvoiceNumberGenerator
     private int GetNextSequence(string prefix)
     {
         var existing = _db.LicenseSales
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .Where(s => s.InvoiceNumber.StartsWith(prefix))
             .Select(s => s.InvoiceNumber)

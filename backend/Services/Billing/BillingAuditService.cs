@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 
@@ -7,19 +8,23 @@ public interface IBillingAuditService
 {
     Task LogLicenseSoldAsync(
         LicenseSale sale,
-        string actorUserId,
+        Guid actorUserId,
+        string? ipAddress = null,
         CancellationToken cancellationToken = default);
 
     Task LogLicenseCancelledAsync(
         LicenseSale sale,
-        string actorUserId,
+        Guid actorUserId,
         string cancellationReason,
+        string? ipAddress = null,
         CancellationToken cancellationToken = default);
 }
 
 /// <summary>Append-only billing audit (separate from RKSV/fiscal <see cref="AuditLog"/>).</summary>
 public sealed class BillingAuditService : IBillingAuditService
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly AppDbContext _db;
     private readonly ILogger<BillingAuditService> _logger;
 
@@ -29,56 +34,61 @@ public sealed class BillingAuditService : IBillingAuditService
         _logger = logger;
     }
 
-    public async Task LogLicenseSoldAsync(
+    public Task LogLicenseSoldAsync(
         LicenseSale sale,
-        string actorUserId,
-        CancellationToken cancellationToken = default)
-    {
-        await AppendAsync(
+        Guid actorUserId,
+        string? ipAddress = null,
+        CancellationToken cancellationToken = default) =>
+        AppendAsync(
             sale,
             actorUserId,
-            BillingAuditEventTypes.LicenseSold,
+            BillingAuditEventTypes.SaleCreated,
             cancellationReason: null,
-            cancellationToken).ConfigureAwait(false);
-    }
+            ipAddress,
+            cancellationToken);
 
-    public async Task LogLicenseCancelledAsync(
+    public Task LogLicenseCancelledAsync(
         LicenseSale sale,
-        string actorUserId,
+        Guid actorUserId,
         string cancellationReason,
-        CancellationToken cancellationToken = default)
-    {
-        await AppendAsync(
+        string? ipAddress = null,
+        CancellationToken cancellationToken = default) =>
+        AppendAsync(
             sale,
             actorUserId,
-            BillingAuditEventTypes.LicenseCancelled,
+            BillingAuditEventTypes.SaleCancelled,
             cancellationReason,
-            cancellationToken).ConfigureAwait(false);
-    }
+            ipAddress,
+            cancellationToken);
 
     private async Task AppendAsync(
         LicenseSale sale,
-        string actorUserId,
-        string eventType,
+        Guid actorUserId,
+        string action,
         string? cancellationReason,
+        string? ipAddress,
         CancellationToken cancellationToken)
     {
         try
         {
+            var details = JsonSerializer.Serialize(new BillingAuditDetails(
+                sale.PriceNet,
+                sale.PriceGross,
+                sale.Currency,
+                sale.InvoiceNumber,
+                sale.LicenseKey,
+                sale.LicensePlan,
+                cancellationReason), JsonOptions);
+
             _db.BillingAuditLogs.Add(new BillingAuditLog
             {
-                LicenseSaleId = sale.Id,
                 TenantId = sale.TenantId,
-                EventType = eventType,
-                ActorUserId = actorUserId,
-                PriceNet = sale.PriceNet,
-                PriceGross = sale.PriceGross,
-                Currency = sale.Currency,
-                InvoiceNumber = sale.InvoiceNumber,
-                LicenseKey = sale.LicenseKey,
-                LicensePlan = sale.LicensePlan,
-                CancellationReason = cancellationReason,
-                CreatedAtUtc = DateTime.UtcNow,
+                UserId = actorUserId,
+                Action = action,
+                SaleId = sale.Id,
+                Details = details,
+                IpAddress = ipAddress,
+                TimestampUtc = DateTime.UtcNow,
             });
 
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -87,9 +97,18 @@ public sealed class BillingAuditService : IBillingAuditService
         {
             _logger.LogWarning(
                 ex,
-                "Billing audit log write failed EventType={EventType} LicenseSaleId={LicenseSaleId}",
-                eventType,
+                "Billing audit log write failed Action={Action} SaleId={SaleId}",
+                action,
                 sale.Id);
         }
     }
+
+    private sealed record BillingAuditDetails(
+        decimal PriceNet,
+        decimal PriceGross,
+        string Currency,
+        string InvoiceNumber,
+        string LicenseKey,
+        string LicensePlan,
+        string? CancellationReason);
 }
