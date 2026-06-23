@@ -5,76 +5,41 @@ using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Billing;
 
-public interface IBillingService
-{
-    Task<LicenseSalePreviewResponse> PreviewLicenseSaleAsync(
-        LicenseSalePreviewRequest request,
-        CancellationToken ct = default);
-
-    Task<LicenseSaleResponse> CreateLicenseSaleAsync(
-        CreateLicenseSaleRequest request,
-        Guid soldByUserId,
-        CancellationToken ct = default);
-
-    Task<LicenseSaleResponse> GetLicenseSaleAsync(
-        Guid saleId,
-        CancellationToken ct = default);
-
-    Task<LicenseSaleListResponse> ListLicenseSalesAsync(
-        LicenseSaleListQuery query,
-        CancellationToken ct = default);
-
-    Task<LicenseSaleResponse> CancelLicenseSaleAsync(
-        Guid saleId,
-        CancelLicenseSaleRequest request,
-        Guid cancelledByUserId,
-        CancellationToken ct = default);
-
-    Task<LicenseSaleStatsResponse> GetLicenseSaleStatsAsync(
-        DateTime? fromDate = null,
-        DateTime? toDate = null,
-        CancellationToken ct = default);
-
-    Task<byte[]> GenerateInvoicePdfAsync(
-        Guid saleId,
-        CancellationToken ct = default);
-
-    Task<bool> CanExtendLicenseAsync(
-        string licenseKey,
-        CancellationToken ct = default);
-}
-
 public sealed class BillingService : IBillingService
 {
     private const int MaxPageSize = 100;
     private const int ExpiringSoonDays = 30;
     private const string InvoiceStorageRelativePath = "data/license-invoices";
 
-    private readonly AppDbContext _db;
+    private static readonly List<LicensePlanDefinition> Plans =
+    [
+        new LicensePlanDefinition { Plan = LicenseSalePlans.SixMonths, DurationDays = 180, DisplayName = "6 Monate" },
+        new LicensePlanDefinition { Plan = LicenseSalePlans.TwelveMonths, DurationDays = 365, DisplayName = "1 Jahr" },
+        new LicensePlanDefinition { Plan = LicenseSalePlans.Custom, DurationDays = 0, DisplayName = "Benutzerdefiniert" },
+    ];
+
+    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly ILicenseKeyGenerator _licenseKeyGenerator;
-    private readonly IInvoiceNumberGenerator _invoiceNumberGenerator;
+    private readonly IBillingAuditService _billingAudit;
     private readonly IWebHostEnvironment _environment;
     private readonly CompanyProfileOptions _sellerProfile;
-    private readonly IBillingAuditService _billingAudit;
     private readonly IInvoicePdfGenerator _invoicePdfGenerator;
     private readonly ILogger<BillingService> _logger;
 
     public BillingService(
-        AppDbContext db,
+        IDbContextFactory<AppDbContext> dbContextFactory,
         ILicenseKeyGenerator licenseKeyGenerator,
-        IInvoiceNumberGenerator invoiceNumberGenerator,
+        IBillingAuditService billingAudit,
         IWebHostEnvironment environment,
         IOptions<CompanyProfileOptions> sellerProfile,
-        IBillingAuditService billingAudit,
         IInvoicePdfGenerator invoicePdfGenerator,
         ILogger<BillingService> logger)
     {
-        _db = db;
+        _dbContextFactory = dbContextFactory;
         _licenseKeyGenerator = licenseKeyGenerator;
-        _invoiceNumberGenerator = invoiceNumberGenerator;
+        _billingAudit = billingAudit;
         _environment = environment;
         _sellerProfile = sellerProfile.Value;
-        _billingAudit = billingAudit;
         _invoicePdfGenerator = invoicePdfGenerator;
         _logger = logger;
     }
@@ -83,28 +48,41 @@ public sealed class BillingService : IBillingService
         LicenseSalePreviewRequest request,
         CancellationToken ct = default)
     {
-        var tenant = await LoadTenantAsync(request.TenantId, ct).ConfigureAwait(false)
-            ?? throw new KeyNotFoundException("Tenant not found.");
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
 
-        var prepared = PrepareSaleComputation(tenant, request.LicensePlan, request.CustomValidUntilUtc, request.PriceNet, request.VatRate);
-        var billingProfile = await LoadTenantBillingProfileAsync(tenant, ct).ConfigureAwait(false);
-        var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, prepared.ValidUntilUtc);
-        var invoiceNumber = _invoiceNumberGenerator.GenerateInvoiceNumber(DateTime.UtcNow);
+        var tenant = await db.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == request.TenantId, ct)
+            .ConfigureAwait(false)
+            ?? throw new KeyNotFoundException($"Tenant {request.TenantId} not found");
 
-        return new LicenseSalePreviewResponse(
-            LicenseKey: licenseKey,
-            ValidFromUtc: prepared.ValidFromUtc,
-            ValidUntilUtc: prepared.ValidUntilUtc,
-            PriceNet: prepared.PriceNet,
-            VatRate: prepared.VatRate,
-            VatAmount: prepared.VatAmount,
-            PriceGross: prepared.PriceGross,
-            InvoiceNumber: invoiceNumber,
-            TenantName: tenant.Name,
-            TenantSlug: tenant.Slug,
-            TenantAddress: billingProfile.Address,
-            TenantVatId: billingProfile.VatId,
-            TenantEmail: billingProfile.Email);
+        ValidatePricing(request.PriceNet, request.VatRate);
+        var (validFrom, validUntil) = GetValidityPeriod(tenant, request.LicensePlan, request.CustomValidUntilUtc);
+        var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, validUntil);
+        var invoiceNumber = await AllocateInvoiceNumberAsync(db, DateTime.UtcNow, ct).ConfigureAwait(false);
+        var (vatAmount, priceGross) = CalculateAmounts(request.PriceNet, request.VatRate);
+        var durationDays = ResolveDurationDays(request.LicensePlan, validFrom, validUntil);
+        var billingProfile = await LoadTenantBillingProfileAsync(db, tenant, ct).ConfigureAwait(false);
+
+        return new LicenseSalePreviewResponse
+        {
+            LicenseKey = licenseKey,
+            ValidFromUtc = validFrom,
+            ValidUntilUtc = validUntil,
+            DurationDays = durationDays,
+            DurationDisplay = GetDurationDisplay(durationDays, request.LicensePlan),
+            PriceNet = request.PriceNet,
+            VatRate = request.VatRate,
+            VatAmount = vatAmount,
+            PriceGross = priceGross,
+            InvoiceNumber = invoiceNumber,
+            TenantName = tenant.Name,
+            TenantSlug = tenant.Slug,
+            TenantAddress = NullIfEmpty(billingProfile.Address),
+            TenantVatId = NullIfEmpty(billingProfile.VatId),
+            TenantEmail = NullIfEmpty(billingProfile.Email),
+            Currency = "EUR",
+        };
     }
 
     public async Task<LicenseSaleResponse> CreateLicenseSaleAsync(
@@ -113,44 +91,50 @@ public sealed class BillingService : IBillingService
         CancellationToken ct = default)
     {
         EnsureActorUserId(soldByUserId);
-        await EnsureUserExistsAsync(soldByUserId, ct).ConfigureAwait(false);
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureUserExistsAsync(db, soldByUserId, ct).ConfigureAwait(false);
 
-        var tenant = await _db.Tenants
-            .FirstOrDefaultAsync(t => t.Id == request.TenantId, ct)
-            .ConfigureAwait(false)
-            ?? throw new KeyNotFoundException("Tenant not found.");
-
-        if (tenant.Status == TenantStatuses.Deleted)
-            throw new InvalidOperationException("Deleted tenants cannot receive license sales.");
-
-        var prepared = PrepareSaleComputation(
-            tenant,
-            request.LicensePlan,
-            request.CustomValidUntilUtc,
-            request.PriceNet,
-            request.VatRate);
-
-        await using var transaction = await _db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
         try
         {
-            var soldAtUtc = DateTime.UtcNow;
-            var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, prepared.ValidUntilUtc);
-            if (!await CanExtendLicenseAsync(licenseKey, ct).ConfigureAwait(false))
+            var tenant = await db.Tenants
+                .FirstOrDefaultAsync(t => t.Id == request.TenantId, ct)
+                .ConfigureAwait(false)
+                ?? throw new KeyNotFoundException($"Tenant {request.TenantId} not found");
+
+            if (tenant.Status == TenantStatuses.Deleted)
+                throw new InvalidOperationException("Deleted tenants cannot receive license sales.");
+
+            ValidatePricing(request.PriceNet, request.VatRate);
+            var (validFrom, validUntil) = GetValidityPeriod(tenant, request.LicensePlan, request.CustomValidUntilUtc);
+            var licenseKey = _licenseKeyGenerator.GenerateLicenseKey(tenant.Slug, validUntil);
+
+            var keyExists = await LicenseSalesScope(db)
+                .AnyAsync(l => l.LicenseKey == licenseKey, ct)
+                .ConfigureAwait(false);
+            if (keyExists)
+                throw new InvalidOperationException("License key collision detected");
+
+            if (!await IsLicenseKeyAvailableAsync(db, licenseKey, ct).ConfigureAwait(false))
                 throw new InvalidOperationException("Generated license key cannot be assigned.");
 
-            var invoiceNumber = _invoiceNumberGenerator.GenerateInvoiceNumber(soldAtUtc);
+            var soldAtUtc = DateTime.UtcNow;
+            var invoiceNumber = await AllocateInvoiceNumberAsync(db, soldAtUtc, ct).ConfigureAwait(false);
+            var (vatAmount, priceGross) = CalculateAmounts(request.PriceNet, request.VatRate);
+            var plan = request.LicensePlan.Trim();
+
             var sale = new LicenseSale
             {
-                TenantId = tenant.Id,
+                TenantId = request.TenantId,
                 LicenseKey = licenseKey,
-                LicensePlan = prepared.Plan,
-                CustomValidUntilUtc = prepared.Plan == LicenseSalePlans.Custom ? prepared.ValidUntilUtc : null,
-                ValidFromUtc = prepared.ValidFromUtc,
-                ValidUntilUtc = prepared.ValidUntilUtc,
-                PriceNet = prepared.PriceNet,
-                VatRate = prepared.VatRate,
-                VatAmount = prepared.VatAmount,
-                PriceGross = prepared.PriceGross,
+                LicensePlan = plan,
+                CustomValidUntilUtc = plan == LicenseSalePlans.Custom ? validUntil : null,
+                ValidFromUtc = validFrom,
+                ValidUntilUtc = validUntil,
+                PriceNet = request.PriceNet,
+                VatRate = request.VatRate,
+                VatAmount = vatAmount,
+                PriceGross = priceGross,
                 Currency = "EUR",
                 SoldAtUtc = soldAtUtc,
                 SoldByUserId = soldByUserId,
@@ -161,20 +145,30 @@ public sealed class BillingService : IBillingService
                 UpdatedAt = soldAtUtc,
             };
 
+            db.LicenseSales.Add(sale);
+
+            tenant.CurrentLicenseSaleId = sale.Id;
             tenant.LicenseKey = licenseKey;
-            tenant.LicenseValidUntilUtc = prepared.ValidUntilUtc;
+            tenant.LicenseValidUntilUtc = validUntil;
+            tenant.LastLicenseActivationUtc = soldAtUtc;
+            tenant.LicenseActivationCount++;
             tenant.LicenseGracePeriodStartedAt = null;
             tenant.LicenseGracePeriodUsedDays = 0;
             tenant.UpdatedAt = soldAtUtc;
 
-            _db.LicenseSales.Add(sale);
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
 
-            await LogLicenseSaleAuditAsync(sale, soldByUserId, ct).ConfigureAwait(false);
+            await _billingAudit.LogLicenseSoldAsync(sale, soldByUserId, ipAddress: null, cancellationToken: ct)
+                .ConfigureAwait(false);
+
+            _logger.LogInformation(
+                "License sale created: {InvoiceNumber} for tenant {TenantSlug}",
+                invoiceNumber,
+                tenant.Slug);
 
             sale.Tenant = tenant;
-            return MapResponse(sale);
+            return await MapToResponseAsync(sale, db, ct).ConfigureAwait(false);
         }
         catch
         {
@@ -187,71 +181,80 @@ public sealed class BillingService : IBillingService
         Guid saleId,
         CancellationToken ct = default)
     {
-        var sale = await LoadSaleAsync(saleId, ct).ConfigureAwait(false)
-            ?? throw new KeyNotFoundException("License sale not found.");
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
 
-        return MapResponse(sale);
+        var sale = await LicenseSalesScope(db)
+            .Include(l => l.Tenant)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Id == saleId, ct)
+            .ConfigureAwait(false)
+            ?? throw new KeyNotFoundException($"Sale {saleId} not found");
+
+        return await MapToResponseAsync(sale, db, ct).ConfigureAwait(false);
     }
 
     public async Task<LicenseSaleListResponse> ListLicenseSalesAsync(
         LicenseSaleListQuery query,
         CancellationToken ct = default)
     {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
 
-        IQueryable<LicenseSale> salesQuery = LicenseSalesScope()
-            .AsNoTracking()
-            .Include(s => s.Tenant);
+        var salesQuery = LicenseSalesScope(db)
+            .Include(l => l.Tenant)
+            .AsNoTracking();
 
-        if (Guid.TryParse(query.TenantId, out var tenantId))
-            salesQuery = salesQuery.Where(s => s.TenantId == tenantId);
+        if (query.TenantId.HasValue)
+            salesQuery = salesQuery.Where(l => l.TenantId == query.TenantId.Value);
 
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
             var status = query.Status.Trim();
-            if (!LicenseSaleStatuses.IsValid(status))
-                throw new ArgumentException("Invalid status filter.", nameof(query));
+            if (!string.Equals(status, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!LicenseSaleStatuses.IsValid(status))
+                    throw new ArgumentException("Invalid status filter.", nameof(query));
 
-            salesQuery = salesQuery.Where(s => s.Status == status);
+                salesQuery = salesQuery.Where(l => l.Status == status);
+            }
         }
 
         if (query.FromDate.HasValue)
-        {
-            var fromUtc = ToUtcInstant(query.FromDate.Value);
-            salesQuery = salesQuery.Where(s => s.SoldAtUtc >= fromUtc);
-        }
+            salesQuery = salesQuery.Where(l => l.SoldAtUtc >= ToUtcInstant(query.FromDate.Value));
 
         if (query.ToDate.HasValue)
-        {
-            var toUtc = ToUtcInstant(query.ToDate.Value);
-            salesQuery = salesQuery.Where(s => s.SoldAtUtc <= toUtc);
-        }
+            salesQuery = salesQuery.Where(l => l.SoldAtUtc <= ToUtcInstant(query.ToDate.Value));
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var term = query.Search.Trim();
-            salesQuery = salesQuery.Where(s =>
-                s.InvoiceNumber.Contains(term)
-                || s.LicenseKey.Contains(term)
-                || (s.Tenant != null && (s.Tenant.Name.Contains(term) || s.Tenant.Slug.Contains(term))));
+            var search = query.Search.Trim();
+            salesQuery = salesQuery.Where(l =>
+                l.InvoiceNumber.Contains(search)
+                || l.LicenseKey.Contains(search)
+                || (l.Tenant != null && (l.Tenant.Name.Contains(search) || l.Tenant.Slug.Contains(search))));
         }
 
         var totalCount = await salesQuery.CountAsync(ct).ConfigureAwait(false);
         var items = await salesQuery
-            .OrderByDescending(s => s.SoldAtUtc)
+            .OrderByDescending(l => l.SoldAtUtc)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+        var userNames = await LoadUserDisplayNamesAsync(db, items, ct).ConfigureAwait(false);
         var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
-        return new LicenseSaleListResponse(
-            Items: items.Select(MapResponse).ToList(),
-            TotalCount: totalCount,
-            Page: page,
-            PageSize: pageSize,
-            TotalPages: totalPages);
+
+        return new LicenseSaleListResponse
+        {
+            Items = items.Select(item => MapToResponse(item, userNames)).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = totalPages,
+        };
     }
 
     public async Task<LicenseSaleResponse> CancelLicenseSaleAsync(
@@ -264,33 +267,56 @@ public sealed class BillingService : IBillingService
             throw new ArgumentException("Cancellation reason is required.", nameof(request));
 
         EnsureActorUserId(cancelledByUserId);
-        await EnsureUserExistsAsync(cancelledByUserId, ct).ConfigureAwait(false);
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureUserExistsAsync(db, cancelledByUserId, ct).ConfigureAwait(false);
 
-        var sale = await LicenseSalesScope()
-            .Include(s => s.Tenant)
-            .FirstOrDefaultAsync(s => s.Id == saleId, ct)
-            .ConfigureAwait(false)
-            ?? throw new KeyNotFoundException("License sale not found.");
+        await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+        try
+        {
+            var sale = await LicenseSalesScope(db)
+                .Include(l => l.Tenant)
+                .FirstOrDefaultAsync(l => l.Id == saleId, ct)
+                .ConfigureAwait(false)
+                ?? throw new KeyNotFoundException($"Sale {saleId} not found");
 
-        if (sale.Status != LicenseSaleStatuses.Active)
-            throw new InvalidOperationException($"License sale is already {sale.Status}.");
+            if (sale.Status != LicenseSaleStatuses.Active)
+                throw new InvalidOperationException($"Sale is already {sale.Status}");
 
-        var now = DateTime.UtcNow;
-        sale.Status = LicenseSaleStatuses.Cancelled;
-        sale.CancelledAtUtc = now;
-        sale.CancelledByUserId = cancelledByUserId;
-        sale.CancellationReason = request.CancellationReason.Trim();
-        sale.UpdatedAt = now;
+            var now = DateTime.UtcNow;
+            var reason = request.CancellationReason.Trim();
+            sale.Status = LicenseSaleStatuses.Cancelled;
+            sale.CancelledAtUtc = now;
+            sale.CancelledByUserId = cancelledByUserId;
+            sale.CancellationReason = reason;
+            sale.UpdatedAt = now;
 
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
-        await _billingAudit.LogLicenseCancelledAsync(
-            sale,
-            cancelledByUserId,
-            sale.CancellationReason ?? request.CancellationReason.Trim(),
-            ipAddress: null,
-            cancellationToken: ct).ConfigureAwait(false);
-        _logger.LogInformation("License sale {SaleId} cancelled by {UserId}", saleId, cancelledByUserId);
-        return MapResponse(sale);
+            var tenant = sale.Tenant;
+            if (tenant.CurrentLicenseSaleId == sale.Id)
+            {
+                tenant.CurrentLicenseSaleId = null;
+                tenant.LicenseKey = null;
+                tenant.LicenseValidUntilUtc = null;
+                tenant.UpdatedAt = now;
+            }
+
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            await transaction.CommitAsync(ct).ConfigureAwait(false);
+
+            await _billingAudit.LogLicenseCancelledAsync(sale, cancelledByUserId, reason, ipAddress: null, cancellationToken: ct)
+                .ConfigureAwait(false);
+
+            _logger.LogInformation(
+                "License sale cancelled: {InvoiceNumber} for tenant {TenantSlug}",
+                sale.InvoiceNumber,
+                tenant.Slug);
+
+            return await MapToResponseAsync(sale, db, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct).ConfigureAwait(false);
+            throw;
+        }
     }
 
     public async Task<LicenseSaleStatsResponse> GetLicenseSaleStatsAsync(
@@ -298,35 +324,113 @@ public sealed class BillingService : IBillingService
         DateTime? toDate = null,
         CancellationToken ct = default)
     {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var now = DateTime.UtcNow;
         var expiringThreshold = now.AddDays(ExpiringSoonDays);
 
-        IQueryable<LicenseSale> query = LicenseSalesScope()
-            .AsNoTracking()
-            .Where(s => s.Status == LicenseSaleStatuses.Active);
-
+        var revenueQuery = LicenseSalesScope(db).AsNoTracking();
         if (fromDate.HasValue)
-            query = query.Where(s => s.SoldAtUtc >= ToUtcInstant(fromDate.Value));
-
+            revenueQuery = revenueQuery.Where(l => l.SoldAtUtc >= ToUtcInstant(fromDate.Value));
         if (toDate.HasValue)
-            query = query.Where(s => s.SoldAtUtc <= ToUtcInstant(toDate.Value));
+            revenueQuery = revenueQuery.Where(l => l.SoldAtUtc <= ToUtcInstant(toDate.Value));
 
-        var sales = await query.ToListAsync(ct).ConfigureAwait(false);
+        var activeRevenueQuery = revenueQuery.Where(l => l.Status == LicenseSaleStatuses.Active);
+        var totalRevenueNet = await activeRevenueQuery.SumAsync(l => l.PriceNet, ct).ConfigureAwait(false);
+        var totalRevenueGross = await activeRevenueQuery.SumAsync(l => l.PriceGross, ct).ConfigureAwait(false);
+        var totalVat = await activeRevenueQuery.SumAsync(l => l.VatAmount, ct).ConfigureAwait(false);
+        var totalSales = await activeRevenueQuery.CountAsync(ct).ConfigureAwait(false);
 
-        return new LicenseSaleStatsResponse(
-            TotalRevenueNet: sales.Sum(s => s.PriceNet),
-            TotalRevenueGross: sales.Sum(s => s.PriceGross),
-            TotalVat: sales.Sum(s => s.VatAmount),
-            TotalSales: sales.Count,
-            ActiveLicenses: sales.Count(s => s.ValidUntilUtc > now),
-            ExpiringSoonLicenses: sales.Count(s => s.ValidUntilUtc > now && s.ValidUntilUtc <= expiringThreshold));
+        var activeLicenses = await LicenseSalesScope(db)
+            .AsNoTracking()
+            .CountAsync(l => l.Status == LicenseSaleStatuses.Active && l.ValidUntilUtc > now, ct)
+            .ConfigureAwait(false);
+
+        var expiringSoon = await LicenseSalesScope(db)
+            .AsNoTracking()
+            .CountAsync(
+                l => l.Status == LicenseSaleStatuses.Active
+                     && l.ValidUntilUtc > now
+                     && l.ValidUntilUtc <= expiringThreshold,
+                ct)
+            .ConfigureAwait(false);
+
+        var expired = await LicenseSalesScope(db)
+            .AsNoTracking()
+            .CountAsync(l => l.Status == LicenseSaleStatuses.Active && l.ValidUntilUtc <= now, ct)
+            .ConfigureAwait(false);
+
+        var cancelledQuery = LicenseSalesScope(db).AsNoTracking()
+            .Where(l => l.Status == LicenseSaleStatuses.Cancelled || l.Status == LicenseSaleStatuses.Refunded);
+        if (fromDate.HasValue)
+            cancelledQuery = cancelledQuery.Where(l => l.SoldAtUtc >= ToUtcInstant(fromDate.Value));
+        if (toDate.HasValue)
+            cancelledQuery = cancelledQuery.Where(l => l.SoldAtUtc <= ToUtcInstant(toDate.Value));
+
+        var cancelled = await cancelledQuery.CountAsync(ct).ConfigureAwait(false);
+
+        var tenantsWithLicense = await db.Tenants
+            .AsNoTracking()
+            .CountAsync(t => t.CurrentLicenseSaleId != null, ct)
+            .ConfigureAwait(false);
+
+        return new LicenseSaleStatsResponse
+        {
+            TotalRevenueNet = totalRevenueNet,
+            TotalRevenueGross = totalRevenueGross,
+            TotalVat = totalVat,
+            TotalSales = totalSales,
+            ActiveLicenses = activeLicenses,
+            ExpiringSoonLicenses = expiringSoon,
+            ExpiredLicenses = expired,
+            CancelledSales = cancelled,
+            AveragePriceNet = totalSales > 0
+                ? Math.Round(totalRevenueNet / totalSales, 2, MidpointRounding.AwayFromZero)
+                : 0m,
+            TotalTenantsWithLicense = tenantsWithLicense,
+        };
+    }
+
+    public async Task<LicenseSaleResponse?> GetSaleByLicenseKeyAsync(
+        string licenseKey,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(licenseKey))
+            return null;
+
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        var sale = await LicenseSalesScope(db)
+            .Include(l => l.Tenant)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.LicenseKey == licenseKey.Trim(), ct)
+            .ConfigureAwait(false);
+
+        return sale == null ? null : await MapToResponseAsync(sale, db, ct).ConfigureAwait(false);
+    }
+
+    public async Task<bool> IsLicenseKeyValidAsync(
+        string licenseKey,
+        CancellationToken ct = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await IsLicenseKeyAvailableAsync(db, licenseKey, ct).ConfigureAwait(false);
+    }
+
+    public async Task<string> GetNextInvoiceNumberAsync(
+        DateTime date,
+        CancellationToken ct = default)
+    {
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await AllocateInvoiceNumberAsync(db, date, ct).ConfigureAwait(false);
     }
 
     public async Task<byte[]> GenerateInvoicePdfAsync(
         Guid saleId,
         CancellationToken ct = default)
     {
-        var sale = await LicenseSalesScope()
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        var sale = await LicenseSalesScope(db)
             .Include(s => s.Tenant)
             .FirstOrDefaultAsync(s => s.Id == saleId, ct)
             .ConfigureAwait(false)
@@ -335,7 +439,7 @@ public sealed class BillingService : IBillingService
         var tenant = sale.Tenant
             ?? throw new InvalidOperationException("License sale tenant not found.");
 
-        var billingProfile = await LoadTenantBillingProfileAsync(tenant, ct).ConfigureAwait(false);
+        var billingProfile = await LoadTenantBillingProfileAsync(db, tenant, ct).ConfigureAwait(false);
         var logoBytes = InvoicePdfGenerator.TryLoadLogoBytes(_sellerProfile.LogoUrl, _environment.ContentRootPath);
         var pdf = _invoicePdfGenerator.Generate(new LicenseSaleInvoiceDocument(
             Sale: sale,
@@ -355,28 +459,152 @@ public sealed class BillingService : IBillingService
         {
             sale.InvoicePdfPath = relativePath.Replace('\\', '/');
             sale.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
 
         return pdf;
     }
 
-    public async Task<bool> CanExtendLicenseAsync(
+    #region Private Methods
+
+    private static IQueryable<LicenseSale> LicenseSalesScope(AppDbContext db) =>
+        db.LicenseSales.IgnoreQueryFilters();
+
+    private static (DateTime ValidFrom, DateTime ValidUntil) GetValidityPeriod(
+        Tenant tenant,
+        string plan,
+        DateTime? customValidUntil)
+    {
+        if (!LicenseSalePlans.IsValid(plan))
+            throw new ArgumentException("Invalid license plan.", nameof(plan));
+
+        var normalizedPlan = plan.Trim();
+        var now = DateTime.UtcNow;
+        var validFrom = tenant.LicenseValidUntilUtc.HasValue && tenant.LicenseValidUntilUtc.Value > now
+            ? DateTime.SpecifyKind(tenant.LicenseValidUntilUtc.Value, DateTimeKind.Utc)
+            : now;
+
+        if (normalizedPlan == LicenseSalePlans.Custom)
+        {
+            if (!customValidUntil.HasValue)
+                throw new ArgumentException("CustomValidUntilUtc is required for custom license plans.");
+
+            var validUntil = DateTime.SpecifyKind(customValidUntil.Value, DateTimeKind.Utc);
+            if (validUntil <= validFrom)
+                throw new ArgumentException("CustomValidUntilUtc must be after the license start date.");
+
+            return (validFrom, validUntil);
+        }
+
+        var planDef = Plans.FirstOrDefault(p => p.Plan == normalizedPlan)
+            ?? throw new ArgumentException("Invalid license plan.", nameof(plan));
+
+        return (validFrom, validFrom.AddDays(planDef.DurationDays));
+    }
+
+    private static int ResolveDurationDays(string plan, DateTime validFrom, DateTime validUntil)
+    {
+        var normalizedPlan = plan.Trim();
+        if (normalizedPlan == LicenseSalePlans.Custom)
+            return Math.Max(1, (int)Math.Round((validUntil - validFrom).TotalDays));
+
+        var planDef = Plans.FirstOrDefault(p => p.Plan == normalizedPlan);
+        return planDef?.DurationDays
+            ?? Math.Max(1, (int)Math.Round((validUntil - validFrom).TotalDays));
+    }
+
+    private static string GetDurationDisplay(int days, string plan)
+    {
+        var normalizedPlan = plan.Trim();
+        if (normalizedPlan == LicenseSalePlans.Custom)
+            return $"{days} Tage (benutzerdefiniert)";
+
+        var planDef = Plans.FirstOrDefault(p => p.Plan == normalizedPlan);
+        if (planDef != null && planDef.DurationDays > 0)
+            return planDef.DisplayName;
+
+        return $"{days} Tage";
+    }
+
+    private static (decimal VatAmount, decimal PriceGross) CalculateAmounts(decimal priceNet, decimal vatRate)
+    {
+        var vatAmount = Math.Round(priceNet * vatRate / 100m, 2, MidpointRounding.AwayFromZero);
+        return (vatAmount, priceNet + vatAmount);
+    }
+
+    private static void ValidatePricing(decimal priceNet, decimal vatRate)
+    {
+        if (priceNet <= 0)
+            throw new ArgumentException("PriceNet must be greater than zero.", nameof(priceNet));
+
+        if (vatRate < 0)
+            throw new ArgumentException("VatRate cannot be negative.", nameof(vatRate));
+    }
+
+    private async Task<string> AllocateInvoiceNumberAsync(
+        AppDbContext db,
+        DateTime date,
+        CancellationToken ct)
+    {
+        var utc = ToUtcInstant(date);
+        var year = utc.Year;
+        var month = utc.Month;
+
+        await using var transaction = await db.Database.BeginTransactionAsync(
+            System.Data.IsolationLevel.Serializable,
+            ct).ConfigureAwait(false);
+        try
+        {
+            var sequence = await db.InvoiceSequences
+                .FirstOrDefaultAsync(s => s.Year == year && s.Month == month, ct)
+                .ConfigureAwait(false);
+
+            if (sequence == null)
+            {
+                sequence = new InvoiceSequence
+                {
+                    Id = Guid.NewGuid(),
+                    Year = year,
+                    Month = month,
+                    LastSequence = 0,
+                    UpdatedAt = DateTime.UtcNow,
+                };
+                db.InvoiceSequences.Add(sequence);
+            }
+
+            sequence.LastSequence++;
+            sequence.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            await transaction.CommitAsync(ct).ConfigureAwait(false);
+
+            return FormattableString.Invariant($"RE{year:D4}{month:D2}{sequence.LastSequence}");
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct).ConfigureAwait(false);
+            throw;
+        }
+    }
+
+    private async Task<bool> IsLicenseKeyAvailableAsync(
+        AppDbContext db,
         string licenseKey,
-        CancellationToken ct = default)
+        CancellationToken ct)
     {
         if (!_licenseKeyGenerator.ValidateLicenseKeyFormat(licenseKey))
             return false;
 
         var key = licenseKey.Trim();
-        var hasActiveSale = await LicenseSalesScope().AsNoTracking()
+        var hasActiveSale = await LicenseSalesScope(db)
+            .AsNoTracking()
             .AnyAsync(s => s.LicenseKey == key && s.Status == LicenseSaleStatuses.Active, ct)
             .ConfigureAwait(false);
         if (hasActiveSale)
             return false;
 
         var now = DateTime.UtcNow;
-        var assignedElsewhere = await _db.Tenants.AsNoTracking()
+        var assignedElsewhere = await db.Tenants
+            .AsNoTracking()
             .AnyAsync(
                 t => t.LicenseKey == key
                      && t.Status != TenantStatuses.Deleted
@@ -387,28 +615,12 @@ public sealed class BillingService : IBillingService
         return !assignedElsewhere;
     }
 
-    private async Task<Tenant?> LoadTenantAsync(Guid tenantId, CancellationToken ct)
-    {
-        return await _db.Tenants.AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == tenantId, ct)
-            .ConfigureAwait(false);
-    }
-
-    private async Task<LicenseSale?> LoadSaleAsync(Guid saleId, CancellationToken ct) =>
-        await LicenseSalesScope()
-            .Include(s => s.Tenant)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == saleId, ct)
-            .ConfigureAwait(false);
-
-    /// <summary>Super Admin billing crosses tenants; bypass tenant query filter.</summary>
-    private IQueryable<LicenseSale> LicenseSalesScope() => _db.LicenseSales.IgnoreQueryFilters();
-
     private async Task<(string Address, string VatId, string Email)> LoadTenantBillingProfileAsync(
+        AppDbContext db,
         Tenant tenant,
         CancellationToken ct)
     {
-        var companySettings = await _db.CompanySettings
+        var companySettings = await db.CompanySettings
             .IgnoreQueryFilters()
             .AsNoTracking()
             .FirstOrDefaultAsync(c => c.TenantId == tenant.Id, ct)
@@ -420,103 +632,94 @@ public sealed class BillingService : IBillingService
             Email: tenant.Email ?? companySettings?.CompanyEmail ?? string.Empty);
     }
 
-    private static PreparedLicenseSale PrepareSaleComputation(
-        Tenant tenant,
-        string licensePlan,
-        DateTime? customValidUntilUtc,
-        decimal priceNet,
-        decimal vatRate)
+    private async Task<LicenseSaleResponse> MapToResponseAsync(
+        LicenseSale sale,
+        AppDbContext db,
+        CancellationToken ct)
     {
-        if (!LicenseSalePlans.IsValid(licensePlan))
-            throw new ArgumentException("Invalid license plan.", nameof(licensePlan));
+        var userNames = await LoadUserDisplayNamesAsync(db, [sale], ct).ConfigureAwait(false);
+        return MapToResponse(sale, userNames);
+    }
 
-        if (priceNet <= 0)
-            throw new ArgumentException("PriceNet must be greater than zero.", nameof(priceNet));
-
-        if (vatRate < 0)
-            throw new ArgumentException("VatRate cannot be negative.", nameof(vatRate));
-
-        var plan = licensePlan.Trim();
-        var now = DateTime.UtcNow;
-        var validFromUtc = tenant.LicenseValidUntilUtc.HasValue && tenant.LicenseValidUntilUtc.Value > now
-            ? DateTime.SpecifyKind(tenant.LicenseValidUntilUtc.Value, DateTimeKind.Utc)
-            : now;
-
-        DateTime validUntilUtc = plan switch
+    private static LicenseSaleResponse MapToResponse(
+        LicenseSale sale,
+        IReadOnlyDictionary<Guid, string> userNames)
+    {
+        return new LicenseSaleResponse
         {
-            LicenseSalePlans.SixMonths => validFromUtc.AddMonths(6),
-            LicenseSalePlans.TwelveMonths => validFromUtc.AddMonths(12),
-            LicenseSalePlans.Custom => ResolveCustomValidUntil(customValidUntilUtc, validFromUtc),
-            _ => throw new ArgumentException("Invalid license plan.", nameof(licensePlan)),
+            Id = sale.Id,
+            TenantId = sale.TenantId,
+            TenantName = sale.Tenant?.Name ?? "Unknown",
+            TenantSlug = sale.Tenant?.Slug ?? "Unknown",
+            LicenseKey = sale.LicenseKey,
+            LicensePlan = sale.LicensePlan,
+            ValidFromUtc = sale.ValidFromUtc,
+            ValidUntilUtc = sale.ValidUntilUtc,
+            PriceNet = sale.PriceNet,
+            VatRate = sale.VatRate,
+            VatAmount = sale.VatAmount,
+            PriceGross = sale.PriceGross,
+            Currency = sale.Currency,
+            InvoiceNumber = sale.InvoiceNumber,
+            InvoicePdfPath = sale.InvoicePdfPath,
+            Status = sale.Status,
+            SoldAtUtc = sale.SoldAtUtc,
+            SoldBy = ResolveUserDisplayName(sale.SoldByUserId, userNames),
+            Notes = sale.Notes,
+            CancelledAtUtc = sale.CancelledAtUtc,
+            CancellationReason = sale.CancellationReason,
+            ActivationDateUtc = sale.ActivationDateUtc,
+            LastExtendedAtUtc = sale.LastExtendedAtUtc,
+            ExtendedBy = sale.ExtendedByUserId.HasValue
+                ? ResolveUserDisplayName(sale.ExtendedByUserId.Value, userNames)
+                : null,
         };
-
-        var vatAmount = Math.Round(priceNet * vatRate / 100m, 2, MidpointRounding.AwayFromZero);
-        var priceGross = priceNet + vatAmount;
-
-        return new PreparedLicenseSale(
-            Plan: plan,
-            ValidFromUtc: validFromUtc,
-            ValidUntilUtc: validUntilUtc,
-            PriceNet: priceNet,
-            VatRate: vatRate,
-            VatAmount: vatAmount,
-            PriceGross: priceGross);
     }
 
-    private static DateTime ResolveCustomValidUntil(DateTime? customValidUntilUtc, DateTime validFromUtc)
+    private static async Task<IReadOnlyDictionary<Guid, string>> LoadUserDisplayNamesAsync(
+        AppDbContext db,
+        IReadOnlyList<LicenseSale> sales,
+        CancellationToken ct)
     {
-        if (!customValidUntilUtc.HasValue)
-            throw new ArgumentException("CustomValidUntilUtc is required for custom license plans.");
+        var userIds = sales
+            .Select(s => s.SoldByUserId)
+            .Concat(sales.Where(s => s.ExtendedByUserId.HasValue).Select(s => s.ExtendedByUserId!.Value))
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
 
-        var validUntilUtc = DateTime.SpecifyKind(customValidUntilUtc.Value, DateTimeKind.Utc);
-        if (validUntilUtc <= validFromUtc)
-            throw new ArgumentException("CustomValidUntilUtc must be after the license start date.");
+        if (userIds.Count == 0)
+            return new Dictionary<Guid, string>();
 
-        return validUntilUtc;
+        var idStrings = userIds.Select(id => id.ToString("D")).ToList();
+        var users = await db.Users
+            .AsNoTracking()
+            .Where(u => idStrings.Contains(u.Id))
+            .Select(u => new { u.Id, u.FirstName, u.LastName, u.UserName })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return users.ToDictionary(
+            u => Guid.Parse(u.Id),
+            u =>
+            {
+                var name = $"{u.FirstName} {u.LastName}".Trim();
+                return string.IsNullOrWhiteSpace(name) ? u.UserName ?? u.Id : name;
+            });
     }
 
-    private static LicenseSaleResponse MapResponse(LicenseSale sale)
-    {
-        var tenant = sale.Tenant
-            ?? throw new InvalidOperationException("License sale tenant is not loaded.");
+    private static string ResolveUserDisplayName(Guid userId, IReadOnlyDictionary<Guid, string> userNames) =>
+        userNames.TryGetValue(userId, out var name) ? name : userId.ToString("D");
 
-        return new LicenseSaleResponse(
-            Id: sale.Id,
-            TenantId: sale.TenantId,
-            TenantName: tenant.Name,
-            TenantSlug: tenant.Slug,
-            LicenseKey: sale.LicenseKey,
-            LicensePlan: sale.LicensePlan,
-            ValidFromUtc: sale.ValidFromUtc,
-            ValidUntilUtc: sale.ValidUntilUtc,
-            PriceNet: sale.PriceNet,
-            VatRate: sale.VatRate,
-            VatAmount: sale.VatAmount,
-            PriceGross: sale.PriceGross,
-            Currency: sale.Currency,
-            InvoiceNumber: sale.InvoiceNumber,
-            InvoicePdfPath: sale.InvoicePdfPath,
-            Status: sale.Status,
-            SoldAtUtc: sale.SoldAtUtc,
-            SoldByUserId: sale.SoldByUserId.ToString("D"),
-            Notes: sale.Notes);
-    }
-
-    private async Task EnsureUserExistsAsync(Guid actorUserId, CancellationToken ct)
+    private static async Task EnsureUserExistsAsync(AppDbContext db, Guid actorUserId, CancellationToken ct)
     {
         var actorUserIdText = actorUserId.ToString("D");
-        var exists = await _db.Users.AsNoTracking()
+        var exists = await db.Users.AsNoTracking()
             .AnyAsync(u => u.Id == actorUserIdText, ct)
             .ConfigureAwait(false);
         if (!exists)
             throw new ArgumentException("User not found.");
     }
-
-    private Task LogLicenseSaleAuditAsync(
-        LicenseSale sale,
-        Guid actorUserId,
-        CancellationToken ct) =>
-        _billingAudit.LogLicenseSoldAsync(sale, actorUserId, ipAddress: null, cancellationToken: ct);
 
     private static void EnsureActorUserId(Guid userId)
     {
@@ -532,12 +735,8 @@ public sealed class BillingService : IBillingService
             _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
         };
 
-    private sealed record PreparedLicenseSale(
-        string Plan,
-        DateTime ValidFromUtc,
-        DateTime ValidUntilUtc,
-        decimal PriceNet,
-        decimal VatRate,
-        decimal VatAmount,
-        decimal PriceGross);
+    private static string? NullIfEmpty(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    #endregion
 }

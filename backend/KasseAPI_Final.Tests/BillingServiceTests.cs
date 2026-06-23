@@ -14,21 +14,128 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class BillingServiceTests
 {
-    // --- Preview license sale ---
+    // --- Prompt 5: core scenario tests ---
+
+    [Fact]
+    public async Task PreviewLicenseSale_ValidRequest_ReturnsPreview()
+    {
+        var harness = await BillingServiceTestHarness.CreateAsync();
+        await using var _ = harness;
+
+        var tenant = await harness.CreateTestTenantAsync();
+        var request = new LicenseSalePreviewRequest
+        {
+            TenantId = tenant.Id,
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            PriceNet = 299.00m,
+        };
+
+        var result = await harness.CreateBillingService().PreviewLicenseSaleAsync(request);
+
+        Assert.NotNull(result);
+        Assert.Equal(tenant.Name, result.TenantName);
+        Assert.Equal(365, result.DurationDays);
+        Assert.Equal(299.00m, result.PriceNet);
+        Assert.Equal(59.80m, result.VatAmount);
+        Assert.Equal(358.80m, result.PriceGross);
+        Assert.StartsWith("REGK-", result.LicenseKey, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CreateLicenseSale_ValidRequest_CreatesSale()
+    {
+        var harness = await BillingServiceTestHarness.CreateAsync();
+        await using var _ = harness;
+
+        var tenant = await harness.CreateTestTenantAsync();
+        var actorUserId = await harness.CreateTestUserAsync();
+        var request = new CreateLicenseSaleRequest
+        {
+            TenantId = tenant.Id,
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            PriceNet = 299.00m,
+        };
+
+        var result = await harness.CreateBillingService().CreateLicenseSaleAsync(request, actorUserId);
+
+        Assert.NotNull(result);
+        Assert.Equal(299.00m, result.PriceNet);
+        Assert.Equal(LicenseSaleStatuses.Active, result.Status);
+        Assert.StartsWith("RE", result.InvoiceNumber, StringComparison.Ordinal);
+
+        var updatedTenant = await harness.GetTenantAsync(tenant.Id);
+        Assert.Equal(result.LicenseKey, updatedTenant.LicenseKey);
+        Assert.Equal(result.ValidUntilUtc, updatedTenant.LicenseValidUntilUtc);
+        Assert.Equal(result.Id, updatedTenant.CurrentLicenseSaleId);
+    }
+
+    [Fact]
+    public async Task CancelLicenseSale_ValidRequest_CancelsSale()
+    {
+        var harness = await BillingServiceTestHarness.CreateAsync();
+        await using var _ = harness;
+
+        var sale = await harness.CreateTestSaleAsync();
+        var actorUserId = await harness.CreateTestUserAsync();
+        var request = new CancelLicenseSaleRequest
+        {
+            CancellationReason = "Customer requested cancellation",
+        };
+
+        var result = await harness.CreateBillingService()
+            .CancelLicenseSaleAsync(sale.Id, request, actorUserId);
+
+        Assert.Equal(LicenseSaleStatuses.Cancelled, result.Status);
+        Assert.NotNull(result.CancelledAtUtc);
+        Assert.Equal("Customer requested cancellation", result.CancellationReason);
+    }
+
+    [Fact]
+    public async Task ListLicenseSales_WithFilters_ReturnsFilteredList()
+    {
+        var harness = await BillingServiceTestHarness.CreateAsync();
+        await using var _ = harness;
+
+        var tenant1 = await harness.CreateTestTenantAsync("tenant-one");
+        var tenant2 = await harness.CreateTestTenantAsync("tenant-two");
+        await harness.CreateTestSaleAsync(tenant1.Id);
+        await harness.CreateTestSaleAsync(tenant2.Id);
+
+        var query = new LicenseSaleListQuery
+        {
+            TenantId = tenant1.Id,
+            PageSize = 10,
+        };
+
+        var result = await harness.CreateBillingService().ListLicenseSalesAsync(query);
+
+        Assert.Single(result.Items);
+        Assert.Equal(tenant1.Id, result.Items[0].TenantId);
+    }
+
+    // --- Extended coverage ---
 
     [Fact]
     public async Task PreviewLicenseSaleAsync_ComputesTwelveMonthPricing()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
-        var preview = await service.PreviewLicenseSaleAsync(
-            new LicenseSalePreviewRequest(tenant.Id, LicenseSalePlans.TwelveMonths, null, 100m, 20m));
+        var preview = await service.PreviewLicenseSaleAsync(new LicenseSalePreviewRequest
+        {
+            TenantId = tenant.Id,
+            LicensePlan = LicenseSalePlans.TwelveMonths,
+            PriceNet = 100m,
+            VatRate = 20m,
+        });
 
         Assert.Equal("cafe", preview.TenantSlug);
         Assert.Equal(20m, preview.VatAmount);
         Assert.Equal(120m, preview.PriceGross);
+        Assert.Equal("1 Jahr", preview.DurationDisplay);
+        Assert.Equal("EUR", preview.Currency);
         Assert.StartsWith("REGK-", preview.LicenseKey, StringComparison.Ordinal);
         Assert.StartsWith("RE", preview.InvoiceNumber, StringComparison.Ordinal);
         Assert.True(new LicenseKeyGenerator().ValidateLicenseKeyFormat(preview.LicenseKey));
@@ -37,28 +144,40 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task PreviewLicenseSaleAsync_CustomPlan_UsesProvidedValidUntil()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
         var customUntil = DateTime.UtcNow.AddDays(45);
 
-        var preview = await service.PreviewLicenseSaleAsync(
-            new LicenseSalePreviewRequest(tenant.Id, LicenseSalePlans.Custom, customUntil, 75m));
+        var preview = await service.PreviewLicenseSaleAsync(new LicenseSalePreviewRequest
+        {
+            TenantId = tenant.Id,
+            LicensePlan = LicenseSalePlans.Custom,
+            CustomValidUntilUtc = customUntil,
+            PriceNet = 75m,
+        });
 
         Assert.Equal(customUntil.ToUniversalTime().Date, preview.ValidUntilUtc.ToUniversalTime().Date);
         Assert.Equal(15m, preview.VatAmount);
         Assert.Equal(90m, preview.PriceGross);
+        Assert.Equal(45, preview.DurationDays);
     }
 
     [Fact]
     public async Task PreviewLicenseSaleAsync_TenantNotFound_Throws()
     {
-        await using var db = CreateDb();
-        var service = CreateService(db);
+        var (db, factory) = CreateDb();
+        await using var _db = db;
+        var service = CreateService(factory, db);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            service.PreviewLicenseSaleAsync(
-                new LicenseSalePreviewRequest(Guid.NewGuid(), LicenseSalePlans.SixMonths, null, 50m)));
+            service.PreviewLicenseSaleAsync(new LicenseSalePreviewRequest
+            {
+                TenantId = Guid.NewGuid(),
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+            }));
     }
 
     [Theory]
@@ -66,13 +185,18 @@ public sealed class BillingServiceTests
     [InlineData("")]
     public async Task PreviewLicenseSaleAsync_InvalidPlan_Throws(string plan)
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.PreviewLicenseSaleAsync(
-                new LicenseSalePreviewRequest(tenant.Id, plan, null, 50m)));
+            service.PreviewLicenseSaleAsync(new LicenseSalePreviewRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = plan,
+                PriceNet = 50m,
+            }));
 
         Assert.Contains("license plan", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -80,13 +204,18 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task PreviewLicenseSaleAsync_CustomPlanWithoutDate_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.PreviewLicenseSaleAsync(
-                new LicenseSalePreviewRequest(tenant.Id, LicenseSalePlans.Custom, null, 50m)));
+            service.PreviewLicenseSaleAsync(new LicenseSalePreviewRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.Custom,
+                PriceNet = 50m,
+            }));
 
         Assert.Contains("CustomValidUntilUtc", ex.Message, StringComparison.Ordinal);
     }
@@ -94,13 +223,18 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task PreviewLicenseSaleAsync_NonPositivePrice_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.PreviewLicenseSaleAsync(
-                new LicenseSalePreviewRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 0m)));
+            service.PreviewLicenseSaleAsync(new LicenseSalePreviewRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 0m,
+            }));
 
         Assert.Contains("PriceNet", ex.Message, StringComparison.Ordinal);
     }
@@ -110,21 +244,31 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task CreateLicenseSaleAsync_UpdatesTenantLicenseAndPersistsSale()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var response = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m, 20m, "Initial sale"),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+                VatRate = 20m,
+                Notes = "Initial sale",
+            },
             Guid.Parse(userId));
 
         Assert.Equal(LicenseSaleStatuses.Active, response.Status);
         Assert.Equal("Initial sale", response.Notes);
+        Assert.Equal("Super Admin", response.SoldBy);
         Assert.Equal(10m, response.VatAmount);
         Assert.Equal(60m, response.PriceGross);
         Assert.True(new LicenseKeyGenerator().ValidateLicenseKeyFormat(response.LicenseKey));
 
+        db.ChangeTracker.Clear();
         var updatedTenant = await db.Tenants.SingleAsync(t => t.Id == tenant.Id);
         Assert.Equal(response.LicenseKey, updatedTenant.LicenseKey);
         Assert.NotNull(updatedTenant.LicenseValidUntilUtc);
@@ -138,27 +282,39 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task CreateLicenseSaleAsync_DeletedTenant_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe", TenantStatuses.Deleted);
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CreateLicenseSaleAsync(
-                new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m),
+                new CreateLicenseSaleRequest
+                {
+                    TenantId = tenant.Id,
+                    LicensePlan = LicenseSalePlans.SixMonths,
+                    PriceNet = 50m,
+                },
                 Guid.Parse(userId)));
     }
 
     [Fact]
     public async Task CreateLicenseSaleAsync_UnknownUser_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
             service.CreateLicenseSaleAsync(
-                new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m),
+                new CreateLicenseSaleRequest
+                {
+                    TenantId = tenant.Id,
+                    LicensePlan = LicenseSalePlans.SixMonths,
+                    PriceNet = 50m,
+                },
                 Guid.NewGuid()));
 
         Assert.Contains("User not found", ex.Message, StringComparison.Ordinal);
@@ -167,18 +323,21 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task CreateLicenseSaleAsync_CustomPlanBeforeStart_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
             service.CreateLicenseSaleAsync(
-                new CreateLicenseSaleRequest(
-                    tenant.Id,
-                    LicenseSalePlans.Custom,
-                    DateTime.UtcNow.AddDays(-1),
-                    50m),
+                new CreateLicenseSaleRequest
+                {
+                    TenantId = tenant.Id,
+                    LicensePlan = LicenseSalePlans.Custom,
+                    CustomValidUntilUtc = DateTime.UtcNow.AddDays(-1),
+                    PriceNet = 50m,
+                },
                 Guid.Parse(userId)));
 
         Assert.Contains("CustomValidUntilUtc", ex.Message, StringComparison.Ordinal);
@@ -187,14 +346,21 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task CreateLicenseSaleAsync_NegativeVatRate_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
             service.CreateLicenseSaleAsync(
-                new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m, -1m),
+                new CreateLicenseSaleRequest
+                {
+                    TenantId = tenant.Id,
+                    LicensePlan = LicenseSalePlans.SixMonths,
+                    PriceNet = 50m,
+                    VatRate = -1m,
+                },
                 Guid.Parse(userId)));
 
         Assert.Contains("VatRate", ex.Message, StringComparison.Ordinal);
@@ -205,102 +371,132 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task ListLicenseSalesAsync_FiltersByTenantStatusAndSearch()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var cafe = SeedTenant(db, "cafe");
         var bar = SeedTenant(db, "bar");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var cafeSale = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(cafe.Id, LicenseSalePlans.SixMonths, null, 50m, 20m, "Cafe note"),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = cafe.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+                VatRate = 20m,
+                Notes = "Cafe note",
+            },
             Guid.Parse(userId));
         var barSale = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(bar.Id, LicenseSalePlans.TwelveMonths, null, 100m),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = bar.Id,
+                LicensePlan = LicenseSalePlans.TwelveMonths,
+                PriceNet = 100m,
+            },
             Guid.Parse(userId));
 
         await service.CancelLicenseSaleAsync(
             barSale.Id,
-            new CancelLicenseSaleRequest("Test cancel"),
+            new CancelLicenseSaleRequest { CancellationReason = "Test cancel reason" },
             Guid.Parse(userId));
 
         var tenantFilter = await service.ListLicenseSalesAsync(
-            new LicenseSaleListQuery(TenantId: cafe.Id.ToString()));
+            new LicenseSaleListQuery { TenantId = cafe.Id });
         Assert.Single(tenantFilter.Items);
         Assert.Equal(cafeSale.Id, tenantFilter.Items[0].Id);
 
         var activeOnly = await service.ListLicenseSalesAsync(
-            new LicenseSaleListQuery(Status: LicenseSaleStatuses.Active));
+            new LicenseSaleListQuery { Status = LicenseSaleStatuses.Active });
         Assert.Single(activeOnly.Items);
         Assert.Equal(cafeSale.Id, activeOnly.Items[0].Id);
 
         var searchBySlug = await service.ListLicenseSalesAsync(
-            new LicenseSaleListQuery(Search: "cafe"));
+            new LicenseSaleListQuery { Search = "cafe" });
         Assert.Single(searchBySlug.Items);
         Assert.Equal(cafeSale.LicenseKey, searchBySlug.Items[0].LicenseKey);
 
         var searchByInvoice = await service.ListLicenseSalesAsync(
-            new LicenseSaleListQuery(Search: cafeSale.InvoiceNumber));
+            new LicenseSaleListQuery { Search = cafeSale.InvoiceNumber });
         Assert.Single(searchByInvoice.Items);
     }
 
     [Fact]
     public async Task ListLicenseSalesAsync_FiltersBySoldDateRange()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var sale = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+            },
             Guid.Parse(userId));
 
         var row = await db.LicenseSales.IgnoreQueryFilters().SingleAsync(s => s.Id == sale.Id);
         row.SoldAtUtc = new DateTime(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc);
         await db.SaveChangesAsync();
 
-        var inside = await service.ListLicenseSalesAsync(new LicenseSaleListQuery(
-            FromDate: new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
-            ToDate: new DateTime(2026, 3, 31, 23, 59, 59, DateTimeKind.Utc)));
+        var inside = await service.ListLicenseSalesAsync(new LicenseSaleListQuery
+        {
+            FromDate = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+            ToDate = new DateTime(2026, 3, 31, 23, 59, 59, DateTimeKind.Utc),
+        });
         Assert.Single(inside.Items);
 
-        var outside = await service.ListLicenseSalesAsync(new LicenseSaleListQuery(
-            FromDate: new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc)));
+        var outside = await service.ListLicenseSalesAsync(new LicenseSaleListQuery
+        {
+            FromDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
         Assert.Empty(outside.Items);
     }
 
     [Fact]
     public async Task ListLicenseSalesAsync_PaginatesResults()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         for (var i = 0; i < 3; i++)
         {
             await service.CreateLicenseSaleAsync(
-                new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 10m + i),
+                new CreateLicenseSaleRequest
+                {
+                    TenantId = tenant.Id,
+                    LicensePlan = LicenseSalePlans.SixMonths,
+                    PriceNet = 10m + i,
+                },
                 Guid.Parse(userId));
         }
 
-        var page1 = await service.ListLicenseSalesAsync(new LicenseSaleListQuery(Page: 1, PageSize: 2));
+        var page1 = await service.ListLicenseSalesAsync(new LicenseSaleListQuery { Page = 1, PageSize = 2 });
         Assert.Equal(2, page1.Items.Count);
         Assert.Equal(3, page1.TotalCount);
         Assert.Equal(2, page1.TotalPages);
 
-        var page2 = await service.ListLicenseSalesAsync(new LicenseSaleListQuery(Page: 2, PageSize: 2));
+        var page2 = await service.ListLicenseSalesAsync(new LicenseSaleListQuery { Page = 2, PageSize = 2 });
         Assert.Single(page2.Items);
     }
 
     [Fact]
     public async Task ListLicenseSalesAsync_InvalidStatusFilter_Throws()
     {
-        await using var db = CreateDb();
-        var service = CreateService(db);
+        var (db, factory) = CreateDb();
+        await using var _db = db;
+        var service = CreateService(factory, db);
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.ListLicenseSalesAsync(new LicenseSaleListQuery(Status: "bogus")));
+            service.ListLicenseSalesAsync(new LicenseSaleListQuery { Status = "bogus" }));
 
         Assert.Contains("status", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -310,21 +506,29 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task CancelLicenseSaleAsync_SetsCancelledStatus()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var created = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.TwelveMonths, null, 100m),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.TwelveMonths,
+                PriceNet = 100m,
+            },
             Guid.Parse(userId));
 
         var cancelled = await service.CancelLicenseSaleAsync(
             created.Id,
-            new CancelLicenseSaleRequest("Customer refund"),
+            new CancelLicenseSaleRequest { CancellationReason = "Customer refund request" },
             Guid.Parse(userId));
 
         Assert.Equal(LicenseSaleStatuses.Cancelled, cancelled.Status);
+        Assert.NotNull(cancelled.CancelledAtUtc);
+        Assert.Equal("Customer refund request", cancelled.CancellationReason);
         var auditRow = await db.BillingAuditLogs
             .OrderByDescending(x => x.TimestampUtc)
             .FirstAsync();
@@ -335,19 +539,25 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task CancelLicenseSaleAsync_MissingReason_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var created = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+            },
             Guid.Parse(userId));
 
         var ex = await Assert.ThrowsAsync<ArgumentException>(() =>
             service.CancelLicenseSaleAsync(
                 created.Id,
-                new CancelLicenseSaleRequest("  "),
+                new CancelLicenseSaleRequest { CancellationReason = "  " },
                 Guid.Parse(userId)));
 
         Assert.Contains("Cancellation reason", ex.Message, StringComparison.Ordinal);
@@ -356,38 +566,45 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task CancelLicenseSaleAsync_AlreadyCancelled_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var created = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+            },
             Guid.Parse(userId));
 
         await service.CancelLicenseSaleAsync(
             created.Id,
-            new CancelLicenseSaleRequest("First cancel"),
+            new CancelLicenseSaleRequest { CancellationReason = "First cancel reason" },
             Guid.Parse(userId));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
             service.CancelLicenseSaleAsync(
                 created.Id,
-                new CancelLicenseSaleRequest("Second cancel"),
+                new CancelLicenseSaleRequest { CancellationReason = "Second cancel reason" },
                 Guid.Parse(userId)));
     }
 
     [Fact]
     public async Task CancelLicenseSaleAsync_NotFound_Throws()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             service.CancelLicenseSaleAsync(
                 Guid.NewGuid(),
-                new CancelLicenseSaleRequest("Missing sale"),
+                new CancelLicenseSaleRequest { CancellationReason = "Missing sale reason" },
                 Guid.Parse(userId)));
     }
 
@@ -401,13 +618,19 @@ public sealed class BillingServiceTests
 
         try
         {
-            await using var db = CreateDb();
+            var (db, factory) = CreateDb();
+        await using var _db = db;
             var tenant = SeedTenant(db, "cafe");
             var userId = SeedUser(db);
-            var service = CreateService(db, contentRoot);
+            var service = CreateService(factory, db, contentRoot);
 
             var sale = await service.CreateLicenseSaleAsync(
-                new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.TwelveMonths, null, 100m),
+                new CreateLicenseSaleRequest
+                {
+                    TenantId = tenant.Id,
+                    LicensePlan = LicenseSalePlans.TwelveMonths,
+                    PriceNet = 100m,
+                },
                 Guid.Parse(userId));
 
             var pdf = await service.GenerateInvoicePdfAsync(sale.Id);
@@ -435,8 +658,9 @@ public sealed class BillingServiceTests
     [Fact]
     public async Task GenerateInvoicePdfAsync_NotFound_Throws()
     {
-        await using var db = CreateDb();
-        var service = CreateService(db);
+        var (db, factory) = CreateDb();
+        await using var _db = db;
+        var service = CreateService(factory, db);
 
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             service.GenerateInvoicePdfAsync(Guid.NewGuid()));
@@ -445,77 +669,140 @@ public sealed class BillingServiceTests
     // --- License key validation ---
 
     [Fact]
-    public async Task CanExtendLicenseAsync_ReturnsTrueForUnusedValidKey()
+    public async Task IsLicenseKeyValidAsync_ReturnsTrueForUnusedValidKey()
     {
-        await using var db = CreateDb();
-        var service = CreateService(db);
+        var (db, factory) = CreateDb();
+        await using var _db = db;
+        var service = CreateService(factory, db);
 
-        var canExtend = await service.CanExtendLicenseAsync("REGK-20261231-cafe-A7F3K2D9");
-
-        Assert.True(canExtend);
+        Assert.True(await service.IsLicenseKeyValidAsync("REGK-20261231-cafe-A7F3K2D9"));
     }
 
     [Theory]
     [InlineData("not-a-key")]
     [InlineData("REGK-ABCDE-BBBBB-CCCCC")]
     [InlineData("")]
-    public async Task CanExtendLicenseAsync_RejectsInvalidFormat(string key)
+    public async Task IsLicenseKeyValidAsync_RejectsInvalidFormat(string key)
     {
-        await using var db = CreateDb();
-        var service = CreateService(db);
+        var (db, factory) = CreateDb();
+        await using var _db = db;
+        var service = CreateService(factory, db);
 
-        Assert.False(await service.CanExtendLicenseAsync(key));
+        Assert.False(await service.IsLicenseKeyValidAsync(key));
     }
 
     [Fact]
-    public async Task CanExtendLicenseAsync_RejectsReservedBillingKeyAlreadyActiveOnTenant()
+    public async Task IsLicenseKeyValidAsync_RejectsReservedBillingKeyAlreadyActiveOnTenant()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         tenant.LicenseKey = "REGK-20261231-cafe-A7F3K2D9";
         tenant.LicenseValidUntilUtc = DateTime.UtcNow.AddMonths(3);
         await db.SaveChangesAsync();
 
-        var service = CreateService(db);
-        var canExtend = await service.CanExtendLicenseAsync(tenant.LicenseKey!);
+        var service = CreateService(factory, db);
 
-        Assert.False(canExtend);
+        Assert.False(await service.IsLicenseKeyValidAsync(tenant.LicenseKey!));
     }
 
     [Fact]
-    public async Task CanExtendLicenseAsync_RejectsActiveSaleRecord()
+    public async Task IsLicenseKeyValidAsync_RejectsActiveSaleRecord()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var sale = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 50m),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+            },
             Guid.Parse(userId));
 
-        Assert.False(await service.CanExtendLicenseAsync(sale.LicenseKey));
+        Assert.False(await service.IsLicenseKeyValidAsync(sale.LicenseKey));
+    }
+
+    [Fact]
+    public async Task GetSaleByLicenseKeyAsync_ReturnsSaleWhenFound()
+    {
+        var (db, factory) = CreateDb();
+        await using var _db = db;
+        var tenant = SeedTenant(db, "cafe");
+        var userId = SeedUser(db);
+        var service = CreateService(factory, db);
+
+        var created = await service.CreateLicenseSaleAsync(
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 50m,
+            },
+            Guid.Parse(userId));
+
+        var found = await service.GetSaleByLicenseKeyAsync(created.LicenseKey);
+
+        Assert.NotNull(found);
+        Assert.Equal(created.Id, found!.Id);
+    }
+
+    [Fact]
+    public async Task GetSaleByLicenseKeyAsync_ReturnsNullWhenMissing()
+    {
+        var (db, factory) = CreateDb();
+        await using var _db = db;
+        var service = CreateService(factory, db);
+
+        Assert.Null(await service.GetSaleByLicenseKeyAsync("REGK-20261231-cafe-A7F3K2D9"));
+    }
+
+    [Fact]
+    public async Task GetNextInvoiceNumberAsync_ReturnsFormattedNumber()
+    {
+        var (db, factory) = CreateDb();
+        await using var _db = db;
+        var service = CreateService(factory, db);
+
+        var number = await service.GetNextInvoiceNumberAsync(new DateTime(2026, 8, 15, 0, 0, 0, DateTimeKind.Utc));
+
+        Assert.StartsWith("RE202608", number, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task GetLicenseSaleStatsAsync_CountsActiveRevenueOnly()
     {
-        await using var db = CreateDb();
+        var (db, factory) = CreateDb();
+        await using var _db = db;
         var tenant = SeedTenant(db, "cafe");
         var userId = SeedUser(db);
-        var service = CreateService(db);
+        var service = CreateService(factory, db);
 
         var active = await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.SixMonths, null, 100m),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.SixMonths,
+                PriceNet = 100m,
+            },
             Guid.Parse(userId));
 
         await service.CancelLicenseSaleAsync(
             active.Id,
-            new CancelLicenseSaleRequest("Test cancel"),
+            new CancelLicenseSaleRequest { CancellationReason = "Test cancel reason" },
             Guid.Parse(userId));
 
         await service.CreateLicenseSaleAsync(
-            new CreateLicenseSaleRequest(tenant.Id, LicenseSalePlans.TwelveMonths, null, 200m),
+            new CreateLicenseSaleRequest
+            {
+                TenantId = tenant.Id,
+                LicensePlan = LicenseSalePlans.TwelveMonths,
+                PriceNet = 200m,
+            },
             Guid.Parse(userId));
 
         var stats = await service.GetLicenseSaleStatsAsync();
@@ -523,34 +810,39 @@ public sealed class BillingServiceTests
         Assert.Equal(1, stats.TotalSales);
         Assert.Equal(200m, stats.TotalRevenueNet);
         Assert.Equal(240m, stats.TotalRevenueGross);
+        Assert.Equal(1, stats.CancelledSales);
+        Assert.Equal(200m, stats.AveragePriceNet);
+        Assert.Equal(1, stats.TotalTenantsWithLicense);
     }
 
-    private static BillingService CreateService(AppDbContext db, string? contentRootPath = null)
+    private static BillingService CreateService(IDbContextFactory<AppDbContext> factory, AppDbContext auditDb, string? contentRootPath = null)
     {
         var environment = new Mock<IWebHostEnvironment>();
         environment.SetupGet(e => e.ContentRootPath).Returns(contentRootPath ?? Path.GetTempPath());
 
-        var audit = new BillingAuditService(db, NullLogger<BillingAuditService>.Instance);
+        var audit = new BillingAuditService(auditDb, NullLogger<BillingAuditService>.Instance);
 
         return new BillingService(
-            db,
+            factory,
             new LicenseKeyGenerator(),
-            new InvoiceNumberGenerator(db),
+            audit,
             environment.Object,
             Options.Create(new CompanyProfileOptions { CompanyName = "Regkasse Platform" }),
-            audit,
             new InvoicePdfGenerator(),
             NullLogger<BillingService>.Instance);
     }
 
-    private static AppDbContext CreateDb()
+    private static (AppDbContext Db, IDbContextFactory<AppDbContext> Factory) CreateDb()
     {
+        var dbName = $"BillingService_{Guid.NewGuid():N}";
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase($"BillingService_{Guid.NewGuid():N}")
+            .UseInMemoryDatabase(dbName)
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
-        return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        var db = new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        var factory = TenantTestDoubles.DbContextFactoryForTests(options, NullCurrentTenantAccessor.Instance);
+        return (db, factory);
     }
 
     private static Tenant SeedTenant(AppDbContext db, string slug, string status = TenantStatuses.Active)
@@ -585,5 +877,115 @@ public sealed class BillingServiceTests
         });
         db.SaveChanges();
         return userId;
+    }
+
+    /// <summary>Shared in-memory DB + factory for spec-style billing tests.</summary>
+    private sealed class BillingServiceTestHarness : IAsyncDisposable
+    {
+        private readonly AppDbContext _db;
+        private readonly IDbContextFactory<AppDbContext> _factory;
+        private Guid? _defaultActorUserId;
+
+        private BillingServiceTestHarness(AppDbContext db, IDbContextFactory<AppDbContext> factory)
+        {
+            _db = db;
+            _factory = factory;
+        }
+
+        public static Task<BillingServiceTestHarness> CreateAsync()
+        {
+            var dbName = $"BillingServiceHarness_{Guid.NewGuid():N}";
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseInMemoryDatabase(dbName)
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+                .Options;
+
+            var db = new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+            var factory = TenantTestDoubles.DbContextFactoryForTests(options, NullCurrentTenantAccessor.Instance);
+            return Task.FromResult(new BillingServiceTestHarness(db, factory));
+        }
+
+        public BillingService CreateBillingService()
+        {
+            var environment = new Mock<IWebHostEnvironment>();
+            environment.SetupGet(e => e.ContentRootPath).Returns(Path.GetTempPath());
+
+            return new BillingService(
+                _factory,
+                new LicenseKeyGenerator(),
+                new BillingAuditService(_db, NullLogger<BillingAuditService>.Instance),
+                environment.Object,
+                Options.Create(new CompanyProfileOptions { CompanyName = "Regkasse Platform" }),
+                new InvoicePdfGenerator(),
+                NullLogger<BillingService>.Instance);
+        }
+
+        public async Task<Tenant> CreateTestTenantAsync(string slug = "cafe")
+        {
+            var tenant = new Tenant
+            {
+                Id = Guid.NewGuid(),
+                Name = $"Test {slug}",
+                Slug = slug,
+                Status = TenantStatuses.Active,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+            };
+            _db.Tenants.Add(tenant);
+            await _db.SaveChangesAsync().ConfigureAwait(false);
+            return tenant;
+        }
+
+        public async Task<Guid> CreateTestUserAsync()
+        {
+            if (_defaultActorUserId.HasValue)
+                return _defaultActorUserId.Value;
+
+            var userId = Guid.NewGuid();
+            _db.Users.Add(new ApplicationUser
+            {
+                Id = userId.ToString("D"),
+                UserName = "billing.tester",
+                NormalizedUserName = "BILLING.TESTER",
+                Email = "billing.tester@regkasse.test",
+                NormalizedEmail = "BILLING.TESTER@REGKASSE.TEST",
+                FirstName = "Billing",
+                LastName = "Tester",
+                EmailConfirmed = true,
+            });
+            await _db.SaveChangesAsync().ConfigureAwait(false);
+            _defaultActorUserId = userId;
+            return userId;
+        }
+
+        public async Task<LicenseSaleResponse> CreateTestSaleAsync(
+            Guid? tenantId = null,
+            decimal priceNet = 299.00m,
+            string licensePlan = LicenseSalePlans.TwelveMonths)
+        {
+            var tenant = tenantId.HasValue
+                ? await GetTenantAsync(tenantId.Value).ConfigureAwait(false)
+                : await CreateTestTenantAsync().ConfigureAwait(false);
+            var actorUserId = await CreateTestUserAsync().ConfigureAwait(false);
+
+            return await CreateBillingService().CreateLicenseSaleAsync(
+                new CreateLicenseSaleRequest
+                {
+                    TenantId = tenant.Id,
+                    LicensePlan = licensePlan,
+                    PriceNet = priceNet,
+                },
+                actorUserId).ConfigureAwait(false);
+        }
+
+        public async Task<Tenant> GetTenantAsync(Guid tenantId)
+        {
+            _db.ChangeTracker.Clear();
+            return await _db.Tenants.AsNoTracking()
+                .SingleAsync(t => t.Id == tenantId)
+                .ConfigureAwait(false);
+        }
+
+        public ValueTask DisposeAsync() => _db.DisposeAsync();
     }
 }

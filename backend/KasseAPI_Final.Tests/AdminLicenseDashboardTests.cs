@@ -6,7 +6,10 @@ using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
+using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -38,7 +41,9 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<ILicenseIssuanceService>(),
             Mock.Of<ILicenseRenewalService>(),
             Mock.Of<IAdminTenantLicenseService>(),
-            Mock.Of<ITenantLicenseService>(),
+            Mock.Of<IAdminTenantLicenseKeyService>(),
+            Mock.Of<IBillingTenantLicenseService>(),
+            TenantTestDoubles.TenantAccessorReturning(null),
             db,
             Mock.Of<IAdminTenantService>(),
             TenantTestDoubles.PrimaryTenantResolver,
@@ -72,7 +77,9 @@ public sealed class AdminLicenseDashboardTests
             Mock.Of<ILicenseIssuanceService>(),
             Mock.Of<ILicenseRenewalService>(),
             Mock.Of<IAdminTenantLicenseService>(),
-            Mock.Of<ITenantLicenseService>(),
+            Mock.Of<IAdminTenantLicenseKeyService>(),
+            Mock.Of<IBillingTenantLicenseService>(),
+            TenantTestDoubles.TenantAccessorReturning(null),
             db,
             adminTenantService,
             TenantTestDoubles.PrimaryTenantResolver,

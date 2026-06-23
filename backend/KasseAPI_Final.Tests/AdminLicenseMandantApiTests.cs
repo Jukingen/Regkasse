@@ -5,7 +5,10 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
+using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -229,14 +232,17 @@ public sealed class AdminLicenseMandantApiTests
         ILicenseRenewalService renewalService,
         IAdminTenantLicenseService tenantLicenseService,
         string role = Roles.Manager,
-        ISettingsTenantResolver? tenantResolver = null)
+        ISettingsTenantResolver? tenantResolver = null,
+        ICurrentTenantAccessor? tenantAccessor = null)
     {
         var controller = new AdminLicenseController(
             Mock.Of<ILicenseService>(),
             Mock.Of<ILicenseIssuanceService>(),
             renewalService,
             tenantLicenseService,
-            Mock.Of<ITenantLicenseService>(),
+            Mock.Of<IAdminTenantLicenseKeyService>(),
+            Mock.Of<IBillingTenantLicenseService>(),
+            tenantAccessor ?? TenantTestDoubles.TenantAccessorReturning(null),
             db,
             Mock.Of<IAdminTenantService>(),
             tenantResolver ?? TenantTestDoubles.SettingsResolverReturning(Guid.Empty),

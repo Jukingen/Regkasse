@@ -6,8 +6,11 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
+using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
+using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +31,9 @@ public sealed partial class AdminLicenseController : ControllerBase
     private readonly ILicenseIssuanceService _licenseIssuanceService;
     private readonly ILicenseRenewalService _licenseRenewalService;
     private readonly IAdminTenantLicenseService _adminTenantLicenseService;
-    private readonly ITenantLicenseService _tenantLicenseService;
+    private readonly IAdminTenantLicenseKeyService _tenantLicenseService;
+    private readonly IBillingTenantLicenseService _billingTenantLicenseService;
+    private readonly ICurrentTenantAccessor _currentTenantAccessor;
     private readonly AppDbContext _db;
     private readonly IAdminTenantService _adminTenantService;
     private readonly ISettingsTenantResolver _settingsTenantResolver;
@@ -41,7 +46,9 @@ public sealed partial class AdminLicenseController : ControllerBase
         ILicenseIssuanceService licenseIssuanceService,
         ILicenseRenewalService licenseRenewalService,
         IAdminTenantLicenseService adminTenantLicenseService,
-        ITenantLicenseService tenantLicenseService,
+        IAdminTenantLicenseKeyService tenantLicenseService,
+        IBillingTenantLicenseService billingTenantLicenseService,
+        ICurrentTenantAccessor currentTenantAccessor,
         AppDbContext db,
         IAdminTenantService adminTenantService,
         ISettingsTenantResolver settingsTenantResolver,
@@ -54,6 +61,8 @@ public sealed partial class AdminLicenseController : ControllerBase
         _licenseRenewalService = licenseRenewalService;
         _adminTenantLicenseService = adminTenantLicenseService;
         _tenantLicenseService = tenantLicenseService;
+        _billingTenantLicenseService = billingTenantLicenseService;
+        _currentTenantAccessor = currentTenantAccessor;
         _db = db;
         _adminTenantService = adminTenantService;
         _settingsTenantResolver = settingsTenantResolver;

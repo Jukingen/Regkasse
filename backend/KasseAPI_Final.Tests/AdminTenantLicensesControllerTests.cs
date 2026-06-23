@@ -6,6 +6,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -249,7 +250,7 @@ public sealed class AdminTenantLicensesControllerTests
     {
         var controller = new AdminTenantLicensesController(
             licenseService,
-            Mock.Of<ITenantLicenseService>(),
+            Mock.Of<IAdminTenantLicenseKeyService>(),
             new LicenseKeyGenerator(),
             Mock.Of<ILicenseRenewalService>(),
             Mock.Of<IAuthorizationService>(),

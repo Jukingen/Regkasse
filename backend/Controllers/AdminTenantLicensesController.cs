@@ -5,6 +5,7 @@ using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ namespace KasseAPI_Final.Controllers;
 public sealed class AdminTenantLicensesController : ControllerBase
 {
     private readonly IAdminTenantLicenseService _licenseService;
-    private readonly ITenantLicenseService _tenantLicenseService;
+    private readonly IAdminTenantLicenseKeyService _tenantLicenseService;
     private readonly ILicenseKeyGenerator _licenseKeyGenerator;
     private readonly ILicenseRenewalService _licenseRenewalService;
     private readonly IAuthorizationService _authorization;
@@ -30,7 +31,7 @@ public sealed class AdminTenantLicensesController : ControllerBase
 
     public AdminTenantLicensesController(
         IAdminTenantLicenseService licenseService,
-        ITenantLicenseService tenantLicenseService,
+        IAdminTenantLicenseKeyService tenantLicenseService,
         ILicenseKeyGenerator licenseKeyGenerator,
         ILicenseRenewalService licenseRenewalService,
         IAuthorizationService authorization,

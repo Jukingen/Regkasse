@@ -18,6 +18,12 @@ public interface IBillingAuditService
         string cancellationReason,
         string? ipAddress = null,
         CancellationToken cancellationToken = default);
+
+    Task LogLicenseActivatedAsync(
+        LicenseSale sale,
+        Guid actorUserId,
+        string? ipAddress = null,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Append-only billing audit (separate from RKSV/fiscal <see cref="AuditLog"/>).</summary>
@@ -58,6 +64,19 @@ public sealed class BillingAuditService : IBillingAuditService
             actorUserId,
             BillingAuditEventTypes.SaleCancelled,
             cancellationReason,
+            ipAddress,
+            cancellationToken);
+
+    public Task LogLicenseActivatedAsync(
+        LicenseSale sale,
+        Guid actorUserId,
+        string? ipAddress = null,
+        CancellationToken cancellationToken = default) =>
+        AppendAsync(
+            sale,
+            actorUserId,
+            BillingAuditEventTypes.LicenseActivated,
+            cancellationReason: null,
             ipAddress,
             cancellationToken);
 

@@ -6,6 +6,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
+using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
 using KasseAPI_Final.Services.Tenancy;
 using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
@@ -31,7 +32,7 @@ public sealed class AdminTenantLicenseServiceTests
         return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
     }
 
-    private static TenantLicenseService CreateTenantLicenseService(AppDbContext db) =>
+    private static AdminTenantLicenseKeyService CreateTenantLicenseService(AppDbContext db) =>
         new(db, BillingKeyGenerator);
 
     private static LicenseSale CreateBillingSale(

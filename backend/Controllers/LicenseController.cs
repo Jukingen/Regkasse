@@ -4,6 +4,7 @@ using KasseAPI_Final.Configuration;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Services.Billing;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
@@ -29,6 +30,8 @@ public sealed class LicenseController : ControllerBase
     public const string MachineFingerprintHttpHeader = "X-Machine-Fingerprint";
 
     private readonly ILicenseService _licenseService;
+    private readonly ITenantLicenseService _tenantLicenseService;
+    private readonly ILicenseKeyGenerator _licenseKeyGenerator;
     private readonly IOptions<LicenseOptions> _licenseOptions;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<LicenseController> _logger;
@@ -37,6 +40,8 @@ public sealed class LicenseController : ControllerBase
 
     public LicenseController(
         ILicenseService licenseService,
+        ITenantLicenseService tenantLicenseService,
+        ILicenseKeyGenerator licenseKeyGenerator,
         IOptions<LicenseOptions> licenseOptions,
         IWebHostEnvironment environment,
         ILogger<LicenseController> logger,
@@ -44,6 +49,8 @@ public sealed class LicenseController : ControllerBase
         AppDbContext db)
     {
         _licenseService = licenseService;
+        _tenantLicenseService = tenantLicenseService;
+        _licenseKeyGenerator = licenseKeyGenerator;
         _licenseOptions = licenseOptions;
         _environment = environment;
         _logger = logger;
@@ -127,6 +134,10 @@ public sealed class LicenseController : ControllerBase
 
         ApplyOptionalMachineFingerprintFromHeader(body);
 
+        var licenseKey = body.LicenseKey.Trim();
+        if (_licenseKeyGenerator.ValidateLicenseKeyFormat(licenseKey))
+            return await ActivateMandantBillingLicenseAsync(licenseKey, cancellationToken).ConfigureAwait(false);
+
         var appContext = ResolveActivationSourceAppContext(HttpContext);
         var initiatorUserId = ResolveInitiatingUserId(HttpContext);
 
@@ -154,6 +165,42 @@ public sealed class LicenseController : ControllerBase
         }
 
         var enriched = await EnrichActivationResultWithTenantAsync(result, cancellationToken).ConfigureAwait(false);
+        return Ok(enriched);
+    }
+
+    private async Task<ActionResult<LicenseActivationResult>> ActivateMandantBillingLicenseAsync(
+        string licenseKey,
+        CancellationToken cancellationToken)
+    {
+        var tenantId = _tenantAccessor.TenantId;
+        if (!tenantId.HasValue || tenantId.Value == Guid.Empty)
+        {
+            return BadRequest(new LicenseActivationResult(false, "Tenant context required."));
+        }
+
+        var actorUserId = ResolveInitiatingUserId(HttpContext);
+        if (actorUserId is not Guid userId)
+        {
+            return BadRequest(new LicenseActivationResult(
+                false,
+                "Authentication required for mandant license activation."));
+        }
+
+        var result = await _tenantLicenseService
+            .ActivateLicenseAsync(tenantId.Value, licenseKey, userId, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (!result.Success)
+            return BadRequest(new LicenseActivationResult(false, result.Message));
+
+        var activationResult = new LicenseActivationResult(
+            true,
+            result.Message,
+            result.ValidUntilUtc,
+            result.LicensePlan);
+
+        var enriched = await EnrichActivationResultWithTenantAsync(activationResult, cancellationToken)
+            .ConfigureAwait(false);
         return Ok(enriched);
     }
 
