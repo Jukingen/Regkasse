@@ -45,6 +45,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageReference Include="PuppeteerSharp" Version="25.1.2" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="QuestPDF" Version="2026.5.0" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
@@ -63,6 +64,7 @@
 
   <ItemGroup>
     <Content Update="Data\demo-products.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Update="Templates\InvoiceTemplate.html" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!-- Align embedded resource names with AddLocalization(ResourcesPath = "Resources"). -->

@@ -1,4 +1,3 @@
-using System.Text.Json;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
@@ -10,17 +9,20 @@ public sealed class TenantLicenseService : ITenantLicenseService
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly IBillingService _billingService;
     private readonly ILicenseKeyGenerator _licenseKeyGenerator;
+    private readonly IBillingAuditService _billingAudit;
     private readonly ILogger<TenantLicenseService> _logger;
 
     public TenantLicenseService(
         IDbContextFactory<AppDbContext> dbContextFactory,
         IBillingService billingService,
         ILicenseKeyGenerator licenseKeyGenerator,
+        IBillingAuditService billingAudit,
         ILogger<TenantLicenseService> logger)
     {
         _dbContextFactory = dbContextFactory;
         _billingService = billingService;
         _licenseKeyGenerator = licenseKeyGenerator;
+        _billingAudit = billingAudit;
         _logger = logger;
     }
 
@@ -198,23 +200,12 @@ public sealed class TenantLicenseService : ITenantLicenseService
             sale.ActivationDateUtc = now;
             sale.UpdatedAt = now;
 
-            db.BillingAuditLogs.Add(new BillingAuditLog
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                UserId = activatedByUserId,
-                Action = BillingAuditEventTypes.LicenseActivated,
-                SaleId = sale.Id,
-                Details = JsonSerializer.Serialize(new
-                {
-                    licenseKey = normalizedKey,
-                    validUntil = sale.ValidUntilUtc,
-                }),
-                TimestampUtc = now,
-            });
-
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+
+            await _billingAudit
+                .LogLicenseActivatedAsync(sale, activatedByUserId, ipAddress: null, cancellationToken: ct)
+                .ConfigureAwait(false);
 
             _logger.LogInformation(
                 "License activated for tenant {TenantSlug}: {LicenseKey}",
@@ -346,22 +337,11 @@ public sealed class TenantLicenseService : ITenantLicenseService
             sale.ExtendedByUserId = extendedByUserId;
             sale.UpdatedAt = now;
 
-            db.BillingAuditLogs.Add(new BillingAuditLog
-            {
-                Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                UserId = extendedByUserId,
-                Action = BillingAuditEventTypes.LicenseExtended,
-                SaleId = sale.Id,
-                Details = JsonSerializer.Serialize(new
-                {
-                    licenseKey = normalizedKey,
-                    validUntil = sale.ValidUntilUtc,
-                }),
-                TimestampUtc = now,
-            });
-
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            await _billingAudit
+                .LogLicenseExtendedAsync(sale, extendedByUserId, ipAddress: null, cancellationToken: ct)
+                .ConfigureAwait(false);
         }
 
         return new ExtendResult

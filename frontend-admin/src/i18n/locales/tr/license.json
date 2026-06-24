@@ -3,10 +3,12 @@
     "title": "Lisans yönetimi",
     "tenantLicense": "Kiracı lisansı",
     "serverLicense": "Sunucu lisansı (on-premise)",
+    "serverTab": "Sunucu lisansı (on-premise)",
+    "tenantTab": "Kiracı lisansları",
     "subtitle": "Bu API örneği (deployment) için lisans. Üst çubuktaki kiracı lisansı rozeti ile karıştırmayın.",
     "subtitleWithMandant": "Kiracı lisansınızı yönetin ve sunucu (on-premise) lisansını görüntüleyin. Kiracı lisansı şirketiniz içindir; sunucu lisansı bu API örneği içindir."
   },
-  "tenant": {
+  "mandant": {
     "status": "Durum",
     "validUntil": "Geçerlilik",
     "licenseKey": "Lisans anahtarı",
@@ -16,6 +18,44 @@
     "expired": "Süresi doldu",
     "expiresSoon": "Yakında sona eriyor",
     "trial": "Deneme"
+  },
+  "server": {
+    "title": "Sunucu lisans durumu",
+    "subtitle": "Bu lisans tüm sunucu ve kiracılar için geçerlidir.",
+    "status": "Durum",
+    "validUntil": "Geçerlilik",
+    "licenseKey": "Lisans anahtarı",
+    "updateButton": "Lisansı güncelle"
+  },
+  "tenant": {
+    "title": "Tüm kiracı lisansları",
+    "subtitle": "Tüm lisans satışları ve durumlarının özeti",
+    "statusOverviewTab": "Lisans durumu",
+    "active": "Aktif lisanslar",
+    "expiringSoon": "Yakında sona eriyor (≤30 gün)",
+    "expired": "Süresi doldu",
+    "tenantsWithLicense": "Lisanslı kiracılar",
+    "newSale": "Yeni satış",
+    "allSales": "Tüm satışlar",
+    "noResults": "Lisans bulunamadı",
+    "daysRemaining": "{{count}} gün",
+    "status": {
+      "active": "Aktif",
+      "cancelled": "İptal edildi",
+      "refunded": "İade edildi"
+    }
+  },
+  "tenantDetail": {
+    "license": "Lisans",
+    "status": "Durum",
+    "licenseKey": "Lisans anahtarı",
+    "validUntil": "Geçerlilik",
+    "daysRemaining": "Kalan gün",
+    "daysRemainingValue": "{{count}} gün",
+    "sellLicense": "Lisans sat",
+    "viewSales": "Satışları görüntüle",
+    "active": "Aktif",
+    "inactive": "Pasif"
   },
   "superAdmin": {
     "tabTitle": "Tüm kiracı lisansları",

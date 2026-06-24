@@ -92,7 +92,8 @@ export async function previewTenantLicense(
     return data;
 }
 
-/** POST /api/admin/license/mandant/extend — extend effective tenant with REGK key (Manager). */
+/** POST /api/admin/license/mandant/extend — extend effective tenant with REGK key (Manager).
+ *  @deprecated Prefer `POST /api/admin/license/extend` (billing, `settings.manage`) — see `docs/BILLING_TENANT_LICENSE.md`. */
 export async function extendTenantLicense(
     body: ExtendTenantLicenseRequest,
 ): Promise<ExtendTenantLicenseResult> {

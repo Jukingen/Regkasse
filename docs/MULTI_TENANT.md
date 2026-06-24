@@ -599,7 +599,12 @@ Operator UI is **German**; routes and code identifiers are **English**. Full det
 | List / CRUD / impersonate | `/api/admin/tenants` | `SuperAdmin` |
 | Tenant users | `/api/admin/tenants/{id}/users`, `…/users/assign`, `…/role` | `user.manage` / `SuperAdmin` |
 | Tenant mandant license | `/api/admin/tenants/{id}/license/*` | `SuperAdmin` |
+| Billing license sales | `/api/admin/billing/license-sales/*` | `SuperAdmin` |
+| Manager billing extend | `POST /api/admin/license/extend` | `settings.manage` + tenant JWT |
+| Manager mandant license (legacy) | `GET/POST /api/admin/license/mandant/*` | `license.manage` |
 | Dev switcher list | `GET /api/tenants/switcher` | authenticated; scoped by role |
+
+See [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) for billing key format and service split.
 
 ---
 
@@ -611,6 +616,7 @@ Two license types must not be conflated — see [`LICENSE_SYSTEM.md`](LICENSE_SY
 |--------------|-----------|-------------|-----|
 | **Deployment** | Server-Lizenz (On-Premise) | `/admin/license` | `/api/admin/license/*` |
 | **Tenant (Mandant)** | Mandantenlizenz | Tenant list/detail; Manager header | `tenants.license_*`, `/api/admin/tenants/{id}/license` |
+| **Billing sale** | Lizenzverkauf | Super Admin billing UI | `/api/admin/billing/license-sales/*`; Manager extend: `POST /api/admin/license/extend` |
 
 | Role / host | Deployment in header | Mandant in header | Expiry banner |
 |-------------|---------------------|-------------------|---------------|

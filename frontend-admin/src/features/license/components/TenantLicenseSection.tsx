@@ -46,7 +46,7 @@ export function TenantLicenseSection() {
                 <Alert
                     type="warning"
                     showIcon
-                    title={t('license.tenant.expiresSoon')}
+                    title={t('license.mandant.expiresSoon')}
                     description={getLicenseStatusDayText(resolvedStatus, t) ?? undefined}
                 />
             );
@@ -62,7 +62,7 @@ export function TenantLicenseSection() {
                 <Alert
                     type="error"
                     showIcon
-                    title={t('license.tenant.expired')}
+                    title={t('license.mandant.expired')}
                     description={getLicenseStatusMessage(resolvedStatus, 'tenant', t)}
                 />
             );
@@ -80,16 +80,16 @@ export function TenantLicenseSection() {
 
             <Card loading={licenseQuery.isLoading}>
                 {!licenseQuery.isLoading && !status ? (
-                    <Empty description={t('license.tenant.noLicense')} />
+                    <Empty description={t('license.mandant.noLicense')} />
                 ) : null}
                 {status ? (
                     <Descriptions bordered column={{ xs: 1, sm: 2 }} size="small">
-                        <Descriptions.Item label={t('license.tenant.status')}>
+                        <Descriptions.Item label={t('license.mandant.status')}>
                             <Tag color={getLicenseStatusTagColor(resolvedStatus?.kind ?? 'no_license')}>
                                 {getLicenseStatusLabel(resolvedStatus?.kind ?? 'no_license', t)}
                             </Tag>
                         </Descriptions.Item>
-                        <Descriptions.Item label={t('license.tenant.licenseKey')}>
+                        <Descriptions.Item label={t('license.mandant.licenseKey')}>
                             <Typography.Text
                                 code
                                 copyable={status.licenseKey ? { text: status.licenseKey } : undefined}
@@ -97,7 +97,7 @@ export function TenantLicenseSection() {
                                 {maskTenantLicenseKey(status.licenseKey)}
                             </Typography.Text>
                         </Descriptions.Item>
-                        <Descriptions.Item label={t('license.tenant.validUntil')}>
+                        <Descriptions.Item label={t('license.mandant.validUntil')}>
                             {status.validUntilUtc ? formatDate(status.validUntilUtc, formatLocale) : '—'}
                         </Descriptions.Item>
                         {resolvedStatus ? (
@@ -117,7 +117,7 @@ export function TenantLicenseSection() {
                 ) : null}
                 <div style={{ marginTop: 16 }}>
                     <Button type="primary" onClick={() => setExtendOpen(true)}>
-                        {t('license.tenant.extendButton')}
+                        {t('license.mandant.extendButton')}
                     </Button>
                 </div>
             </Card>

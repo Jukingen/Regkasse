@@ -278,6 +278,9 @@
       "lastActivity": "Letzte Aktivität",
       "manageUsers": "Benutzer verwalten →",
       "statsTitle": "Kennzahlen",
+      "billingLicenseCard": "Lizenz",
+      "sellLicense": "Lizenz verkaufen",
+      "viewSales": "Verkäufe anzeigen",
       "confirmSuspend": {
         "title": "Mandant sperren?",
         "body": "Benutzer können sich nicht mehr anmelden, bis der Mandant reaktiviert wird."

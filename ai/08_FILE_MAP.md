@@ -9,6 +9,8 @@
 - Tenant middleware: `backend/Middleware/TenantResolutionMiddleware.cs`, `TenantContextMiddleware.cs`
 - Controllers: `backend/Controllers/`
 - Super Admin tenants: `backend/Controllers/AdminTenantsController.cs`, `backend/Services/AdminTenants/`
+- Billing / mandant license sales: `backend/Services/Billing/`, `backend/Services/Hosted/BillingReminderHostedService.cs`, `backend/Controllers/AdminBillingController.cs`, `AdminLicenseController.Extend.cs` — see `docs/BILLING_TENANT_LICENSE.md`, `docs/BILLING_TESTING.md`, `ai/modules/billing_license.md`
+- Billing tests: `backend/KasseAPI_Final.Tests/Billing/` (`BillingServiceTests`, `BillingServiceTestHarness`)
 - Services: `backend/Services/` (singleton `LicenseService` + `IServiceScopeFactory` DB pattern)
 - License registration: `backend/Services/LicenseServiceRegistration.cs`
 - Authorization: `backend/Authorization/`

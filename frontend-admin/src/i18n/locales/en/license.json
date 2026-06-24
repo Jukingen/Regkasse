@@ -3,10 +3,12 @@
     "title": "License management",
     "tenantLicense": "Tenant license",
     "serverLicense": "Server license (on-premise)",
+    "serverTab": "Server license (on-premise)",
+    "tenantTab": "Tenant licenses",
     "subtitle": "License for this API instance (deployment). Do not confuse with the tenant license badge in the header.",
     "subtitleWithMandant": "Manage your tenant license and view the server (on-premise) license. Tenant license applies to your company; server license applies to this API instance."
   },
-  "tenant": {
+  "mandant": {
     "status": "Status",
     "validUntil": "Valid until",
     "licenseKey": "License key",
@@ -16,6 +18,44 @@
     "expired": "Expired",
     "expiresSoon": "Expiring soon",
     "trial": "Trial"
+  },
+  "server": {
+    "title": "Server license status",
+    "subtitle": "This license applies to the entire server and all tenants.",
+    "status": "Status",
+    "validUntil": "Valid until",
+    "licenseKey": "License key",
+    "updateButton": "Update license"
+  },
+  "tenant": {
+    "title": "All tenant licenses",
+    "subtitle": "Overview of all license sales and statuses",
+    "statusOverviewTab": "License status",
+    "active": "Active licenses",
+    "expiringSoon": "Expiring soon (≤30 days)",
+    "expired": "Expired",
+    "tenantsWithLicense": "Tenants with license",
+    "newSale": "New sale",
+    "allSales": "All sales",
+    "noResults": "No licenses found",
+    "daysRemaining": "{{count}} days",
+    "status": {
+      "active": "Active",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    }
+  },
+  "tenantDetail": {
+    "license": "License",
+    "status": "Status",
+    "licenseKey": "License key",
+    "validUntil": "Valid until",
+    "daysRemaining": "Days remaining",
+    "daysRemainingValue": "{{count}} days",
+    "sellLicense": "Sell license",
+    "viewSales": "View sales",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "superAdmin": {
     "tabTitle": "All tenant licenses",

@@ -62,6 +62,12 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
   /** Cross-tenant platform register list — not tenant `/kassenverwaltung` (cash_register.manage). */
   '/admin/cash-registers': PERMISSIONS.SYSTEM_CRITICAL,
+  // Billing routes (Super Admin only)
+  '/admin/billing': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/billing/sales': [PERMISSIONS.SYSTEM_CRITICAL],
+  '/admin/billing/sales/new': [PERMISSIONS.SYSTEM_CRITICAL],
+  /** Sale detail (`/admin/billing/sales/{id}`) — longest-prefix match via `/admin/billing/sales`. */
+  '/admin/billing/stats': [PERMISSIONS.SYSTEM_CRITICAL],
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/customers': PERMISSIONS.CUSTOMER_VIEW,

@@ -4,6 +4,21 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ---
 
+## 2026-06-23 — Billing tenant license (license_sales)
+
+**Backend:**
+
+- `Billing.TenantLicenseService` — mandant activate/extend/status against `license_sales` + `tenants` row
+- `POST /api/admin/license/extend` for Managers (`settings.manage`)
+- Billing key format `REGK-{yyyyMMdd}-{slug}-{8chars}`; activation on `POST /api/license/activate` when format matches
+- Unit tests: `TenantLicenseServiceTests`, `AdminLicenseExtendTests`, `BillingTenantLicenseServiceTests`
+
+**Documentation:** [`docs/BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md), [`ai/modules/billing_license.md`](../ai/modules/billing_license.md).
+
+**Follow-up:** Wire FA `tenantLicense.ts` to `/api/admin/license/extend`; align permissions and rate limiting with legacy mandant extend.
+
+---
+
 ## 2026-06-12 — Access & roles hub + admin permission filter
 
 **Frontend Admin:**

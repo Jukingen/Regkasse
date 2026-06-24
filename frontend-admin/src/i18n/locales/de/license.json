@@ -3,10 +3,12 @@
     "title": "Lizenzverwaltung",
     "tenantLicense": "Mandantenlizenz",
     "serverLicense": "Server-Lizenz (On-Premise)",
+    "serverTab": "Server-Lizenz (On-Premise)",
+    "tenantTab": "Mandantenlizenzen",
     "subtitle": "Lizenz für diese API-Instanz (Deployment). Nicht mit der Mandantenlizenz im Header verwechseln.",
     "subtitleWithMandant": "Mandantenlizenz verwalten und Server-Lizenz (On-Premise) einsehen. Die Mandantenlizenz gilt für Ihr Unternehmen; die Server-Lizenz für diese API-Instanz."
   },
-  "tenant": {
+  "mandant": {
     "status": "Status",
     "validUntil": "Gültig bis",
     "licenseKey": "Lizenzschlüssel",
@@ -16,6 +18,44 @@
     "expired": "Abgelaufen",
     "expiresSoon": "Läuft bald ab",
     "trial": "Testversion"
+  },
+  "server": {
+    "title": "Server-Lizenz Status",
+    "subtitle": "Diese Lizenz gilt für den gesamten Server und alle Mandanten.",
+    "status": "Status",
+    "validUntil": "Gültig bis",
+    "licenseKey": "Lizenzschlüssel",
+    "updateButton": "Lizenz aktualisieren"
+  },
+  "tenant": {
+    "title": "Alle Mandantenlizenzen",
+    "subtitle": "Übersicht aller Lizenzverkäufe und -status",
+    "statusOverviewTab": "Lizenzstatus",
+    "active": "Aktive Lizenzen",
+    "expiringSoon": "Bald ablaufend (≤30 Tage)",
+    "expired": "Abgelaufen",
+    "tenantsWithLicense": "Mandanten mit Lizenz",
+    "newSale": "Neuer Verkauf",
+    "allSales": "Alle Verkäufe",
+    "noResults": "Keine Lizenzen gefunden",
+    "daysRemaining": "{{count}} Tage",
+    "status": {
+      "active": "Aktiv",
+      "cancelled": "Storniert",
+      "refunded": "Rückerstattet"
+    }
+  },
+  "tenantDetail": {
+    "license": "Lizenz",
+    "status": "Status",
+    "licenseKey": "Lizenzschlüssel",
+    "validUntil": "Gültig bis",
+    "daysRemaining": "Verbleibende Tage",
+    "daysRemainingValue": "{{count}} Tage",
+    "sellLicense": "Lizenz verkaufen",
+    "viewSales": "Verkäufe anzeigen",
+    "active": "Aktiv",
+    "inactive": "Inaktiv"
   },
   "superAdmin": {
     "tabTitle": "Alle Mandantenlizenzen",

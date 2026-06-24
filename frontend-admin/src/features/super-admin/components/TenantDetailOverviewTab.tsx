@@ -1,9 +1,13 @@
 'use client';
 
-import { Button, Card, Descriptions, Popconfirm, Space, Tag, Typography } from 'antd';
+import { Button, Card, Descriptions, Popconfirm, Space, Spin, Tag, Typography } from 'antd';
+import { CreditCardOutlined, FilePdfOutlined } from '@ant-design/icons';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import type { AdminTenantDetail } from '@/features/super-admin/api/adminTenants';
+import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
+import { useBillingTenantLicense } from '@/features/billing/hooks';
 import { TenantLicenseBadge } from '@/features/super-admin/components/TenantLicenseBadge';
 import { tenantStatusColor } from '@/features/super-admin/utils/tenantStatusLabel';
 import { buildAdminUsersPageHref } from '@/features/users/utils/adminUsersPageUrl';
@@ -23,6 +27,14 @@ export function TenantDetailOverviewTab({
     onReactivate,
 }: TenantDetailOverviewTabProps) {
     const { t, formatLocale } = useI18n();
+    const router = useRouter();
+    const canAccessBilling = useBillingAccess();
+    const { data: licenseInfo, isLoading: licenseLoading } = useBillingTenantLicense(
+        tenant.id,
+        canAccessBilling,
+    );
+    const licenseStatus = licenseInfo?.status;
+
     return (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Card title={t('tenants.detail.overview.statusCard')}>
@@ -86,6 +98,65 @@ export function TenantDetailOverviewTab({
                     </Descriptions.Item>
                 </Descriptions>
             </Card>
+
+            {canAccessBilling ? (
+                <Card title={t('license.tenantDetail.license')} size="small">
+                    <Spin spinning={licenseLoading}>
+                        <Descriptions column={{ xs: 1, sm: 2 }} size="small">
+                            <Descriptions.Item label={t('license.tenantDetail.status')}>
+                                <Tag color={licenseStatus?.isValid ? 'green' : 'red'}>
+                                    {licenseStatus?.isValid
+                                        ? t('license.tenantDetail.active')
+                                        : t('license.tenantDetail.inactive')}
+                                </Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('license.tenantDetail.licenseKey')}>
+                                {licenseStatus?.licenseKey?.trim() ? (
+                                    <Typography.Text code style={{ fontSize: 12 }}>
+                                        {licenseStatus.licenseKey}
+                                    </Typography.Text>
+                                ) : (
+                                    '—'
+                                )}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('license.tenantDetail.validUntil')}>
+                                {licenseStatus?.validUntilUtc
+                                    ? formatDate(licenseStatus.validUntilUtc, formatLocale, {
+                                          dateStyle: 'medium',
+                                      })
+                                    : '—'}
+                            </Descriptions.Item>
+                            <Descriptions.Item label={t('license.tenantDetail.daysRemaining')}>
+                                {licenseStatus?.daysRemaining != null
+                                    ? t('license.tenantDetail.daysRemainingValue', {
+                                          count: licenseStatus.daysRemaining,
+                                      })
+                                    : '—'}
+                            </Descriptions.Item>
+                        </Descriptions>
+                        <Space wrap style={{ marginTop: 12 }}>
+                            <Button
+                                size="small"
+                                icon={<CreditCardOutlined />}
+                                onClick={() =>
+                                    router.push(`/admin/billing/sales/new?tenantId=${tenant.id}`)
+                                }
+                            >
+                                {t('license.tenantDetail.sellLicense')}
+                            </Button>
+                            <Button
+                                size="small"
+                                icon={<FilePdfOutlined />}
+                                onClick={() =>
+                                    router.push(`/admin/billing/sales?tenantId=${tenant.id}`)
+                                }
+                            >
+                                {t('license.tenantDetail.viewSales')}
+                            </Button>
+                        </Space>
+                    </Spin>
+                </Card>
+            ) : null}
 
             {tenant.status === 'deleted' ? (
                 <Typography.Paragraph type="secondary">

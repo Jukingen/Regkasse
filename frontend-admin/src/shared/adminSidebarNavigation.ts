@@ -55,6 +55,8 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
     accessArea: 'grp-access',
     /** Nested under Verwaltung: /settings + /settings/payment-methods */
     settingsArea: 'grp-settings-area',
+    /** Super Admin: license management + billing sales. */
+    license: 'grp-license',
 } as const;
 
 /** Route prefixes per group — used to auto-open the matching submenu for nested routes (e.g. /receipts/[id]). */
@@ -104,7 +106,6 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
     [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: [
         ...SETTINGS_AREA_ROUTE_PATHS,
         '/admin/system/time-sync',
-        '/admin/license',
         '/admin/access',
         '/admin/users',
         '/admin/access/roles',
@@ -115,6 +116,12 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/admin/users',
         '/admin/access/roles',
         '/admin/access/matrix',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.license]: [
+        '/admin/license',
+        '/admin/billing',
+        '/admin/billing/sales',
+        '/admin/billing/stats',
     ],
 };
 
@@ -189,8 +196,7 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     if (
         p === '/settings' ||
         p.startsWith('/settings/') ||
-        p === '/admin/system/time-sync' ||
-        p === '/admin/license'
+        p === '/admin/system/time-sync'
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
     }
@@ -201,6 +207,13 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
         p.startsWith('/admin/users/')
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
+    }
+    if (
+        p === '/admin/license' ||
+        p === '/admin/billing' ||
+        p.startsWith('/admin/billing/')
+    ) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
     }
     if (p === '/admin/rksv' || p.startsWith('/admin/rksv/')) {
         keys.push('/admin/rksv');

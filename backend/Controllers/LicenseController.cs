@@ -23,8 +23,7 @@ namespace KasseAPI_Final.Controllers;
 [ApiController]
 [Route("api/license")]
 [Produces("application/json")]
-[AllowAnonymous]
-public sealed class LicenseController : ControllerBase
+public partial class LicenseController : ControllerBase
 {
     /// <summary>Optional client-reported SHA-256 machine hash (hex); must match this host when set. Same as JSON <c>machineFingerprint</c>.</summary>
     public const string MachineFingerprintHttpHeader = "X-Machine-Fingerprint";
@@ -63,6 +62,7 @@ public sealed class LicenseController : ControllerBase
     /// When <paramref name="tenantId"/> or resolved tenant context is present, mandant grace-period fields are included.
     /// </summary>
     [HttpGet("status")]
+    [AllowAnonymous]
     public async Task<ActionResult<LicensePublicStatusDto>> GetStatus(
         [FromQuery] Guid? tenantId,
         CancellationToken cancellationToken)
@@ -86,6 +86,7 @@ public sealed class LicenseController : ControllerBase
 
     /// <summary>Optional POS-facing feature limits (configuration-driven).</summary>
     [HttpGet("features")]
+    [AllowAnonymous]
     public async Task<ActionResult<LicenseFeaturesDto>> GetFeatures(CancellationToken cancellationToken)
     {
         var lic = await _licenseService.GetCurrentStatusAsync(cancellationToken).ConfigureAwait(false);
@@ -122,6 +123,7 @@ public sealed class LicenseController : ControllerBase
     /// </list>
     /// </remarks>
     [HttpPost("activate")]
+    [AllowAnonymous]
     public async Task<ActionResult<LicenseActivationResult>> ActivateLicense(
         [FromBody] ActivateLicenseRequest? body,
         CancellationToken cancellationToken)

@@ -278,6 +278,9 @@
       "lastActivity": "Last activity",
       "manageUsers": "Manage users →",
       "statsTitle": "Metrics",
+      "billingLicenseCard": "License",
+      "sellLicense": "Sell license",
+      "viewSales": "View sales",
       "confirmSuspend": {
         "title": "Suspend tenant?",
         "body": "Users cannot sign in until the tenant is reactivated."

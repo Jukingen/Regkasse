@@ -8,6 +8,13 @@
   "sidebar": {
     "noAccessibleMenus": "Kullanılabilir menü ögesi yok."
   },
+  "nav": {
+    "billing": "Lisans satışı",
+    "billingOverview": "Genel bakış",
+    "billingSales": "Lisans satışları",
+    "billingStats": "İstatistikler",
+    "billingNew": "Yeni satış"
+  },
   "aria": {
     "openNav": "Gezinme menüsünü aç",
     "closeNav": "Gezinme menüsünü kapat",

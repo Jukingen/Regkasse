@@ -5,6 +5,7 @@
  * Registrierkasse API - RKSV uyumlu kasa sistemi
  * OpenAPI spec version: v1
  */
+import type { LicenseSale } from './licenseSale';
 
 export interface Tenant {
   /** @nullable */
@@ -15,6 +16,9 @@ export interface Tenant {
    * @nullable
    */
   createdBy?: string | null;
+  currentLicenseSale?: LicenseSale;
+  /** @nullable */
+  currentLicenseSaleId?: string | null;
   /** @nullable */
   deletedAtUtc?: string | null;
   /**
@@ -29,6 +33,9 @@ export interface Tenant {
   email?: string | null;
   id?: string;
   isActive?: boolean;
+  /** @nullable */
+  lastLicenseActivationUtc?: string | null;
+  licenseActivationCount?: number;
   /** @nullable */
   licenseGracePeriodStartedAt?: string | null;
   licenseGracePeriodUsedDays?: number;

@@ -64,7 +64,8 @@ import { IssuedLicenseUpgradeModal } from './IssuedLicenseUpgradeModal';
 import { LicenseActivationHistoryCard } from './LicenseActivationHistoryCard';
 import { LicenseReportsCard } from './LicenseReportsCard';
 import { TenantLicenseSection } from '@/features/license/components/TenantLicenseSection';
-import { TenantLicenseOverview } from '@/features/license/components/TenantLicenseOverview';
+import { TenantLicenseTabs } from '@/features/license/components/TenantLicenseTabs';
+import { billingQueryKeys } from '@/features/billing/constants/billingQueryKeys';
 import { tenantLicenseOverviewQueryKey } from '@/features/license/api/tenantLicenseOverview';
 import { resolveLicensePageSectionVisibility } from '@/features/license/utils/licensePageVisibility';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
@@ -1035,6 +1036,7 @@ export default function AdminLicensePage() {
                                 void queryClient.invalidateQueries({
                                     queryKey: tenantLicenseOverviewQueryKey,
                                 });
+                                void queryClient.invalidateQueries({ queryKey: billingQueryKeys.all });
                             }
                             if (showTenantLicenseSection && currentTenant.tenantId) {
                                 void queryClient.invalidateQueries({
@@ -1074,7 +1076,7 @@ export default function AdminLicensePage() {
                     items={[
                         {
                             key: 'server',
-                            label: t('license.page.serverLicense'),
+                            label: t('license.page.serverTab'),
                             children: (
                                 <DeploymentLicensePanel
                                     t={t}
@@ -1096,13 +1098,13 @@ export default function AdminLicensePage() {
                         },
                         {
                             key: 'all-tenants',
-                            label: t('license.superAdmin.tabTitle'),
-                            children: <TenantLicenseOverview />,
+                            label: t('license.page.tenantTab'),
+                            children: <TenantLicenseTabs />,
                         },
                     ]}
                 />
             ) : showAllTenantLicensesSection ? (
-                <TenantLicenseOverview />
+                <TenantLicenseTabs />
             ) : (
                 <>
             {showTenantLicenseSection ? <TenantLicenseSection /> : null}
@@ -1170,10 +1172,10 @@ function DeploymentLicensePanel({
         <>
             <div>
                 <Typography.Title level={4} style={{ margin: 0 }}>
-                    {t('license.page.serverLicense')}
+                    {t('license.server.title')}
                 </Typography.Title>
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 16, marginTop: 8 }}>
-                    {t('license.page.subtitle')}
+                    {t('license.server.subtitle')}
                 </Typography.Paragraph>
             </div>
             <Card title={t('license.simpleUi.titlePublic')}>

@@ -9,7 +9,7 @@ describe('sidebarRegistryCatalog', () => {
         const ids = new Set(Object.keys(SIDEBAR_NAV_ITEM_CATALOG));
 
         for (const row of SIDEBAR_LAYOUT_ROWS) {
-            if (row.kind === 'leaves') {
+            if (row.kind === 'leaves' || row.kind === 'nested') {
                 for (const id of row.catalogIds) {
                     expect(ids.has(id), `Unknown catalog id: ${id}`).toBe(true);
                 }

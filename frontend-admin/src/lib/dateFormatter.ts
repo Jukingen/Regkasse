@@ -30,6 +30,9 @@ export function formatUserDate(input: string | number | Date | null | undefined)
   return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
+/** Alias used by billing overview and legacy callers. */
+export const formatDate = formatUserDate;
+
 /** `01.12.` — chart axis labels without year. */
 export function formatUserMonthDay(input: string | number | Date | null | undefined): string {
   const d = parseInput(input);

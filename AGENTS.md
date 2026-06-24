@@ -161,6 +161,16 @@ curl http://localhost:5184/api/health?tenant=test_cafe
 - `/api/Payment`, `/api/Cart`, `/api/Product` - existing only, no new features
 - New features MUST use canonical boundaries
 
+## License Sales (Super Admin Only)
+
+- License sales are independent from RKSV/fiscal system
+- All sales are logged in `billing_audit_log` (not fiscal audit)
+- Invoices are generated as PDF with company logo and VAT breakdown
+- License keys format: `REGK-{validUntil:yyyyMMdd}-{tenantSlug}-{random}`
+- Managers can extend licenses using license keys provided by Super Admin
+
+**Docs:** `docs/BILLING_TENANT_LICENSE.md`, `docs/API_CONTRACTS.md` (Billing section), `ai/modules/billing_license.md`
+
 ## Authentication & User Management
 
 ### Login Methods
@@ -467,6 +477,7 @@ Use `/ai` docs selectively based on the task:
 - Database/entity/migration work → `ai/02_DATABASE_CONTRACT.md`
 - Compliance/fiscal/TSE/RKSV work → `ai/05_SECURITY_COMPLIANCE.md`, `ai/modules/tse_finanzonline.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
+- Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
 - High-risk areas → `ai/07_DO_NOT_TOUCH.md`
 
 ## Code Quality Rules

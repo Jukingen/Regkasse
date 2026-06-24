@@ -49,6 +49,11 @@ using KasseAPI_Final.Services.OperationalRuns;
 using KasseAPI_Final.Services.AdminProducts;
 using KasseAPI_Final.Services.AdminTenants;
 using KasseAPI_Final.Services.Billing;
+using KasseAPI_Final.Services.Hosted;
+using IAdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.ITenantLicenseService;
+using AdminTenantLicenseKeyService = KasseAPI_Final.Services.AdminTenants.TenantLicenseService;
+using IBillingTenantLicenseService = KasseAPI_Final.Services.Billing.ITenantLicenseService;
+using BillingTenantLicenseService = KasseAPI_Final.Services.Billing.TenantLicenseService;
 using KasseAPI_Final.Services.Activity;
 using KasseAPI_Final.Services.Tse;
 using KasseAPI_Final.Tenancy;
@@ -194,6 +199,7 @@ builder.Services.Configure<DevelopmentOptions>(builder.Configuration.GetSection(
 builder.Services.Configure<OfflineVoucherEncryptionOptions>(
     builder.Configuration.GetSection(OfflineVoucherEncryptionOptions.SectionName));
 builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
+builder.Services.Configure<BillingOptions>(builder.Configuration.GetSection(BillingOptions.SectionName));
 builder.Services.Configure<LicenseSettingsOptions>(builder.Configuration.GetSection(LicenseSettingsOptions.SectionName));
 builder.Services.AddSingleton<IPostConfigureOptions<LicenseOptions>, LicenseOptionsFromFilesPostConfigure>();
 
@@ -433,15 +439,22 @@ builder.Services.AddScoped<ITenantDeletionService, TenantDeletionService>();
 builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddScoped<IAdminTenantService, AdminTenantService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<KasseAPI_Final.Services.AdminTenants.ITenantLicenseService, KasseAPI_Final.Services.AdminTenants.TenantLicenseService>();
+builder.Services.AddScoped<IAdminTenantLicenseKeyService, AdminTenantLicenseKeyService>();
 builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
-builder.Services.AddScoped<KasseAPI_Final.Services.Billing.ITenantLicenseService, KasseAPI_Final.Services.Billing.TenantLicenseService>();
 builder.Services.AddSingleton<ITenantLicenseExtensionRateLimiter, TenantLicenseExtensionRateLimiter>();
+
+// Billing services
 builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<IBillingTenantLicenseService, BillingTenantLicenseService>();
+builder.Services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
+builder.Services.AddScoped<InvoicePdfTemplateService>();
 builder.Services.AddScoped<ILicenseKeyGenerator, LicenseKeyGenerator>();
 builder.Services.AddScoped<IInvoiceNumberGenerator, InvoiceNumberGenerator>();
-builder.Services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IBillingAuditService, BillingAuditService>();
+builder.Services.AddScoped<IReminderService, ReminderService>();
+builder.Services.AddScoped<IBillingReminderService>(sp => (IBillingReminderService)sp.GetRequiredService<IReminderService>());
+builder.Services.AddHostedService<BillingReminderHostedService>();
 builder.Services.AddScoped<ILicenseRenewalService, LicenseRenewalService>();
 builder.Services.AddScoped<IQuickUserGeneratorService, QuickUserGeneratorService>();
 builder.Services.AddScoped<ITenantUserService, TenantUserService>();

@@ -76,6 +76,8 @@ export type SidebarNavCatalogItem = {
     icon?: SidebarIconToken;
     /** Required permission(s) for sidebar visibility (must match `ROUTE_PERMISSIONS[menuKey]`). */
     permission?: string | string[];
+    /** When true, route is registered but omitted from sidebar leaves (deep-link only). */
+    sidebarHidden?: boolean;
 };
 
 /**
@@ -426,7 +428,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'licenseManagement',
         menuKey: '/admin/license',
         href: '/admin/license',
-        labelKey: 'nav.licenseManagement',
+        labelKey: 'nav.licenseHubLicenses',
         icon: 'KeyOutlined',
     },
     superAdminTenants: {
@@ -450,6 +452,41 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/cash-registers',
         labelKey: 'nav.superAdminCashRegisters',
         icon: 'ShopOutlined',
+    },
+    billingOverview: {
+        id: 'billingOverview',
+        menuKey: '/admin/billing',
+        href: '/admin/billing',
+        labelKey: 'nav.licenseHubSales',
+        icon: 'CreditCardOutlined',
+        permission: [PERMISSIONS.SYSTEM_CRITICAL],
+    },
+    billingSales: {
+        id: 'billingSales',
+        menuKey: '/admin/billing/sales',
+        href: '/admin/billing/sales',
+        labelKey: 'nav.billingSales',
+        icon: 'FileTextOutlined',
+        permission: [PERMISSIONS.SYSTEM_CRITICAL],
+        sidebarHidden: true,
+    },
+    billingSalesNew: {
+        id: 'billingSalesNew',
+        menuKey: '/admin/billing/sales/new',
+        href: '/admin/billing/sales/new',
+        labelKey: 'nav.billingSalesNew',
+        icon: 'ShoppingOutlined',
+        permission: [PERMISSIONS.SYSTEM_CRITICAL],
+        sidebarHidden: true,
+    },
+    billingStats: {
+        id: 'billingStats',
+        menuKey: '/admin/billing/stats',
+        href: '/admin/billing/stats',
+        labelKey: 'nav.billingStats',
+        icon: 'BarChartOutlined',
+        permission: [PERMISSIONS.SYSTEM_CRITICAL],
+        sidebarHidden: true,
     },
     rksvTestsDepExport: {
         id: 'rksvTestsDepExport',
@@ -525,6 +562,13 @@ export type SidebarLayoutBlock =
 export type SidebarLayoutRow =
     | { kind: 'divider'; key: string }
     | { kind: 'leaves'; catalogIds: SidebarCatalogId[] }
+    | {
+          kind: 'nested';
+          menuKey: string;
+          labelKey: string;
+          icon: SidebarIconToken;
+          catalogIds: SidebarCatalogId[];
+      }
     | { kind: 'domain'; domain: SidebarDomainId; blocks: SidebarLayoutBlock[] };
 
 /**
@@ -539,6 +583,13 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
             'superAdminLicenses',
             'superAdminCashRegisters',
         ],
+    },
+    {
+        kind: 'nested',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.license,
+        labelKey: 'nav.licenseHub',
+        icon: 'CreditCardOutlined',
+        catalogIds: ['licenseManagement', 'billingOverview', 'billingSales', 'billingSalesNew', 'billingStats'],
     },
     { kind: 'divider', key: 'nav-divider-platform-hub' },
     {
@@ -638,7 +689,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
                 labelKey: 'nav.settingsHub',
                 icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'sessionSettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync', 'licenseManagement'],
+                catalogIds: ['companySettings', 'sessionSettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync'],
             },
         ],
     },
@@ -658,9 +709,11 @@ export function composeAdminSidebarData(
     return data;
 }
 
-/** All catalog leaf `menuKey` values (for permission / route drift tests). */
+/** Catalog leaf menuKeys visible in the sidebar (excludes `sidebarHidden`). */
 export function getSidebarCatalogLeafMenuKeys(): string[] {
-    return Object.values(SIDEBAR_NAV_ITEM_CATALOG).map((item) => item.menuKey);
+    return Object.values(SIDEBAR_NAV_ITEM_CATALOG)
+        .filter((item) => !item.sidebarHidden)
+        .map((item) => item.menuKey);
 }
 
 /** Catalog + RKSV leaves for guard coverage tests. */

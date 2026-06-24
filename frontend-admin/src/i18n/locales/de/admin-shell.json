@@ -8,6 +8,13 @@
   "sidebar": {
     "noAccessibleMenus": "Keine Menüpunkte verfügbar."
   },
+  "nav": {
+    "billing": "Lizenzverkauf",
+    "billingOverview": "Übersicht",
+    "billingSales": "Lizenzverkäufe",
+    "billingStats": "Statistiken",
+    "billingNew": "Neuer Verkauf"
+  },
   "aria": {
     "openNav": "Navigationsmenü öffnen",
     "closeNav": "Navigationsmenü schließen",

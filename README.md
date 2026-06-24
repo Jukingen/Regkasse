@@ -33,6 +33,20 @@ cd frontend && npm start
 | POS App | [`frontend/README.md`](frontend/README.md) |
 | AI Onboarding | [`REGKASSE_AI_ONBOARDING.md`](REGKASSE_AI_ONBOARDING.md) |
 | Agent rules | [`AGENTS.md`](AGENTS.md) |
+| Billing / mandant license | [`docs/BILLING_TENANT_LICENSE.md`](docs/BILLING_TENANT_LICENSE.md) |
+
+## License Management
+
+### Super Admin
+
+- **License Overview:** `/admin/license` — View server license and all tenant licenses
+- **License Sales:** `/admin/billing` — Manage license sales and statistics
+- **New Sale:** `/admin/billing/sales/new` — Create a new license sale with PDF invoice
+
+### Manager
+
+- **License Status:** `/admin/license` — View own tenant license status
+- **Extend License:** Enter license key to extend tenant license
 
 ## License
 

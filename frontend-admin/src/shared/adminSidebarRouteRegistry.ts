@@ -16,4 +16,10 @@ export const ADMIN_SIDEBAR_NON_RKSV_LEAF_ROUTE_KEYS = getSidebarCatalogLeafMenuK
  * `/orders` is registered in `ROUTE_PERMISSIONS` for direct/deep links; there is no `MENU_PERMISSION`
  * row because the sidebar does not surface this area yet.
  */
-export const ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF = ['/orders', '/vouchers/new'] as const;
+export const ROUTE_GUARD_PATHS_WITHOUT_SIDEBAR_LEAF = [
+    '/orders',
+    '/vouchers/new',
+    /** New sale wizard — catalog entry is `sidebarHidden`; reached from overview/sales/tenant hub. */
+    '/admin/billing/sales/new',
+    /** Sale detail `/admin/billing/sales/{id}` — prefix-guarded via `/admin/billing/sales` (no sidebar leaf). */
+] as const;

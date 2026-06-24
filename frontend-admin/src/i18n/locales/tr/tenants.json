@@ -278,6 +278,9 @@
       "lastActivity": "Son aktivite",
       "manageUsers": "Kullanıcıları yönet →",
       "statsTitle": "Özet",
+      "billingLicenseCard": "Lisans",
+      "sellLicense": "Lisans sat",
+      "viewSales": "Satışları görüntüle",
       "confirmSuspend": {
         "title": "Kiracı askıya alınsın mı?",
         "body": "Kiracı yeniden etkinleştirilene kadar kullanıcılar giriş yapamaz."

@@ -69,7 +69,7 @@ export function LicensePreviewDetails({
                         }
                     />
                     <Descriptions column={1} size="small" style={{ textAlign: 'left' }}>
-                        <Descriptions.Item label={t('license.tenant.licenseKey')}>
+                        <Descriptions.Item label={t('license.mandant.licenseKey')}>
                             <Typography.Text code copyable={{ text: extendResult.licenseKey }}>
                                 {extendResult.licenseKey}
                             </Typography.Text>
@@ -97,7 +97,7 @@ export function LicensePreviewDetails({
                     {preview.licenseKey || preview.validFromUtc || preview.validUntilUtc ? (
                         <Descriptions column={1} size="small" style={{ textAlign: 'left' }}>
                             {preview.licenseKey ? (
-                                <Descriptions.Item label={t('license.tenant.licenseKey')}>
+                                <Descriptions.Item label={t('license.mandant.licenseKey')}>
                                     <Typography.Text code copyable={{ text: preview.licenseKey }}>
                                         {preview.licenseKey}
                                     </Typography.Text>

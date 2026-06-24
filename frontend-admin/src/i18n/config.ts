@@ -16,6 +16,7 @@ import deReporting from './locales/de/reporting.json';
 import deErrors from './locales/de/errors.json';
 import deModifierGroups from './locales/de/modifierGroups.json';
 import deBenefits from './locales/de/benefits.json';
+import deBilling from './locales/de/billing.json';
 import deCustomers from './locales/de/customers.json';
 import deInvoices from './locales/de/invoices.json';
 import deLicense from './locales/de/license.json';
@@ -52,6 +53,7 @@ import enReporting from './locales/en/reporting.json';
 import enErrors from './locales/en/errors.json';
 import enModifierGroups from './locales/en/modifierGroups.json';
 import enBenefits from './locales/en/benefits.json';
+import enBilling from './locales/en/billing.json';
 import enCustomers from './locales/en/customers.json';
 import enInvoices from './locales/en/invoices.json';
 import enLicense from './locales/en/license.json';
@@ -88,6 +90,7 @@ import trReporting from './locales/tr/reporting.json';
 import trErrors from './locales/tr/errors.json';
 import trModifierGroups from './locales/tr/modifierGroups.json';
 import trBenefits from './locales/tr/benefits.json';
+import trBilling from './locales/tr/billing.json';
 import trCustomers from './locales/tr/customers.json';
 import trInvoices from './locales/tr/invoices.json';
 import trLicense from './locales/tr/license.json';
@@ -138,6 +141,7 @@ const catalogs = {
     errors: deErrors,
     modifierGroups: deModifierGroups,
     benefits: deBenefits,
+    billing: deBilling,
     customers: deCustomers,
     invoices: deInvoices,
     license: deLicense,
@@ -176,6 +180,7 @@ const catalogs = {
     errors: enErrors,
     modifierGroups: enModifierGroups,
     benefits: enBenefits,
+    billing: enBilling,
     customers: enCustomers,
     invoices: enInvoices,
     license: enLicense,
@@ -214,6 +219,7 @@ const catalogs = {
     errors: trErrors,
     modifierGroups: trModifierGroups,
     benefits: trBenefits,
+    billing: trBilling,
     customers: trCustomers,
     invoices: trInvoices,
     license: trLicense,

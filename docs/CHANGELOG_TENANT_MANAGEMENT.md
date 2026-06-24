@@ -4,6 +4,25 @@ Chronological summary of notable changes tied to Super Admin tenant UX, mandant 
 
 ---
 
+## 2026-06-23 — Billing tenant license service & Manager extend API
+
+**Summary:** Mandanten-SaaS lifecycle for Super Admin `license_sales` and billing-format keys; new Manager endpoint `POST /api/admin/license/extend`.
+
+**Backend:**
+
+- `Services.Billing.TenantLicenseService` — activate, extend, status, expiring licenses, history (`IDbContextFactory`)
+- `POST /api/admin/license/extend` — `settings.manage`, body `ExtendLicenseRequest`, uses billing service
+- `POST /api/license/activate` — billing-format keys routed to `Billing.ITenantLicenseService`
+- `billing_audit_log` actions `LICENSE_ACTIVATED`, `LICENSE_EXTENDED`
+- DI: `IBillingTenantLicenseService` + `IAdminTenantLicenseKeyService` aliases (two `ITenantLicenseService` types)
+- Tests: `TenantLicenseServiceTests`, `BillingTenantLicenseServiceTests`, `AdminLicenseExtendTests`
+
+**Documentation:** [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md), `ai/modules/billing_license.md`; updates to `LICENSE_SYSTEM.md`, `MULTI_TENANT.md`, `TENANT_MANAGEMENT.md`.
+
+**Known gap:** FA `extendTenantLicense()` still calls `POST /api/admin/license/mandant/extend` (`license.manage`).
+
+---
+
 ## 2026-06-17 — Header Mandantenlizenz vs Server-Lizenz clarified
 
 **Summary:** Header badge shows **only** tenant (Mandantenlizenz) from `GET /api/tenants/switcher`; `/admin/license` emphasizes **Server-Lizenz (On-Premise)**. Deployment license no longer merged into header indicator.

@@ -8,7 +8,7 @@
 
 export interface ExtendTenantLicenseRequest {
   /**
-   * @maxLength 64
+   * @maxLength 100
    * @nullable
    */
   licenseKey?: string | null;

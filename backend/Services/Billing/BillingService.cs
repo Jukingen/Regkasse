@@ -1,7 +1,7 @@
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace KasseAPI_Final.Services.Billing;
 
@@ -21,8 +21,8 @@ public sealed class BillingService : IBillingService
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly ILicenseKeyGenerator _licenseKeyGenerator;
     private readonly IBillingAuditService _billingAudit;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWebHostEnvironment _environment;
-    private readonly CompanyProfileOptions _sellerProfile;
     private readonly IInvoicePdfGenerator _invoicePdfGenerator;
     private readonly ILogger<BillingService> _logger;
 
@@ -30,16 +30,16 @@ public sealed class BillingService : IBillingService
         IDbContextFactory<AppDbContext> dbContextFactory,
         ILicenseKeyGenerator licenseKeyGenerator,
         IBillingAuditService billingAudit,
+        IServiceScopeFactory scopeFactory,
         IWebHostEnvironment environment,
-        IOptions<CompanyProfileOptions> sellerProfile,
         IInvoicePdfGenerator invoicePdfGenerator,
         ILogger<BillingService> logger)
     {
         _dbContextFactory = dbContextFactory;
         _licenseKeyGenerator = licenseKeyGenerator;
         _billingAudit = billingAudit;
+        _scopeFactory = scopeFactory;
         _environment = environment;
-        _sellerProfile = sellerProfile.Value;
         _invoicePdfGenerator = invoicePdfGenerator;
         _logger = logger;
     }
@@ -67,6 +67,7 @@ public sealed class BillingService : IBillingService
         return new LicenseSalePreviewResponse
         {
             LicenseKey = licenseKey,
+            LicensePlan = request.LicensePlan,
             ValidFromUtc = validFrom,
             ValidUntilUtc = validUntil,
             DurationDays = durationDays,
@@ -161,6 +162,8 @@ public sealed class BillingService : IBillingService
 
             await _billingAudit.LogLicenseSoldAsync(sale, soldByUserId, ipAddress: null, cancellationToken: ct)
                 .ConfigureAwait(false);
+
+            await ScheduleRemindersForSaleAsync(sale.Id, ct).ConfigureAwait(false);
 
             _logger.LogInformation(
                 "License sale created: {InvoiceNumber} for tenant {TenantSlug}",
@@ -305,6 +308,8 @@ public sealed class BillingService : IBillingService
             await _billingAudit.LogLicenseCancelledAsync(sale, cancelledByUserId, reason, ipAddress: null, cancellationToken: ct)
                 .ConfigureAwait(false);
 
+            await CancelRemindersForSaleAsync(sale.Id, ct).ConfigureAwait(false);
+
             _logger.LogInformation(
                 "License sale cancelled: {InvoiceNumber} for tenant {TenantSlug}",
                 sale.InvoiceNumber,
@@ -428,28 +433,14 @@ public sealed class BillingService : IBillingService
         Guid saleId,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var pdf = await _invoicePdfGenerator.GenerateInvoicePdfAsync(saleId, ct).ConfigureAwait(false);
 
+        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var sale = await LicenseSalesScope(db)
-            .Include(s => s.Tenant)
             .FirstOrDefaultAsync(s => s.Id == saleId, ct)
             .ConfigureAwait(false)
             ?? throw new KeyNotFoundException("License sale not found.");
 
-        var tenant = sale.Tenant
-            ?? throw new InvalidOperationException("License sale tenant not found.");
-
-        var billingProfile = await LoadTenantBillingProfileAsync(db, tenant, ct).ConfigureAwait(false);
-        var logoBytes = InvoicePdfGenerator.TryLoadLogoBytes(_sellerProfile.LogoUrl, _environment.ContentRootPath);
-        var pdf = _invoicePdfGenerator.Generate(new LicenseSaleInvoiceDocument(
-            Sale: sale,
-            TenantName: tenant.Name,
-            TenantSlug: tenant.Slug,
-            TenantAddress: billingProfile.Address,
-            TenantVatId: string.IsNullOrWhiteSpace(billingProfile.VatId) ? null : billingProfile.VatId,
-            TenantEmail: string.IsNullOrWhiteSpace(billingProfile.Email) ? null : billingProfile.Email,
-            Seller: _sellerProfile,
-            SellerLogoBytes: logoBytes));
         var relativePath = Path.Combine(InvoiceStorageRelativePath, $"{sale.InvoiceNumber}.pdf");
         var absolutePath = Path.Combine(_environment.ContentRootPath, relativePath);
         Directory.CreateDirectory(Path.GetDirectoryName(absolutePath)!);
@@ -737,6 +728,24 @@ public sealed class BillingService : IBillingService
 
     private static string? NullIfEmpty(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task ScheduleRemindersForSaleAsync(Guid saleId, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        await scope.ServiceProvider
+            .GetRequiredService<IBillingReminderService>()
+            .ScheduleRemindersForSaleAsync(saleId, ct)
+            .ConfigureAwait(false);
+    }
+
+    private async Task CancelRemindersForSaleAsync(Guid saleId, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        await scope.ServiceProvider
+            .GetRequiredService<IBillingReminderService>()
+            .CancelRemindersForSaleAsync(saleId, ct)
+            .ConfigureAwait(false);
+    }
 
     #endregion
 }

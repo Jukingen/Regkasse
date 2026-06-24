@@ -218,8 +218,10 @@ FA shows **two separate license concepts**. Mixing them caused operator confusio
 
 ### 2. Tenant / Mandantenlizenz (SaaS row)
 
-- **Stored on:** `tenants.license_key`, `tenants.license_valid_until_utc`.
+- **Stored on:** `tenants.license_key`, `tenants.license_valid_until_utc`, `tenants.current_license_sale_id` (billing link).
 - **Super Admin management:** tenant detail → **License** tab — `LicenseManager` + `/api/admin/tenants/{id}/license/*` (`adminTenantLicense.ts`).
+- **Super Admin billing sales:** `POST /api/admin/billing/license-sales` → `license_sales` row + billing key — see [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md).
+- **Manager extend (billing):** `POST /api/admin/license/extend` (`settings.manage`); FA client still on `/api/admin/license/mandant/extend` until migrated (`tenantLicense.ts`).
 - **Manager header badge:** `LicenseStatusIndicator` → `useHeaderTenantLicense` — only when `showTenantLicenseInHeader` (Manager + real tenant slug, not Super Admin). Shows **Mandantenlizenz** from `GET /api/tenants/switcher` (via `useCurrentTenant`), never deployment license.
 - **Dev switcher rows:** `getTenantSwitcherLicenseBadge` — explicit hint *„Mandantenlizenz (Unternehmen)“*.
 

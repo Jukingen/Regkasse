@@ -27,6 +27,7 @@ Ayrıntı: `docs/MULTI_TENANT.md`, `REGKASSE_AI_ONBOARDING.md`, `backend/README.
 - HTTP yokken accessor `TenantId` null olabilir → `ITenantEntity` filtreleri kapalı (kasıtlı yollar).
 - `activated_licenses` kiracı-scoped değil; makine fingerprint ile okunur.
 - `LicenseService`: singleton snapshot + scope ile DB; startup DB hatası trial’a düşer, host’u durdurmaz.
+- **Billing mandant license:** `Services.Billing.TenantLicenseService` — `IDbContextFactory` (scoped factory pattern); iki adet `ITenantLicenseService` (AdminTenants vs Billing) — DI alias zorunlu. Audit: `IBillingAuditService`; reminders: `IReminderService` + `BillingReminderHostedService`. Bkz. `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`.
 
 ## API Headers
 

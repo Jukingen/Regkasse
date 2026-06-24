@@ -294,6 +294,8 @@ Access: **`admin.regkasse.at`** (host slug `admin`; operational business APIs us
 | Suspend / reactivate | `PUT` with `status` | `suspended` sets `isActive=false`; `active` re-enables |
 | Soft-delete | `DELETE /api/admin/tenants/{id}` | `status=deleted`; legacy default tenant cannot be deleted |
 | Issue licenses | `/admin/license` + tenant `licenseKey` | Issued-license flows are tenant-scoped; use impersonation for another tenant’s context |
+| Record billing license sales | `POST /api/admin/billing/license-sales` | Creates `license_sales` + billing key; see **`docs/BILLING_TENANT_LICENSE.md`** |
+| Billing audit / reminders | `GET /api/admin/billing/audit`, `POST …/reminders/check` | Super Admin; `billing_audit_log`, `license_reminders` |
 | Impersonate | `POST /api/admin/tenants/{tenantId}/impersonate` | JWT + `tenant_impersonation` claim |
 | Create tenant users | `POST /api/admin/tenants/{tenantId}/users` | One-time `generatedPassword`; no invitation email |
 | Create platform users | `POST /api/admin/users` (no `tenantId`) | Super Admin staff; same password handoff |

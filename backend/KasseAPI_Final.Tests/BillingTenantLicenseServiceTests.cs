@@ -5,8 +5,9 @@ using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
 using BillingTenantLicenseService = KasseAPI_Final.Services.Billing.TenantLicenseService;
@@ -168,19 +169,22 @@ public sealed class BillingTenantLicenseServiceTests
         var environment = new Mock<IWebHostEnvironment>();
         environment.SetupGet(e => e.ContentRootPath).Returns(Path.GetTempPath());
 
-        var billingService = new BillingService(
+        BillingService? billingService = null;
+        var pdfGenerator = CreateInvoicePdfGenerator(ctx.Factory, environment.Object, () => billingService!);
+        billingService = new BillingService(
             ctx.Factory,
             new LicenseKeyGenerator(),
-            new BillingAuditService(ctx.Db, NullLogger<BillingAuditService>.Instance),
+            BillingTestDoubles.CreateAuditService(ctx.Factory),
+            BillingTestDoubles.CreateReminderScopeFactory(),
             environment.Object,
-            Options.Create(new CompanyProfileOptions { CompanyName = "Regkasse Platform" }),
-            new InvoicePdfGenerator(),
+            pdfGenerator,
             NullLogger<BillingService>.Instance);
 
         return new BillingTenantLicenseService(
             ctx.Factory,
             billingService,
             new LicenseKeyGenerator(),
+            BillingTestDoubles.CreateAuditService(ctx.Factory),
             NullLogger<BillingTenantLicenseService>.Instance);
     }
 
@@ -286,5 +290,26 @@ public sealed class BillingTenantLicenseServiceTests
         public IDbContextFactory<AppDbContext> Factory { get; }
 
         public ValueTask DisposeAsync() => Db.DisposeAsync();
+    }
+
+    private static InvoicePdfGenerator CreateInvoicePdfGenerator(
+        IDbContextFactory<AppDbContext> factory,
+        IWebHostEnvironment environment,
+        Func<IBillingService> billingServiceFactory)
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var templateService = new InvoicePdfTemplateService(configuration, environment);
+
+        var services = new ServiceCollection();
+        services.AddSingleton(billingServiceFactory);
+        services.AddScoped<IBillingService>(sp => sp.GetRequiredService<Func<IBillingService>>()());
+        var provider = services.BuildServiceProvider();
+
+        return new InvoicePdfGenerator(
+            factory,
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            templateService,
+            NullLogger<InvoicePdfGenerator>.Instance,
+            configuration);
     }
 }

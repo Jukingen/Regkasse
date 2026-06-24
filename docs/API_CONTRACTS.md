@@ -317,6 +317,85 @@ Same shape as manual tenant create — `CreateTenantUserResultDto` (201 Created)
 
 ---
 
+## Billing / License Management
+
+> **Full operator guide:** [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md)  
+> **OpenAPI:** `backend/swagger.json` — regenerate FA client: `cd frontend-admin && npm run generate:api`
+
+Billing-format license keys: `REGK-{yyyyMMdd}-{tenantSlug}-{8chars}`.  
+**Not** deployment / On-Premise `LicenseService` (`issued_licenses`) — see [`LICENSE_SYSTEM.md`](LICENSE_SYSTEM.md).
+
+### Super Admin Endpoints
+
+Controller: `AdminBillingController` — `[Authorize(Roles = SuperAdmin)]` on all routes below.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/api/admin/billing/license-sales/preview` | Preview a license sale (pricing, key, invoice number) | SuperAdmin |
+| POST | `/api/admin/billing/license-sales` | Create a license sale; updates tenant `license_*` fields | SuperAdmin |
+| GET | `/api/admin/billing/license-sales` | List sales (pagination, `tenantId`, `status`, `search`, date range) | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/{id}` | Get sale detail | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/by-key/{licenseKey}` | Lookup sale by billing license key | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/{id}/pdf` | Download invoice PDF | SuperAdmin |
+| POST | `/api/admin/billing/license-sales/preview-pdf` | Generate preview PDF without persisting sale | SuperAdmin |
+| POST | `/api/admin/billing/license-sales/{id}/cancel` | Cancel a sale; clears tenant license when current | SuperAdmin |
+| GET | `/api/admin/billing/stats` | Sales statistics (revenue, active/expiring counts) | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/expiring` | Licenses expiring within threshold (default 30 days) | SuperAdmin |
+| GET | `/api/admin/billing/tenants/{tenantId}/license` | Mandant license info for a tenant | SuperAdmin |
+| GET | `/api/admin/billing/audit` | Paginated billing audit log | SuperAdmin |
+| GET | `/api/admin/billing/license-sales/{id}/audit` | Audit trail for one sale | SuperAdmin |
+| GET | `/api/admin/billing/tenants/{tenantId}/reminders` | License expiry reminders for tenant | SuperAdmin |
+| POST | `/api/admin/billing/reminders/check` | Manual: create missing reminders | SuperAdmin |
+| POST | `/api/admin/billing/reminders/send` | Manual: process pending reminders | SuperAdmin |
+
+**Create sale body (`CreateLicenseSaleRequest`):**
+
+| Field | Required | Notes |
+|-------|----------|--------|
+| `tenantId` | Yes | Target mandant UUID |
+| `licensePlan` | Yes | `6_months` \| `12_months` \| `custom` |
+| `priceNet` | Yes | > 0 |
+| `vatRate` | No | Default 20 |
+| `customValidUntilUtc` | If `custom` | Must be after license start |
+| `notes` | No | Free text |
+
+**List sales query (`GET /api/admin/billing/license-sales`):** `page`, `pageSize`, `tenantId`, `status` (`active` \| `cancelled` \| `refunded` \| `all`), `search`, `fromDate`, `toDate`.
+
+### Manager Endpoints
+
+Mandant SaaS license lifecycle — JWT with **tenant context** required (`ICurrentTenantAccessor.TenantId`). Cross-tenant key → HTTP 400 (German message in body).
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/license/status` | License snapshot (deployment + optional mandant overlay when tenant resolved) | Anonymous / JWT |
+| GET | `/api/license/billing/status` | Current mandant billing license status (`TenantLicenseStatus`) | JWT + tenant |
+| POST | `/api/license/activate` | Unified activate: billing-format key → mandant branch; else deployment | JWT + tenant (billing keys) |
+| POST | `/api/license/billing/activate` | Activate billing-format key for current tenant | JWT + tenant |
+| POST | `/api/license/extend` | Extend mandant license with a new billing sale key | JWT + tenant |
+
+**Extend / activate body:**
+
+```json
+{ "licenseKey": "REGK-20270101-cafe-A7F3K2D9" }
+```
+
+**Responses:** `ActivationResult` / `ExtendResult` — `{ success, message, licenseKey, validUntil, plan }` (field names per OpenAPI).
+
+> **Note:** `GET /api/license/status` and `POST /api/license/activate` are shared with POS (anonymous allowed for deployment branch). Billing keys on `POST /api/license/activate` require authenticated user + tenant context. Prefer **`/api/license/billing/*`** for new Admin clients to avoid collision with deployment licensing.
+
+### Legacy Admin Manager paths (still active)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/license/mandant` | `license.manage` | Mandant license overview |
+| POST | `/api/admin/license/mandant/preview` | `license.manage` | Preview key without applying |
+| POST | `/api/admin/license/mandant/extend` | `license.manage` | Extend via REGK key (legacy) |
+| POST | `/api/admin/license/extend` | `settings.manage` | Canonical admin extend (billing service) |
+
+**Implementation:** `AdminBillingController`, `LicenseController` (+ `LicenseController.Manager.cs`), `AdminLicenseController` (mandant + extend partials).
+
+---
+
 ## Client migration checklist
 
 | Client | Action |
@@ -336,6 +415,7 @@ After backend DTO changes:
 ## Related documentation
 
 - [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) — operator flows, roles, FA surfaces
+- [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) — billing / mandant license API and services
 - [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) — Authentication section
 - [`frontend-admin/README.md`](../frontend-admin/README.md) — Schnell anlegen
 - [`frontend/README.md`](../frontend/README.md) — POS login

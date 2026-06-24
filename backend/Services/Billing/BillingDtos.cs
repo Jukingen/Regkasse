@@ -67,6 +67,7 @@ public record LicenseSaleListQuery
 public record LicenseSalePreviewResponse
 {
     public string LicenseKey { get; init; } = string.Empty;
+    public string LicensePlan { get; init; } = string.Empty;
     public DateTime ValidFromUtc { get; init; }
     public DateTime ValidUntilUtc { get; init; }
     public int DurationDays { get; init; }
@@ -196,6 +197,93 @@ public record ExtendLicenseRequest
 {
     [Required]
     public string LicenseKey { get; init; } = string.Empty;
+}
+
+/// <summary>Billing mandant key body for Manager activate/extend on <c>/api/license/*</c>.</summary>
+public record MandantLicenseKeyRequest
+{
+    [Required]
+    public string LicenseKey { get; init; } = string.Empty;
+}
+
+#endregion
+
+#region Audit DTOs
+
+public record BillingAuditLogResponse
+{
+    public Guid Id { get; init; }
+    public Guid? TenantId { get; init; }
+    public string? TenantName { get; init; }
+    public string? TenantSlug { get; init; }
+    public string UserName { get; init; } = string.Empty;
+    public string Action { get; init; } = string.Empty;
+    public Guid? SaleId { get; init; }
+    public string? InvoiceNumber { get; init; }
+    public string? Details { get; init; }
+    public string? IpAddress { get; init; }
+    public DateTime TimestampUtc { get; init; }
+}
+
+public record BillingAuditLogQuery
+{
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 20;
+    public Guid? TenantId { get; init; }
+    public Guid? SaleId { get; init; }
+    public string? Action { get; init; }
+    public DateTime? FromDate { get; init; }
+    public DateTime? ToDate { get; init; }
+    public string? UserId { get; init; }
+}
+
+public record BillingAuditLogListResponse
+{
+    public List<BillingAuditLogResponse> Items { get; init; } = [];
+    public int TotalCount { get; init; }
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalPages { get; init; }
+}
+
+#endregion
+
+#region Reminder DTOs
+
+public record LicenseReminderResponse
+{
+    public Guid Id { get; init; }
+    public Guid TenantId { get; init; }
+    public string TenantName { get; init; } = string.Empty;
+    public string TenantSlug { get; init; } = string.Empty;
+    public Guid LicenseSaleId { get; init; }
+    public string LicenseKey { get; init; } = string.Empty;
+    public DateTime ValidUntilUtc { get; init; }
+    public DateTime ReminderDateUtc { get; init; }
+    public DateTime? ReminderSentAtUtc { get; init; }
+    public string ReminderType { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public int DaysRemaining { get; init; }
+}
+
+public record BillingReminderQuery
+{
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 50;
+    public Guid? TenantId { get; init; }
+    public Guid? LicenseSaleId { get; init; }
+    public string? Status { get; init; }
+    public DateTime? FromDate { get; init; }
+    public DateTime? ToDate { get; init; }
+}
+
+public record BillingReminderListResponse
+{
+    public List<LicenseReminderResponse> Items { get; init; } = [];
+    public int TotalCount { get; init; }
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalPages { get; init; }
 }
 
 #endregion

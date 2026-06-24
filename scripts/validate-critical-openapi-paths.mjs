@@ -26,6 +26,12 @@ const CRITICAL_PATHS = [
   { path: '/api/admin/restore-verification/readiness', methods: ['get'] },
   { path: '/api/rksv/monatsbeleg/status-overview', methods: ['get'] },
   { path: '/api/rksv/reminder/status-overview', methods: ['get'] },
+  { path: '/api/admin/billing/license-sales/preview', methods: ['post'] },
+  { path: '/api/admin/billing/license-sales', methods: ['get', 'post'] },
+  { path: '/api/admin/billing/license-sales/{id}', methods: ['get'] },
+  { path: '/api/admin/billing/stats', methods: ['get'] },
+  { path: '/api/license/billing/status', methods: ['get'] },
+  { path: '/api/license/extend', methods: ['post'] },
 ];
 
 const REQUIRED_SCHEMAS = [
@@ -37,6 +43,10 @@ const REQUIRED_SCHEMAS = [
   'RestoreVerificationReadinessResponseDto',
   'MonatsbelegRegisterStatusItemDto',
   'RksvReminderRegisterStatusItemDto',
+  'LicenseSalePreviewResponse',
+  'LicenseSaleResponse',
+  'TenantLicenseStatus',
+  'ExtendResult',
 ];
 
 /**

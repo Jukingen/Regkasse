@@ -77,6 +77,25 @@ function iconEl(token?: SidebarIconToken): React.ReactNode {
     return <C />;
 }
 
+function visibleCatalogIds(catalogIds: readonly SidebarCatalogId[]): SidebarCatalogId[] {
+    return catalogIds.filter((id) => !SIDEBAR_NAV_ITEM_CATALOG[id].sidebarHidden);
+}
+
+function buildNestedSidebarGroup(
+    t: (key: string) => string,
+    block: { menuKey: string; labelKey: string; icon: SidebarIconToken; catalogIds: SidebarCatalogId[] },
+): NonNullable<MenuProps['items']>[number] {
+    const text = t(block.labelKey);
+    const nestedIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
+    return {
+        key: block.menuKey,
+        icon: iconEl(block.icon),
+        label: text,
+        title: text,
+        children: nestedIds.map((id) => catalogLeaf(t, id)),
+    };
+}
+
 function catalogLeaf(
     t: (key: string) => string,
     catalogId: keyof typeof SIDEBAR_NAV_ITEM_CATALOG,
@@ -132,22 +151,14 @@ function buildDomainBlocks(
     const out: MenuProps['items'] = [];
     for (const block of blocks) {
         if (block.kind === 'leaves') {
-            const leafIds = filterCatalogIdsForInventoryNav(block.catalogIds as readonly SidebarCatalogId[]);
+            const leafIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(block.catalogIds));
             for (const id of leafIds) {
                 out.push(catalogLeaf(t, id));
             }
             continue;
         }
         if (block.kind === 'nested') {
-            const text = t(block.labelKey);
-            const nestedIds = filterCatalogIdsForInventoryNav(block.catalogIds as readonly SidebarCatalogId[]);
-            out.push({
-                key: block.menuKey,
-                icon: iconEl(block.icon),
-                label: text,
-                title: text,
-                children: nestedIds.map((id) => catalogLeaf(t, id)),
-            });
+            out.push(buildNestedSidebarGroup(t, block));
             continue;
         }
         if (block.kind === 'fiscalRksvClosing') {
@@ -210,10 +221,15 @@ export function buildAdminSidebarMenuItems(params: {
         }
 
         if (row.kind === 'leaves') {
-            const leafIds = filterCatalogIdsForInventoryNav(row.catalogIds as readonly SidebarCatalogId[]);
+            const leafIds = filterCatalogIdsForInventoryNav(visibleCatalogIds(row.catalogIds));
             for (const id of leafIds) {
                 menuItems.push(catalogLeaf(t, id));
             }
+            continue;
+        }
+
+        if (row.kind === 'nested') {
+            menuItems.push(buildNestedSidebarGroup(t, row));
             continue;
         }
 

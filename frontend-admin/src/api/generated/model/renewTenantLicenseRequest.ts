@@ -12,4 +12,5 @@ export interface RenewTenantLicenseRequest {
    * @maximum 120
    */
   additionalMonths?: number;
+  paymentConfirmed?: boolean;
 }
