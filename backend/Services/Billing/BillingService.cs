@@ -2,6 +2,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace KasseAPI_Final.Services.Billing;
 
@@ -24,6 +25,7 @@ public sealed class BillingService : IBillingService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWebHostEnvironment _environment;
     private readonly IInvoicePdfGenerator _invoicePdfGenerator;
+    private readonly BillingBackupConfig _backupConfig;
     private readonly ILogger<BillingService> _logger;
 
     public BillingService(
@@ -33,6 +35,7 @@ public sealed class BillingService : IBillingService
         IServiceScopeFactory scopeFactory,
         IWebHostEnvironment environment,
         IInvoicePdfGenerator invoicePdfGenerator,
+        IOptions<BillingBackupConfig> backupConfig,
         ILogger<BillingService> logger)
     {
         _dbContextFactory = dbContextFactory;
@@ -41,6 +44,7 @@ public sealed class BillingService : IBillingService
         _scopeFactory = scopeFactory;
         _environment = environment;
         _invoicePdfGenerator = invoicePdfGenerator;
+        _backupConfig = backupConfig.Value;
         _logger = logger;
     }
 
@@ -171,7 +175,9 @@ public sealed class BillingService : IBillingService
                 tenant.Slug);
 
             sale.Tenant = tenant;
-            return await MapToResponseAsync(sale, db, ct).ConfigureAwait(false);
+            var response = await MapToResponseAsync(sale, db, ct).ConfigureAwait(false);
+            TriggerSaleBackupIfEnabled(sale.Id);
+            return response;
         }
         catch
         {
@@ -745,6 +751,27 @@ public sealed class BillingService : IBillingService
             .GetRequiredService<IBillingReminderService>()
             .CancelRemindersForSaleAsync(saleId, ct)
             .ConfigureAwait(false);
+    }
+
+    private void TriggerSaleBackupIfEnabled(Guid saleId)
+    {
+        if (!_backupConfig.Enabled || !_backupConfig.BackupOnSaleCreation)
+            return;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var backupService = scope.ServiceProvider.GetRequiredService<IBillingBackupService>();
+                await backupService.BackupSaleAsync(saleId, triggeredByUserId: null, CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Background backup failed for sale {SaleId}", saleId);
+            }
+        });
     }
 
     #endregion

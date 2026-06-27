@@ -288,6 +288,72 @@ public record BillingReminderListResponse
 
 #endregion
 
+#region Backup DTOs
+
+public record BackupResult
+{
+    public bool Success { get; set; }
+    public string BackupRunId { get; set; } = string.Empty;
+    public int RecordCount { get; set; }
+    public string BackupPath { get; set; } = string.Empty;
+    public string FileHash { get; set; } = string.Empty;
+    public long FileSizeBytes { get; set; }
+    public List<string> Errors { get; init; } = [];
+    public DateTime CompletedAtUtc { get; set; }
+}
+
+public record BackupHistoryQuery
+{
+    public int Page { get; init; } = 1;
+    public int PageSize { get; init; } = 20;
+    public string? BackupType { get; init; }
+    public string? Status { get; init; }
+    public Guid? SaleId { get; init; }
+    public DateTime? FromDate { get; init; }
+    public DateTime? ToDate { get; init; }
+}
+
+public record BackupHistoryResponse
+{
+    public Guid Id { get; init; }
+    public string BackupRunId { get; init; } = string.Empty;
+    public Guid? SaleId { get; init; }
+    public string? InvoiceNumber { get; init; }
+    public string BackupType { get; init; } = string.Empty;
+    public string BackupPath { get; init; } = string.Empty;
+    public long FileSizeBytes { get; init; }
+    public string FileHash { get; init; } = string.Empty;
+    public int RecordCount { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public string? ErrorMessage { get; init; }
+    public string TriggeredBy { get; init; } = "System";
+    public DateTime StartedAtUtc { get; init; }
+    public DateTime? CompletedAtUtc { get; init; }
+    public DateTime? RetentionUntilUtc { get; init; }
+}
+
+public record BackupHistoryListResponse
+{
+    public List<BackupHistoryResponse> Items { get; init; } = [];
+    public int TotalCount { get; init; }
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalPages { get; init; }
+}
+
+public record BillingBackupConfig
+{
+    public bool Enabled { get; init; } = true;
+    public string BasePath { get; init; } = "./App_Data/billing-backups";
+    public int RetentionYears { get; init; } = 7;
+    public bool BackupOnSaleCreation { get; init; } = true;
+    public bool SendPdfViaEmail { get; init; }
+    public string? EmailRecipients { get; init; }
+    public int DailyBackupHourUtc { get; init; } = 2;
+}
+
+#endregion
+
 #region Internal DTOs
 
 public record LicensePlanDefinition

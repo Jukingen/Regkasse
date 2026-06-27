@@ -204,6 +204,8 @@ namespace KasseAPI_Final.Data
 
         public DbSet<BillingAuditLog> BillingAuditLogs { get; set; }
 
+        public DbSet<BillingBackupHistory> BillingBackupHistories { get; set; }
+
         public DbSet<LicenseReminder> LicenseReminders { get; set; }
 
         public DbSet<InvoiceSequence> InvoiceSequences { get; set; }
@@ -1230,6 +1232,33 @@ namespace KasseAPI_Final.Data
                 entity.HasOne(e => e.Tenant)
                     .WithMany()
                     .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<BillingBackupHistory>(entity =>
+            {
+                entity.ToTable("billing_backup_history");
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.SaleId).HasDatabaseName("idx_billing_backup_sale_id");
+                entity.HasIndex(e => e.BackupRunId).HasDatabaseName("idx_billing_backup_backup_run_id");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_billing_backup_status");
+                entity.HasIndex(e => e.RetentionUntilUtc).HasDatabaseName("idx_billing_backup_retention");
+
+                entity.Property(e => e.BackupRunId).HasMaxLength(50).IsRequired();
+                entity.Property(e => e.BackupType).HasMaxLength(20).IsRequired();
+                entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue(BillingBackupStatuses.Success).IsRequired();
+                entity.Property(e => e.BackupPath).HasMaxLength(500).IsRequired();
+                entity.Property(e => e.FileHash).HasMaxLength(64).IsRequired();
+                entity.Property(e => e.RecordCount).HasDefaultValue(0);
+                entity.Property(e => e.StartedAtUtc).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.TriggeredByUserId)
+                    .HasMaxLength(450)
+                    .HasConversion(NullableAspNetUserIdConverter);
+
+                entity.HasOne(e => e.Sale)
+                    .WithMany()
+                    .HasForeignKey(e => e.SaleId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 

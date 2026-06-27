@@ -164,6 +164,7 @@ public sealed class AdminBillingControllerTests
                 BillingTestDoubles.CreateReminderScopeFactory(),
                 environment.Object,
                 PdfGeneratorMock.Object,
+                BillingTestDoubles.DisabledBackupOptions,
                 NullLogger<BillingService>.Instance);
 
             var tenantLicenseService = new TenantLicenseService(
@@ -179,6 +180,7 @@ public sealed class AdminBillingControllerTests
                 PdfGeneratorMock.Object,
                 BillingTestDoubles.CreateAuditService(_factory),
                 BillingTestDoubles.NoOpReminder,
+                BillingTestDoubles.NoOpBackup,
                 NullCurrentUserService.Instance,
                 NullLogger<AdminBillingController>.Instance)
             {
@@ -275,6 +277,7 @@ public sealed class AdminBillingControllerTests
                 BillingTestDoubles.CreateReminderScopeFactory(),
                 environment.Object,
                 PdfGeneratorMock.Object,
+                BillingTestDoubles.DisabledBackupOptions,
                 NullLogger<BillingService>.Instance);
 
             return await billingService.CreateLicenseSaleAsync(

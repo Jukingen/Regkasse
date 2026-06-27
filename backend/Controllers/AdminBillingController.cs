@@ -19,6 +19,7 @@ public sealed class AdminBillingController : ControllerBase
     private readonly IInvoicePdfGenerator _pdfGenerator;
     private readonly IBillingAuditService _auditService;
     private readonly IReminderService _reminderService;
+    private readonly IBillingBackupService _backupService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<AdminBillingController> _logger;
 
@@ -28,6 +29,7 @@ public sealed class AdminBillingController : ControllerBase
         IInvoicePdfGenerator pdfGenerator,
         IBillingAuditService auditService,
         IReminderService reminderService,
+        IBillingBackupService backupService,
         ICurrentUserService currentUserService,
         ILogger<AdminBillingController> logger)
     {
@@ -36,6 +38,7 @@ public sealed class AdminBillingController : ControllerBase
         _pdfGenerator = pdfGenerator;
         _auditService = auditService;
         _reminderService = reminderService;
+        _backupService = backupService;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -414,6 +417,127 @@ public sealed class AdminBillingController : ControllerBase
     {
         await _reminderService.SendPendingRemindersAsync(ct).ConfigureAwait(false);
         return Ok(new { message = "Reminders sent" });
+    }
+
+    #endregion
+
+    #region Backup
+
+    /// <summary>List billing backup history.</summary>
+    [HttpGet("backup/history")]
+    [ProducesResponseType(typeof(BackupHistoryListResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetBackupHistory(
+        [FromQuery] BackupHistoryQuery query,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await _backupService.ListBackupHistoryAsync(query, ct).ConfigureAwait(false);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>Get billing backup details.</summary>
+    [HttpGet("backup/{id:guid}")]
+    [ProducesResponseType(typeof(BackupHistoryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetBackupDetails(
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await _backupService.GetBackupDetailsAsync(id, ct).ConfigureAwait(false);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = $"Backup {id} not found" });
+        }
+    }
+
+    /// <summary>Download a billing backup archive.</summary>
+    [HttpGet("backup/{id:guid}/download")]
+    [Produces("application/zip", "application/octet-stream")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadBackup(
+        [FromRoute] Guid id,
+        CancellationToken ct)
+    {
+        try
+        {
+            var details = await _backupService.GetBackupDetailsAsync(id, ct).ConfigureAwait(false);
+            var bytes = await _backupService.DownloadBackupFileAsync(id, ct).ConfigureAwait(false);
+            var fileName = Path.GetFileName(details.BackupPath);
+            if (string.IsNullOrWhiteSpace(fileName))
+                fileName = $"{details.BackupRunId}.zip";
+
+            var contentType = fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
+                ? "application/zip"
+                : "application/octet-stream";
+
+            return File(bytes, contentType, fileName);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = $"Backup {id} not found" });
+        }
+        catch (FileNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>Trigger daily billing backup for yesterday (UTC).</summary>
+    [HttpPost("backup/daily")]
+    [ProducesResponseType(typeof(BackupResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TriggerDailyBackup(CancellationToken ct)
+    {
+        TryResolveActorUserGuid(out _, out var userId);
+        var result = await _backupService
+            .BackupDailyAsync(DateTime.UtcNow.Date.AddDays(-1), userId == Guid.Empty ? null : userId, ct)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>Trigger weekly billing backup for the previous week.</summary>
+    [HttpPost("backup/weekly")]
+    [ProducesResponseType(typeof(BackupResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TriggerWeeklyBackup(CancellationToken ct)
+    {
+        TryResolveActorUserGuid(out _, out var userId);
+        var weekStart = DateTime.UtcNow.Date.AddDays(-(int)DateTime.UtcNow.DayOfWeek - 7);
+        var result = await _backupService
+            .BackupWeeklyAsync(weekStart, userId == Guid.Empty ? null : userId, ct)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>Trigger full billing backup.</summary>
+    [HttpPost("backup/full")]
+    [ProducesResponseType(typeof(BackupResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TriggerFullBackup(CancellationToken ct)
+    {
+        TryResolveActorUserGuid(out _, out var userId);
+        var result = await _backupService
+            .BackupFullAsync(userId == Guid.Empty ? null : userId, ct)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>Remove expired billing backups per retention policy.</summary>
+    [HttpPost("backup/cleanup")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CleanupExpiredBackups(CancellationToken ct)
+    {
+        var deleted = await _backupService.CleanupExpiredBackupsAsync(ct).ConfigureAwait(false);
+        return Ok(new { deleted });
     }
 
     #endregion
