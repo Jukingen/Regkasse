@@ -135,7 +135,6 @@ internal static class BillingServiceTestInfrastructure
         Func<IBillingService> billingServiceFactory)
     {
         var configuration = new ConfigurationBuilder().Build();
-        var templateService = new InvoicePdfTemplateService(configuration, environment);
 
         var services = new ServiceCollection();
         services.AddSingleton(billingServiceFactory);
@@ -144,9 +143,8 @@ internal static class BillingServiceTestInfrastructure
 
         return new InvoicePdfGenerator(
             provider.GetRequiredService<IServiceScopeFactory>(),
-            templateService,
-            NullLogger<InvoicePdfGenerator>.Instance,
-            configuration);
+            configuration,
+            NullLogger<InvoicePdfGenerator>.Instance);
     }
 
     internal static (AppDbContext Db, IDbContextFactory<AppDbContext> Factory) CreateDb()

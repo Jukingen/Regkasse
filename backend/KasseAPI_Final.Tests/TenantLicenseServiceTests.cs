@@ -118,7 +118,6 @@ public sealed class TenantLicenseServiceTests
         Func<IBillingService> billingServiceFactory)
     {
         var configuration = new ConfigurationBuilder().Build();
-        var templateService = new InvoicePdfTemplateService(configuration, environment);
 
         var services = new ServiceCollection();
         services.AddSingleton(billingServiceFactory);
@@ -127,9 +126,8 @@ public sealed class TenantLicenseServiceTests
 
         return new InvoicePdfGenerator(
             provider.GetRequiredService<IServiceScopeFactory>(),
-            templateService,
-            NullLogger<InvoicePdfGenerator>.Instance,
-            configuration);
+            configuration,
+            NullLogger<InvoicePdfGenerator>.Instance);
     }
 
     private AppDbContext _db = null!;

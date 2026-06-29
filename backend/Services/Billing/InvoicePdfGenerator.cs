@@ -1,52 +1,88 @@
 using KasseAPI_Final.Models;
-using PuppeteerSharp;
-using PuppeteerSharp.Media;
+using Microsoft.Extensions.DependencyInjection;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace KasseAPI_Final.Services.Billing;
 
 public class InvoicePdfGenerator : IInvoicePdfGenerator
 {
-    private static readonly SemaphoreSlim BrowserInitLock = new(1, 1);
-    private static bool _browserDownloaded;
-
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly InvoicePdfTemplateService _templateService;
-    private readonly ILogger<InvoicePdfGenerator> _logger;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<InvoicePdfGenerator> _logger;
 
     public InvoicePdfGenerator(
         IServiceScopeFactory scopeFactory,
-        InvoicePdfTemplateService templateService,
-        ILogger<InvoicePdfGenerator> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<InvoicePdfGenerator> logger)
     {
         _scopeFactory = scopeFactory;
-        _templateService = templateService;
-        _logger = logger;
         _configuration = configuration;
+        _logger = logger;
+
+        // QuestPDF license (Community license for open source)
+        QuestPDF.Settings.License = LicenseType.Community;
     }
 
     public async Task<byte[]> GenerateInvoicePdfAsync(
         Guid saleId,
         CancellationToken ct = default)
     {
-        var sale = await GetLicenseSaleAsync(saleId, ct).ConfigureAwait(false);
-        var template = await _templateService.GetTemplateHtmlAsync().ConfigureAwait(false);
-        var html = BuildInvoiceHtml(sale, template);
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var billingService = scope.ServiceProvider.GetRequiredService<IBillingService>();
+        var sale = await billingService.GetLicenseSaleAsync(saleId, ct).ConfigureAwait(false);
 
-        var pdf = await GeneratePdfFromHtmlAsync(html, ct).ConfigureAwait(false);
+        var data = new InvoicePdfData
+        {
+            InvoiceNumber = sale.InvoiceNumber,
+            TenantName = sale.TenantName,
+            TenantSlug = sale.TenantSlug,
+            TenantAddress = null,
+            TenantVatId = null,
+            TenantEmail = null,
+            LicenseKey = sale.LicenseKey,
+            LicensePlan = sale.LicensePlan,
+            ValidFromUtc = sale.ValidFromUtc,
+            ValidUntilUtc = sale.ValidUntilUtc,
+            DurationDays = (sale.ValidUntilUtc - sale.ValidFromUtc).Days,
+            PriceNet = sale.PriceNet,
+            VatRate = sale.VatRate,
+            VatAmount = sale.VatAmount,
+            PriceGross = sale.PriceGross,
+        };
+
+        var pdf = GeneratePdf(data, isPreview: false);
         _logger.LogInformation("Generated license invoice PDF for sale {SaleId}", saleId);
         return pdf;
     }
 
-    public async Task<byte[]> GeneratePreviewPdfAsync(
+    public Task<byte[]> GeneratePreviewPdfAsync(
         LicenseSalePreviewResponse preview,
         CancellationToken ct = default)
     {
-        var template = await _templateService.GetTemplateHtmlAsync().ConfigureAwait(false);
-        var html = BuildPreviewHtml(preview, template);
+        ct.ThrowIfCancellationRequested();
 
-        return await GeneratePdfFromHtmlAsync(html, ct).ConfigureAwait(false);
+        var data = new InvoicePdfData
+        {
+            InvoiceNumber = preview.InvoiceNumber,
+            TenantName = preview.TenantName,
+            TenantSlug = preview.TenantSlug,
+            TenantAddress = preview.TenantAddress,
+            TenantVatId = preview.TenantVatId,
+            TenantEmail = preview.TenantEmail,
+            LicenseKey = preview.LicenseKey,
+            LicensePlan = preview.LicensePlan,
+            ValidFromUtc = preview.ValidFromUtc,
+            ValidUntilUtc = preview.ValidUntilUtc,
+            DurationDays = preview.DurationDays,
+            PriceNet = preview.PriceNet,
+            VatRate = preview.VatRate,
+            VatAmount = preview.VatAmount,
+            PriceGross = preview.PriceGross,
+        };
+
+        return Task.FromResult(GeneratePdf(data, isPreview: true));
     }
 
     public async Task<string> GetInvoicePdfBase64Async(
@@ -57,157 +93,275 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
         return Convert.ToBase64String(pdfBytes);
     }
 
-    #region Private Methods
-
-    private async Task<LicenseSaleResponse> GetLicenseSaleAsync(Guid saleId, CancellationToken ct)
+    private byte[] GeneratePdf(InvoicePdfData data, bool isPreview)
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var billingService = scope.ServiceProvider.GetRequiredService<IBillingService>();
-        return await billingService.GetLicenseSaleAsync(saleId, ct).ConfigureAwait(false);
-    }
+        var company = _configuration.GetSection("Company").Get<CompanyConfig>() ?? new CompanyConfig();
 
-    private string BuildInvoiceHtml(LicenseSaleResponse sale, string template)
-    {
-        var now = DateTime.UtcNow;
-
-        var vatRate = sale.VatRate;
-        var vatAmount = sale.VatAmount;
-        var priceGross = sale.PriceGross;
-        var priceNet = sale.PriceNet;
-
-        var html = template
-            .Replace("{{INVOICE_NUMBER}}", sale.InvoiceNumber)
-            .Replace("{{INVOICE_DATE}}", now.ToString("dd. MMMM yyyy"))
-            .Replace("{{TENANT_NAME}}", sale.TenantName)
-            .Replace("{{TENANT_SLUG}}", sale.TenantSlug)
-            .Replace("{{TENANT_ADDRESS}}", "Adresse nicht verfügbar") // TODO: Get from tenant
-            .Replace("{{TENANT_VAT_ID}}", "UID nicht verfügbar") // TODO: Get from tenant
-            .Replace("{{TENANT_EMAIL}}", "Email nicht verfügbar") // TODO: Get from tenant
-            .Replace("{{LICENSE_KEY}}", sale.LicenseKey)
-            .Replace("{{LICENSE_PLAN}}", GetPlanDisplay(sale.LicensePlan))
-            .Replace("{{VALID_FROM}}", sale.ValidFromUtc.ToString("dd.MM.yyyy"))
-            .Replace("{{VALID_UNTIL}}", sale.ValidUntilUtc.ToString("dd.MM.yyyy"))
-            .Replace("{{DURATION_DAYS}}", ((sale.ValidUntilUtc - sale.ValidFromUtc).Days).ToString())
-            .Replace("{{PRICE_NET}}", priceNet.ToString("F2"))
-            .Replace("{{VAT_RATE}}", vatRate.ToString("F2"))
-            .Replace("{{VAT_AMOUNT}}", vatAmount.ToString("F2"))
-            .Replace("{{PRICE_GROSS}}", priceGross.ToString("F2"))
-            .Replace("{{CURRENCY}}", sale.Currency)
-            .Replace("{{COMPANY_NAME}}", _configuration["Company:Name"] ?? "Regkasse")
-            .Replace("{{COMPANY_ADDRESS}}", _configuration["Company:Address"] ?? "Wiener Neustadt, Österreich")
-            .Replace("{{COMPANY_VAT_ID}}", _configuration["Company:VatId"] ?? "ATU12345678")
-            .Replace("{{COMPANY_PHONE}}", _configuration["Company:Phone"] ?? "+43 123 456 789")
-            .Replace("{{COMPANY_EMAIL}}", _configuration["Company:Email"] ?? "info@regkasse.at")
-            .Replace("{{COMPANY_WEBSITE}}", _configuration["Company:Website"] ?? "www.regkasse.at")
-            .Replace("{{BANK_IBAN}}", _configuration["Company:Bank:Iban"] ?? "AT00 0000 0000 0000 0000")
-            .Replace("{{BANK_BIC}}", _configuration["Company:Bank:Bic"] ?? "XXXAT2B")
-            .Replace("{{GENERATED_AT}}", now.ToString("dd.MM.yyyy HH:mm"));
-
-        return html;
-    }
-
-    private string BuildPreviewHtml(LicenseSalePreviewResponse preview, string template)
-    {
-        var now = DateTime.UtcNow;
-
-        var html = template
-            .Replace("{{INVOICE_NUMBER}}", "VORSCHAU - " + preview.InvoiceNumber)
-            .Replace("{{INVOICE_DATE}}", now.ToString("dd. MMMM yyyy"))
-            .Replace("{{TENANT_NAME}}", preview.TenantName)
-            .Replace("{{TENANT_SLUG}}", preview.TenantSlug)
-            .Replace("{{TENANT_ADDRESS}}", preview.TenantAddress ?? "Adresse nicht verfügbar")
-            .Replace("{{TENANT_VAT_ID}}", preview.TenantVatId ?? "UID nicht verfügbar")
-            .Replace("{{TENANT_EMAIL}}", preview.TenantEmail ?? "Email nicht verfügbar")
-            .Replace("{{LICENSE_KEY}}", preview.LicenseKey)
-            .Replace("{{LICENSE_PLAN}}", GetPlanDisplay(preview.LicensePlan))
-            .Replace("{{VALID_FROM}}", preview.ValidFromUtc.ToString("dd.MM.yyyy"))
-            .Replace("{{VALID_UNTIL}}", preview.ValidUntilUtc.ToString("dd.MM.yyyy"))
-            .Replace("{{DURATION_DAYS}}", preview.DurationDays.ToString())
-            .Replace("{{PRICE_NET}}", preview.PriceNet.ToString("F2"))
-            .Replace("{{VAT_RATE}}", preview.VatRate.ToString("F2"))
-            .Replace("{{VAT_AMOUNT}}", preview.VatAmount.ToString("F2"))
-            .Replace("{{PRICE_GROSS}}", preview.PriceGross.ToString("F2"))
-            .Replace("{{CURRENCY}}", preview.Currency)
-            .Replace("{{COMPANY_NAME}}", _configuration["Company:Name"] ?? "Regkasse")
-            .Replace("{{COMPANY_ADDRESS}}", _configuration["Company:Address"] ?? "Wiener Neustadt, Österreich")
-            .Replace("{{COMPANY_VAT_ID}}", _configuration["Company:VatId"] ?? "ATU12345678")
-            .Replace("{{COMPANY_PHONE}}", _configuration["Company:Phone"] ?? "+43 123 456 789")
-            .Replace("{{COMPANY_EMAIL}}", _configuration["Company:Email"] ?? "info@regkasse.at")
-            .Replace("{{COMPANY_WEBSITE}}", _configuration["Company:Website"] ?? "www.regkasse.at")
-            .Replace("{{BANK_IBAN}}", _configuration["Company:Bank:Iban"] ?? "AT00 0000 0000 0000 0000")
-            .Replace("{{BANK_BIC}}", _configuration["Company:Bank:Bic"] ?? "XXXAT2B")
-            .Replace("{{GENERATED_AT}}", now.ToString("dd.MM.yyyy HH:mm"));
-
-        html = html.Replace("</body>",
-            "<div style='position: fixed; top: 50%; left: 50%; transform: rotate(-45deg); " +
-            "font-size: 72px; opacity: 0.1; color: #666;'>VORSCHAU</div></body>");
-
-        return html;
-    }
-
-    private async Task<byte[]> GeneratePdfFromHtmlAsync(string html, CancellationToken ct)
-    {
-        await EnsureBrowserDownloadedAsync(ct).ConfigureAwait(false);
-
-        await using var browser = await Puppeteer.LaunchAsync(new LaunchOptions
+        return Document.Create(container =>
         {
-            Headless = true,
-            Args = ["--no-sandbox", "--disable-setuid-sandbox"],
-        }).ConfigureAwait(false);
-
-        await using var page = await browser.NewPageAsync().ConfigureAwait(false);
-        await page.SetContentAsync(html).ConfigureAwait(false);
-
-        var pdfOptions = new PdfOptions
-        {
-            Format = PaperFormat.A4,
-            PrintBackground = true,
-            MarginOptions = new MarginOptions
+            container.Page(page =>
             {
-                Top = "20mm",
-                Bottom = "20mm",
-                Left = "15mm",
-                Right = "15mm",
-            },
-        };
+                page.Size(PageSizes.A4);
+                page.Margin(40, Unit.Point);
+                page.DefaultTextStyle(x => x
+                    .FontFamily("Arial", "Arial Unicode MS")
+                    .FontSize(11));
 
-        ct.ThrowIfCancellationRequested();
-        return await page.PdfDataAsync(pdfOptions).ConfigureAwait(false);
-    }
-
-    private static async Task EnsureBrowserDownloadedAsync(CancellationToken ct)
-    {
-        if (_browserDownloaded)
-            return;
-
-        await BrowserInitLock.WaitAsync(ct).ConfigureAwait(false);
-        try
-        {
-            if (_browserDownloaded)
-                return;
-
-            var cachePath = Path.Combine(Path.GetTempPath(), "regkasse-puppeteer");
-            var fetcher = new BrowserFetcher(new BrowserFetcherOptions
-            {
-                Path = cachePath,
+                page.Header().Element(x => ComposeHeader(x, data, company, isPreview));
+                page.Content().Element(x => ComposeContent(x, data, company));
+                page.Footer().Element(x => ComposeFooter(x, company));
             });
-            await fetcher.DownloadAsync().ConfigureAwait(false);
-            _browserDownloaded = true;
-        }
-        finally
-        {
-            BrowserInitLock.Release();
-        }
+        }).GeneratePdf();
     }
 
-    private static string GetPlanDisplay(string plan) =>
+    private static void ComposeHeader(IContainer container, InvoicePdfData data, CompanyConfig company, bool isPreview)
+    {
+        var companyName = SafeString(company.Name);
+        var companyAddress = SafeString(company.Address);
+        var companyVatId = SafeString(company.VatId);
+        var invoiceNumber = SafeString(data.InvoiceNumber);
+
+        container.Column(column =>
+        {
+            column.Spacing(10);
+
+            column.Item().Row(row =>
+            {
+                row.RelativeItem().Column(col =>
+                {
+                    col.Item().Text(companyName)
+                        .FontSize(24)
+                        .Bold()
+                        .FontColor(Colors.Blue.Darken2);
+
+                    col.Item().Text(companyAddress)
+                        .FontSize(10)
+                        .FontColor(Colors.Grey.Darken1);
+
+                    col.Item().Text($"UID: {companyVatId}")
+                        .FontSize(10)
+                        .FontColor(Colors.Grey.Darken1);
+                });
+
+                row.RelativeItem().AlignRight().Column(col =>
+                {
+                    if (isPreview)
+                    {
+                        col.Item().Text("VORSCHAU")
+                            .FontSize(18)
+                            .Bold()
+                            .FontColor(Colors.Orange.Darken2);
+                    }
+
+                    col.Item().Text($"Rechnung: {invoiceNumber}")
+                        .FontSize(12)
+                        .Bold();
+
+                    col.Item().Text($"Datum: {DateTime.Now:dd.MM.yyyy}")
+                        .FontSize(10)
+                        .FontColor(Colors.Grey.Darken1);
+                });
+            });
+
+            column.Item().LineHorizontal(1).LineColor(Colors.Blue.Darken2);
+        });
+    }
+
+    private static void ComposeContent(IContainer container, InvoicePdfData data, CompanyConfig company)
+    {
+        var tenantName = SafeString(data.TenantName, "Unbekannt");
+        var tenantAddress = SafeString(data.TenantAddress, "Adresse nicht verfügbar");
+        var tenantVatId = SafeString(data.TenantVatId, "nicht verfügbar");
+        var tenantEmail = SafeString(data.TenantEmail, "nicht verfügbar");
+        var invoiceNumber = SafeString(data.InvoiceNumber);
+        var tenantSlug = SafeString(data.TenantSlug);
+        var licenseKey = SafeString(data.LicenseKey);
+        var planDisplay = SafeString(GetPlanDisplay(data.LicensePlan), "Unbekannt");
+        var companyIban = SafeString(company.Bank?.Iban);
+        var companyBic = SafeString(company.Bank?.Bic);
+
+        container.Column(column =>
+        {
+            column.Spacing(10);
+
+            column.Item().Border(1).BorderColor(Colors.Grey.Lighten2).Padding(10).Column(col =>
+            {
+                col.Item().Text("Leistungsempfänger")
+                    .FontSize(10)
+                    .Bold()
+                    .FontColor(Colors.Grey.Darken1);
+
+                col.Item().Text(text =>
+                {
+                    text.Span(tenantName).FontSize(12).Bold();
+                });
+
+                col.Item().Text(text =>
+                {
+                    text.Span(tenantAddress).FontSize(10);
+                });
+
+                col.Item().Text($"UID: {tenantVatId}")
+                    .FontSize(10);
+
+                col.Item().Text($"Email: {tenantEmail}")
+                    .FontSize(10);
+            });
+
+            column.Item().Background(Colors.Red.Lighten5)
+                .Border(1).BorderColor(Colors.Red.Lighten2)
+                .Padding(8).Column(col =>
+                {
+                    col.Item().Text("⚠️ Dieses Dokument ist kein RKSV-Beleg und kein fiskalischer Beleg.")
+                        .FontSize(10)
+                        .FontColor(Colors.Red.Darken3);
+                });
+
+            column.Item().Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.RelativeColumn();
+                    columns.RelativeColumn(2);
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                    columns.RelativeColumn();
+                });
+
+                table.Header(header =>
+                {
+                    header.Cell().Text("Pos.").Bold();
+                    header.Cell().Text("Beschreibung").Bold();
+                    header.Cell().Text("Netto").Bold().AlignRight();
+                    header.Cell().Text("MwSt.").Bold().AlignCenter();
+                    header.Cell().Text("Brutto").Bold().AlignRight();
+                });
+
+                table.Cell().Text("1");
+                table.Cell().Column(col =>
+                {
+                    col.Item().Text($"{planDisplay} Lizenz").Bold();
+                    col.Item().Text($"Lizenzschlüssel: {licenseKey}").FontSize(9).FontColor(Colors.Grey.Darken1);
+                    col.Item().Text(
+                            $"Gültig: {data.ValidFromUtc:dd.MM.yyyy} – {data.ValidUntilUtc:dd.MM.yyyy} ({data.DurationDays} Tage)")
+                        .FontSize(9)
+                        .FontColor(Colors.Grey.Darken1);
+                });
+                table.Cell().Text($"€ {data.PriceNet:F2}").AlignRight();
+                table.Cell().Text($"{data.VatRate}%").AlignCenter();
+                table.Cell().Text($"€ {data.PriceGross:F2}").AlignRight();
+            });
+
+            column.Item().AlignRight().Column(col =>
+            {
+                col.Spacing(5);
+
+                col.Item().Row(row =>
+                {
+                    row.RelativeItem().Text("Netto:").AlignRight();
+                    row.RelativeItem().Text($"€ {data.PriceNet:F2}").AlignRight();
+                });
+
+                col.Item().Row(row =>
+                {
+                    row.RelativeItem().Text($"MwSt. ({data.VatRate}%):").AlignRight();
+                    row.RelativeItem().Text($"€ {data.VatAmount:F2}").AlignRight();
+                });
+
+                col.Item().Row(row =>
+                {
+                    row.RelativeItem().Text("Gesamtbetrag:").Bold().AlignRight();
+                    row.RelativeItem().Text($"€ {data.PriceGross:F2}").Bold().AlignRight();
+                });
+            });
+
+            column.Item().Background(Colors.Green.Lighten5)
+                .Border(1).BorderColor(Colors.Green.Lighten2)
+                .Padding(10).Column(col =>
+                {
+                    col.Item().Text("Zahlungsinformationen").Bold();
+                    col.Item().Text("Zahlungsbedingungen: Vorkasse, sofort fällig");
+                    col.Item().Text($"IBAN: {companyIban}");
+                    col.Item().Text($"BIC: {companyBic}");
+                    col.Item().Text($"Verwendungszweck: {invoiceNumber} - {tenantSlug}");
+                });
+        });
+    }
+
+    private static void ComposeFooter(IContainer container, CompanyConfig company)
+    {
+        var companyName = SafeString(company.Name);
+        var companyAddress = SafeString(company.Address);
+        var companyVatId = SafeString(company.VatId);
+
+        container.Column(column =>
+        {
+            column.Item().LineHorizontal(1).LineColor(Colors.Grey.Lighten2);
+
+            column.Item().Row(row =>
+            {
+                row.RelativeItem().Text($"{companyName} · {companyAddress} · UID: {companyVatId}")
+                    .FontSize(8)
+                    .FontColor(Colors.Grey.Darken1);
+
+                row.RelativeItem().AlignRight().Text($"Generiert: {DateTime.Now:dd.MM.yyyy HH:mm}")
+                    .FontSize(8)
+                    .FontColor(Colors.Grey.Darken1);
+            });
+
+            column.Item().Text("Rechnungslegung gemäß §11 UStG. Es gelten unsere AGB.")
+                .FontSize(8)
+                .FontColor(Colors.Grey.Darken1)
+                .AlignCenter();
+        });
+    }
+
+    private static string GetPlanDisplay(string? plan) =>
         plan switch
         {
             LicenseSalePlans.SixMonths => "6 Monate",
             LicenseSalePlans.TwelveMonths => "1 Jahr",
             LicenseSalePlans.Custom => "Benutzerdefiniert",
+            null or "" => "Unbekannt",
             _ => plan,
         };
 
-    #endregion
+    private static string SafeString(object? value, string defaultValue = "—") =>
+        value?.ToString() ?? defaultValue;
+
+    private sealed class InvoicePdfData
+    {
+        public required string InvoiceNumber { get; init; }
+        public required string TenantName { get; init; }
+        public required string TenantSlug { get; init; }
+        public string? TenantAddress { get; init; }
+        public string? TenantVatId { get; init; }
+        public string? TenantEmail { get; init; }
+        public required string LicenseKey { get; init; }
+        public required string LicensePlan { get; init; }
+        public DateTime ValidFromUtc { get; init; }
+        public DateTime ValidUntilUtc { get; init; }
+        public int DurationDays { get; init; }
+        public decimal PriceNet { get; init; }
+        public decimal VatRate { get; init; }
+        public decimal VatAmount { get; init; }
+        public decimal PriceGross { get; init; }
+    }
+}
+
+public class CompanyConfig
+{
+    public string Name { get; set; } = "Regkasse Software";
+    public string Address { get; set; } = "Hans Grüneis-Gasse 3, 2700 Wiener Neustadt";
+    public string VatId { get; set; } = "ATU12345678";
+    public string Phone { get; set; } = "+43 123 456 789";
+    public string Email { get; set; } = "info@regkasse.at";
+    public string Website { get; set; } = "www.regkasse.at";
+    public BankConfig Bank { get; set; } = new();
+}
+
+public class BankConfig
+{
+    public string Iban { get; set; } = "AT00 0000 0000 0000 0000";
+    public string Bic { get; set; } = "XXXAT2B";
 }

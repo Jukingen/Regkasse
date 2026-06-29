@@ -60,6 +60,7 @@ using KasseAPI_Final.Tenancy;
 using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Sockets;
+using QuestPDF.Infrastructure;
 
 namespace KasseAPI_Final;
 
@@ -449,8 +450,9 @@ builder.Services.AddScoped<IBillingTenantLicenseService, BillingTenantLicenseSer
 builder.Services.AddScoped<IBillingAuditService, BillingAuditService>();
 builder.Services.AddScoped<IReminderService, ReminderService>();
 builder.Services.AddScoped<IBillingBackupService, BillingBackupService>();
+// License invoice PDF (QuestPDF — no Chrome/Chromium dependency)
 builder.Services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
-builder.Services.AddScoped<InvoicePdfTemplateService>();
+// No additional registration needed for QuestPDF
 builder.Services.AddScoped<ILicenseKeyGenerator, LicenseKeyGenerator>();
 builder.Services.AddScoped<IInvoiceNumberGenerator, InvoiceNumberGenerator>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -925,6 +927,8 @@ builder.Services.AddScoped<IUserCreationService, UserCreationService>();
 builder.Services.AddHttpContextAccessor();
 
         var app = builder.Build();
+
+        QuestPDF.Settings.License = LicenseType.Community;
 
         // Swashbuckle CLI calls SwaggerHostFactory.CreateHost() and never runs RunAsync; without mapped endpoints
         // the API explorer yields an empty document. Only the tooling path registers the minimal endpoint graph.

@@ -88,8 +88,6 @@ public sealed class InvoicePdfGeneratorTests
             })
             .Build();
 
-        var templateService = new InvoicePdfTemplateService(configuration, environment.Object);
-
         BillingService? billingService = null;
         var services = new ServiceCollection();
         services.AddSingleton<Func<IBillingService>>(() => billingService!);
@@ -98,9 +96,8 @@ public sealed class InvoicePdfGeneratorTests
 
         var generator = new InvoicePdfGenerator(
             provider.GetRequiredService<IServiceScopeFactory>(),
-            templateService,
-            NullLogger<InvoicePdfGenerator>.Instance,
-            configuration);
+            configuration,
+            NullLogger<InvoicePdfGenerator>.Instance);
 
         billingService = new BillingService(
             _db,
@@ -164,9 +161,6 @@ public sealed class InvoicePdfGeneratorTests
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory != null)
         {
-            if (File.Exists(Path.Combine(directory.FullName, "Templates", "InvoiceTemplate.html")))
-                return directory.FullName;
-
             if (File.Exists(Path.Combine(directory.FullName, "KasseAPI_Final.csproj")))
                 return directory.FullName;
 
