@@ -105,6 +105,21 @@
     "hint_ok": "Keine offenen Probleme",
     "details": "Details"
   },
+  "offlineStatusWidget": {
+    "badge_critical": "Kritisch",
+    "badge_pending": "Ausstehend",
+    "badge_healthy": "Gesund",
+    "pending_orders": "Offline-Bestellungen",
+    "total_pending": "Gesamt ausstehend",
+    "sync_success_rate": "Sync-Erfolgsrate",
+    "sync_status": "Sync-Status",
+    "sync_healthy": "Gesund",
+    "sync_unhealthy": "Probleme",
+    "oldest_pending": "Älteste Warteschlange: {{time}}",
+    "last_sync": "Letzter Sync: {{time}}",
+    "view_details": "Details anzeigen",
+    "load_failed": "Offline-Status konnte nicht geladen werden."
+  },
   "widgetShell": {
     "refresh": "Aktualisieren",
     "drag_widget": "Widget verschieben"

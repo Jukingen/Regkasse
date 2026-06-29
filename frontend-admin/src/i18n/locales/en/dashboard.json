@@ -105,6 +105,21 @@
     "hint_ok": "No open issues",
     "details": "Details"
   },
+  "offlineStatusWidget": {
+    "badge_critical": "Critical",
+    "badge_pending": "Pending",
+    "badge_healthy": "Healthy",
+    "pending_orders": "Pending orders",
+    "total_pending": "Total pending",
+    "sync_success_rate": "Sync success rate",
+    "sync_status": "Sync status",
+    "sync_healthy": "Healthy",
+    "sync_unhealthy": "Issues",
+    "oldest_pending": "Oldest pending: {{time}}",
+    "last_sync": "Last sync: {{time}}",
+    "view_details": "View details",
+    "load_failed": "Could not load offline status."
+  },
   "widgetShell": {
     "refresh": "Refresh",
     "drag_widget": "Move widget"

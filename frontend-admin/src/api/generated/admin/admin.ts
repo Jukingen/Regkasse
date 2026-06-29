@@ -30,6 +30,7 @@ import type {
   AdminCreateUserRequest,
   AdminDeactivateRequest,
   AdminForcePasswordResetRequest,
+  AdminOfflineOrdersListResponse,
   AdminOfflineTransactionRetryResponseDto,
   AdminOfflineTransactionsListResponse,
   AdminOfflineTransactionsSummaryDto,
@@ -60,9 +61,12 @@ import type {
   BackupDashboardStatsResponseDto,
   BackupExecutionModePutRequestDto,
   BackupExecutionModeResponseDto,
+  BackupHistoryListResponse,
+  BackupHistoryResponse,
   BackupHistoryResponseDto,
   BackupLatestStatusResponseDto,
   BackupRecoverabilitySummaryResponseDto,
+  BackupResult,
   BackupRunResponseDto,
   BackupScheduleStatusResponseDto,
   BackupSettingsPutRequestDto,
@@ -146,6 +150,7 @@ import type {
   GetApiAdminAuditFiscalExportLogsParams,
   GetApiAdminBackupRunsParams,
   GetApiAdminBillingAuditParams,
+  GetApiAdminBillingBackupHistoryParams,
   GetApiAdminBillingLicenseSalesExpiringParams,
   GetApiAdminBillingLicenseSalesParams,
   GetApiAdminBillingStatsParams,
@@ -168,6 +173,7 @@ import type {
   GetApiAdminLicensesReportSummaryParams,
   GetApiAdminOfflineIntentCoverageParams,
   GetApiAdminOfflineIntentCoverageTopRiskParams,
+  GetApiAdminOfflineOrdersParams,
   GetApiAdminOfflinePayloadHashExportParams,
   GetApiAdminOfflineTransactionsExportFailedParams,
   GetApiAdminOfflineTransactionsParams,
@@ -247,6 +253,7 @@ import type {
   PaymentStatistics,
   PeakHoursReportDto,
   PitrAvailabilityResponseDto,
+  PostApiAdminOfflineOrdersReplayAllParams,
   PostApiAdminProductsDemoTemplateImportBody,
   PostApiAdminProductsDemoTemplatePreviewBody,
   PostApiAdminProductsDemoTemplatePreviewParams,
@@ -270,6 +277,8 @@ import type {
   RenewTenantLicenseRequest,
   RepairRequest,
   ReplayBatchDetailResponse,
+  ReplayOfflineOrderResult,
+  ReplayOfflineOrdersResult,
   RestoreApprovalRequest,
   RestorePointValidationResultDto,
   RestoreProofMilestonesResponseDto,
@@ -3021,6 +3030,368 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
       > => {
 
       const mutationOptions = getPostApiAdminBillingRemindersSendMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBillingBackupHistory = (
+    params?: GetApiAdminBillingBackupHistoryParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupHistoryListResponse>(
+      {url: `/api/admin/billing/backup/history`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBillingBackupHistoryQueryKey = (params?: GetApiAdminBillingBackupHistoryParams,) => {
+    return [`/api/admin/billing/backup/history`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminBillingBackupHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>, TError = ProblemDetails>(params?: GetApiAdminBillingBackupHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBillingBackupHistoryQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>> = ({ signal }) => getApiAdminBillingBackupHistory(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBillingBackupHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>>
+export type GetApiAdminBillingBackupHistoryQueryError = ProblemDetails
+
+export const useGetApiAdminBillingBackupHistory = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>, TError = ProblemDetails>(
+ params?: GetApiAdminBillingBackupHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupHistory>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBillingBackupHistoryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBillingBackupId = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupHistoryResponse>(
+      {url: `/api/admin/billing/backup/${id}`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBillingBackupIdQueryKey = (id: string,) => {
+    return [`/api/admin/billing/backup/${id}`] as const;
+    }
+
+    
+export const getGetApiAdminBillingBackupIdQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupId>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBillingBackupIdQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBillingBackupId>>> = ({ signal }) => getApiAdminBillingBackupId(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupId>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBillingBackupIdQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingBackupId>>>
+export type GetApiAdminBillingBackupIdQueryError = ProblemDetails
+
+export const useGetApiAdminBillingBackupId = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupId>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupId>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBillingBackupIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBillingBackupIdDownload = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/billing/backup/${id}/download`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBillingBackupIdDownloadQueryKey = (id: string,) => {
+    return [`/api/admin/billing/backup/${id}/download`] as const;
+    }
+
+    
+export const getGetApiAdminBillingBackupIdDownloadQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>, TError = ProblemDetails>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBillingBackupIdDownloadQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>> = ({ signal }) => getApiAdminBillingBackupIdDownload(id, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBillingBackupIdDownloadQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>>
+export type GetApiAdminBillingBackupIdDownloadQueryError = ProblemDetails
+
+export const useGetApiAdminBillingBackupIdDownload = <TData = Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>, TError = ProblemDetails>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBillingBackupIdDownload>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBillingBackupIdDownloadQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminBillingBackupDaily = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<BackupResult>(
+      {url: `/api/admin/billing/backup/daily`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBillingBackupDailyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupDaily>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupDaily>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBillingBackupDaily>>, void> = () => {
+          
+
+          return  postApiAdminBillingBackupDaily(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBillingBackupDailyMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBillingBackupDaily>>>
+    
+    export type PostApiAdminBillingBackupDailyMutationError = unknown
+
+    export const usePostApiAdminBillingBackupDaily = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupDaily>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBillingBackupDaily>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBillingBackupDailyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBillingBackupWeekly = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<BackupResult>(
+      {url: `/api/admin/billing/backup/weekly`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBillingBackupWeeklyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupWeekly>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupWeekly>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBillingBackupWeekly>>, void> = () => {
+          
+
+          return  postApiAdminBillingBackupWeekly(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBillingBackupWeeklyMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBillingBackupWeekly>>>
+    
+    export type PostApiAdminBillingBackupWeeklyMutationError = unknown
+
+    export const usePostApiAdminBillingBackupWeekly = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupWeekly>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBillingBackupWeekly>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBillingBackupWeeklyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBillingBackupFull = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<BackupResult>(
+      {url: `/api/admin/billing/backup/full`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBillingBackupFullMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupFull>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupFull>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBillingBackupFull>>, void> = () => {
+          
+
+          return  postApiAdminBillingBackupFull(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBillingBackupFullMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBillingBackupFull>>>
+    
+    export type PostApiAdminBillingBackupFullMutationError = unknown
+
+    export const usePostApiAdminBillingBackupFull = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupFull>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBillingBackupFull>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBillingBackupFullMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminBillingBackupCleanup = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/admin/billing/backup/cleanup`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBillingBackupCleanupMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupCleanup>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupCleanup>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBillingBackupCleanup>>, void> = () => {
+          
+
+          return  postApiAdminBillingBackupCleanup(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBillingBackupCleanupMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBillingBackupCleanup>>>
+    
+    export type PostApiAdminBillingBackupCleanupMutationError = unknown
+
+    export const usePostApiAdminBillingBackupCleanup = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBillingBackupCleanup>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBillingBackupCleanup>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBillingBackupCleanupMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
@@ -6274,7 +6645,162 @@ export const useGetApiAdminLicensesReportSummary = <TData = Awaited<ReturnType<t
 
 
 
-export const getApiAdminOfflineTransactionsSummary = (
+export const getApiAdminOfflineOrders = (
+    params?: GetApiAdminOfflineOrdersParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<AdminOfflineOrdersListResponse>(
+      {url: `/api/admin/offline-orders`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineOrdersQueryKey = (params?: GetApiAdminOfflineOrdersParams,) => {
+    return [`/api/admin/offline-orders`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiAdminOfflineOrdersQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineOrders>>, TError = unknown>(params?: GetApiAdminOfflineOrdersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineOrders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineOrdersQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineOrders>>> = ({ signal }) => getApiAdminOfflineOrders(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineOrders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineOrdersQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineOrders>>>
+export type GetApiAdminOfflineOrdersQueryError = unknown
+
+export const useGetApiAdminOfflineOrders = <TData = Awaited<ReturnType<typeof getApiAdminOfflineOrders>>, TError = unknown>(
+ params?: GetApiAdminOfflineOrdersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineOrders>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineOrdersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiAdminOfflineOrdersIdReplay = (
+    id: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ReplayOfflineOrderResult>(
+      {url: `/api/admin/offline-orders/${id}/replay`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminOfflineOrdersIdReplayMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineOrdersIdReplay>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineOrdersIdReplay>>, TError,{id: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminOfflineOrdersIdReplay>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  postApiAdminOfflineOrdersIdReplay(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminOfflineOrdersIdReplayMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminOfflineOrdersIdReplay>>>
+    
+    export type PostApiAdminOfflineOrdersIdReplayMutationError = unknown
+
+    export const usePostApiAdminOfflineOrdersIdReplay = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineOrdersIdReplay>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminOfflineOrdersIdReplay>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminOfflineOrdersIdReplayMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const postApiAdminOfflineOrdersReplayAll = (
+    params?: PostApiAdminOfflineOrdersReplayAllParams,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ReplayOfflineOrdersResult>(
+      {url: `/api/admin/offline-orders/replay-all`, method: 'POST',
+        params
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminOfflineOrdersReplayAllMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineOrdersReplayAll>>, TError,{params?: PostApiAdminOfflineOrdersReplayAllParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineOrdersReplayAll>>, TError,{params?: PostApiAdminOfflineOrdersReplayAllParams}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminOfflineOrdersReplayAll>>, {params?: PostApiAdminOfflineOrdersReplayAllParams}> = (props) => {
+          const {params} = props ?? {};
+
+          return  postApiAdminOfflineOrdersReplayAll(params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminOfflineOrdersReplayAllMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminOfflineOrdersReplayAll>>>
+    
+    export type PostApiAdminOfflineOrdersReplayAllMutationError = unknown
+
+    export const usePostApiAdminOfflineOrdersReplayAll = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminOfflineOrdersReplayAll>>, TError,{params?: PostApiAdminOfflineOrdersReplayAllParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminOfflineOrdersReplayAll>>,
+        TError,
+        {params?: PostApiAdminOfflineOrdersReplayAllParams},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminOfflineOrdersReplayAllMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminOfflineTransactionsSummary = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

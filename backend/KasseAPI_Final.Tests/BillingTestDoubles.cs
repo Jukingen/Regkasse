@@ -17,8 +17,8 @@ internal static class BillingTestDoubles
             BackupOnSaleCreation = false,
         });
 
-    internal static BillingAuditService CreateAuditService(IDbContextFactory<AppDbContext> factory) =>
-        new(factory, NullCurrentUserService.Instance, NullLogger<BillingAuditService>.Instance);
+    internal static BillingAuditService CreateAuditService(AppDbContext db) =>
+        new(db, NullCurrentUserService.Instance, NullLogger<BillingAuditService>.Instance);
 
     internal static NoOpReminderService NoOpReminder { get; } = new();
 

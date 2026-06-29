@@ -34,7 +34,9 @@ Aşağıdaki yüzeyler boundary dışı ama bilinçli şekilde paylaşılıyor v
 - `/api/Invoice/*`
 - `/api/Orders/*`
 - `/api/rksv/*` (RKSV özel fişler; admin/POS yetkisine göre; yüksek risk)
-- `/api/offline-transactions`
+- `/api/offline-transactions` (legacy payment-intent replay)
+- `/api/pos/offline-orders` (POS full order snapshots — save/replay)
+- `/api/admin/offline-orders` (admin list/manual replay)
 - PascalCase tarihi aileler (`/api/Tse/*`, `/api/UserManagement/*`, `/api/Tagesabschluss/*`, vb.)
 
 ## Admin guidance

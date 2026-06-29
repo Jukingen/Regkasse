@@ -33,7 +33,9 @@ JWT: auth sonrası `tenant_id` claim (Guid) + `TenantContextMiddleware`.
 - Legacy prefix (`/api/Payment`, `/api/Cart`, `/api/Product`) yeni işlev için kullanılmaz.
 
 ## Yüksek risk (contract değişikliği öncesi)
-- Ödeme: `/api/pos/payment*`, offline replay: `/api/offline-transactions/*`
+- Ödeme: `/api/pos/payment*`, offline intent replay: `/api/offline-transactions/*`
+- **Offline order snapshots:** `/api/pos/offline-orders/*`, `/api/admin/offline-orders/*` (bkz. [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](../docs/release/OFFLINE_SYSTEMS_SEPARATION.md))
+- **Offline TSE intents (legacy):** `/api/offline-transactions/*`, `/api/admin/offline-transactions/*` — **not** the same as offline orders
 - RKSV: `/api/rksv/special-receipts/*`
 - TSE tanılama ve kasa oturumu ile ilişkili uçlar
 - Fiscal export: `/api/admin/fiscal-export*`

@@ -16,6 +16,7 @@ import PaymentModal from '../../components/PaymentModal';
 import { TimeSyncBanner } from '../../components/TimeSyncBanner';
 import { TimeSyncStatusProvider } from '../../hooks/useTimeSyncStatus';
 import { TseStatusBanner } from '../../components/TseStatusBanner';
+import { OfflineBanner } from '../../components/OfflineBanner';
 import { ToastContainer } from '../../components/ToastNotification';
 import { MonatsbelegSessionBlockModal } from '../../components/MonatsbelegSessionBlockModal';
 import { StartbelegRequiredBanner } from '../../components/StartbelegRequiredBanner';
@@ -224,6 +225,7 @@ function PosTabsInner({
         customerId={saleCustomer?.id ?? '00000000-0000-0000-0000-000000000000'}
         tableNumber={activeTableId}
       />
+      <OfflineBanner />
       </View>
     </TseHealthProvider>
   );

@@ -82,6 +82,7 @@ namespace KasseAPI_Final.Data
         public DbSet<PaymentReversalApproval> PaymentReversalApprovals { get; set; }
         public DbSet<SuspiciousTransactionAlert> SuspiciousTransactionAlerts { get; set; }
         public DbSet<OfflineTransaction> OfflineTransactions { get; set; }
+        public DbSet<OfflineOrder> OfflineOrders { get; set; }
         public DbSet<CardPaymentTransaction> CardPaymentTransactions { get; set; }
         /// <summary>Observability: DeviceId/ClientSequence coverage per replayed offline intent (no domain impact).</summary>
         public DbSet<OfflineIntentCoverageSample> OfflineIntentCoverageSamples { get; set; }
@@ -1025,6 +1026,47 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.PaymentId);
                 entity.HasIndex(e => e.CreatedAt);
+            });
+
+            builder.Entity<OfflineOrder>(entity =>
+            {
+                entity.ToTable("offline_orders");
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.HasIndex(e => e.TenantId).HasDatabaseName("idx_offline_orders_tenant");
+                entity.Property(e => e.CashRegisterId).HasColumnName("cash_register_id").IsRequired();
+                entity.HasOne(e => e.CashRegister)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashRegisterId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.Property(e => e.OfflineOrderId).HasColumnName("offline_order_id").HasMaxLength(50).IsRequired();
+                entity.Property(e => e.OrderData).HasColumnName("order_data").HasColumnType("jsonb").IsRequired();
+                entity.Property(e => e.OrderTotal).HasColumnName("order_total").HasColumnType("decimal(10,2)").IsRequired();
+                entity.Property(e => e.PaymentMethod).HasColumnName("payment_method").HasMaxLength(50).IsRequired();
+                entity.Property(e => e.Status)
+                    .HasColumnName("status")
+                    .HasMaxLength(20)
+                    .HasDefaultValue(OfflineOrderStatuses.Pending)
+                    .IsRequired();
+                entity.Property(e => e.SyncedPaymentId).HasColumnName("synced_payment_id");
+                entity.HasOne(e => e.SyncedPayment)
+                    .WithMany()
+                    .HasForeignKey(e => e.SyncedPaymentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                entity.Property(e => e.SyncedInvoiceNumber).HasColumnName("synced_invoice_number").HasMaxLength(50);
+                entity.Property(e => e.SyncAttempts).HasColumnName("sync_attempts").HasDefaultValue(0);
+                entity.Property(e => e.LastSyncAttemptUtc).HasColumnName("last_sync_attempt_utc");
+                entity.Property(e => e.CreatedAtUtc).HasColumnName("created_at_utc").IsRequired();
+                entity.Property(e => e.ExpiresAtUtc).HasColumnName("expires_at_utc").IsRequired();
+                entity.Property(e => e.SyncedAtUtc).HasColumnName("synced_at_utc");
+                entity.Property(e => e.ErrorMessage).HasColumnName("error_message");
+                entity.HasIndex(e => e.Status).HasDatabaseName("idx_offline_orders_status");
+                entity.HasIndex(e => e.ExpiresAtUtc).HasDatabaseName("idx_offline_orders_expires");
+                entity.HasIndex(e => e.CreatedAtUtc).HasDatabaseName("idx_offline_orders_created");
             });
 
             // OfflineIntentCoverageSample: observability only; one row per replayed intent for coverage metrics
@@ -2964,6 +3006,7 @@ namespace KasseAPI_Final.Data
         {
             CashierShift cs => cs.CashRegisterId,
             OfflineTransaction ot => ot.CashRegisterId,
+            OfflineOrder oo => oo.CashRegisterId,
             CardPaymentTransaction ct => ct.CashRegisterId,
             DailyClosing dc => dc.CashRegisterId,
             TseSignature ts => ts.CashRegisterId,

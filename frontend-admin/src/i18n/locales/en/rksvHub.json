@@ -211,6 +211,7 @@
     "compliance": "RKSV compliance",
     "signatureChain": "Signature chain verification",
     "offlineCoverage": "Offline intent",
+    "offlineOrders": "Offline orders",
     "status": "System status",
     "cmcCertificate": "CMC / certificate",
     "finanzOnlineOps": "FinanzOnline · integration"
@@ -849,6 +850,49 @@
     "cardTopRiskTitle": "Top-risk registers (limit {{limit}})",
     "emptyByRegister": "No coverage samples in this window.",
     "emptyTopRisk": "No top-risk samples in this window."
+  },
+  "offlineOrdersPage": {
+    "title": "Offline orders",
+    "subtitle": "Full POS order snapshots stored offline and synced later.",
+    "warningTitle": "Offline notice",
+    "warningDescription": "Orders must be synced within 72 hours. Otherwise pending entries are removed automatically.",
+    "filtersTitle": "Filters",
+    "filterStatus": "Status",
+    "filterRegister": "Register",
+    "filterRegisterAll": "All registers",
+    "refresh": "Refresh",
+    "syncAll": "Sync all",
+    "syncOne": "Sync",
+    "colOrderId": "Order no.",
+    "colCreatedAt": "Date",
+    "colTotal": "Amount",
+    "colPaymentMethod": "Payment",
+    "colRegister": "Register",
+    "colHoursRemaining": "Remaining",
+    "colStatus": "Status",
+    "colAction": "Action",
+    "hoursRemaining": "{{hours}} h",
+    "replayAllConfirmTitle": "Sync all offline orders?",
+    "replayAllConfirmBody": "This will process all pending orders (optionally filtered by register).",
+    "replayAllConfirmOk": "Sync",
+    "replayAllSuccess": "{{success}} of {{total}} synced ({{failed}} failed).",
+    "replaySingleSuccess": "Synced — receipt {{invoice}}.",
+    "replayFailed": "Sync failed",
+    "forbiddenTitle": "Access denied",
+    "forbiddenDescription": "You need «payment.view» to manage offline orders.",
+    "status": {
+      "all": "All",
+      "pending": "Pending",
+      "synced": "Synced",
+      "failed": "Failed",
+      "expired": "Expired"
+    },
+    "paymentMethod": {
+      "cash": "Cash",
+      "card": "Card",
+      "voucher": "Voucher",
+      "other": "Other"
+    }
   },
   "aria": {
     "cardRefreshing": "Loading card content",

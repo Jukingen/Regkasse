@@ -19,23 +19,23 @@ public class ReminderService : IReminderService, IBillingReminderService
         (1, LicenseReminderTypes.Expiry),
     ];
 
-    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly AppDbContext _dbContext;
     private readonly ITenantLicenseService _tenantLicenseService;
     private readonly ILogger<ReminderService> _logger;
 
     public ReminderService(
-        IDbContextFactory<AppDbContext> dbContextFactory,
+        AppDbContext dbContext,
         ITenantLicenseService tenantLicenseService,
         ILogger<ReminderService> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _tenantLicenseService = tenantLicenseService;
         _logger = logger;
     }
 
     public async Task CheckAndCreateRemindersAsync(CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var now = DateTime.UtcNow;
         var expiring = await _tenantLicenseService.GetExpiringLicensesAsync(ExpiringScanDays, ct)
@@ -89,7 +89,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
     public async Task SendPendingRemindersAsync(CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var pending = await db.LicenseReminders
             .Include(r => r.Tenant)
@@ -120,7 +120,7 @@ public class ReminderService : IReminderService, IBillingReminderService
         Guid tenantId,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var tenantExists = await db.Tenants
             .IgnoreQueryFilters()
@@ -148,7 +148,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
     public async Task MarkAsSentAsync(Guid reminderId, CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var reminder = await db.LicenseReminders
             .FirstOrDefaultAsync(r => r.Id == reminderId, ct)
@@ -163,7 +163,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
     public async Task ScheduleRemindersForSaleAsync(Guid saleId, CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var db = _dbContext;
 
         var sale = await db.LicenseSales
             .IgnoreQueryFilters()
@@ -215,7 +215,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
     public async Task CancelRemindersForSaleAsync(Guid saleId, CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var db = _dbContext;
 
         var pending = await db.LicenseReminders
             .Where(r => r.LicenseSaleId == saleId && r.Status == LicenseReminderStatuses.Pending)
@@ -233,7 +233,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
     public async Task<int> ProcessDueRemindersAsync(CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var db = _dbContext;
 
         var count = await db.LicenseReminders
             .CountAsync(
@@ -252,7 +252,7 @@ public class ReminderService : IReminderService, IBillingReminderService
         BillingReminderQuery query,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var db = _dbContext;
 
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);

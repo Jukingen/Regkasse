@@ -3,6 +3,8 @@
 import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Admin: server-side non-fiscal offline payment queue (TSE replay backlog).
+ * Legacy system: offline_transactions — NOT offline_orders.
+ * @see docs/release/OFFLINE_SYSTEMS_SEPARATION.md
  * Operator copy: de-DE (Austria).
  */
 

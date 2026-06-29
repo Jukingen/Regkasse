@@ -211,6 +211,7 @@
     "compliance": "RKSV-Compliance",
     "signatureChain": "Signaturketten-Prüfung",
     "offlineCoverage": "Offline-Intent",
+    "offlineOrders": "Offline-Bestellungen",
     "status": "Systemstatus",
     "cmcCertificate": "CMC / Zertifikat",
     "finanzOnlineOps": "FinanzOnline · Integration"
@@ -849,6 +850,49 @@
     "cardTopRiskTitle": "Kassen mit höchstem Risiko (Limit {{limit}})",
     "emptyByRegister": "Keine Abdeckungs-Stichproben in diesem Zeitraum.",
     "emptyTopRisk": "Keine Top-Risiko-Stichproben in diesem Zeitraum."
+  },
+  "offlineOrdersPage": {
+    "title": "Offline-Bestellungen",
+    "subtitle": "Vollständige POS-Bestell-Snapshots, die offline gespeichert und später synchronisiert werden.",
+    "warningTitle": "Offline-Hinweis",
+    "warningDescription": "Bestellungen müssen innerhalb von 72 Stunden synchronisiert werden. Andernfalls werden ausstehende Einträge automatisch entfernt.",
+    "filtersTitle": "Filter",
+    "filterStatus": "Status",
+    "filterRegister": "Kasse",
+    "filterRegisterAll": "Alle Kassen",
+    "refresh": "Aktualisieren",
+    "syncAll": "Alle synchronisieren",
+    "syncOne": "Synchronisieren",
+    "colOrderId": "Bestell-Nr.",
+    "colCreatedAt": "Datum",
+    "colTotal": "Betrag",
+    "colPaymentMethod": "Zahlart",
+    "colRegister": "Kasse",
+    "colHoursRemaining": "Verbleibend",
+    "colStatus": "Status",
+    "colAction": "Aktion",
+    "hoursRemaining": "{{hours}} Std.",
+    "replayAllConfirmTitle": "Alle offline Bestellungen synchronisieren?",
+    "replayAllConfirmBody": "Diese Aktion verarbeitet alle ausstehenden Bestellungen (optional gefiltert nach Kasse).",
+    "replayAllConfirmOk": "Synchronisieren",
+    "replayAllSuccess": "{{success}} von {{total}} synchronisiert ({{failed}} fehlgeschlagen).",
+    "replaySingleSuccess": "Synchronisiert — Beleg {{invoice}}.",
+    "replayFailed": "Synchronisierung fehlgeschlagen",
+    "forbiddenTitle": "Keine Berechtigung",
+    "forbiddenDescription": "Sie benötigen «payment.view», um Offline-Bestellungen zu verwalten.",
+    "status": {
+      "all": "Alle",
+      "pending": "Ausstehend",
+      "synced": "Synchronisiert",
+      "failed": "Fehlgeschlagen",
+      "expired": "Abgelaufen"
+    },
+    "paymentMethod": {
+      "cash": "Bar",
+      "card": "Karte",
+      "voucher": "Gutschein",
+      "other": "Sonstige"
+    }
   },
   "aria": {
     "cardRefreshing": "Karteninhalt wird geladen",

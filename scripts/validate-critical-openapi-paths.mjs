@@ -32,6 +32,13 @@ const CRITICAL_PATHS = [
   { path: '/api/admin/billing/stats', methods: ['get'] },
   { path: '/api/license/billing/status', methods: ['get'] },
   { path: '/api/license/extend', methods: ['post'] },
+  { path: '/api/admin/offline-orders', methods: ['get'] },
+  { path: '/api/admin/offline-orders/{id}/replay', methods: ['post'] },
+  { path: '/api/admin/offline-orders/replay-all', methods: ['post'] },
+  { path: '/api/pos/offline-orders', methods: ['post'] },
+  { path: '/api/pos/offline-orders/pending', methods: ['get'] },
+  { path: '/api/pos/offline-orders/replay', methods: ['post'] },
+  { path: '/api/pos/offline-orders/{offlineOrderId}/status', methods: ['get'] },
 ];
 
 const REQUIRED_SCHEMAS = [
@@ -47,6 +54,11 @@ const REQUIRED_SCHEMAS = [
   'LicenseSaleResponse',
   'TenantLicenseStatus',
   'ExtendResult',
+  'AdminOfflineOrdersListResponse',
+  'AdminOfflineOrderRowDto',
+  'ReplayOfflineOrderResult',
+  'ReplayOfflineOrdersResult',
+  'OfflineOrderRequest',
 ];
 
 /**

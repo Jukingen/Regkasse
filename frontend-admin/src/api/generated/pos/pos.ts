@@ -43,6 +43,7 @@ import type {
   GetApiPosCartCurrentParams,
   GetApiPosCustomersByQrParams,
   GetApiPosListParams,
+  GetApiPosOfflineOrdersPendingParams,
   GetApiPosParams,
   GetApiPosPaymentCustomerCustomerIdParams,
   GetApiPosPaymentDateRangeParams,
@@ -53,6 +54,7 @@ import type {
   GetApiPosSearchParams,
   GetApiPosShiftDailyClosingDailyClosingIdReportPdfParams,
   MergeTableCartsRequest,
+  OfflineOrderRequest,
   PaymentApiErrorBody,
   PaymentCreateSuccessDataPaymentApiEnvelope,
   PaymentHistoryResponse,
@@ -65,6 +67,7 @@ import type {
   PosSelectableListResult,
   PosStatusOverviewDto,
   PostApiPosCartClearParams,
+  PostApiPosOfflineOrdersReplayParams,
   ProblemDetails,
   Product,
   RefundPaymentRequest,
@@ -2823,7 +2826,219 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiPosShiftCurrent = (
+    export const postApiPosOfflineOrders = (
+    offlineOrderRequest: OfflineOrderRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/pos/offline-orders`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: offlineOrderRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosOfflineOrdersMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosOfflineOrders>>, TError,{data: OfflineOrderRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosOfflineOrders>>, TError,{data: OfflineOrderRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosOfflineOrders>>, {data: OfflineOrderRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiPosOfflineOrders(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosOfflineOrdersMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosOfflineOrders>>>
+    export type PostApiPosOfflineOrdersMutationBody = OfflineOrderRequest
+    export type PostApiPosOfflineOrdersMutationError = unknown
+
+    export const usePostApiPosOfflineOrders = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosOfflineOrders>>, TError,{data: OfflineOrderRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosOfflineOrders>>,
+        TError,
+        {data: OfflineOrderRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosOfflineOrdersMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosOfflineOrdersPending = (
+    params?: GetApiPosOfflineOrdersPendingParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/pos/offline-orders/pending`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosOfflineOrdersPendingQueryKey = (params?: GetApiPosOfflineOrdersPendingParams,) => {
+    return [`/api/pos/offline-orders/pending`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiPosOfflineOrdersPendingQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>, TError = unknown>(params?: GetApiPosOfflineOrdersPendingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosOfflineOrdersPendingQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>> = ({ signal }) => getApiPosOfflineOrdersPending(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosOfflineOrdersPendingQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>>
+export type GetApiPosOfflineOrdersPendingQueryError = unknown
+
+export const useGetApiPosOfflineOrdersPending = <TData = Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>, TError = unknown>(
+ params?: GetApiPosOfflineOrdersPendingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersPending>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosOfflineOrdersPendingQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiPosOfflineOrdersReplay = (
+    params?: PostApiPosOfflineOrdersReplayParams,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/pos/offline-orders/replay`, method: 'POST',
+        params
+    },
+      options);
+    }
+  
+
+
+export const getPostApiPosOfflineOrdersReplayMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>, TError,{params?: PostApiPosOfflineOrdersReplayParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>, TError,{params?: PostApiPosOfflineOrdersReplayParams}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>, {params?: PostApiPosOfflineOrdersReplayParams}> = (props) => {
+          const {params} = props ?? {};
+
+          return  postApiPosOfflineOrdersReplay(params,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiPosOfflineOrdersReplayMutationResult = NonNullable<Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>>
+    
+    export type PostApiPosOfflineOrdersReplayMutationError = unknown
+
+    export const usePostApiPosOfflineOrdersReplay = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>, TError,{params?: PostApiPosOfflineOrdersReplayParams}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiPosOfflineOrdersReplay>>,
+        TError,
+        {params?: PostApiPosOfflineOrdersReplayParams},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiPosOfflineOrdersReplayMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiPosOfflineOrdersOfflineOrderIdStatus = (
+    offlineOrderId: string,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/pos/offline-orders/${offlineOrderId}/status`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiPosOfflineOrdersOfflineOrderIdStatusQueryKey = (offlineOrderId: string,) => {
+    return [`/api/pos/offline-orders/${offlineOrderId}/status`] as const;
+    }
+
+    
+export const getGetApiPosOfflineOrdersOfflineOrderIdStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>, TError = unknown>(offlineOrderId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiPosOfflineOrdersOfflineOrderIdStatusQueryKey(offlineOrderId);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>> = ({ signal }) => getApiPosOfflineOrdersOfflineOrderIdStatus(offlineOrderId, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(offlineOrderId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiPosOfflineOrdersOfflineOrderIdStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>>
+export type GetApiPosOfflineOrdersOfflineOrderIdStatusQueryError = unknown
+
+export const useGetApiPosOfflineOrdersOfflineOrderIdStatus = <TData = Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>, TError = unknown>(
+ offlineOrderId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiPosOfflineOrdersOfflineOrderIdStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiPosOfflineOrdersOfflineOrderIdStatusQueryOptions(offlineOrderId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiPosShiftCurrent = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {

@@ -211,6 +211,7 @@
     "compliance": "RKSV uyumluluk",
     "signatureChain": "İmza zinciri doğrulama",
     "offlineCoverage": "Çevrimdışı niyet",
+    "offlineOrders": "Çevrimdışı siparişler",
     "status": "Sistem durumu",
     "cmcCertificate": "CMC / sertifika",
     "finanzOnlineOps": "FinanzOnline · entegrasyon"
@@ -849,6 +850,49 @@
     "cardTopRiskTitle": "En yüksek riskli kasalar (limit {{limit}})",
     "emptyByRegister": "Bu pencerede kapsam örneği yok.",
     "emptyTopRisk": "Bu pencerede üst risk örneği yok."
+  },
+  "offlineOrdersPage": {
+    "title": "Çevrimdışı siparişler",
+    "subtitle": "Çevrimdışı kaydedilen ve daha sonra senkronize edilen tam POS sipariş anlık görüntüleri.",
+    "warningTitle": "Çevrimdışı uyarı",
+    "warningDescription": "Siparişler 72 saat içinde senkronize edilmelidir. Aksi halde bekleyen kayıtlar otomatik olarak kaldırılır.",
+    "filtersTitle": "Filtreler",
+    "filterStatus": "Durum",
+    "filterRegister": "Kasa",
+    "filterRegisterAll": "Tüm kasalar",
+    "refresh": "Yenile",
+    "syncAll": "Tümünü senkronize et",
+    "syncOne": "Senkronize et",
+    "colOrderId": "Sipariş no.",
+    "colCreatedAt": "Tarih",
+    "colTotal": "Tutar",
+    "colPaymentMethod": "Ödeme",
+    "colRegister": "Kasa",
+    "colHoursRemaining": "Kalan süre",
+    "colStatus": "Durum",
+    "colAction": "Aksiyon",
+    "hoursRemaining": "{{hours}} saat",
+    "replayAllConfirmTitle": "Tüm çevrimdışı siparişler senkronize edilsin mi?",
+    "replayAllConfirmBody": "Bu işlem tüm bekleyen siparişleri işleme alır (isteğe bağlı kasa filtresi).",
+    "replayAllConfirmOk": "Senkronize et",
+    "replayAllSuccess": "{{total}} siparişten {{success}} senkronize edildi ({{failed}} başarısız).",
+    "replaySingleSuccess": "Senkronize edildi — fiş {{invoice}}.",
+    "replayFailed": "Senkronizasyon başarısız",
+    "forbiddenTitle": "Yetki yok",
+    "forbiddenDescription": "Çevrimdışı siparişleri yönetmek için «payment.view» gerekir.",
+    "status": {
+      "all": "Tümü",
+      "pending": "Bekliyor",
+      "synced": "Senkronize",
+      "failed": "Başarısız",
+      "expired": "Süresi doldu"
+    },
+    "paymentMethod": {
+      "cash": "Nakit",
+      "card": "Kart",
+      "voucher": "Hediye çeki",
+      "other": "Diğer"
+    }
   },
   "aria": {
     "cardRefreshing": "Kart içeriği yükleniyor",

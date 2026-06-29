@@ -354,6 +354,52 @@ public record BillingBackupConfig
 
 #endregion
 
+#region Offline monitoring DTOs
+
+public record OfflineSystemStatus
+{
+    public int TotalPendingOrders { get; init; }
+    public int TotalPendingTransactions { get; init; }
+    public int TotalExpiredOrders { get; init; }
+    public int TotalFailedSyncs { get; init; }
+    public DateTime? OldestPendingOrder { get; init; }
+    public DateTime? LastSyncAt { get; init; }
+    public bool HasCriticalIssues { get; init; }
+}
+
+public record OfflineOrderStats
+{
+    public int Total { get; init; }
+    public int Pending { get; init; }
+    public int Synced { get; init; }
+    public int Failed { get; init; }
+    public int Expired { get; init; }
+}
+
+public record OfflineAnomaly
+{
+    /// <summary>e.g. too_many_pending, old_pending, sync_failure</summary>
+    public string Code { get; init; } = string.Empty;
+
+    /// <summary>info | warning | critical</summary>
+    public string Severity { get; init; } = "warning";
+
+    public string Message { get; init; } = string.Empty;
+    public DateTime DetectedAt { get; init; }
+}
+
+public record SyncHealth
+{
+    public bool IsHealthy { get; init; }
+    public int AvgSyncTimeMs { get; init; }
+    /// <summary>Successful sync percentage (0–100).</summary>
+    public int SuccessRate { get; init; }
+    public int TotalAttempts { get; init; }
+    public int FailedAttempts { get; init; }
+}
+
+#endregion
+
 #region Internal DTOs
 
 public record LicensePlanDefinition

@@ -12,16 +12,16 @@ public class BillingAuditService : IBillingAuditService
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly AppDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<BillingAuditService> _logger;
 
     public BillingAuditService(
-        IDbContextFactory<AppDbContext> dbContextFactory,
+        AppDbContext dbContext,
         ICurrentUserService currentUserService,
         ILogger<BillingAuditService> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _currentUserService = currentUserService;
         _logger = logger;
     }
@@ -49,7 +49,7 @@ public class BillingAuditService : IBillingAuditService
         BillingAuditLogQuery query,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
@@ -104,7 +104,7 @@ public class BillingAuditService : IBillingAuditService
         Guid saleId,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var logs = await db.BillingAuditLogs
             .AsNoTracking()
@@ -125,7 +125,7 @@ public class BillingAuditService : IBillingAuditService
         Guid tenantId,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var logs = await db.BillingAuditLogs
             .AsNoTracking()
@@ -206,7 +206,7 @@ public class BillingAuditService : IBillingAuditService
     {
         try
         {
-            await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+            await using var db = _dbContext;
 
             var audit = new BillingAuditLog
             {

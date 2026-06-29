@@ -158,9 +158,9 @@ public sealed class AdminBillingControllerTests
                 .ReturnsAsync(new byte[] { 0x25, 0x50, 0x44, 0x46 });
 
             var billingService = new BillingService(
-                _factory,
+                _db,
                 new LicenseKeyGenerator(),
-                BillingTestDoubles.CreateAuditService(_factory),
+                BillingTestDoubles.CreateAuditService(_db),
                 BillingTestDoubles.CreateReminderScopeFactory(),
                 environment.Object,
                 PdfGeneratorMock.Object,
@@ -168,17 +168,17 @@ public sealed class AdminBillingControllerTests
                 NullLogger<BillingService>.Instance);
 
             var tenantLicenseService = new TenantLicenseService(
-                _factory,
+                _db,
                 billingService,
                 new LicenseKeyGenerator(),
-                BillingTestDoubles.CreateAuditService(_factory),
+                BillingTestDoubles.CreateAuditService(_db),
                 NullLogger<TenantLicenseService>.Instance);
 
             var controller = new AdminBillingController(
                 billingService,
                 tenantLicenseService,
                 PdfGeneratorMock.Object,
-                BillingTestDoubles.CreateAuditService(_factory),
+                BillingTestDoubles.CreateAuditService(_db),
                 BillingTestDoubles.NoOpReminder,
                 BillingTestDoubles.NoOpBackup,
                 NullCurrentUserService.Instance,
@@ -271,9 +271,9 @@ public sealed class AdminBillingControllerTests
             environment.SetupGet(e => e.ContentRootPath).Returns(Path.GetTempPath());
 
             var billingService = new BillingService(
-                _factory,
+                _db,
                 new LicenseKeyGenerator(),
-                BillingTestDoubles.CreateAuditService(_factory),
+                BillingTestDoubles.CreateAuditService(_db),
                 BillingTestDoubles.CreateReminderScopeFactory(),
                 environment.Object,
                 PdfGeneratorMock.Object,

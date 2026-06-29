@@ -443,20 +443,20 @@ builder.Services.AddScoped<IAdminTenantLicenseKeyService, AdminTenantLicenseKeyS
 builder.Services.AddScoped<IAdminTenantLicenseService, AdminTenantLicenseService>();
 builder.Services.AddSingleton<ITenantLicenseExtensionRateLimiter, TenantLicenseExtensionRateLimiter>();
 
-// Billing services
+// Billing services (scoped — injected AppDbContext is request-scoped; do not use Singleton)
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<IBillingTenantLicenseService, BillingTenantLicenseService>();
+builder.Services.AddScoped<IBillingAuditService, BillingAuditService>();
+builder.Services.AddScoped<IReminderService, ReminderService>();
+builder.Services.AddScoped<IBillingBackupService, BillingBackupService>();
 builder.Services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
 builder.Services.AddScoped<InvoicePdfTemplateService>();
 builder.Services.AddScoped<ILicenseKeyGenerator, LicenseKeyGenerator>();
 builder.Services.AddScoped<IInvoiceNumberGenerator, InvoiceNumberGenerator>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
-builder.Services.AddScoped<IBillingAuditService, BillingAuditService>();
-builder.Services.AddScoped<IReminderService, ReminderService>();
 builder.Services.AddScoped<IBillingReminderService>(sp => (IBillingReminderService)sp.GetRequiredService<IReminderService>());
-builder.Services.AddHostedService<BillingReminderHostedService>();
 builder.Services.Configure<BillingBackupConfig>(builder.Configuration.GetSection("BillingBackup"));
-builder.Services.AddScoped<IBillingBackupService, BillingBackupService>();
+builder.Services.AddHostedService<BillingReminderHostedService>();
 builder.Services.AddHostedService<BillingBackupHostedService>();
 builder.Services.AddScoped<ILicenseRenewalService, LicenseRenewalService>();
 builder.Services.AddScoped<IQuickUserGeneratorService, QuickUserGeneratorService>();
@@ -880,6 +880,15 @@ builder.Services.AddHostedService<StaleRunReaperHostedService>();
 builder.Services.Configure<KasseAPI_Final.Configuration.OfflineReplayOptions>(
     builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineReplayOptions.SectionName));
 builder.Services.AddScoped<IOfflineTransactionService, OfflineTransactionService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.Offline.IOfflineOrderService, KasseAPI_Final.Services.Offline.OfflineOrderService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.Offline.ISequenceReservationService, KasseAPI_Final.Services.Offline.SequenceReservationService>();
+builder.Services.AddScoped<KasseAPI_Final.Services.Offline.IOfflineMonitoringService, KasseAPI_Final.Services.Offline.OfflineMonitoringService>();
+builder.Services.Configure<KasseAPI_Final.Configuration.OfflineMonitoringOptions>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineMonitoringOptions.SectionName));
+builder.Services.Configure<KasseAPI_Final.Configuration.OfflineAlertRules>(
+    builder.Configuration.GetSection(KasseAPI_Final.Configuration.OfflineAlertRules.SectionName));
+builder.Services.AddHostedService<KasseAPI_Final.Services.Offline.OfflineAlertService>();
+builder.Services.AddHostedService<KasseAPI_Final.Services.Hosted.OfflineOrderCleanupHostedService>();
 builder.Services.AddSingleton<TseHealthStateStore>();
 builder.Services.AddSingleton<ITseHealthMonitor>(sp => sp.GetRequiredService<TseHealthStateStore>());
 builder.Services.AddSingleton<IOfflineReplayCompletionNotifier, LoggingOfflineReplayCompletionNotifier>();

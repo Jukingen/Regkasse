@@ -97,16 +97,15 @@ public sealed class InvoicePdfGeneratorTests
         var provider = services.BuildServiceProvider();
 
         var generator = new InvoicePdfGenerator(
-            _factory,
             provider.GetRequiredService<IServiceScopeFactory>(),
             templateService,
             NullLogger<InvoicePdfGenerator>.Instance,
             configuration);
 
         billingService = new BillingService(
-            _factory,
+            _db,
             new LicenseKeyGenerator(),
-            BillingTestDoubles.CreateAuditService(_factory),
+            BillingTestDoubles.CreateAuditService(_db),
             BillingTestDoubles.CreateReminderScopeFactory(),
             environment.Object,
             generator,

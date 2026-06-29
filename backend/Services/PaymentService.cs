@@ -1058,7 +1058,28 @@ namespace KasseAPI_Final.Services
                 Invoice? posInvoice = null;
 
                     // Sprint 1: Allocate BelegNr within this transaction so it commits or rolls back with payment/invoice/receipt/stock.
-                    var preReceiptNumber = await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(transaction, cashRegisterId, registerNumber, DateTime.UtcNow);
+                    var preReceiptNumber = !string.IsNullOrWhiteSpace(request.ReservedReceiptNumber)
+                        ? request.ReservedReceiptNumber.Trim()
+                        : await _receiptSequenceService.AllocateNextBelegNrInTransactionAsync(transaction, cashRegisterId, registerNumber, DateTime.UtcNow);
+
+                    if (!string.IsNullOrWhiteSpace(request.ReservedReceiptNumber))
+                    {
+                        var reservedTaken = await _context.PaymentDetails
+                            .AnyAsync(p => p.ReceiptNumber == preReceiptNumber && p.IsActive);
+                        if (reservedTaken)
+                        {
+                            await transaction.RollbackAsync();
+                            _context.ChangeTracker.Clear();
+                            return new PaymentResult
+                            {
+                                Success = false,
+                                Message = "Reserved receipt number is already in use.",
+                                Errors = { "Reserved receipt number conflict." },
+                                IsDeterministicFailure = false,
+                                DiagnosticCode = "RECEIPT_NUMBER_CONFLICT"
+                            };
+                        }
+                    }
 
                     // Ödeme detayları oluştur (totals = CartMoneyHelper toplamları; optional customer % discount already applied above)
                     payment = new PaymentDetails

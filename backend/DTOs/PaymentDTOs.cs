@@ -46,6 +46,10 @@ namespace KasseAPI_Final.DTOs
         [MaxLength(64)]
         public string? IdempotencyKey { get; set; }
 
+        /// <summary>Offline order replay: pre-reserved BelegNr from <see cref="Services.Offline.ISequenceReservationService"/>.</summary>
+        [MaxLength(256)]
+        public string? ReservedReceiptNumber { get; set; }
+
         /// <summary>Optional explicit customer classification; when omitted, derived from customer id (e.g. walk-in sentinel).</summary>
         public CustomerKind? CustomerKind { get; set; }
 

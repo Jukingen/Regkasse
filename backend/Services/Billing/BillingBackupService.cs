@@ -15,7 +15,7 @@ public sealed class BillingBackupService : IBillingBackupService
     private const int MaxPageSize = 100;
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly AppDbContext _dbContext;
     private readonly IBillingService _billingService;
     private readonly IInvoicePdfGenerator _pdfGenerator;
     private readonly BillingBackupConfig _config;
@@ -23,14 +23,14 @@ public sealed class BillingBackupService : IBillingBackupService
     private readonly ILogger<BillingBackupService> _logger;
 
     public BillingBackupService(
-        IDbContextFactory<AppDbContext> dbContextFactory,
+        AppDbContext dbContext,
         IBillingService billingService,
         IInvoicePdfGenerator pdfGenerator,
         IOptions<BillingBackupConfig> config,
         IWebHostEnvironment environment,
         ILogger<BillingBackupService> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _billingService = billingService;
         _pdfGenerator = pdfGenerator;
         _config = config.Value;
@@ -87,7 +87,7 @@ public sealed class BillingBackupService : IBillingBackupService
             var hash = ComputeHash(json);
             var fileSize = pdfBytes.Length + Encoding.UTF8.GetByteCount(json);
 
-            await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+            await using var db = _dbContext;
             var history = CreateHistoryRecord(
                 result.BackupRunId,
                 BillingBackupTypes.Sale,
@@ -214,7 +214,7 @@ public sealed class BillingBackupService : IBillingBackupService
         BackupHistoryQuery query,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
@@ -274,7 +274,7 @@ public sealed class BillingBackupService : IBillingBackupService
         Guid backupId,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var history = await db.BillingBackupHistories
             .Include(h => h.Sale)
@@ -321,7 +321,7 @@ public sealed class BillingBackupService : IBillingBackupService
 
     public async Task<int> CleanupExpiredBackupsAsync(CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var now = DateTime.UtcNow;
         var expired = await db.BillingBackupHistories
@@ -380,7 +380,7 @@ public sealed class BillingBackupService : IBillingBackupService
 
         try
         {
-            await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+            await using var db = _dbContext;
 
             var salesQuery = salesFilter(db.LicenseSales.IgnoreQueryFilters());
             var sales = await salesQuery
@@ -536,7 +536,7 @@ public sealed class BillingBackupService : IBillingBackupService
     {
         try
         {
-            await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+            var db = _dbContext;
             db.BillingBackupHistories.Add(new BillingBackupHistory
             {
                 Id = Guid.NewGuid(),

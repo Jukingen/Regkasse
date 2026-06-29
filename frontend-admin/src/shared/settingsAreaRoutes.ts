@@ -10,6 +10,7 @@
 export const SETTINGS_AREA_ROUTE_PATHS = [
     '/settings/company',
     '/settings/session',
+    '/settings/offline',
     '/settings/personalization',
     '/settings/payment-methods',
     '/settings/backup-dr',

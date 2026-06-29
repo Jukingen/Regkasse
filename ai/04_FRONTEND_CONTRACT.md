@@ -23,11 +23,13 @@
 - API çağrıları `frontend/services/api/*` üzerinden yapılır.
 - Yeni POS çağrılarında canonical path tercih et: `/api/pos/*`.
 - **Fiscal kural kaynağı:** RKSV/TSE/ödeme reddi ve kasa durumu için backend nihai otoritedir; POS yalnızca erken uyarı/blokaj sağlar (`REGKASSE_AI_ONBOARDING.md`).
-- **Offline kuyruk:** `NON_FISCAL_PENDING` ödemeler `frontend/services/payment/pendingPaymentQueue.ts` ile yerel kuyrukta tutulur; **düz metin voucher kodu asla kuyruğa yazılmaz**. Senkron: `POST /api/offline-transactions/replay` (bağlantı/health toparlanınca tetiklenir).
+- **Offline TSE intents (legacy):** `pendingPaymentQueue.ts`; `POST /api/offline-transactions/replay`; FA **`/admin/tse/offline-transactions`**. Voucher asla kuyruğa yazılmaz.
+- **Offline orders (full snapshot):** `offlineOrderManager.ts` + `offlineStorage.ts`; POS `/api/pos/offline-orders/*`; FA **`/rksv/offline-orders`**. Ayrım: [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](../docs/release/OFFLINE_SYSTEMS_SEPARATION.md).
 
 ## Admin (`frontend-admin/`)
 - Stack: Next.js 14 App Router + Ant Design + TanStack Query.
 - Route yapısı: `frontend-admin/src/app/**` (React Router/Vite değil).
+- **Offline orders panel:** `/rksv/offline-orders` — Orval hooks from `@/api/generated/admin/admin`; i18n `rksvHub.offlineOrdersPage.*`
 - API tüketimi: Orval generated client (`src/api/generated/**`) + admin boundary helper dosyaları.
 - `src/api/generated/**` elle düzenlenmez.
 

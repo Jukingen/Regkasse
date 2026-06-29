@@ -396,6 +396,60 @@ Mandant SaaS license lifecycle — JWT with **tenant context** required (`ICurre
 
 ---
 
+## Offline orders API (full POS snapshots)
+
+> **Canonical doc:** [`docs/release/OFFLINE_ORDERS_FULL_SNAPSHOT.md`](release/OFFLINE_ORDERS_FULL_SNAPSHOT.md)  
+> **Separation guide:** [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](release/OFFLINE_SYSTEMS_SEPARATION.md)  
+> **Legacy (payment intents):** `/api/offline-transactions/replay`, `/api/admin/offline-transactions`, FA `/admin/tse/offline-transactions` — unchanged; separate table `offline_transactions`.
+
+New model stores **full `CreatePaymentRequest` snapshots** in `offline_orders` (not `offline_transactions`).
+
+### POS — `/api/pos/offline-orders`
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| POST | `/api/pos/offline-orders` | `payment.take` | Save offline order |
+| GET | `/api/pos/offline-orders/pending` | `payment.take` | Query `cashRegisterId` required |
+| POST | `/api/pos/offline-orders/replay` | `payment.take` | Replay pending for register; batch BelegNr reserve |
+| GET | `/api/pos/offline-orders/{offlineOrderId}/status` | `payment.take` | Status by business id (`OFFLINE-…`) |
+
+**Save body (`OfflineOrderRequest`):**
+
+```json
+{
+  "cashRegisterId": "uuid",
+  "orderData": { },
+  "orderTotal": 12.50,
+  "paymentMethod": "cash"
+}
+```
+
+**Replay response (`ReplayOfflineOrdersResult`):** `{ total, success, failed, details[] }` with per-order `{ orderId, success, paymentId?, invoiceNumber?, errorMessage? }`.
+
+### Admin — `/api/admin/offline-orders`
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/admin/offline-orders` | `payment.view` | List: `status`, `cashRegisterId`, `pageNumber`, `pageSize` |
+| POST | `/api/admin/offline-orders/{id}/replay` | `payment.view` | Replay one pending order |
+| POST | `/api/admin/offline-orders/replay-all` | `payment.view` | Optional `cashRegisterId` query |
+
+**FA route:** `/rksv/offline-orders` (RKSV → Diagnose). Orval hooks: `useGetApiAdminOfflineOrders`, `usePostApiAdminOfflineOrdersIdReplay`, `usePostApiAdminOfflineOrdersReplayAll` in `@/api/generated/admin/admin`.
+
+**OpenAPI regen:**
+
+```bash
+node scripts/generate-backend-openapi.mjs
+cd frontend-admin && npm run generate:api
+node scripts/verify-api-client.mjs
+```
+
+**Rules:** 72 h expiry (cleanup deletes pending); max 3 sync attempts; **voucher not allowed** offline.
+
+**Implementation:** `PosOfflineOrdersController`, `AdminOfflineOrdersController`, `OfflineOrderService`, `SequenceReservationService`.
+
+---
+
 ## Client migration checklist
 
 | Client | Action |
@@ -416,6 +470,7 @@ After backend DTO changes:
 
 - [`USER_MANAGEMENT.md`](USER_MANAGEMENT.md) — operator flows, roles, FA surfaces
 - [`BILLING_TENANT_LICENSE.md`](BILLING_TENANT_LICENSE.md) — billing / mandant license API and services
+- [`docs/release/OFFLINE_ORDERS_FULL_SNAPSHOT.md`](release/OFFLINE_ORDERS_FULL_SNAPSHOT.md) — full POS order snapshots (2026-06-27)
 - [`REGKASSE_AI_ONBOARDING.md`](../REGKASSE_AI_ONBOARDING.md) — Authentication section
 - [`frontend-admin/README.md`](../frontend-admin/README.md) — Schnell anlegen
 - [`frontend/README.md`](../frontend/README.md) — POS login

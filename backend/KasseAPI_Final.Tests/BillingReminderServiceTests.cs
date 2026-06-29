@@ -21,7 +21,7 @@ public sealed class ReminderServiceTests
         var tenant = SeedTenant(db);
         var sale = SeedSale(db, tenant.Id, DateTime.UtcNow.AddDays(45));
 
-        var sut = CreateService(factory);
+        var sut = CreateService(db);
         await sut.ScheduleRemindersForSaleAsync(sale.Id);
 
         db.ChangeTracker.Clear();
@@ -59,7 +59,7 @@ public sealed class ReminderServiceTests
         });
         await db.SaveChangesAsync();
 
-        var sut = CreateService(factory);
+        var sut = CreateService(db);
         await sut.CancelRemindersForSaleAsync(sale.Id);
 
         db.ChangeTracker.Clear();
@@ -85,7 +85,7 @@ public sealed class ReminderServiceTests
         });
         await db.SaveChangesAsync();
 
-        var sut = CreateService(factory);
+        var sut = CreateService(db);
         await sut.SendPendingRemindersAsync();
         db.ChangeTracker.Clear();
         var reminder = await db.LicenseReminders.SingleAsync();
@@ -94,11 +94,11 @@ public sealed class ReminderServiceTests
     }
 
     private static ReminderService CreateService(
-        IDbContextFactory<AppDbContext> factory,
+        AppDbContext db,
         ITenantLicenseService? tenantLicenseService = null)
     {
         return new ReminderService(
-            factory,
+            db,
             tenantLicenseService ?? Mock.Of<ITenantLicenseService>(),
             NullLogger<ReminderService>.Instance);
     }

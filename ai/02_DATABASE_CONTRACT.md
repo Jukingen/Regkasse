@@ -87,7 +87,8 @@ dotnet ef migrations add <DescriptiveName> --project backend/KasseAPI_Final.cspr
 - **Receipt** / **ReceiptSequence** / **`signature_chain_state`**: fiş numarası sırası ve imza zinciri tutarlılığı; ayrı tablolarda kırılmaması gerekir.
 - **Voucher:** `vouchers`, `voucher_ledger_entries` (bakiye ve denetim izi; düz metin voucher kodu saklanmaz—hash/masked gösterim modeli).
 - TSE cihaz/imza tabloları (`tse_devices`, `tse_signatures`, vb.)
-- `offline_transactions` ve payload hash / replay ile ilişkili alanlar
+- `offline_transactions` — legacy payment-intent replay, payload hash, device/sequence coverage
+- **`offline_orders`** — full POS order snapshots (`order_data` JSONB), 72 h expiry, sync to `payment_details` via replay (`20260627002059_AddOfflineOrdersTable`)
 - `DailyClosing` ve rapor kapanışı ile ilişkili tablolar
 - FinanzOnline outbox/submission tabloları
 - Backup/restore verification tabloları (operasyonel güvence için)

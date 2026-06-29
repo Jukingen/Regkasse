@@ -8,6 +8,7 @@ import { LowStockAlertsWidget } from '@/features/dashboard/widgets/LowStockAlert
 import { RecentUsersWidget } from '@/features/dashboard/widgets/RecentUsersWidget';
 import { LicenseExpiryWidget } from '@/features/dashboard/widgets/LicenseExpiryWidget';
 import { FinanzOnlineStatusWidget } from '@/features/dashboard/widgets/FinanzOnlineStatusWidget';
+import { OfflineStatusWidget } from '@/features/dashboard/components/OfflineStatusWidget';
 import { TopSellingProductsWidget } from '@/features/dashboard/widgets/TopSellingProductsWidget';
 import { PaymentTrendWidget, parsePaymentTrendPeriod } from '@/features/dashboard/widgets/PaymentTrendWidget';
 import type { WidgetShellProps } from '@/features/dashboard/components/WidgetShell';
@@ -41,6 +42,8 @@ export function renderDashboardWidget(
             return <LicenseExpiryWidget {...common} />;
         case DASHBOARD_WIDGET_IDS.finanzOnlineStatus:
             return <FinanzOnlineStatusWidget {...common} />;
+        case DASHBOARD_WIDGET_IDS.offlineSystemStatus:
+            return <OfflineStatusWidget {...common} />;
         case DASHBOARD_WIDGET_IDS.topSellingProducts: {
             const period =
                 props.settings?.period === 'week' ? ('week' as const) : ('today' as const);

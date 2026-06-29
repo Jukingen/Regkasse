@@ -13,6 +13,8 @@ Covered domains:
 - Integrity report
 - Offline intent coverage
 - Offline payload-hash analyze/repair/export
+- **Offline orders (full snapshots):** `/rksv/offline-orders` → `/api/admin/offline-orders` — separate from legacy `/admin/tse/offline-transactions`
+- **Legacy offline TSE intents:** `/admin/tse/offline-transactions` → `/api/admin/offline-transactions` — do not route through offline-orders APIs
 
 ## Boundary
 

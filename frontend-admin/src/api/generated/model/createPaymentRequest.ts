@@ -32,6 +32,11 @@ export interface CreatePaymentRequest {
   originalReceiptNumber?: string | null;
   payment: PaymentMethodRequest;
   /**
+   * @maxLength 256
+   * @nullable
+   */
+  reservedReceiptNumber?: string | null;
+  /**
    * @nullable
    * @pattern ^ATU\d{8}$
    */

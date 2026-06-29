@@ -4438,6 +4438,106 @@ namespace KasseAPI_Final.Migrations
                     b.ToTable("offline_intent_coverage_samples", (string)null);
                 });
 
+            modelBuilder.Entity("KasseAPI_Final.Models.OfflineOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cash_register_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("error_message");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at_utc");
+
+                    b.Property<DateTime?>("LastSyncAttemptUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_sync_attempt_utc");
+
+                    b.Property<string>("OfflineOrderId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("offline_order_id");
+
+                    b.Property<string>("OrderData")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("order_data");
+
+                    b.Property<decimal>("OrderTotal")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("order_total");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("payment_method");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("pending")
+                        .HasColumnName("status");
+
+                    b.Property<int>("SyncAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("sync_attempts");
+
+                    b.Property<DateTime?>("SyncedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("synced_at_utc");
+
+                    b.Property<string>("SyncedInvoiceNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("synced_invoice_number");
+
+                    b.Property<Guid?>("SyncedPaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("synced_payment_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId");
+
+                    b.HasIndex("CreatedAtUtc")
+                        .HasDatabaseName("idx_offline_orders_created");
+
+                    b.HasIndex("ExpiresAtUtc")
+                        .HasDatabaseName("idx_offline_orders_expires");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("idx_offline_orders_status");
+
+                    b.HasIndex("SyncedPaymentId");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("idx_offline_orders_tenant");
+
+                    b.ToTable("offline_orders", (string)null);
+                });
+
             modelBuilder.Entity("KasseAPI_Final.Models.OfflineTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9256,6 +9356,32 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("CashRegisterId");
 
                     b.Navigation("CashRegister");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.OfflineOrder", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("KasseAPI_Final.Models.PaymentDetails", "SyncedPayment")
+                        .WithMany()
+                        .HasForeignKey("SyncedPaymentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
+
+                    b.Navigation("SyncedPayment");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.OfflineTransaction", b =>

@@ -6,6 +6,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { API_BASE_URL } from '../services/api/config';
 import { paymentService } from '../services/api/paymentService';
 import { notifyOfflineSyncComplete } from '../services/payment/offlineQueueSyncNotifier';
+import { syncOfflineOrderQueue } from '../services/payment/offlineOrderQueue';
 import { useAuth } from '../contexts/AuthContext';
 import { sessionManager } from '../services/session/sessionManager';
 import { isDevSimulatePosNetworkOffline } from '../constants/devSimulatePosOffline';
@@ -154,6 +155,18 @@ export const useApiManager = () => {
             })
             .catch((e) =>
               console.warn('[PaymentQueue] Background sync failed:', e)
+            );
+          void syncOfflineOrderQueue()
+            .then(({ uploaded, replayed, failed }) => {
+              if (uploaded > 0 || replayed > 0 || failed > 0) {
+                console.log(
+                  `[OfflineOrderQueue] uploaded=${uploaded} replayed=${replayed} failed=${failed}`
+                );
+                notifyOfflineSyncComplete(replayed, failed);
+              }
+            })
+            .catch((e) =>
+              console.warn('[OfflineOrderQueue] Background sync failed:', e)
             );
         }
         return ok;

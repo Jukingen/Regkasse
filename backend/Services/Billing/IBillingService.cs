@@ -47,9 +47,7 @@ public interface IBillingService
         CancellationToken ct = default);
 
     // Get next invoice number
-    Task<string> GetNextInvoiceNumberAsync(
-        DateTime date,
-        CancellationToken ct = default);
+    Task<string> GetNextInvoiceNumberAsync(DateTime date);
 
     // Generate and persist license sale invoice PDF
     Task<byte[]> GenerateInvoicePdfAsync(

@@ -12,6 +12,7 @@ public static class DashboardWidgetCatalog
     public const string RecentUsers = "recent-users";
     public const string LicenseExpiry = "license-expiry";
     public const string FinanzOnlineStatus = "finanzonline-status";
+    public const string OfflineSystemStatus = "offline-system-status";
     public const string TopSellingProducts = "top-selling-products";
     public const string PaymentTrends = "payment-trends";
 
@@ -25,6 +26,7 @@ public static class DashboardWidgetCatalog
         new(RecentUsers, "Neue Benutzer", "Zuletzt angelegte Benutzer", AppPermissions.UserView, 5, true, true),
         new(LicenseExpiry, "Lizenzablauf", "Verbleibende Tage Mandantenlizenz", AppPermissions.SettingsManage, 6, true, true),
         new(FinanzOnlineStatus, "FinanzOnline", "Ausstehende oder fehlgeschlagene Übermittlungen", AppPermissions.FinanzOnlineView, 7, true, true),
+        new(OfflineSystemStatus, "Offline-System", "Offline-Bestellungen, Sync-Gesundheit und Rückstau", AppPermissions.PaymentView, 8, true, true),
     ];
 
     public static IReadOnlyList<DashboardWidgetDefinition> GetAll() => All;

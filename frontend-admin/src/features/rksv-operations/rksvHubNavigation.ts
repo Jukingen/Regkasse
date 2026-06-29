@@ -45,6 +45,7 @@ export const RKSV_HUB_GROUPS: RksvHubGroupDef[] = [
       { href: '/rksv/compliance', labelKey: 'rksvHub.link.compliance' },
       { href: '/rksv/signature-chain', labelKey: 'rksvHub.link.signatureChain' },
       { href: '/rksv/offline-intent-coverage', labelKey: 'rksvHub.link.offlineCoverage' },
+      { href: '/rksv/offline-orders', labelKey: 'rksvHub.link.offlineOrders' },
     ],
   },
   {

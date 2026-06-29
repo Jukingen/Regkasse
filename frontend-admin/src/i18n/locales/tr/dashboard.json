@@ -105,6 +105,21 @@
     "hint_ok": "Açık sorun yok",
     "details": "Detaylar"
   },
+  "offlineStatusWidget": {
+    "badge_critical": "Kritik",
+    "badge_pending": "Bekliyor",
+    "badge_healthy": "Sağlıklı",
+    "pending_orders": "Bekleyen sipariş",
+    "total_pending": "Toplam bekleyen",
+    "sync_success_rate": "Sync başarı oranı",
+    "sync_status": "Sync durumu",
+    "sync_healthy": "Sağlıklı",
+    "sync_unhealthy": "Sorunlu",
+    "oldest_pending": "En eski bekleme: {{time}}",
+    "last_sync": "Son sync: {{time}}",
+    "view_details": "Detayları görüntüle",
+    "load_failed": "Offline durumu yüklenemedi."
+  },
   "widgetShell": {
     "refresh": "Yenile",
     "drag_widget": "Widget taşı"

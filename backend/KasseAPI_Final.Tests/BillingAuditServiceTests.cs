@@ -17,7 +17,7 @@ public sealed class BillingAuditServiceTests
         var (db, factory) = CreateDb();
         await using var _ = db;
 
-        var service = CreateAuditService(factory);
+        var service = CreateAuditService(db);
         var tenant = CreateTestTenant(db);
         var sale = CreateTestSale(db, tenant.Id);
 
@@ -44,7 +44,7 @@ public sealed class BillingAuditServiceTests
         var tenant = SeedTenant(db);
         var actorUserId = SeedUser(db);
         var saleId = Guid.NewGuid();
-        var sut = BillingTestDoubles.CreateAuditService(factory);
+        var sut = BillingTestDoubles.CreateAuditService(db);
 
         await sut.LogAsync(
             BillingAuditEventTypes.SaleCreated,
@@ -70,7 +70,7 @@ public sealed class BillingAuditServiceTests
         var tenantA = SeedTenant(db, "cafe-a");
         var tenantB = SeedTenant(db, "cafe-b");
         var actorUserId = SeedUser(db);
-        var sut = BillingTestDoubles.CreateAuditService(factory);
+        var sut = BillingTestDoubles.CreateAuditService(db);
 
         await sut.LogAsync(BillingAuditEventTypes.SaleCreated, actorUserId, tenantA.Id, Guid.NewGuid());
         await sut.LogAsync(BillingAuditEventTypes.SaleCancelled, actorUserId, tenantA.Id, Guid.NewGuid());
@@ -96,7 +96,7 @@ public sealed class BillingAuditServiceTests
         var tenant = SeedTenant(db);
         var actorUserId = SeedUser(db);
         var saleId = Guid.NewGuid();
-        var sut = BillingTestDoubles.CreateAuditService(factory);
+        var sut = BillingTestDoubles.CreateAuditService(db);
 
         await sut.LogAsync(BillingAuditEventTypes.LicenseActivated, actorUserId, tenant.Id, saleId);
         await sut.LogAsync(BillingAuditEventTypes.LicenseExtended, actorUserId, tenant.Id, saleId);
@@ -108,8 +108,8 @@ public sealed class BillingAuditServiceTests
         Assert.All(rows, r => Assert.Equal(saleId, r.SaleId));
     }
 
-    private static BillingAuditService CreateAuditService(IDbContextFactory<AppDbContext> factory) =>
-        BillingTestDoubles.CreateAuditService(factory);
+    private static BillingAuditService CreateAuditService(AppDbContext db) =>
+        BillingTestDoubles.CreateAuditService(db);
 
     private static Tenant CreateTestTenant(AppDbContext db) => SeedTenant(db);
 

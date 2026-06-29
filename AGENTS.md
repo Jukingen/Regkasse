@@ -238,7 +238,7 @@ Do **not** confuse with `ActivityEventType` (admin activity feed / notifications
 ### Activity Feed Event Types (`ActivityEventType`)
 Admin bell / SSE / email / webhook — source of truth: `backend/Models/ActivityEventType.cs`.
 
-Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `CashRegisterClosed`, `CashRegisterDecommissioned`, `LicenseExpiringSoon`, `LicenseExpired`, `OfflineQueueGrowing`, `FinanzOnlineSubmissionFailed`, `BackupFailed`, `BackupSucceeded`, `RestoreDrillFailed`, `RestoreDrillSucceeded`.
+Includes: `UserCreated`, `UserUpdated`, `UserDeleted`, `CashRegisterOpened`, `CashRegisterClosed`, `CashRegisterDecommissioned`, `LicenseExpiringSoon`, `LicenseExpired`, `OfflineQueueGrowing`, `OfflineOrdersBacklogGrowing`, `OfflineOrdersExpiringSoon`, `OfflineSyncStalled`, `FinanzOnlineSubmissionFailed`, `BackupFailed`, `BackupSucceeded`, `RestoreDrillFailed`, `RestoreDrillSucceeded`.
 
 ### Data Retention
 - Audit logs: minimum 7 years
@@ -471,11 +471,22 @@ Before editing in each area, inspect these first:
 - `frontend-admin/` - routes, feature components, hooks, queries, auth gates, impacted tests
 - `localization/` - validation scripts, catalog ownership, CI budget checks
 
+### Offline — two separate systems (do not merge)
+
+| System | Table | Admin UI | AI module |
+|--------|-------|----------|-----------|
+| Legacy TSE payment intents | `offline_transactions` | `/admin/tse/offline-transactions` | `ai/modules/offline_transactions_legacy.md` |
+| Full order snapshots | `offline_orders` | `/rksv/offline-orders` | `ai/modules/offline_orders.md` |
+
+**Guide:** [`docs/OFFLINE_SYSTEM_INDEX.md`](docs/OFFLINE_SYSTEM_INDEX.md), [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](docs/release/OFFLINE_SYSTEMS_SEPARATION.md)
+
 ## AI Docs Routing Hints
 Use `/ai` docs selectively based on the task:
 - Backend/API/auth/contract work → `ai/01_BACKEND_CONTRACT.md`, `ai/03_API_CONTRACT.md`
 - Database/entity/migration work → `ai/02_DATABASE_CONTRACT.md`
 - Compliance/fiscal/TSE/RKSV work → `ai/05_SECURITY_COMPLIANCE.md`, `ai/modules/tse_finanzonline.md`
+- **Offline TSE intents (legacy)** → `ai/modules/offline_transactions_legacy.md`
+- **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
 - Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
 - High-risk areas → `ai/07_DO_NOT_TOUCH.md`

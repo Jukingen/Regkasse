@@ -1,6 +1,4 @@
-using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
-using Microsoft.EntityFrameworkCore;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 
@@ -11,20 +9,17 @@ public class InvoicePdfGenerator : IInvoicePdfGenerator
     private static readonly SemaphoreSlim BrowserInitLock = new(1, 1);
     private static bool _browserDownloaded;
 
-    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly InvoicePdfTemplateService _templateService;
     private readonly ILogger<InvoicePdfGenerator> _logger;
     private readonly IConfiguration _configuration;
 
     public InvoicePdfGenerator(
-        IDbContextFactory<AppDbContext> dbContextFactory,
         IServiceScopeFactory scopeFactory,
         InvoicePdfTemplateService templateService,
         ILogger<InvoicePdfGenerator> logger,
         IConfiguration configuration)
     {
-        _dbContextFactory = dbContextFactory;
         _scopeFactory = scopeFactory;
         _templateService = templateService;
         _logger = logger;

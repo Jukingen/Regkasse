@@ -93,11 +93,11 @@ public sealed class TenantLicenseServiceTests
         environment.SetupGet(e => e.ContentRootPath).Returns(Path.GetTempPath());
 
         BillingService? billingService = null;
-        var pdfGenerator = CreateInvoicePdfGenerator(_factory, environment.Object, () => billingService!);
+        var pdfGenerator = CreateInvoicePdfGenerator(_db, environment.Object, () => billingService!);
         billingService = new BillingService(
-            _factory,
+            _db,
             new LicenseKeyGenerator(),
-            BillingTestDoubles.CreateAuditService(_factory),
+            BillingTestDoubles.CreateAuditService(_db),
             BillingTestDoubles.CreateReminderScopeFactory(),
             environment.Object,
             pdfGenerator,
@@ -105,15 +105,15 @@ public sealed class TenantLicenseServiceTests
             NullLogger<BillingService>.Instance);
 
         return new TenantLicenseService(
-            _factory,
+            _db,
             billingService,
             new LicenseKeyGenerator(),
-            BillingTestDoubles.CreateAuditService(_factory),
+            BillingTestDoubles.CreateAuditService(_db),
             NullLogger<TenantLicenseService>.Instance);
     }
 
     private static InvoicePdfGenerator CreateInvoicePdfGenerator(
-        IDbContextFactory<AppDbContext> factory,
+        AppDbContext db,
         IWebHostEnvironment environment,
         Func<IBillingService> billingServiceFactory)
     {
@@ -126,7 +126,6 @@ public sealed class TenantLicenseServiceTests
         var provider = services.BuildServiceProvider();
 
         return new InvoicePdfGenerator(
-            factory,
             provider.GetRequiredService<IServiceScopeFactory>(),
             templateService,
             NullLogger<InvoicePdfGenerator>.Instance,

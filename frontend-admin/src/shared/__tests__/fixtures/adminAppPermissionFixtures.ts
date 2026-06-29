@@ -135,6 +135,7 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
     '/rksv/signature-chain',
     '/rksv/offline-intent-coverage',
     '/rksv/belegcheck',
+    '/rksv/offline-orders',
     '/rksv/status',
     '/rksv/cmc-certificate',
     // Verwaltung & settings
@@ -144,6 +145,7 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
     '/admin/access/matrix',
     '/settings/company',
     '/settings/session',
+    '/settings/offline',
     '/settings/personalization',
     '/settings/payment-methods',
     '/settings/backup-dr',

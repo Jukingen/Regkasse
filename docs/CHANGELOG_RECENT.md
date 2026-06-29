@@ -4,6 +4,68 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ---
 
+## 2026-06-27 — Offline system (full rollout)
+
+**Index:** [`docs/OFFLINE_SYSTEM_INDEX.md`](OFFLINE_SYSTEM_INDEX.md)
+
+### Wave 1 — Order snapshots + sequence reservation
+
+**Backend:**
+
+- **Table:** `offline_orders` (`20260627002059_AddOfflineOrdersTable`) — tenant-scoped full order snapshots (`order_data` JSONB), 72 h expiry, max 3 sync attempts
+- **Services:** `OfflineOrderService`, `ISequenceReservationService` / `SequenceReservationService` (batch BelegNr reserve / tail release)
+- **POS API:** `PosOfflineOrdersController` at `/api/pos/offline-orders` (save, pending, replay, status)
+- **Admin API:** `AdminOfflineOrdersController` at `/api/admin/offline-orders` (list, single replay, replay-all)
+- **Hosted:** `OfflineOrderCleanupHostedService` (6 h interval — delete expired pending rows)
+- **Payment:** `CreatePaymentRequest.ReservedReceiptNumber` for pre-reserved BelegNr on replay
+- **Tests:** `SequenceReservationServiceTests` (PostgreSQL)
+
+**Frontend POS:**
+
+- `offlineConfig.ts`, `offlineStorage.ts`, `offlineOrderManager.ts`, `offlineSyncService.ts`, `useOfflineOrderManager.ts`, `useOfflineStatus.ts`, `OfflineBanner.tsx`
+- Legacy parallel queue: `offlineOrderQueue.ts`; reconnect sync in `useApiManager.ts`
+
+**Frontend Admin:**
+
+- Page `/rksv/offline-orders` — filters, table, single/batch sync (i18n de/en/tr)
+- Page `/settings/offline` — tenant limits UI (`settings.manage`); API client targets `/api/admin/settings/offline`
+- Orval hooks: `useGetApiAdminOfflineOrders`, `usePostApiAdminOfflineOrdersIdReplay`, `usePostApiAdminOfflineOrdersReplayAll`
+- RKSV menu + route permission `payment.view`
+
+### Wave 2 — Monitoring, alerting, dashboard widget
+
+**Backend:**
+
+- **Monitoring:** `IOfflineMonitoringService` / `OfflineMonitoringService` — tenant-scoped status, stats, anomalies, sync health (orders + legacy transactions)
+- **API:** `AdminOfflineMonitoringController` at `/api/admin/offline-monitoring/*` (`payment.view`)
+- **Config:** `OfflineMonitoringOptions`, `OfflineAlertRules` in `appsettings.example.json`
+- **Alerting:** `OfflineAlertService` (background) — critical anomalies → activity feed
+- **Activity types:** `OfflineOrdersBacklogGrowing`, `OfflineOrdersExpiringSoon`, `OfflineSyncStalled`
+- **Dashboard catalog:** widget `offline-system-status` (`DashboardWidgetCatalog`)
+- **DTOs:** `OfflineSystemStatus`, `OfflineOrderStats`, `OfflineAnomaly`, `SyncHealth` in `BillingDtos.cs`
+- **Tests:** `OfflineMonitoringServiceTests`, `OfflineAlertServiceTests`
+
+**Frontend Admin:**
+
+- `OfflineStatusWidget` — dashboard pending counts, sync health, link to `/rksv/offline-orders`
+- `useOfflineMonitoring`, `offlineMonitoringApi.ts` (30 s refresh)
+- i18n: `dashboard.offlineStatusWidget.*` (de/en/tr)
+
+### Wave 3 — QA & operations documentation
+
+- [`docs/OFFLINE_SYSTEM_TEST_PLAN.md`](OFFLINE_SYSTEM_TEST_PLAN.md) — E2E + API test plan
+- [`docs/OFFLINE_MANUAL_TEST_CHECKLIST.md`](OFFLINE_MANUAL_TEST_CHECKLIST.md) — manual QA
+- [`docs/OFFLINE_PRODUCTION_DEPLOYMENT.md`](OFFLINE_PRODUCTION_DEPLOYMENT.md) — deploy checklist, verify gate, Day 1 / Week 1 monitoring, rollback
+- [`scripts/test-offline-system.mjs`](../scripts/test-offline-system.mjs), [`scripts/test-offline-system.sh`](../scripts/test-offline-system.sh)
+
+**Note:** Coexists with legacy `offline_transactions` / `/admin/tse/offline-transactions` — separate table, APIs, services, and admin nav. Do not merge.
+
+**OpenAPI:** Regenerated 2026-06-27 — offline **orders** routes in swagger; monitoring routes consumed via FA `customInstance` until added to OpenAPI.
+
+**Migration applied (local):** `20260627002059_AddOfflineOrdersTable` via `dotnet ef database update`.
+
+---
+
 ## 2026-06-23 — Billing tenant license (license_sales)
 
 **Backend:**

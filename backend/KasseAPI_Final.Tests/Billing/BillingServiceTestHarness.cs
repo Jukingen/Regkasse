@@ -32,7 +32,7 @@ internal sealed class BillingServiceTestHarness : IAsyncDisposable
     }
 
     public BillingService CreateBillingService(string? contentRootPath = null) =>
-        BillingServiceTestInfrastructure.CreateService(_factory, contentRootPath);
+        BillingServiceTestInfrastructure.CreateService(_db, contentRootPath);
 
     public async Task<Tenant> CreateTestTenantAsync(string slug = "cafe")
     {
@@ -108,18 +108,18 @@ internal sealed class BillingServiceTestHarness : IAsyncDisposable
 internal static class BillingServiceTestInfrastructure
 {
     internal static BillingService CreateService(
-        IDbContextFactory<AppDbContext> factory,
+        AppDbContext db,
         string? contentRootPath = null)
     {
         var environment = new Mock<IWebHostEnvironment>();
         environment.SetupGet(e => e.ContentRootPath).Returns(contentRootPath ?? Path.GetTempPath());
 
         BillingService? billingService = null;
-        var pdfGenerator = CreateInvoicePdfGenerator(factory, environment.Object, () => billingService!);
+        var pdfGenerator = CreateInvoicePdfGenerator(db, environment.Object, () => billingService!);
         billingService = new BillingService(
-            factory,
+            db,
             new LicenseKeyGenerator(),
-            BillingTestDoubles.CreateAuditService(factory),
+            BillingTestDoubles.CreateAuditService(db),
             BillingTestDoubles.CreateReminderScopeFactory(),
             environment.Object,
             pdfGenerator,
@@ -130,7 +130,7 @@ internal static class BillingServiceTestInfrastructure
     }
 
     internal static InvoicePdfGenerator CreateInvoicePdfGenerator(
-        IDbContextFactory<AppDbContext> factory,
+        AppDbContext db,
         IWebHostEnvironment environment,
         Func<IBillingService> billingServiceFactory)
     {
@@ -143,7 +143,6 @@ internal static class BillingServiceTestInfrastructure
         var provider = services.BuildServiceProvider();
 
         return new InvoicePdfGenerator(
-            factory,
             provider.GetRequiredService<IServiceScopeFactory>(),
             templateService,
             NullLogger<InvoicePdfGenerator>.Instance,

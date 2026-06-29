@@ -6,20 +6,20 @@ namespace KasseAPI_Final.Services.Billing;
 
 public sealed class TenantLicenseService : ITenantLicenseService
 {
-    private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly AppDbContext _dbContext;
     private readonly IBillingService _billingService;
     private readonly ILicenseKeyGenerator _licenseKeyGenerator;
     private readonly IBillingAuditService _billingAudit;
     private readonly ILogger<TenantLicenseService> _logger;
 
     public TenantLicenseService(
-        IDbContextFactory<AppDbContext> dbContextFactory,
+        AppDbContext dbContext,
         IBillingService billingService,
         ILicenseKeyGenerator licenseKeyGenerator,
         IBillingAuditService billingAudit,
         ILogger<TenantLicenseService> logger)
     {
-        _dbContextFactory = dbContextFactory;
+        _dbContext = dbContext;
         _billingService = billingService;
         _licenseKeyGenerator = licenseKeyGenerator;
         _billingAudit = billingAudit;
@@ -30,7 +30,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         Guid tenantId,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var tenant = await db.Tenants
             .AsNoTracking()
@@ -110,7 +110,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         Guid activatedByUserId,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
         await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
         try
@@ -243,7 +243,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         Guid tenantId,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var tenant = await db.Tenants
             .AsNoTracking()
@@ -322,7 +322,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
             };
         }
 
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var normalizedKey = licenseKey.Trim();
         var sale = await db.LicenseSales
@@ -359,7 +359,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         int daysThreshold = 30,
         CancellationToken ct = default)
     {
-        await using var db = await _dbContextFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await using var db = _dbContext;
 
         var now = DateTime.UtcNow;
         var thresholdDate = now.AddDays(daysThreshold);

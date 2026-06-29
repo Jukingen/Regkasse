@@ -779,6 +779,8 @@ Voucher codes are explicitly excluded from offline storage.
 
 Replay is triggered via POST /api/offline-transactions/replay after connectivity recovery.
 
+**Additional model (2026-06):** Full POS order snapshots in `offline_orders` via `/api/pos/offline-orders/*` and FA `/rksv/offline-orders`. Legacy TSE intents remain in `offline_transactions` at `/admin/tse/offline-transactions`. Monitoring: `/api/admin/offline-monitoring/*`, dashboard widget `offline-system-status`. **Docs hub:** [`docs/OFFLINE_SYSTEM_INDEX.md`](docs/OFFLINE_SYSTEM_INDEX.md), [`docs/release/OFFLINE_SYSTEMS_SEPARATION.md`](docs/release/OFFLINE_SYSTEMS_SEPARATION.md).
+
 Risk: duplicate payments if operator retries before queue reconciliation.
 
 ---

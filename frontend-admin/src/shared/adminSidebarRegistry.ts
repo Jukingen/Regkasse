@@ -328,6 +328,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.fiscalExportAuditLogs',
         icon: 'CloudDownloadOutlined',
     },
+    /** Legacy TSE offline intents (`offline_transactions`). New full-order snapshots: RKSV hub → Diagnose → `rksvAdminMenuModel` `/rksv/offline-orders` (`payment.view`). */
     offlineTransactionsAdmin: {
         id: 'offlineTransactionsAdmin',
         menuKey: '/admin/tse/offline-transactions',
@@ -380,6 +381,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/settings/session',
         labelKey: 'nav.sessionSettings',
         icon: 'ClockCircleOutlined',
+    },
+    offlineSettings: {
+        id: 'offlineSettings',
+        menuKey: '/settings/offline',
+        href: '/settings/offline',
+        labelKey: 'nav.offlineSettings',
+        icon: 'DisconnectOutlined',
+        permission: PERMISSIONS.SETTINGS_MANAGE,
     },
     personalization: {
         id: 'personalization',
@@ -689,7 +698,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
                 labelKey: 'nav.settingsHub',
                 icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'sessionSettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync'],
+                catalogIds: ['companySettings', 'sessionSettings', 'offlineSettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync'],
             },
         ],
     },

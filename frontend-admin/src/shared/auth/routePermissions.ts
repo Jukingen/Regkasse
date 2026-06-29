@@ -51,6 +51,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   '/settings/company': PERMISSIONS.SETTINGS_VIEW,
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
@@ -103,6 +104,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv/compliance': PERMISSIONS.AUDIT_VIEW,
   '/rksv/signature-chain': PERMISSIONS.AUDIT_VIEW,
   '/rksv/belegcheck': PERMISSIONS.PAYMENT_VIEW,
+  '/rksv/offline-orders': PERMISSIONS.PAYMENT_VIEW,
   '/benefit-definitions': PERMISSIONS.BENEFIT_VIEW,
   '/benefit-assignments': PERMISSIONS.BENEFIT_VIEW,
 };
