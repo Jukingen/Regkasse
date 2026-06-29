@@ -30,7 +30,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         Guid tenantId,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var tenant = await db.Tenants
             .AsNoTracking()
@@ -110,7 +110,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         Guid activatedByUserId,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
         await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
 
         try
@@ -243,7 +243,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         Guid tenantId,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var tenant = await db.Tenants
             .AsNoTracking()
@@ -322,7 +322,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
             };
         }
 
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var normalizedKey = licenseKey.Trim();
         var sale = await db.LicenseSales
@@ -359,7 +359,7 @@ public sealed class TenantLicenseService : ITenantLicenseService
         int daysThreshold = 30,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var now = DateTime.UtcNow;
         var thresholdDate = now.AddDays(daysThreshold);

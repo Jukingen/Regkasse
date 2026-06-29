@@ -52,7 +52,7 @@ public sealed class BillingService : IBillingService
         LicenseSalePreviewRequest request,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var tenant = await db.Tenants
             .AsNoTracking()
@@ -96,7 +96,7 @@ public sealed class BillingService : IBillingService
         CancellationToken ct = default)
     {
         EnsureActorUserId(soldByUserId);
-        await using var db = _dbContext;
+        var db = _dbContext;
         await EnsureUserExistsAsync(db, soldByUserId, ct).ConfigureAwait(false);
 
         await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
@@ -190,7 +190,7 @@ public sealed class BillingService : IBillingService
         Guid saleId,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var sale = await LicenseSalesScope(db)
             .Include(l => l.Tenant)
@@ -206,7 +206,7 @@ public sealed class BillingService : IBillingService
         LicenseSaleListQuery query,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
@@ -276,7 +276,7 @@ public sealed class BillingService : IBillingService
             throw new ArgumentException("Cancellation reason is required.", nameof(request));
 
         EnsureActorUserId(cancelledByUserId);
-        await using var db = _dbContext;
+        var db = _dbContext;
         await EnsureUserExistsAsync(db, cancelledByUserId, ct).ConfigureAwait(false);
 
         await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
@@ -335,7 +335,7 @@ public sealed class BillingService : IBillingService
         DateTime? toDate = null,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
         var now = DateTime.UtcNow;
         var expiringThreshold = now.AddDays(ExpiringSoonDays);
 
@@ -408,7 +408,7 @@ public sealed class BillingService : IBillingService
         if (string.IsNullOrWhiteSpace(licenseKey))
             return null;
 
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var sale = await LicenseSalesScope(db)
             .Include(l => l.Tenant)
@@ -423,13 +423,13 @@ public sealed class BillingService : IBillingService
         string licenseKey,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
         return await IsLicenseKeyAvailableAsync(db, licenseKey, ct).ConfigureAwait(false);
     }
 
     public async Task<string> GetNextInvoiceNumberAsync(DateTime date)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
         return await AllocateInvoiceNumberAsync(db, date).ConfigureAwait(false);
     }
 

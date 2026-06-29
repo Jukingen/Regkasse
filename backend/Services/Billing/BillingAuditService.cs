@@ -49,7 +49,7 @@ public class BillingAuditService : IBillingAuditService
         BillingAuditLogQuery query,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
@@ -104,7 +104,7 @@ public class BillingAuditService : IBillingAuditService
         Guid saleId,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var logs = await db.BillingAuditLogs
             .AsNoTracking()
@@ -125,7 +125,7 @@ public class BillingAuditService : IBillingAuditService
         Guid tenantId,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var logs = await db.BillingAuditLogs
             .AsNoTracking()
@@ -206,7 +206,7 @@ public class BillingAuditService : IBillingAuditService
     {
         try
         {
-            await using var db = _dbContext;
+            var db = _dbContext;
 
             var audit = new BillingAuditLog
             {

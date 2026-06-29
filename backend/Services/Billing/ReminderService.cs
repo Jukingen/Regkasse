@@ -35,7 +35,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
     public async Task CheckAndCreateRemindersAsync(CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var now = DateTime.UtcNow;
         var expiring = await _tenantLicenseService.GetExpiringLicensesAsync(ExpiringScanDays, ct)
@@ -89,7 +89,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
     public async Task SendPendingRemindersAsync(CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var pending = await db.LicenseReminders
             .Include(r => r.Tenant)
@@ -120,7 +120,7 @@ public class ReminderService : IReminderService, IBillingReminderService
         Guid tenantId,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var tenantExists = await db.Tenants
             .IgnoreQueryFilters()
@@ -148,7 +148,7 @@ public class ReminderService : IReminderService, IBillingReminderService
 
     public async Task MarkAsSentAsync(Guid reminderId, CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var reminder = await db.LicenseReminders
             .FirstOrDefaultAsync(r => r.Id == reminderId, ct)

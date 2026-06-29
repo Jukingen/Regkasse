@@ -87,7 +87,7 @@ public sealed class BillingBackupService : IBillingBackupService
             var hash = ComputeHash(json);
             var fileSize = pdfBytes.Length + Encoding.UTF8.GetByteCount(json);
 
-            await using var db = _dbContext;
+            var db = _dbContext;
             var history = CreateHistoryRecord(
                 result.BackupRunId,
                 BillingBackupTypes.Sale,
@@ -214,7 +214,7 @@ public sealed class BillingBackupService : IBillingBackupService
         BackupHistoryQuery query,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var page = Math.Max(1, query.Page);
         var pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
@@ -274,7 +274,7 @@ public sealed class BillingBackupService : IBillingBackupService
         Guid backupId,
         CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var history = await db.BillingBackupHistories
             .Include(h => h.Sale)
@@ -321,7 +321,7 @@ public sealed class BillingBackupService : IBillingBackupService
 
     public async Task<int> CleanupExpiredBackupsAsync(CancellationToken ct = default)
     {
-        await using var db = _dbContext;
+        var db = _dbContext;
 
         var now = DateTime.UtcNow;
         var expired = await db.BillingBackupHistories
@@ -380,7 +380,7 @@ public sealed class BillingBackupService : IBillingBackupService
 
         try
         {
-            await using var db = _dbContext;
+            var db = _dbContext;
 
             var salesQuery = salesFilter(db.LicenseSales.IgnoreQueryFilters());
             var sales = await salesQuery
