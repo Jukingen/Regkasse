@@ -13,6 +13,7 @@ import { useI18n, formatCurrency, formatDate, formatDateTime } from '@/i18n';
 import { billingApi } from '@/features/billing/api/billingApi';
 import type { LicenseSaleResponse } from '@/api/generated/model';
 import { useBillingAccess } from '@/features/billing/hooks/useBillingAccess';
+import { useBillingSalesList } from '@/features/billing/hooks/useBillingSalesList';
 import { listAdminTenants } from '@/features/super-admin/api/adminTenants';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -54,18 +55,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
         enabled: canAccess,
     });
 
-    const salesQuery = billingApi.useList(
-        {
-            page: filters.page,
-            pageSize: filters.pageSize,
-            search: filters.search,
-            status: filters.status,
-            tenantId: filters.tenantId,
-            fromDate: filters.fromDate,
-            toDate: filters.toDate,
-        },
-        { query: { enabled: canAccess } },
-    );
+    const salesQuery = useBillingSalesList(filters);
 
     const cancelMutation = billingApi.useCancel({
         mutation: {

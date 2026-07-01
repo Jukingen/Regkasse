@@ -42,7 +42,9 @@ public class AdminAppPermissionProfileTests
             new[] { Roles.Manager },
             effective);
 
+        Assert.Contains(AppPermissions.CashRegisterView, result);
         Assert.Contains(AppPermissions.CashRegisterManage, result);
+        Assert.Contains(AppPermissions.CashRegisterDecommission, result);
         Assert.Contains(AppPermissions.ReportExport, result);
         Assert.Contains(AppPermissions.UserView, result);
         Assert.Contains(AppPermissions.TableView, result);
@@ -72,6 +74,24 @@ public class AdminAppPermissionProfileTests
 
     public static IEnumerable<object[]> ManagerOversightViewPermissionCases() =>
         AdminAppPermissionProfile.ManagerOversightViewPermissions.Select(p => new object[] { p });
+
+    [Theory]
+    [MemberData(nameof(ManagerCashRegisterAdminPermissionCases))]
+    public void Filter_Admin_Manager_PreservesCashRegisterAdminPermissions(string permission)
+    {
+        var effective = RolePermissionMatrix.GetPermissionsForRoles(new[] { Roles.Manager });
+        Assert.Contains(permission, effective);
+
+        var result = AdminAppPermissionProfile.Filter(
+            ClientAppPolicy.Admin,
+            new[] { Roles.Manager },
+            effective);
+
+        Assert.Contains(permission, result);
+    }
+
+    public static IEnumerable<object[]> ManagerCashRegisterAdminPermissionCases() =>
+        AdminAppPermissionProfile.ManagerCashRegisterAdminPermissions.Select(p => new object[] { p });
 
     [Theory]
     [InlineData(AppPermissions.PaymentTake)]

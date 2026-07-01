@@ -545,9 +545,12 @@ public sealed class BillingService : IBillingService
         var year = utc.Year;
         var month = utc.Month;
 
-        await using var transaction = await db.Database.BeginTransactionAsync(
-            System.Data.IsolationLevel.Serializable,
-            ct).ConfigureAwait(false);
+        var ownsTransaction = db.Database.CurrentTransaction == null;
+        await using var transaction = ownsTransaction
+            ? await db.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable,
+                ct).ConfigureAwait(false)
+            : null;
         try
         {
             var sequence = await db.InvoiceSequences
@@ -570,13 +573,16 @@ public sealed class BillingService : IBillingService
             sequence.LastSequence++;
             sequence.UpdatedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
-            await transaction.CommitAsync(ct).ConfigureAwait(false);
+
+            if (ownsTransaction)
+                await transaction!.CommitAsync(ct).ConfigureAwait(false);
 
             return FormattableString.Invariant($"RE{year:D4}{month:D2}{sequence.LastSequence}");
         }
         catch
         {
-            await transaction.RollbackAsync(ct).ConfigureAwait(false);
+            if (ownsTransaction && transaction != null)
+                await transaction.RollbackAsync(ct).ConfigureAwait(false);
             throw;
         }
     }

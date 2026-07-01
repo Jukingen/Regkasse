@@ -11,7 +11,8 @@ namespace KasseAPI_Final.Controllers;
 /// <summary>Super Admin Mandanten license billing (isolated from RKSV / deployment licensing).</summary>
 [ApiController]
 [Route("api/admin/billing")]
-[Authorize(Roles = Roles.SuperAdmin)]
+[Authorize]
+[HasPermission(AppPermissions.SystemCritical)]
 public sealed class AdminBillingController : ControllerBase
 {
     private readonly IBillingService _billingService;

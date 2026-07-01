@@ -18,6 +18,8 @@ export type UseAdminCashRegisterListOptions = {
     tenantId?: string;
     /** Super Admin without tenantId loads all mandants. */
     allowAllTenants?: boolean;
+    /** Tenant Manager: omit tenantId and let the API resolve the JWT tenant. */
+    allowTenantScopedDefault?: boolean;
     pageSize?: number;
     excludeDecommissioned?: boolean;
     enabled?: boolean;
@@ -29,6 +31,7 @@ export function useAdminCashRegisterList(options: UseAdminCashRegisterListOption
     const {
         tenantId,
         allowAllTenants = false,
+        allowTenantScopedDefault = false,
         pageSize = 100,
         excludeDecommissioned = true,
         enabled = true,
@@ -39,11 +42,11 @@ export function useAdminCashRegisterList(options: UseAdminCashRegisterListOption
         if (tenantId) {
             return { tenantId, page: 1, pageSize };
         }
-        if (allowAllTenants) {
+        if (allowAllTenants || allowTenantScopedDefault) {
             return { page: 1, pageSize };
         }
         return null;
-    }, [allowAllTenants, pageSize, tenantId]);
+    }, [allowAllTenants, allowTenantScopedDefault, pageSize, tenantId]);
 
     const query = useQuery({
         queryKey: adminCashRegisterListQueryKey(listParams ?? undefined),

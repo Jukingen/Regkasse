@@ -131,6 +131,26 @@ public sealed class PermissionImplicationTests
     }
 
     [Fact]
+    public void CashRegisterManage_Satisfies_CashRegisterView()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.CashRegisterManage,
+        };
+        Assert.True(PermissionImplication.IsSatisfied(AppPermissions.CashRegisterView, effective));
+    }
+
+    [Fact]
+    public void CashRegisterView_DoesNotSatisfy_CashRegisterManage()
+    {
+        var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            AppPermissions.CashRegisterView,
+        };
+        Assert.False(PermissionImplication.IsSatisfied(AppPermissions.CashRegisterManage, effective));
+    }
+
+    [Fact]
     public void AllGranularChildren_Satisfy_UserManage()
     {
         var effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase)

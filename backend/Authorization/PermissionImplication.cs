@@ -10,6 +10,8 @@ public static class PermissionImplication
 {
     private static readonly FrozenDictionary<string, FrozenSet<string>> ParentToChildren = BuildParentToChildren();
     private static readonly FrozenDictionary<string, string> ChildToParent = BuildChildToParent();
+    /// <summary>One-way: holder permission satisfies required read (e.g. manage → view), not the reverse.</summary>
+    private static readonly FrozenDictionary<string, FrozenSet<string>> HolderToImpliedReads = BuildHolderToImpliedReads();
 
     public static bool IsSatisfied(string required, IReadOnlySet<string> effective)
     {
@@ -18,6 +20,12 @@ public static class PermissionImplication
 
         if (effective.Contains(required))
             return true;
+
+        foreach (var held in effective)
+        {
+            if (HolderToImpliedReads.TryGetValue(held, out var implied) && implied.Contains(required))
+                return true;
+        }
 
         if (ParentToChildren.TryGetValue(required, out var children)
             && children.All(c => effective.Contains(c)))
@@ -72,6 +80,19 @@ public static class PermissionImplication
             [
                 AppPermissions.AuditDelete,
             ],
+        };
+
+        return map.ToFrozenDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.ToFrozenSet(StringComparer.OrdinalIgnoreCase),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static FrozenDictionary<string, FrozenSet<string>> BuildHolderToImpliedReads()
+    {
+        var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            [AppPermissions.CashRegisterManage] = [AppPermissions.CashRegisterView],
         };
 
         return map.ToFrozenDictionary(

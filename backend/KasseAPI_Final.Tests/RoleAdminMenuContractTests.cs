@@ -54,6 +54,7 @@ public class RoleAdminMenuContractTests
     [Theory]
     [InlineData(Roles.Manager, AppPermissions.UserView)]
     [InlineData(Roles.Manager, AppPermissions.CashRegisterManage)]
+    [InlineData(Roles.Manager, AppPermissions.CashRegisterView)]
     [InlineData(Roles.Manager, AppPermissions.FinanzOnlineManage)]
     [InlineData(Roles.Manager, AppPermissions.PaymentView)]
     [InlineData(Roles.Manager, AppPermissions.SaleView)]

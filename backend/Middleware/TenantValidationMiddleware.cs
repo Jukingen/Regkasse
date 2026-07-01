@@ -20,11 +20,12 @@ public class TenantValidationMiddleware
         "/swagger/index.html",
     };
 
-    // Super Admin endpoints that work without tenant
+    // Super Admin platform endpoints that work without mandant tenant context (admin.regkasse.at).
     private static readonly HashSet<string> SuperAdminPaths = new(StringComparer.OrdinalIgnoreCase)
     {
         "/api/admin/tenants",
         "/api/admin/tenants/switcher",
+        "/api/admin/billing",
     };
 
     public TenantValidationMiddleware(RequestDelegate next, ILogger<TenantValidationMiddleware> logger)

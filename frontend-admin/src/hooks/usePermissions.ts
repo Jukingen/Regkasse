@@ -57,7 +57,9 @@ export function usePermissions() {
       hasAnyPermission,
       hasAllPermissions,
       canViewMenu,
-      canViewCashRegisters: hasPermission(AppPermissions.CashRegisterView),
+      canViewCashRegisters:
+        hasPermission(AppPermissions.CashRegisterView) ||
+        hasPermission(AppPermissions.CashRegisterManage),
       canManageCashRegisters: hasPermission(AppPermissions.CashRegisterManage),
       canDecommissionCashRegisters: hasPermission(AppPermissions.CashRegisterDecommission),
     };

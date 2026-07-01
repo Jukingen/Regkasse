@@ -71,6 +71,20 @@ describe('usePermissions', () => {
     );
   });
 
+  it('treats cash_register.manage as sufficient for canViewCashRegisters', () => {
+    mockUseAuth.mockReturnValue({
+      user: {
+        role: 'Manager',
+        permissions: [AppPermissions.CashRegisterManage],
+      },
+    });
+
+    const { result } = renderHook(() => usePermissions());
+
+    expect(result.current.canViewCashRegisters).toBe(true);
+    expect(result.current.canManageCashRegisters).toBe(true);
+  });
+
   it('grants view/manage/decommission for Manager matrix', () => {
     mockUseAuth.mockReturnValue({
       user: {

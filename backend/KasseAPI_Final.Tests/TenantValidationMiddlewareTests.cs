@@ -53,6 +53,8 @@ public sealed class TenantValidationMiddlewareTests
     [Theory]
     [InlineData("/api/admin/tenants")]
     [InlineData("/api/admin/tenants/switcher")]
+    [InlineData("/api/admin/billing/license-sales")]
+    [InlineData("/api/admin/billing/stats")]
     public async Task InvokeAsync_SkipsSuperAdminPaths(string path)
     {
         var accessor = new CurrentTenantAccessor { TenantId = null };

@@ -7,15 +7,18 @@ import type { ReactNode } from 'react';
 import { useBillingSalesList, useBillingCreate } from '../hooks';
 import type { LicenseSaleListResponse, LicenseSaleResponse } from '../api/billingApi';
 
-const { mockUseList, mockUseCreate, mockMutateAsync } = vi.hoisted(() => ({
-    mockUseList: vi.fn(),
+const { mockGetSalesList, mockUseCreate, mockMutateAsync } = vi.hoisted(() => ({
+    mockGetSalesList: vi.fn(),
     mockUseCreate: vi.fn(),
     mockMutateAsync: vi.fn(),
 }));
 
+vi.mock('@/api/generated/admin/admin', () => ({
+    getApiAdminBillingLicenseSales: (...args: unknown[]) => mockGetSalesList(...args),
+}));
+
 vi.mock('../api/billingApi', () => ({
     billingApi: {
-        useList: (...args: unknown[]) => mockUseList(...args),
         useCreate: (...args: unknown[]) => mockUseCreate(...args),
     },
 }));
@@ -58,14 +61,7 @@ describe('Billing Hooks', () => {
             totalPages: 1,
         };
 
-        mockUseList.mockReturnValue({
-            data: mockData,
-            isSuccess: true,
-            isLoading: false,
-            isError: false,
-            error: null,
-            refetch: vi.fn(),
-        });
+        mockGetSalesList.mockResolvedValue(mockData);
 
         const { result } = renderHook(() => useBillingSalesList({ page: 1, pageSize: 20 }), {
             wrapper: createWrapper(),
@@ -73,29 +69,19 @@ describe('Billing Hooks', () => {
 
         await waitFor(() => expect(result.current.data).toBeDefined());
         expect(result.current.data).toEqual(mockData);
-        expect(mockUseList).toHaveBeenCalledWith(
-            {
-                page: 1,
-                pageSize: 20,
-                tenantId: undefined,
-                search: undefined,
-                status: undefined,
-                fromDate: undefined,
-                toDate: undefined,
-            },
-            { query: { enabled: true } },
-        );
+        expect(mockGetSalesList).toHaveBeenCalledWith({
+            page: 1,
+            pageSize: 20,
+            tenantId: undefined,
+            search: undefined,
+            status: undefined,
+            fromDate: undefined,
+            toDate: undefined,
+        });
     });
 
-    it('useBillingSalesList normalizes search and status filters', () => {
-        mockUseList.mockReturnValue({
-            data: undefined,
-            isSuccess: false,
-            isLoading: true,
-            isError: false,
-            error: null,
-            refetch: vi.fn(),
-        });
+    it('useBillingSalesList normalizes search and status filters', async () => {
+        mockGetSalesList.mockResolvedValue({ items: [], totalCount: 0 });
 
         renderHook(
             () =>
@@ -108,14 +94,16 @@ describe('Billing Hooks', () => {
             { wrapper: createWrapper() },
         );
 
-        expect(mockUseList).toHaveBeenCalledWith(
-            expect.objectContaining({
+        await waitFor(() =>
+            expect(mockGetSalesList).toHaveBeenCalledWith({
                 page: 2,
                 pageSize: 10,
+                tenantId: undefined,
                 search: 'cafe',
                 status: undefined,
+                fromDate: undefined,
+                toDate: undefined,
             }),
-            { query: { enabled: true } },
         );
     });
 

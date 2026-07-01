@@ -34,9 +34,11 @@ export function useCashRegisterModuleAccess() {
     );
 
     const canAccessPage = permissions.canManageCashRegisters;
+    const canViewRegistersForLoad =
+        permissions.canViewCashRegisters || permissions.canManageCashRegisters;
     const canLoadRegisters =
         canAccessPage &&
-        permissions.canViewCashRegisters &&
+        canViewRegistersForLoad &&
         (isSuperAdminUser || !licenseBlocksModule);
 
     return {

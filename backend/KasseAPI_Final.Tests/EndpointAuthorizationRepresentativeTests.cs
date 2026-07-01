@@ -28,6 +28,15 @@ public class EndpointAuthorizationRepresentativeTests
         return new ClaimsPrincipal(identity);
     }
 
+    private static ClaimsPrincipal UserWithPermissions(params string[] permissions)
+    {
+        var identity = new ClaimsIdentity("Test");
+        identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, "user-1"));
+        foreach (var permission in permissions)
+            identity.AddClaim(new Claim(PermissionCatalog.PermissionClaimType, permission));
+        return new ClaimsPrincipal(identity);
+    }
+
     private static string Policy(string permission) => PermissionCatalog.PolicyPrefix + permission;
 
     // --- Users ---
@@ -142,6 +151,17 @@ public class EndpointAuthorizationRepresentativeTests
     {
         var auth = BuildServices().GetRequiredService<IAuthorizationService>();
         var result = await auth.AuthorizeAsync(UserWithRole(Roles.Cashier), null, Policy(AppPermissions.CashdrawerOpen));
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task CashRegister_CashRegisterView_ManagerManageClaim_Allowed()
+    {
+        var auth = BuildServices().GetRequiredService<IAuthorizationService>();
+        var result = await auth.AuthorizeAsync(
+            UserWithPermissions(AppPermissions.CashRegisterManage),
+            null,
+            Policy(AppPermissions.CashRegisterView));
         Assert.True(result.Succeeded);
     }
 

@@ -8,7 +8,6 @@ import { ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import type { CashRegister } from '@/api/generated/model';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
@@ -19,7 +18,6 @@ import { useCanAccessPath } from '@/hooks/useCanAccessPath';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
-import { normalizeCashRegisterList } from '@/features/cash-registers/normalizers';
 import { CashRegisterShiftRksvGuide } from '@/features/cash-registers/components/CashRegisterShiftRksvGuide';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import { CashRegisterTenantSelector } from '@/features/cash-registers/components/CashRegisterTenantSelector';
@@ -112,10 +110,11 @@ export default function KassenverwaltungPage() {
     const allowHardDeleteUi =
         canHardDelete && (capabilitiesQuery.data?.allowHardDelete ?? false);
 
-    const tenantRegistersQuery = useQuery({
-        queryKey: cashRegisterListQueryKey,
-        queryFn: () => getApiCashRegister(),
+    const tenantRegistersQuery = useAdminCashRegisterList({
+        tenantId: tenantId ?? undefined,
+        allowTenantScopedDefault: !isSuperAdminUser,
         enabled: canLoadRegisters && !isSuperAdminUser,
+        excludeDecommissioned: false,
     });
 
     const adminRegistersQuery = useAdminCashRegisterList({
@@ -129,8 +128,8 @@ export default function KassenverwaltungPage() {
         (): CashRegisterViewItem[] =>
             isSuperAdminUser
                 ? adminRegistersQuery.registers.map(toCashRegisterViewItem)
-                : (normalizeCashRegisterList(tenantRegistersQuery.data) as CashRegisterViewItem[]),
-        [adminRegistersQuery.registers, isSuperAdminUser, tenantRegistersQuery.data],
+                : tenantRegistersQuery.registers.map(toCashRegisterViewItem),
+        [adminRegistersQuery.registers, isSuperAdminUser, tenantRegistersQuery.registers],
     );
 
     const visibleRegisters = useMemo(() => {
@@ -186,7 +185,7 @@ export default function KassenverwaltungPage() {
         : tenantRegistersQuery.isFetching;
     const registersError = isSuperAdminUser
         ? adminRegistersQuery.error != null
-        : tenantRegistersQuery.isError;
+        : tenantRegistersQuery.error != null;
     const showGroupedTenantView = isSuperAdminUser && !selectedTenantId;
 
     useEffect(() => {

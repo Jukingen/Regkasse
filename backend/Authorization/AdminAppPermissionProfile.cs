@@ -15,6 +15,7 @@ namespace KasseAPI_Final.Authorization;
 /// <item><description><see cref="AppPermissions.SaleView"/> — receipts / Belege (no separate receipt.view catalog key)</description></item>
 /// <item><description><see cref="AppPermissions.ReportView"/>, <see cref="AppPermissions.ReportExport"/> — reporting and RKSV oversight exports</description></item>
 /// <item><description><see cref="AppPermissions.OrderView"/>, <see cref="AppPermissions.TableView"/>, <see cref="AppPermissions.CashRegisterView"/> — tenant-wide operational visibility</description></item>
+/// <item><description><see cref="AppPermissions.CashRegisterManage"/>, <see cref="AppPermissions.CashRegisterDecommission"/> — Kassenverwaltung (not in <see cref="PosTerminalOperationalWriteStrip"/>)</description></item>
 /// </list>
 /// <para><b>Cashier (whitelist):</b> strict FA menu subset via <see cref="CashierAdminAllowlist"/>.</para>
 /// <para><b>Stripped for admin (write / floor ops only):</b> see <see cref="PosTerminalOperationalWriteStrip"/>.</para>
@@ -77,6 +78,17 @@ public static class AdminAppPermissionProfile
         AppPermissions.CashRegisterView,
         AppPermissions.FinanzOnlineView,
         AppPermissions.FinanzOnlineManage,
+    ];
+
+    /// <summary>
+    /// Manager FA Kassenverwaltung keys that must survive <see cref="Filter"/> (blacklist does not strip them).
+    /// Contract-tested; mirror in <c>frontend-admin</c> <c>MANAGER_ADMIN_PERMISSIONS</c>.
+    /// </summary>
+    public static readonly IReadOnlyList<string> ManagerCashRegisterAdminPermissions =
+    [
+        AppPermissions.CashRegisterView,
+        AppPermissions.CashRegisterManage,
+        AppPermissions.CashRegisterDecommission,
     ];
 
     /// <summary>
