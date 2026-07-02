@@ -15,7 +15,7 @@ describe('sidebarRegistryCatalog', () => {
                 }
                 continue;
             }
-            if (row.kind !== 'domain') continue;
+            if (row.kind !== 'group') continue;
             for (const block of row.blocks) {
                 if (block.kind === 'leaves' || block.kind === 'nested') {
                     for (const id of block.catalogIds) {

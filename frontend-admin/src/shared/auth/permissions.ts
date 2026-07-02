@@ -43,6 +43,8 @@ export const PERMISSIONS = {
   SALE_CREATE: 'sale.create',
   SETTINGS_VIEW: 'settings.view',
   SETTINGS_MANAGE: 'settings.manage',
+  /** Tenant-scoped backup management (trigger + schedule); narrower than settings.manage. Backend: AppPermissions.BackupManage. */
+  BACKUP_MANAGE: 'backup.manage',
   LICENSE_VIEW: AppPermissions.LicenseView,
   /** Mandant (tenant) license view/update for own tenant — align with backend `AppPermissions.LicenseManage`. */
   LICENSE_MANAGE: 'license.manage',

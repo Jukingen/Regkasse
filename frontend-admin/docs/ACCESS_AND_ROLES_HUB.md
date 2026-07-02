@@ -70,6 +70,8 @@ POS continues to use full matrix permissions from login without admin filter.
 
 Key files: `backend/Authorization/AdminAppPermissionProfile.cs`, `TokenClaimsService.cs`, `AuthController.cs` (`/api/Auth/login`, `/api/Auth/me`).
 
+**Backup (Manager):** default role includes `backup.manage` (trigger + schedule) and `settings.view` (read routes). Platform backup surfaces (execution mode, artifact download) remain `settings.manage`. Details: [`docs/BACKUP_PERMISSIONS.md`](../../docs/BACKUP_PERMISSIONS.md).
+
 ---
 
 ## Role management UI

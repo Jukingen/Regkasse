@@ -208,8 +208,9 @@ curl http://localhost:5184/api/health?tenant=test_cafe
 ### User Permissions
 - `users.view` - View user list
 - `users.manage` - Create/edit/delete users
-- `settings.view` - View system settings
-- `settings.manage` - Modify system settings
+- `settings.view` - View system settings (includes backup status/history routes)
+- `settings.manage` - Modify broad system settings (license, NTP, execution mode, artifact download — **not** granted to Manager by default)
+- `backup.manage` - Tenant-scoped backup ops: manual trigger + schedule/retention (`RolePermissionMatrix` Manager default). Narrower than `settings.manage`. See `docs/BACKUP_PERMISSIONS.md`.
 - `reports.view` - View reports
 - `reports.export` - Export reports
 - **FA hub:** Verwaltung → Zugriff & Rollen — `/admin/access`, `/admin/users`, `/admin/access/roles`, `/admin/access/matrix` (see `frontend-admin/docs/ACCESS_AND_ROLES_HUB.md`)
@@ -364,23 +365,31 @@ Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1
 - Sensitive data in backup manifests/logs MUST be masked
 
 ### Backup Permissions
-| Action | Tenant Admin | Super Admin |
-|--------|--------------|-------------|
-| View own tenant backups | Yes | Yes |
-| View all tenant backups | No | Yes |
-| Trigger tenant backup | Yes | Yes |
+
+**Canonical doc:** [`docs/BACKUP_PERMISSIONS.md`](docs/BACKUP_PERMISSIONS.md)
+
+| Action | Manager (tenant) | Super Admin |
+|--------|------------------|-------------|
+| View backup status / history | Yes (`settings.view`) | Yes |
+| View all tenants' backup UI scope | No (deployment-wide list is platform context) | Yes |
+| Trigger manual backup | Yes (`backup.manage` + JWT tenant context) | Yes (deployment-wide) |
 | Trigger full system backup | No | Yes |
-| Modify backup schedule | Yes (own tenant) | Yes (global) |
+| Modify backup schedule / retention | Yes (`backup.manage`, own tenant binding) | Yes |
+| Change execution mode / download artifacts | No (`settings.manage`) | Yes |
 | Delete backup | No | Yes |
 | Request restore | No | Yes (requires second approval) |
 | Approve restore | No | Yes (second Super Admin) |
 
+**Permission keys:** `settings.view` (read routes), `backup.manage` (trigger + schedule), `settings.manage` (platform backup ops; implies `backup.manage`). Manager must **not** receive `settings.manage` for backup-only access.
+
+**Tenant scoping:** Trigger endpoints do not accept client `tenantId`; non–Super Admin requires resolved tenant context (`TENANT_CONTEXT_REQUIRED` otherwise). `backup_runs` is deployment-scoped until per-tenant run metadata exists — see doc for data-plane vs access-plane distinction.
+
 ### Backup Types
 | Type | Scope | Who Can Trigger |
 |------|-------|-----------------|
-| Tenant Backup | Single tenant | Tenant Admin, Super Admin |
-| Full Backup | All tenants | Super Admin only |
-| Scheduled Backup | Per configuration | Automated |
+| Manual backup (tenant-bound JWT) | Deployment run; access gated by `backup.manage` + tenant context | Manager, Super Admin |
+| Full / all-tenants backup | Deployment | Super Admin only |
+| Scheduled backup | Per automation settings | Automated (`BackupScheduledEnqueueService`) |
 
 ### Restore Policy (HIGH RISK)
 - NEVER allow automatic restore to production
@@ -489,6 +498,7 @@ Use `/ai` docs selectively based on the task:
 - **Offline order snapshots (new)** → `ai/modules/offline_orders.md`, `docs/release/OFFLINE_SYSTEMS_SEPARATION.md`
 - Admin API integration work → `ai/10_API_BOUNDARY_POLICY.md`
 - Billing / mandant license sales → `docs/BILLING_TENANT_LICENSE.md`, `ai/modules/billing_license.md`
+- **Backup RBAC / Manager tenant scoping** → `docs/BACKUP_PERMISSIONS.md`, `ai/modules/backup_permissions.md`
 - High-risk areas → `ai/07_DO_NOT_TOUCH.md`
 
 ## Code Quality Rules

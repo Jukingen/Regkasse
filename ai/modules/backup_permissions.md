@@ -1,0 +1,30 @@
+# Backup permissions (Manager / tenant scoping)
+
+**Full reference:** [`docs/BACKUP_PERMISSIONS.md`](../../docs/BACKUP_PERMISSIONS.md)
+
+## Quick rules for agents
+
+- **Manager default:** `settings.view` + `backup.manage` in `RolePermissionMatrix` — **not** `settings.manage`.
+- **Trigger + schedule:** `AppPermissions.BackupManage` (`backup.manage`) on `POST /api/admin/backup/trigger`, `PUT /api/admin/backup/settings`, legacy `POST /api/settings/backup/now`.
+- **Platform ops:** execution mode, artifact download → `settings.manage` only.
+- **Tenant scoping:** Non–Super Admin trigger requires `ICurrentTenantAccessor.TenantId`; no client `tenantId` on trigger body.
+- **No** `backup.view` / `backup.execute` keys — view uses `settings.view`.
+- **Implication:** `settings.manage` → `backup.manage`; reverse must **not** hold (escalation guard in `PermissionImplication`).
+- **Data gap:** `backup_runs` has no `tenant_id` yet — deployment-wide run; access isolation is JWT/tenant context, not per-tenant dump files.
+
+## Key files
+
+| Layer | Path |
+|-------|------|
+| Permission constant | `backend/Authorization/AppPermissions.cs` |
+| Role defaults | `backend/Authorization/RolePermissionMatrix.cs` |
+| Implication | `backend/Authorization/PermissionImplication.cs` |
+| API | `backend/Controllers/AdminBackupController.cs` |
+| FA hooks | `frontend-admin/src/features/backup/hooks/useBackupPermissions.ts` |
+| FA routes | `frontend-admin/src/shared/auth/routePermissions.ts` |
+
+## Do not
+
+- Grant `settings.manage` to Manager for backup-only fixes.
+- Add `settings.backup` as the **only** child of `settings.manage` (implication footgun).
+- Assume per-tenant backup artifacts exist without `tenant_id` on `BackupRun`.

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { Empty, Space, Table, Tag, Tooltip, Typography } from 'antd';
-import { formatDateTime } from '@/i18n/formatting';
+import { formatDateTime, formatNumber } from '@/i18n/formatting';
 
 import type { AuditLogEntryDto } from '@/api/generated/model';
 import { AuditLogDetailsCell } from '@/features/audit-logs/components/AuditLogDetailsCell';
@@ -39,7 +39,7 @@ export function AuditLogTable({
     isPlaceholderData = false,
     hasMore = false,
 }: AuditLogTableProps) {
-    const { t, formatLocale, formatNumber } = useI18n();
+    const { t, formatLocale } = useI18n();
 
     const columns = useMemo(
         () => [

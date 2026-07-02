@@ -59,12 +59,6 @@ export function buildRksvMenuGroups(t: (key: string) => string, verificationNavL
             hubTaskLine:
                 'Tagesgeschäft: Kassenübersicht, Outbox-/SOAP-Pipeline (primär) und optional Zahlungszeilen-Legacy.',
             items: [
-                { key: '/rksv/operations', href: '/rksv', label: t('nav.rksvLeafOverview') },
-                {
-                    key: '/rksv/finanz-online-outbox',
-                    href: '/rksv/finanz-online-outbox',
-                    label: t('nav.finanzOnlineOutbox'),
-                },
                 {
                     key: '/rksv/finanz-online-queue',
                     href: '/rksv/finanz-online-queue',
@@ -115,11 +109,6 @@ export function buildRksvMenuGroups(t: (key: string) => string, verificationNavL
                     label: t('nav.rksvLeafOfflineCoverage'),
                 },
                 { key: '/rksv/belegcheck', href: '/rksv/belegcheck', label: t('nav.rksvLeafBelegcheck') },
-                {
-                    key: '/rksv/offline-orders',
-                    href: '/rksv/offline-orders',
-                    label: t('nav.rksvLeafOfflineOrders'),
-                },
             ],
         },
         {
@@ -128,7 +117,6 @@ export function buildRksvMenuGroups(t: (key: string) => string, verificationNavL
             hubTaskLine:
                 'Schnittstellen und Konfiguration: Status, Zertifikat und Integrations-/Diagnose-Oberfläche (nicht die Abgleichsliste).',
             items: [
-                { key: '/rksv/status', href: '/rksv/status', label: t('nav.rksvLeafSystemStatus') },
                 { key: '/rksv/cmc-certificate', href: '/rksv/cmc-certificate', label: t('nav.rksvLeafCmcCertificate') },
                 {
                     key: '/rksv/finanz-online-operations',

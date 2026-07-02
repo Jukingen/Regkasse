@@ -286,6 +286,31 @@ public class RolePermissionMatrixTests
     }
 
     [Fact]
+    public void RoleHasPermission_Manager_Has_BackupManage()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.BackupManage));
+    }
+
+    [Fact]
+    public void RoleHasPermission_SuperAdmin_Has_BackupManage()
+    {
+        Assert.True(RolePermissionMatrix.RoleHasPermission(Roles.SuperAdmin, AppPermissions.BackupManage));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Manager_DoesNotHave_SettingsManage()
+    {
+        // Guard: Manager gets narrow backup.manage, never the broad settings.manage.
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.SettingsManage));
+    }
+
+    [Fact]
+    public void RoleHasPermission_Cashier_DoesNotHave_BackupManage()
+    {
+        Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Cashier, AppPermissions.BackupManage));
+    }
+
+    [Fact]
     public void RoleHasPermission_Manager_DoesNotHave_InventoryDelete()
     {
         Assert.False(RolePermissionMatrix.RoleHasPermission(Roles.Manager, AppPermissions.InventoryDelete));

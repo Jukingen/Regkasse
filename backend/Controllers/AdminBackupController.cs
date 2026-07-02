@@ -86,15 +86,30 @@ public sealed class AdminBackupController : ControllerBase
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
     [HttpPost("trigger")]
-    [HasPermission(AppPermissions.SettingsManage)]
+    [HasPermission(AppPermissions.BackupManage)]
     [ProducesResponseType(typeof(BackupTriggerResponseDto), 202)]
     [ProducesResponseType(typeof(BackupTriggerResponseDto), 200)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BackupTriggerResponseDto>> TriggerManual(
         [FromBody] BackupTriggerRequestDto? body,
         CancellationToken cancellationToken)
     {
         var userId = User.GetActorUserId();
         var role = User.GetActorRole() ?? "Unknown";
+
+        // Tenant scoping (defense-in-depth): a tenant-scoped role (e.g. Manager with backup.manage)
+        // may only enqueue while bound to a resolved tenant context. SuperAdmin operates deployment-wide
+        // without a tenant. The endpoint never accepts a client-supplied tenantId, so cross-tenant triggering
+        // is impossible by construction; this guard additionally rejects tenant-less scoped tokens.
+        if (!User.IsInRole(Roles.SuperAdmin) && !_tenantAccessor.TenantId.HasValue)
+        {
+            return BadRequest(new
+            {
+                code = "TENANT_CONTEXT_REQUIRED",
+                message = "Tenant context is required to trigger a backup."
+            });
+        }
+
         var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
         var outcome = await _trigger.RequestManualBackupAsync(
             userId,
@@ -133,7 +148,7 @@ public sealed class AdminBackupController : ControllerBase
 
     /// <summary>Updates singleton automation settings (cron is UTC CronFormat.Standard).</summary>
     [HttpPut("settings")]
-    [HasPermission(AppPermissions.SettingsManage)]
+    [HasPermission(AppPermissions.BackupManage)]
     [ProducesResponseType(typeof(BackupSettingsResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BackupSettingsResponseDto>> PutAutomationSettings(

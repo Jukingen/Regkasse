@@ -11,7 +11,7 @@ import * as Icons from '@ant-design/icons';
 import { AdminSidebarLeafLink } from '@/components/admin-layout/AdminSidebarLeafLink';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import {
-    SIDEBAR_DOMAIN_GROUP_META,
+    SIDEBAR_GROUP_META,
     SIDEBAR_LAYOUT_ROWS,
     SIDEBAR_NAV_ITEM_CATALOG,
     composeAdminSidebarData,
@@ -69,6 +69,7 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     CloudSyncOutlined: Icons.CloudSyncOutlined,
     KeyOutlined: Icons.KeyOutlined,
     ApartmentOutlined: Icons.ApartmentOutlined,
+    DisconnectOutlined: Icons.DisconnectOutlined,
 };
 
 function iconEl(token?: SidebarIconToken): React.ReactNode {
@@ -233,7 +234,9 @@ export function buildAdminSidebarMenuItems(params: {
             continue;
         }
 
-        const meta = SIDEBAR_DOMAIN_GROUP_META[row.domain];
+        if (row.kind !== 'group') continue;
+
+        const meta = SIDEBAR_GROUP_META[row.group];
         const groupLabel = t(meta.labelKey);
         menuItems.push({
             key: meta.menuKey,

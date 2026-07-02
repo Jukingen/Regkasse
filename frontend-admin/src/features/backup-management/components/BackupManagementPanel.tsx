@@ -51,7 +51,7 @@ export function BackupManagementPanel({ defaultTab = "operations" }: BackupManag
 
   const roleTag = access.isSuperAdmin
     ? t("backupDr.management.role.superAdmin")
-    : access.canManage
+    : access.canManageBackup
       ? t("backupDr.management.role.tenantAdmin")
       : t("backupDr.management.role.readOnly");
 

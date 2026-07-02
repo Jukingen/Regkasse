@@ -35,6 +35,7 @@ public static class PermissionCatalogMetadata
         ["invoice"] = "Invoice",
         ["creditnote"] = "Invoice",
         ["settings"] = "Settings",
+        ["backup"] = "Settings",
         ["license"] = "Settings",
         ["localization"] = "Settings",
         ["receipttemplate"] = "Settings",
@@ -118,6 +119,7 @@ public static class PermissionCatalogMetadata
             AppPermissions.CashRegisterView => "Kassen anzeigen",
             AppPermissions.CashRegisterManage => "Kassen verwalten (erstellen, bearbeiten)",
             AppPermissions.CashRegisterDecommission => "Kassen stilllegen",
+            AppPermissions.BackupManage => "Backups verwalten (manuell auslösen, Zeitplan bearbeiten)",
             _ => null,
         };
     }

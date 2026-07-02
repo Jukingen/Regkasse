@@ -12,13 +12,15 @@ import { ADMIN_SIDEBAR_GROUP_KEYS } from '@/shared/adminSidebarNavigation';
 import { registerRksvSidebar, type RksvSidebarRegistryAttachment } from '@/features/rksv/sidebarPlugin';
 import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from '@/shared/auth/permissions';
 
-export type SidebarDomainId =
+export type SidebarGroupId =
+    | 'dashboard'
+    | 'license'
     | 'operations'
-    | 'sales'
+    | 'rksv'
     | 'catalog'
     | 'customers'
-    | 'reporting'
-    | 'fiscalCompliance'
+    | 'reports'
+    | 'settings'
     | 'administration';
 
 /** Keys into `SIDEBAR_ICON_COMPONENTS` in `buildAdminSidebar.tsx`. */
@@ -64,7 +66,8 @@ export type SidebarIconToken =
     | 'CloudDownloadOutlined'
     | 'CloudSyncOutlined'
     | 'KeyOutlined'
-    | 'ApartmentOutlined';
+    | 'ApartmentOutlined'
+    | 'DisconnectOutlined';
 
 export type SidebarNavCatalogItem = {
     /** Stable id for tests and layout references */
@@ -102,7 +105,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'kassenverwaltung',
         menuKey: '/kassenverwaltung',
         href: '/kassenverwaltung',
-        labelKey: 'nav.kassenverwaltung',
+        labelKey: 'nav.cashRegisters',
         icon: 'ShopOutlined',
         permission: AppPermissions.CashRegisterManage,
     },
@@ -110,7 +113,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'shiftsOverview',
         menuKey: '/shifts',
         href: '/shifts',
-        labelKey: 'nav.shiftsOverview',
+        labelKey: 'nav.shifts',
         icon: 'ClockCircleOutlined',
         permission: PERMISSIONS.SHIFT_VIEW,
     },
@@ -118,7 +121,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'tagesabschluss',
         menuKey: '/tagesabschluss',
         href: '/tagesabschluss',
-        labelKey: 'nav.tagesabschluss',
+        labelKey: 'nav.dailyClosing',
         icon: 'CalendarOutlined',
     },
     receipts: {
@@ -139,7 +142,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'stornoRefundAudit',
         menuKey: '/payments/storno-refund-audit',
         href: '/payments/storno-refund-audit',
-        labelKey: 'nav.stornoRefundAudit',
+        labelKey: 'nav.cancellations',
         icon: 'AuditOutlined',
     },
     paymentTrends: {
@@ -178,6 +181,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/receipt-templates',
         labelKey: 'nav.receiptTemplates',
         icon: 'SnippetsOutlined',
+        sidebarHidden: true,
     },
     receiptGenerate: {
         id: 'receiptGenerate',
@@ -185,6 +189,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/receipt-generate',
         labelKey: 'nav.receiptGenerate',
         icon: 'EyeOutlined',
+        sidebarHidden: true,
     },
     products: {
         id: 'products',
@@ -205,14 +210,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'modifierGroups',
         menuKey: '/modifier-groups',
         href: '/modifier-groups',
-        labelKey: 'nav.modifierGroups',
+        labelKey: 'nav.addonGroups',
         icon: 'GroupOutlined',
     },
     pricingRules: {
         id: 'pricingRules',
         menuKey: '/pricing-rules',
         href: '/pricing-rules',
-        labelKey: 'nav.pricingRules',
+        labelKey: 'nav.priceRules',
         icon: 'TagOutlined',
     },
     inventory: {
@@ -226,7 +231,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'customers',
         menuKey: '/customers',
         href: '/customers',
-        labelKey: 'nav.customers',
+        labelKey: 'nav.customerList',
         icon: 'UserOutlined',
     },
     benefitDefinitions: {
@@ -235,6 +240,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/benefit-definitions',
         labelKey: 'nav.benefitDefinitions',
         icon: 'GiftOutlined',
+        sidebarHidden: true,
     },
     benefitAssignments: {
         id: 'benefitAssignments',
@@ -242,12 +248,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/benefit-assignments',
         labelKey: 'nav.benefitAssignments',
         icon: 'TagOutlined',
+        sidebarHidden: true,
     },
     reportingDashboard: {
         id: 'reportingDashboard',
         menuKey: '/dashboard',
         href: '/dashboard',
-        labelKey: 'nav.reportingDashboard',
+        labelKey: 'nav.overview',
         icon: 'DashboardOutlined',
         permission: ANY_AUTHENTICATED_PERMISSION,
     },
@@ -255,7 +262,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'reportingOverview',
         menuKey: '/reporting',
         href: '/reporting',
-        labelKey: 'nav.reporting',
+        labelKey: 'nav.operationalReports',
         icon: 'PieChartOutlined',
     },
     reportCenter: {
@@ -278,6 +285,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/reports/daily-closing',
         labelKey: 'nav.dailyClosingSummary',
         icon: 'SnippetsOutlined',
+        sidebarHidden: true,
     },
     complianceReports: {
         id: 'complianceReports',
@@ -285,12 +293,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/reporting/compliance',
         labelKey: 'nav.complianceReports',
         icon: 'SafetyCertificateOutlined',
+        sidebarHidden: true,
     },
     userActivityReport: {
         id: 'userActivityReport',
         menuKey: '/admin/reports/user-activity',
         href: '/admin/reports/user-activity',
-        labelKey: 'nav.userActivityReport',
+        labelKey: 'nav.userActivity',
         icon: 'TeamOutlined',
     },
     tagesbericht: {
@@ -299,6 +308,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/reporting/tagesbericht',
         labelKey: 'nav.tagesbericht',
         icon: 'FileDoneOutlined',
+        sidebarHidden: true,
     },
     monatsbericht: {
         id: 'monatsbericht',
@@ -306,6 +316,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/reporting/monatsbericht',
         labelKey: 'nav.monatsbericht',
         icon: 'BarChartOutlined',
+        sidebarHidden: true,
     },
     jahresbericht: {
         id: 'jahresbericht',
@@ -313,6 +324,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/reporting/jahresbericht',
         labelKey: 'nav.jahresbericht',
         icon: 'AreaChartOutlined',
+        sidebarHidden: true,
     },
     auditLogs: {
         id: 'auditLogs',
@@ -348,7 +360,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'accessOverview',
         menuKey: '/admin/access',
         href: '/admin/access',
-        labelKey: 'nav.accessOverview',
+        labelKey: 'nav.overview',
         icon: 'KeyOutlined',
         permission: PERMISSIONS.USER_VIEW,
     },
@@ -356,7 +368,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'accessRoles',
         menuKey: '/admin/access/roles',
         href: '/admin/access/roles',
-        labelKey: 'nav.accessRoles',
+        labelKey: 'nav.rolesPermissions',
         icon: 'SafetyOutlined',
         permission: PERMISSIONS.ROLE_VIEW,
     },
@@ -364,7 +376,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'accessMatrix',
         menuKey: '/admin/access/matrix',
         href: '/admin/access/matrix',
-        labelKey: 'nav.accessMatrix',
+        labelKey: 'nav.permissionsOverview',
         icon: 'AuditOutlined',
         permission: PERMISSIONS.ROLE_VIEW,
     },
@@ -372,14 +384,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'companySettings',
         menuKey: '/settings/company',
         href: '/settings/company',
-        labelKey: 'nav.companySettings',
+        labelKey: 'nav.companyFiscal',
         icon: 'ShopOutlined',
     },
     sessionSettings: {
         id: 'sessionSettings',
         menuKey: '/settings/session',
         href: '/settings/session',
-        labelKey: 'nav.sessionSettings',
+        labelKey: 'nav.sessionInactivity',
         icon: 'ClockCircleOutlined',
     },
     offlineSettings: {
@@ -389,12 +401,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.offlineSettings',
         icon: 'DisconnectOutlined',
         permission: PERMISSIONS.SETTINGS_MANAGE,
+        sidebarHidden: true,
     },
     personalization: {
         id: 'personalization',
         menuKey: '/settings/personalization',
         href: '/settings/personalization',
-        labelKey: 'nav.personalization',
+        labelKey: 'nav.appearanceLanguage',
         icon: 'BgColorsOutlined',
     },
     paymentMethods: {
@@ -410,6 +423,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/settings/backup-dr',
         labelKey: 'nav.backupDr',
         icon: 'CloudServerOutlined',
+        sidebarHidden: true,
     },
     backupMonitoring: {
         id: 'backupMonitoring',
@@ -425,6 +439,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/settings/development-mode',
         labelKey: 'nav.developmentMode',
         icon: 'ExperimentOutlined',
+        sidebarHidden: true,
     },
     timeSync: {
         id: 'timeSync',
@@ -432,26 +447,27 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/system/time-sync',
         labelKey: 'nav.timeSync',
         icon: 'ClockCircleOutlined',
+        sidebarHidden: true,
     },
     licenseManagement: {
         id: 'licenseManagement',
         menuKey: '/admin/license',
         href: '/admin/license',
-        labelKey: 'nav.licenseHubLicenses',
+        labelKey: 'nav.licenses',
         icon: 'KeyOutlined',
     },
     superAdminTenants: {
         id: 'superAdminTenants',
         menuKey: '/admin/tenants',
         href: '/admin/tenants',
-        labelKey: 'nav.superAdminTenants',
+        labelKey: 'nav.tenants',
         icon: 'ApartmentOutlined',
     },
     superAdminLicenses: {
         id: 'superAdminLicenses',
         menuKey: '/admin/licenses',
         href: '/admin/licenses',
-        labelKey: 'nav.superAdminLicenses',
+        labelKey: 'nav.platformLicenses',
         icon: 'SafetyOutlined',
         permission: AppPermissions.LicenseView,
     },
@@ -461,12 +477,13 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/cash-registers',
         labelKey: 'nav.superAdminCashRegisters',
         icon: 'ShopOutlined',
+        sidebarHidden: true,
     },
     billingOverview: {
         id: 'billingOverview',
         menuKey: '/admin/billing',
         href: '/admin/billing',
-        labelKey: 'nav.licenseHubSales',
+        labelKey: 'nav.licenseSales',
         icon: 'CreditCardOutlined',
         permission: [PERMISSIONS.SYSTEM_CRITICAL],
     },
@@ -501,58 +518,134 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         id: 'rksvTestsDepExport',
         menuKey: '/admin/rksv/dep-export',
         href: '/admin/rksv/dep-export',
-        labelKey: 'nav.rksvTestsDepExport',
+        labelKey: 'nav.depExport',
         icon: 'SafetyCertificateOutlined',
     },
     rksvTestsSignatureVerify: {
         id: 'rksvTestsSignatureVerify',
         menuKey: '/admin/rksv/signature-verify',
         href: '/admin/rksv/signature-verify',
-        labelKey: 'nav.rksvTestsSignatureVerify',
+        labelKey: 'nav.signatureVerification',
         icon: 'SafetyCertificateOutlined',
+    },
+    rksvStatusOverview: {
+        id: 'rksvStatusOverview',
+        menuKey: '/rksv/operations',
+        href: '/rksv',
+        labelKey: 'nav.rksvStatus',
+        icon: 'SafetyOutlined',
+    },
+    rksvSystemStatus: {
+        id: 'rksvSystemStatus',
+        menuKey: '/rksv/status',
+        href: '/rksv/status',
+        labelKey: 'nav.systemStatus',
+        icon: 'ControlOutlined',
+    },
+    rksvFinanzOnline: {
+        id: 'rksvFinanzOnline',
+        menuKey: '/rksv/finanz-online-outbox',
+        href: '/rksv/finanz-online-outbox',
+        labelKey: 'nav.finanzOnline',
+        icon: 'CloudSyncOutlined',
+    },
+    rksvOfflineOrders: {
+        id: 'rksvOfflineOrders',
+        menuKey: '/rksv/offline-orders',
+        href: '/rksv/offline-orders',
+        labelKey: 'nav.offlineOrders',
+        icon: 'InboxOutlined',
+    },
+    specialReceiptStart: {
+        id: 'specialReceiptStart',
+        menuKey: '/rksv/sb/startbeleg',
+        href: '/rksv/sonderbelege?focus=startbeleg',
+        labelKey: 'nav.startReceipt',
+        icon: 'FileDoneOutlined',
+    },
+    specialReceiptMonthly: {
+        id: 'specialReceiptMonthly',
+        menuKey: '/rksv/sb/monatsbeleg',
+        href: '/rksv/sonderbelege?focus=monatsbeleg',
+        labelKey: 'nav.monthlyReceipt',
+        icon: 'FileDoneOutlined',
+    },
+    specialReceiptYearly: {
+        id: 'specialReceiptYearly',
+        menuKey: '/rksv/sb/jahresbeleg',
+        href: '/rksv/sonderbelege?focus=jahresbeleg',
+        labelKey: 'nav.yearlyReceipt',
+        icon: 'FileDoneOutlined',
+    },
+    specialReceiptNull: {
+        id: 'specialReceiptNull',
+        menuKey: '/rksv/sb/nullbeleg',
+        href: '/rksv/sonderbelege?focus=nullbeleg',
+        labelKey: 'nav.nullReceipt',
+        icon: 'FileDoneOutlined',
+    },
+    specialReceiptClosing: {
+        id: 'specialReceiptClosing',
+        menuKey: '/rksv/sb/schlussbeleg',
+        href: '/rksv/sonderbelege?focus=schlussbeleg',
+        labelKey: 'nav.closingReceipt',
+        icon: 'FileDoneOutlined',
     },
 };
 
-export const SIDEBAR_DOMAIN_GROUP_META: Record<
-    SidebarDomainId,
+export const SIDEBAR_GROUP_META: Record<
+    SidebarGroupId,
     { menuKey: string; labelKey: string; icon: SidebarIconToken }
 > = {
+    dashboard: {
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.dashboard,
+        labelKey: 'nav.dashboard',
+        icon: 'DashboardOutlined',
+    },
+    license: {
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.license,
+        labelKey: 'nav.licenseManagement',
+        icon: 'CreditCardOutlined',
+    },
     operations: {
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.operations,
-        labelKey: 'adminShell.group.operations',
+        labelKey: 'nav.operations',
         icon: 'ThunderboltOutlined',
     },
-    sales: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions,
-        labelKey: 'adminShell.group.salesTransactions',
-        icon: 'ShoppingCartOutlined',
+    rksv: {
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.rksv,
+        labelKey: 'nav.rksv',
+        icon: 'SafetyOutlined',
     },
     catalog: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.catalogPricing,
-        labelKey: 'adminShell.group.catalogPricing',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.catalog,
+        labelKey: 'nav.catalog',
         icon: 'AppstoreOutlined',
     },
     customers: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.customersBenefits,
-        labelKey: 'adminShell.group.customersBenefits',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.customers,
+        labelKey: 'nav.customers',
         icon: 'UsergroupAddOutlined',
     },
-    reporting: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics,
-        labelKey: 'adminShell.group.reportingAnalytics',
+    reports: {
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.reports,
+        labelKey: 'nav.reports',
         icon: 'LineChartOutlined',
     },
-    fiscalCompliance: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance,
-        labelKey: 'adminShell.group.fiscalCompliance',
-        icon: 'AuditOutlined',
+    settings: {
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settings,
+        labelKey: 'nav.settings',
+        icon: 'SettingOutlined',
     },
     administration: {
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.verwaltung,
-        labelKey: 'adminShell.group.verwaltung',
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.admin,
+        labelKey: 'nav.administration',
         icon: 'ToolOutlined',
     },
 };
+
+/** @deprecated Use `SIDEBAR_GROUP_META` */
+export const SIDEBAR_DOMAIN_GROUP_META = SIDEBAR_GROUP_META;
 
 export type SidebarCatalogId = keyof typeof SIDEBAR_NAV_ITEM_CATALOG;
 
@@ -578,47 +671,96 @@ export type SidebarLayoutRow =
           icon: SidebarIconToken;
           catalogIds: SidebarCatalogId[];
       }
-    | { kind: 'domain'; domain: SidebarDomainId; blocks: SidebarLayoutBlock[] };
+    | { kind: 'group'; group: SidebarGroupId; blocks: SidebarLayoutBlock[] };
 
 /**
  * Top-to-bottom shell layout (order = render order).
+ * Nine primary groups: Dashboard → Lizenzverwaltung → Betrieb → RKSV → Sortiment → Kunden → Berichte → Einstellungen → Verwaltung.
  */
 export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     {
-        kind: 'leaves',
-        catalogIds: [
-            'reportingDashboard',
-            'superAdminTenants',
-            'superAdminLicenses',
-            'superAdminCashRegisters',
-        ],
+        kind: 'group',
+        group: 'dashboard',
+        blocks: [{ kind: 'leaves', catalogIds: ['reportingDashboard'] }],
     },
     {
-        kind: 'nested',
-        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.license,
-        labelKey: 'nav.licenseHub',
-        icon: 'CreditCardOutlined',
-        catalogIds: ['licenseManagement', 'billingOverview', 'billingSales', 'billingSalesNew', 'billingStats'],
-    },
-    { kind: 'divider', key: 'nav-divider-platform-hub' },
-    {
-        kind: 'domain',
-        domain: 'operations',
-        blocks: [{ kind: 'leaves', catalogIds: ['operationsCenter', 'tables', 'kassenverwaltung', 'shiftsOverview'] }],
-    },
-    {
-        kind: 'domain',
-        domain: 'sales',
+        kind: 'group',
+        group: 'license',
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['receipts', 'payments', 'paymentTrends', 'cardTransactions', 'stornoRefundAudit', 'vouchers', 'invoices', 'receiptTemplates', 'receiptGenerate'],
+                catalogIds: ['licenseManagement', 'superAdminLicenses', 'billingOverview'],
             },
         ],
     },
     {
-        kind: 'domain',
-        domain: 'catalog',
+        kind: 'group',
+        group: 'operations',
+        blocks: [
+            {
+                kind: 'leaves',
+                catalogIds: ['operationsCenter', 'tables', 'kassenverwaltung', 'shiftsOverview'],
+            },
+            {
+                kind: 'nested',
+                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions,
+                labelKey: 'nav.sales',
+                icon: 'ShoppingCartOutlined',
+                catalogIds: [
+                    'receipts',
+                    'payments',
+                    'paymentTrends',
+                    'cardTransactions',
+                    'stornoRefundAudit',
+                    'vouchers',
+                    'invoices',
+                ],
+            },
+            { kind: 'leaves', catalogIds: ['tagesabschluss'] },
+        ],
+    },
+    {
+        kind: 'group',
+        group: 'rksv',
+        blocks: [
+            { kind: 'leaves', catalogIds: ['rksvStatusOverview'] },
+            {
+                kind: 'nested',
+                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts,
+                labelKey: 'nav.specialReceipts',
+                icon: 'SafetyCertificateOutlined',
+                catalogIds: [
+                    'specialReceiptStart',
+                    'specialReceiptMonthly',
+                    'specialReceiptYearly',
+                    'specialReceiptNull',
+                    'specialReceiptClosing',
+                ],
+            },
+            {
+                kind: 'leaves',
+                catalogIds: [
+                    'rksvFinanzOnline',
+                    'rksvOfflineOrders',
+                    'rksvTestsDepExport',
+                    'rksvTestsSignatureVerify',
+                    'auditLogs',
+                    'rksvSystemStatus',
+                    'fiscalExportAuditLogs',
+                    'offlineTransactionsAdmin',
+                ],
+            },
+            {
+                kind: 'rksvHub',
+                menuKey: '/rksv',
+                labelKey: 'nav.rksvAdvancedHub',
+                icon: 'SafetyOutlined',
+            },
+        ],
+    },
+    {
+        kind: 'group',
+        group: 'catalog',
         blocks: [
             {
                 kind: 'leaves',
@@ -627,79 +769,48 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         ],
     },
     {
-        kind: 'domain',
-        domain: 'customers',
+        kind: 'group',
+        group: 'customers',
+        blocks: [{ kind: 'leaves', catalogIds: ['customers'] }],
+    },
+    {
+        kind: 'group',
+        group: 'reports',
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['customers', 'benefitDefinitions', 'benefitAssignments'],
+                catalogIds: ['reportingOverview', 'reportCenter', 'userActivityReport', 'staffPerformance'],
             },
         ],
     },
-    { kind: 'divider', key: 'nav-divider-reporting' },
     {
-        kind: 'domain',
-        domain: 'reporting',
+        kind: 'group',
+        group: 'settings',
         blocks: [
             {
                 kind: 'leaves',
                 catalogIds: [
-                    'reportingOverview',
-                    'reportCenter',
-                    'complianceReports',
-                    'userActivityReport',
-                    'staffPerformance',
-                    'dailyClosingSummary',
+                    'companySettings',
+                    'sessionSettings',
+                    'personalization',
+                    'paymentMethods',
+                    'backupMonitoring',
                 ],
             },
         ],
     },
-    { kind: 'divider', key: 'nav-divider-fiscal' },
     {
-        kind: 'domain',
-        domain: 'fiscalCompliance',
-        blocks: [
-            {
-                kind: 'fiscalRksvClosing',
-                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing,
-                labelKey: 'nav.fiscalRksvClosingHub',
-                icon: 'SafetyOutlined',
-            },
-            { kind: 'leaves', catalogIds: ['auditLogs', 'fiscalExportAuditLogs', 'offlineTransactionsAdmin'] },
-            {
-                kind: 'nested',
-                menuKey: '/admin/rksv',
-                labelKey: 'nav.rksvTestsHub',
-                icon: 'SafetyCertificateOutlined',
-                catalogIds: ['rksvTestsDepExport', 'rksvTestsSignatureVerify'],
-            },
-            {
-                kind: 'rksvHub',
-                menuKey: '/rksv',
-                labelKey: 'adminShell.group.rksv',
-                icon: 'SafetyOutlined',
-            },
-        ],
-    },
-    { kind: 'divider', key: 'nav-divider-admin' },
-    {
-        kind: 'domain',
-        domain: 'administration',
+        kind: 'group',
+        group: 'administration',
         blocks: [
             {
                 kind: 'nested',
                 menuKey: ADMIN_SIDEBAR_GROUP_KEYS.accessArea,
-                labelKey: 'nav.accessHub',
+                labelKey: 'nav.accessRoles',
                 icon: 'KeyOutlined',
                 catalogIds: ['accessOverview', 'users', 'accessRoles', 'accessMatrix'],
             },
-            {
-                kind: 'nested',
-                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settingsArea,
-                labelKey: 'nav.settingsHub',
-                icon: 'SettingOutlined',
-                catalogIds: ['companySettings', 'sessionSettings', 'offlineSettings', 'personalization', 'paymentMethods', 'backupMonitoring', 'backupDr', 'developmentMode', 'timeSync'],
-            },
+            { kind: 'leaves', catalogIds: ['superAdminTenants', 'superAdminCashRegisters'] },
         ],
     },
 ];

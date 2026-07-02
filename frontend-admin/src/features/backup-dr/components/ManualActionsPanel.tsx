@@ -6,7 +6,13 @@ import { CloudUploadOutlined, ExperimentOutlined } from '@ant-design/icons';
 import type { ManualActionsModeConfirmations } from '@/features/backup-dr/logic/backupManualActionsModePresentation';
 
 export interface ManualActionsPanelProps {
+  /** Manuel yedek tetikleme yetkisi (Manager: backup.manage). */
   canManage: boolean;
+  /**
+   * Restore-drill kuyruğa alma yetkisi — platform operatörü (settings.manage / SuperAdmin).
+   * Verilmezse geriye dönük olarak <see cref="canManage"/> kullanılır.
+   */
+  canRestore?: boolean;
   /** Orval mutation — geniş imza ile uyumlu. */
   backupTrigger: { isPending: boolean; mutate: (...args: unknown[]) => unknown };
   restoreTrigger: { isPending: boolean; mutate: (...args: unknown[]) => unknown };
@@ -52,15 +58,17 @@ function PopconfirmDescription({ parts }: { parts: string[] }) {
 
 export function ManualActionsPanel({
   canManage,
+  canRestore,
   backupTrigger,
   restoreTrigger,
   simulatedOperationalMode = false,
   modeAwareConfirmations,
   t,
 }: ManualActionsPanelProps) {
+  const canRestoreEffective = canRestore ?? canManage;
   const permissionTip = t('backupDr.permission.manualActionsTooltip');
   const backupDisabled = !canManage || backupTrigger.isPending;
-  const restoreDisabled = !canManage || restoreTrigger.isPending;
+  const restoreDisabled = !canRestoreEffective || restoreTrigger.isPending;
 
   const backupTitle = modeAwareConfirmations?.backupTitle ?? t('backupDr.manual.confirmBackupTitle');
   const backupDescParts =
@@ -131,7 +139,7 @@ export function ManualActionsPanel({
         <WithPermissionTooltip show={!canManage} title={permissionTip}>
           {backupControl}
         </WithPermissionTooltip>
-        <WithPermissionTooltip show={!canManage} title={permissionTip}>
+        <WithPermissionTooltip show={!canRestoreEffective} title={permissionTip}>
           {restoreControl}
         </WithPermissionTooltip>
       </Space>

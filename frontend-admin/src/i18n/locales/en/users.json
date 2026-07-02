@@ -281,6 +281,7 @@
       "settings_view": "View settings",
       "settings_manage": "Manage settings",
       "settings_backup": "Manage backups",
+      "backup_manage": "Manage backups (manual trigger, schedule)",
       "localization_view": "View localization",
       "localization_manage": "Manage localization",
       "receipttemplate_view": "View receipt templates",

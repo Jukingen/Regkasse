@@ -281,6 +281,7 @@
       "settings_view": "Ayarları görüntüle",
       "settings_manage": "Ayarları yönet",
       "settings_backup": "Yedeklemeleri yönet",
+      "backup_manage": "Yedeklemeleri yönet (manuel tetikleme, zamanlama)",
       "localization_view": "Yerelleştirmeyi görüntüle",
       "localization_manage": "Yerelleştirmeyi yönet",
       "receipttemplate_view": "Fiş şablonlarını görüntüle",

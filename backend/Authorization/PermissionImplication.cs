@@ -75,6 +75,7 @@ public static class PermissionImplication
             [AppPermissions.SettingsManage] =
             [
                 AppPermissions.SettingsBackup,
+                AppPermissions.BackupManage,
             ],
             [AppPermissions.AuditCleanup] =
             [
@@ -93,6 +94,7 @@ public static class PermissionImplication
         var map = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
             [AppPermissions.CashRegisterManage] = [AppPermissions.CashRegisterView],
+            [AppPermissions.TableManage] = [AppPermissions.TableView],
         };
 
         return map.ToFrozenDictionary(

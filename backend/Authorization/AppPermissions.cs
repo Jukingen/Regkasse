@@ -102,6 +102,13 @@ public static class AppPermissions
     public const string SettingsView = "settings.view";
     public const string SettingsManage = "settings.manage";
     public const string SettingsBackup = "settings.backup";
+
+    /// <summary>
+    /// Tenant-scoped backup management: enqueue manual backups and edit backup schedule/automation settings.
+    /// Narrower than <see cref="SettingsManage"/> (which also gates license, NTP, payment methods, banking, etc.);
+    /// granted to Manager for own-tenant backups. Execution-mode, artifact download and restore stay on <see cref="SettingsManage"/>.
+    /// </summary>
+    public const string BackupManage = "backup.manage";
     public const string LocalizationView = "localization.view";
     public const string LocalizationManage = "localization.manage";
     public const string ReceiptTemplateView = "receipttemplate.view";

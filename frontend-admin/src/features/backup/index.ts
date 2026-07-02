@@ -22,6 +22,7 @@ export { AdminBackupPage, AdminBackupPageHeaderActions } from "@/features/backup
 export { BackupRunsTable } from "@/features/backup/components/BackupRunsTable";
 export { BackupDetailModal } from "@/features/backup/components/BackupDetailModal";
 export { BackupConfigurationForm } from "@/features/backup/components/BackupConfigurationForm";
+export { BackupSettings } from "@/features/backup/components/BackupSettings";
 export { BackupSchedulePlanner } from "@/features/backup/components/BackupSchedulePlanner";
 export { TriggerBackupButton } from "@/features/backup/components/TriggerBackupButton";
 export { BackupVerificationReport } from "@/features/backup/components/BackupVerificationReport";

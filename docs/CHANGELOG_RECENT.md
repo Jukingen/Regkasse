@@ -4,6 +4,33 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 
 ---
 
+## 2026-07-02 — Backup permissions (Manager / tenant scoping)
+
+**Reference:** [`docs/BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md) · AI: [`ai/modules/backup_permissions.md`](../ai/modules/backup_permissions.md)
+
+### Backend
+
+- New permission `backup.manage` (`AppPermissions.BackupManage`) — tenant-scoped manual trigger + schedule/retention
+- **Manager** default matrix: `settings.view` + `backup.manage` (not `settings.manage`)
+- `settings.manage` implies `backup.manage` (+ `settings.backup`); escalation guard — `backup.manage` alone does not imply `settings.manage`
+- `POST /api/admin/backup/trigger`, `PUT /api/admin/backup/settings`, legacy `POST /api/settings/backup/now` → `backup.manage`
+- Execution mode / artifact download remain `settings.manage`
+- Tenant guard on manual trigger: non–Super Admin without tenant context → `400 TENANT_CONTEXT_REQUIRED`
+- Tests: `RolePermissionMatrixTests`, `EndpointAuthorizationRepresentativeTests`, `AdminBackupTriggerTenantScopingTests`
+
+### Frontend Admin
+
+- `PERMISSIONS.BACKUP_MANAGE`, `permissionImplication` mirror, `useBackupPermissions` / `useBackupManagementAccess` (`canManageBackup`)
+- `BackupSettings.tsx`, `BackupDrDashboard`, `AdminBackupPage` — UI gated by `backup.manage` vs `settings.manage`
+- `routePermissions.ts` comments for `/settings/backup-dr`, `/admin/backup`
+- i18n: tenant-scoped backup copy uses *„Backups verwalten“* instead of *„Einstellungen verwalten“*
+
+### Known limitation
+
+- `backup_runs` remains deployment-scoped (no `tenant_id`); per-tenant backup artifacts are a future schema/worker change.
+
+---
+
 ## 2026-06-27 — Offline system (full rollout)
 
 **Index:** [`docs/OFFLINE_SYSTEM_INDEX.md`](OFFLINE_SYSTEM_INDEX.md)

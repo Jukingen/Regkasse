@@ -6,10 +6,10 @@ import { SETTINGS_AREA_ROUTE_PATHS } from '@/shared/settingsAreaRoutes';
 import { SIDEBAR_NAV_ITEM_CATALOG } from '@/shared/adminSidebarRegistry';
 
 describe('settingsAreaRoutesAlignment', () => {
-    it('lists every settings hub path under Verwaltung group routes (after /users)', () => {
-        const verwaltung = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.verwaltung];
+    it('lists every settings hub path under Einstellungen group routes', () => {
+        const settings = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.settings];
         for (const path of SETTINGS_AREA_ROUTE_PATHS) {
-            expect(verwaltung, 'verwaltung group should include settings paths').toContain(path);
+            expect(settings, 'settings group should include settings paths').toContain(path);
         }
     });
 

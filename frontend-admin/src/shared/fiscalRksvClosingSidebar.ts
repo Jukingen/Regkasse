@@ -6,7 +6,13 @@
 export type FiscalRksvClosingBadgeKind = 'daily' | 'monthly' | 'yearly' | 'one-time';
 
 /** Virtual menu keys: must match ROUTE_PERMISSIONS + permission filtering; href may differ (query focus). */
-export const FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS = ['/rksv/sb/startbeleg', '/rksv/sb/schlussbeleg'] as const;
+export const FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS = [
+    '/rksv/sb/startbeleg',
+    '/rksv/sb/monatsbeleg',
+    '/rksv/sb/jahresbeleg',
+    '/rksv/sb/nullbeleg',
+    '/rksv/sb/schlussbeleg',
+] as const;
 
 export type FiscalRksvClosingSidebarLeaf = {
     menuKey: string;

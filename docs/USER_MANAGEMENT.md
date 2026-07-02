@@ -39,7 +39,7 @@ flowchart TB
 | Role (EN) | Typical use | Tenant membership |
 |-----------|-------------|-------------------|
 | **SuperAdmin** | Regkasse operations, tenant lifecycle | Platform; not business staff |
-| **Manager** | Tenant admin, settings, users, reports | Required |
+| **Manager** | Tenant admin, settings, users, reports, **backup manage** (`backup.manage`) | Required |
 | **Cashier** | POS / payments | Required |
 | **Accountant** | Reports, exports | Required |
 | **Waiter / Kitchen** | POS workflows (where enabled) | Optional per deployment |
@@ -111,6 +111,17 @@ Backend (`TenantUserService.CreateAsync`):
 1. Open `/users` on tenant host (`{slug}.regkasse.at`)
 2. **Benutzer anlegen** — same modal; tenant is implicit from JWT (no mandant picker)
 3. Cannot create users for other tenants
+
+### Manager — backup (tenant-scoped)
+
+Managers have **`backup.manage`** by default (not `settings.manage`). They can:
+
+- View backup status on `/settings/backup-dr` and `/admin/backup` (`settings.view` route gate)
+- Enqueue manual backup and edit schedule/retention for their **JWT-bound tenant**
+
+They cannot change execution mode, download deployment artifacts, or run restore drills (Super Admin / `settings.manage`).
+
+Authorization requires resolved tenant context on trigger; cross-tenant trigger is not accepted from the client. See [`BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md).
 
 ### Frontend mutation pattern
 

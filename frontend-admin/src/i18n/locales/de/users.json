@@ -281,6 +281,7 @@
       "settings_view": "Einstellungen anzeigen",
       "settings_manage": "Einstellungen verwalten",
       "settings_backup": "Backup verwalten",
+      "backup_manage": "Backups verwalten (manuell, Zeitplan)",
       "localization_view": "Übersetzungen anzeigen",
       "localization_manage": "Übersetzungen verwalten",
       "receipttemplate_view": "Belegvorlagen anzeigen",

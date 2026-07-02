@@ -17,9 +17,7 @@ import { TriggerBackupButton } from "@/features/backup/components/TriggerBackupB
 import { PitrRestoreWorkflow } from "@/features/backup/components/PitrRestoreWorkflow";
 import { BackupHistoryChart } from "@/features/backup/components/BackupHistoryChart";
 import { BackupRunsTable } from "@/features/backup/components/BackupRunsTable";
-import { BackupConfigurationForm } from "@/features/backup/components/BackupConfigurationForm";
-import { BackupScheduleSettings } from "@/features/backup-dr/components/BackupScheduleSettings";
-import { ConfigurationHealthCard } from "@/features/backup/components/ConfigurationHealthCard";
+import { BackupSettings } from "@/features/backup/components/BackupSettings";
 import { BackupRecentRestoreDrillsTable } from "@/features/backup-dr/components/BackupRecentRestoreDrillsTable";
 import {
   BACKUP_DASHBOARD_STATS_POLL_MS,
@@ -149,13 +147,7 @@ export function AdminBackupPage() {
     {
       key: "config",
       label: t("backupDr.adminBackup.collapse.config"),
-      children: (
-        <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-          <ConfigurationHealthCard canManage={permissions.canConfigure} />
-          <BackupScheduleSettings canManage={permissions.canConfigure} />
-          {permissions.canConfigure ? <BackupConfigurationForm /> : null}
-        </Space>
-      ),
+      children: <BackupSettings />,
     },
     ...(permissions.canRestore
       ? [

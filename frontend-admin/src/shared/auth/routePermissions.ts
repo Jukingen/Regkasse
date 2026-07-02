@@ -54,7 +54,9 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
+  /** Route gate: settings.view (Manager). Trigger + schedule mutations require backup.manage in UI/API. */
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
+  /** Route gate: settings.view (Manager). No separate /settings/backup/manage route — manage is component-gated. */
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/system/time-sync': PERMISSIONS.SETTINGS_MANAGE,
@@ -84,6 +86,9 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv/operations': PERMISSIONS.FINANZONLINE_MANAGE,
   /** Sidebar-only virtual keys: same access as Sonderbelege page (query focus deep links). */
   '/rksv/sb/startbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/sb/monatsbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/sb/jahresbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
+  '/rksv/sb/nullbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/schlussbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sonderbelege': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/status': PERMISSIONS.SETTINGS_VIEW,

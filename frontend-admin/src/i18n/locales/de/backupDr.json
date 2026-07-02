@@ -1330,8 +1330,8 @@
     "restoreAttempt": "Restore-Versuch (isoliert)"
   },
   "permission": {
-    "noManage": "Nur Ansicht — zum Einreihen fehlt „Einstellungen verwalten“.",
-    "manualActionsTooltip": "Deaktiviert: fehlende Berechtigung „Einstellungen verwalten“ — kein technischer oder Serverfehler."
+    "noManage": "Nur Ansicht — zum Einreihen fehlt „Backups verwalten“.",
+    "manualActionsTooltip": "Deaktiviert: fehlende Berechtigung „Backups verwalten“ — kein technischer oder Serverfehler."
   },
   "triggerButton": {
     "label": "Backup starten",
@@ -1585,7 +1585,7 @@
       "readOnly": "Nur Ansicht"
     },
     "accessBanner": "Backup-Zugriff: {{role}}",
-    "accessReadOnlyHint": "Sie können Status und Verlauf einsehen. Manuelles Backup, Zeitplan und Ausführungsmodus erfordern „Einstellungen verwalten“.",
+    "accessReadOnlyHint": "Sie können Status und Verlauf einsehen. Manuelles Backup und Zeitplan erfordern „Backups verwalten“. Ausführungsmodus erfordert „Einstellungen verwalten“.",
     "accessManageHint": "Sie können Backups einreihen und Automatisierung sowie Ausführungsmodus für diese Instanz verwalten.",
     "accessSuperAdminHint": "Super Admin: dieselbe instanzweite Backup-Oberfläche (kein mandantenbezogener Backup-Verlauf, bis die API tenantId unterstützt).",
     "scope": {

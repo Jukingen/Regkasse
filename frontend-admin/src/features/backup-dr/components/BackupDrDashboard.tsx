@@ -26,7 +26,7 @@ import { ReloadOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/i18n/formatting";
-import { hasPermission, PERMISSIONS } from "@/shared/auth/permissions";
+import { hasAnyPermission, hasPermission, PERMISSIONS } from "@/shared/auth/permissions";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   getGetApiAdminBackupRecoverabilitySummaryQueryKey,
@@ -141,7 +141,13 @@ export function BackupDrDashboard({
   const { t, formatLocale } = useI18n();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  /** Instance-wide surfaces (execution mode, artifact download) — settings.manage only. */
   const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
+  /** Tenant-scoped backup ops (manual trigger + schedule); Manager via backup.manage. */
+  const canManageBackup = hasAnyPermission(user, [
+    PERMISSIONS.SETTINGS_MANAGE,
+    PERMISSIONS.BACKUP_MANAGE,
+  ]);
   const canRequestManualRestore = isSuperAdmin(user?.role);
   const [manualRestoreRun, setManualRestoreRun] =
     React.useState<BackupRunResponseDto | null>(null);
@@ -442,7 +448,7 @@ export function BackupDrDashboard({
           </Typography.Paragraph>
         </div>
       ) : null}
-      {!hideScheduleSettings ? <BackupScheduleSettings canManage={canManage} /> : null}
+      {!hideScheduleSettings ? <BackupScheduleSettings canManage={canManageBackup} /> : null}
       <div style={{ width: "100%", scrollMarginTop: embedded ? 0 : 72 }}>
         <Card size="small">
           <Space orientation="vertical" size="small" style={{ width: "100%" }}>
@@ -454,7 +460,7 @@ export function BackupDrDashboard({
               >
                 {t("backupDr.actions.refresh")}
               </Button>
-              {!canManage && (
+              {!canManageBackup && (
                 <Typography.Text type="secondary">
                   {t("backupDr.permission.noManage")}
                 </Typography.Text>
@@ -1570,7 +1576,8 @@ export function BackupDrDashboard({
             t={t}
           >
             <BackupManualActionsPanel
-              canManage={canManage}
+              canManage={canManageBackup}
+              canRestore={canManage}
               simulatedOperationalMode={isSimulatedAdapterEnvironment}
               modeAwareConfirmations={
                 operatorTruth.manualActionsModeConfirmations

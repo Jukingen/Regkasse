@@ -40,41 +40,88 @@ export function normalizeAdminPathname(pathname: string | null | undefined): str
  * Non-RKSV submenu keys (prefix `grp-` — not in MENU_PERMISSION; parents are shown only if a child remains after filtering).
  */
 export const ADMIN_SIDEBAR_GROUP_KEYS = {
+    dashboard: 'grp-dashboard',
+    /** Super Admin: license management + billing sales; tenant license leaf when permitted. */
+    license: 'grp-license',
     operations: 'grp-operations',
+    /** Nested under Betrieb: receipts, payments, … */
     salesTransactions: 'grp-sales-transactions',
-    catalogPricing: 'grp-catalog-pricing',
-    customersBenefits: 'grp-customers-benefits',
-    reportingAnalytics: 'grp-reporting-analytics',
-    fiscalCompliance: 'grp-fiscal-compliance',
-    /** Operative closing + formal RKSV reports + special receipts (sidebar IA). */
-    fiscalRksvClosing: 'grp-fiscal-rksv-closing',
-    verwaltung: 'grp-verwaltung',
-    /** Super Admin: companies / tenants (platform). */
-    platformAdmin: 'grp-platform-admin',
+    rksv: 'grp-rksv',
+    /** Nested under RKSV: Sonderbelege leaves */
+    specialReceipts: 'grp-special-receipts',
+    catalog: 'grp-catalog',
+    customers: 'grp-customers',
+    reports: 'grp-reports',
+    settings: 'grp-settings',
+    /** Verwaltung: Zugriff & Rollen + Mandanten (platform) */
+    admin: 'grp-admin',
     /** Nested under Verwaltung: Zugriff & Rollen hub */
     accessArea: 'grp-access',
-    /** Nested under Verwaltung: /settings + /settings/payment-methods */
-    settingsArea: 'grp-settings-area',
-    /** Super Admin: license management + billing sales. */
-    license: 'grp-license',
+    /** @deprecated Use `settings` — kept for open-keys merge during migration */
+    settingsArea: 'grp-settings',
+    /** @deprecated Use `rksv` */
+    fiscalCompliance: 'grp-rksv',
+    /** @deprecated Use `specialReceipts` */
+    fiscalRksvClosing: 'grp-special-receipts',
+    /** @deprecated Use `reports` */
+    reportingAnalytics: 'grp-reports',
+    /** @deprecated Use `catalog` */
+    catalogPricing: 'grp-catalog',
+    /** @deprecated Use `customers` */
+    customersBenefits: 'grp-customers',
+    /** @deprecated Use `admin` */
+    verwaltung: 'grp-admin',
 } as const;
 
 /** Route prefixes per group — used to auto-open the matching submenu for nested routes (e.g. /receipts/[id]). */
 export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
-    [ADMIN_SIDEBAR_GROUP_KEYS.operations]: ['/operations-center', '/tables', '/kassenverwaltung'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.dashboard]: ['/dashboard'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.license]: [
+        '/admin/license',
+        '/admin/licenses',
+        '/admin/billing',
+        '/admin/billing/sales',
+        '/admin/billing/stats',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.operations]: [
+        '/operations-center',
+        '/tables',
+        '/kassenverwaltung',
+        '/shifts',
+        '/tagesabschluss',
+    ],
     [ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions]: [
         '/receipts',
         '/payments',
         '/payments/trends',
         '/payments/storno-refund-audit',
+        '/admin/payments/card-transactions',
+        '/vouchers',
         '/invoices',
         '/receipt-templates',
         '/receipt-generate',
     ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.catalogPricing]: ['/products', '/modifier-groups', '/categories', '/inventory', '/pricing-rules'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.customersBenefits]: ['/customers', '/benefit-definitions', '/benefit-assignments'],
-    [ADMIN_SIDEBAR_GROUP_KEYS.reportingAnalytics]: [
-        '/dashboard',
+    [ADMIN_SIDEBAR_GROUP_KEYS.rksv]: [
+        '/audit-logs',
+        '/admin/audit/fiscal-exports',
+        '/admin/tse',
+        '/admin/rksv',
+        '/rksv',
+        '/reporting/tagesbericht',
+        '/reporting/monatsbericht',
+        '/reporting/jahresbericht',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts]: [
+        '/rksv/sb/startbeleg',
+        '/rksv/sb/monatsbeleg',
+        '/rksv/sb/jahresbeleg',
+        '/rksv/sb/nullbeleg',
+        '/rksv/sb/schlussbeleg',
+        '/rksv/sonderbelege',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.catalog]: ['/products', '/modifier-groups', '/categories', '/inventory', '/pricing-rules'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.customers]: ['/customers', '/benefit-definitions', '/benefit-assignments'],
+    [ADMIN_SIDEBAR_GROUP_KEYS.reports]: [
         '/reporting',
         '/reporting/report-center',
         '/reporting/compliance',
@@ -83,45 +130,23 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/admin/reports',
         '/admin/reports/user-activity',
     ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing]: [
-        '/tagesabschluss',
-        '/reporting/tagesbericht',
-        '/reporting/monatsbericht',
-        '/reporting/jahresbericht',
-        '/rksv/sb/startbeleg',
-        '/rksv/sb/schlussbeleg',
-        '/rksv/sonderbelege',
-    ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance]: [
-        '/tagesabschluss',
-        '/reporting/tagesbericht',
-        '/reporting/monatsbericht',
-        '/reporting/jahresbericht',
-        '/audit-logs',
-        '/admin/audit/fiscal-exports',
-        '/admin/tse',
-        '/admin/rksv',
-        '/rksv',
-    ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.verwaltung]: [
+    [ADMIN_SIDEBAR_GROUP_KEYS.settings]: [
         ...SETTINGS_AREA_ROUTE_PATHS,
         '/admin/system/time-sync',
+        '/admin/backup',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.admin]: [
         '/admin/access',
         '/admin/users',
         '/admin/access/roles',
         '/admin/access/matrix',
+        '/admin/tenants',
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.accessArea]: [
         '/admin/access',
         '/admin/users',
         '/admin/access/roles',
         '/admin/access/matrix',
-    ],
-    [ADMIN_SIDEBAR_GROUP_KEYS.license]: [
-        '/admin/license',
-        '/admin/billing',
-        '/admin/billing/sales',
-        '/admin/billing/stats',
     ],
 };
 
@@ -170,6 +195,15 @@ export function resolveAdminMenuSelectedKeys(
         if (focus === 'schlussbeleg' && keys.includes('/rksv/sb/schlussbeleg')) {
             return ['/rksv/sb/schlussbeleg'];
         }
+        if (focus === 'monatsbeleg' && keys.includes('/rksv/sb/monatsbeleg')) {
+            return ['/rksv/sb/monatsbeleg'];
+        }
+        if (focus === 'jahresbeleg' && keys.includes('/rksv/sb/jahresbeleg')) {
+            return ['/rksv/sb/jahresbeleg'];
+        }
+        if (focus === 'nullbeleg' && keys.includes('/rksv/sb/nullbeleg')) {
+            return ['/rksv/sb/nullbeleg'];
+        }
     }
 
     const sorted = [...selectableLeafKeys].sort((a, b) => b.length - a.length);
@@ -179,11 +213,15 @@ export function resolveAdminMenuSelectedKeys(
     return [p];
 }
 
-/** True when pathname is under the Verwaltung sidebar group (users, settings, license, tenants, …). */
+/** True when pathname is under Einstellungen or Verwaltung sidebar groups. */
 export function isVerwaltungAdminPath(pathname: string | null | undefined): boolean {
     const p = normalizeAdminPathname(pathname);
-    const routes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.verwaltung];
-    return routes.some((r) => p === r || p.startsWith(`${r}/`));
+    const settingsRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.settings];
+    const adminRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.admin];
+    return (
+        settingsRoutes.some((r) => p === r || p.startsWith(`${r}/`)) ||
+        adminRoutes.some((r) => p === r || p.startsWith(`${r}/`))
+    );
 }
 
 /** Subgroup keys to open when pathname falls under a non-RKSV route group. */
@@ -196,9 +234,21 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     if (
         p === '/settings' ||
         p.startsWith('/settings/') ||
-        p === '/admin/system/time-sync'
+        p === '/admin/system/time-sync' ||
+        p === '/admin/backup' ||
+        p.startsWith('/admin/backup/')
     ) {
-        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settingsArea);
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settings);
+    }
+    if (
+        p === '/admin/access' ||
+        p.startsWith('/admin/access/') ||
+        p === '/admin/users' ||
+        p.startsWith('/admin/users/') ||
+        p === '/admin/tenants' ||
+        p.startsWith('/admin/tenants/')
+    ) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.admin);
     }
     if (
         p === '/admin/access' ||
@@ -210,10 +260,37 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     }
     if (
         p === '/admin/license' ||
+        p === '/admin/licenses' ||
         p === '/admin/billing' ||
         p.startsWith('/admin/billing/')
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.license);
+    }
+    if (p === '/tagesabschluss' || p.startsWith('/tagesabschluss/')) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.operations);
+    }
+    if (
+        p === '/receipts' ||
+        p.startsWith('/receipts/') ||
+        p === '/payments' ||
+        p.startsWith('/payments/') ||
+        p === '/vouchers' ||
+        p.startsWith('/vouchers/') ||
+        p === '/invoices' ||
+        p.startsWith('/invoices/')
+    ) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.salesTransactions);
+    }
+    if (
+        p === '/rksv/sb/startbeleg' ||
+        p === '/rksv/sb/monatsbeleg' ||
+        p === '/rksv/sb/jahresbeleg' ||
+        p === '/rksv/sb/nullbeleg' ||
+        p === '/rksv/sb/schlussbeleg' ||
+        p === '/rksv/sonderbelege' ||
+        p.startsWith('/rksv/sonderbelege/')
+    ) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
     }
     if (p === '/admin/rksv' || p.startsWith('/admin/rksv/')) {
         keys.push('/admin/rksv');
@@ -336,25 +413,25 @@ export function computeSidebarOpenKeysMerge(params: SidebarOpenKeysMergeParams):
         }
     }
 
-    /** Keep fiscal section open on closing/reports, audit/TSE routes, or `/rksv/*` when allowed. */
-    const fiscalActive =
-        p === '/tagesabschluss' ||
-        p.startsWith('/tagesabschluss/') ||
-        p === '/reporting/tagesbericht' ||
-        p.startsWith('/reporting/tagesbericht/') ||
-        p === '/reporting/monatsbericht' ||
-        p.startsWith('/reporting/monatsbericht/') ||
-        p === '/reporting/jahresbericht' ||
-        p.startsWith('/reporting/jahresbericht/') ||
+    /** Keep RKSV section open on audit/TSE routes or `/rksv/*` when allowed. */
+    const rksvActive =
         p === '/audit-logs' ||
         p.startsWith('/audit-logs/') ||
         p === '/admin/audit/fiscal-exports' ||
         p.startsWith('/admin/audit/') ||
         p.startsWith('/admin/tse/') ||
         p === '/admin/tse/offline-transactions' ||
+        p === '/admin/rksv' ||
+        p.startsWith('/admin/rksv/') ||
+        p === '/reporting/tagesbericht' ||
+        p.startsWith('/reporting/tagesbericht/') ||
+        p === '/reporting/monatsbericht' ||
+        p.startsWith('/reporting/monatsbericht/') ||
+        p === '/reporting/jahresbericht' ||
+        p.startsWith('/reporting/jahresbericht/') ||
         (params.canSeeRksv && p.startsWith('/rksv'));
-    if (!fiscalActive) {
-        keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
+    if (!rksvActive) {
+        keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
     }
 
     for (const k of getNonRksvSidebarOpenGroupKeys(p)) {
@@ -362,24 +439,24 @@ export function computeSidebarOpenKeysMerge(params: SidebarOpenKeysMergeParams):
     }
 
     if (!params.canSeeRksv && p.startsWith('/rksv')) {
-        keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
+        keys.delete(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
     }
 
     const sonderOnly =
         p === '/rksv/sonderbelege' || p.startsWith('/rksv/sonderbelege/');
 
     if (params.canSeeRksv && p.startsWith('/rksv') && !sonderOnly) {
-        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
+        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
         keys.add('/rksv');
         for (const k of getRksvOpenSubgroupKeys(p, params.rksvGroups)) {
             keys.add(k);
         }
     }
 
-    /** Sonderbelege is linked under fiscal closing; avoid auto-expanding the whole RKSV hub tree. */
+    /** Sonderbelege deep links: open special-receipts subgroup without expanding the full RKSV hub. */
     if (params.canSeeRksv && sonderOnly) {
-        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.fiscalCompliance);
-        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.fiscalRksvClosing);
+        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.rksv);
+        keys.add(ADMIN_SIDEBAR_GROUP_KEYS.specialReceipts);
     }
 
     return Array.from(keys);

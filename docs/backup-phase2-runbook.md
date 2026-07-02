@@ -48,6 +48,10 @@ After staging on-disk verification, the worker copies artifacts to `ExternalArch
 
 Database logical dumps do **not** replace TSE device / certificate backup procedures. Treat TSE as a **separate operator/vendor runbook**.
 
+## Permissions
+
+See [`BACKUP_PERMISSIONS.md`](./BACKUP_PERMISSIONS.md). Summary: Manager has `backup.manage` (trigger + schedule); `settings.manage` required for execution mode and artifact download; route access `/settings/backup-dr` and `/admin/backup` use `settings.view`.
+
 ## Legal hold / retention
 
 This phase does not delete fiscal data. Retention of files on `ArtifactStagingRoot` is an operational policy; align with legal hold and audit retention policies without deleting protected audit evidence.

@@ -95,6 +95,7 @@ public static class PermissionCatalog
         AppPermissions.SettingsView,
         AppPermissions.SettingsManage,
         AppPermissions.SettingsBackup,
+        AppPermissions.BackupManage,
         AppPermissions.LocalizationView,
         AppPermissions.LocalizationManage,
         AppPermissions.ReceiptTemplateView,

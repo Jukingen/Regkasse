@@ -1330,8 +1330,8 @@
     "restoreAttempt": "Geri yükleme denemesi (izole)"
   },
   "permission": {
-    "noManage": "Salt okunur — kuyruğa almak için „Ayarları yönet“ gerekir.",
-    "manualActionsTooltip": "Kapalı: „Ayarları yönet“ yetkisi yok — teknik veya sunucu hatası değil."
+    "noManage": "Salt okunur — kuyruğa almak için „Yedeklemeleri yönet“ gerekir.",
+    "manualActionsTooltip": "Kapalı: „Yedeklemeleri yönet“ yetkisi yok — teknik veya sunucu hatası değil."
   },
   "triggerButton": {
     "label": "Yedek başlat",
@@ -1585,7 +1585,7 @@
       "readOnly": "Salt okunur"
     },
     "accessBanner": "Yedek erişimi: {{role}}",
-    "accessReadOnlyHint": "Durum ve geçmişi görüntüleyebilirsiniz. Manuel yedek, zamanlama ve çalıştırma modu için „Ayarları yönet“ gerekir.",
+    "accessReadOnlyHint": "Durum ve geçmişi görüntüleyebilirsiniz. Manuel yedek ve zamanlama için „Yedeklemeleri yönet“ gerekir. Çalıştırma modu için „Ayarları yönet“ gerekir.",
     "accessManageHint": "Bu dağıtım örneği için yedek kuyruğa alma ve otomasyon ile çalıştırma modunu yönetebilirsiniz.",
     "accessSuperAdminHint": "Super Admin: aynı örnek genelinde yedek yüzeyi (API tenantId destekleyene kadar kiracı bazlı liste yok).",
     "scope": {

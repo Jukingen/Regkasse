@@ -1,6 +1,6 @@
 import { OPERATOR_VERIFICATIONS_COPY } from '@/shared/operatorTruthCopy';
 import {
-    SIDEBAR_DOMAIN_GROUP_META,
+    SIDEBAR_GROUP_META,
     SIDEBAR_LAYOUT_ROWS,
     SIDEBAR_NAV_ITEM_CATALOG,
     type SidebarCatalogId,
@@ -36,19 +36,19 @@ function pushUnique(target: string[], value: string | undefined): void {
 function catalogBreadcrumbMap(t: (key: string) => string): Map<SidebarCatalogId, string> {
     const map = new Map<SidebarCatalogId, string>();
 
-    const walkBlock = (domainKey: keyof typeof SIDEBAR_DOMAIN_GROUP_META, block: SidebarLayoutBlock) => {
-        const domainLabel = t(SIDEBAR_DOMAIN_GROUP_META[domainKey].labelKey);
+    const walkBlock = (groupKey: keyof typeof SIDEBAR_GROUP_META, block: SidebarLayoutBlock) => {
+        const groupLabel = t(SIDEBAR_GROUP_META[groupKey].labelKey);
 
         if (block.kind === 'leaves') {
             for (const id of block.catalogIds) {
-                map.set(id, domainLabel);
+                map.set(id, groupLabel);
             }
             return;
         }
 
         if (block.kind === 'nested' || block.kind === 'fiscalRksvClosing') {
             const nestedLabel = t(block.labelKey);
-            const trail = `${domainLabel} › ${nestedLabel}`;
+            const trail = `${groupLabel} › ${nestedLabel}`;
             if (block.kind === 'nested') {
                 for (const id of block.catalogIds) {
                     map.set(id, trail);
@@ -64,9 +64,9 @@ function catalogBreadcrumbMap(t: (key: string) => string): Map<SidebarCatalogId,
             }
             return;
         }
-        if (row.kind === 'domain') {
+        if (row.kind === 'group') {
             for (const block of row.blocks) {
-                walkBlock(row.domain, block);
+                walkBlock(row.group, block);
             }
         }
     };
@@ -95,7 +95,7 @@ function upsertItem(
 function collectSidebarGroupLabels(t: (key: string) => string): string[] {
     const labels = new Set<string>();
 
-    for (const meta of Object.values(SIDEBAR_DOMAIN_GROUP_META)) {
+    for (const meta of Object.values(SIDEBAR_GROUP_META)) {
         labels.add(t(meta.labelKey));
     }
 
@@ -106,7 +106,7 @@ function collectSidebarGroupLabels(t: (key: string) => string): string[] {
     };
 
     for (const row of SIDEBAR_LAYOUT_ROWS) {
-        if (row.kind !== 'domain') continue;
+        if (row.kind !== 'group') continue;
         for (const block of row.blocks) {
             walkBlock(block);
         }
@@ -181,7 +181,7 @@ export function extractGlobalSearchItems(t: (key: string) => string): GlobalSear
 
     for (const leaf of FISCAL_RKSV_CLOSING_SIDEBAR_LEAVES) {
         const label = t(leaf.labelKey);
-        const breadcrumb = `${t(SIDEBAR_DOMAIN_GROUP_META.fiscalCompliance.labelKey)} › ${t('nav.fiscalRksvClosingHub')}`;
+        const breadcrumb = `${t(SIDEBAR_GROUP_META.rksv.labelKey)} › ${t('nav.specialReceipts')}`;
         const keywords: string[] = [];
         pushUnique(keywords, label);
         pushUnique(keywords, leaf.href);
@@ -198,8 +198,8 @@ export function extractGlobalSearchItems(t: (key: string) => string): GlobalSear
     }
 
     const rksvGroups = buildRksvMenuGroups(t, OPERATOR_VERIFICATIONS_COPY.navMenuLabel);
-    const rksvDomain = t(SIDEBAR_DOMAIN_GROUP_META.fiscalCompliance.labelKey);
-    const rksvHub = t('adminShell.group.rksv');
+    const rksvDomain = t(SIDEBAR_GROUP_META.rksv.labelKey);
+    const rksvHub = t('nav.rksvAdvancedHub');
 
     for (const group of rksvGroups) {
         const breadcrumb = `${rksvDomain} › ${rksvHub} › ${group.groupLabel}`;

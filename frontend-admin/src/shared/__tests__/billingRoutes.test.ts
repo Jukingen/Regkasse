@@ -24,13 +24,11 @@ describe('billing App Router registration', () => {
         }
     });
 
-    it('maps sidebar billing leaves to SYSTEM_CRITICAL', () => {
+    it('maps visible sidebar billing leaves to SYSTEM_CRITICAL', () => {
         const billingSidebarLeaves = ADMIN_SIDEBAR_NON_RKSV_LEAF_ROUTE_KEYS.filter((key) =>
             key.startsWith('/admin/billing'),
         );
-        expect(billingSidebarLeaves.sort()).toEqual(
-            ['/admin/billing', '/admin/billing/sales', '/admin/billing/stats'].sort(),
-        );
+        expect(billingSidebarLeaves.sort()).toEqual(['/admin/billing']);
         for (const route of billingSidebarLeaves) {
             expect(getRequiredPermissionForPath(route)).toEqual([PERMISSIONS.SYSTEM_CRITICAL]);
         }

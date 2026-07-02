@@ -40,7 +40,14 @@ Phase 1 **artifact metadata verification** checks descriptor shape and SHA-256 f
 - **Preferred:** `POST /api/admin/backup/trigger`, `GET /api/admin/backup/status/latest`, `GET /api/admin/backup/runs`, `GET /api/admin/backup/runs/{id}`, `GET /api/admin/backup/verification/latest` (`AdminBackupController`).
 - **Legacy:** `POST /api/Settings/backup/now` still enqueues the same way and updates `SystemSettings.LastBackup` when a **new** run is created (not when duplicate-prevented).
 
-Permissions: `settings.manage` (trigger), `settings.view` (reads).
+Permissions:
+
+- **Reads** (`GET` status, runs, verification, settings): `settings.view`
+- **Trigger** (`POST /api/admin/backup/trigger`, legacy `POST /api/Settings/backup/now`): `backup.manage` — Manager default via `RolePermissionMatrix`; Super Admin also via `settings.manage` implication
+- **Schedule** (`PUT /api/admin/backup/settings`): `backup.manage`
+- **Execution mode / artifact download**: `settings.manage` (Super Admin only in product UI)
+
+Tenant scoping: non–Super Admin trigger requires JWT tenant context (`400 TENANT_CONTEXT_REQUIRED` if missing). See [`BACKUP_PERMISSIONS.md`](./BACKUP_PERMISSIONS.md).
 
 ## Idempotency and concurrency
 

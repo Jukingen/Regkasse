@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildRksvMenuGroups, getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
 
-/** Stable route contract for sidebar + hub: keys and hrefs must match MENU_PERMISSION and App Router paths. */
+/** Hub-only leaves (top-level RKSV items live in `adminSidebarRegistry` to avoid duplicate menu keys). */
 const EXPECTED_KEYS_AND_HREFS: { key: string; href: string }[] = [
-    { key: '/rksv/operations', href: '/rksv' },
-    { key: '/rksv/finanz-online-outbox', href: '/rksv/finanz-online-outbox' },
     { key: '/rksv/finanz-online-queue', href: '/rksv/finanz-online-queue' },
     { key: '/rksv/incident', href: '/rksv/incident' },
     { key: '/rksv/replay-batch', href: '/rksv/replay-batch' },
@@ -16,8 +14,6 @@ const EXPECTED_KEYS_AND_HREFS: { key: string; href: string }[] = [
     { key: '/rksv/signature-chain', href: '/rksv/signature-chain' },
     { key: '/rksv/offline-intent-coverage', href: '/rksv/offline-intent-coverage' },
     { key: '/rksv/belegcheck', href: '/rksv/belegcheck' },
-    { key: '/rksv/offline-orders', href: '/rksv/offline-orders' },
-    { key: '/rksv/status', href: '/rksv/status' },
     { key: '/rksv/cmc-certificate', href: '/rksv/cmc-certificate' },
     { key: '/rksv/finanz-online-operations', href: '/rksv/finanz-online-operations' },
 ];

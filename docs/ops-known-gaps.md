@@ -12,6 +12,7 @@ This list is intentional scope debt; Phase 1 ships **boundaries and metadata**, 
 | No external disk / object-lock automation | Ransomware / operator errors | Phase 3 infra + copy jobs |
 | TSE vendor backup | RKSV crypto not fully covered by DB | Vendor runbook + optional export |
 | No automated restore drill | Untested backups | Monthly drill procedure + Phase 2 automation |
+| Per-tenant backup runs / artifacts | Manager `backup.manage` scopes **access** only; `backup_runs` has no `tenant_id` yet | Additive schema + orchestrator filter — see `docs/BACKUP_PERMISSIONS.md` |
 | Migration drift (if branch already applied old migration with extra `AlterColumn`) | History mismatch | If `AddBackupOrchestrationPhase1` was already applied **with** fiscal `AlterColumn` ops, do not re-run; new clones get backup-only migration. Coordinate with DBA if needed. |
 
 ## RPO / RTO targets (design goals)

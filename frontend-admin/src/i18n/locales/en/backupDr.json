@@ -1330,8 +1330,8 @@
     "restoreAttempt": "Restore attempt (isolated)"
   },
   "permission": {
-    "noManage": "View only — “Manage settings” is required to enqueue jobs.",
-    "manualActionsTooltip": "Disabled: missing “Manage settings” permission — not a technical or server error."
+    "noManage": "View only — “Manage backups” is required to enqueue jobs.",
+    "manualActionsTooltip": "Disabled: missing “Manage backups” permission — not a technical or server error."
   },
   "triggerButton": {
     "label": "Start backup",
@@ -1585,7 +1585,7 @@
       "readOnly": "Read-only"
     },
     "accessBanner": "Backup access: {{role}}",
-    "accessReadOnlyHint": "You can view status and history. Manual backup, schedule, and execution mode require “Manage settings”.",
+    "accessReadOnlyHint": "You can view status and history. Manual backup and schedule require “Manage backups”. Execution mode requires “Manage settings”.",
     "accessManageHint": "You can enqueue backups and manage automation and execution mode for this deployment instance.",
     "accessSuperAdminHint": "Super Admin: same instance-wide backup surface (no per-tenant backup list until the API supports tenantId).",
     "scope": {

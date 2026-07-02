@@ -327,6 +327,8 @@ Request DTOs: `CreateTenantUserRequest`, `CreateQuickTenantUserRequest`, `AdminC
 
 Full guide: **`docs/USER_MANAGEMENT.md`**.
 
+**Backup (Manager):** default `backup.manage` + `settings.view`; not `settings.manage`. See **`docs/BACKUP_PERMISSIONS.md`**, **`ai/modules/backup_permissions.md`**.
+
 **Role:** `SuperAdmin` only on `AdminTenantsController` for tenant CRUD (`[Authorize(Roles = SuperAdmin)]`).
 
 #### Impersonation flow

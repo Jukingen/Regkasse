@@ -65,9 +65,10 @@ describe('buildMenuSearchIndexSource', () => {
     it('includes group labels for registry-backed items', () => {
         const t = (key: string) => {
             if (key === 'nav.payments') return 'Zahlungen';
-            if (key === 'adminShell.group.salesTransactions') return 'Verkauf';
+            if (key === 'nav.sales') return 'Verkauf';
+            if (key === 'nav.operations') return 'Betrieb';
             if (key === 'nav.products') return 'Produkte';
-            if (key === 'adminShell.group.catalogPricing') return 'Sortiment';
+            if (key === 'nav.catalog') return 'Sortiment';
             return key;
         };
 

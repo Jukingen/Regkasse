@@ -20,7 +20,7 @@ const PARENT_TO_CHILDREN: Readonly<Record<string, readonly string[]>> = {
     'tenant.delete',
     'tenant.impersonate',
   ],
-  'settings.manage': ['settings.backup'],
+  'settings.manage': ['settings.backup', 'backup.manage'],
   'audit.cleanup': ['audit.delete'],
 };
 

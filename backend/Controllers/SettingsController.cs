@@ -289,7 +289,7 @@ namespace KasseAPI_Final.Controllers
         // POST: api/settings/backup/now
         // Legacy entry: delegates to backup orchestration (no simulation, no pg_dump on this thread).
         [HttpPost("backup/now")]
-        [HasPermission(AppPermissions.SettingsManage)]
+        [HasPermission(AppPermissions.BackupManage)]
         public async Task<IActionResult> CreateBackupNow(CancellationToken cancellationToken)
         {
             try

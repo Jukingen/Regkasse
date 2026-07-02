@@ -36,6 +36,7 @@ export const MANAGER_ADMIN_PERMISSIONS: readonly string[] = [
     PERMISSIONS.CASHREGISTER_VIEW,
     PERMISSIONS.CASHREGISTER_MANAGE,
     PERMISSIONS.SETTINGS_VIEW,
+    PERMISSIONS.BACKUP_MANAGE,
     PERMISSIONS.LICENSE_MANAGE,
     PERMISSIONS.AUDIT_VIEW,
     PERMISSIONS.FINANZONLINE_MANAGE,
@@ -81,12 +82,11 @@ export const CASHIER_REQUIRED_MENU_KEYS: readonly string[] = [
  * Grouped by sidebar IA; update when adding catalog/RKSV leaves Manager should reach.
  */
 export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
-    // Operations
+    '/dashboard',
     '/operations-center',
     '/tables',
     '/kassenverwaltung',
     '/shifts',
-    // Sales & transactions
     '/receipts',
     '/payments',
     '/payments/storno-refund-audit',
@@ -94,37 +94,30 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
     '/admin/payments/card-transactions',
     '/vouchers',
     '/invoices',
-    // Catalog & pricing
     '/products',
     '/categories',
     '/modifier-groups',
     '/pricing-rules',
     '/inventory',
-    // Customers
     '/customers',
-    // Reporting
-    '/dashboard',
     '/reporting',
     '/reporting/report-center',
     '/reporting/staff',
-    '/reporting/compliance',
-    '/reports/daily-closing',
     '/admin/reports/user-activity',
-    '/reporting/tagesbericht',
-    '/reporting/monatsbericht',
-    '/reporting/jahresbericht',
-    // Fiscal audit (non–POS-floor)
     '/audit-logs',
     '/admin/audit/fiscal-exports',
     '/admin/tse/offline-transactions',
     '/rksv/sb/startbeleg',
+    '/rksv/sb/monatsbeleg',
+    '/rksv/sb/jahresbeleg',
+    '/rksv/sb/nullbeleg',
     '/rksv/sb/schlussbeleg',
-    // RKSV hub & operativ
     '/rksv/operations',
+    '/rksv/status',
     '/rksv/finanz-online-outbox',
+    '/rksv/offline-orders',
     '/rksv/finanz-online-queue',
     '/rksv/finanz-online-operations',
-    // RKSV investigation & diagnostics
     '/rksv/incident',
     '/rksv/replay-batch',
     '/rksv/payload-hash-conflicts',
@@ -135,24 +128,19 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
     '/rksv/signature-chain',
     '/rksv/offline-intent-coverage',
     '/rksv/belegcheck',
-    '/rksv/offline-orders',
-    '/rksv/status',
     '/rksv/cmc-certificate',
-    // Verwaltung & settings
+    '/admin/rksv/dep-export',
+    '/admin/rksv/signature-verify',
     '/admin/users',
     '/admin/access',
     '/admin/access/roles',
     '/admin/access/matrix',
     '/settings/company',
     '/settings/session',
-    '/settings/offline',
     '/settings/personalization',
     '/settings/payment-methods',
-    '/settings/backup-dr',
     '/admin/backup',
     '/admin/license',
-    '/admin/rksv/dep-export',
-    '/admin/rksv/signature-verify',
 ];
 
 /**
