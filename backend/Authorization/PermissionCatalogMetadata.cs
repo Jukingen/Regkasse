@@ -41,6 +41,7 @@ public static class PermissionCatalogMetadata
         ["receipttemplate"] = "Settings",
         ["audit"] = "Audit & Report",
         ["report"] = "Audit & Report",
+        ["daily-closing"] = "Audit & Report",
         ["finanzonline"] = "FinanzOnline",
         ["kitchen"] = "Kitchen",
         ["tse"] = "TSE",
@@ -120,6 +121,8 @@ public static class PermissionCatalogMetadata
             AppPermissions.CashRegisterManage => "Kassen verwalten (erstellen, bearbeiten)",
             AppPermissions.CashRegisterDecommission => "Kassen stilllegen",
             AppPermissions.BackupManage => "Backups verwalten (manuell auslösen, Zeitplan bearbeiten)",
+            AppPermissions.RksvTestHelper => "RKSV Test-Helfer (Demo-Modus) anzeigen und verwenden",
+            AppPermissions.RksvTseSimulation => "TSE-Simulation im RKSV Test-Helfer zurücksetzen",
             _ => null,
         };
     }

@@ -437,6 +437,7 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.TaxNumber).HasMaxLength(20);
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.ApplicationUserId).HasMaxLength(450).IsRequired(false);
+                entity.Property(e => e.IsSystem).HasColumnName("is_system").HasDefaultValue(false);
                 
                 entity.HasIndex(e => e.CustomerNumber).IsUnique();
                 entity.HasIndex(e => e.Email).IsUnique();

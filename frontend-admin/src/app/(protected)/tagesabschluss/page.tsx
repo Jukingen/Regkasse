@@ -102,6 +102,8 @@ export default function TagesabschlussPage() {
 
   const { hasPermission } = usePermissions();
   const canListRegisters = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
+  const canView = hasPermission(PERMISSIONS.DAILY_CLOSING_VIEW);
+  const canExecute = hasPermission(PERMISSIONS.DAILY_CLOSING_EXECUTE);
 
   const [range, setRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(30, 'day'),
@@ -232,6 +234,9 @@ export default function TagesabschlussPage() {
   });
 
   const runClosing = (kind: 'daily' | 'monthly' | 'yearly') => {
+    if (!canExecute) {
+      return;
+    }
     if (!registerIdValid) {
       message.warning(t('tagesabschluss.messages.warningUuid'));
       return;
@@ -440,27 +445,33 @@ export default function TagesabschlussPage() {
             </Descriptions>
           )}
 
-          <Space wrap>
-            <Button
-              type="primary"
-              loading={closingBusy}
-              disabled={!registerIdValid}
-              onClick={() => runClosing('daily')}
-            >
-              {t('tagesabschluss.actions.daily')}
-            </Button>
-            <Button loading={closingBusy} disabled={!registerIdValid} onClick={() => runClosing('monthly')}>
-              {t('tagesabschluss.actions.monthly')}
-            </Button>
-            <Button
-              danger
-              loading={closingBusy}
-              disabled={!registerIdValid}
-              onClick={() => runClosing('yearly')}
-            >
-              {t('tagesabschluss.actions.yearly')}
-            </Button>
-          </Space>
+          {canView && (
+            <Space wrap>
+              <Button
+                type="primary"
+                loading={closingBusy}
+                disabled={!registerIdValid || !canExecute}
+                onClick={() => runClosing('daily')}
+              >
+                {t('tagesabschluss.actions.daily')}
+              </Button>
+              <Button
+                loading={closingBusy}
+                disabled={!registerIdValid || !canExecute}
+                onClick={() => runClosing('monthly')}
+              >
+                {t('tagesabschluss.actions.monthly')}
+              </Button>
+              <Button
+                danger
+                loading={closingBusy}
+                disabled={!registerIdValid || !canExecute}
+                onClick={() => runClosing('yearly')}
+              >
+                {t('tagesabschluss.actions.yearly')}
+              </Button>
+            </Space>
+          )}
         </Space>
       </Card>
 

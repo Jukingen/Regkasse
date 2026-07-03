@@ -55,6 +55,10 @@ namespace KasseAPI_Final.Models
         [Column("is_vip")]
         public bool IsVip { get; set; } = false;
 
+        /// <summary>System-managed customer (e.g. walk-in guest). Non–Super Admin users cannot modify or delete.</summary>
+        [Column("is_system")]
+        public bool IsSystem { get; set; } = false;
+
         [Column("discount_percentage")]
         public decimal DiscountPercentage { get; set; } = 0;
 

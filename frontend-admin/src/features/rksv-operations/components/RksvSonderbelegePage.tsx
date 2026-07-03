@@ -5,7 +5,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  * Bu ana bileşen RKSV Sonderbelege işlemlerini daha anlaşılır kart düzeninde sunar.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Modal, Alert, Button, Card, Col, DatePicker, Input, Row, Select, Space, Table, Tag, Tooltip, Typography } from 'antd';
@@ -13,9 +13,9 @@ import type { ColumnsType } from 'antd/es/table';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
+import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { getApiReceiptsList } from '@/api/generated/receipts/receipts';
-import type { CashRegister, ReceiptListItemDto as OrvalReceiptRow } from '@/api/generated/model';
+import type { ReceiptListItemDto as OrvalReceiptRow } from '@/api/generated/model';
 import { customInstance } from '@/lib/axios';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -64,18 +64,8 @@ function formatMonthYearDe(year: number, month: number): string {
     }).format(new Date(Date.UTC(year, month - 1, 1)));
 }
 
-function normalizeRegisterRows(data: unknown): CashRegister[] {
-    if (Array.isArray(data)) return data as CashRegister[];
-    if (data && typeof data === 'object' && 'registers' in data) {
-        const r = (data as { registers?: CashRegister[] }).registers;
-        if (Array.isArray(r)) return r;
-    }
-    return [];
-}
-
-function rawRegisterStatus(reg: CashRegister): number | undefined {
-    const r = reg as unknown as { status?: number };
-    return typeof r.status === 'number' ? r.status : undefined;
+function rawRegisterStatus(reg: { status?: number | null }): number | undefined {
+    return typeof reg.status === 'number' ? reg.status : undefined;
 }
 
 function registerBetriebsstatusDe(status: number | undefined): string {
@@ -167,10 +157,18 @@ export default function RksvSonderbelegePage() {
     const canMonat = hasPermission(PERMISSIONS.RKSV_MONATSBELEG_CREATE);
     const canJahr = hasPermission(PERMISSIONS.RKSV_JAHRESBELEG_CREATE);
     const canSchluss = hasPermission(PERMISSIONS.RKSV_SCHLUSSBELEG_CREATE);
+    // Demo tools are SuperAdmin-only (backend catalog) AND development-only. Manager never sees them.
+    const canTestHelper = hasPermission(PERMISSIONS.RKSV_TEST_HELPER);
+    const canTseSimulation = hasPermission(PERMISSIONS.RKSV_TSE_SIMULATION);
     const isDevelopment = process.env.NODE_ENV === 'development';
 
-    const { data: registersRaw, isLoading: registersLoading } = useGetApiCashRegister();
-    const registers = useMemo(() => normalizeRegisterRows(registersRaw), [registersRaw]);
+    // Canonical admin register source (IgnoreQueryFilters + explicit effective-tenant scoping):
+    // robust for Manager, unlike the legacy shared GET /api/CashRegister which also relied on
+    // the ambient EF global query filter and could yield an empty list.
+    const { registers, isLoading: registersLoading } = useAdminCashRegisterList({
+        allowTenantScopedDefault: true,
+        excludeDecommissioned: false,
+    });
 
     const { year: viennaYear, month: viennaMonth } = useMemo(() => getViennaCalendarYearMonth(), []);
     const defaultYear = useMemo(() => getViennaCalendarYear(), []);
@@ -189,10 +187,27 @@ export default function RksvSonderbelegePage() {
     const [selectedMonatsbelegYear, setSelectedMonatsbelegYear] = useState(viennaYear);
     const [selectedMonatsbelegMonth, setSelectedMonatsbelegMonth] = useState(viennaMonth);
 
+    const didAutoSelectRef = useRef(false);
+
     useEffect(() => {
         const q = searchParams.get('registerId')?.trim();
         if (q) setRegisterId(q);
     }, [searchParams]);
+
+    // Auto-select once: if exactly one register is available (and none was preselected
+    // via query param or user action), pick it so Manager sees the register immediately.
+    useEffect(() => {
+        if (didAutoSelectRef.current || registersLoading) return;
+        if (registerId) {
+            didAutoSelectRef.current = true;
+            return;
+        }
+        if (searchParams.get('registerId')?.trim()) return;
+        if (registers.length === 1 && registers[0]?.id) {
+            setRegisterId(String(registers[0].id));
+            didAutoSelectRef.current = true;
+        }
+    }, [registers, registersLoading, registerId, searchParams]);
 
     useEffect(() => {
         const focus = searchParams.get('focus')?.trim();
@@ -783,7 +798,7 @@ export default function RksvSonderbelegePage() {
                 </Space>
             </Card>
 
-            {isDevelopment ? (
+            {isDevelopment && canTestHelper ? (
                 <Card title="Test Helper (Demo-Modus)" style={{ marginBottom: 16 }}>
                     <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                         <Alert
@@ -806,14 +821,16 @@ export default function RksvSonderbelegePage() {
                             >
                                 Test-Nullbeleg für aktuellen Monat erstellen
                             </Button>
-                            <Button
-                                danger
-                                onClick={() => void onResetTseSimulation()}
-                                loading={busy === 'demo-tse-reset'}
-                                disabled={busy !== null}
-                            >
-                                TSE-Simulation zurücksetzen
-                            </Button>
+                            {canTseSimulation ? (
+                                <Button
+                                    danger
+                                    onClick={() => void onResetTseSimulation()}
+                                    loading={busy === 'demo-tse-reset'}
+                                    disabled={busy !== null}
+                                >
+                                    TSE-Simulation zurücksetzen
+                                </Button>
+                            ) : null}
                         </Space>
                     </Space>
                 </Card>

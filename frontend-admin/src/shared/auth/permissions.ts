@@ -55,6 +55,9 @@ export const PERMISSIONS = {
   AUDIT_CLEANUP: 'audit.cleanup',
   REPORT_VIEW: 'report.view',
   REPORT_EXPORT: 'report.export',
+  /** Daily closing (Tagesabschluss) view/execute; align with backend AppPermissions.DailyClosingView/Execute. */
+  DAILY_CLOSING_VIEW: 'daily-closing.view',
+  DAILY_CLOSING_EXECUTE: 'daily-closing.execute',
   /** Fiscal export “compliance / legal review” profile (separate from diagnostic-only report.export). */
   FISCAL_EXPORT_COMPLIANCE: 'fiscal.export.compliance',
   INVOICE_VIEW: 'invoice.view',
@@ -87,6 +90,10 @@ export const PERMISSIONS = {
   RKSV_STARTBELEG_CREATE: 'rksv.startbeleg.create',
   RKSV_MONATSBELEG_CREATE: 'rksv.monatsbeleg.create',
   RKSV_SCHLUSSBELEG_CREATE: 'rksv.schlussbeleg.create',
+  /** RKSV demo/test helper card (Sonderbelege). SuperAdmin-only via backend catalog; align with AppPermissions.RksvTestHelper. */
+  RKSV_TEST_HELPER: 'rksv.test-helper',
+  /** Reset TSE simulation from the RKSV demo helper; align with AppPermissions.RksvTseSimulation. */
+  RKSV_TSE_SIMULATION: 'rksv.tse-simulation',
   BENEFIT_VIEW: 'benefit.view',
   BENEFIT_MANAGE: 'benefit.manage',
   VOUCHER_READ: 'voucher.read',

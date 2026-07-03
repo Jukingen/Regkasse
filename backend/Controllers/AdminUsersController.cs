@@ -522,8 +522,10 @@ public partial class AdminUsersController : ControllerBase
     /// <summary>
     /// List users. <paramref name="type"/> = <c>platform</c> | <c>tenant</c> (alias: <c>scope</c>).
     /// Tenant rows include membership metadata; optional <paramref name="tenantId"/> filters one mandant.
+    /// Requires <c>user.view</c>. The <c>tenant</c> scope self-restricts to the caller's ambient tenant for
+    /// non–Super Admin actors; <c>platform</c> and the cross-tenant default listing are Super Admin only.
     /// </summary>
-    [HasPermission(AppPermissions.UserManage)]
+    [HasPermission(AppPermissions.UserView)]
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<AdminUserDto>), 200)]
     [ProducesResponseType(typeof(IEnumerable<AdminTenantUserRowDto>), 200)]
@@ -539,6 +541,10 @@ public partial class AdminUsersController : ControllerBase
         var listType = (type ?? scope)?.Trim();
         if (string.Equals(listType, "tenant", StringComparison.OrdinalIgnoreCase))
             return Ok(await ListTenantUsersAsync(role, isActive, tenantId, search, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));
+
+        // Platform and cross-tenant default listings expose users beyond a single mandant.
+        if (!IsActorSuperAdmin())
+            return StatusCode(403, ApiError.Forbidden("Forbidden", "Only Super Admin can list platform or cross-tenant users."));
 
         if (string.Equals(listType, "platform", StringComparison.OrdinalIgnoreCase))
             return Ok(await ListPlatformUsersAsync(isActive, search, HttpContext?.RequestAborted ?? default).ConfigureAwait(false));

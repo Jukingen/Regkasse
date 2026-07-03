@@ -206,6 +206,11 @@ public sealed class DemoResetController : ControllerBase
         var byCanonicalId = await _db.Customers.FirstOrDefaultAsync(c => c.Id == DemoGuestCustomerId, cancellationToken);
         if (byCanonicalId is not null)
         {
+            if (!byCanonicalId.IsSystem)
+            {
+                byCanonicalId.IsSystem = true;
+                byCanonicalId.UpdatedAt = DateTime.UtcNow;
+            }
             _logger.LogInformation("Guest customer row already exists for RKSV Startbeleg id.");
             return;
         }
@@ -237,6 +242,7 @@ public sealed class DemoResetController : ControllerBase
             IsVip = false,
             DiscountPercentage = 0m,
             PreferredPaymentMethod = CustomerPaymentMethod.Cash,
+            IsSystem = true,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = "demo-reset",

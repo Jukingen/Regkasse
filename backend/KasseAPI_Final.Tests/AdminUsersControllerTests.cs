@@ -359,6 +359,109 @@ public class AdminUsersControllerTests
     }
 
     [Fact]
+    public async Task List_TypeTenant_WhenActorManager_ReturnsOwnTenantUsers()
+    {
+        var ambientTenantId = Guid.NewGuid();
+        await using var db = CreateEphemeralContext();
+        db.Tenants.Add(new Tenant
+        {
+            Id = ambientTenantId,
+            Name = "Tenant A",
+            Slug = "tenant-a",
+            Status = TenantStatuses.Active,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.Users.Add(new ApplicationUser
+        {
+            Id = "cashier-1",
+            UserName = "cashier1",
+            Email = "cashier1@test.com",
+            FirstName = "Cash",
+            LastName = "Ier",
+            Role = Roles.Cashier,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+
+        var tenantUserService = new Mock<ITenantUserService>();
+        tenantUserService
+            .Setup(s => s.ListAsync(ambientTenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<TenantUserDto>
+            {
+                new("cashier-1", "cashier1", "cashier1@test.com", "Cash Ier", Roles.Cashier, false, DateTime.UtcNow),
+            });
+
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.Manager,
+            tenantAccessor: new CurrentTenantAccessor { TenantId = ambientTenantId },
+            tenantUserService: tenantUserService.Object);
+
+        // Client-supplied tenantId must be ignored in favour of the actor's ambient tenant.
+        var result = await controller.List(type: "tenant", tenantId: Guid.NewGuid());
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var rows = Assert.IsAssignableFrom<IEnumerable<AdminUsersController.AdminTenantUserRowDto>>(ok.Value);
+        Assert.Single(rows);
+        tenantUserService.Verify(s => s.ListAsync(ambientTenantId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task List_TypePlatform_WhenActorManager_ReturnsForbidden()
+    {
+        await using var db = CreateEphemeralContext();
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.Manager,
+            tenantAccessor: new CurrentTenantAccessor { TenantId = Guid.NewGuid() });
+
+        var result = await controller.List(type: "platform");
+
+        var forbidden = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, forbidden.StatusCode);
+        var body = Assert.IsType<ApiError>(forbidden.Value);
+        Assert.Equal("Forbidden", body.Type);
+    }
+
+    [Fact]
+    public async Task List_DefaultType_WhenActorManager_ReturnsForbidden()
+    {
+        await using var db = CreateEphemeralContext();
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.Manager,
+            tenantAccessor: new CurrentTenantAccessor { TenantId = Guid.NewGuid() });
+
+        var result = await controller.List();
+
+        var forbidden = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(403, forbidden.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_TypePlatform_WhenActorSuperAdmin_ReturnsOk()
+    {
+        await using var db = CreateEphemeralContext();
+        var controller = CreateController(
+            db,
+            new Mock<IAuditLogService>().Object,
+            new Mock<IUserSessionInvalidation>().Object,
+            actorRole: Roles.SuperAdmin);
+
+        var result = await controller.List(type: "platform");
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
     public async Task Deactivate_WhenReasonEmpty_ReturnsBadRequest()
     {
         var user = new ApplicationUser { Id = "u1", UserName = "u", FirstName = "A", LastName = "B", IsActive = true };

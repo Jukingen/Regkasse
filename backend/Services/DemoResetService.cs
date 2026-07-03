@@ -112,6 +112,7 @@ public sealed class DemoResetService : IDemoResetService
                 IsVip = false,
                 DiscountPercentage = 0m,
                 PreferredPaymentMethod = CustomerPaymentMethod.Cash,
+                IsSystem = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = "demo-reset",

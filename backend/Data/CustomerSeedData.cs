@@ -16,7 +16,13 @@ namespace KasseAPI_Final.Data
             
             if (existingGuest != null)
             {
-                return; // Already seeded
+                if (!existingGuest.IsSystem)
+                {
+                    existingGuest.IsSystem = true;
+                    existingGuest.UpdatedAt = DateTime.UtcNow;
+                    await context.SaveChangesAsync();
+                }
+                return;
             }
             
             var guestCustomer = new Customer
@@ -25,6 +31,7 @@ namespace KasseAPI_Final.Data
                 Name = "Walk-in Customer",
                 CustomerNumber = "GUEST-000",
                 Email = "walkin@system.local",
+                IsSystem = true,
                 Phone = "",
                 Address = "",
                 TaxNumber = "",

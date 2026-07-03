@@ -4,6 +4,9 @@ import { EditOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { Customer } from '@/api/generated/model';
 import type { BenefitAssignment } from '@/api/admin/benefit-assignments';
 import { useI18n } from '@/i18n';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { isSystemCustomer } from '@/features/customers/constants/walkInCustomer';
 
 interface CustomerListProps {
     data: Customer[];
@@ -34,6 +37,8 @@ function getBenefitSummaryForCustomer(
 
 export default function CustomerList({ data, loading, onEdit, onDelete, onManageBenefits, benefitAssignments }: CustomerListProps) {
     const { t } = useI18n();
+    const { user } = useAuth();
+    const superAdmin = isSuperAdmin(user?.role);
     const dataSource = Array.isArray(data) ? data : [];
     const columns = [
         {
@@ -96,41 +101,61 @@ export default function CustomerList({ data, loading, onEdit, onDelete, onManage
         {
             title: t('customers.list.columnStatus'),
             key: 'status',
-            render: (_: any, record: Customer) => (
+            render: (_: unknown, record: Customer) => (
                 <Space>
                     {record.isActive ? <Tag color="green">{t('customers.list.statusActive')}</Tag> : <Tag color="red">{t('customers.list.statusInactive')}</Tag>}
                     {record.isVip && <Tag color="gold">{t('customers.list.tagVip')}</Tag>}
                 </Space>
-            )
+            ),
+        },
+        {
+            title: t('customers.list.columnSystem'),
+            dataIndex: 'isSystem',
+            key: 'isSystem',
+            render: (_: boolean, record: Customer) =>
+                isSystemCustomer(record) ? <Tag color="blue">{t('customers.list.tagSystem')}</Tag> : null,
         },
         {
             title: t('customers.list.columnActions'),
             key: 'actions',
-            render: (_: any, record: Customer) => (
-                <Space>
-                    <Button
-                        icon={<EditOutlined />}
-                        onClick={() => onEdit(record)}
-                    />
-                    {onManageBenefits && (
-                        <Tooltip title={t('customers.list.manageBenefits')}>
-                            <Button
-                                icon={<GiftOutlined />}
-                                onClick={() => onManageBenefits(record)}
-                            />
+            render: (_: unknown, record: Customer) => {
+                const systemCustomer = isSystemCustomer(record);
+                const canMutate = superAdmin || !systemCustomer;
+
+                if (!canMutate) {
+                    return (
+                        <Tooltip title={t('customers.list.systemCustomerProtected')}>
+                            <Tag color="default">{t('customers.list.tagProtected')}</Tag>
                         </Tooltip>
-                    )}
-                    <Popconfirm
-                        title={t('customers.list.deleteConfirmTitle')}
-                        description={t('customers.list.deleteConfirmDescription')}
-                        onConfirm={() => record.id && onDelete(record.id)}
-                        okText={t('common.buttons.yes')}
-                        cancelText={t('common.buttons.no')}
-                    >
-                        <Button danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
-                </Space>
-            ),
+                    );
+                }
+
+                return (
+                    <Space>
+                        <Button
+                            icon={<EditOutlined />}
+                            onClick={() => onEdit(record)}
+                        />
+                        {onManageBenefits && (
+                            <Tooltip title={t('customers.list.manageBenefits')}>
+                                <Button
+                                    icon={<GiftOutlined />}
+                                    onClick={() => onManageBenefits(record)}
+                                />
+                            </Tooltip>
+                        )}
+                        <Popconfirm
+                            title={t('customers.list.deleteConfirmTitle')}
+                            description={t('customers.list.deleteConfirmDescription')}
+                            onConfirm={() => record.id && onDelete(record.id)}
+                            okText={t('common.buttons.yes')}
+                            cancelText={t('common.buttons.no')}
+                        >
+                            <Button danger icon={<DeleteOutlined />} />
+                        </Popconfirm>
+                    </Space>
+                );
+            },
         },
     ];
 

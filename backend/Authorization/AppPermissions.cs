@@ -123,6 +123,13 @@ public static class AppPermissions
     public const string ReportExport = "report.export";
     public const string ReportSchedule = "report.schedule";
 
+    // --- Daily closing (Tagesabschluss) ---
+    /// <summary>View daily closing (Tagesabschluss) data/reports.</summary>
+    public const string DailyClosingView = "daily-closing.view";
+
+    /// <summary>Perform (execute) a daily closing (Tagesabschluss).</summary>
+    public const string DailyClosingExecute = "daily-closing.execute";
+
     /// <summary>Uyum / hukuki inceleme paketi (fiscal export compliance profili). Tanılama veya denetim devrinden ayrı.</summary>
     public const string FiscalExportCompliance = "fiscal.export.compliance";
 
@@ -152,6 +159,12 @@ public static class AppPermissions
 
     /// <summary>RKSV Schlussbeleg / Endbeleg — permanent cash register decommissioning (manager-level).</summary>
     public const string RksvSchlussbelegCreate = "rksv.schlussbeleg.create";
+
+    /// <summary>RKSV demo/test helper tools on the Sonderbelege page. SuperAdmin-only via catalog; never granted to Manager.</summary>
+    public const string RksvTestHelper = "rksv.test-helper";
+
+    /// <summary>Reset the TSE simulation state from the RKSV demo helper. SuperAdmin-only via catalog; never granted to Manager.</summary>
+    public const string RksvTseSimulation = "rksv.tse-simulation";
 
     // --- System-critical (permanent delete, high-risk) ---
     public const string SystemCritical = "system.critical";

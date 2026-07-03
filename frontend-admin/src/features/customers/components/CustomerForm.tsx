@@ -1,7 +1,10 @@
 import React, { useEffect } from 'react';
-import { Form, Input, Switch, Modal, Row, Col } from 'antd';
+import { Form, Input, Switch, Modal, Row, Col, Alert, Tag } from 'antd';
 import { Customer } from '@/api/generated/model';
 import { useI18n } from '@/i18n';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { isSystemCustomer } from '@/features/customers/constants/walkInCustomer';
 
 interface CustomerFormProps {
     visible: boolean;
@@ -15,6 +18,10 @@ interface CustomerFormProps {
 
 export default function CustomerForm({ visible, initialValues, onCancel, onSubmit, loading, assignedBenefitCount }: CustomerFormProps) {
     const { t } = useI18n();
+    const { user } = useAuth();
+    const superAdmin = isSuperAdmin(user?.role);
+    const systemCustomer = Boolean(initialValues && isSystemCustomer(initialValues));
+    const readOnly = systemCustomer && !superAdmin;
     const [form] = Form.useForm();
 
     useEffect(() => {
@@ -33,6 +40,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
     }, [visible, initialValues, form]);
 
     const handleSubmit = () => {
+        if (readOnly) return;
         form.validateFields().then((values) => {
             onSubmit({
                 ...initialValues,
@@ -46,13 +54,28 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
             title={initialValues ? t('customers.form.titleEdit') : t('customers.form.titleNew')}
             open={visible}
             onCancel={onCancel}
-            onOk={handleSubmit}
+            onOk={readOnly ? undefined : handleSubmit}
             confirmLoading={loading}
             width={700}
             okText={t('common.buttons.save')}
             cancelText={t('common.buttons.cancel')}
+            okButtonProps={{ style: readOnly ? { display: 'none' } : undefined }}
         >
-            <Form form={form} layout="vertical">
+            {readOnly && (
+                <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                    message={
+                        <span>
+                            <Tag color="blue" style={{ marginInlineEnd: 8 }}>{t('customers.list.tagSystem')}</Tag>
+                            <Tag color="default">{t('customers.list.tagProtected')}</Tag>
+                        </span>
+                    }
+                    description={t('customers.list.systemCustomerProtected')}
+                />
+            )}
+            <Form form={form} layout="vertical" disabled={readOnly}>
                 <Row gutter={16}>
                     <Col span={12}>
                         <Form.Item

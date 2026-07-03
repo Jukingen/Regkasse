@@ -108,6 +108,8 @@ public static class PermissionCatalog
         AppPermissions.ReportView,
         AppPermissions.ReportExport,
         AppPermissions.ReportSchedule,
+        AppPermissions.DailyClosingView,
+        AppPermissions.DailyClosingExecute,
         AppPermissions.FiscalExportCompliance,
         // FinanzOnline
         AppPermissions.FinanzOnlineView,
@@ -124,6 +126,8 @@ public static class PermissionCatalog
         AppPermissions.RksvMonatsbelegCreate,
         AppPermissions.RksvJahresbelegCreate,
         AppPermissions.RksvSchlussbelegCreate,
+        AppPermissions.RksvTestHelper,
+        AppPermissions.RksvTseSimulation,
         AppPermissions.SystemCritical,
         AppPermissions.TenantManage,
         AppPermissions.TenantView,

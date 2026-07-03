@@ -23,16 +23,84 @@ namespace KasseAPI_Final.Controllers
         private readonly AppDbContext _context;
         private readonly IGenericRepository<Customer> _customerRepository;
         private readonly IPaymentService _paymentService;
+        private readonly ICustomerService _customerService;
 
         public CustomerController(
             AppDbContext context,
             IGenericRepository<Customer> customerRepository,
             IPaymentService paymentService,
+            ICustomerService customerService,
             ILogger<CustomerController> logger) : base(customerRepository, logger)
         {
             _context = context;
             _customerRepository = customerRepository;
             _paymentService = paymentService;
+            _customerService = customerService;
+        }
+
+        private bool IsCurrentUserSuperAdmin() => HasRole(Roles.SuperAdmin);
+
+        private async Task<IActionResult?> RejectSystemCustomerMutationAsync(Guid customerId)
+        {
+            if (IsCurrentUserSuperAdmin())
+                return null;
+
+            if (!await _customerService.CanModifyCustomerAsync(customerId))
+                return ErrorResponse("System customers cannot be modified or deleted", 403);
+
+            return null;
+        }
+
+        private async Task<IActionResult?> RejectSystemCustomerDeleteAsync(Guid customerId)
+        {
+            if (IsCurrentUserSuperAdmin())
+                return null;
+
+            if (!await _customerService.CanDeleteCustomerAsync(customerId))
+                return ErrorResponse("System customers cannot be modified or deleted", 403);
+
+            return null;
+        }
+
+        /// <summary>
+        /// List customers. System customers are hidden from non–Super Admin users.
+        /// </summary>
+        [HttpGet]
+        public override async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 20)
+        {
+            try
+            {
+                var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
+                var query = _context.Customers.Where(c => c.IsActive);
+
+                if (!IsCurrentUserSuperAdmin())
+                    query = query.Where(c => !c.IsSystem && c.Id != WalkInCustomerConstants.GuestCustomerId);
+
+                var totalCount = await query.CountAsync();
+                var items = await query
+                    .OrderByDescending(c => c.CreatedAt)
+                    .Skip((validPageNumber - 1) * validPageSize)
+                    .Take(validPageSize)
+                    .ToListAsync();
+
+                var response = new
+                {
+                    items,
+                    pagination = new
+                    {
+                        pageNumber = validPageNumber,
+                        pageSize = validPageSize,
+                        totalCount,
+                        totalPages = (int)Math.Ceiling((double)totalCount / validPageSize)
+                    }
+                };
+
+                return SuccessResponse(response, $"Retrieved {items.Count} Customer entities");
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, "GetAll Customer");
+            }
         }
 
         /// <summary>
@@ -137,6 +205,8 @@ namespace KasseAPI_Final.Controllers
                     return ErrorResponse("Validation failed", 400, validationErrors);
                 }
 
+                customer.IsSystem = false;
+
                 var createdCustomer = await _customerRepository.AddAsync(customer);
                 
                 return CreatedAtAction(nameof(GetById), new { id = createdCustomer.Id }, 
@@ -167,6 +237,17 @@ namespace KasseAPI_Final.Controllers
                 {
                     return ErrorResponse("ID mismatch between URL and request body", 400);
                 }
+
+                var existingCustomer = await _customerService.GetCustomerAsync(id);
+                if (existingCustomer == null)
+                    return ErrorResponse($"Customer with ID {id} not found", 404);
+
+                var systemGuard = await RejectSystemCustomerMutationAsync(id);
+                if (systemGuard != null)
+                    return systemGuard;
+
+                if (!IsCurrentUserSuperAdmin())
+                    customer.IsSystem = existingCustomer.IsSystem;
 
                 // Custom validation
                 var validationErrors = await ValidateCustomerAsync(customer, id);
@@ -249,7 +330,22 @@ namespace KasseAPI_Final.Controllers
         [HasPermission(AppPermissions.CustomerManage)]
         public override async Task<IActionResult> Delete(Guid id)
         {
-            return await base.Delete(id);
+            try
+            {
+                var existingCustomer = await _customerService.GetCustomerAsync(id);
+                if (existingCustomer == null)
+                    return ErrorResponse($"Customer with ID {id} not found", 404);
+
+                var systemGuard = await RejectSystemCustomerDeleteAsync(id);
+                if (systemGuard != null)
+                    return systemGuard;
+
+                return await base.Delete(id);
+            }
+            catch (Exception ex)
+            {
+                return HandleException(ex, $"Delete Customer with ID {id}");
+            }
         }
 
         /// <summary>
@@ -316,6 +412,9 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var query = _context.Customers.Where(c => c.IsActive);
+
+                if (!IsCurrentUserSuperAdmin())
+                    query = query.Where(c => !c.IsSystem && c.Id != WalkInCustomerConstants.GuestCustomerId);
 
                 if (!string.IsNullOrWhiteSpace(name))
                 {

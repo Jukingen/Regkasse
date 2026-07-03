@@ -53,6 +53,7 @@ export interface Customer {
   /** @nullable */
   invoices?: Invoice[] | null;
   isActive?: boolean;
+  isSystem?: boolean;
   isVip?: boolean;
   /** @nullable */
   lastVisit?: string | null;

@@ -11,7 +11,7 @@ namespace KasseAPI_Final.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [HasPermission(AppPermissions.TseSign)]
+    [Authorize]
     public class TagesabschlussController : ControllerBase
     {
         private readonly ITagesabschlussService _tagesabschlussService;
@@ -27,6 +27,7 @@ namespace KasseAPI_Final.Controllers
         /// Perform daily closing for the current day
         /// </summary>
         [HttpPost("daily")]
+        [HasPermission(AppPermissions.DailyClosingExecute)]
         [ProducesResponseType(typeof(TagesabschlussResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -66,6 +67,7 @@ namespace KasseAPI_Final.Controllers
         /// Perform monthly closing for the current month
         /// </summary>
         [HttpPost("monthly")]
+        [HasPermission(AppPermissions.DailyClosingExecute)]
         [ProducesResponseType(typeof(TagesabschlussResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -105,6 +107,7 @@ namespace KasseAPI_Final.Controllers
         /// Perform yearly closing for the current year
         /// </summary>
         [HttpPost("yearly")]
+        [HasPermission(AppPermissions.DailyClosingExecute)]
         [ProducesResponseType(typeof(TagesabschlussResult), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
@@ -144,6 +147,7 @@ namespace KasseAPI_Final.Controllers
         /// Get closing history for the authenticated user
         /// </summary>
         [HttpGet("history")]
+        [HasPermission(AppPermissions.DailyClosingView)]
         [ProducesResponseType(typeof(List<TagesabschlussResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<List<TagesabschlussResult>>> GetClosingHistory([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
@@ -169,6 +173,7 @@ namespace KasseAPI_Final.Controllers
         /// Check if daily closing can be performed for a cash register
         /// </summary>
         [HttpGet("can-close/{cashRegisterId}")]
+        [HasPermission(AppPermissions.DailyClosingView)]
         [ProducesResponseType(typeof(TagesabschlussCanCloseResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<TagesabschlussCanCloseResponse>> CanPerformClosing(Guid cashRegisterId)
@@ -208,6 +213,7 @@ namespace KasseAPI_Final.Controllers
         /// Get closing statistics for a specific period
         /// </summary>
         [HttpGet("statistics")]
+        [HasPermission(AppPermissions.DailyClosingView)]
         [ProducesResponseType(typeof(TagesabschlussStatisticsResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<TagesabschlussStatisticsResponse>> GetClosingStatistics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
