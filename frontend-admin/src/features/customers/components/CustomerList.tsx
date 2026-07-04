@@ -7,6 +7,8 @@ import { useI18n } from '@/i18n';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { isSuperAdmin } from '@/features/auth/constants/roles';
 import { isSystemCustomer } from '@/features/customers/constants/walkInCustomer';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 
 interface CustomerListProps {
     data: Customer[];
@@ -38,7 +40,9 @@ function getBenefitSummaryForCustomer(
 export default function CustomerList({ data, loading, onEdit, onDelete, onManageBenefits, benefitAssignments }: CustomerListProps) {
     const { t } = useI18n();
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
     const superAdmin = isSuperAdmin(user?.role);
+    const canViewBenefits = hasPermission(PERMISSIONS.BENEFIT_VIEW);
     const dataSource = Array.isArray(data) ? data : [];
     const columns = [
         {
@@ -159,10 +163,12 @@ export default function CustomerList({ data, loading, onEdit, onDelete, onManage
         },
     ];
 
+    const visibleColumns = columns.filter((col) => canViewBenefits || col.key !== 'benefits');
+
     return (
         <Table
             dataSource={dataSource}
-            columns={columns}
+            columns={visibleColumns}
             rowKey="id"
             loading={loading}
             pagination={{

@@ -57,14 +57,24 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapterTests
                 checksum,
                 NullLogger<PostgreSqlPgDumpBackupExecutionAdapter>.Instance);
 
-            var ctx = new BackupExecutionContext(Guid.NewGuid(), null, adapter.AdapterKind, default);
+            var ctx = new BackupExecutionContext(
+                Guid.NewGuid(),
+                null,
+                adapter.AdapterKind,
+                default,
+                "cafe",
+                new DateTime(2026, 7, 3, 15, 1, 0, DateTimeKind.Utc));
             var result = await adapter.ExecuteAsync(ctx);
 
             Assert.True(result.Success);
             Assert.Equal(2, result.Artifacts.Count);
             var logical = result.Artifacts.Single(a => a.ArtifactType == BackupArtifactType.LogicalDump);
+            Assert.Equal("backup_cafe_20260703_150100.dump", logical.StorageDescriptor);
             Assert.True(logical.RequireOnDiskHashVerification);
             Assert.True(File.Exists(Path.Combine(temp, logical.StorageDescriptor)));
+
+            var manifest = result.Artifacts.Single(a => a.ArtifactType == BackupArtifactType.VerificationManifest);
+            Assert.Equal("backup_cafe_20260703_150100_manifest.json", manifest.StorageDescriptor);
         }
         finally
         {

@@ -15,7 +15,7 @@ import dayjs from 'dayjs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
 import { getApiReceiptsList } from '@/api/generated/receipts/receipts';
-import type { ReceiptListItemDto as OrvalReceiptRow } from '@/api/generated/model';
+import type { ReceiptListItemDto } from '@/api/generated/model';
 import { customInstance } from '@/lib/axios';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { ADMIN_NAV_GROUP_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
@@ -33,12 +33,17 @@ import {
 
 import { formatDateTime } from '@/i18n/formatting';
 import { CreateMonatsbelegModal } from '@/features/rksv/components/CreateMonatsbelegModal';
+import { LateMonatsbelegCreationCard } from '@/features/rksv/components/LateMonatsbelegCreationCard';
 import { monatsbelegQueryKeys, useCashRegisterMonatsbeleg } from '@/features/rksv/hooks/useMonatsbeleg';
 import {
     getMonthDifference,
     getViennaCalendarYear,
     getViennaCalendarYearMonth,
 } from '@/shared/utils/viennaCalendar';
+import { receiptIsLateCreated } from '@/features/rksv/types/receiptLateCreation';
+import type { ReceiptLateCreationFields } from '@/features/rksv/types/receiptLateCreation';
+
+type OrvalReceiptRow = ReceiptListItemDto & ReceiptLateCreationFields;
 
 type MissingMonatsbelegTableRow = {
     key: string;
@@ -639,6 +644,7 @@ export default function RksvSonderbelegePage() {
                     const kind = normalizeSpecialKind(row.rksvSpecialReceiptKind);
                     if (kind === 'schlussbeleg') return <Tag color="red">Stillgelegt</Tag>;
                     if (kind === 'startbeleg') return <Tag color="blue">Initial erstellt</Tag>;
+                    if (receiptIsLateCreated(row)) return <Tag color="orange">Verspätet erstellt</Tag>;
                     return <Tag color="green">Erstellt</Tag>;
                 },
             },
@@ -740,7 +746,7 @@ export default function RksvSonderbelegePage() {
                                 disabled={actionDisabledBase || !canMonat}
                                 onClick={() => openMissingMonatsbelegModal(record.year, record.month)}
                             >
-                                Jetzt erstellen
+                                {record.monthDiff > 0 ? 'Nachträglich erstellen' : 'Jetzt erstellen'}
                             </Button>
                         ) : null}
                     </Space>
@@ -797,6 +803,15 @@ export default function RksvSonderbelegePage() {
                     )}
                 </Space>
             </Card>
+
+            <LateMonatsbelegCreationCard
+                cashRegisterId={registerId}
+                canCreate={canMonat}
+                disabled={actionDisabledBase}
+                onSuccess={() => {
+                    void refetchMonatsbelegData();
+                }}
+            />
 
             {isDevelopment && canTestHelper ? (
                 <Card title="Test Helper (Demo-Modus)" style={{ marginBottom: 16 }}>
@@ -1063,7 +1078,11 @@ export default function RksvSonderbelegePage() {
                                         <Space orientation="vertical" size={6} style={{ width: '100%' }}>
                                             <Space>
                                                 <Tag color={badge.color}>{badge.text}</Tag>
-                                                <Tag color="green">Erfolgreich erstellt</Tag>
+                                                {receiptIsLateCreated(row) ? (
+                                                    <Tag color="orange">Verspätet erstellt</Tag>
+                                                ) : (
+                                                    <Tag color="green">Erfolgreich erstellt</Tag>
+                                                )}
                                             </Space>
                                             <Typography.Text strong>{row.receiptNumber || 'Ohne Belegnummer'}</Typography.Text>
                                             <Typography.Text type="secondary">

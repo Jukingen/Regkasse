@@ -18,8 +18,10 @@ export {
 } from "@/features/backup/api/backupHooks";
 
 export { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
+export { useBackupList, type BackupListItemResponseDto } from "@/features/backup/hooks/useBackupList";
 export { AdminBackupPage, AdminBackupPageHeaderActions } from "@/features/backup/pages/AdminBackupPage";
 export { BackupRunsTable } from "@/features/backup/components/BackupRunsTable";
+export { BackupList } from "@/features/backup/components/BackupList";
 export { BackupDetailModal } from "@/features/backup/components/BackupDetailModal";
 export { BackupConfigurationForm } from "@/features/backup/components/BackupConfigurationForm";
 export { BackupSettings } from "@/features/backup/components/BackupSettings";

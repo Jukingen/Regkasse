@@ -150,7 +150,6 @@ export function PastMonthsMonatsbelegModal({
                     reason={`Nachholung Monatsbeleg ${createTarget.year}-${String(createTarget.month).padStart(2, '0')}`}
                     onClose={() => setCreateTarget(null)}
                     onSuccess={() => {
-                        setCreateTarget(null);
                         onCreated();
                     }}
                 />

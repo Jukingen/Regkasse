@@ -31,6 +31,7 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
         if (ThrowOnExecuteForTests != null)
             throw ThrowOnExecuteForTests;
 
+        var fileNameTimestamp = context.ArtifactFileNameTimestampUtc ?? DateTime.UtcNow;
         var configuredRoot = _options.CurrentValue.ArtifactStagingRoot;
         if (string.IsNullOrWhiteSpace(configuredRoot))
         {
@@ -38,8 +39,12 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
             var stubDir = Path.GetFullPath(Path.Combine(Path.GetTempPath(), "regkasse-backup-stub"));
             Directory.CreateDirectory(stubDir);
 
-            var stubLogicalName = $"fake_logical_{context.BackupRunId:N}.dump";
-            var stubManifestName = $"fake_manifest_{context.BackupRunId:N}.json";
+            var stubLogicalName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(
+                context.TenantSlugForFileName,
+                fileNameTimestamp);
+            var stubManifestName = BackupArtifactFileNameBuilder.BuildManifestFileName(
+                context.TenantSlugForFileName,
+                fileNameTimestamp);
             var stubLogicalPath = Path.Combine(stubDir, stubLogicalName);
             var stubManifestPath = Path.Combine(stubDir, stubManifestName);
 
@@ -83,8 +88,12 @@ public sealed class FakeBackupExecutionAdapter : IBackupExecutionAdapter
         var root = Path.GetFullPath(configuredRoot.Trim());
         Directory.CreateDirectory(root);
 
-        var logicalName = $"fake_logical_{context.BackupRunId:N}.dump";
-        var manifestName = $"fake_manifest_{context.BackupRunId:N}.json";
+        var logicalName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(
+            context.TenantSlugForFileName,
+            fileNameTimestamp);
+        var manifestName = BackupArtifactFileNameBuilder.BuildManifestFileName(
+            context.TenantSlugForFileName,
+            fileNameTimestamp);
         var logicalPath = Path.Combine(root, logicalName);
         var manifestPath = Path.Combine(root, manifestName);
 

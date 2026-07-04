@@ -18,7 +18,10 @@ export type NotificationConfigSeverityThreshold = {
   FinanzOnlineSubmissionFailed?: string;
   LicenseExpired?: string;
   LicenseExpiringSoon?: string;
+  OfflineOrdersBacklogGrowing?: string;
+  OfflineOrdersExpiringSoon?: string;
   OfflineQueueGrowing?: string;
+  OfflineSyncStalled?: string;
   RestoreDrillFailed?: string;
   RestoreDrillSucceeded?: string;
   SuspiciousHighValuePayment?: string;

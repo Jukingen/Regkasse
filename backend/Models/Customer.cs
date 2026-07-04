@@ -6,8 +6,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace KasseAPI_Final.Models
 {
     [Table("customers")]
-    public class Customer : BaseEntity
+    public class Customer : BaseEntity, ITenantEntity
     {
+        /// <summary>Owning tenant. System customers (e.g. walk-in guest) are seeded to the default tenant but remain visible cross-tenant via the query filter's IsSystem exemption.</summary>
+        [Required]
+        [Column("tenant_id")]
+        public Guid TenantId { get; set; }
+
+        [ForeignKey(nameof(TenantId))]
+        public virtual Tenant? Tenant { get; set; }
+
         [Required]
         [Column("name")]
         [MaxLength(100)]

@@ -30,7 +30,114 @@ import { customInstance } from '../../../lib/axios';
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
-export const getApiCustomerNumberCustomerNumber = (
+export const getApiCustomer = (
+    params?: GetApiCustomerParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Customer`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetApiCustomerQueryKey = (params?: GetApiCustomerParams,) => {
+    return [`/api/Customer`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetApiCustomerQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomer>>, TError = unknown>(params?: GetApiCustomerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomer>>> = ({ signal }) => getApiCustomer(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiCustomerQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomer>>>
+export type GetApiCustomerQueryError = unknown
+
+export const useGetApiCustomer = <TData = Awaited<ReturnType<typeof getApiCustomer>>, TError = unknown>(
+ params?: GetApiCustomerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiCustomerQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const postApiCustomer = (
+    customer: Customer,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/api/Customer`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: customer
+    },
+      options);
+    }
+  
+
+
+export const getPostApiCustomerMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomer>>, TError,{data: Customer}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomer>>, TError,{data: Customer}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomer>>, {data: Customer}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiCustomer(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiCustomerMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCustomer>>>
+    export type PostApiCustomerMutationBody = Customer
+    export type PostApiCustomerMutationError = unknown
+
+    export const usePostApiCustomer = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomer>>, TError,{data: Customer}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiCustomer>>,
+        TError,
+        {data: Customer},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiCustomerMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiCustomerNumberCustomerNumber = (
     customerNumber: string,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -240,113 +347,6 @@ export const useGetApiCustomerTaxTaxNumber = <TData = Awaited<ReturnType<typeof 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiCustomerTaxTaxNumberQueryOptions(taxNumber,options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryOptions.queryKey ;
-
-  return query;
-}
-
-
-
-export const postApiCustomer = (
-    customer: Customer,
- options?: SecondParameter<typeof customInstance>,) => {
-      
-      
-      return customInstance<void>(
-      {url: `/api/Customer`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: customer
-    },
-      options);
-    }
-  
-
-
-export const getPostApiCustomerMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomer>>, TError,{data: Customer}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postApiCustomer>>, TError,{data: Customer}, TContext> => {
-const {mutation: mutationOptions, request: requestOptions} = options ?? {};
-
-      
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiCustomer>>, {data: Customer}> = (props) => {
-          const {data} = props ?? {};
-
-          return  postApiCustomer(data,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type PostApiCustomerMutationResult = NonNullable<Awaited<ReturnType<typeof postApiCustomer>>>
-    export type PostApiCustomerMutationBody = Customer
-    export type PostApiCustomerMutationError = unknown
-
-    export const usePostApiCustomer = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiCustomer>>, TError,{data: Customer}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationResult<
-        Awaited<ReturnType<typeof postApiCustomer>>,
-        TError,
-        {data: Customer},
-        TContext
-      > => {
-
-      const mutationOptions = getPostApiCustomerMutationOptions(options);
-
-      return useMutation(mutationOptions);
-    }
-    export const getApiCustomer = (
-    params?: GetApiCustomerParams,
- options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
-) => {
-      
-      
-      return customInstance<void>(
-      {url: `/api/Customer`, method: 'GET',
-        params, signal
-    },
-      options);
-    }
-  
-
-export const getGetApiCustomerQueryKey = (params?: GetApiCustomerParams,) => {
-    return [`/api/Customer`, ...(params ? [params]: [])] as const;
-    }
-
-    
-export const getGetApiCustomerQueryOptions = <TData = Awaited<ReturnType<typeof getApiCustomer>>, TError = unknown>(params?: GetApiCustomerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetApiCustomerQueryKey(params);
-
-  
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiCustomer>>> = ({ signal }) => getApiCustomer(params, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetApiCustomerQueryResult = NonNullable<Awaited<ReturnType<typeof getApiCustomer>>>
-export type GetApiCustomerQueryError = unknown
-
-export const useGetApiCustomer = <TData = Awaited<ReturnType<typeof getApiCustomer>>, TError = unknown>(
- params?: GetApiCustomerParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiCustomer>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
-
-  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-
-  const queryOptions = getGetApiCustomerQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

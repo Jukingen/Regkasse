@@ -3,6 +3,7 @@ using KasseAPI_Final.Data;
 using KasseAPI_Final.DTOs;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Services;
+using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -229,6 +230,7 @@ public sealed class DemoResetController : ControllerBase
         _db.Customers.Add(new Customer
         {
             Id = DemoGuestCustomerId,
+            TenantId = LegacyDefaultTenantIds.Primary,
             Name = DemoGuestCustomerName,
             CustomerNumber = "GUEST-0001",
             Email = "guest@demo.local",

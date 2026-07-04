@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Alert, Descriptions, Modal, Tag } from 'antd';
+import { Alert, Descriptions, Input, Modal, Tag, Typography } from 'antd';
 import { ExclamationCircleOutlined, InfoCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { isAxiosError } from 'axios';
 import { useAntdApp } from '@/hooks/useAntdApp';
@@ -12,6 +12,11 @@ import {
     type MonatsbelegWarningResponse,
 } from '@/features/rksv/types/monatsbelegWarning';
 import { formatViennaYearMonth, getMonthDifference } from '@/shared/utils/viennaCalendar';
+import { MonatsbelegLateSuccessModal } from '@/features/rksv/components/MonatsbelegLateSuccessModal';
+import {
+    toMonatsbelegLateSuccessResult,
+    type MonatsbelegLateSuccessResult,
+} from '@/features/rksv/types/createMonatsbelegResponseExtended';
 
 export type CreateMonatsbelegModalProps = {
     open: boolean;
@@ -105,6 +110,9 @@ export function CreateMonatsbelegModal({
     const createMonatsbeleg = useCreateMonatsbeleg();
     const [forceMode, setForceMode] = useState(false);
     const [warning, setWarning] = useState<{ message: string; severity: string } | null>(null);
+    const [lateReason, setLateReason] = useState('');
+    const [successOpen, setSuccessOpen] = useState(false);
+    const [successResult, setSuccessResult] = useState<MonatsbelegLateSuccessResult | null>(null);
 
     const monthDiff = useMemo(() => getMonthDifference(year, month), [year, month]);
     const isCurrentMonth = monthDiff === 0;
@@ -116,6 +124,9 @@ export function CreateMonatsbelegModal({
         if (open) {
             setForceMode(false);
             setWarning(null);
+            setLateReason('');
+            setSuccessOpen(false);
+            setSuccessResult(null);
         }
     }, [open, cashRegisterId, year, month]);
 
@@ -127,16 +138,30 @@ export function CreateMonatsbelegModal({
                 return;
             }
 
+            const effectiveReason = isPastMonth
+                ? lateReason.trim() ||
+                  reason?.trim() ||
+                  `Nachträglich erstellter Monatsbeleg für ${formatViennaYearMonth(year, month)}`
+                : reason?.trim() || `Monatsbeleg für ${formatViennaYearMonth(year, month)}`;
+
             try {
-                await createMonatsbeleg.mutateAsync({
+                const response = await createMonatsbeleg.mutateAsync({
                     data: {
                         cashRegisterId,
                         year,
                         month,
-                        reason: reason?.trim() || `Monatsbeleg für ${formatViennaYearMonth(year, month)}`,
+                        reason: effectiveReason,
                     },
                     force: withForce,
                 });
+
+                if (lateResult.isLateCreated || isPastMonth || withForce) {
+                    setSuccessResult(lateResult);
+                    setSuccessOpen(true);
+                    onSuccess();
+                    return;
+                }
+
                 message.success(`Monatsbeleg für ${formatViennaYearMonth(year, month)} erfolgreich erstellt`);
                 onSuccess();
                 onClose();
@@ -157,17 +182,21 @@ export function CreateMonatsbelegModal({
                     setWarning({ message: warningMessage, severity });
 
                     modal.confirm({
-                        title: 'Monatsbeleg für vergangenen Monat',
+                        title: 'Monatsbeleg nachträglich erstellen',
                         icon: confirmSeverity.icon,
                         content: (
                             <div>
                                 <p style={{ marginBottom: 0 }}>{warningMessage}</p>
+                                <p style={{ marginTop: 12, marginBottom: 0 }}>
+                                    Der Beleg wird mit dem realen aktuellen Datum erstellt und als verspätet markiert
+                                    (keine Rückdatierung).
+                                </p>
                                 <p style={{ marginTop: 12, marginBottom: 0, color: '#ff4d4f' }}>
-                                    Möchten Sie trotzdem fortfahren?
+                                    Möchten Sie fortfahren?
                                 </p>
                             </div>
                         ),
-                        okText: 'Trotzdem erstellen',
+                        okText: 'Nachträglich erstellen',
                         okButtonProps: {
                             danger: confirmSeverity.alertType === 'error',
                             type: 'primary',
@@ -201,6 +230,8 @@ export function CreateMonatsbelegModal({
             createMonatsbeleg,
             forceMode,
             isFutureMonth,
+            isPastMonth,
+            lateReason,
             message,
             modal,
             month,
@@ -218,13 +249,14 @@ export function CreateMonatsbelegModal({
         : severityConfig.alertType;
 
     return (
-        <Modal
-            title="Monatsbeleg erstellen"
-            open={open}
+        <>
+            <Modal
+                title={isPastMonth ? 'Monatsbeleg nachträglich erstellen' : 'Monatsbeleg erstellen'}
+                open={open && !successOpen}
             onCancel={onClose}
             onOk={() => void handleSubmit()}
             confirmLoading={createMonatsbeleg.isPending}
-            okText={isPastMonth ? 'Trotzdem erstellen' : 'Erstellen'}
+            okText={isPastMonth ? 'Nachträglich erstellen' : 'Erstellen'}
             cancelText="Abbrechen"
             okButtonProps={{
                 danger: isPastMonth && monthDiff > 6,
@@ -260,6 +292,20 @@ export function CreateMonatsbelegModal({
                 />
             ) : null}
 
+            {isPastMonth ? (
+                <Alert
+                    type="info"
+                    title="Nachträgliche (verspätete) Erstellung"
+                    description={
+                        'Der Beleg wird mit dem tatsächlichen aktuellen Datum erstellt und von der TSE zum jetzigen Zeitpunkt signiert. ' +
+                        `Der abgedeckte Zeitraum (${formatViennaYearMonth(year, month)}) wird korrekt hinterlegt und der Beleg als „verspätet erstellt" markiert. ` +
+                        'Das Erstellungsdatum wird NICHT rückdatiert; die verspätete Erstellung ist bei einer Prüfung transparent nachvollziehbar.'
+                    }
+                    showIcon
+                    style={{ marginTop: 16 }}
+                />
+            ) : null}
+
             {isPastMonth && !warning ? (
                 <Alert
                     type={severityConfig.alertType}
@@ -269,6 +315,22 @@ export function CreateMonatsbelegModal({
                     icon={severityConfig.icon}
                     style={{ marginTop: 16 }}
                 />
+            ) : null}
+
+            {isPastMonth ? (
+                <div style={{ marginTop: 16 }}>
+                    <Typography.Text type="secondary">
+                        Grund der nachträglichen Erstellung (wird im Audit-Log und am Beleg dokumentiert)
+                    </Typography.Text>
+                    <Input.TextArea
+                        value={lateReason}
+                        onChange={(e) => setLateReason(e.target.value)}
+                        maxLength={450}
+                        rows={2}
+                        placeholder="z. B. Monatsbeleg wurde versehentlich nicht fristgerecht erstellt und wird nachgeholt."
+                        style={{ marginTop: 8 }}
+                    />
+                </div>
             ) : null}
 
             {warning ? (
@@ -284,12 +346,23 @@ export function CreateMonatsbelegModal({
             {forceMode ? (
                 <Alert
                     type="info"
-                    title="Force-Modus aktiviert"
-                    description="Der Monatsbeleg wird für einen vergangenen Monat erstellt. Dies wird im Audit-Log protokolliert."
+                    title="Nachträgliche Erstellung bestätigt"
+                    description="Der Monatsbeleg wird für einen vergangenen Zeitraum nachträglich erstellt (reales Erstellungsdatum, als verspätet markiert). Dies wird im Audit-Log protokolliert."
                     showIcon
                     style={{ marginTop: 16 }}
                 />
             ) : null}
-        </Modal>
+            </Modal>
+
+            <MonatsbelegLateSuccessModal
+                open={successOpen}
+                result={successResult}
+                onClose={() => {
+                    setSuccessOpen(false);
+                    setSuccessResult(null);
+                    onClose();
+                }}
+            />
+        </>
     );
 }

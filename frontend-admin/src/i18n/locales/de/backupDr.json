@@ -1561,6 +1561,39 @@
       "missingBaseBackup": "Für diesen Wiederherstellungspunkt wurde kein geeignetes Basis-Backup gefunden."
     }
   },
+  "backupList": {
+    "fileName": "Backup-Name",
+    "tenant": "Mandant",
+    "date": "Datum",
+    "size": "Größe",
+    "type": "Typ",
+    "typeTest": "Test",
+    "typeProduction": "Produktion",
+    "downloadTooltip": "Klicken zum Herunterladen",
+    "noDownloadPermission": "Download erfordert die Berechtigung „Backups verwalten“.",
+    "fileNotOnDisk": "Datei ist auf dem Server nicht verfügbar.",
+    "empty": "Noch keine Backup-Dateien.",
+    "loadFailed": "Backup-Dateiliste konnte nicht geladen werden.",
+    "manifest": "Manifest",
+    "manifestUnavailable": "Manifest-Metadaten vorhanden, Datei jedoch nicht auf dem Server.",
+    "manifestLabel": "Manifest: {{fileName}}",
+    "cardTitle": "Backup: {{fileName}}",
+    "tenantLabel": "Mandant: {{tenant}}",
+    "createdLabel": "Erstellt: {{date}}",
+    "sizeLabel": "Größe: {{size}}",
+    "downloadDump": "Backup herunterladen",
+    "downloadManifest": "Manifest herunterladen",
+    "import": {
+      "title": "Backup-Datei importieren",
+      "description": "Laden Sie einen zuvor exportierten Dump hoch, um ihn für diesen Mandanten zu registrieren. Es erfolgt keine automatische Datenbankwiederherstellung.",
+      "dumpHint": "Klicken oder .dump/.sql-Datei hierher ziehen",
+      "manifestOptional": "Optional: Manifest (.json) anhängen",
+      "submit": "Backup registrieren",
+      "dumpRequired": "Bitte zuerst eine Dump-Datei auswählen.",
+      "success": "Backup registriert: {{fileName}}",
+      "failed": "Backup-Datei konnte nicht importiert werden."
+    }
+  },
   "adminBackup": {
     "pageTitle": "Backup & Wiederherstellung",
     "pageSubtitle": "Übersicht, Verlauf und Konfiguration — Aktualisierung alle 30 Sekunden.",

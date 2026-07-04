@@ -16,6 +16,8 @@ import { Customer } from '@/api/generated/model';
 import { useAdminBenefitAssignmentsList } from '@/api/admin/benefit-assignments';
 import { customInstance } from '@/lib/axios';
 import { useI18n } from '@/i18n';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 
 /** Admin-only: fetches assignment count for display (assignment visibility). Same API as POS preview but distinct intent. */
 async function getAdminCustomerAssignmentCount(customerId: string): Promise<number | null> {
@@ -38,6 +40,10 @@ export default function CustomersPage() {
 
     const { t } = useI18n();
     const router = useRouter();
+    const { hasPermission } = usePermissions();
+    // Benefits (Kunden & Vorteile) are gated by benefit.view. Roles without it (e.g. Manager)
+    // must not trigger the /api/admin/benefit-assignments 403 that surfaces a global "no permission" toast.
+    const canViewBenefits = hasPermission(PERMISSIONS.BENEFIT_VIEW);
     const { filters, setParam } = useCustomerFilters();
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -60,7 +66,7 @@ export default function CustomersPage() {
         search: filters.search,
     });
 
-    const { data: benefitAssignments } = useAdminBenefitAssignmentsList();
+    const { data: benefitAssignments } = useAdminBenefitAssignmentsList({ enabled: canViewBenefits });
 
     const { data: assignmentCountForAdmin } = useQuery({
         queryKey: ['customer', editingCustomer?.id, 'admin-assignment-count'],
@@ -158,9 +164,9 @@ export default function CustomersPage() {
                     loading={isLoading}
                     onEdit={openEditModal}
                     onDelete={handleDelete}
-                    onManageBenefits={(customer) => {
+                    onManageBenefits={canViewBenefits ? (customer) => {
                         if (customer.id) router.push(`/benefit-assignments?customerId=${customer.id}`);
-                    }}
+                    } : undefined}
                     benefitAssignments={benefitAssignments ?? undefined}
                 />
             </AdminDataList>

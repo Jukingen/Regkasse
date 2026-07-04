@@ -35,5 +35,14 @@ namespace KasseAPI_Final.DTOs
 
         /// <summary>FinanzOnline/BMF submission lifecycle for Startbeleg/Jahresbeleg; null when no tracking row.</summary>
         public string? RksvFinanzOnlineSubmissionStatus { get; set; }
+
+        /// <summary>True when this Sonderbeleg was created nachträglich / past its legal deadline.</summary>
+        public bool IsLateCreated { get; set; }
+
+        /// <summary>Operator reason when <see cref="IsLateCreated"/> is true.</summary>
+        public string? LateCreationReason { get; set; }
+
+        /// <summary>Canonical end date of the RKSV period covered by this receipt.</summary>
+        public DateTime? IntendedPeriodDate { get; set; }
     }
 }

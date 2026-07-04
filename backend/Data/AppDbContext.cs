@@ -429,6 +429,7 @@ namespace KasseAPI_Final.Data
             builder.Entity<Customer>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.TenantId).HasColumnName("tenant_id").IsRequired();
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.CustomerNumber).HasMaxLength(20);
                 entity.Property(e => e.Email).HasMaxLength(100);
@@ -438,10 +439,23 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.Notes).HasMaxLength(500);
                 entity.Property(e => e.ApplicationUserId).HasMaxLength(450).IsRequired(false);
                 entity.Property(e => e.IsSystem).HasColumnName("is_system").HasDefaultValue(false);
-                
-                entity.HasIndex(e => e.CustomerNumber).IsUnique();
-                entity.HasIndex(e => e.Email).IsUnique();
-                entity.HasIndex(e => e.TaxNumber).IsUnique();
+
+                entity.HasOne(e => e.Tenant)
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Per-tenant uniqueness (filtered to avoid empty-string collisions; mirrors Wave3A barcode index).
+                entity.HasIndex(e => new { e.TenantId, e.CustomerNumber })
+                    .IsUnique()
+                    .HasFilter("customer_number <> ''");
+                entity.HasIndex(e => new { e.TenantId, e.Email })
+                    .IsUnique()
+                    .HasFilter("email <> ''");
+                entity.HasIndex(e => new { e.TenantId, e.TaxNumber })
+                    .IsUnique()
+                    .HasFilter("tax_number <> ''");
+                entity.HasIndex(e => e.TenantId);
                 entity.HasIndex(e => e.ApplicationUserId);
                 
                 entity.HasOne(c => c.ApplicationUser)
@@ -498,6 +512,8 @@ namespace KasseAPI_Final.Data
                     .WithMany()
                     .HasForeignKey(e => e.CustomerId)
                     .OnDelete(DeleteBehavior.Restrict);
+                // Customer has a tenant query filter; optional navigation avoids EF filter-interaction warnings (FK column stays required).
+                entity.Navigation(e => e.Customer).IsRequired(false);
                 entity.HasOne(e => e.BenefitDefinition)
                     .WithMany()
                     .HasForeignKey(e => e.BenefitDefinitionId)
@@ -520,6 +536,8 @@ namespace KasseAPI_Final.Data
                     .WithMany(c => c.BenefitAssignments)
                     .HasForeignKey(e => e.CustomerId)
                     .OnDelete(DeleteBehavior.Restrict);
+                // Customer has a tenant query filter; optional navigation avoids EF filter-interaction warnings (FK column stays required).
+                entity.Navigation(e => e.Customer).IsRequired(false);
                 entity.HasIndex(e => e.BenefitDefinitionId);
                 entity.HasIndex(e => e.CustomerId);
                 entity.HasIndex(e => new { e.CustomerId, e.ValidFrom, e.ValidTo });
@@ -918,6 +936,9 @@ namespace KasseAPI_Final.Data
                 entity.Property(e => e.RksvSpecialReceiptYear).HasColumnName("rksv_special_receipt_year");
                 entity.Property(e => e.RksvSpecialReceiptMonth).HasColumnName("rksv_special_receipt_month");
                 entity.Property(e => e.RksvNullbelegActsAsJahresbeleg).HasColumnName("rksv_nullbeleg_acts_as_jahresbeleg");
+                entity.Property(e => e.IsLateCreated).HasColumnName("rksv_is_late_created");
+                entity.Property(e => e.LateCreationReason).HasColumnName("rksv_late_creation_reason").HasMaxLength(500);
+                entity.Property(e => e.IntendedPeriodDate).HasColumnName("rksv_intended_period_date").HasColumnType("date");
                 entity.Property(e => e.TimeSyncWarning).HasColumnName("time_sync_warning");
 
                 entity.Property(e => e.StornoReason)
@@ -2730,8 +2751,11 @@ namespace KasseAPI_Final.Data
             });
 
             // Global query filter: fail-closed — no ambient tenant means no tenant-scoped rows (never expose all tenants).
+            // Customer is excluded here and gets a dedicated filter below that also passes system rows (walk-in guest)
+            // so the single shared guest customer stays resolvable under every tenant (POS payments, RKSV special receipts).
             foreach (var entityType in builder.Model.GetEntityTypes()
-                .Where(t => t.ClrType?.GetInterface(nameof(ITenantEntity)) != null))
+                .Where(t => t.ClrType?.GetInterface(nameof(ITenantEntity)) != null
+                    && t.ClrType != typeof(Customer)))
             {
                 var clrType = entityType.ClrType!;
                 var filter = (LambdaExpression)typeof(AppDbContext)
@@ -2741,6 +2765,10 @@ namespace KasseAPI_Final.Data
                 builder.Entity(clrType).HasQueryFilter(filter);
                 _logger.LogDebug("Added query filter for {EntityType}", clrType.Name);
             }
+
+            // Customer: tenant filter with a system-row exemption (guest/walk-in is a single global row shared across tenants).
+            builder.Entity<Customer>().HasQueryFilter(c =>
+                c.IsSystem || (_tenantAccessor.TenantId != null && c.TenantId == _tenantAccessor.TenantId));
 
             _logger.LogDebug("AppDbContext model configuration completed with TableOrder support");
         }

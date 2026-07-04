@@ -6,6 +6,7 @@ import { useLazyWhenVisible } from '@/components/ui/LazyWhenVisible';
 import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { AppPermissions } from '@/shared/auth/permissions';
 import { MonatsbelegWidget } from '@/features/dashboard/components/MonatsbelegWidget';
+import { RksvComplianceWidget } from '@/features/dashboard/components/RksvComplianceWidget';
 import { RksvReminderWidget } from '@/features/rksv/components/RksvReminderWidget';
 
 type DashboardMonatsbelegSectionProps = {
@@ -30,6 +31,7 @@ export function DashboardMonatsbelegSection({ enabled }: DashboardMonatsbelegSec
                 </Card>
             ) : (
                 <>
+                    <RksvComplianceWidget enabled={sectionEnabled && visible} />
                     <RksvReminderWidget />
                     <MonatsbelegWidget enabled={sectionEnabled && visible} />
                 </>

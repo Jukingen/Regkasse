@@ -32,6 +32,8 @@ export function useBackupManagementAccess() {
       canTriggerBackup: canManageBackup,
       /** Cron, retention schedule (tenant-scoped). */
       canEditConfiguration: canManageBackup,
+      /** Download + import tenant-scoped backup artifacts. */
+      canDownloadBackup: canManageBackup,
       /** Execution mode / deployment paths — instance-wide, settings.manage only. */
       canEditExecutionMode: canManage,
       /** Platform operator: same deployment scope until per-tenant backup runs exist. */

@@ -55,8 +55,9 @@ Canonical list: `backend/Authorization/RolePermissionMatrix.cs`.
 | `PUT` | `/api/admin/backup/settings` | `backup.manage` | Schedule / retention / enabled. |
 | `POST` | `/api/settings/backup/now` | `backup.manage` | Legacy enqueue (same orchestration). |
 | `GET` | `/api/admin/backup/*` (reads) | `settings.view` | Status, runs, health, etc. |
+| `GET` | `/api/admin/backup/runs/{runId}/artifacts/{artifactId}/download` | `backup.manage` | Tenant-scoped: Manager may download own-tenant runs only (404 cross-tenant). Super Admin without tenant: deployment-wide. |
+| `POST` | `/api/admin/backup/artifacts/import` | `backup.manage` | Register uploaded dump (+ optional manifest) for current tenant; **no automatic DB restore**. |
 | `PUT` | `/api/admin/backup/execution-mode` | `settings.manage` | Super Admin / platform operator only. |
-| Artifact download endpoints | — | `settings.manage` | Super Admin only in FA UI. |
 | Restore drill / restore approval | — | Super Admin (`system.critical` / role) | Not granted to Manager. |
 
 Controller: `AdminBackupController`, `SettingsController` (legacy).
@@ -98,7 +99,8 @@ There is no `/settings/backup` or `/settings/backup/manage` route in the App Rou
 |------------|------------------|
 | View dashboard / runs | `settings.view` |
 | Manual trigger + schedule | `canManageBackup` = `backup.manage` ∨ `settings.manage` |
-| Execution mode, artifact download | `settings.manage` only |
+| Artifact download + import | `canDownloadBackup` = `backup.manage` ∨ `settings.manage` (own tenant for Manager) |
+| Execution mode, deployment paths | `settings.manage` only |
 | Restore drill | Super Admin |
 
 **Key files:**

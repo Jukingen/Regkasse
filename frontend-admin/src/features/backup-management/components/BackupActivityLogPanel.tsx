@@ -15,6 +15,8 @@ const BACKUP_ACTIVITY_TYPE_PREFIXES = ["backup_", "restore_"] as const;
 
 const BACKUP_AUDIT_ENTITY_TYPES = [
   "BackupArtifact",
+  "BackupRun",
+  "BackupScheduleConfiguration",
   "BackupRuntimeExecutionPreference",
 ] as const;
 
@@ -60,8 +62,7 @@ export function BackupActivityLogPanel() {
   const auditQuery = useGetApiAuditLog(
     {
       page: 1,
-      pageSize: 50,
-      entityType: "BackupArtifact",
+      pageSize: 100,
     },
     {
       query: {

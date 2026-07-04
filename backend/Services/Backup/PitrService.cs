@@ -113,7 +113,7 @@ public sealed class PitrService : IPitrService
                 $"Target time {target:O} is after the latest restore point {availability.LatestRestorePointUtc:O}.");
         }
 
-        var backup = await PitrBackupRunFilter.ApplyTenantHint(
+        var backup = await BackupRunTenantSlugResolver.ApplyTenantHint(
                 _db.BackupRuns.AsNoTracking()
                     .Where(r => r.Status == BackupRunStatus.Succeeded
                                 && r.CompletedAt != null
@@ -156,7 +156,7 @@ public sealed class PitrService : IPitrService
         Guid? tenantId,
         CancellationToken cancellationToken)
     {
-        return await PitrBackupRunFilter.ApplyTenantHint(
+        return await BackupRunTenantSlugResolver.ApplyTenantHint(
                 _db.BackupRuns.AsNoTracking()
                     .Where(r => r.Status == BackupRunStatus.Succeeded && r.CompletedAt != null),
                 tenantId)
@@ -219,18 +219,4 @@ public sealed class PitrService : IPitrService
     }
 
     private sealed record PitrWalArchiveStatus(bool IsEnabled, int? LagMinutes);
-}
-
-/// <summary>Optional tenant scope via manual backup idempotency key (backup_runs has no tenant_id column).</summary>
-internal static class PitrBackupRunFilter
-{
-    public static IQueryable<BackupRun> ApplyTenantHint(IQueryable<BackupRun> query, Guid? tenantId)
-    {
-        if (!tenantId.HasValue || tenantId.Value == Guid.Empty)
-            return query;
-
-        var needle = $"manual-tenant-{tenantId.Value}".ToLowerInvariant();
-        return query.Where(r =>
-            r.IdempotencyKey != null && r.IdempotencyKey.ToLower().Contains(needle));
-    }
 }

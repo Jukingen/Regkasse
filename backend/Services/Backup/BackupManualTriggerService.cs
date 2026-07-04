@@ -4,6 +4,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.OperationalRuns;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
@@ -21,6 +22,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
 
     private readonly AppDbContext _db;
     private readonly IAuditLogService _audit;
+    private readonly ICurrentTenantAccessor _tenantAccessor;
     private readonly IOptionsMonitor<BackupOptions> _options;
     private readonly IBackupAlertPublisher _alerts;
     private readonly ILogger<BackupManualTriggerService> _logger;
@@ -28,12 +30,14 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
     public BackupManualTriggerService(
         AppDbContext db,
         IAuditLogService audit,
+        ICurrentTenantAccessor tenantAccessor,
         IOptionsMonitor<BackupOptions> options,
         IBackupAlertPublisher alerts,
         ILogger<BackupManualTriggerService> logger)
     {
         _db = db;
         _audit = audit;
+        _tenantAccessor = tenantAccessor;
         _logger = logger;
         _options = options;
         _alerts = alerts;
@@ -155,6 +159,12 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         await transaction.CommitAsync(cancellationToken);
 
         var actorId = requestedByUserId ?? "system";
+        var auditTenantId = _tenantAccessor.TenantId
+            ?? (BackupRunTenantSlugResolver.TryParseTenantIdFromIdempotencyKey(
+                    run.IdempotencyKey,
+                    out var parsedTenantId)
+                ? parsedTenantId
+                : (Guid?)null);
         await _audit.LogSystemOperationAsync(
             action: "BACKUP_MANUAL_ENQUEUED",
             entityType: "BackupRun",
@@ -166,7 +176,9 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             errorDetails: null,
             requestData: new { run.Id, run.IdempotencyKey, correlationId },
             responseData: new { run.Status },
-            correlationIdOverride: correlationId);
+            correlationIdOverride: correlationId,
+            entityId: run.Id,
+            tenantId: auditTenantId);
 
         return new BackupManualTriggerOutcome { Run = run, Kind = BackupManualTriggerResultKind.NewRunQueued };
     }

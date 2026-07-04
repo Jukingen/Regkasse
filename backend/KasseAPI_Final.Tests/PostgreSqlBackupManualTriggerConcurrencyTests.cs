@@ -5,6 +5,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -54,6 +55,7 @@ public sealed class PostgreSqlBackupManualTriggerConcurrencyTests
         return new BackupManualTriggerService(
             db,
             audit.Object,
+            Mock.Of<ICurrentTenantAccessor>(),
             OptionsMonitorOf(new BackupOptions()),
             Mock.Of<IBackupAlertPublisher>(),
             NullLogger<BackupManualTriggerService>.Instance);

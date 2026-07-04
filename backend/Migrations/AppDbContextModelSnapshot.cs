@@ -2518,6 +2518,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("tax_number");
 
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<decimal>("TotalSpent")
                         .HasColumnType("numeric")
                         .HasColumnName("total_spent");
@@ -2539,14 +2543,19 @@ namespace KasseAPI_Final.Migrations
 
                     b.HasIndex("ApplicationUserId");
 
-                    b.HasIndex("CustomerNumber")
-                        .IsUnique();
+                    b.HasIndex("TenantId");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
+                    b.HasIndex("TenantId", "CustomerNumber")
+                        .IsUnique()
+                        .HasFilter("customer_number <> ''");
 
-                    b.HasIndex("TaxNumber")
-                        .IsUnique();
+                    b.HasIndex("TenantId", "Email")
+                        .IsUnique()
+                        .HasFilter("email <> ''");
+
+                    b.HasIndex("TenantId", "TaxNumber")
+                        .IsUnique()
+                        .HasFilter("tax_number <> ''");
 
                     b.ToTable("customers");
                 });
@@ -4998,9 +5007,17 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("idempotency_key");
 
+                    b.Property<DateTime?>("IntendedPeriodDate")
+                        .HasColumnType("date")
+                        .HasColumnName("rksv_intended_period_date");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean")
                         .HasColumnName("is_active");
+
+                    b.Property<bool>("IsLateCreated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("rksv_is_late_created");
 
                     b.Property<bool>("IsPrinted")
                         .HasColumnType("boolean");
@@ -5022,6 +5039,11 @@ namespace KasseAPI_Final.Migrations
                     b.Property<string>("JwsSignature")
                         .HasColumnType("text")
                         .HasColumnName("jws_signature");
+
+                    b.Property<string>("LateCreationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("rksv_late_creation_reason");
 
                     b.Property<string>("Notes")
                         .HasColumnType("text");
@@ -8937,8 +8959,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasOne("KasseAPI_Final.Models.Customer", "Customer")
                         .WithMany("BenefitAssignments")
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("BenefitDefinition");
 
@@ -8956,8 +8977,7 @@ namespace KasseAPI_Final.Migrations
                     b.HasOne("KasseAPI_Final.Models.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("BenefitDefinition");
 
@@ -9189,7 +9209,15 @@ namespace KasseAPI_Final.Migrations
                         .HasForeignKey("ApplicationUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("KasseAPI_Final.Models.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("ApplicationUser");
+
+                    b.Navigation("Tenant");
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.DailyClosing", b =>

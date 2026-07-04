@@ -12,6 +12,7 @@ import type { CustomerCategory } from './customerCategory';
 import type { Invoice } from './invoice';
 import type { Order } from './order';
 import type { CustomerPaymentMethod } from './customerPaymentMethod';
+import type { Tenant } from './tenant';
 
 export interface Customer {
   /**
@@ -78,6 +79,8 @@ export interface Customer {
    * @nullable
    */
   taxNumber?: string | null;
+  tenant?: Tenant;
+  tenantId: string;
   totalSpent?: number;
   /** @nullable */
   updatedAt?: string | null;

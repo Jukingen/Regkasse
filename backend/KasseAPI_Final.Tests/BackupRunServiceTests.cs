@@ -5,11 +5,13 @@ using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services.Backup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Options;
 using Moq;
 using Xunit;
+using Environments = Microsoft.Extensions.Hosting.Environments;
 
 namespace KasseAPI_Final.Tests;
 
@@ -86,12 +88,175 @@ public sealed class BackupRunServiceTests
         Assert.Equal(999, bytes);
     }
 
+    [Fact]
+    public async Task GetBackupListAsync_returns_readable_logical_dump_rows_with_tenant_slug()
+    {
+        var tenantId = Guid.NewGuid();
+        var runId = Guid.NewGuid();
+        var artifactId = Guid.NewGuid();
+        var createdAt = new DateTime(2026, 7, 3, 15, 1, 0, DateTimeKind.Utc);
+
+        await using var db = CreateDb();
+        db.Tenants.Add(new Models.Tenant
+        {
+            Id = tenantId,
+            Name = "Cafe",
+            Slug = "cafe",
+            Status = Models.TenantStatuses.Active
+        });
+        db.BackupRuns.Add(new BackupRun
+        {
+            Id = runId,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Manual,
+            AdapterKind = "Fake",
+            IdempotencyKey = $"manual-tenant-{tenantId:D}-1734567890123",
+            RequestedAt = createdAt,
+            CompletedAt = createdAt
+        });
+        db.BackupArtifacts.Add(new BackupArtifact
+        {
+            Id = artifactId,
+            BackupRunId = runId,
+            ArtifactType = BackupArtifactType.LogicalDump,
+            StorageDescriptor = "backup_cafe_20260703_150100.dump",
+            ByteSize = 4096,
+            CreatedAt = createdAt
+        });
+        await db.SaveChangesAsync();
+
+        var svc = CreateService(db);
+        var items = await svc.GetBackupListAsync(tenantId);
+
+        var row = Assert.Single(items);
+        Assert.Equal("backup_cafe_20260703_150100.dump", row.FileName);
+        Assert.Equal(4096, row.FileSize);
+        Assert.Equal(createdAt, row.CreatedAt);
+        Assert.Equal("cafe", row.TenantSlug);
+        Assert.True(row.IsFake);
+        Assert.Equal(runId, row.BackupRunId);
+        Assert.Equal(artifactId, row.ArtifactId);
+        Assert.Null(row.DownloadUrl);
+    }
+
+    [Fact]
+    public async Task GetBackupListAsync_filters_by_tenant_idempotency_hint()
+    {
+        var tenantA = Guid.NewGuid();
+        var tenantB = Guid.NewGuid();
+
+        await using var db = CreateDb();
+        db.Tenants.AddRange(
+            new Models.Tenant { Id = tenantA, Name = "A", Slug = "cafe", Status = Models.TenantStatuses.Active },
+            new Models.Tenant { Id = tenantB, Name = "B", Slug = "bar", Status = Models.TenantStatuses.Active });
+
+        var runA = Guid.NewGuid();
+        var runB = Guid.NewGuid();
+        db.BackupRuns.AddRange(
+            new BackupRun
+            {
+                Id = runA,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "PgDump",
+                IdempotencyKey = $"manual-tenant-{tenantA:D}-1",
+                RequestedAt = DateTime.UtcNow
+            },
+            new BackupRun
+            {
+                Id = runB,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "PgDump",
+                IdempotencyKey = $"manual-tenant-{tenantB:D}-2",
+                RequestedAt = DateTime.UtcNow
+            });
+        db.BackupArtifacts.AddRange(
+            new BackupArtifact
+            {
+                BackupRunId = runA,
+                ArtifactType = BackupArtifactType.LogicalDump,
+                StorageDescriptor = "backup_cafe_20260703_150100.dump",
+                CreatedAt = DateTime.UtcNow
+            },
+            new BackupArtifact
+            {
+                BackupRunId = runB,
+                ArtifactType = BackupArtifactType.LogicalDump,
+                StorageDescriptor = "backup_bar_20260702_230000.dump",
+                CreatedAt = DateTime.UtcNow
+            });
+        await db.SaveChangesAsync();
+
+        var svc = CreateService(db);
+        var items = await svc.GetBackupListAsync(tenantA);
+
+        Assert.Single(items);
+        Assert.Equal("cafe", items[0].TenantSlug);
+        Assert.False(items[0].IsFake);
+    }
+
+    [Fact]
+    public async Task GetBackupListAsync_links_verification_manifest_on_same_run()
+    {
+        var runId = Guid.NewGuid();
+        var dumpId = Guid.NewGuid();
+        var manifestId = Guid.NewGuid();
+        var createdAt = new DateTime(2026, 7, 3, 15, 1, 0, DateTimeKind.Utc);
+
+        await using var db = CreateDb();
+        db.BackupRuns.Add(new BackupRun
+        {
+            Id = runId,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Scheduled,
+            AdapterKind = "PgDump",
+            RequestedAt = createdAt,
+            CompletedAt = createdAt
+        });
+        db.BackupArtifacts.Add(new BackupArtifact
+        {
+            Id = dumpId,
+            BackupRunId = runId,
+            ArtifactType = BackupArtifactType.LogicalDump,
+            StorageDescriptor = "backup_scheduled_20260703_150100.dump",
+            ByteSize = 1024,
+            CreatedAt = createdAt
+        });
+        db.BackupArtifacts.Add(new BackupArtifact
+        {
+            Id = manifestId,
+            BackupRunId = runId,
+            ArtifactType = BackupArtifactType.VerificationManifest,
+            StorageDescriptor = "backup_scheduled_20260703_150100_manifest.json",
+            ByteSize = 256,
+            CreatedAt = createdAt
+        });
+        await db.SaveChangesAsync();
+
+        var svc = CreateService(db);
+        var items = await svc.GetBackupListAsync(null);
+
+        var row = Assert.Single(items);
+        Assert.Equal("backup_scheduled_20260703_150100.dump", row.FileName);
+        Assert.Equal(manifestId, row.ManifestArtifactId);
+        Assert.Equal("backup_scheduled_20260703_150100_manifest.json", row.ManifestFileName);
+        Assert.Equal(256, row.ManifestFileSize);
+    }
+
     private static BackupRunService CreateService(AppDbContext db)
     {
         var config = new ConfigurationBuilder().Build();
         var optionsMock = new Mock<IOptionsMonitor<BackupOptions>>();
         optionsMock.Setup(m => m.CurrentValue).Returns(new BackupOptions());
-        return new BackupRunService(db, config, optionsMock.Object, NullLogger<BackupRunService>.Instance);
+        var env = new Mock<IHostEnvironment>();
+        env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+        return new BackupRunService(
+            db,
+            config,
+            optionsMock.Object,
+            env.Object,
+            NullLogger<BackupRunService>.Instance);
     }
 
     private static AppDbContext CreateDb()

@@ -1561,6 +1561,39 @@
       "missingBaseBackup": "Bu geri yükleme noktası için uygun bir temel yedek bulunamadı."
     }
   },
+  "backupList": {
+    "fileName": "Yedek adı",
+    "tenant": "Kiracı",
+    "date": "Tarih",
+    "size": "Boyut",
+    "type": "Tür",
+    "typeTest": "Test",
+    "typeProduction": "Üretim",
+    "downloadTooltip": "İndirmek için tıklayın",
+    "noDownloadPermission": "İndirme için “Yedekleri yönet” izni gerekir.",
+    "fileNotOnDisk": "Dosya sunucuda mevcut değil.",
+    "empty": "Henüz yedek dosyası yok.",
+    "loadFailed": "Yedek dosya listesi yüklenemedi.",
+    "manifest": "Manifest",
+    "manifestUnavailable": "Manifest meta verisi var ancak dosya sunucuda yok.",
+    "manifestLabel": "Manifest: {{fileName}}",
+    "cardTitle": "Yedek: {{fileName}}",
+    "tenantLabel": "Kiracı: {{tenant}}",
+    "createdLabel": "Oluşturulma: {{date}}",
+    "sizeLabel": "Boyut: {{size}}",
+    "downloadDump": "Yedeği indir",
+    "downloadManifest": "Manifesti indir",
+    "import": {
+      "title": "Yedek dosyası içe aktar",
+      "description": "Daha önce dışa aktarılmış bir dump yükleyerek bu kiracı için kaydedin. Veritabanı otomatik olarak geri yüklenmez.",
+      "dumpHint": "Tıklayın veya .dump/.sql dosyasını buraya sürükleyin",
+      "manifestOptional": "İsteğe bağlı: manifest (.json) ekle",
+      "submit": "Yedeği kaydet",
+      "dumpRequired": "Önce bir dump dosyası seçin.",
+      "success": "Yedek kaydedildi: {{fileName}}",
+      "failed": "Yedek dosyası içe aktarılamadı."
+    }
+  },
   "adminBackup": {
     "pageTitle": "Yedekleme ve kurtarma",
     "pageSubtitle": "Özet, geçmiş ve yapılandırma — 30 saniyede bir yenilenir.",

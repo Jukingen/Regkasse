@@ -1,5 +1,6 @@
 using KasseAPI_Final.Constants;
 using KasseAPI_Final.Models;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace KasseAPI_Final.Data
@@ -28,6 +29,8 @@ namespace KasseAPI_Final.Data
             var guestCustomer = new Customer
             {
                 Id = WalkInCustomerConstants.GuestCustomerId,
+                // Startup has no ambient tenant; stamp the default tenant explicitly so StampTenantIdsOnInsert doesn't leave it empty.
+                TenantId = LegacyDefaultTenantIds.Primary,
                 Name = "Walk-in Customer",
                 CustomerNumber = "GUEST-000",
                 Email = "walkin@system.local",

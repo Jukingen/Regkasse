@@ -497,6 +497,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -675,6 +685,75 @@
         }
       }
     },
+    "/api/admin/backup/artifacts/import": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dumpFile": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "manifestFile": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "dumpFile": {
+                  "style": "form"
+                },
+                "manifestFile": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupArtifactImportResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/admin/backup/recoverability-summary": {
       "get": {
         "tags": [
@@ -744,6 +823,38 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RestorePointValidationResultDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/backup/list": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BackupListItemResponseDto"
+                  }
                 }
               }
             }
@@ -4372,6 +4483,104 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LicenseReportSummaryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/offline-monitoring/status": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineSystemStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/offline-monitoring/orders/stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineOrderStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/offline-monitoring/transactions/stats": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfflineTransactionStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/offline-monitoring/anomalies": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OfflineAnomaly"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/offline-monitoring/sync-health": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncHealth"
                 }
               }
             }
@@ -12791,6 +13000,57 @@
         }
       }
     },
+    "/api/Customer": {
+      "get": {
+        "tags": [
+          "Customer"
+        ],
+        "parameters": [
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Customer"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Customer"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Customer/number/{customerNumber}": {
       "get": {
         "tags": [
@@ -12859,57 +13119,6 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Customer": {
-      "post": {
-        "tags": [
-          "Customer"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/Customer"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "Customer"
-        ],
-        "parameters": [
-          {
-            "name": "pageNumber",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 1
-            }
-          },
-          {
-            "name": "pageSize",
-            "in": "query",
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "default": 20
             }
           }
         ],
@@ -26448,6 +26657,37 @@
         },
         "additionalProperties": false
       },
+      "BackupArtifactImportResponseDto": {
+        "type": "object",
+        "properties": {
+          "backupRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "artifactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "byteSize": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "manifestArtifactId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "manifestFileName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "BackupArtifactLifecycleState": {
         "enum": [
           0,
@@ -27052,6 +27292,62 @@
           "averageSucceededBackupDurationSampleCount": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "BackupListItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "backupRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "artifactId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "fileSize": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "tenantSlug": {
+            "type": "string",
+            "nullable": true
+          },
+          "isFake": {
+            "type": "boolean"
+          },
+          "downloadUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "manifestArtifactId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "manifestFileName": {
+            "type": "string",
+            "nullable": true
+          },
+          "manifestFileSize": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "manifestDownloadUrl": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -31443,7 +31739,8 @@
       "Customer": {
         "required": [
           "createdAt",
-          "name"
+          "name",
+          "tenantId"
         ],
         "type": "object",
         "properties": {
@@ -31472,6 +31769,13 @@
           },
           "isActive": {
             "type": "boolean"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/Tenant"
           },
           "name": {
             "maxLength": 100,
@@ -31529,6 +31833,9 @@
             "nullable": true
           },
           "isVip": {
+            "type": "boolean"
+          },
+          "isSystem": {
             "type": "boolean"
           },
           "discountPercentage": {
@@ -37795,6 +38102,15 @@
               "OfflineQueueGrowing": {
                 "type": "boolean"
               },
+              "OfflineOrdersBacklogGrowing": {
+                "type": "boolean"
+              },
+              "OfflineOrdersExpiringSoon": {
+                "type": "boolean"
+              },
+              "OfflineSyncStalled": {
+                "type": "boolean"
+              },
               "FinanzOnlineSubmissionFailed": {
                 "type": "boolean"
               },
@@ -37860,6 +38176,15 @@
                 "type": "string"
               },
               "OfflineQueueGrowing": {
+                "type": "string"
+              },
+              "OfflineOrdersBacklogGrowing": {
+                "type": "string"
+              },
+              "OfflineOrdersExpiringSoon": {
+                "type": "string"
+              },
+              "OfflineSyncStalled": {
                 "type": "string"
               },
               "FinanzOnlineSubmissionFailed": {
@@ -38000,6 +38325,28 @@
         },
         "additionalProperties": false
       },
+      "OfflineAnomaly": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "severity": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "detectedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
       "OfflineIntentCoverageByRegisterDto": {
         "type": "object",
         "properties": {
@@ -38132,6 +38479,32 @@
           "paymentMethod": {
             "type": "string",
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OfflineOrderStats": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "synced": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "expired": {
+            "type": "integer",
+            "format": "int32"
           }
         },
         "additionalProperties": false
@@ -38401,6 +38774,105 @@
           "retryCount": {
             "type": "integer",
             "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OfflineRegisterQueueSummary": {
+        "type": "object",
+        "properties": {
+          "cashRegisterId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "registerNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "pendingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OfflineSystemStatus": {
+        "type": "object",
+        "properties": {
+          "totalPendingOrders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPendingTransactions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalExpiredOrders": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalFailedSyncs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "oldestPendingOrder": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastSyncAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "hasCriticalIssues": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OfflineTransactionStats": {
+        "type": "object",
+        "properties": {
+          "pendingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nonFiscalPendingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "syncedLast24Hours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "clockDriftWarningCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sequenceGapCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastReplayAtUtc": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "byRegister": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfflineRegisterQueueSummary"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -45051,6 +45523,31 @@
         },
         "additionalProperties": false
       },
+      "SyncHealth": {
+        "type": "object",
+        "properties": {
+          "isHealthy": {
+            "type": "boolean"
+          },
+          "avgSyncTimeMs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "successRate": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalAttempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedAttempts": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "SystemSettings": {
         "required": [
           "companyAddress",
@@ -49977,6 +50474,9 @@
     },
     {
       "name": "AdminLicenses"
+    },
+    {
+      "name": "AdminOfflineMonitoring"
     },
     {
       "name": "AdminOfflineOrders"

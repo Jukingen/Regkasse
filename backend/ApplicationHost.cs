@@ -831,6 +831,8 @@ builder.Services.AddScoped<IBackupRunQueryService, BackupRunQueryService>();
 builder.Services.AddScoped<IBackupRunService, BackupRunService>();
 builder.Services.AddScoped<IPitrService, PitrService>();
 builder.Services.AddScoped<IBackupArtifactDownloadService, BackupArtifactDownloadService>();
+builder.Services.AddScoped<IBackupRunTenantAccessService, BackupRunTenantAccessService>();
+builder.Services.AddScoped<IBackupArtifactImportService, BackupArtifactImportService>();
 builder.Services.AddScoped<IBackupRecoverabilitySummaryService, BackupRecoverabilitySummaryService>();
 builder.Services.AddScoped<IBackupDashboardStatsService, BackupDashboardStatsService>();
 builder.Services.AddScoped<IBackupVerificationService, BackupVerificationService>();

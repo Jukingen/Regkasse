@@ -19,13 +19,16 @@ namespace KasseAPI_Final.Tests;
 
 public sealed class CustomerSystemProtectionTests
 {
+    private static readonly Guid TestTenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     private static AppDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase($"CustomerSystem_{Guid.NewGuid():N}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options, NullCurrentTenantAccessor.Instance);
+        // Customer is tenant-scoped; operate under an ambient tenant so non-system rows are visible.
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(TestTenantId));
     }
 
     private static CustomerController CreateController(AppDbContext db, string role)
@@ -71,6 +74,7 @@ public sealed class CustomerSystemProtectionTests
     private static Customer CreateRegularCustomer() => new()
     {
         Id = Guid.NewGuid(),
+        TenantId = TestTenantId,
         Name = "Regular Customer",
         CustomerNumber = "CUST-001",
         Email = "regular@example.com",

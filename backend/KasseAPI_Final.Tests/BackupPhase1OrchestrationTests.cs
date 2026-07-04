@@ -4,6 +4,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Backup;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Services.Backup;
+using KasseAPI_Final.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -53,6 +54,7 @@ public sealed class BackupPhase1OrchestrationTests
         var svc = new BackupManualTriggerService(
             db,
             audit.Object,
+            Mock.Of<ICurrentTenantAccessor>(),
             OptionsMonitor(new BackupOptions()),
             Mock.Of<IBackupAlertPublisher>(),
             NullLogger<BackupManualTriggerService>.Instance);
@@ -90,6 +92,7 @@ public sealed class BackupPhase1OrchestrationTests
         var svc = new BackupManualTriggerService(
             db,
             audit.Object,
+            Mock.Of<ICurrentTenantAccessor>(),
             OptionsMonitor(new BackupOptions()),
             alerts.Object,
             NullLogger<BackupManualTriggerService>.Instance);
@@ -125,6 +128,7 @@ public sealed class BackupPhase1OrchestrationTests
         var svc = new BackupManualTriggerService(
             db,
             audit.Object,
+            Mock.Of<ICurrentTenantAccessor>(),
             OptionsMonitor(new BackupOptions()),
             Mock.Of<IBackupAlertPublisher>(),
             NullLogger<BackupManualTriggerService>.Instance);

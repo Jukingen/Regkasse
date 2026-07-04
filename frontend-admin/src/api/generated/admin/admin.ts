@@ -58,6 +58,7 @@ import type {
   AuditExportRequest,
   AuditReportScheduleResponse,
   AuditRetentionInfoResponse,
+  BackupArtifactImportResponseDto,
   BackupDashboardStatsResponseDto,
   BackupExecutionModePutRequestDto,
   BackupExecutionModeResponseDto,
@@ -65,6 +66,7 @@ import type {
   BackupHistoryResponse,
   BackupHistoryResponseDto,
   BackupLatestStatusResponseDto,
+  BackupListItemResponseDto,
   BackupRecoverabilitySummaryResponseDto,
   BackupResult,
   BackupRunResponseDto,
@@ -240,12 +242,16 @@ import type {
   NotificationConfig,
   NtpAdminConfigurationDto,
   NtpAdminConfigurationUpdateDto,
+  OfflineAnomaly,
   OfflineIntentCoverageResponse,
   OfflineIntentCoverageTopRiskResponse,
+  OfflineOrderStats,
   OfflinePayloadHashAnalyzeResult,
   OfflinePayloadHashRepairResult,
   OfflinePayloadHashRiskResponse,
   OfflineRecoveryReportDto,
+  OfflineSystemStatus,
+  OfflineTransactionStats,
   OperationalReportScheduleResponse,
   PaymentListResponse,
   PaymentMethodDefinitionAdminDto,
@@ -253,6 +259,7 @@ import type {
   PaymentStatistics,
   PeakHoursReportDto,
   PitrAvailabilityResponseDto,
+  PostApiAdminBackupArtifactsImportBody,
   PostApiAdminOfflineOrdersReplayAllParams,
   PostApiAdminProductsDemoTemplateImportBody,
   PostApiAdminProductsDemoTemplatePreviewBody,
@@ -306,6 +313,7 @@ import type {
   SetProductModifierGroupsRequest,
   SetTenantLicenseTierRequest,
   SuspiciousAlertsListResponseDto,
+  SyncHealth,
   SystemTimeSyncLogEntryDto,
   TenantDecommissionChecksDto,
   TenantDeleteDependenciesDto,
@@ -1322,7 +1330,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   
 
 
-export const getPostApiAdminBackupTriggerMutationOptions = <TError = unknown,
+export const getPostApiAdminBackupTriggerMutationOptions = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupTrigger>>, TError,{data: BackupTriggerRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupTrigger>>, TError,{data: BackupTriggerRequestDto}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
@@ -1343,9 +1351,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
     export type PostApiAdminBackupTriggerMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupTrigger>>>
     export type PostApiAdminBackupTriggerMutationBody = BackupTriggerRequestDto
-    export type PostApiAdminBackupTriggerMutationError = unknown
+    export type PostApiAdminBackupTriggerMutationError = ProblemDetails
 
-    export const usePostApiAdminBackupTrigger = <TError = unknown,
+    export const usePostApiAdminBackupTrigger = <TError = ProblemDetails,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupTrigger>>, TError,{data: BackupTriggerRequestDto}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postApiAdminBackupTrigger>>,
@@ -1688,7 +1696,65 @@ export const useGetApiAdminBackupRunsRunIdArtifactsArtifactIdDownload = <TData =
 
 
 
-export const getApiAdminBackupRecoverabilitySummary = (
+export const postApiAdminBackupArtifactsImport = (
+    postApiAdminBackupArtifactsImportBody: PostApiAdminBackupArtifactsImportBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      const formData = new FormData();
+if(postApiAdminBackupArtifactsImportBody.dumpFile !== undefined) {
+ formData.append('dumpFile', postApiAdminBackupArtifactsImportBody.dumpFile)
+ }
+if(postApiAdminBackupArtifactsImportBody.manifestFile !== undefined) {
+ formData.append('manifestFile', postApiAdminBackupArtifactsImportBody.manifestFile)
+ }
+
+      return customInstance<BackupArtifactImportResponseDto>(
+      {url: `/api/admin/backup/artifacts/import`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData
+    },
+      options);
+    }
+  
+
+
+export const getPostApiAdminBackupArtifactsImportMutationOptions = <TError = ProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupArtifactsImport>>, TError,{data: PostApiAdminBackupArtifactsImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupArtifactsImport>>, TError,{data: PostApiAdminBackupArtifactsImportBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postApiAdminBackupArtifactsImport>>, {data: PostApiAdminBackupArtifactsImportBody}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postApiAdminBackupArtifactsImport(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostApiAdminBackupArtifactsImportMutationResult = NonNullable<Awaited<ReturnType<typeof postApiAdminBackupArtifactsImport>>>
+    export type PostApiAdminBackupArtifactsImportMutationBody = PostApiAdminBackupArtifactsImportBody
+    export type PostApiAdminBackupArtifactsImportMutationError = ProblemDetails | void
+
+    export const usePostApiAdminBackupArtifactsImport = <TError = ProblemDetails | void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postApiAdminBackupArtifactsImport>>, TError,{data: PostApiAdminBackupArtifactsImportBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postApiAdminBackupArtifactsImport>>,
+        TError,
+        {data: PostApiAdminBackupArtifactsImportBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostApiAdminBackupArtifactsImportMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    export const getApiAdminBackupRecoverabilitySummary = (
     
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -1849,7 +1915,62 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       return useMutation(mutationOptions);
     }
-    export const getApiAdminBackupRuns = (
+    export const getApiAdminBackupList = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<BackupListItemResponseDto[]>(
+      {url: `/api/admin/backup/list`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminBackupListQueryKey = () => {
+    return [`/api/admin/backup/list`] as const;
+    }
+
+    
+export const getGetApiAdminBackupListQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminBackupList>>, TError = ProblemDetails>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminBackupListQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminBackupList>>> = ({ signal }) => getApiAdminBackupList(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupList>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminBackupListQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminBackupList>>>
+export type GetApiAdminBackupListQueryError = ProblemDetails
+
+export const useGetApiAdminBackupList = <TData = Awaited<ReturnType<typeof getApiAdminBackupList>>, TError = ProblemDetails>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminBackupList>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminBackupListQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminBackupRuns = (
     params?: GetApiAdminBackupRunsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
@@ -6635,6 +6756,281 @@ export const useGetApiAdminLicensesReportSummary = <TData = Awaited<ReturnType<t
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetApiAdminLicensesReportSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOfflineMonitoringStatus = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<OfflineSystemStatus>(
+      {url: `/api/admin/offline-monitoring/status`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineMonitoringStatusQueryKey = () => {
+    return [`/api/admin/offline-monitoring/status`] as const;
+    }
+
+    
+export const getGetApiAdminOfflineMonitoringStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringStatus>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineMonitoringStatusQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringStatus>>> = ({ signal }) => getApiAdminOfflineMonitoringStatus(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineMonitoringStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringStatus>>>
+export type GetApiAdminOfflineMonitoringStatusQueryError = unknown
+
+export const useGetApiAdminOfflineMonitoringStatus = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringStatus>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringStatus>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineMonitoringStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOfflineMonitoringOrdersStats = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<OfflineOrderStats>(
+      {url: `/api/admin/offline-monitoring/orders/stats`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineMonitoringOrdersStatsQueryKey = () => {
+    return [`/api/admin/offline-monitoring/orders/stats`] as const;
+    }
+
+    
+export const getGetApiAdminOfflineMonitoringOrdersStatsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringOrdersStats>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringOrdersStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineMonitoringOrdersStatsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringOrdersStats>>> = ({ signal }) => getApiAdminOfflineMonitoringOrdersStats(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringOrdersStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineMonitoringOrdersStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringOrdersStats>>>
+export type GetApiAdminOfflineMonitoringOrdersStatsQueryError = unknown
+
+export const useGetApiAdminOfflineMonitoringOrdersStats = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringOrdersStats>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringOrdersStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineMonitoringOrdersStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOfflineMonitoringTransactionsStats = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<OfflineTransactionStats>(
+      {url: `/api/admin/offline-monitoring/transactions/stats`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineMonitoringTransactionsStatsQueryKey = () => {
+    return [`/api/admin/offline-monitoring/transactions/stats`] as const;
+    }
+
+    
+export const getGetApiAdminOfflineMonitoringTransactionsStatsQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringTransactionsStats>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringTransactionsStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineMonitoringTransactionsStatsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringTransactionsStats>>> = ({ signal }) => getApiAdminOfflineMonitoringTransactionsStats(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringTransactionsStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineMonitoringTransactionsStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringTransactionsStats>>>
+export type GetApiAdminOfflineMonitoringTransactionsStatsQueryError = unknown
+
+export const useGetApiAdminOfflineMonitoringTransactionsStats = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringTransactionsStats>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringTransactionsStats>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineMonitoringTransactionsStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOfflineMonitoringAnomalies = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<OfflineAnomaly[]>(
+      {url: `/api/admin/offline-monitoring/anomalies`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineMonitoringAnomaliesQueryKey = () => {
+    return [`/api/admin/offline-monitoring/anomalies`] as const;
+    }
+
+    
+export const getGetApiAdminOfflineMonitoringAnomaliesQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringAnomalies>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineMonitoringAnomaliesQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringAnomalies>>> = ({ signal }) => getApiAdminOfflineMonitoringAnomalies(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringAnomalies>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineMonitoringAnomaliesQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringAnomalies>>>
+export type GetApiAdminOfflineMonitoringAnomaliesQueryError = unknown
+
+export const useGetApiAdminOfflineMonitoringAnomalies = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringAnomalies>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringAnomalies>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineMonitoringAnomaliesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+export const getApiAdminOfflineMonitoringSyncHealth = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<SyncHealth>(
+      {url: `/api/admin/offline-monitoring/sync-health`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetApiAdminOfflineMonitoringSyncHealthQueryKey = () => {
+    return [`/api/admin/offline-monitoring/sync-health`] as const;
+    }
+
+    
+export const getGetApiAdminOfflineMonitoringSyncHealthQueryOptions = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringSyncHealth>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringSyncHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApiAdminOfflineMonitoringSyncHealthQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringSyncHealth>>> = ({ signal }) => getApiAdminOfflineMonitoringSyncHealth(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringSyncHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApiAdminOfflineMonitoringSyncHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringSyncHealth>>>
+export type GetApiAdminOfflineMonitoringSyncHealthQueryError = unknown
+
+export const useGetApiAdminOfflineMonitoringSyncHealth = <TData = Awaited<ReturnType<typeof getApiAdminOfflineMonitoringSyncHealth>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getApiAdminOfflineMonitoringSyncHealth>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetApiAdminOfflineMonitoringSyncHealthQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

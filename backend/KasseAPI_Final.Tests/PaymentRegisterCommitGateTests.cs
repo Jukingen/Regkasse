@@ -36,7 +36,8 @@ public class PaymentRegisterCommitGateTests
             .UseInMemoryDatabase($"PayCommitGate_{Guid.NewGuid()}")
             .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
-        return new AppDbContext(options);
+        // Customer is tenant-scoped; run under the primary tenant so the seeded customer is visible.
+        return new AppDbContext(options, TenantTestDoubles.TenantAccessorReturning(LegacyDefaultTenantIds.Primary));
     }
 
     private static PaymentService CreatePaymentService(

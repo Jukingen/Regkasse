@@ -214,6 +214,30 @@ namespace KasseAPI_Final.Models
         public bool RksvNullbelegActsAsJahresbeleg { get; set; }
 
         /// <summary>
+        /// True when a Monatsbeleg was created after the legal deadline for its target period had passed
+        /// (nachträglich / verspätet). This does NOT backdate the receipt: <see cref="BaseEntity.CreatedAt"/>
+        /// and <see cref="TseTimestamp"/> remain the real signing time. The covered period is carried by
+        /// <see cref="RksvSpecialReceiptYear"/> / <see cref="RksvSpecialReceiptMonth"/>. Used for transparent
+        /// compliance reporting during a Betriebsprüfung.
+        /// </summary>
+        [Column("rksv_is_late_created")]
+        public bool IsLateCreated { get; set; }
+
+        /// <summary>Operator-provided reason documenting why a late (nachträglich) Monatsbeleg was created; null for on-time receipts.</summary>
+        [MaxLength(500)]
+        [Column("rksv_late_creation_reason")]
+        public string? LateCreationReason { get; set; }
+
+        /// <summary>
+        /// The month/year (period end) this Sonderbeleg covers — Vienna calendar anchor, not the signing time.
+        /// Monatsbeleg: last day of <see cref="RksvSpecialReceiptYear"/>/<see cref="RksvSpecialReceiptMonth"/>.
+        /// Jahresbeleg: December 31 of <see cref="RksvSpecialReceiptYear"/>.
+        /// Does not affect <see cref="BaseEntity.CreatedAt"/> or TSE signing time.
+        /// </summary>
+        [Column("rksv_intended_period_date", TypeName = "date")]
+        public DateTime? IntendedPeriodDate { get; set; }
+
+        /// <summary>
         /// Set when this fiscal payment was accepted from an offline replay while NTP/system clock was outside RKSV tolerance.
         /// </summary>
         [Column("time_sync_warning")]

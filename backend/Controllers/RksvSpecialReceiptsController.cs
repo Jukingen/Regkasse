@@ -186,24 +186,32 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
             await AuditSpecialSuccessAsync(userId, request.CashRegisterId, "monatsbeleg", result.PaymentId, cancellationToken);
             if (isPastMonth)
             {
+                var daysLate = MonatsbelegPastMonthPolicy.ComputeDaysLate(request.Year, request.Month);
+                var isLateCreated = RksvSpecialReceiptLateCreation.IsMonatsbelegLateCreated(request.Year, request.Month);
+                var intendedPeriodDate = RksvSpecialReceiptLateCreation.MonatsbelegIntendedPeriodEndDate(request.Year, request.Month);
                 _logger.LogWarning(
-                    "Monatsbeleg for past month {Year}-{Month} created with force=true. User: {UserId}, MonthDiff: {MonthDiff}",
+                    "Monatsbeleg for past month {Year}-{Month} created with force=true. User: {UserId}, MonthDiff: {MonthDiff}, DaysLate: {DaysLate}",
                     request.Year,
                     request.Month,
                     userId,
-                    monthDiff);
+                    monthDiff,
+                    daysLate);
                 await _auditLogService.LogSystemOperationAsync(
-                    "MonatsbelegPastMonthCreated",
+                    "MonatsbelegLateCreated",
                     AuditLogEntityTypes.POS_CRITICAL,
                     userId,
                     User.GetActorRole() ?? "Unknown",
-                    description: $"Monatsbeleg für {request.Year}-{request.Month:00} ({monthDiff} months back) erstellt",
+                    description: $"Monatsbeleg für {request.Year}-{request.Month:00} nachträglich erstellt"
+                        + (daysLate > 0 ? $" — verspätet ({daysLate} Tage nach Frist)" : " — innerhalb der Nachfrist"),
                     requestData: new
                     {
                         request.CashRegisterId,
                         request.Year,
                         request.Month,
                         MonthDiff = monthDiff,
+                        DaysLate = daysLate,
+                        IsLateCreated = isLateCreated,
+                        IntendedPeriodDate = intendedPeriodDate,
                         Force = force,
                     },
                     responseData: new { result.PaymentId, result.ReceiptNumber },
@@ -254,6 +262,27 @@ public sealed class RksvSpecialReceiptsController : ControllerBase
         {
             var result = await _specialReceipts.CreateJahresbelegAsync(request, userId, cancellationToken);
             await AuditSpecialSuccessAsync(userId, request.CashRegisterId, "jahresbeleg", result.PaymentId, cancellationToken);
+            if (result.IsLateCreated)
+            {
+                await _auditLogService.LogSystemOperationAsync(
+                    "JahresbelegLateCreated",
+                    AuditLogEntityTypes.POS_CRITICAL,
+                    userId,
+                    User.GetActorRole() ?? "Unknown",
+                    description: $"Jahresbeleg für {request.Year} nachträglich erstellt"
+                        + (result.DaysLate > 0 ? $" — verspätet ({result.DaysLate} Tage nach Frist)" : ""),
+                    requestData: new
+                    {
+                        request.CashRegisterId,
+                        request.Year,
+                        result.DaysLate,
+                        result.IsLateCreated,
+                        result.IntendedPeriodDate,
+                    },
+                    responseData: new { result.PaymentId, result.ReceiptNumber },
+                    entityId: result.PaymentId).ConfigureAwait(false);
+            }
+
             return Ok(result);
         }
         catch (RksvOperationGuardException ex)

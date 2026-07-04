@@ -25,6 +25,8 @@ export function useBackupPermissions() {
     /** Instance-wide settings (execution mode, deployment paths) — settings.manage only. */
     const canConfigure = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
     const canTrigger = canManageBackup;
+    /** Download own-tenant backup artifacts (dump + manifest). */
+    const canDownloadBackup = canManageBackup;
     const superAdmin = isSuperAdmin(user?.role);
     /** Restore drills / high-risk restore surfaces — platform operator only. */
     const canRestore = superAdmin;
@@ -35,6 +37,7 @@ export function useBackupPermissions() {
       canManageBackup,
       canConfigure,
       canTrigger,
+      canDownloadBackup,
       canRestore,
       isReadOnly: canView && !canManageBackup,
       isSuperAdmin: superAdmin,

@@ -202,7 +202,7 @@ public class RksvMonatsbelegServiceTests
     }
 
     [Fact]
-    public async Task CreateMonatsbelegAsync_PastMonthWithForce_Succeeds()
+    public async Task CreateMonatsbelegAsync_PastMonthWithForce_Succeeds_AndMarksLate()
     {
         await using var context = CreateContext();
         var (regId, service, _) = await SeedAsync(context);
@@ -214,11 +214,20 @@ public class RksvMonatsbelegServiceTests
             forcePastMonth: true);
 
         Assert.NotEqual(Guid.Empty, resp.PaymentId);
+        Assert.True(resp.IsLateCreated);
+        Assert.NotNull(resp.IntendedPeriodDate);
+        Assert.Equal(year, resp.Year);
+        Assert.Equal(month, resp.Month);
+        Assert.True(resp.CreatedAtUtc > DateTime.UtcNow.AddMinutes(-5));
+
         var row = await context.PaymentDetails.AsNoTracking()
             .SingleAsync(p => p.Id == resp.PaymentId);
         Assert.Equal(RksvSpecialReceiptKinds.Monatsbeleg, row.RksvSpecialReceiptKind);
         Assert.Equal(year, row.RksvSpecialReceiptYear);
         Assert.Equal(month, row.RksvSpecialReceiptMonth);
+        Assert.True(row.IsLateCreated);
+        Assert.Equal("Admin catch-up", row.LateCreationReason);
+        Assert.NotNull(row.IntendedPeriodDate);
     }
 
     [Fact]

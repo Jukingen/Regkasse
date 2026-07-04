@@ -45,6 +45,8 @@ public sealed class AdminBackupController : ControllerBase
     private readonly IPitrService _pitr;
     private readonly IBackupVerificationReportService _verificationReport;
     private readonly ICurrentTenantAccessor _tenantAccessor;
+    private readonly IBackupRunTenantAccessService _backupTenantAccess;
+    private readonly IBackupArtifactImportService _artifactImport;
 
     public AdminBackupController(
         IBackupManualTriggerService trigger,
@@ -63,7 +65,9 @@ public sealed class AdminBackupController : ControllerBase
         IBackupDashboardStatsService dashboardStats,
         IPitrService pitr,
         IBackupVerificationReportService verificationReport,
-        ICurrentTenantAccessor tenantAccessor)
+        ICurrentTenantAccessor tenantAccessor,
+        IBackupRunTenantAccessService backupTenantAccess,
+        IBackupArtifactImportService artifactImport)
     {
         _trigger = trigger;
         _query = query;
@@ -82,6 +86,8 @@ public sealed class AdminBackupController : ControllerBase
         _pitr = pitr;
         _verificationReport = verificationReport;
         _tenantAccessor = tenantAccessor;
+        _backupTenantAccess = backupTenantAccess;
+        _artifactImport = artifactImport;
     }
 
     /// <summary>Enqueue manual backup (HTTP thread does not run pg_dump / file IO).</summary>
@@ -160,7 +166,43 @@ public sealed class AdminBackupController : ControllerBase
 
         try
         {
+            if (!User.IsInRole(Roles.SuperAdmin) && !_tenantAccessor.TenantId.HasValue)
+            {
+                return BadRequest(new
+                {
+                    code = "TENANT_CONTEXT_REQUIRED",
+                    message = "Tenant context is required for backup schedule settings."
+                });
+            }
+
+            var previous = await _backupSettings.GetAsync(cancellationToken);
             var updated = await _backupSettings.PutAsync(body, cancellationToken);
+
+            var userId = User.GetActorUserId() ?? "unknown";
+            var role = User.GetActorRole() ?? "Unknown";
+            var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+            await _audit.LogSystemOperationAsync(
+                action: "BACKUP_SETTINGS_UPDATED",
+                entityType: "BackupScheduleConfiguration",
+                userId: userId,
+                userRole: role,
+                description: $"Backup schedule updated for tenant {updated.TenantId}.",
+                status: AuditLogStatus.Success,
+                requestData: new
+                {
+                    previous.Enabled,
+                    previous.ScheduleCron,
+                    previous.RetentionDays,
+                },
+                responseData: new
+                {
+                    updated.Enabled,
+                    updated.ScheduleCron,
+                    updated.RetentionDays,
+                },
+                correlationIdOverride: correlationId,
+                tenantId: updated.TenantId);
+
             return Ok(updated);
         }
         catch (InvalidOperationException ex) when (ex.Message == "TENANT_CONTEXT_REQUIRED")
@@ -236,7 +278,7 @@ public sealed class AdminBackupController : ControllerBase
     /// Başarılı yedek çalıştırmasına ait artefakt dosyasını indirir (staging veya harici arşiv); yalnızca tamamlanmış başarılı koşular.
     /// </summary>
     [HttpGet("runs/{runId:guid}/artifacts/{artifactId:guid}/download")]
-    [HasPermission(AppPermissions.SettingsManage)]
+    [HasPermission(AppPermissions.BackupManage)]
     [Produces("application/octet-stream", "application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -247,6 +289,21 @@ public sealed class AdminBackupController : ControllerBase
         Guid artifactId,
         CancellationToken cancellationToken)
     {
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
+            runId,
+            isSuperAdmin,
+            _tenantAccessor.TenantId,
+            cancellationToken);
+        if (accessibleRun == null)
+        {
+            return NotFound(new
+            {
+                code = "BACKUP_RUN_NOT_FOUND",
+                message = "Backup run does not exist."
+            });
+        }
+
         var prepare = await _artifactDownload.PrepareDownloadAsync(runId, artifactId, cancellationToken);
         switch (prepare.Status)
         {
@@ -284,6 +341,12 @@ public sealed class AdminBackupController : ControllerBase
         var userId = User.GetActorUserId() ?? "unknown";
         var role = User.GetActorRole() ?? "Unknown";
         var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+        var auditTenantId = _tenantAccessor.TenantId
+            ?? (BackupRunTenantSlugResolver.TryParseTenantIdFromIdempotencyKey(
+                    accessibleRun.IdempotencyKey,
+                    out var parsedTenantId)
+                ? parsedTenantId
+                : (Guid?)null);
         try
         {
             await _audit.LogSystemOperationAsync(
@@ -297,7 +360,9 @@ public sealed class AdminBackupController : ControllerBase
                 errorDetails: null,
                 requestData: new { backupRunId = runId, artifactId },
                 responseData: new { downloadFileName = prepare.DownloadFileName },
-                correlationIdOverride: correlationId);
+                correlationIdOverride: correlationId,
+                entityId: artifactId,
+                tenantId: auditTenantId);
         }
         catch (Exception ex)
         {
@@ -312,6 +377,105 @@ public sealed class AdminBackupController : ControllerBase
             EnableRangeProcessing = true
         };
         return file;
+    }
+
+    /// <summary>
+    /// Registers an operator-uploaded logical dump (and optional manifest) for the current tenant.
+    /// Does not restore the database — files are available for download and audit only.
+    /// </summary>
+    [HttpPost("artifacts/import")]
+    [HasPermission(AppPermissions.BackupManage)]
+    [RequestSizeLimit(2_147_483_648)]
+    [ProducesResponseType(typeof(BackupArtifactImportResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<ActionResult<BackupArtifactImportResponseDto>> ImportArtifact(
+        IFormFile dumpFile,
+        IFormFile? manifestFile,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole(Roles.SuperAdmin) && !_tenantAccessor.TenantId.HasValue)
+        {
+            return BadRequest(new
+            {
+                code = "TENANT_CONTEXT_REQUIRED",
+                message = "Tenant context is required to import a backup."
+            });
+        }
+
+        if (dumpFile == null || dumpFile.Length == 0)
+        {
+            return BadRequest(new
+            {
+                code = "BACKUP_IMPORT_DUMP_REQUIRED",
+                message = "A non-empty dump file is required."
+            });
+        }
+
+        var userId = User.GetActorUserId() ?? "unknown";
+        var role = User.GetActorRole() ?? "Unknown";
+        var correlationId = HttpContext.Items[CorrelationIdMiddleware.CorrelationIdItemKey] as string;
+
+        try
+        {
+            await using var dumpStream = dumpFile.OpenReadStream();
+            Stream? manifestStream = null;
+            if (manifestFile is { Length: > 0 })
+                manifestStream = manifestFile.OpenReadStream();
+
+            try
+            {
+                var result = await _artifactImport.ImportAsync(
+                    new BackupArtifactImportRequest
+                    {
+                        DumpStream = dumpStream,
+                        DumpFileName = dumpFile.FileName,
+                        DeclaredDumpLength = dumpFile.Length,
+                        ManifestStream = manifestStream,
+                        ManifestFileName = manifestFile?.FileName,
+                        RequestedByUserId = userId,
+                        RequestedByRole = role,
+                        CorrelationId = correlationId,
+                    },
+                    cancellationToken);
+
+                return CreatedAtAction(nameof(GetRunById), new { id = result.BackupRunId }, result);
+            }
+            finally
+            {
+                if (manifestStream != null)
+                    await manifestStream.DisposeAsync();
+            }
+        }
+        catch (InvalidOperationException ex) when (ex.Message is "TENANT_CONTEXT_REQUIRED")
+        {
+            return BadRequest(new { code = "TENANT_CONTEXT_REQUIRED", message = "Tenant context is required to import a backup." });
+        }
+        catch (InvalidOperationException ex) when (ex.Message is "BACKUP_STORAGE_NOT_CONFIGURED")
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+            {
+                code = "BACKUP_STORAGE_NOT_CONFIGURED",
+                message = "Backup staging paths are not configured."
+            });
+        }
+        catch (ArgumentOutOfRangeException ex) when (ex.Message == "BACKUP_IMPORT_FILE_TOO_LARGE")
+        {
+            return BadRequest(new
+            {
+                code = "BACKUP_IMPORT_FILE_TOO_LARGE",
+                message = "Import file exceeds the maximum allowed size."
+            });
+        }
+        catch (IOException ex) when (ex.Message.Contains("exists", StringComparison.OrdinalIgnoreCase))
+        {
+            return Conflict(new
+            {
+                code = "BACKUP_IMPORT_FILE_EXISTS",
+                message = "A file with the same name already exists in staging."
+            });
+        }
     }
 
     /// <summary>
@@ -365,6 +529,26 @@ public sealed class AdminBackupController : ControllerBase
             body.TargetTimeUtc,
             cancellationToken);
         return Ok(dto);
+    }
+
+    [HttpGet("list")]
+    [HasPermission(AppPermissions.SettingsView)]
+    [ProducesResponseType(typeof(IReadOnlyList<BackupListItemResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<BackupListItemResponseDto>>> GetBackupList(
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole(Roles.SuperAdmin) && !_tenantAccessor.TenantId.HasValue)
+        {
+            return BadRequest(new
+            {
+                code = "TENANT_CONTEXT_REQUIRED",
+                message = "Tenant context is required to list tenant-scoped backups."
+            });
+        }
+
+        var items = await _backupRunService.GetBackupListAsync(_tenantAccessor.TenantId, cancellationToken);
+        return Ok(items);
     }
 
     [HttpGet("runs")]

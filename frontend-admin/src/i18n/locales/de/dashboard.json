@@ -189,5 +189,13 @@
     "statusLoadFailed": "Monatsbeleg-Status konnte nicht geladen werden",
     "noRegisters": "Keine Kassen vorhanden.",
     "emptyTable": "Keine Kassen gefunden."
+  },
+  "rksvCompliance": {
+    "missingTitle": "{{count}} Monatsbelege fehlen",
+    "catchUpNow": "Jetzt nachholen",
+    "missingHint": "Fehlende Monatsbelege können nachträglich erstellt werden (reales Erstellungsdatum, verspätet markiert).",
+    "daysLate": "{{count}} Tage verspätet",
+    "overdue": "Überfällig",
+    "missing": "Fehlt"
   }
 }

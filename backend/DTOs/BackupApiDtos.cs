@@ -202,6 +202,52 @@ public sealed class BackupTriggerRequestDto
     public string? IdempotencyKey { get; init; }
 }
 
+/// <summary>Compact backup file row for admin list UI (logical dump artifacts only).</summary>
+public sealed class BackupListItemResponseDto
+{
+    public Guid BackupRunId { get; init; }
+
+    public Guid ArtifactId { get; init; }
+
+    public string FileName { get; init; } = string.Empty;
+
+    public long? FileSize { get; init; }
+
+    public DateTime CreatedAt { get; init; }
+
+    public string TenantSlug { get; init; } = string.Empty;
+
+    public bool IsFake { get; init; }
+
+    /// <summary>Relative admin download path; requires <c>backup.manage</c> (tenant-scoped) or <c>settings.manage</c>.</summary>
+    public string? DownloadUrl { get; init; }
+
+    public Guid? ManifestArtifactId { get; init; }
+
+    public string? ManifestFileName { get; init; }
+
+    public long? ManifestFileSize { get; init; }
+
+    /// <summary>Sibling verification manifest for the same backup run.</summary>
+    public string? ManifestDownloadUrl { get; init; }
+}
+
+/// <summary>Operator-uploaded backup registration (no automatic database restore).</summary>
+public sealed class BackupArtifactImportResponseDto
+{
+    public Guid BackupRunId { get; init; }
+
+    public Guid ArtifactId { get; init; }
+
+    public string FileName { get; init; } = string.Empty;
+
+    public long ByteSize { get; init; }
+
+    public Guid? ManifestArtifactId { get; init; }
+
+    public string? ManifestFileName { get; init; }
+}
+
 /// <summary>Per-tenant backup automation knobs (<see cref="Models.Backup.BackupScheduleConfiguration"/>).</summary>
 public sealed class BackupSettingsResponseDto
 {

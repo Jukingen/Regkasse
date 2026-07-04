@@ -18,7 +18,10 @@ export type NotificationConfigEnabledEvents = {
   FinanzOnlineSubmissionFailed?: boolean;
   LicenseExpired?: boolean;
   LicenseExpiringSoon?: boolean;
+  OfflineOrdersBacklogGrowing?: boolean;
+  OfflineOrdersExpiringSoon?: boolean;
   OfflineQueueGrowing?: boolean;
+  OfflineSyncStalled?: boolean;
   RestoreDrillFailed?: boolean;
   RestoreDrillSucceeded?: boolean;
   SuspiciousHighValuePayment?: boolean;

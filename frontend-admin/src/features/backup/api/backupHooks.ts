@@ -36,6 +36,7 @@ import {
   BACKUP_DASHBOARD_STATS_POLL_MS,
   getBackupDashboardStatsQueryKey,
 } from "@/features/backup/logic/backupDashboardStatsApi";
+import { getGetApiAdminBackupListQueryKey } from "@/api/generated/admin/admin";
 
 /** List/query params for GET /api/admin/backup/runs */
 export type BackupRunsParams = GetApiAdminBackupRunsParams & {
@@ -71,12 +72,14 @@ export const backupQueryKeys = {
   configurationHealth: () => getGetApiAdminBackupStatusLatestQueryKey(),
   dashboardStats: () => getBackupDashboardStatsQueryKey(),
   recoverability: () => getGetApiAdminBackupRecoverabilitySummaryQueryKey(),
+  list: () => getGetApiAdminBackupListQueryKey(),
 } as const;
 
 export async function invalidateBackupQueries(queryClient: ReturnType<typeof useQueryClient>) {
   await queryClient.invalidateQueries({ queryKey: backupQueryKeys.all });
   await queryClient.invalidateQueries({ queryKey: backupQueryKeys.dashboardStats() });
   await queryClient.invalidateQueries({ queryKey: backupQueryKeys.recoverability() });
+  await queryClient.invalidateQueries({ queryKey: backupQueryKeys.list() });
 }
 
 export type UseBackupRunsOptions = {

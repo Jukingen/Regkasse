@@ -71,10 +71,15 @@ namespace KasseAPI_Final.Controllers
             try
             {
                 var (validPageNumber, validPageSize) = ValidatePagination(pageNumber, pageSize);
-                var query = _context.Customers.Where(c => c.IsActive);
+                var query = _context.Customers.AsQueryable();
 
-                if (!IsCurrentUserSuperAdmin())
+                if (IsCurrentUserSuperAdmin())
+                    // Super Admin operates cross-tenant: bypass the tenant query filter for deployment-wide visibility.
+                    query = query.IgnoreQueryFilters();
+                else
                     query = query.Where(c => !c.IsSystem && c.Id != WalkInCustomerConstants.GuestCustomerId);
+
+                query = query.Where(c => c.IsActive);
 
                 var totalCount = await query.CountAsync();
                 var items = await query
@@ -411,10 +416,15 @@ namespace KasseAPI_Final.Controllers
         {
             try
             {
-                var query = _context.Customers.Where(c => c.IsActive);
+                var query = _context.Customers.AsQueryable();
 
-                if (!IsCurrentUserSuperAdmin())
+                if (IsCurrentUserSuperAdmin())
+                    // Super Admin operates cross-tenant: bypass the tenant query filter for deployment-wide visibility.
+                    query = query.IgnoreQueryFilters();
+                else
                     query = query.Where(c => !c.IsSystem && c.Id != WalkInCustomerConstants.GuestCustomerId);
+
+                query = query.Where(c => c.IsActive);
 
                 if (!string.IsNullOrWhiteSpace(name))
                 {

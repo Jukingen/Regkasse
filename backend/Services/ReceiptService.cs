@@ -511,6 +511,9 @@ namespace KasseAPI_Final.Services
                         .Where(s => s.PaymentId == r.PaymentId)
                         .Select(s => s.Status)
                         .FirstOrDefault(),
+                    IsLateCreated = r.Payment != null && r.Payment.IsLateCreated,
+                    LateCreationReason = r.Payment != null ? r.Payment.LateCreationReason : null,
+                    IntendedPeriodDate = r.Payment != null ? r.Payment.IntendedPeriodDate : null,
                 })
                 .ToListAsync();
 

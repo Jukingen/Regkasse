@@ -5,6 +5,72 @@ import {
     getViennaCalendarYearMonth,
 } from '@/shared/utils/viennaCalendar';
 
+export type MissingMonatsbelegComplianceItem = {
+    year: number;
+    month: number;
+    monthName: string;
+    daysLate: number;
+    isOverdue: boolean;
+};
+
+const germanMonthFormatter = new Intl.DateTimeFormat('de-DE', {
+    month: 'long',
+    timeZone: 'Europe/Vienna',
+});
+
+export function formatMonatsbelegMonthNameDe(month1to12: number): string {
+    return germanMonthFormatter.format(new Date(Date.UTC(2026, month1to12 - 1, 1)));
+}
+
+/** Whole Vienna calendar days past the API legal deadline (0 when still on time). */
+export function computeDaysLateFromDeadline(deadline: string | null | undefined, now: Date = new Date()): number {
+    if (!deadline?.trim()) return 0;
+
+    const viennaDateFmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Vienna',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+
+    const todayAnchor = new Date(`${viennaDateFmt.format(now)}T00:00:00Z`);
+    const deadlineAnchor = new Date(`${deadline.trim().slice(0, 10)}T00:00:00Z`);
+    const diffDays = Math.floor((todayAnchor.getTime() - deadlineAnchor.getTime()) / 86_400_000);
+    return diffDays > 0 ? diffDays : 0;
+}
+
+/** Tenant-wide missing Monatsbeleg periods (deduped by year-month). */
+export function aggregateMissingMonatsbelegeForCompliance(
+    overview: MonatsbelegRegisterStatusItemDto[] | undefined,
+    now: Date = new Date(),
+): MissingMonatsbelegComplianceItem[] {
+    const byKey = new Map<string, MissingMonatsbelegComplianceItem>();
+
+    for (const item of overview ?? []) {
+        for (const missing of item.status?.missingMonths ?? []) {
+            const key = `${missing.year}-${String(missing.month).padStart(2, '0')}`;
+            const daysLate = computeDaysLateFromDeadline(missing.deadline, now);
+            const candidate: MissingMonatsbelegComplianceItem = {
+                year: missing.year,
+                month: missing.month,
+                monthName: formatMonatsbelegMonthNameDe(missing.month),
+                daysLate,
+                isOverdue: missing.isOverdue,
+            };
+            const existing = byKey.get(key);
+            if (!existing || candidate.daysLate > existing.daysLate || candidate.isOverdue) {
+                byKey.set(key, candidate);
+            }
+        }
+    }
+
+    return Array.from(byKey.values()).sort((a, b) => {
+        const anchorA = a.year * 12 + (a.month - 1);
+        const anchorB = b.year * 12 + (b.month - 1);
+        return anchorA - anchorB;
+    });
+}
+
 export type PastMissingMonatsbelegEntry = {
     cashRegisterId: string;
     year: number;

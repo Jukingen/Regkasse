@@ -91,7 +91,9 @@ public sealed class AdminBackupTriggerTenantScopingTests
             Mock.Of<IBackupDashboardStatsService>(),
             Mock.Of<IPitrService>(),
             Mock.Of<IBackupVerificationReportService>(),
-            Mock.Of<ICurrentTenantAccessor>(a => a.TenantId == tenantId));
+            Mock.Of<ICurrentTenantAccessor>(a => a.TenantId == tenantId),
+            Mock.Of<IBackupRunTenantAccessService>(),
+            Mock.Of<IBackupArtifactImportService>());
 
         var http = new DefaultHttpContext
         {

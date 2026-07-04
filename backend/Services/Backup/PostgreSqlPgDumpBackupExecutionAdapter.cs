@@ -81,7 +81,10 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
             return Fail("INVALID_CONNECTION_STRING", "Connection string has no Database.");
 
         var password = csb.Password ?? string.Empty;
-        var fileName = $"logical_{context.BackupRunId:N}_{DateTime.UtcNow:yyyyMMddHHmmss}Z.dump";
+        var fileNameTimestamp = context.ArtifactFileNameTimestampUtc ?? DateTime.UtcNow;
+        var fileName = BackupArtifactFileNameBuilder.BuildLogicalDumpFileName(
+            context.TenantSlugForFileName,
+            fileNameTimestamp);
         var outputPath = Path.GetFullPath(Path.Combine(rootFull, fileName));
 
         if (!BackupPathGuard.IsPathUnderStagingRoot(outputPath, rootFull))
@@ -158,7 +161,9 @@ public sealed class PostgreSqlPgDumpBackupExecutionAdapter : IBackupExecutionAda
 
         var hex = await _checksumService.ComputeFileSha256HexAsync(outputPath, context.CancellationToken);
         var dumpRelativeName = fileName;
-        var manifestRelativeName = $"manifest_{context.BackupRunId:N}.json";
+        var manifestRelativeName = BackupArtifactFileNameBuilder.BuildManifestFileName(
+            context.TenantSlugForFileName,
+            fileNameTimestamp);
 
         var manifestDoc = _manifestService.BuildLogicalPgDumpManifest(
             new BackupLogicalManifestInput(

@@ -189,5 +189,13 @@
     "statusLoadFailed": "Monatsbeleg durumu yüklenemedi",
     "noRegisters": "Kasa yok.",
     "emptyTable": "Kasa bulunamadı."
+  },
+  "rksvCompliance": {
+    "missingTitle": "{{count}} Monatsbeleg eksik",
+    "catchUpNow": "Şimdi tamamla",
+    "missingHint": "Eksik aylık belgeler sonradan oluşturulabilir (gerçek oluşturma zamanı, gecikmeli işaretlenir).",
+    "daysLate": "{{count}} gün gecikmiş",
+    "overdue": "Süresi geçmiş",
+    "missing": "Eksik"
   }
 }

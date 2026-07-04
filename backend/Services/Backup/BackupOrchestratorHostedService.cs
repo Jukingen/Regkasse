@@ -241,7 +241,15 @@ public sealed class BackupOrchestratorHostedService : BackgroundService
         var adminModeExec = prefExec?.Mode ?? AdminBackupRuntimeExecutionMode.InheritFromConfiguration;
         var effectiveKindExec = BackupEffectiveExecutionAdapterResolver.ResolveEffectiveAdapterKind(opts, adminModeExec);
         var adapter = SelectAdapter(effectiveKindExec);
-            var execContext = new BackupExecutionContext(run.Id, run.CorrelationId, adapter.AdapterKind, ct);
+            var tenantSlugForFileName = await BackupRunTenantSlugResolver.ResolveSlugAsync(run, db, ct);
+            var artifactFileNameTimestampUtc = DateTime.UtcNow;
+            var execContext = new BackupExecutionContext(
+                run.Id,
+                run.CorrelationId,
+                adapter.AdapterKind,
+                ct,
+                tenantSlugForFileName,
+                artifactFileNameTimestampUtc);
 
             BackupExecutionResult result;
             try

@@ -64,6 +64,24 @@ public sealed class CreateMonatsbelegResponse
     public Guid ReceiptId { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
     public string QrData { get; set; } = string.Empty;
+
+    /// <summary>True when created nachträglich or past the legal Monatsbeleg deadline.</summary>
+    public bool IsLateCreated { get; set; }
+
+    /// <summary>Whole days past the legal deadline (0 when on time or within grace).</summary>
+    public int DaysLate { get; set; }
+
+    /// <summary>Last day of the covered Vienna calendar month.</summary>
+    public DateTime? IntendedPeriodDate { get; set; }
+
+    /// <summary>Covered Vienna calendar year (same as request).</summary>
+    public int Year { get; set; }
+
+    /// <summary>Covered Vienna calendar month 1–12 (same as request).</summary>
+    public int Month { get; set; }
+
+    /// <summary>Real UTC timestamp when the receipt was signed and persisted (never backdated).</summary>
+    public DateTime CreatedAtUtc { get; set; }
 }
 
 /// <summary>Returned when a past Vienna calendar month is requested without <c>force=true</c>.</summary>
@@ -104,6 +122,21 @@ public sealed class CreateJahresbelegResponse
     public Guid ReceiptId { get; set; }
     public string ReceiptNumber { get; set; } = string.Empty;
     public string QrData { get; set; } = string.Empty;
+
+    /// <summary>True when created nachträglich or past the January 31 legal deadline.</summary>
+    public bool IsLateCreated { get; set; }
+
+    /// <summary>Whole days past the legal Jahresbeleg deadline (January 31 of the following year).</summary>
+    public int DaysLate { get; set; }
+
+    /// <summary>Last day of the covered Vienna calendar year (December 31).</summary>
+    public DateTime? IntendedPeriodDate { get; set; }
+
+    /// <summary>Covered Vienna calendar year (same as request).</summary>
+    public int Year { get; set; }
+
+    /// <summary>Real UTC timestamp when the receipt was signed and persisted (never backdated).</summary>
+    public DateTime CreatedAtUtc { get; set; }
 }
 
 /// <summary>RKSV Schlussbeleg (Endbeleg): final zero signed receipt when permanently decommissioning a cash register.</summary>

@@ -616,6 +616,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 ReceiptId = jResp.ReceiptId,
                 ReceiptNumber = jResp.ReceiptNumber,
                 QrData = jResp.QrData,
+                IsLateCreated = jResp.IsLateCreated,
+                DaysLate = jResp.DaysLate,
+                IntendedPeriodDate = jResp.IntendedPeriodDate,
+                Year = request.Year,
+                Month = request.Month,
+                CreatedAtUtc = jResp.CreatedAtUtc,
             };
         }
 
@@ -657,6 +663,13 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         var issuedAtUnspecified = DateTime.SpecifyKind(viennaLocalNow, DateTimeKind.Unspecified);
         var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(issuedAtUnspecified, PostgreSqlUtcDateTime.AustriaTimeZone);
         var sequenceAnchor = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        // Honest late (nachträglich) marking: the receipt is signed and timestamped NOW (issuedAtUtc);
+        // only the covered period (Year/Month) points at the past. We flag lateness for transparent
+        // audit/Prüftool visibility rather than backdating any fiscal timestamp.
+        var daysLate = MonatsbelegPastMonthPolicy.ComputeDaysLate(request.Year, request.Month);
+        var isLateCreated = RksvSpecialReceiptLateCreation.IsMonatsbelegLateCreated(request.Year, request.Month);
+        var intendedPeriodDate = RksvSpecialReceiptLateCreation.MonatsbelegIntendedPeriodEndDate(request.Year, request.Month);
 
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -708,6 +721,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RksvSpecialReceiptYear = request.Year,
                 RksvSpecialReceiptMonth = request.Month,
                 RksvNullbelegActsAsJahresbeleg = false,
+                IsLateCreated = isLateCreated,
+                LateCreationReason = isLateCreated ? TruncateNotes(request.Reason) : null,
+                IntendedPeriodDate = intendedPeriodDate,
                 CreatedAt = issuedAtUtc,
                 CreatedBy = actorUserId,
                 IsActive = true,
@@ -769,8 +785,8 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             if (forcePastMonth && !isCurrentMonth)
             {
                 _logger.LogWarning(
-                    "Monatsbeleg created with forcePastMonth override PaymentId={PaymentId} Register={Register} Period={Y}-{M}",
-                    paymentId, register.RegisterNumber, request.Year, request.Month);
+                    "Monatsbeleg created with forcePastMonth override PaymentId={PaymentId} Register={Register} Period={Y}-{M} IsLate={IsLate} DaysLate={DaysLate}",
+                    paymentId, register.RegisterNumber, request.Year, request.Month, isLateCreated, daysLate);
             }
             else
             {
@@ -786,6 +802,12 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 ReceiptId = receiptEntity.ReceiptId,
                 ReceiptNumber = receiptNumber,
                 QrData = qr,
+                IsLateCreated = isLateCreated,
+                DaysLate = daysLate,
+                IntendedPeriodDate = intendedPeriodDate,
+                Year = request.Year,
+                Month = request.Month,
+                CreatedAtUtc = issuedAtUtc,
             };
         }
         catch
@@ -872,6 +894,10 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
         var issuedAtUtc = TimeZoneInfo.ConvertTimeToUtc(issuedAtUnspecified, PostgreSqlUtcDateTime.AustriaTimeZone);
         var sequenceAnchor = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
 
+        var jahresDaysLate = RksvSpecialReceiptLateCreation.ComputeJahresbelegDaysLate(request.Year);
+        var jahresIsLateCreated = RksvSpecialReceiptLateCreation.IsJahresbelegLateCreated(request.Year);
+        var jahresIntendedPeriodDate = RksvSpecialReceiptLateCreation.JahresbelegIntendedPeriodEndDate(request.Year);
+
         await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         try
         {
@@ -922,6 +948,9 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 RksvSpecialReceiptYear = request.Year,
                 RksvSpecialReceiptMonth = null,
                 RksvNullbelegActsAsJahresbeleg = true,
+                IsLateCreated = jahresIsLateCreated,
+                LateCreationReason = jahresIsLateCreated ? TruncateNotes(request.Reason) : null,
+                IntendedPeriodDate = jahresIntendedPeriodDate,
                 CreatedAt = issuedAtUtc,
                 CreatedBy = actorUserId,
                 IsActive = true,
@@ -1002,9 +1031,18 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
             var dto = await _receiptService.GetReceiptByPaymentIdAsync(paymentId).ConfigureAwait(false);
             var qr = dto?.Signature?.QrData ?? string.Empty;
 
-            _logger.LogInformation(
-                "Jahresbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Year={Year}",
-                paymentId, receiptNumber, register.RegisterNumber, request.Year);
+            if (jahresIsLateCreated)
+            {
+                _logger.LogWarning(
+                    "Jahresbeleg created late PaymentId={PaymentId} Register={Register} Year={Year} DaysLate={DaysLate}",
+                    paymentId, register.RegisterNumber, request.Year, jahresDaysLate);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Jahresbeleg created PaymentId={PaymentId} ReceiptNumber={ReceiptNumber} Register={Register} Year={Year}",
+                    paymentId, receiptNumber, register.RegisterNumber, request.Year);
+            }
 
             return new CreateJahresbelegResponse
             {
@@ -1013,6 +1051,11 @@ public sealed class RksvSpecialReceiptService : IRksvSpecialReceiptService
                 ReceiptId = receiptEntity.ReceiptId,
                 ReceiptNumber = receiptNumber,
                 QrData = qr,
+                IsLateCreated = jahresIsLateCreated,
+                DaysLate = jahresDaysLate,
+                IntendedPeriodDate = jahresIntendedPeriodDate,
+                Year = request.Year,
+                CreatedAtUtc = issuedAtUtc,
             };
         }
         catch

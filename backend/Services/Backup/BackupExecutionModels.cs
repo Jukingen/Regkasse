@@ -9,7 +9,9 @@ public sealed record BackupExecutionContext(
     Guid BackupRunId,
     string? CorrelationId,
     string AdapterKindLabel,
-    CancellationToken CancellationToken);
+    CancellationToken CancellationToken,
+    string TenantSlugForFileName = BackupRunTenantSlugResolver.DeploymentSlug,
+    DateTime? ArtifactFileNameTimestampUtc = null);
 
 /// <summary>
 /// In-memory description of an artifact before persistence.

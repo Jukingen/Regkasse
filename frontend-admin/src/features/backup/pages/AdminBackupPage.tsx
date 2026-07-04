@@ -16,7 +16,7 @@ import { MetricCard } from "@/features/backup/components/MetricCard";
 import { TriggerBackupButton } from "@/features/backup/components/TriggerBackupButton";
 import { PitrRestoreWorkflow } from "@/features/backup/components/PitrRestoreWorkflow";
 import { BackupHistoryChart } from "@/features/backup/components/BackupHistoryChart";
-import { BackupRunsTable } from "@/features/backup/components/BackupRunsTable";
+import { BackupList } from "@/features/backup/components/BackupList";
 import { BackupSettings } from "@/features/backup/components/BackupSettings";
 import { BackupRecentRestoreDrillsTable } from "@/features/backup-dr/components/BackupRecentRestoreDrillsTable";
 import {
@@ -252,7 +252,7 @@ export function AdminBackupPage() {
         />
 
         <Card title={t("backupDr.adminBackup.recentBackupsTitle")} size="small">
-          <BackupRunsTable hideTitle onRetryInvalidate={invalidateAll} />
+          <BackupList onRetryInvalidate={invalidateAll} />
         </Card>
 
         <Collapse items={collapseItems} defaultActiveKey={[]} />

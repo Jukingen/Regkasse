@@ -21,7 +21,9 @@ public sealed class DailyClosingServiceTests
         await using var ctx = new AppDbContext(
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase($"DailyClosing_{Guid.NewGuid():N}")
-                .Options);
+                .Options,
+            // Customer is tenant-scoped; run under the seeded tenant so the customer is visible.
+            TenantTestDoubles.TenantAccessorReturning(tenantId));
 
         ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-test", IsActive = true });
         ctx.CashRegisters.Add(new CashRegister

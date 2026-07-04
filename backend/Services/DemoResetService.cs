@@ -99,6 +99,7 @@ public sealed class DemoResetService : IDemoResetService
             var guestCustomer = new Customer
             {
                 Id = WalkInCustomerConstants.GuestCustomerId,
+                TenantId = LegacyDefaultTenantIds.Primary,
                 Name = "Gastkunde",
                 CustomerNumber = "GUEST-0001",
                 Email = "guest@demo.local",

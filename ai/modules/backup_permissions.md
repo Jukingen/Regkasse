@@ -6,7 +6,9 @@
 
 - **Manager default:** `settings.view` + `backup.manage` in `RolePermissionMatrix` — **not** `settings.manage`.
 - **Trigger + schedule:** `AppPermissions.BackupManage` (`backup.manage`) on `POST /api/admin/backup/trigger`, `PUT /api/admin/backup/settings`, legacy `POST /api/settings/backup/now`.
-- **Platform ops:** execution mode, artifact download → `settings.manage` only.
+- **Platform ops:** execution mode → `settings.manage` only.
+- **Download + import:** `backup.manage` + tenant context; cross-tenant artifact access → HTTP 404.
+- **Audit:** backup trigger, download, import, and schedule changes log with explicit `tenant_id` (EF global filter scopes Manager audit reads).
 - **Tenant scoping:** Non–Super Admin trigger requires `ICurrentTenantAccessor.TenantId`; no client `tenantId` on trigger body.
 - **No** `backup.view` / `backup.execute` keys — view uses `settings.view`.
 - **Implication:** `settings.manage` → `backup.manage`; reverse must **not** hold (escalation guard in `PermissionImplication`).

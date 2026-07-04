@@ -189,5 +189,13 @@
     "statusLoadFailed": "Could not load Monatsbeleg status",
     "noRegisters": "No registers available.",
     "emptyTable": "No registers found."
+  },
+  "rksvCompliance": {
+    "missingTitle": "{{count}} Monatsbeleg receipts missing",
+    "catchUpNow": "Catch up now",
+    "missingHint": "Missing monthly receipts can be created late (real creation timestamp, marked as late).",
+    "daysLate": "{{count}} days late",
+    "overdue": "Overdue",
+    "missing": "Missing"
   }
 }

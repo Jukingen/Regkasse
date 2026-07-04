@@ -1561,6 +1561,39 @@
       "missingBaseBackup": "No eligible base backup was found for this restore point."
     }
   },
+  "backupList": {
+    "fileName": "Backup name",
+    "tenant": "Tenant",
+    "date": "Date",
+    "size": "Size",
+    "type": "Type",
+    "typeTest": "Test",
+    "typeProduction": "Production",
+    "downloadTooltip": "Click to download",
+    "noDownloadPermission": "Download requires “Manage backups” permission.",
+    "fileNotOnDisk": "File is not available on the server.",
+    "empty": "No backup files yet.",
+    "loadFailed": "Could not load backup file list.",
+    "manifest": "Manifest",
+    "manifestUnavailable": "Manifest metadata exists but the file is not on disk.",
+    "manifestLabel": "Manifest: {{fileName}}",
+    "cardTitle": "Backup: {{fileName}}",
+    "tenantLabel": "Tenant: {{tenant}}",
+    "createdLabel": "Created: {{date}}",
+    "sizeLabel": "Size: {{size}}",
+    "downloadDump": "Download backup",
+    "downloadManifest": "Download manifest",
+    "import": {
+      "title": "Import backup file",
+      "description": "Upload a previously exported dump to register it for this tenant. This does not restore the database automatically.",
+      "dumpHint": "Click or drag a .dump or .sql file here",
+      "manifestOptional": "Optional: attach manifest (.json)",
+      "submit": "Register backup",
+      "dumpRequired": "Select a dump file first.",
+      "success": "Backup registered: {{fileName}}",
+      "failed": "Could not import the backup file."
+    }
+  },
   "adminBackup": {
     "pageTitle": "Backup & recovery",
     "pageSubtitle": "Overview, history, and configuration — refreshes every 30 seconds.",

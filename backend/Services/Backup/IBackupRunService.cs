@@ -12,6 +12,13 @@ public interface IBackupRunService
         Guid runId,
         BackupRunDtoMappingOptions mappingOptions,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Readable list of succeeded logical dump artifacts (file name, tenant slug, download path).
+    /// </summary>
+    Task<IReadOnlyList<BackupListItemResponseDto>> GetBackupListAsync(
+        Guid? tenantId,
+        CancellationToken cancellationToken = default);
 }
 
 /// <summary>Inputs required to map a <see cref="Models.Backup.BackupRun"/> to admin API DTOs.</summary>
