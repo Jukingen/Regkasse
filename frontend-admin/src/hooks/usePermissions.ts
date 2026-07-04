@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { isSuperAdmin } from '@/features/auth/constants/roles';
+import { isManager, isSuperAdmin } from '@/features/auth/constants/roles';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
 import {
   AppPermissions,
@@ -26,6 +26,7 @@ export function usePermissions() {
 
   return useMemo(() => {
     const superAdmin = isSuperAdmin(user?.role);
+    const manager = isManager(user?.role);
 
     const hasPermission = (permission: string): boolean => {
       if (superAdmin) return true;
@@ -57,6 +58,8 @@ export function usePermissions() {
       hasAnyPermission,
       hasAllPermissions,
       canViewMenu,
+      isSuperAdmin: superAdmin,
+      isManager: manager,
       canViewCashRegisters:
         hasPermission(AppPermissions.CashRegisterView) ||
         hasPermission(AppPermissions.CashRegisterManage),

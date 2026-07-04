@@ -33,6 +33,7 @@ import {
     hardDeleteCashRegister,
 } from '@/features/cash-registers/api/cashRegisters';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { useCashRegisterActionHandler } from '@/features/cash-registers/hooks/useCashRegisterActionHandler';
 import {
     canDecommissionRegister,
     isDecommissionedRegister,
@@ -68,7 +69,6 @@ export default function KassenverwaltungPage() {
         canAccessPage,
         canLoadRegisters,
         canManageCashRegisters,
-        canDecommissionCashRegisters,
         hasPermission,
         licenseBlocksModule,
         licenseLoading,
@@ -77,8 +77,11 @@ export default function KassenverwaltungPage() {
     } = useCashRegisterModuleAccess();
 
     const canView = canAccessPage;
-    const canCreate = canManageCashRegisters;
-    const canDecommission = canDecommissionCashRegisters;
+    /** Register lifecycle (create / decommission / hard delete) — Super Admin only in FA. */
+    const canCreate = isSuperAdminUser;
+    const canDecommission = isSuperAdminUser;
+    /** Shift open/close and daily closing — Manager with cash_register.manage. */
+    const canOperate = canManageCashRegisters;
     const canHardDelete = hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
     const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
 
@@ -199,7 +202,7 @@ export default function KassenverwaltungPage() {
             return;
         }
         const fromQuery = searchParams.get(FA_QUICK_CASH_REGISTER_QUERY_PARAM)?.trim();
-        const targetId = fromQuery || readQuickCashRegisterId();
+        const targetId = fromQuery || readQuickCashRegisterId(tenantId ?? null);
         if (!targetId) {
             return;
         }
@@ -208,9 +211,9 @@ export default function KassenverwaltungPage() {
             return;
         }
         deepLinkHandledRef.current = true;
-        writeQuickCashRegisterId(register.id ?? targetId);
+        writeQuickCashRegisterId(register.id ?? targetId, register.tenantId ?? tenantId ?? null);
         setDetailRegister(register);
-    }, [allRegisters, searchParams]);
+    }, [allRegisters, searchParams, tenantId]);
 
     const statusLabel = useCallback(
         (status: number | undefined) => {
@@ -307,6 +310,18 @@ export default function KassenverwaltungPage() {
     const closeCreateModal = useCallback(() => {
         setCreateOpen(false);
     }, []);
+
+    const { handleRegisterAction } = useCashRegisterActionHandler({
+        onEdit: setDetailRegister,
+        onDecommission: (register) => {
+            setDecommissionReason('');
+            setDecommissionRegister(register);
+        },
+        onHardDelete: (register) => {
+            setHardDeleteConfirm('');
+            setHardDeleteRegister(register);
+        },
+    });
 
     if (!canAccessPage) {
         return (
@@ -440,7 +455,7 @@ export default function KassenverwaltungPage() {
                                         registers={group.registers}
                                         loading={registersLoading}
                                         canCreate={canCreate}
-                                        canManage={canCreate}
+                                        canManage={canOperate}
                                         totalRegisterCount={group.registers.length}
                                         canDecommission={canDecommission}
                                         statusLabel={statusLabel}
@@ -454,6 +469,7 @@ export default function KassenverwaltungPage() {
                                             setDecommissionReason('');
                                             setDecommissionRegister(record);
                                         }}
+                                        onRegisterAction={handleRegisterAction}
                                     />
                                 </div>
                             ))}
@@ -464,7 +480,7 @@ export default function KassenverwaltungPage() {
                         registers={visibleRegisters}
                         loading={registersLoading}
                         canCreate={canCreate}
-                        canManage={canCreate}
+                        canManage={canOperate}
                         totalRegisterCount={allRegisters.length}
                         canDecommission={canDecommission}
                         statusLabel={statusLabel}
@@ -478,6 +494,7 @@ export default function KassenverwaltungPage() {
                             setDecommissionReason('');
                             setDecommissionRegister(record);
                         }}
+                        onRegisterAction={handleRegisterAction}
                     />
                 ) : null}
             </Card>

@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Alert, Button, Card, DatePicker, Select, Space, Table, Tag, Typography } from 'antd';
+import { Alert, Button, Card, DatePicker, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import Link from 'next/link';
 
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import type { CashRegister } from '@/api/generated/model';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
@@ -19,12 +18,6 @@ import {
 import { useAdminShiftOverview } from '@/features/shifts/hooks/useAdminShiftOverview';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
-
-function normalizeRegisters(data: unknown): CashRegister[] {
-  if (Array.isArray(data)) return data as CashRegister[];
-  const r = (data as { registers?: CashRegister[] } | undefined)?.registers;
-  return Array.isArray(r) ? r : [];
-}
 
 function statusTagColor(status: string): string {
   switch (status) {
@@ -38,16 +31,18 @@ function statusTagColor(status: string): string {
   }
 }
 
-export const ShiftOverview: React.FC = () => {
+export type ShiftOverviewProps = {
+  /** When rendered under `/staff/shifts`, use staff hub breadcrumbs and back link. */
+  staffHubMode?: boolean;
+};
+
+export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = false }) => {
   const { t, formatLocale } = useI18n();
   const ts = useCallback((path: string) => t(`shifts:${path}`), [t]);
 
   const [registerId, setRegisterId] = useState<string | undefined>();
   const [fromDay, setFromDay] = useState<Dayjs | null>(null);
   const [toDay, setToDay] = useState<Dayjs | null>(null);
-
-  const registersQ = useGetApiCashRegister();
-  const registerRows = useMemo(() => normalizeRegisters(registersQ.data as unknown), [registersQ.data]);
 
   const queryParams = useMemo(
     () => ({
@@ -262,29 +257,34 @@ export const ShiftOverview: React.FC = () => {
     <>
       <AdminPageHeader
         title={ts('pageTitle')}
-        breadcrumbs={[
-          adminOverviewCrumb(t),
-          { title: ts('pageTitle'), href: '/shifts' },
-        ]}
+        breadcrumbs={
+          staffHubMode
+            ? [
+                adminOverviewCrumb(t),
+                { title: t('staff:hub.pageTitle'), href: '/staff' },
+                { title: t('staff:nav.shifts') },
+              ]
+            : [adminOverviewCrumb(t), { title: ts('pageTitle'), href: '/shifts' }]
+        }
       />
       <AdminPageShell>
         <Card>
           <Typography.Paragraph type="secondary">{ts('intro')}</Typography.Paragraph>
+          {staffHubMode ? (
+            <Typography.Paragraph style={{ marginBottom: 16 }}>
+              <Link href="/staff">{t('staff:hub.backLink')}</Link>
+            </Typography.Paragraph>
+          ) : null}
           <Space wrap style={{ marginBottom: 16 }}>
             <span>{ts('filters.register')}</span>
-            <Select
+            <CashRegisterSelector
+              value={registerId}
+              onChange={setRegisterId}
+              showFormItem={false}
+              required={false}
               allowClear
               placeholder={ts('filters.allRegisters')}
               style={{ minWidth: 220 }}
-              value={registerId}
-              onChange={(v) => setRegisterId(v)}
-              loading={registersQ.isLoading}
-              options={registerRows.map((r) => ({
-                value: r.id,
-                label: r.registerNumber
-                  ? `${r.registerNumber} (${r.location ?? ''})`
-                  : String(r.id),
-              }))}
             />
             <span>{ts('filters.from')}</span>
             <DatePicker

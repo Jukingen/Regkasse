@@ -25,23 +25,39 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/payments/card-transactions': PERMISSIONS.PAYMENT_VIEW,
   '/payments/storno-refund-audit': PERMISSIONS.PAYMENT_VIEW,
   '/admin/tse/offline-transactions': PERMISSIONS.PAYMENT_VIEW,
+  /** Manager oversight — operational sales (receipts / payments filter pages). */
+  '/receipts': PERMISSIONS.SALE_VIEW,
   '/vouchers/new': PERMISSIONS.VOUCHER_CREATE,
   '/vouchers': PERMISSIONS.VOUCHER_READ,
+  /** Manager oversight — reporting pages with shared CashRegisterSelector. */
   '/reporting': PERMISSIONS.REPORT_VIEW,
   '/reporting/report-center': PERMISSIONS.REPORT_VIEW,
   '/reporting/staff': PERMISSIONS.REPORT_VIEW,
+  '/reporting/activity-log': PERMISSIONS.AUDIT_VIEW,
   '/reporting/compliance': PERMISSIONS.REPORT_VIEW,
   '/reporting/tagesbericht': PERMISSIONS.REPORT_VIEW,
   '/reporting/monatsbericht': PERMISSIONS.REPORT_VIEW,
   '/reporting/jahresbericht': PERMISSIONS.REPORT_VIEW,
+  /** Verkauf nav group alias (no dedicated page; documents sales-transactions IA). */
+  '/sales': PERMISSIONS.REPORT_VIEW,
   '/reports/daily-closing': PERMISSIONS.REPORT_VIEW,
   '/admin/reports': PERMISSIONS.REPORT_VIEW,
   '/admin/reports/user-activity': PERMISSIONS.REPORT_VIEW,
   '/tables': PERMISSIONS.TABLE_VIEW,
   '/kassenverwaltung': AppPermissions.CashRegisterManage,
+  /** Shift overview — requires shift.view (Manager also has cash_register.view for register list API). */
   '/shifts': PERMISSIONS.SHIFT_VIEW,
+  /** Manager staff hub — any staff-related view permission (list / performance / shifts). */
+  '/staff': [PERMISSIONS.USER_VIEW, PERMISSIONS.REPORT_VIEW, PERMISSIONS.SHIFT_VIEW],
+  '/staff/list': PERMISSIONS.USER_VIEW,
+  '/staff/performance': PERMISSIONS.REPORT_VIEW,
+  '/staff/shifts': PERMISSIONS.SHIFT_VIEW,
   '/tagesabschluss': [PERMISSIONS.DAILY_CLOSING_VIEW],
   '/tagesabschluss/execute': [PERMISSIONS.DAILY_CLOSING_EXECUTE],
+  /** Manager activity log (tenant-scoped audit rows; platform operators hidden on API). Spec alias: activity.view → audit.view. */
+  '/audit-logs/activity': PERMISSIONS.AUDIT_VIEW,
+  /** Staff performance report linked from activity hub. */
+  '/audit-logs/staff': PERMISSIONS.REPORT_VIEW,
   '/audit-logs': PERMISSIONS.AUDIT_VIEW,
   '/admin/audit/fiscal-exports': PERMISSIONS.AUDIT_VIEW,
   '/users': PERMISSIONS.USER_VIEW,
@@ -50,11 +66,19 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/admin/access/roles': PERMISSIONS.ROLE_VIEW,
   '/admin/access/matrix': PERMISSIONS.ROLE_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
-  '/settings/company': PERMISSIONS.SETTINGS_VIEW,
+  /** Super Admin / settings.manage — firm-wide fiscal master data. */
+  '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
+  /** Super Admin / settings.manage — offline limits and toggles. */
   '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
+  /** Super Admin / settings.manage — TSE defaults (legacy hub tab; deep-link route). */
+  '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
+  /** Tenant backup schedule/trigger — backup.manage (Manager tenant scope; platform ops gated in UI). */
+  '/settings/backup': PERMISSIONS.BACKUP_MANAGE,
+  /** Super Admin / settings.manage — FinanzOnline credentials (legacy hub tab; deep-link route). */
+  '/settings/finanzonline': PERMISSIONS.SETTINGS_MANAGE,
   /** Route gate: settings.view (Manager). Trigger + schedule mutations require backup.manage in UI/API. */
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
   /** Route gate: settings.view (Manager). No separate /settings/backup/manage route — manage is component-gated. */
@@ -75,7 +99,6 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/receipt-templates': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/receipt-generate': PERMISSIONS.RECEIPT_TEMPLATE_VIEW,
   '/customers': PERMISSIONS.CUSTOMER_VIEW,
-  '/receipts': PERMISSIONS.SALE_VIEW,
   '/operations-center': [
     PERMISSIONS.SALE_VIEW,
     PERMISSIONS.TSE_SIGN,
@@ -91,6 +114,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/rksv/sb/jahresbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/nullbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/sb/schlussbeleg': PERMISSIONS.FINANZONLINE_MANAGE,
+  /** Sidebar-only: Demo-Modus test tools on Sonderbelege (Super Admin catalog). */
+  '/rksv/sb/test-helper': PERMISSIONS.RKSV_TEST_HELPER,
   '/rksv/sonderbelege': PERMISSIONS.FINANZONLINE_MANAGE,
   '/rksv/status': PERMISSIONS.SETTINGS_VIEW,
   '/rksv/cmc-certificate': PERMISSIONS.SETTINGS_VIEW,

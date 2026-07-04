@@ -1,0 +1,48 @@
+{
+  "title": "Activity log",
+  "pageIntro": "Tenant-scoped staff activity from audit records. Platform operator actions are hidden.",
+  "shiftReportsLink": "Staff performance report",
+  "export": "Export",
+  "exportSuccess": "Export started",
+  "exportFailed": "Export failed",
+  "totalEntries": "{{count}} entries",
+  "filters": {
+    "dateRange": "Date range",
+    "user": "User",
+    "userPlaceholder": "User",
+    "actionType": "Action type",
+    "actionTypePlaceholder": "Action type",
+    "search": "Search…",
+    "allActions": "All actions"
+  },
+  "actions": {
+    "USER_LOGIN": "Login",
+    "USER_LOGOUT": "Logout",
+    "POS_PAY_OUTCOME": "Sale",
+    "PAYMENT_CONFIRM": "Payment",
+    "ShiftStarted": "Shift opened",
+    "ShiftEnded": "Shift closed",
+    "POS_SPL_RCPT": "Special receipt",
+    "CUSTOMER_CREATE": "Customer added",
+    "CUSTOMER_UPDATE": "Customer updated",
+    "USER_UPDATE": "User updated"
+  },
+  "table": {
+    "time": "Time",
+    "user": "User",
+    "action": "Action",
+    "description": "Description",
+    "details": "Details",
+    "noData": "No activities found"
+  },
+  "summary": {
+    "title": "Recent activities",
+    "viewAll": "View all",
+    "noActivities": "No activities"
+  },
+  "tabs": {
+    "compliance": "Compliance audit",
+    "activity": "Activity log",
+    "staff": "Staff performance"
+  }
+}

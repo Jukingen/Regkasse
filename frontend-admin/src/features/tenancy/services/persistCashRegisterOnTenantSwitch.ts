@@ -10,7 +10,7 @@ import { pickCashRegisterOnTenantSwitch } from '@/features/cash-registers/utils/
 export async function persistCashRegisterOnTenantSwitch(tenantId: string): Promise<string | null> {
     const normalizedTenantId = tenantId.trim();
     if (!normalizedTenantId) {
-        writeQuickCashRegisterId(null);
+        writeQuickCashRegisterId(null, normalizedTenantId);
         return null;
     }
 
@@ -22,10 +22,10 @@ export async function persistCashRegisterOnTenantSwitch(tenantId: string): Promi
         });
         const active = page.items.filter((row) => row.isActive !== false);
         const registerId = pickCashRegisterOnTenantSwitch(active, normalizedTenantId);
-        writeQuickCashRegisterId(registerId);
+        writeQuickCashRegisterId(registerId, normalizedTenantId);
         return registerId;
     } catch {
-        writeQuickCashRegisterId(null);
+        writeQuickCashRegisterId(null, normalizedTenantId);
         return null;
     }
 }

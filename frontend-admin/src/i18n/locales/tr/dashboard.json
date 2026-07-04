@@ -197,5 +197,26 @@
     "daysLate": "{{count}} gün gecikmiş",
     "overdue": "Süresi geçmiş",
     "missing": "Eksik"
+  },
+  "manager": {
+    "welcome": "Tekrar hoş geldiniz, {{name}}!",
+    "todaySales": "Bugünkü satışlar",
+    "transactions": "İşlemler",
+    "transactionCount": "{{count}} işlem",
+    "openShifts": "Açık vardiyalar",
+    "shiftOpen": "Vardiya açık",
+    "allClosed": "Hepsi kapalı",
+    "activeStaff": "Aktif personel",
+    "onDutyToday": "Bugün görevde",
+    "viewStaffHub": "Personel özeti",
+    "viewStaffShifts": "Vardiyaları göster",
+    "cashBalance": "Kasa bakiyesi",
+    "noRegister": "Kasa yok",
+    "recentActivities": "Son aktiviteler",
+    "viewAll": "Tümünü göster",
+    "noActivities": "Aktivite yok",
+    "pendingMonatsbeleg": "{{count}} kasa Monatsbeleg gerektiriyor",
+    "pendingMonatsbelegDescription": "Lütfen bekleyen aylık belgeleri oluşturun.",
+    "createNow": "Eksikleri tamamla"
   }
 }

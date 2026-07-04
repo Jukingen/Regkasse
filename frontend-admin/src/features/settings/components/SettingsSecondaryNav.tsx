@@ -10,7 +10,7 @@ import React, { useMemo, type ComponentType } from 'react';
 import { Menu } from 'antd';
 import type { MenuProps } from 'antd';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import {
     ShopOutlined,
     BgColorsOutlined,
@@ -19,6 +19,9 @@ import {
     ExperimentOutlined,
     ClockCircleOutlined,
     DisconnectOutlined,
+    SafetyCertificateOutlined,
+    BankOutlined,
+    SettingOutlined,
 } from '@ant-design/icons';
 import { useI18n } from '@/i18n/I18nProvider';
 import { ADMIN_NAV_LABEL_KEYS } from '@/shared/adminShellLabels';
@@ -33,7 +36,11 @@ const SETTINGS_TAB_META: Record<
     SettingsAreaRoutePath,
     { labelKey: string; Icon: ComponentType }
 > = {
+    '/settings': { labelKey: ADMIN_NAV_LABEL_KEYS.settingsHub, Icon: SettingOutlined },
     '/settings/company': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
+    '/settings/tse': { labelKey: 'settings.tabs.tse', Icon: SafetyCertificateOutlined },
+    '/settings/finanzonline': { labelKey: 'settings.tabs.finanzOnline', Icon: BankOutlined },
+    '/settings/backup': { labelKey: 'settings.manager.advanced.backup', Icon: CloudServerOutlined },
     '/settings/session': { labelKey: ADMIN_NAV_LABEL_KEYS.sessionSettings, Icon: ClockCircleOutlined },
     '/settings/offline': { labelKey: ADMIN_NAV_LABEL_KEYS.offlineSettings, Icon: DisconnectOutlined },
     '/settings/personalization': { labelKey: ADMIN_NAV_LABEL_KEYS.personalization, Icon: BgColorsOutlined },
@@ -44,6 +51,7 @@ const SETTINGS_TAB_META: Record<
 
 export function SettingsSecondaryNav() {
   const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams();
   const { t } = useI18n();
   const { user } = useAuth();
   const permissions = user?.permissions ?? [];
@@ -61,7 +69,7 @@ export function SettingsSecondaryNav() {
           key: path,
           icon: <Icon />,
           label: (
-            <Link href={path} prefetch={false}>
+            <Link href={path === '/settings' ? '/settings' : path} prefetch={false}>
               {t(labelKey)}
             </Link>
           ),
@@ -72,12 +80,27 @@ export function SettingsSecondaryNav() {
 
   const selectedKeys = useMemo(() => {
     if (!pathname.startsWith('/settings')) return [pathname];
+
+    const hubTab = searchParams?.get('tab')?.trim().toLowerCase();
+    if ((pathname === '/settings' || pathname === '/settings/') && hubTab) {
+      const tabRoute = `/settings/${hubTab}` as SettingsAreaRoutePath;
+      if (visiblePaths.includes(tabRoute)) {
+        return [tabRoute];
+      }
+    }
+
     const sorted = [...visiblePaths].sort((a, b) => b.length - a.length);
     for (const route of sorted) {
       if (pathname === route || pathname.startsWith(`${route}/`)) return [route];
     }
+    if (pathname === '/settings' || pathname === '/settings/') {
+      if (visiblePaths.includes('/settings')) {
+        return ['/settings'];
+      }
+      return visiblePaths[0] ? [visiblePaths[0]] : [];
+    }
     return visiblePaths[0] ? [visiblePaths[0]] : [];
-  }, [pathname, visiblePaths]);
+  }, [pathname, searchParams, visiblePaths]);
 
   if (visiblePaths.length === 0) {
     return null;

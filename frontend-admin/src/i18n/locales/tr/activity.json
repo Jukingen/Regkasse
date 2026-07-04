@@ -1,0 +1,48 @@
+{
+  "title": "Aktivite günlüğü",
+  "pageIntro": "Denetim kayitlarindan kiraci kapsamli personel aktivitesi. Platform operator islemleri gizlenir.",
+  "shiftReportsLink": "Personel performans raporu",
+  "export": "Dışa aktar",
+  "exportSuccess": "Dışa aktarma başlatıldı",
+  "exportFailed": "Dışa aktarma başarısız",
+  "totalEntries": "{{count}} kayıt",
+  "filters": {
+    "dateRange": "Tarih aralığı",
+    "user": "Kullanıcı",
+    "userPlaceholder": "Kullanıcı",
+    "actionType": "İşlem tipi",
+    "actionTypePlaceholder": "İşlem tipi",
+    "search": "Ara…",
+    "allActions": "Tüm işlemler"
+  },
+  "actions": {
+    "USER_LOGIN": "Giriş",
+    "USER_LOGOUT": "Çıkış",
+    "POS_PAY_OUTCOME": "Satış",
+    "PAYMENT_CONFIRM": "Ödeme",
+    "ShiftStarted": "Vardiya açıldı",
+    "ShiftEnded": "Vardiya kapandı",
+    "POS_SPL_RCPT": "Özel fiş",
+    "CUSTOMER_CREATE": "Müşteri eklendi",
+    "CUSTOMER_UPDATE": "Müşteri güncellendi",
+    "USER_UPDATE": "Kullanıcı güncellendi"
+  },
+  "table": {
+    "time": "Zaman",
+    "user": "Kullanıcı",
+    "action": "İşlem",
+    "description": "Açıklama",
+    "details": "Detaylar",
+    "noData": "Aktivite bulunamadı"
+  },
+  "summary": {
+    "title": "Son aktiviteler",
+    "viewAll": "Tümünü göster",
+    "noActivities": "Aktivite yok"
+  },
+  "tabs": {
+    "compliance": "Uyumluluk denetimi",
+    "activity": "Aktivite günlüğü",
+    "staff": "Personel performansı"
+  }
+}

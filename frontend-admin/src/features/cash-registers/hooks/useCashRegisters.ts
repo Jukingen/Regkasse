@@ -51,14 +51,14 @@ export function useCashRegisters(tenantId?: string, options: UseCashRegistersOpt
 
         if (!tenantId || registers.length === 0) {
             setSelectedRegisterId(null);
-            writeQuickCashRegisterId(null);
+            writeQuickCashRegisterId(null, tenantId ?? null);
             return;
         }
 
-        const storedId = readQuickCashRegisterId();
+        const storedId = readQuickCashRegisterId(tenantId);
         const preferred = pickPreferredCashRegisterId(registers, storedId, tenantId);
         if (preferred !== storedId) {
-            writeQuickCashRegisterId(preferred);
+            writeQuickCashRegisterId(preferred, tenantId);
         }
         setSelectedRegisterId(preferred);
     }, [query.isLoading, registers, syncQuickSwitch, tenantId]);

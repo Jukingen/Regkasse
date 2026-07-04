@@ -19,7 +19,8 @@ import {
 } from 'antd';
 import { ClearOutlined, FilterOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
-import type { CashRegister } from '@/api/generated/model';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
+import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { UserFilterSelect } from '@/features/audit-logs/components/UserFilterSelect';
 import type { PaymentFilters } from '@/features/payments/types/paymentFilters';
 import { countActivePaymentFilters } from '@/features/payments/utils/countActivePaymentFilters';
@@ -33,7 +34,6 @@ export interface PaymentFilterBarProps {
     onFilterChange: (filters: PaymentFilters) => void;
     availableMethods: string[];
     availableStatuses: string[];
-    cashRegisters: CashRegister[];
 }
 
 type FilterKey = keyof PaymentFilters;
@@ -43,9 +43,9 @@ export function PaymentFilterBar({
     onFilterChange,
     availableMethods,
     availableStatuses,
-    cashRegisters,
 }: PaymentFilterBarProps) {
     const { t } = useI18n();
+    const { registers } = useCashRegisterSelection();
     const [drawerOpen, setDrawerOpen] = useState(false);
 
     const activeFilterCount = useMemo(() => countActivePaymentFilters(filters), [filters]);
@@ -99,16 +99,11 @@ export function PaymentFilterBar({
         [availableStatuses, t],
     );
 
-    const registerOptions = useMemo(
-        () =>
-            cashRegisters
-                .filter((r) => r.id)
-                .map((r) => ({
-                    value: r.id as string,
-                    label: r.registerNumber ?? r.location ?? r.id,
-                })),
-        [cashRegisters],
-    );
+    const selectedRegisterLabel = useMemo(() => {
+        if (!filters.cashRegisterId) return undefined;
+        const match = registers.find((row) => row.id === filters.cashRegisterId);
+        return match?.registerNumber ?? filters.cashRegisterId;
+    }, [filters.cashRegisterId, registers]);
 
     const dateRangeValue = filters.dateRange ?? undefined;
 
@@ -236,9 +231,7 @@ export function PaymentFilterBar({
                             {filters.cashRegisterId ? (
                                 <Tag closable onClose={() => handleFilterChange('cashRegisterId', undefined)}>
                                     {t('payments.filtersBar.chipRegister', {
-                                        value:
-                                            registerOptions.find((o) => o.value === filters.cashRegisterId)?.label ??
-                                            filters.cashRegisterId,
+                                        value: selectedRegisterLabel ?? filters.cashRegisterId,
                                     })}
                                 </Tag>
                             ) : null}
@@ -327,13 +320,14 @@ export function PaymentFilterBar({
 
                     <div>
                         <div style={{ fontWeight: 500, marginBottom: 8 }}>{t('payments.filtersBar.registerSection')}</div>
-                        <Select
-                            placeholder={t('payments.filtersBar.allRegisters')}
-                            style={{ width: '100%' }}
-                            options={registerOptions}
+                        <CashRegisterSelector
                             value={filters.cashRegisterId}
                             onChange={(v) => handleFilterChange('cashRegisterId', v)}
+                            showFormItem={false}
+                            required={false}
                             allowClear
+                            placeholder={t('payments.filtersBar.allRegisters')}
+                            style={{ width: '100%' }}
                         />
                     </div>
 

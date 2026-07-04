@@ -1,14 +1,25 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { I18nProvider } from '@/i18n';
 import { CashRegisterTable } from '@/features/cash-registers/components/CashRegisterTable';
 import type { CashRegister } from '@/api/generated/model';
+import { AppPermissions } from '@/shared/auth/permissions';
 
 vi.mock('@/features/license/hooks/useLicense', () => ({
     useLicense: () => ({ licenseStatus: null }),
+}));
+
+vi.mock('@/hooks/useCanAccessPath', () => ({
+    useCanAccessPath: () => false,
+}));
+
+const mockUsePermissions = vi.fn();
+
+vi.mock('@/hooks/usePermissions', () => ({
+    usePermissions: () => mockUsePermissions(),
 }));
 
 const sampleRegister: CashRegister = {
@@ -44,6 +55,13 @@ beforeAll(() => {
     });
 });
 
+beforeEach(() => {
+    mockUsePermissions.mockReturnValue({
+        isSuperAdmin: false,
+        hasPermission: () => false,
+    });
+});
+
 function renderTable(
     props: Partial<React.ComponentProps<typeof CashRegisterTable>> = {},
 ) {
@@ -57,6 +75,7 @@ function renderTable(
                 statusLabel={() => 'Geschlossen'}
                 onEdit={vi.fn()}
                 onDecommission={vi.fn()}
+                onRegisterAction={vi.fn()}
                 {...props}
             />
             </I18nProvider>
@@ -65,18 +84,26 @@ function renderTable(
 }
 
 describe('CashRegisterTable permissions', () => {
-    it('hides action buttons for view-only users', () => {
-        renderTable({ canManage: false, canDecommission: false });
+    it('hides Aktionen column without cash_register.manage', () => {
+        renderTable({ onRegisterAction: undefined });
 
         expect(screen.getByText('Hauptkasse')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Details/i })).not.toBeInTheDocument();
         expect(screen.queryByRole('button', { name: /Stilllegen/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Aktionen/i })).not.toBeInTheDocument();
     });
 
-    it('shows details and decommission for manager-level permissions', () => {
-        renderTable({ canManage: true, canDecommission: true });
+    it('shows details and shift actions for Manager with cash_register.manage', () => {
+        mockUsePermissions.mockReturnValue({
+            isSuperAdmin: false,
+            hasPermission: (permission: string) =>
+                permission === AppPermissions.CashRegisterManage,
+        });
+
+        renderTable();
 
         expect(screen.getByRole('button', { name: /Details/i })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Stilllegen/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Aktionen/i })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Stilllegen/i })).not.toBeInTheDocument();
     });
 });

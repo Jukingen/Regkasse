@@ -9,7 +9,7 @@ import {
     Card,
     Col,
     Collapse,
-    DatePicker,
+    Form,
     Row,
     Select,
     Space,
@@ -28,11 +28,9 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency, formatNumber, formatPercent } from '@/i18n/formatting';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import { useCashierFilterOptions } from '@/features/reporting/hooks/useCashierFilterOptions';
+import { ReportFilters, type ReportFilterValues } from '@/components/ReportFilters';
 import { useGetApiReportsOperationalStaffPerformance } from '@/api/generated/operational-reports/operational-reports';
 import type {
-    CashRegister,
     StaffPerformanceLocalDayAggregateDto,
     StaffPerformanceLocalDayStaffDto,
     StaffPerformanceStaffMethodSliceDto,
@@ -41,9 +39,7 @@ import type {
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import Link from 'next/link';
-import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
-
-const { RangePicker } = DatePicker;
+import { usePathname } from 'next/navigation';
 
 const PAYMENT_METHOD_OPTIONS: { value: number; labelDe: string }[] = [
     { value: 0, labelDe: 'Bar' },
@@ -73,6 +69,8 @@ function formatYyyyMmDd(yyyyMmDd: string | null | undefined): string {
 export default function StaffPerformanceReportingPage() {
     const { t, formatLocale } = useI18n();
     const { hasPermission } = usePermissions();
+    const pathname = usePathname() ?? '';
+    const fromStaffHub = pathname.startsWith('/staff/performance');
     const canView = hasPermission(PERMISSIONS.REPORT_VIEW);
 
     const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
@@ -101,15 +99,13 @@ export default function StaffPerformanceReportingPage() {
         [startDate, endDate, cashRegisterId, cashierId, paymentMethod, activeOnly, includePerStaffPerDay],
     );
 
-    const { data: registers } = useGetApiCashRegister();
-    const registersData = registers as unknown;
-    const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
-        ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
-        : Array.isArray(registersData)
-            ? (registersData as CashRegister[])
-            : [];
-    const { options: cashierOptions, loading: cashierOptionsLoading, onSearch: onCashierSearch } =
-        useCashierFilterOptions();
+    const applyCoreFilters = useCallback((values: ReportFilterValues) => {
+        if (values.dateRange?.[0] && values.dateRange[1]) {
+            setDateRange(values.dateRange);
+        }
+        setCashRegisterId(values.registerId);
+        setCashierId(values.staffId);
+    }, []);
 
     const reportQ = useGetApiReportsOperationalStaffPerformance(params, {
         query: { enabled: canView },
@@ -246,79 +242,60 @@ export default function StaffPerformanceReportingPage() {
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <AdminPageHeader
                 title={t('adminShell.staffPerformance.pageTitle')}
-                breadcrumbs={[
-                    adminOverviewCrumb(t),
-                    { title: t('nav.reporting'), href: '/reporting' },
-                    { title: t('adminShell.staffPerformance.pageTitle') },
-                ]}
+                breadcrumbs={
+                    fromStaffHub
+                        ? [
+                              adminOverviewCrumb(t),
+                              { title: t('staff:hub.pageTitle'), href: '/staff' },
+                              { title: t('staff:nav.performance') },
+                          ]
+                        : [
+                              adminOverviewCrumb(t),
+                              { title: t('nav.reporting'), href: '/reporting' },
+                              { title: t('adminShell.staffPerformance.pageTitle') },
+                          ]
+                }
             >
                 <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
                     {t('adminShell.staffPerformance.pageIntro')}
                 </Typography.Paragraph>
-                <Link href="/reporting">{t('adminShell.staffPerformance.backToOperational')}</Link>
+                <Link href={fromStaffHub ? '/staff' : '/reporting'}>
+                    {fromStaffHub
+                        ? t('staff:hub.backLink')
+                        : t('adminShell.staffPerformance.backToOperational')}
+                </Link>
             </AdminPageHeader>
 
-            <Card size="small" title={t('adminShell.reporting.filtersTitle')}>
-                <Space wrap size="large" align="start">
-                    <Space orientation="vertical" size={4}>
-                        <Typography.Text type="secondary">{t('adminShell.reporting.dateRange')}</Typography.Text>
-                        <RangePicker format={DAYJS_DATE_FORMAT}
-                            value={dateRange}
-                            onChange={(r) => {
-                                if (r?.[0] && r[1]) setDateRange([r[0], r[1]]);
-                            }}
-                        />
-                    </Space>
-                    <Space orientation="vertical" size={4}>
-                        <Typography.Text type="secondary">{t('adminShell.reporting.register')}</Typography.Text>
-                        <Select
-                            allowClear
-                            style={{ minWidth: 220 }}
-                            placeholder={t('adminShell.reporting.registerAll')}
-                            value={cashRegisterId}
-                            onChange={(v) => setCashRegisterId(v)}
-                            options={registerRows.map((r) => ({
-                                value: r.id,
-                                label: `${r.registerNumber ?? r.id} · ${r.location ?? ''}`.trim(),
-                            }))}
-                        />
-                    </Space>
-                    <Space orientation="vertical" size={4}>
-                        <Typography.Text type="secondary">{t('adminShell.reporting.cashier')}</Typography.Text>
-                        <Select
-                            allowClear
-                            showSearch
-                            filterOption={false}
-                            style={{ minWidth: 240 }}
-                            placeholder={t('adminShell.reporting.cashierAll')}
-                            value={cashierId}
-                            onChange={(v) => setCashierId(v)}
-                            onSearch={onCashierSearch}
-                            loading={cashierOptionsLoading}
-                            options={cashierOptions}
-                        />
-                    </Space>
-                    <Space orientation="vertical" size={4}>
-                        <Typography.Text type="secondary">{t('adminShell.reporting.paymentMethod')}</Typography.Text>
-                        <Select
-                            allowClear
-                            style={{ minWidth: 180 }}
-                            placeholder={t('adminShell.reporting.paymentAll')}
-                            value={paymentMethod}
-                            onChange={(v) => setPaymentMethod(v)}
-                            options={PAYMENT_METHOD_OPTIONS.map((o) => ({ value: o.value, label: o.labelDe }))}
-                        />
-                    </Space>
-                    <Space orientation="vertical" size={4}>
-                        <Typography.Text type="secondary">{t('adminShell.reporting.activeOnly')}</Typography.Text>
-                        <Switch checked={activeOnly} onChange={setActiveOnly} />
-                    </Space>
-                    <Space orientation="vertical" size={4}>
-                        <Typography.Text type="secondary">{t('adminShell.staffPerformance.includePerStaffPerDay')}</Typography.Text>
-                        <Switch checked={includePerStaffPerDay} onChange={setIncludePerStaffPerDay} />
-                    </Space>
-                </Space>
-            </Card>
+            <ReportFilters
+                mode="live"
+                cardTitle={t('adminShell.reporting.filtersTitle')}
+                showStaffFilter
+                registerRequired={false}
+                registerAllowClear
+                onGenerate={applyCoreFilters}
+                loading={reportQ.isFetching}
+                initialValues={{ dateRange }}
+                extra={
+                    <>
+                        <Form.Item label={t('adminShell.reporting.paymentMethod')}>
+                            <Select
+                                allowClear
+                                style={{ minWidth: 180 }}
+                                placeholder={t('adminShell.reporting.paymentAll')}
+                                value={paymentMethod}
+                                onChange={(v) => setPaymentMethod(v)}
+                                options={PAYMENT_METHOD_OPTIONS.map((o) => ({ value: o.value, label: o.labelDe }))}
+                            />
+                        </Form.Item>
+                        <Form.Item label={t('adminShell.reporting.activeOnly')}>
+                            <Switch checked={activeOnly} onChange={setActiveOnly} />
+                        </Form.Item>
+                        <Form.Item label={t('adminShell.staffPerformance.includePerStaffPerDay')}>
+                            <Switch checked={includePerStaffPerDay} onChange={setIncludePerStaffPerDay} />
+                        </Form.Item>
+                    </>
+                }
+            />
 
             {rel ? (
                 <Collapse

@@ -441,5 +441,30 @@
       "correlation": "Correlation",
       "tse": "TSE"
     }
+  },
+  "activityLog": {
+    "pageTitle": "Activity log",
+    "pageIntro": "Tenant-scoped staff activity from audit records. Platform operator actions are hidden.",
+    "title": "Activity log",
+    "userPlaceholder": "User",
+    "actionTypePlaceholder": "Action type",
+    "actionTypeAll": "All actions",
+    "searchPlaceholder": "Search…",
+    "colTime": "Time",
+    "colUser": "User",
+    "colAction": "Action",
+    "colDescription": "Description",
+    "colDetails": "Details",
+    "empty": "No activities found",
+    "totalEntries": "{{count}} entries",
+    "export": "Export",
+    "exportSuccess": "Export started",
+    "exportFailed": "Export failed",
+    "shiftReportsLink": "Staff performance report",
+    "actions": {
+      "ShiftStarted": "Shift opened",
+      "ShiftEnded": "Shift closed",
+      "POS_SPL_RCPT": "Special receipt"
+    }
   }
 }

@@ -441,5 +441,30 @@
       "correlation": "Correlation",
       "tse": "TSE"
     }
+  },
+  "activityLog": {
+    "pageTitle": "Aktivite gunlugu",
+    "pageIntro": "Denetim kayitlarindan kiraci kapsamli personel aktivitesi. Platform operator islemleri gizlenir.",
+    "title": "Aktivite gunlugu",
+    "userPlaceholder": "Kullanici",
+    "actionTypePlaceholder": "Islem tipi",
+    "actionTypeAll": "Tum islemler",
+    "searchPlaceholder": "Ara…",
+    "colTime": "Zaman",
+    "colUser": "Kullanici",
+    "colAction": "Islem",
+    "colDescription": "Aciklama",
+    "colDetails": "Detaylar",
+    "empty": "Aktivite bulunamadi",
+    "totalEntries": "{{count}} kayit",
+    "export": "Disa aktar",
+    "exportSuccess": "Disa aktarma baslatildi",
+    "exportFailed": "Disa aktarma basarisiz",
+    "shiftReportsLink": "Personel performans raporu",
+    "actions": {
+      "ShiftStarted": "Vardiya acildi",
+      "ShiftEnded": "Vardiya kapandi",
+      "POS_SPL_RCPT": "Ozel fis"
+    }
   }
 }

@@ -1,0 +1,34 @@
+{
+  "title": "Quick actions",
+  "actions": {
+    "openShift": "Open shift",
+    "closeShift": "Close shift",
+    "dailyReport": "Daily report",
+    "dailyClosing": "Daily closing (Z-report)",
+    "openShifts": "Open shifts",
+    "openShiftsCount": "{{count}} open shifts",
+    "cashBalance": "Register balance",
+    "monatsbeleg": "Monatsbeleg",
+    "monatsbelegMissing": "{{count}} Monatsbeleg missing",
+    "backupFailed": "Backup failed",
+    "openPos": "Open POS"
+  },
+  "modals": {
+    "openShift": {
+      "title": "Open shift",
+      "description": "Open shift for this register?",
+      "confirm": "Open"
+    },
+    "closeShift": {
+      "title": "Close shift",
+      "description": "Close shift for this register?",
+      "warning": "Make sure all transactions are completed.",
+      "confirm": "Close"
+    }
+  },
+  "messages": {
+    "shiftOpened": "Shift was opened",
+    "shiftClosed": "Shift was closed",
+    "error": "Action failed"
+  }
+}

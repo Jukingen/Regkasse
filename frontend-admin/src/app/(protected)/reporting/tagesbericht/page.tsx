@@ -5,7 +5,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  * Formal Tagesbericht: Liste, Erzeugung (provisorisch), Filter nach Datum und Kasse.
  */
 import React, { useMemo, useState } from 'react';
-import { Button, Card, DatePicker, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Card, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import Link from 'next/link';
@@ -15,15 +15,11 @@ import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { formatDate, formatNumber } from '@/i18n/formatting';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import type { CashRegister } from '@/api/generated/model';
+import { ReportFilters, type ReportFilterValues } from '@/components/ReportFilters';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
 import { useFiscalReportText } from '@/shared/reporting/useFiscalReportText';
-import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
-
-const { RangePicker } = DatePicker;
 
 type TagesberichtListItem = {
   id: string;
@@ -62,16 +58,22 @@ export default function TagesberichtListPage() {
   ]);
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
 
-  const registersQ = useGetApiCashRegister();
-  const registersData = registersQ.data as unknown;
-  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersData)
-      ? (registersData as CashRegister[])
-      : [];
-
   const fromDate = range[0].format('YYYY-MM-DD');
   const toDate = range[1].format('YYYY-MM-DD');
+
+  const applyFilters = (values: Partial<ReportFilterValues>) => {
+    if (values.dateRange?.[0] && values.dateRange[1]) {
+      setRange(values.dateRange);
+    }
+    if (values.registerId) {
+      setCashRegisterId(values.registerId);
+    }
+  };
+
+  const handleFilterGenerate = (values: ReportFilterValues) => {
+    applyFilters(values);
+    void qc.invalidateQueries({ queryKey: ['tagesbericht', 'list'] });
+  };
 
   const listQ = useQuery({
     queryKey: ['tagesbericht', 'list', fromDate, toDate, cashRegisterId],
@@ -85,6 +87,7 @@ export default function TagesberichtListPage() {
       });
       return data;
     },
+    enabled: Boolean(cashRegisterId),
   });
 
   const generateMut = useMutation({
@@ -108,6 +111,14 @@ export default function TagesberichtListPage() {
     },
     onError: () => message.error(t('reporting.listShared.generateError')),
   });
+
+  const handleGenerate = () => {
+    if (!cashRegisterId) {
+      message.warning(t('reporting.listShared.selectRegister'));
+      return;
+    }
+    generateMut.mutate();
+  };
 
   const columns: ColumnsType<TagesberichtListItem> = useMemo(
     () => [
@@ -173,30 +184,21 @@ export default function TagesberichtListPage() {
         ]}
       />
       <FormalReportLanguageNotice />
-      <Card style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <RangePicker format={DAYJS_DATE_FORMAT} value={range} onChange={(v) => v && setRange(v as [dayjs.Dayjs, dayjs.Dayjs])} />
-          <Select
-            allowClear
-            placeholder={t('reporting.listShared.registerPlaceholder')}
-            style={{ minWidth: 220 }}
-            value={cashRegisterId}
-            onChange={setCashRegisterId}
-            options={registerRows.map((r) => ({
-              value: r.id,
-              label: `${r.registerNumber} — ${r.location}`,
-            }))}
-          />
-          <Button onClick={() => listQ.refetch()} loading={listQ.isFetching}>
-            {t('reporting.listShared.refresh')}
-          </Button>
+      <Card style={{ marginBottom: 16 }} title={t('adminShell.reporting.filtersTitle')}>
+        <ReportFilters
+          onGenerate={handleFilterGenerate}
+          onValuesChange={applyFilters}
+          loading={listQ.isFetching}
+          initialValues={{ dateRange: range }}
+        />
+        <Space wrap style={{ marginBottom: 12 }}>
           {canExport ? (
-            <Button type="primary" loading={generateMut.isPending} onClick={() => generateMut.mutate()}>
+            <Button type="primary" loading={generateMut.isPending} onClick={handleGenerate}>
               {t('reporting.tagesbericht.list.generateButton')}
             </Button>
           ) : null}
         </Space>
-        <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
           {t('reporting.tagesbericht.list.intro')}
         </Typography.Paragraph>
       </Card>

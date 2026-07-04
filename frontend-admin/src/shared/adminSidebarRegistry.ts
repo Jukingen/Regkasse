@@ -117,6 +117,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         icon: 'ClockCircleOutlined',
         permission: PERMISSIONS.SHIFT_VIEW,
     },
+    staffHub: {
+        id: 'staffHub',
+        menuKey: '/staff',
+        href: '/staff',
+        labelKey: 'nav.staff',
+        icon: 'TeamOutlined',
+        permission: [PERMISSIONS.USER_VIEW, PERMISSIONS.REPORT_VIEW, PERMISSIONS.SHIFT_VIEW],
+    },
     tagesabschluss: {
         id: 'tagesabschluss',
         menuKey: '/tagesabschluss',
@@ -130,6 +138,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/receipts',
         labelKey: 'nav.receipts',
         icon: 'FileSearchOutlined',
+        permission: PERMISSIONS.SALE_VIEW,
     },
     payments: {
         id: 'payments',
@@ -137,6 +146,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/payments',
         labelKey: 'nav.payments',
         icon: 'CreditCardOutlined',
+        permission: PERMISSIONS.PAYMENT_VIEW,
     },
     stornoRefundAudit: {
         id: 'stornoRefundAudit',
@@ -264,6 +274,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/reporting',
         labelKey: 'nav.operationalReports',
         icon: 'PieChartOutlined',
+        permission: PERMISSIONS.REPORT_VIEW,
     },
     reportCenter: {
         id: 'reportCenter',
@@ -271,6 +282,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/reporting/report-center',
         labelKey: 'nav.reportCenter',
         icon: 'FundOutlined',
+        permission: PERMISSIONS.REPORT_VIEW,
     },
     staffPerformance: {
         id: 'staffPerformance',
@@ -278,6 +290,15 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/reporting/staff',
         labelKey: 'nav.staffPerformance',
         icon: 'TeamOutlined',
+        permission: PERMISSIONS.REPORT_VIEW,
+    },
+    activityLog: {
+        id: 'activityLog',
+        menuKey: '/audit-logs/activity',
+        href: '/audit-logs/activity',
+        labelKey: 'nav.activityLog',
+        icon: 'UnorderedListOutlined',
+        permission: PERMISSIONS.AUDIT_VIEW,
     },
     dailyClosingSummary: {
         id: 'dailyClosingSummary',
@@ -309,6 +330,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.tagesbericht',
         icon: 'FileDoneOutlined',
         sidebarHidden: true,
+        permission: PERMISSIONS.REPORT_VIEW,
     },
     monatsbericht: {
         id: 'monatsbericht',
@@ -386,6 +408,41 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/settings/company',
         labelKey: 'nav.companyFiscal',
         icon: 'ShopOutlined',
+        permission: PERMISSIONS.SETTINGS_MANAGE,
+    },
+    settingsHub: {
+        id: 'settingsHub',
+        menuKey: '/settings',
+        href: '/settings',
+        labelKey: 'nav.settingsHub',
+        icon: 'SettingOutlined',
+    },
+    tseSettings: {
+        id: 'tseSettings',
+        menuKey: '/settings/tse',
+        href: '/settings/tse',
+        labelKey: 'settings.tabs.tse',
+        icon: 'SafetyCertificateOutlined',
+        permission: PERMISSIONS.SETTINGS_MANAGE,
+        sidebarHidden: true,
+    },
+    finanzonlineSettings: {
+        id: 'finanzonlineSettings',
+        menuKey: '/settings/finanzonline',
+        href: '/settings/finanzonline',
+        labelKey: 'settings.tabs.finanzOnline',
+        icon: 'WalletOutlined',
+        permission: PERMISSIONS.SETTINGS_MANAGE,
+        sidebarHidden: true,
+    },
+    backupSettings: {
+        id: 'backupSettings',
+        menuKey: '/settings/backup',
+        href: '/settings/backup',
+        labelKey: 'settings.manager.advanced.backup',
+        icon: 'CloudServerOutlined',
+        permission: PERMISSIONS.BACKUP_MANAGE,
+        sidebarHidden: true,
     },
     sessionSettings: {
         id: 'sessionSettings',
@@ -455,6 +512,8 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/license',
         labelKey: 'nav.licenses',
         icon: 'KeyOutlined',
+        /** Mandant license (Manager) + deployment license (Super Admin / settings.manage). */
+        permission: [PERMISSIONS.LICENSE_MANAGE, PERMISSIONS.SETTINGS_MANAGE],
     },
     superAdminTenants: {
         id: 'superAdminTenants',
@@ -462,6 +521,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/tenants',
         labelKey: 'nav.tenants',
         icon: 'ApartmentOutlined',
+        permission: PERMISSIONS.SYSTEM_CRITICAL,
     },
     superAdminLicenses: {
         id: 'superAdminLicenses',
@@ -477,6 +537,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/cash-registers',
         labelKey: 'nav.superAdminCashRegisters',
         icon: 'ShopOutlined',
+        permission: PERMISSIONS.SYSTEM_CRITICAL,
         sidebarHidden: true,
     },
     billingOverview: {
@@ -591,6 +652,14 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         labelKey: 'nav.closingReceipt',
         icon: 'FileDoneOutlined',
     },
+    specialReceiptTestHelper: {
+        id: 'specialReceiptTestHelper',
+        menuKey: '/rksv/sb/test-helper',
+        href: '/rksv/sonderbelege?focus=test-helper',
+        labelKey: 'nav.rksvTestHelper',
+        icon: 'ExperimentOutlined',
+        permission: PERMISSIONS.RKSV_TEST_HELPER,
+    },
 };
 
 export const SIDEBAR_GROUP_META: Record<
@@ -699,7 +768,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['operationsCenter', 'tables', 'kassenverwaltung', 'shiftsOverview'],
+                catalogIds: ['operationsCenter', 'tables', 'kassenverwaltung', 'staffHub', 'shiftsOverview'],
             },
             {
                 kind: 'nested',
@@ -735,6 +804,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                     'specialReceiptYearly',
                     'specialReceiptNull',
                     'specialReceiptClosing',
+                    'specialReceiptTestHelper',
                 ],
             },
             {
@@ -779,7 +849,7 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
         blocks: [
             {
                 kind: 'leaves',
-                catalogIds: ['reportingOverview', 'reportCenter', 'userActivityReport', 'staffPerformance'],
+                catalogIds: ['reportingOverview', 'reportCenter', 'activityLog', 'userActivityReport', 'staffPerformance'],
             },
         ],
     },
@@ -790,7 +860,11 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
             {
                 kind: 'leaves',
                 catalogIds: [
+                    'settingsHub',
                     'companySettings',
+                    'tseSettings',
+                    'finanzonlineSettings',
+                    'backupSettings',
                     'sessionSettings',
                     'personalization',
                     'paymentMethods',

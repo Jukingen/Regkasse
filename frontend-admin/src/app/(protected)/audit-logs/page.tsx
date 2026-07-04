@@ -16,6 +16,8 @@ import { useI18n } from '@/i18n';
 import { formatDate, formatNumber } from '@/i18n/formatting';
 import { useAuditLogSearchParams } from '@/features/audit-logs/hooks/useAuditLogSearchParams';
 import { toAuditLogStatusApiParam, type AuditLogStatusFilter } from '@/features/audit-logs/constants/auditLogFilters';
+import { AuditLogsSubNav } from '@/features/audit/components/AuditLogsSubNav';
+import { ManagerAuditLogsDefaultTab } from '@/features/audit/components/ManagerAuditLogsDefaultTab';
 import { AuditFilterBar } from '@/features/audit/components/AuditFilterBar';
 import { AuditDetailModal } from '@/features/audit/components/AuditDetailModal';
 import { AuditExportModal } from '@/features/audit/components/AuditExportModal';
@@ -206,6 +208,8 @@ function AuditLogsPageContent() {
                 </Typography.Paragraph>
             </AdminPageHeader>
 
+            <AuditLogsSubNav />
+
             <Card size="small" title={t('common.auditLogs.filterCardTitle')}>
                 <AuditFilterBar
                     action={params.action}
@@ -357,8 +361,10 @@ function AuditLogsLoadingFallback() {
 
 export default function AuditLogsPage() {
     return (
-        <Suspense fallback={<AuditLogsLoadingFallback />}>
-            <AuditLogsPageContent />
-        </Suspense>
+        <ManagerAuditLogsDefaultTab fallback={<AuditLogsLoadingFallback />}>
+            <Suspense fallback={<AuditLogsLoadingFallback />}>
+                <AuditLogsPageContent />
+            </Suspense>
+        </ManagerAuditLogsDefaultTab>
     );
 }

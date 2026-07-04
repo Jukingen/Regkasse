@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using KasseAPI_Final.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using KasseAPI_Final.Services;
@@ -34,6 +36,18 @@ namespace KasseAPI_Final.Controllers
             _logger = logger;
         }
 
+        private bool IsActorSuperAdmin() =>
+            string.Equals(
+                RoleCanonicalization.GetCanonicalRole(User.FindFirstValue(ClaimTypes.Role) ?? string.Empty),
+                Roles.SuperAdmin,
+                StringComparison.Ordinal);
+
+        private static void ApplyTenantManagerVisibility(AuditLogQueryFilters filters, bool actorIsSuperAdmin)
+        {
+            if (!actorIsSuperAdmin)
+                filters.ExcludePlatformOperatorActors = true;
+        }
+
         /// <summary>
         /// GET: api/auditlog - Get all audit logs with filtering and pagination
         /// </summary>
@@ -52,6 +66,7 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] AuditLogStatus? status = null,
             [FromQuery] string? statusOutcome = null,
             [FromQuery] bool? hasChanges = null,
+            [FromQuery] string? search = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
             [FromQuery] string? afterCursor = null,
@@ -65,6 +80,8 @@ namespace KasseAPI_Final.Controllers
                 var filters = AuditLogQueryExtensions.ToFilters(
                     startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
                     ipAddress, status, statusOutcome, hasChanges);
+                filters.Search = search;
+                ApplyTenantManagerVisibility(filters, IsActorSuperAdmin());
 
                 var includeTotal = includeTotalCount && page == 1 && string.IsNullOrWhiteSpace(afterCursor);
                 var (items, meta) = await _auditLogService.GetAuditLogsPagedAsync(
@@ -432,6 +449,7 @@ namespace KasseAPI_Final.Controllers
             [FromQuery] AuditLogStatus? status = null,
             [FromQuery] string? statusOutcome = null,
             [FromQuery] bool? hasChanges = null,
+            [FromQuery] string? search = null,
             CancellationToken cancellationToken = default)
         {
             try
@@ -439,6 +457,8 @@ namespace KasseAPI_Final.Controllers
                 var filters = AuditLogQueryExtensions.ToFilters(
                     startDate, endDate, userId, userRole, targetUserId, action, entityType, entityId,
                     ipAddress, status, statusOutcome, hasChanges);
+                filters.Search = search;
+                ApplyTenantManagerVisibility(filters, IsActorSuperAdmin());
 
                 var normalized = (format ?? "csv").Trim().ToLowerInvariant();
                 var ext = normalized == "json" ? "json" : "csv";

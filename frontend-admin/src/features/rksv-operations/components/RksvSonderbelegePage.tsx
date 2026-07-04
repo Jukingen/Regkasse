@@ -216,13 +216,22 @@ export default function RksvSonderbelegePage() {
 
     useEffect(() => {
         const focus = searchParams.get('focus')?.trim();
-        if (focus !== 'startbeleg' && focus !== 'schlussbeleg' && focus !== 'monatsbeleg') return;
+        if (
+            focus !== 'startbeleg'
+            && focus !== 'schlussbeleg'
+            && focus !== 'monatsbeleg'
+            && focus !== 'test-helper'
+        ) {
+            return;
+        }
         const id =
             focus === 'startbeleg'
                 ? 'rksv-focus-startbeleg'
                 : focus === 'schlussbeleg'
                   ? 'rksv-focus-schlussbeleg'
-                  : 'rksv-missing-monatsbelege';
+                  : focus === 'test-helper'
+                    ? 'rksv-focus-test-helper'
+                    : 'rksv-missing-monatsbelege';
         requestAnimationFrame(() => {
             document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
@@ -814,7 +823,7 @@ export default function RksvSonderbelegePage() {
             />
 
             {isDevelopment && canTestHelper ? (
-                <Card title="Test Helper (Demo-Modus)" style={{ marginBottom: 16 }}>
+                <Card id="rksv-focus-test-helper" title="Test Helper (Demo-Modus)" style={{ marginBottom: 16 }}>
                     <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                         <Alert
                             type="warning"

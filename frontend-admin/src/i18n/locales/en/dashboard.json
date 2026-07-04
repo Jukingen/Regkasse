@@ -197,5 +197,26 @@
     "daysLate": "{{count}} days late",
     "overdue": "Overdue",
     "missing": "Missing"
+  },
+  "manager": {
+    "welcome": "Welcome back, {{name}}!",
+    "todaySales": "Today's sales",
+    "transactions": "Transactions",
+    "transactionCount": "{{count}} transactions",
+    "openShifts": "Open shifts",
+    "shiftOpen": "Shift open",
+    "allClosed": "All closed",
+    "activeStaff": "Active staff",
+    "onDutyToday": "On duty today",
+    "viewStaffHub": "Staff overview",
+    "viewStaffShifts": "View shifts",
+    "cashBalance": "Register balance",
+    "noRegister": "No register",
+    "recentActivities": "Recent activities",
+    "viewAll": "View all",
+    "noActivities": "No activities",
+    "pendingMonatsbeleg": "{{count}} register(s) require a Monatsbeleg",
+    "pendingMonatsbelegDescription": "Please create the outstanding monthly receipts.",
+    "createNow": "Catch up now"
   }
 }

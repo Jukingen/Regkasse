@@ -12,6 +12,7 @@ export const FISCAL_RKSV_CLOSING_VIRTUAL_MENU_KEYS = [
     '/rksv/sb/jahresbeleg',
     '/rksv/sb/nullbeleg',
     '/rksv/sb/schlussbeleg',
+    '/rksv/sb/test-helper',
 ] as const;
 
 export type FiscalRksvClosingSidebarLeaf = {

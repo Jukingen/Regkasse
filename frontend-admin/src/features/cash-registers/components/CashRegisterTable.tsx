@@ -8,7 +8,6 @@ import {
     FileProtectOutlined,
     MinusCircleOutlined,
     SafetyOutlined,
-    StopOutlined,
     ShopOutlined,
     UserOutlined,
 } from '@ant-design/icons';
@@ -16,18 +15,19 @@ import { Button, Empty, Space, Table, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { CashRegister } from '@/api/generated/model';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, useI18n } from '@/i18n';
-import { CashRegisterQuickActions } from '@/features/cash-registers/components/CashRegisterQuickActions';
+import { CashRegisterActions, type CashRegisterActionKey } from '@/features/cash-registers/components/CashRegisterActions';
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
 import { TseHealthBadge } from '@/features/cash-registers/components/TseHealthBadge';
 import type { EnhancedCashRegister } from '@/features/cash-registers/types/enhancedCashRegister';
 import { formatRelativeTime } from '@/features/cash-registers/utils/formatRelativeTime';
 import {
-    canDecommissionRegister,
     isDecommissionedRegister,
     rawRegisterStatus,
 } from '@/features/cash-registers/utils/registerStatus';
 import { useCanAccessPath } from '@/hooks/useCanAccessPath';
+import { usePermissions } from '@/hooks/usePermissions';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
+import { AppPermissions } from '@/shared/auth/permissions';
 import styles from './CashRegisterTable.module.css';
 
 function asEnhanced(record: CashRegister): EnhancedCashRegister {
@@ -46,6 +46,7 @@ export type CashRegisterTableProps = {
     registers: CashRegister[];
     loading?: boolean;
     canCreate?: boolean;
+    /** @deprecated Column visibility uses `cash_register.manage` from JWT via `usePermissions`. */
     canManage?: boolean;
     /** Total registers before visibility filter (decommissioned hidden). */
     totalRegisterCount?: number;
@@ -57,6 +58,7 @@ export type CashRegisterTableProps = {
     onSelectionChange?: (keys: Key[], rows: CashRegister[]) => void;
     onEdit: (register: CashRegister) => void;
     onDecommission: (register: CashRegister) => void;
+    onRegisterAction?: (key: CashRegisterActionKey, register: CashRegister) => void;
 };
 
 function isFiniteNumber(value: unknown): value is number {
@@ -67,17 +69,19 @@ export function CashRegisterTable({
     registers,
     loading,
     canCreate = false,
-    canManage = false,
     totalRegisterCount = 0,
-    canDecommission,
+    canDecommission: _canDecommission,
     rowClassName,
     selectedRowKeys,
     onSelectionChange,
     onEdit,
-    onDecommission,
+    onDecommission: _onDecommission,
+    onRegisterAction,
 }: CashRegisterTableProps) {
     const { t, formatLocale } = useI18n();
+    const { hasPermission, isSuperAdmin } = usePermissions();
     const canOpenSonderbelege = useCanAccessPath(RKSV_SONDERBELEGE_PATH);
+    const canManageRegisters = hasPermission(AppPermissions.CashRegisterManage);
 
     const emptyDescription =
         totalRegisterCount === 0
@@ -86,7 +90,6 @@ export function CashRegisterTable({
                 : t('cashRegisters.emptyContactAdmin')
             : t('cashRegisters.empty');
 
-    const showActionsColumn = canManage || canDecommission;
     const showBalanceColumn = registers.some(
         (record) => isFiniteNumber(record.currentBalance) || isFiniteNumber(record.startingBalance),
     );
@@ -242,110 +245,85 @@ export function CashRegisterTable({
                   } satisfies ColumnsType<CashRegister>[number],
               ]
             : []),
-        ...(showActionsColumn
-            ? [
-                  {
-                      title: t('cashRegisters.columns.actions'),
-                      key: 'actions',
-                      width: 220,
-                      fixed: 'right',
-                      render: (_: unknown, record: CashRegister) => {
-                          const enhanced = asEnhanced(record);
-                          const status = rawRegisterStatus(record);
-                          const decommissioned = isDecommissionedRegister(status);
-                          const canStilllegen =
-                              canDecommission &&
-                              !decommissioned &&
-                              canDecommissionRegister(status);
-                          const registerId = record.id?.trim();
-                          const offlineHref = registerId
-                              ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
-                              : '/admin/tse/offline-transactions';
-
-                          return (
-                              <div className={styles.actions}>
-                                  <CashRegisterQuickActions
-                                      register={record}
-                                      canManage={canManage}
-                                      canDecommission={canDecommission}
-                                      onDecommission={() => onDecommission(record)}
-                                  />
-                                  {canManage ? (
-                                      <Tooltip title={t('cashRegisters.actions.view')}>
-                                          <Button
-                                              size="small"
-                                              icon={<EyeOutlined />}
-                                              aria-label={t('cashRegisters.actions.view')}
-                                              onClick={() => onEdit(record)}
-                                          />
-                                      </Tooltip>
-                                  ) : null}
-                                  <Tooltip title={t('cashRegisters.actions.tseHealth')}>
-                                      <Button
-                                          size="small"
-                                          icon={<SafetyOutlined />}
-                                          aria-label={t('cashRegisters.actions.tseHealth')}
-                                          href="/rksv/status"
-                                      />
-                                  </Tooltip>
-                                  {(enhanced.offlineQueueCount ?? 0) > 0 ? (
-                                      <Tooltip
-                                          title={t('cashRegisters.offlineQueue.tooltip', {
-                                              count: enhanced.offlineQueueCount ?? 0,
-                                          })}
-                                      >
-                                          <Button
-                                              size="small"
-                                              icon={<CloudSyncOutlined />}
-                                              aria-label={t('cashRegisters.actions.offlineQueue')}
-                                              href={offlineHref}
-                                          />
-                                      </Tooltip>
-                                  ) : null}
-                                  {canOpenSonderbelege ? (
-                                      <Tooltip title={t('cashRegisters.actions.specialReceipts')}>
-                                          <Button
-                                              size="small"
-                                              icon={<FileProtectOutlined />}
-                                              aria-label={t('cashRegisters.actions.specialReceipts')}
-                                              href="/rksv/sonderbelege?focus=schlussbeleg"
-                                          />
-                                      </Tooltip>
-                                  ) : null}
-                                  {decommissioned ? (
-                                      <Tooltip title={t('cashRegisters.decommission.restoreTooltip')}>
-                                          <Button
-                                              size="small"
-                                              icon={<MinusCircleOutlined />}
-                                              aria-label={t('cashRegisters.actions.restore')}
-                                              disabled
-                                          />
-                                      </Tooltip>
-                                  ) : canDecommission ? (
-                                      <Tooltip
-                                          title={
-                                              !canDecommissionRegister(status)
-                                                  ? t('cashRegisters.decommission.mustCloseFirst')
-                                                  : t('cashRegisters.actions.decommission')
-                                          }
-                                      >
-                                          <Button
-                                              size="small"
-                                              icon={<StopOutlined />}
-                                              aria-label={t('cashRegisters.actions.decommission')}
-                                              danger
-                                              disabled={!canStilllegen}
-                                              onClick={() => onDecommission(record)}
-                                          />
-                                      </Tooltip>
-                                  ) : null}
-                              </div>
-                          );
-                      },
-                  } satisfies ColumnsType<CashRegister>[number],
-              ]
-            : []),
     ];
+
+    if (canManageRegisters && onRegisterAction) {
+        columns.push({
+            title: t('cashRegisters.columns.actions'),
+            key: 'actions',
+            width: 220,
+            fixed: 'right',
+            render: (_: unknown, record: CashRegister) => {
+                const enhanced = asEnhanced(record);
+                const status = rawRegisterStatus(record);
+                const decommissioned = isDecommissionedRegister(status);
+                const registerId = record.id?.trim();
+                const offlineHref = registerId
+                    ? `/admin/tse/offline-transactions?cashRegisterId=${encodeURIComponent(registerId)}`
+                    : '/admin/tse/offline-transactions';
+
+                return (
+                    <div className={styles.actions}>
+                        <CashRegisterActions
+                            register={record}
+                            canOperate={canManageRegisters}
+                            onAction={onRegisterAction}
+                        />
+                        <Tooltip title={t('cashRegisters.actions.view')}>
+                            <Button
+                                size="small"
+                                icon={<EyeOutlined />}
+                                aria-label={t('cashRegisters.actions.view')}
+                                onClick={() => onEdit(record)}
+                            />
+                        </Tooltip>
+                        <Tooltip title={t('cashRegisters.actions.tseHealth')}>
+                            <Button
+                                size="small"
+                                icon={<SafetyOutlined />}
+                                aria-label={t('cashRegisters.actions.tseHealth')}
+                                href="/rksv/status"
+                            />
+                        </Tooltip>
+                        {(enhanced.offlineQueueCount ?? 0) > 0 ? (
+                            <Tooltip
+                                title={t('cashRegisters.offlineQueue.tooltip', {
+                                    count: enhanced.offlineQueueCount ?? 0,
+                                })}
+                            >
+                                <Button
+                                    size="small"
+                                    icon={<CloudSyncOutlined />}
+                                    aria-label={t('cashRegisters.actions.offlineQueue')}
+                                    href={offlineHref}
+                                />
+                            </Tooltip>
+                        ) : null}
+                        {canOpenSonderbelege ? (
+                            <Tooltip title={t('cashRegisters.actions.specialReceipts')}>
+                                <Button
+                                    size="small"
+                                    icon={<FileProtectOutlined />}
+                                    aria-label={t('cashRegisters.actions.specialReceipts')}
+                                    href="/rksv/sonderbelege?focus=schlussbeleg"
+                                />
+                            </Tooltip>
+                        ) : null}
+                        {isSuperAdmin && decommissioned ? (
+                            <Tooltip title={t('cashRegisters.decommission.restoreTooltip')}>
+                                <Button
+                                    size="small"
+                                    icon={<MinusCircleOutlined />}
+                                    aria-label={t('cashRegisters.actions.restore')}
+                                    disabled
+                                />
+                            </Tooltip>
+                        ) : null}
+                    </div>
+                );
+            },
+        });
+    }
 
     return (
         <Table<CashRegister>
@@ -363,7 +341,7 @@ export function CashRegisterTable({
                     : undefined
             }
             pagination={{ pageSize: 20, showSizeChanger: true }}
-            scroll={{ x: showBalanceColumn ? 1400 : 1200 }}
+            scroll={{ x: showBalanceColumn || canManageRegisters ? 1400 : 1200 }}
             locale={{
                 emptyText: <Empty description={emptyDescription} />,
             }}

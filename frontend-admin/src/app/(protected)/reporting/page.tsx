@@ -17,7 +17,7 @@ import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency } from '@/i18n/formatting';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import {
   getApiReportsOperationalExportSummaryCsv,
   useGetApiReportsOperationalClosings,
@@ -26,7 +26,7 @@ import {
   useGetApiReportsOperationalSummary,
 } from '@/api/generated/operational-reports/operational-reports';
 import { useCashierFilterOptions } from '@/features/reporting/hooks/useCashierFilterOptions';
-import type { CashRegister, CashierBucketDto, ClosingReferenceRowDto, PaymentMethodBucketDto } from '@/api/generated/model';
+import type { CashierBucketDto, ClosingReferenceRowDto, PaymentMethodBucketDto } from '@/api/generated/model';
 import { AXIOS_INSTANCE } from '@/lib/axios';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -124,13 +124,6 @@ export default function ReportingPage() {
     [startDate, endDate, cashRegisterId],
   );
 
-  const { data: registers } = useGetApiCashRegister();
-  const registersData = registers as unknown;
-  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersData)
-      ? (registersData as CashRegister[])
-      : [];
   const { options: cashierOptions, loading: cashierOptionsLoading, onSearch: onCashierSearch } =
     useCashierFilterOptions();
 
@@ -203,7 +196,19 @@ export default function ReportingPage() {
     } finally {
       setExporting(false);
     }
-  }, [canExport, filterParams, startDate, endDate, t]);
+  }, [canExport, filterParams, startDate, endDate, message, t]);
+
+  const onExportExcel = useCallback(() => {
+    void onExportCsv();
+  }, [onExportCsv]);
+
+  const onExportPdf = useCallback(() => {
+    if (!canExport) {
+      message.warning(t('adminShell.reporting.exportNoPermission'));
+      return;
+    }
+    globalThis.print();
+  }, [canExport, message, t]);
 
   const freezeMutation = useMutation({
     mutationFn: async () => {
@@ -266,17 +271,6 @@ export default function ReportingPage() {
     },
   ];
 
-  const registerOptions = useMemo(
-    () =>
-      registerRows
-        .filter((r: CashRegister) => r.id)
-        .map((r: CashRegister) => ({
-          value: r.id as string,
-          label: `${r.registerNumber} — ${r.location}`,
-        })),
-    [registerRows],
-  );
-
   return (
     <div style={{ paddingBottom: 24 }}>
       <AdminPageHeader
@@ -290,9 +284,17 @@ export default function ReportingPage() {
             <Button href="/reporting/report-center">{t('nav.reportCenter')}</Button>
             <Button href="/reporting/compliance">{t('nav.complianceReports')}</Button>
             {canExport ? (
-              <Button type="primary" loading={exporting} onClick={() => void onExportCsv()}>
-                {t('adminShell.reporting.exportCsv')}
-              </Button>
+              <>
+                <Button loading={exporting} onClick={() => void onExportPdf()}>
+                  {t('adminShell.reporting.exportPdf')}
+                </Button>
+                <Button loading={exporting} onClick={onExportExcel}>
+                  {t('adminShell.reporting.exportExcel')}
+                </Button>
+                <Button type="primary" loading={exporting} onClick={() => void onExportCsv()}>
+                  {t('adminShell.reporting.exportCsv')}
+                </Button>
+              </>
             ) : (
               <Typography.Text type="secondary">{t('adminShell.reporting.exportNoPermission')}</Typography.Text>
             )}
@@ -320,13 +322,15 @@ export default function ReportingPage() {
           </Col>
           <Col xs={24} md={7}>
             <Typography.Text type="secondary">{t('adminShell.reporting.register')}</Typography.Text>
-            <Select
+            <CashRegisterSelector
+              value={cashRegisterId}
+              onChange={setCashRegisterId}
+              showFormItem={false}
+              required={false}
+              autoSelect
               allowClear
               placeholder={t('adminShell.reporting.registerAll')}
               style={{ width: '100%', marginTop: 4 }}
-              options={registerOptions}
-              value={cashRegisterId}
-              onChange={(v) => setCashRegisterId(v)}
             />
           </Col>
           <Col xs={24} md={7}>

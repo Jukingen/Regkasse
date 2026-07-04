@@ -26,6 +26,7 @@ import { AppPermissions, PERMISSIONS, ANY_AUTHENTICATED_PERMISSION } from '@/sha
  * - `string[]` = any one of the listed permissions.
  *
  * Paths use actual App Router hrefs (not legacy aliases).
+ * Must stay aligned with `ROUTE_PERMISSIONS` (see `constants/__tests__/permissions.test.ts`).
  */
 export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   // Dashboard — visible to all authenticated tenant users
@@ -42,7 +43,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   // Tenant management (Super Admin)
   '/admin/tenants': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/licenses': PERMISSIONS.LICENSE_VIEW,
-  '/admin/cash-registers': AppPermissions.CashRegisterView,
+  '/admin/cash-registers': PERMISSIONS.SYSTEM_CRITICAL,
 
   // Cash register management
   '/kassenverwaltung': AppPermissions.CashRegisterManage,
@@ -56,9 +57,14 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/reporting': PERMISSIONS.REPORT_VIEW,
   '/admin/reports': PERMISSIONS.REPORT_VIEW,
 
-  // Settings
-  '/settings/company': PERMISSIONS.SETTINGS_VIEW,
+  // Settings hub & sub-routes
+  '/settings': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/company': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/finanzonline': PERMISSIONS.SETTINGS_MANAGE,
+  '/settings/backup': PERMISSIONS.BACKUP_MANAGE,
   '/settings/session': PERMISSIONS.SETTINGS_VIEW,
+  '/settings/offline': PERMISSIONS.SETTINGS_MANAGE,
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,

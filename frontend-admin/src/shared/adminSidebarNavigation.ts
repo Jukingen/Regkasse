@@ -117,6 +117,7 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/rksv/sb/jahresbeleg',
         '/rksv/sb/nullbeleg',
         '/rksv/sb/schlussbeleg',
+        '/rksv/sb/test-helper',
         '/rksv/sonderbelege',
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.catalog]: ['/products', '/modifier-groups', '/categories', '/inventory', '/pricing-rules'],
@@ -126,11 +127,13 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/reporting/report-center',
         '/reporting/compliance',
         '/reporting/staff',
+        '/audit-logs/activity',
         '/reports/daily-closing',
         '/admin/reports',
         '/admin/reports/user-activity',
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.settings]: [
+        '/settings',
         ...SETTINGS_AREA_ROUTE_PATHS,
         '/admin/system/time-sync',
         '/admin/backup',
@@ -203,6 +206,9 @@ export function resolveAdminMenuSelectedKeys(
         }
         if (focus === 'nullbeleg' && keys.includes('/rksv/sb/nullbeleg')) {
             return ['/rksv/sb/nullbeleg'];
+        }
+        if (focus === 'test-helper' && keys.includes('/rksv/sb/test-helper')) {
+            return ['/rksv/sb/test-helper'];
         }
     }
 
@@ -287,6 +293,7 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
         p === '/rksv/sb/jahresbeleg' ||
         p === '/rksv/sb/nullbeleg' ||
         p === '/rksv/sb/schlussbeleg' ||
+        p === '/rksv/sb/test-helper' ||
         p === '/rksv/sonderbelege' ||
         p.startsWith('/rksv/sonderbelege/')
     ) {

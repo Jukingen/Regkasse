@@ -16,8 +16,7 @@ import { useI18n } from '@/i18n';
 import { formatNumber } from '@/i18n/formatting';
 import { formatUserMonthYear } from '@/lib/dateFormatter';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import type { CashRegister } from '@/api/generated/model';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { FormalReportLanguageNotice } from '@/components/reporting/FormalReportLanguageNotice';
@@ -68,14 +67,6 @@ export default function MonatsberichtListPage() {
   const [reportMonth, setReportMonth] = useState(dayjs().startOf('month'));
   const [scopeKind, setScopeKind] = useState<'Register' | 'Company'>('Register');
   const [cashRegisterId, setCashRegisterId] = useState<string | undefined>();
-
-  const registersQ = useGetApiCashRegister();
-  const registersData = registersQ.data as unknown;
-  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersData)
-      ? (registersData as CashRegister[])
-      : [];
 
   const fromMonth = listRange[0].startOf('month').format('YYYY-MM-DD');
   const toMonth = listRange[1].startOf('month').format('YYYY-MM-DD');
@@ -206,18 +197,17 @@ export default function MonatsberichtListPage() {
               { value: 'Company', label: t('reporting.listShared.scopeOptionCompany') },
             ]}
           />
-          <Select
-            allowClear={scopeKind === 'Company'}
-            placeholder={t('reporting.listShared.registerPlaceholderScoped')}
-            style={{ minWidth: 220 }}
-            disabled={scopeKind === 'Company'}
-            value={cashRegisterId}
-            onChange={setCashRegisterId}
-            options={registerRows.map((r) => ({
-              value: r.id,
-              label: `${r.registerNumber} — ${r.location}`,
-            }))}
-          />
+          {scopeKind === 'Register' ? (
+            <CashRegisterSelector
+              value={cashRegisterId}
+              onChange={setCashRegisterId}
+              showFormItem={false}
+              required={false}
+              allowClear
+              placeholder={t('reporting.listShared.registerPlaceholderScoped')}
+              style={{ minWidth: 220 }}
+            />
+          ) : null}
           <Button onClick={() => listQ.refetch()} loading={listQ.isFetching}>
             {t('reporting.listShared.refresh')}
           </Button>

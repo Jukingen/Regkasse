@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { SIDEBAR_NAV_ITEM_CATALOG, SIDEBAR_LAYOUT_ROWS } from '@/shared/adminSidebarRegistry';
 import { ROUTE_PERMISSIONS } from '@/shared/auth/routePermissions';
 import { isMenuItemAllowed } from '@/shared/auth/menuPermissions';
-import { AppPermissions } from '@/shared/auth/permissions';
+import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
+import { MANAGER_ADMIN_PERMISSIONS } from '@/shared/__tests__/fixtures/adminAppPermissionFixtures';
 
 describe('sidebarRegistryCatalog', () => {
     it('references only defined catalog ids in layout rows', () => {
@@ -50,5 +51,25 @@ describe('sidebarRegistryCatalog', () => {
         expect(isMenuItemAllowed('/kassenverwaltung', [AppPermissions.CashRegisterView])).toBe(false);
         expect(isMenuItemAllowed('/kassenverwaltung', ['product.view'])).toBe(false);
         expect(isMenuItemAllowed('/kassenverwaltung', [])).toBe(false);
+    });
+
+    it('hides Super Admin-only sidebar leaves from Manager permissions', () => {
+        const managerPerms = [...MANAGER_ADMIN_PERMISSIONS];
+        for (const key of ['/admin/tenants', '/admin/billing', '/admin/cash-registers', '/admin/licenses']) {
+            expect(isMenuItemAllowed(key, managerPerms), key).toBe(false);
+        }
+        expect(isMenuItemAllowed('/admin/license', managerPerms)).toBe(true);
+    });
+
+    it('declares system.critical on Super Admin platform catalog leaves', () => {
+        expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminTenants.permission).toBe(PERMISSIONS.SYSTEM_CRITICAL);
+        expect(SIDEBAR_NAV_ITEM_CATALOG.billingOverview.permission).toEqual([PERMISSIONS.SYSTEM_CRITICAL]);
+        expect(SIDEBAR_NAV_ITEM_CATALOG.superAdminCashRegisters.permission).toBe(PERMISSIONS.SYSTEM_CRITICAL);
+    });
+
+    it('hides RKSV test helper from Manager sidebar permissions', () => {
+        const managerPerms = [...MANAGER_ADMIN_PERMISSIONS];
+        expect(isMenuItemAllowed('/rksv/sb/test-helper', managerPerms)).toBe(false);
+        expect(SIDEBAR_NAV_ITEM_CATALOG.specialReceiptTestHelper.permission).toBe(PERMISSIONS.RKSV_TEST_HELPER);
     });
 });

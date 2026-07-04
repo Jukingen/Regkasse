@@ -10,7 +10,6 @@ import { FA_QUICK_CASH_REGISTER_STORAGE_KEY } from '@/features/cash-registers/co
 const mockUseCurrentTenant = vi.fn();
 const mockUseTenantList = vi.fn();
 const mockUseAdminCashRegisterList = vi.fn();
-const mockUseCashRegisters = vi.fn();
 
 vi.mock('@/features/tenancy/hooks/useCurrentTenant', () => ({
     useCurrentTenant: () => mockUseCurrentTenant(),
@@ -22,10 +21,6 @@ vi.mock('@/features/tenancy/hooks/useTenantList', () => ({
 
 vi.mock('@/features/cash-registers/hooks/useAdminCashRegisterList', () => ({
     useAdminCashRegisterList: (opts: unknown) => mockUseAdminCashRegisterList(opts),
-}));
-
-vi.mock('@/features/cash-registers/hooks/useCashRegisters', () => ({
-    useCashRegisters: (tenantId: string | undefined, opts: unknown) => mockUseCashRegisters(tenantId, opts),
 }));
 
 function renderSelector(props: React.ComponentProps<typeof CashRegisterSelector> = {}) {
@@ -69,13 +64,6 @@ beforeEach(() => {
         isLoading: false,
         error: null,
     });
-    mockUseCashRegisters.mockReturnValue({
-        registers: [],
-        defaultRegister: null,
-        selectedRegisterId: null,
-        isLoading: false,
-        error: null,
-    });
 });
 
 describe('CashRegisterSelector', () => {
@@ -95,13 +83,9 @@ describe('CashRegisterSelector', () => {
                 enabled: true,
             }),
         );
-        expect(mockUseCashRegisters).toHaveBeenCalledWith(
-            undefined,
-            expect.objectContaining({ enabled: false }),
-        );
     });
 
-    it('manager scopes list to current tenant via useCashRegisters', () => {
+    it('manager loads registers via admin list with tenant-scoped default', () => {
         mockUseCurrentTenant.mockReturnValue({
             tenantId: 'tenant-a',
             isSuperAdminUser: false,
@@ -111,19 +95,16 @@ describe('CashRegisterSelector', () => {
 
         renderSelector();
 
-        expect(mockUseCashRegisters).toHaveBeenCalledWith(
-            'tenant-a',
-            expect.objectContaining({ enabled: true }),
-        );
         expect(mockUseAdminCashRegisterList).toHaveBeenCalledWith(
             expect.objectContaining({
-                allowAllTenants: false,
-                enabled: false,
+                tenantId: 'tenant-a',
+                allowTenantScopedDefault: true,
+                enabled: true,
             }),
         );
     });
 
-    it('manager without tenant shows warning placeholder', () => {
+    it('manager without resolved tenant still loads registers via allowTenantScopedDefault', () => {
         mockUseCurrentTenant.mockReturnValue({
             tenantId: null,
             isSuperAdminUser: false,
@@ -133,11 +114,13 @@ describe('CashRegisterSelector', () => {
 
         renderSelector();
 
-        expect(screen.getByText('Kein Mandant ausgewählt')).toBeInTheDocument();
-        expect(mockUseCashRegisters).toHaveBeenCalledWith(
-            undefined,
-            expect.objectContaining({ enabled: false }),
+        expect(mockUseAdminCashRegisterList).toHaveBeenCalledWith(
+            expect.objectContaining({
+                allowTenantScopedDefault: true,
+                enabled: true,
+            }),
         );
+        expect(screen.queryByText('Kein Mandant ausgewählt')).not.toBeInTheDocument();
     });
 
     it('super admin shows mandant picker when enabled', () => {
@@ -163,7 +146,7 @@ describe('CashRegisterSelector', () => {
             tenantName: 'Cafe',
             tenantSlug: 'cafe',
         });
-        mockUseCashRegisters.mockReturnValue({
+        mockUseAdminCashRegisterList.mockReturnValue({
             registers: [
                 {
                     id: 'reg-other',
@@ -180,14 +163,6 @@ describe('CashRegisterSelector', () => {
                     isDefaultForTenant: true,
                 },
             ],
-            defaultRegister: {
-                id: 'reg-default',
-                registerNumber: 'K1',
-                location: 'Haupt',
-                tenantId: 'tenant-a',
-                isDefaultForTenant: true,
-            },
-            selectedRegisterId: null,
             isLoading: false,
             error: null,
         });
@@ -208,7 +183,7 @@ describe('CashRegisterSelector', () => {
             tenantName: 'Cafe',
             tenantSlug: 'cafe',
         });
-        mockUseCashRegisters.mockReturnValue({
+        mockUseAdminCashRegisterList.mockReturnValue({
             registers: [
                 {
                     id: 'reg-only',
@@ -218,8 +193,6 @@ describe('CashRegisterSelector', () => {
                     isDefaultForTenant: false,
                 },
             ],
-            defaultRegister: null,
-            selectedRegisterId: null,
             isLoading: false,
             error: null,
         });
@@ -239,7 +212,7 @@ describe('CashRegisterSelector', () => {
             tenantName: 'Cafe',
             tenantSlug: 'cafe',
         });
-        mockUseCashRegisters.mockReturnValue({
+        mockUseAdminCashRegisterList.mockReturnValue({
             registers: [
                 {
                     id: 'reg-1',
@@ -256,8 +229,6 @@ describe('CashRegisterSelector', () => {
                     isDefaultForTenant: false,
                 },
             ],
-            defaultRegister: null,
-            selectedRegisterId: null,
             isLoading: false,
             error: null,
         });
@@ -280,7 +251,7 @@ describe('CashRegisterSelector', () => {
             tenantName: 'Cafe',
             tenantSlug: 'cafe',
         });
-        mockUseCashRegisters.mockReturnValue({
+        mockUseAdminCashRegisterList.mockReturnValue({
             registers: [
                 {
                     id: 'reg-default',
@@ -297,14 +268,6 @@ describe('CashRegisterSelector', () => {
                     isDefaultForTenant: false,
                 },
             ],
-            defaultRegister: {
-                id: 'reg-default',
-                registerNumber: 'K1',
-                location: 'Haupt',
-                tenantId: 'tenant-a',
-                isDefaultForTenant: true,
-            },
-            selectedRegisterId: null,
             isLoading: false,
             error: null,
         });

@@ -9,7 +9,7 @@ export default function CompanySettingsPage() {
     const { t } = useI18n();
     const breadcrumbs = [
         adminOverviewCrumb(t),
-        { title: t('nav.settingsHub'), href: '/settings/company' },
+        { title: t('nav.settingsHub'), href: '/settings' },
         { title: t('settings.companyPage.pageTitle') },
     ];
 

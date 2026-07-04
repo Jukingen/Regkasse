@@ -8,7 +8,6 @@ import { ShopOutlined } from '@ant-design/icons';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
-import { useCashRegisters } from '@/features/cash-registers/hooks/useCashRegisters';
 import {
     readQuickCashRegisterId,
     writeQuickCashRegisterId,
@@ -35,7 +34,7 @@ function resolveAutoSelectedRegisterId(
     registers: AdminCashRegisterListItem[],
     tenantId: string,
 ): string | null {
-    const saved = readQuickCashRegisterId();
+    const saved = readQuickCashRegisterId(tenantId);
     if (
         saved &&
         registers.some(
@@ -81,14 +80,16 @@ export function CashRegisterSelector({
 
     const listAllTenants = isSuperAdminUser && !effectiveTenantId;
 
-    const tenantScopedQuery = useCashRegisters(effectiveTenantId, {
-        enabled: (isSuperAdminUser || Boolean(effectiveTenantId)) && !listAllTenants && Boolean(effectiveTenantId),
+    const tenantScopedQuery = useAdminCashRegisterList({
+        tenantId: effectiveTenantId,
+        allowTenantScopedDefault: !isSuperAdminUser,
+        enabled: !listAllTenants && (isSuperAdminUser ? Boolean(effectiveTenantId) : true),
     });
 
     const allTenantsQuery = useAdminCashRegisterList({
         tenantId: effectiveTenantId,
         allowAllTenants: listAllTenants,
-        enabled: (isSuperAdminUser || Boolean(effectiveTenantId)) && listAllTenants,
+        enabled: listAllTenants,
     });
 
     const registers = listAllTenants ? allTenantsQuery.registers : tenantScopedQuery.registers;
@@ -117,13 +118,13 @@ export function CashRegisterSelector({
 
         setInternalRegisterId(nextId ?? undefined);
         if (nextId) {
-            writeQuickCashRegisterId(nextId);
+            writeQuickCashRegisterId(nextId, effectiveTenantId);
             const selected = registers.find((row) => row.id === nextId);
             if (selected) {
                 onChange?.(selected.id, selected.registerNumber, selected.tenantId);
             }
         } else {
-            writeQuickCashRegisterId(null);
+            writeQuickCashRegisterId(null, effectiveTenantId);
         }
     }, [
         effectiveTenantId,
@@ -180,7 +181,7 @@ export function CashRegisterSelector({
                 if (!isControlled) {
                     setInternalRegisterId(undefined);
                 }
-                writeQuickCashRegisterId(null);
+                writeQuickCashRegisterId(null, effectiveTenantId);
                 return;
             }
 
@@ -192,10 +193,10 @@ export function CashRegisterSelector({
             if (!isControlled) {
                 setInternalRegisterId(selectedId);
             }
-            writeQuickCashRegisterId(selectedId);
+            writeQuickCashRegisterId(selectedId, selected.tenantId ?? effectiveTenantId);
             onChange?.(selected.id, selected.registerNumber, selected.tenantId);
         },
-        [isControlled, onChange, registers],
+        [effectiveTenantId, isControlled, onChange, registers],
     );
 
     const filterRegisterOption = useCallback((input: string, option?: { register?: AdminCashRegisterListItem }) => {
@@ -249,18 +250,6 @@ export function CashRegisterSelector({
     );
 
     const registerSelect = (() => {
-        if (!isSuperAdminUser && !effectiveTenantId) {
-            return (
-                <Select
-                    className={className}
-                    style={style}
-                    disabled
-                    placeholder={t('cashRegisters.selector.noTenant')}
-                    status="warning"
-                />
-            );
-        }
-
         if (error) {
             return (
                 <Tooltip title={t('cashRegisters.selector.loadErrorTooltip')}>

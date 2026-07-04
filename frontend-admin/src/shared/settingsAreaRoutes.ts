@@ -8,7 +8,11 @@
  * - Group open-state: `ADMIN_SIDEBAR_GROUP_ROUTES[grp-verwaltung]` includes these after `/users`.
  */
 export const SETTINGS_AREA_ROUTE_PATHS = [
+    '/settings',
     '/settings/company',
+    '/settings/tse',
+    '/settings/finanzonline',
+    '/settings/backup',
     '/settings/session',
     '/settings/offline',
     '/settings/personalization',

@@ -441,5 +441,30 @@
       "correlation": "Correlation",
       "tse": "TSE"
     }
+  },
+  "activityLog": {
+    "pageTitle": "Aktivitätsprotokoll",
+    "pageIntro": "Mandantenbezogene Mitarbeiteraktivitäten aus Audit-Daten. Plattform-Operator-Aktionen sind ausgeblendet.",
+    "title": "Aktivitätsprotokoll",
+    "userPlaceholder": "Benutzer",
+    "actionTypePlaceholder": "Aktionstyp",
+    "actionTypeAll": "Alle Aktionen",
+    "searchPlaceholder": "Suchen…",
+    "colTime": "Zeit",
+    "colUser": "Benutzer",
+    "colAction": "Aktion",
+    "colDescription": "Beschreibung",
+    "colDetails": "Details",
+    "empty": "Keine Aktivitäten gefunden",
+    "totalEntries": "{{count}} Einträge",
+    "export": "Exportieren",
+    "exportSuccess": "Export gestartet",
+    "exportFailed": "Export fehlgeschlagen",
+    "shiftReportsLink": "Personal-/Kassenleistung",
+    "actions": {
+      "ShiftStarted": "Schicht geöffnet",
+      "ShiftEnded": "Schicht geschlossen",
+      "POS_SPL_RCPT": "Sonderbeleg"
+    }
   }
 }

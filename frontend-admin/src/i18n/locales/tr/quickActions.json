@@ -1,0 +1,34 @@
+{
+  "title": "Hızlı aksiyonlar",
+  "actions": {
+    "openShift": "Vardiya aç",
+    "closeShift": "Vardiya kapat",
+    "dailyReport": "Günlük rapor",
+    "dailyClosing": "Gün sonu (Z-raporu)",
+    "openShifts": "Açık vardiyalar",
+    "openShiftsCount": "{{count}} açık vardiya",
+    "cashBalance": "Kasa bakiyesi",
+    "monatsbeleg": "Monatsbeleg",
+    "monatsbelegMissing": "{{count}} Monatsbeleg eksik",
+    "backupFailed": "Yedekleme başarısız",
+    "openPos": "POS aç"
+  },
+  "modals": {
+    "openShift": {
+      "title": "Vardiya aç",
+      "description": "Bu kasa için vardiya açılsın mı?",
+      "confirm": "Aç"
+    },
+    "closeShift": {
+      "title": "Vardiya kapat",
+      "description": "Bu kasa için vardiya kapatılsın mı?",
+      "warning": "Tüm işlemlerin tamamlandığından emin olun.",
+      "confirm": "Kapat"
+    }
+  },
+  "messages": {
+    "shiftOpened": "Vardiya açıldı",
+    "shiftClosed": "Vardiya kapatıldı",
+    "error": "İşlem başarısız"
+  }
+}

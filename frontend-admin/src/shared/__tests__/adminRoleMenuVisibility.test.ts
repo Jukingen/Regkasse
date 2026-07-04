@@ -108,9 +108,31 @@ describe('adminRoleMenuVisibility contract', () => {
         ).toEqual([]);
     });
 
+    it('Manager can access cash-register selector oversight routes', () => {
+        const perms = [...MANAGER_ADMIN_PERMISSIONS];
+        const routes = [
+            '/reporting/tagesbericht',
+            '/reporting/report-center',
+            '/reporting/staff',
+            '/shifts',
+            '/sales',
+            '/payments',
+            '/receipts',
+        ];
+        for (const path of routes) {
+            expect(canAccessPath(path, perms), `Manager should access ${path}`).toBe(true);
+        }
+    });
+
     it('SuperAdmin sees platform admin leaves without explicit permissions', () => {
         const keys = visibleMenuKeysForRole('SuperAdmin', []);
         expect(keys).toContain('/admin/tenants');
         expect(keys).toContain('/dashboard');
+        expect(keys).toContain('/rksv/sb/test-helper');
+    });
+
+    it('Manager admin session hides RKSV test helper under Sonderbelege', () => {
+        const keys = visibleMenuKeysForRole('Manager', MANAGER_ADMIN_PERMISSIONS);
+        expect(keys).not.toContain('/rksv/sb/test-helper');
     });
 });

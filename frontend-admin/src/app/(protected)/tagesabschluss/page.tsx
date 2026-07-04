@@ -38,6 +38,7 @@ import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, formatNumber } fr
 import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
+import { FA_QUICK_CASH_REGISTER_QUERY_PARAM } from '@/features/cash-registers/constants/quickSwitch';
 
 const { Title, Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -52,6 +53,7 @@ export default function TagesabschlussPage() {
   const { message, modal } = useAntdApp();
 
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const { t, formatLocale } = useI18n();
 
   const closingTypeLabel = useCallback(
@@ -148,9 +150,17 @@ export default function TagesabschlussPage() {
     return opt.label.trim().replace(/\s+—\s*$/, '').trim() || opt.label.trim();
   }, [registerOptions, selectedRegisterId]);
 
-  /** Single-register deployments: preselect the first inventory register; no user choice required. */
+  /** Single-register deployments: preselect the first inventory register; honor deep-link query. */
   useEffect(() => {
     if (!canListRegisters || registersLoading) return;
+
+    const fromQuery = searchParams.get(FA_QUICK_CASH_REGISTER_QUERY_PARAM)?.trim();
+    if (fromQuery && isUuid(fromQuery)) {
+      setSelectedRegisterId(fromQuery);
+      setManualRegisterId('');
+      return;
+    }
+
     const list = normalizeCashRegisterListBody(registersRaw).filter(
       (r) => r.id && isUuid(String(r.id)),
     );
@@ -161,7 +171,7 @@ export default function TagesabschlussPage() {
       return primaryId;
     });
     setManualRegisterId('');
-  }, [canListRegisters, registersLoading, registersRaw]);
+  }, [canListRegisters, registersLoading, registersRaw, searchParams]);
 
   const effectiveRegisterId = selectedRegisterId || manualRegisterId.trim();
   const registerIdValid = effectiveRegisterId.length > 0 && isUuid(effectiveRegisterId);

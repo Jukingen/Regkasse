@@ -62,6 +62,10 @@ export function isSuperAdmin(role: UserRole | undefined | null): boolean {
   return role === 'SuperAdmin';
 }
 
+export function isManager(role: UserRole | undefined | null): boolean {
+  return role === 'Manager';
+}
+
 /** One-time tenant user passwords and platform tenant-user API — SuperAdmin only. */
 export function canProvisionTenantCredentials(role: UserRole | undefined | null): boolean {
   return isSuperAdmin(role);

@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Form, Input, Select, DatePicker, Button, Space, Col, Row } from 'antd';
+import { Form, Input, DatePicker, Button, Space, Col, Row } from 'antd';
 import { SearchOutlined, ClearOutlined } from '@ant-design/icons';
 import type { ReceiptListParams } from '@/features/receipts/types/receipts';
 import dayjs from 'dayjs';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { useI18n } from '@/i18n';
 
 const { RangePicker } = DatePicker;
@@ -80,10 +81,12 @@ export default function ReceiptsFilterBar({
             </Form.Item>
 
             <Form.Item name="cashRegisterId">
-                <Input
-                    placeholder={t('receipts.filters.placeholderCashRegister')}
+                <CashRegisterSelector
+                    showFormItem={false}
+                    required={false}
                     allowClear
-                    style={{ width: 160 }}
+                    placeholder={t('receipts.filters.placeholderCashRegister')}
+                    style={{ width: 220 }}
                 />
             </Form.Item>
 

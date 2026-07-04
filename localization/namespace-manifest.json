@@ -37,6 +37,7 @@
       "namespaces": [
         "admin-shell",
         "access",
+        "activity",
         "activityNotifications",
         "common",
         "errors",
@@ -45,6 +46,7 @@
         "settings",
         "products",
         "profile",
+        "quickActions",
         "finanzOnlineOutbox",
         "finanzOnlineReconciliation",
         "fiscalExportAudit",
@@ -69,6 +71,7 @@
         "dashboard",
         "developmentMode",
         "shifts",
+        "staff",
         "superadmin",
         "suspiciousAlerts",
         "tenants"

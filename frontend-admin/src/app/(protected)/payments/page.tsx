@@ -16,12 +16,7 @@ import {
   useGetApiAdminPaymentsId,
   useGetApiAdminPaymentsStatistics,
 } from '@/api/generated/admin/admin';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import type {
-  AdminPaymentDetailDto,
-  AdminPaymentListItemDto,
-  CashRegister,
-} from '@/api/generated/model';
+import type { AdminPaymentDetailDto, AdminPaymentListItemDto } from '@/api/generated/model';
 import { useAdminPaymentsList } from '@/features/payments/api/adminPaymentsListQuery';
 import { PaymentFilterBar } from '@/features/payments/components/PaymentFilterBar';
 import { useKeysetCursors } from '@/shared/pagination/useKeysetPageStack';
@@ -55,14 +50,6 @@ import {
 } from '@/i18n/formatting';
 import { useTenantLicenseStatus } from '@/features/license/hooks/useLicenseStatus';
 
-function normalizeRegisters(data: unknown): CashRegister[] {
-  if (Array.isArray(data)) return data as CashRegister[];
-  if (data && typeof data === 'object' && 'registers' in data) {
-    const r = (data as { registers?: CashRegister[] }).registers;
-    if (Array.isArray(r)) return r;
-  }
-  return [];
-}
 
 const DEFAULT_LIST_PAGE_SIZE = 50;
 
@@ -220,8 +207,6 @@ export default function PaymentsPage() {
     [filters, page, pageSize, getAfterCursor, shouldIncludeTotalCount],
   );
 
-  const { data: registersRaw } = useGetApiCashRegister();
-  const cashRegisters = useMemo(() => normalizeRegisters(registersRaw), [registersRaw]);
 
   const { data, isLoading, isPlaceholderData, isError, error, refetch } = useAdminPaymentsList(listParams);
 
@@ -509,7 +494,6 @@ export default function PaymentsPage() {
         onFilterChange={handleFilterChange}
         availableMethods={availableMethods}
         availableStatuses={availableStatuses}
-        cashRegisters={cashRegisters}
       />
 
       <AdminPageScopeSummary label={t('payments.scope.label')}>{paymentsScopeSummary}</AdminPageScopeSummary>

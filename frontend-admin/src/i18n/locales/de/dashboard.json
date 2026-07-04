@@ -197,5 +197,26 @@
     "daysLate": "{{count}} Tage verspätet",
     "overdue": "Überfällig",
     "missing": "Fehlt"
+  },
+  "manager": {
+    "welcome": "Willkommen zurück, {{name}}!",
+    "todaySales": "Heutige Umsätze",
+    "transactions": "Transaktionen",
+    "transactionCount": "{{count}} Transaktionen",
+    "openShifts": "Offene Schichten",
+    "shiftOpen": "Schicht offen",
+    "allClosed": "Alle geschlossen",
+    "activeStaff": "Aktive Mitarbeiter",
+    "onDutyToday": "Heute im Dienst",
+    "viewStaffHub": "Mitarbeiter-Übersicht",
+    "viewStaffShifts": "Schichten anzeigen",
+    "cashBalance": "Kassenstand",
+    "noRegister": "Keine Kasse",
+    "recentActivities": "Letzte Aktivitäten",
+    "viewAll": "Alle anzeigen",
+    "noActivities": "Keine Aktivitäten",
+    "pendingMonatsbeleg": "{{count}} Kassen mit fehlendem Monatsbeleg",
+    "pendingMonatsbelegDescription": "Bitte erstellen Sie die ausstehenden Monatsbelege.",
+    "createNow": "Jetzt nachholen"
   }
 }

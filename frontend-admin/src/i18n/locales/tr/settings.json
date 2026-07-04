@@ -19,6 +19,62 @@
     "saveChanges": "Değişiklikleri kaydet",
     "saveFailed": "Kaydetme başarısız oldu."
   },
+  "manager": {
+    "title": "Ayarlar",
+    "readOnly": {
+      "title": "Salt okunur",
+      "companyDescription": "Firma ayarlari yalnizca yonetici tarafindan degistirilebilir.",
+      "fiscalDescription": "Mali ayarlar yalnizca yonetici tarafindan degistirilebilir.",
+      "registerDescription": "Kasa bilgilerini degistirme yetkiniz yok."
+    },
+    "statusActive": "Aktif",
+    "statusInactive": "Pasif",
+    "company": {
+      "title": "Firma ve mali",
+      "name": "Firma adi",
+      "vatId": "UID",
+      "address": "Adres",
+      "taxRate": "Vergi orani",
+      "status": "Durum",
+      "edit": "Firma ayarlarini duzenle",
+      "readonly": "Salt okunur"
+    },
+    "appearance": {
+      "title": "Gorunum ve dil",
+      "language": "Dil"
+    },
+    "cashRegister": {
+      "title": "Kasa",
+      "select": "Kasa sec",
+      "name": "Kasa adi",
+      "placeholder": "ornegin Ana kasa",
+      "required": "Lutfen bir ad girin",
+      "numberHint": "Kasa numarasi: {{number}}",
+      "save": "Kasa adini kaydet",
+      "saveSuccess": "Kasa adi kaydedildi.",
+      "saveFailed": "Kasa adi kaydedilemedi.",
+      "missing": "Kasa secilmedi."
+    },
+    "fiscal": {
+      "title": "Mali ayarlar",
+      "tseStatus": "TSE durumu",
+      "tseType": "TSE tipi",
+      "tseSerial": "Seri numarasi",
+      "certificateValid": "Sertifika gecerlilik",
+      "healthDetail": "TSE saglik durumu",
+      "connected": "Bagli",
+      "disconnected": "Bagli degil",
+      "manage": "TSE ayarlarini yonet",
+      "viewRksvStatus": "RKSV durumunu ac"
+    },
+    "advanced": {
+      "title": "Gelismis ayarlar",
+      "backup": "Yedekleme",
+      "finanzOnline": "FinanzOnline",
+      "tse": "TSE",
+      "offline": "Cevrimdisi"
+    }
+  },
   "companyPage": {
     "pageTitle": "Firma bilgileri",
     "cardTitle": "Firma bilgileri",

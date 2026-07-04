@@ -49,6 +49,7 @@ import {
     type AdminCashRegisterListItem,
 } from '@/features/cash-registers/api/cashRegisters';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
+import { useCashRegisterActionHandler } from '@/features/cash-registers/hooks/useCashRegisterActionHandler';
 import { useTenantList } from '@/features/tenancy/hooks/useTenantList';
 import {
     canDecommissionRegister,
@@ -366,6 +367,18 @@ export default function AdminCashRegistersPage() {
         }
         hardDeleteMutation.mutate({ id, confirmPhrase: hardDeleteConfirm.trim() });
     }, [hardDeleteRegister, hardDeleteConfirm, hardDeleteMutation]);
+
+    const { handleRegisterAction } = useCashRegisterActionHandler({
+        onEdit: setDetailRegister,
+        onDecommission: (register) => {
+            setDecommissionReason('');
+            setDecommissionRegister(register);
+        },
+        onHardDelete: (register) => {
+            setHardDeleteConfirm('');
+            setHardDeleteRegister(register);
+        },
+    });
 
     const exportRegisters = useCallback(() => {
         if (visibleRegisters.length === 0) {
@@ -753,6 +766,7 @@ export default function AdminCashRegistersPage() {
                                         setDecommissionReason('');
                                         setDecommissionRegister(record);
                                     }}
+                                    onRegisterAction={handleRegisterAction}
                                 />
                             </>
                         )}

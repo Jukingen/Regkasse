@@ -136,7 +136,10 @@ describe('filterSidebarMenuItems', () => {
         {
             key: 'grp-settings',
             label: 'Settings',
-            children: [{ key: '/settings/company', label: 'Settings' }],
+            children: [
+                { key: '/settings', label: 'Settings hub' },
+                { key: '/settings/company', label: 'Company' },
+            ],
         },
     ];
 
@@ -156,7 +159,7 @@ describe('filterSidebarMenuItems', () => {
         const settingsGroup = filtered!.find((item) => (item as { key?: string }).key === 'grp-settings') as
             | { children?: { key?: string }[] }
             | undefined;
-        expect(settingsGroup?.children?.map((c) => c.key)).toEqual(['/settings/company']);
+        expect(settingsGroup?.children?.map((c) => c.key)).toEqual(['/settings']);
     });
 
     it('shows dashboard for any permission holder', () => {
@@ -179,7 +182,7 @@ describe('filterSidebarMenuItems', () => {
         const admin = filtered![1] as { children?: { key?: string }[] };
         expect(admin.children?.map((c) => c.key)).toEqual(['/admin/users']);
         const settings = filtered![2] as { children?: { key?: string }[] };
-        expect(settings.children?.map((c) => c.key)).toEqual(['/settings/company']);
+        expect(settings.children?.map((c) => c.key)).toEqual(['/settings', '/settings/company']);
     });
 });
 

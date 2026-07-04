@@ -1,28 +1,17 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, Select, DatePicker, Space, Button } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { ADMIN_NAV_LABELS, ADMIN_OVERVIEW_CRUMB } from '@/shared/adminShellLabels';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
-import type { CashRegister } from '@/api/generated/model';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { CardTransactionsTable } from '@/features/payments/components/CardTransactionsTable';
 import { useCardTransactions } from '@/features/payments/hooks/useCardTransactions';
 import { useI18n } from '@/i18n';
-import { formatRegisterDisplayLabel } from '@/shared/utils/registerIdentity';
 import { DAYJS_DATE_FORMAT } from '@/lib/dateFormatter';
-
-function normalizeRegisters(data: unknown): CashRegister[] {
-  if (Array.isArray(data)) return data as CashRegister[];
-  if (data && typeof data === 'object' && 'registers' in data) {
-    const r = (data as { registers?: CashRegister[] }).registers;
-    if (Array.isArray(r)) return r;
-  }
-  return [];
-}
 
 export function CardTransactionsPage() {
   const { t } = useI18n();
@@ -44,9 +33,6 @@ export function CardTransactionsPage() {
     setFilters,
     refetch,
   } = useCardTransactions();
-
-  const registersQ = useGetApiCashRegister();
-  const registers = useMemo(() => normalizeRegisters(registersQ.data), [registersQ.data]);
 
   const applyFilters = (patch: {
     status?: string;
@@ -94,16 +80,14 @@ export function CardTransactionsPage() {
                 label: ts(`status.${s}`, s),
               }))}
             />
-            <Select
+            <CashRegisterSelector
+              value={registerId}
+              onChange={(v) => applyFilters({ registerId: v })}
+              showFormItem={false}
+              required={false}
               allowClear
               placeholder={ts('filters.register')}
               style={{ minWidth: 200 }}
-              value={registerId}
-              onChange={(v) => applyFilters({ registerId: v })}
-              options={registers.map((r) => ({
-                value: r.id,
-                label: formatRegisterDisplayLabel(r.registerNumber),
-              }))}
             />
             <Button icon={<ReloadOutlined />} onClick={refetch} loading={isFetching}>
               {ts('actions.refresh')}

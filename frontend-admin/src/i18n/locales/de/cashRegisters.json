@@ -118,6 +118,10 @@
     "quickActions": "Aktionen",
     "openRegister": "Kasse öffnen",
     "closeRegister": "Kasse schließen",
+    "openShift": "Schicht öffnen",
+    "closeShift": "Schicht schließen",
+    "dailyClosing": "Tagesabschluss",
+    "delete": "Löschen",
     "viewReceipts": "Belege anzeigen"
   },
   "statusBadge": {
@@ -270,11 +274,14 @@
   },
   "selector": {
     "placeholder": "Kasse auswählen…",
+    "label": "Kasse",
     "noTenant": "Kein Mandant ausgewählt",
     "noLocation": "Kein Standort",
     "loadError": "Fehler beim Laden",
+    "loadErrorTitle": "Fehler beim Laden der Kassen",
     "loadErrorTooltip": "Kassenliste konnte nicht geladen werden",
     "empty": "Keine Kassen vorhanden",
+    "autoSelectedTag": "Automatisch ausgewählt",
     "mandantHeader": "Mandant: {{name}} ({{slug}})",
     "defaultTag": "Standard"
   }

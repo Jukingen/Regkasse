@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "list": "Staff list",
+    "performance": "Performance",
+    "shifts": "Shifts"
+  },
+  "hub": {
+    "pageTitle": "Staff",
+    "backLink": "Back to staff overview",
+    "intro": "View staff in your tenant: team overview, register performance, and shifts — without user administration.",
+    "cardListTitle": "Staff list",
+    "cardListDescription": "Active and inactive tenant staff with role and last sign-in.",
+    "cardPerformanceTitle": "Staff performance",
+    "cardPerformanceDescription": "Revenue, transactions, and KPIs per cashier for the selected period.",
+    "cardShiftsTitle": "Shifts & working hours",
+    "cardShiftsDescription": "Open and closed shifts with start and end times.",
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedDescription": "You need at least one staff-related permission (user.view, report.view, or shift.view)."
+  },
+  "list": {
+    "pageTitle": "Staff list",
+    "cardTitle": "Staff",
+    "search": "Search…",
+    "roleFilter": "Role",
+    "statusFilter": "Status",
+    "refresh": "Refresh",
+    "manageUsers": "Manage users",
+    "empty": "No staff found",
+    "view": "View",
+    "active": "Active",
+    "inactive": "Inactive",
+    "columnStaff": "Staff member",
+    "columnRole": "Role",
+    "columnStatus": "Status",
+    "columnLastActivity": "Last activity",
+    "columnActions": "Actions",
+    "readOnlyTitle": "Read-only view",
+    "readOnlyDescription": "As a manager you can view staff. Create, edit, and deactivate require user management (user.manage).",
+    "accessDeniedTitle": "Access denied",
+    "accessDeniedDescription": "You need the View users permission (user.view)."
+  }
+}

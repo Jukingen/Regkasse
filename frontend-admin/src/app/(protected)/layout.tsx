@@ -20,6 +20,7 @@ import { SuperAdminTenantGate } from '@/components/admin-layout/SuperAdminTenant
 import { VerwaltungTenantContextGate } from '@/components/admin-layout/VerwaltungTenantContextGate';
 import { AdminShellHeader } from '@/components/layout/Header';
 import { CommandPaletteShell } from '@/components/CommandPalette';
+import { AdminLayout } from '@/components/admin-layout/AdminLayout';
 import { AppLayout } from '@/components/AppLayout';
 import { LicenseExpiryBanner } from '@/components/admin-layout/LicenseExpiryBanner';
 import { ReadOnlyBanner } from '@/components/ReadOnlyBanner';
@@ -136,16 +137,18 @@ export default function DashboardLayout({
                                 overflow: 'initial',
                             }}
                         >
-                            <LicenseExpiryBanner />
-                            <ReadOnlyBanner />
-                            <ImpersonationBanner />
-                            <SuperAdminModeBanner />
-                            <VerwaltungTenantContextGate />
-                            <main id="main-content" tabIndex={-1}>
-                                <SuperAdminTenantGate>
-                                    <PermissionRouteGuard>{children}</PermissionRouteGuard>
-                                </SuperAdminTenantGate>
-                            </main>
+                            <AdminLayout>
+                                <LicenseExpiryBanner />
+                                <ReadOnlyBanner />
+                                <ImpersonationBanner />
+                                <SuperAdminModeBanner />
+                                <VerwaltungTenantContextGate />
+                                <main id="main-content" tabIndex={-1}>
+                                    <SuperAdminTenantGate>
+                                        <PermissionRouteGuard>{children}</PermissionRouteGuard>
+                                    </SuperAdminTenantGate>
+                                </main>
+                            </AdminLayout>
                         </Content>
                     </Layout>
                 </Layout>

@@ -4,7 +4,7 @@
  * Report Center: formelle Berichte, eingefrorene Perioden, X/Z-Referenz und Meldungs-Sicht.
  * Kurztexte für Operatoren (de-DE); technische Details nur in Diagnose-Bereichen.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Button,
@@ -12,6 +12,7 @@ import {
   Col,
   DatePicker,
   Descriptions,
+  Form,
   Modal,
   Row,
   Segmented,
@@ -34,9 +35,9 @@ import { useI18n } from '@/i18n/I18nProvider';
 import { formatDate, formatDateTime } from '@/i18n/formatting';
 import { DAYJS_DATE_FORMAT, formatUserMonthYear } from '@/lib/dateFormatter';
 import { AXIOS_INSTANCE } from '@/lib/axios';
-import { useGetApiCashRegister } from '@/api/generated/cash-register/cash-register';
+import { ReportFilters, type ReportFilterValues } from '@/components/ReportFilters';
+import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { useGetApiAdminFinanzonlineOutbox } from '@/api/generated/admin/admin';
-import type { CashRegister } from '@/api/generated/model';
 import type { FinanzOnlineOutboxItemDto } from '@/api/generated/model/finanzOnlineOutboxItemDto';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
@@ -48,8 +49,6 @@ import {
   type ReportDocFilterKey,
   type SubmissionFilterKey,
 } from '@/components/reporting/reportWorkspaceLabels';
-
-const { RangePicker } = DatePicker;
 
 type WorkspaceTab =
   | 'tagesbericht'
@@ -195,15 +194,36 @@ export default function ReportCenterPage() {
 
   const [outboxAggregateFilter, setOutboxAggregateFilter] = useState<string | undefined>(undefined);
 
-  const { data: registers } = useGetApiCashRegister();
-  const registersData = registers as unknown;
-  const registerRows = Array.isArray((registersData as { registers?: CashRegister[] } | undefined)?.registers)
-    ? ((registersData as { registers?: CashRegister[] }).registers ?? [])
-    : Array.isArray(registersData)
-      ? (registersData as CashRegister[])
-      : [];
-
   const pickerMode = tab === 'monatsbericht' ? 'month' : tab === 'jahresbericht' ? 'year' : 'date';
+
+  const applyFormalFilters = useCallback((values: ReportFilterValues) => {
+    if (values.dateRange?.[0] && values.dateRange[1]) {
+      setDateRange(values.dateRange);
+    }
+    setCashRegisterId(values.registerId);
+    setXzCashRegisterId((prev) => prev ?? values.registerId);
+  }, []);
+
+  const applyPeriodenFilters = useCallback((values: ReportFilterValues) => {
+    if (values.dateRange?.[0] && values.dateRange[1]) {
+      setPeriodenRange(values.dateRange);
+    }
+    setCashRegisterId(values.registerId);
+  }, []);
+
+  const workspaceTabOptions = useMemo(() => {
+    const options = [
+      { label: t('adminShell.reporting.reportCenter.tabTages'), value: 'tagesbericht' as const },
+      { label: t('adminShell.reporting.reportCenter.tabMonats'), value: 'monatsbericht' as const },
+      { label: t('adminShell.reporting.reportCenter.tabJahres'), value: 'jahresbericht' as const },
+      { label: t('adminShell.reporting.reportCenter.tabPerioden'), value: 'periodenbericht' as const },
+      { label: t('adminShell.reporting.reportCenter.tabXz'), value: 'xz' as const },
+    ];
+    if (canFinanzOnlineView) {
+      options.push({ label: t('adminShell.reporting.reportCenter.tabQueue'), value: 'submissionQueue' as const });
+    }
+    return options;
+  }, [canFinanzOnlineView, t]);
 
   const tagesParams = useMemo(() => {
     const fromDate = dateRange[0].format('YYYY-MM-DD');
@@ -342,17 +362,6 @@ export default function ReportCenterPage() {
         matchesSubmissionFilter(r.submission?.lifecycle, submissionFilter)
     );
   }, [jahresQ.data, reportDocFilter, submissionFilter]);
-
-  const registerOptions = useMemo(
-    () =>
-      registerRows
-        .filter((r: CashRegister) => r.id)
-        .map((r: CashRegister) => ({
-          value: r.id as string,
-          label: `${r.registerNumber} — ${r.location}`,
-        })),
-    [registerRows]
-  );
 
   const openChain = (kind: FormalReportTypeKey, id: string) => {
     setChainType(kind);
@@ -586,41 +595,21 @@ export default function ReportCenterPage() {
           : t('adminShell.reporting.reportCenter.workspaceStripDiagnostic');
 
   const formalFilters = (
-    <Card size="small" style={{ marginBottom: 12 }} title={t('adminShell.reporting.reportCenter.filtersTitle')}>
-      <Row gutter={[12, 12]}>
-        <Col xs={24} lg={8}>
-          <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.dateRange')}</Typography.Text>
-          <div style={{ marginTop: 4 }}>
-            <RangePicker
-              style={{ width: '100%' }}
-              picker={pickerMode as 'date' | 'month' | 'year'}
-              format={pickerMode === 'date' ? DAYJS_DATE_FORMAT : undefined}
-              value={dateRange}
-              onChange={(v) => {
-                if (v?.[0] && v[1]) setDateRange([v[0], v[1]]);
-              }}
-            />
-          </div>
-        </Col>
-        <Col xs={24} lg={6}>
-          <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.register')}</Typography.Text>
-          <div style={{ marginTop: 4 }}>
-            <Select
-              allowClear
-              placeholder={t('adminShell.reporting.reportCenter.registerAll')}
-              style={{ width: '100%' }}
-              options={registerOptions}
-              value={cashRegisterId}
-              onChange={(v) => setCashRegisterId(v)}
-            />
-          </div>
-        </Col>
-        {(tab === 'monatsbericht' || tab === 'jahresbericht') && (
-          <Col xs={24} lg={5}>
-            <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.scope')}</Typography.Text>
-            <div style={{ marginTop: 4 }}>
+    <ReportFilters
+      key={`formal-${tab}-${pickerMode}`}
+      mode="live"
+      cardTitle={t('adminShell.reporting.reportCenter.filtersTitle')}
+      registerRequired={false}
+      registerAllowClear
+      pickerMode={pickerMode}
+      onGenerate={applyFormalFilters}
+      initialValues={{ dateRange, registerId: cashRegisterId }}
+      extra={
+        <>
+          {(tab === 'monatsbericht' || tab === 'jahresbericht') && (
+            <Form.Item label={t('adminShell.reporting.reportCenter.scope')}>
               <Select
-                style={{ width: '100%' }}
+                style={{ minWidth: 160 }}
                 value={scopeKind}
                 onChange={(v) => setScopeKind(v)}
                 options={[
@@ -629,33 +618,27 @@ export default function ReportCenterPage() {
                   { value: 'Company', label: t('adminShell.reporting.reportCenter.scopeCompany') },
                 ]}
               />
-            </div>
-          </Col>
-        )}
-        <Col xs={24} lg={5}>
-          <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.filterReport')}</Typography.Text>
-          <div style={{ marginTop: 4 }}>
+            </Form.Item>
+          )}
+          <Form.Item label={t('adminShell.reporting.reportCenter.filterReport')}>
             <Select
-              style={{ width: '100%' }}
+              style={{ minWidth: 160 }}
               value={reportDocFilter}
               onChange={(v) => setReportDocFilter(v)}
               options={docFilterOptions}
             />
-          </div>
-        </Col>
-        <Col xs={24} lg={5}>
-          <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.filterSubmission')}</Typography.Text>
-          <div style={{ marginTop: 4 }}>
+          </Form.Item>
+          <Form.Item label={t('adminShell.reporting.reportCenter.filterSubmission')}>
             <Select
-              style={{ width: '100%' }}
+              style={{ minWidth: 160 }}
               value={submissionFilter}
               onChange={(v) => setSubmissionFilter(v)}
               options={subFilterOptions}
             />
-          </div>
-        </Col>
-      </Row>
-    </Card>
+          </Form.Item>
+        </>
+      }
+    />
   );
 
   return (
@@ -679,14 +662,7 @@ export default function ReportCenterPage() {
           block
           value={tab}
           onChange={(v) => setTab(v as WorkspaceTab)}
-          options={[
-            { label: t('adminShell.reporting.reportCenter.tabTages'), value: 'tagesbericht' },
-            { label: t('adminShell.reporting.reportCenter.tabMonats'), value: 'monatsbericht' },
-            { label: t('adminShell.reporting.reportCenter.tabJahres'), value: 'jahresbericht' },
-            { label: t('adminShell.reporting.reportCenter.tabPerioden'), value: 'periodenbericht' },
-            { label: t('adminShell.reporting.reportCenter.tabXz'), value: 'xz' },
-            { label: t('adminShell.reporting.reportCenter.tabQueue'), value: 'submissionQueue' },
-          ]}
+          options={workspaceTabOptions}
         />
       </Card>
 
@@ -759,35 +735,14 @@ export default function ReportCenterPage() {
       {tab === 'periodenbericht' ? (
         <Card title={t('adminShell.reporting.reportCenter.tabPerioden')}>
           <Alert type="info" showIcon title={t('adminShell.reporting.reportCenter.periodenSectionIntro')} style={{ marginBottom: 12 }} />
-          <Card size="small" style={{ marginBottom: 12 }} title={t('adminShell.reporting.reportCenter.filtersTitle')}>
-            <Row gutter={[12, 12]}>
-              <Col xs={24} md={12}>
-                <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.dateRange')}</Typography.Text>
-                <div style={{ marginTop: 4 }}>
-                  <RangePicker format={DAYJS_DATE_FORMAT}
-                    style={{ width: '100%' }}
-                    value={periodenRange}
-                    onChange={(v) => {
-                      if (v?.[0] && v[1]) setPeriodenRange([v[0], v[1]]);
-                    }}
-                  />
-                </div>
-              </Col>
-              <Col xs={24} md={12}>
-                <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.register')}</Typography.Text>
-                <div style={{ marginTop: 4 }}>
-                  <Select
-                    allowClear
-                    placeholder={t('adminShell.reporting.reportCenter.registerAll')}
-                    style={{ width: '100%' }}
-                    options={registerOptions}
-                    value={cashRegisterId}
-                    onChange={(v) => setCashRegisterId(v)}
-                  />
-                </div>
-              </Col>
-            </Row>
-          </Card>
+          <ReportFilters
+            mode="live"
+            cardTitle={t('adminShell.reporting.reportCenter.filtersTitle')}
+            registerRequired={false}
+            registerAllowClear
+            onGenerate={applyPeriodenFilters}
+            initialValues={{ dateRange: periodenRange, registerId: cashRegisterId }}
+          />
           <Space style={{ marginBottom: 12 }} wrap>
             <Button type="default" href="/reporting?tab=periodic">
               {t('adminShell.reporting.reportCenter.periodenLinkLive')}
@@ -825,13 +780,14 @@ export default function ReportCenterPage() {
             <Col xs={24} md={10}>
               <Typography.Text type="secondary">{t('adminShell.reporting.reportCenter.register')}</Typography.Text>
               <div style={{ marginTop: 4 }}>
-                <Select
+                <CashRegisterSelector
+                  value={xzCashRegisterId}
+                  onChange={setXzCashRegisterId}
+                  showFormItem={false}
+                  required={false}
                   allowClear
                   placeholder={t('adminShell.reporting.reportCenter.registerAll')}
                   style={{ width: '100%' }}
-                  options={registerOptions}
-                  value={xzCashRegisterId}
-                  onChange={(v) => setXzCashRegisterId(v)}
                 />
               </div>
             </Col>

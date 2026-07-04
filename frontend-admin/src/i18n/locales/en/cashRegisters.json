@@ -118,6 +118,10 @@
     "quickActions": "Actions",
     "openRegister": "Open register",
     "closeRegister": "Close register",
+    "openShift": "Open shift",
+    "closeShift": "Close shift",
+    "dailyClosing": "Daily closing",
+    "delete": "Delete",
     "viewReceipts": "View receipts"
   },
   "statusBadge": {
@@ -270,11 +274,14 @@
   },
   "selector": {
     "placeholder": "Select register…",
+    "label": "Register",
     "noTenant": "No tenant selected",
     "noLocation": "No location",
     "loadError": "Load failed",
+    "loadErrorTitle": "Failed to load cash registers",
     "loadErrorTooltip": "Could not load cash registers",
     "empty": "No registers available",
+    "autoSelectedTag": "Auto-selected",
     "mandantHeader": "Tenant: {{name}} ({{slug}})",
     "defaultTag": "Default"
   }

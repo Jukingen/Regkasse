@@ -1,0 +1,34 @@
+{
+  "title": "Schnellaktionen",
+  "actions": {
+    "openShift": "Schicht öffnen",
+    "closeShift": "Schicht schließen",
+    "dailyReport": "Tagesbericht",
+    "dailyClosing": "Tagesabschluss (Z-Bericht)",
+    "openShifts": "Offene Schichten",
+    "openShiftsCount": "{{count}} offene Schichten",
+    "cashBalance": "Kassenstand",
+    "monatsbeleg": "Monatsbeleg",
+    "monatsbelegMissing": "{{count}} Monatsbeleg fehlen",
+    "backupFailed": "Backup fehlgeschlagen",
+    "openPos": "POS öffnen"
+  },
+  "modals": {
+    "openShift": {
+      "title": "Schicht öffnen",
+      "description": "Schicht für Kasse öffnen?",
+      "confirm": "Öffnen"
+    },
+    "closeShift": {
+      "title": "Schicht schließen",
+      "description": "Schicht für Kasse schließen?",
+      "warning": "Stellen Sie sicher, dass alle Transaktionen abgeschlossen sind.",
+      "confirm": "Schließen"
+    }
+  },
+  "messages": {
+    "shiftOpened": "Schicht wurde geöffnet",
+    "shiftClosed": "Schicht wurde geschlossen",
+    "error": "Aktion fehlgeschlagen"
+  }
+}

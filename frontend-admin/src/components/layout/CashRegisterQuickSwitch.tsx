@@ -12,8 +12,8 @@ import {
     writeQuickCashRegisterId,
 } from '@/features/cash-registers/constants/quickSwitch';
 import { useAdminCashRegisterList } from '@/features/cash-registers/hooks/useAdminCashRegisterList';
-import { useCashRegisters } from '@/features/cash-registers/hooks/useCashRegisters';
 import { CashRegisterStatusBadge } from '@/features/cash-registers/components/CashRegisterStatusBadge';
+import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import { useI18n } from '@/i18n';
 import { usePermissions } from '@/shared/auth/usePermissions';
@@ -30,13 +30,14 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
     const { tenantId, isSuperAdminUser, requiresTenantSelection } = useCurrentTenant();
 
     const listAllTenants = isSuperAdminUser && !tenantId && !requiresTenantSelection;
-    const listEnabled =
-        canViewCashRegisters && (isSuperAdminUser ? !requiresTenantSelection : Boolean(tenantId));
+    const listEnabled = canViewCashRegisters && (isSuperAdminUser ? !requiresTenantSelection : true);
 
-    const tenantScoped = useCashRegisters(tenantId ?? undefined, {
+    const tenantSelection = useCashRegisterSelection({
         enabled: listEnabled && !listAllTenants,
-        syncQuickSwitch: true,
+        autoSelect: true,
+        persistSelection: true,
     });
+    const { setSelectedRegisterId: setTenantSelectedRegisterId } = tenantSelection;
 
     const allTenantsList = useAdminCashRegisterList({
         allowAllTenants: true,
@@ -44,14 +45,16 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
         pageSize: 50,
     });
 
-    const registers = listAllTenants ? allTenantsList.registers : tenantScoped.registers;
-    const isLoading = listAllTenants ? allTenantsList.isLoading : tenantScoped.isLoading;
+    const registers = listAllTenants ? allTenantsList.registers : tenantSelection.registers;
+    const isLoading = listAllTenants ? allTenantsList.isLoading : tenantSelection.isLoading;
 
     const [allTenantsRegisterId, setAllTenantsRegisterId] = useState<string | null>(() =>
-        readQuickCashRegisterId(),
+        readQuickCashRegisterId(tenantId),
     );
 
-    const selectedRegisterId = listAllTenants ? allTenantsRegisterId : tenantScoped.selectedRegisterId;
+    const selectedRegisterId = listAllTenants
+        ? allTenantsRegisterId
+        : (tenantSelection.selectedRegisterId ?? null);
 
     const activeRegister = useMemo(
         () => registers.find((row) => row.id === selectedRegisterId) ?? null,
@@ -60,13 +63,15 @@ export function CashRegisterQuickSwitch({ isMobile = false }: CashRegisterQuickS
 
     const navigateToRegister = useCallback(
         (register: AdminCashRegisterListItem) => {
-            writeQuickCashRegisterId(register.id);
+            writeQuickCashRegisterId(register.id, register.tenantId ?? tenantId ?? null);
             if (listAllTenants) {
                 setAllTenantsRegisterId(register.id);
+            } else {
+                setTenantSelectedRegisterId(register.id);
             }
             router.push(`/kassenverwaltung?${FA_QUICK_CASH_REGISTER_QUERY_PARAM}=${encodeURIComponent(register.id)}`);
         },
-        [listAllTenants, router],
+        [listAllTenants, router, setTenantSelectedRegisterId],
     );
 
     const menuItems: MenuProps['items'] = useMemo(() => {

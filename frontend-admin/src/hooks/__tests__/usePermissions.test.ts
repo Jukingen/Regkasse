@@ -24,6 +24,19 @@ describe('usePermissions', () => {
     expect(result.current.hasPermission(PERMISSIONS.USER_MANAGE)).toBe(true);
     expect(result.current.canViewMenu('/admin/users')).toBe(true);
     expect(result.current.canViewCashRegisters).toBe(true);
+    expect(result.current.isSuperAdmin).toBe(true);
+    expect(result.current.isManager).toBe(false);
+  });
+
+  it('exposes isManager for Manager role only', () => {
+    mockUseAuth.mockReturnValue({
+      user: { role: 'Manager', permissions: [PERMISSIONS.REPORT_VIEW] },
+    });
+
+    const { result } = renderHook(() => usePermissions());
+
+    expect(result.current.isManager).toBe(true);
+    expect(result.current.isSuperAdmin).toBe(false);
   });
 
   it('denies menu paths when user has no permission claims', () => {

@@ -19,6 +19,62 @@
     "saveChanges": "Änderungen speichern",
     "saveFailed": "Speichern fehlgeschlagen."
   },
+  "manager": {
+    "title": "Einstellungen",
+    "readOnly": {
+      "title": "Nur Lese-Rechte",
+      "companyDescription": "Firmen-Einstellungen können nur vom Administrator geändert werden.",
+      "fiscalDescription": "Fiskal-Einstellungen können nur vom Administrator geändert werden.",
+      "registerDescription": "Sie haben keine Berechtigung, Kassendaten zu ändern."
+    },
+    "statusActive": "Aktiv",
+    "statusInactive": "Inaktiv",
+    "company": {
+      "title": "Firma & Fiskal",
+      "name": "Firmenname",
+      "vatId": "UID",
+      "address": "Adresse",
+      "taxRate": "Steuersatz",
+      "status": "Status",
+      "edit": "Firmen-Einstellungen bearbeiten",
+      "readonly": "Nur Lese-Rechte"
+    },
+    "appearance": {
+      "title": "Darstellung & Sprache",
+      "language": "Sprache"
+    },
+    "cashRegister": {
+      "title": "Kasse",
+      "select": "Kasse auswählen",
+      "name": "Kassenname",
+      "placeholder": "z. B. Hauptkasse",
+      "required": "Bitte geben Sie einen Namen ein",
+      "numberHint": "Kassennummer: {{number}}",
+      "save": "Kassenname speichern",
+      "saveSuccess": "Kassenname wurde gespeichert.",
+      "saveFailed": "Kassenname konnte nicht gespeichert werden.",
+      "missing": "Keine Kasse ausgewählt."
+    },
+    "fiscal": {
+      "title": "Fiskal-Einstellungen",
+      "tseStatus": "TSE Status",
+      "tseType": "TSE Typ",
+      "tseSerial": "Seriennummer",
+      "certificateValid": "Zertifikat gültig bis",
+      "healthDetail": "TSE-Gesundheitsstatus",
+      "connected": "Verbunden",
+      "disconnected": "Nicht verbunden",
+      "manage": "TSE-Einstellungen verwalten",
+      "viewRksvStatus": "RKSV-Status öffnen"
+    },
+    "advanced": {
+      "title": "Erweiterte Einstellungen",
+      "backup": "Backup",
+      "finanzOnline": "FinanzOnline",
+      "tse": "TSE",
+      "offline": "Offline"
+    }
+  },
   "companyPage": {
     "pageTitle": "Firmenstammdaten",
     "cardTitle": "Firmenstammdaten",

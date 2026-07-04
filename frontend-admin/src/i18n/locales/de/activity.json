@@ -1,0 +1,48 @@
+{
+  "title": "Aktivitätsprotokoll",
+  "pageIntro": "Mandantenbezogene Mitarbeiteraktivitäten aus Audit-Daten. Plattform-Operator-Aktionen sind ausgeblendet.",
+  "shiftReportsLink": "Personal-/Kassenleistung",
+  "export": "Exportieren",
+  "exportSuccess": "Export gestartet",
+  "exportFailed": "Export fehlgeschlagen",
+  "totalEntries": "{{count}} Einträge",
+  "filters": {
+    "dateRange": "Zeitraum",
+    "user": "Benutzer",
+    "userPlaceholder": "Benutzer",
+    "actionType": "Aktionstyp",
+    "actionTypePlaceholder": "Aktionstyp",
+    "search": "Suchen…",
+    "allActions": "Alle Aktionen"
+  },
+  "actions": {
+    "USER_LOGIN": "Anmeldung",
+    "USER_LOGOUT": "Abmeldung",
+    "POS_PAY_OUTCOME": "Verkauf",
+    "PAYMENT_CONFIRM": "Zahlung",
+    "ShiftStarted": "Schicht öffnen",
+    "ShiftEnded": "Schicht schließen",
+    "POS_SPL_RCPT": "Sonderbeleg",
+    "CUSTOMER_CREATE": "Kunde hinzugefügt",
+    "CUSTOMER_UPDATE": "Kunde bearbeitet",
+    "USER_UPDATE": "Benutzer bearbeitet"
+  },
+  "table": {
+    "time": "Zeit",
+    "user": "Benutzer",
+    "action": "Aktion",
+    "description": "Beschreibung",
+    "details": "Details",
+    "noData": "Keine Aktivitäten gefunden"
+  },
+  "summary": {
+    "title": "Letzte Aktivitäten",
+    "viewAll": "Alle anzeigen",
+    "noActivities": "Keine Aktivitäten"
+  },
+  "tabs": {
+    "compliance": "Compliance-Audit",
+    "activity": "Aktivitätsprotokoll",
+    "staff": "Personal & Leistung"
+  }
+}

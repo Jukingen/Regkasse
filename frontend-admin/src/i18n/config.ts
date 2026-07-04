@@ -30,11 +30,14 @@ import deSuperadmin from './locales/de/superadmin.json';
 import deDashboard from './locales/de/dashboard.json';
 import deCashRegisters from './locales/de/cashRegisters.json';
 import deShifts from './locales/de/shifts.json';
+import deStaff from './locales/de/staff.json';
 import deProfile from './locales/de/profile.json';
 import dePaymentHistory from './locales/de/paymentHistory.json';
 import deCardTransactions from './locales/de/cardTransactions.json';
+import deActivity from './locales/de/activity.json';
 import deActivityNotifications from './locales/de/activityNotifications.json';
 import deSuspiciousAlerts from './locales/de/suspiciousAlerts.json';
+import deQuickActions from './locales/de/quickActions.json';
 import enAccess from './locales/en/access.json';
 import enAdminShell from './locales/en/admin-shell.json';
 import enCommon from './locales/en/common.json';
@@ -67,11 +70,14 @@ import enSuperadmin from './locales/en/superadmin.json';
 import enDashboard from './locales/en/dashboard.json';
 import enCashRegisters from './locales/en/cashRegisters.json';
 import enShifts from './locales/en/shifts.json';
+import enStaff from './locales/en/staff.json';
 import enProfile from './locales/en/profile.json';
 import enPaymentHistory from './locales/en/paymentHistory.json';
 import enCardTransactions from './locales/en/cardTransactions.json';
+import enActivity from './locales/en/activity.json';
 import enActivityNotifications from './locales/en/activityNotifications.json';
 import enSuspiciousAlerts from './locales/en/suspiciousAlerts.json';
+import enQuickActions from './locales/en/quickActions.json';
 import trAccess from './locales/tr/access.json';
 import trAdminShell from './locales/tr/admin-shell.json';
 import trCommon from './locales/tr/common.json';
@@ -104,11 +110,14 @@ import trSuperadmin from './locales/tr/superadmin.json';
 import trDashboard from './locales/tr/dashboard.json';
 import trCashRegisters from './locales/tr/cashRegisters.json';
 import trShifts from './locales/tr/shifts.json';
+import trStaff from './locales/tr/staff.json';
 import trProfile from './locales/tr/profile.json';
 import trPaymentHistory from './locales/tr/paymentHistory.json';
 import trCardTransactions from './locales/tr/cardTransactions.json';
+import trActivity from './locales/tr/activity.json';
 import trActivityNotifications from './locales/tr/activityNotifications.json';
 import trSuspiciousAlerts from './locales/tr/suspiciousAlerts.json';
+import trQuickActions from './locales/tr/quickActions.json';
 
 export const SUPPORTED_TEXT_LOCALES = ['de', 'en', 'tr'] as const;
 export type TextLocale = (typeof SUPPORTED_TEXT_LOCALES)[number];
@@ -155,11 +164,14 @@ const catalogs = {
     dashboard: deDashboard,
     cashRegisters: deCashRegisters,
     shifts: deShifts,
+    staff: deStaff,
     profile: deProfile,
     paymentHistory: dePaymentHistory,
     cardTransactions: deCardTransactions,
+    activity: deActivity,
     activityNotifications: deActivityNotifications,
     suspiciousAlerts: deSuspiciousAlerts,
+    quickActions: deQuickActions,
   },
   en: {
     access: enAccess,
@@ -194,11 +206,14 @@ const catalogs = {
     dashboard: enDashboard,
     cashRegisters: enCashRegisters,
     shifts: enShifts,
+    staff: enStaff,
     profile: enProfile,
     paymentHistory: enPaymentHistory,
     cardTransactions: enCardTransactions,
+    activity: enActivity,
     activityNotifications: enActivityNotifications,
     suspiciousAlerts: enSuspiciousAlerts,
+    quickActions: enQuickActions,
   },
   tr: {
     access: trAccess,
@@ -233,11 +248,14 @@ const catalogs = {
     dashboard: trDashboard,
     cashRegisters: trCashRegisters,
     shifts: trShifts,
+    staff: trStaff,
     profile: trProfile,
     paymentHistory: trPaymentHistory,
     cardTransactions: trCardTransactions,
+    activity: trActivity,
     activityNotifications: trActivityNotifications,
     suspiciousAlerts: trSuspiciousAlerts,
+    quickActions: trQuickActions,
   },
 } as const;
 

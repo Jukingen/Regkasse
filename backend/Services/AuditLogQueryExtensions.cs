@@ -1,3 +1,4 @@
+using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
 using KasseAPI_Final.Time;
@@ -71,6 +72,28 @@ internal static class AuditLogQueryExtensions
                 (a.OldValues == null || a.OldValues == "")
                 && (a.NewValues == null || a.NewValues == "")
                 && (a.Changes == null || a.Changes == ""));
+        }
+
+        if (filters.ExcludePlatformOperatorActors)
+        {
+            query = query.Where(a =>
+                a.UserRole != Roles.SuperAdmin
+                && a.Action != AuditLogActions.TENANT_IMPERSONATION_STARTED
+                && a.Action != AuditLogActions.SUPER_ADMIN_VIEWED_PASSWORD
+                && a.Action != AuditLogActions.TENANT_SOFT_DELETED
+                && a.Action != AuditLogActions.TENANT_HARD_DELETED
+                && a.Action != AuditLogActions.TENANT_RESTORED);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filters.Search))
+        {
+            var term = $"%{filters.Search.Trim()}%";
+            query = query.Where(a =>
+                EF.Functions.ILike(a.Action, term)
+                || (a.Description != null && EF.Functions.ILike(a.Description, term))
+                || EF.Functions.ILike(a.EntityType, term)
+                || (a.EntityName != null && EF.Functions.ILike(a.EntityName, term))
+                || (a.IpAddress != null && EF.Functions.ILike(a.IpAddress, term)));
         }
 
         return query;

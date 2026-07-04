@@ -19,6 +19,62 @@
     "saveChanges": "Save changes",
     "saveFailed": "Saving failed."
   },
+  "manager": {
+    "title": "Settings",
+    "readOnly": {
+      "title": "Read-only",
+      "companyDescription": "Company settings can only be changed by an administrator.",
+      "fiscalDescription": "Fiscal settings can only be changed by an administrator.",
+      "registerDescription": "You do not have permission to change cash register details."
+    },
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "company": {
+      "title": "Company & fiscal",
+      "name": "Company name",
+      "vatId": "VAT ID",
+      "address": "Address",
+      "taxRate": "Tax rate",
+      "status": "Status",
+      "edit": "Edit company settings",
+      "readonly": "Read-only"
+    },
+    "appearance": {
+      "title": "Appearance & language",
+      "language": "Language"
+    },
+    "cashRegister": {
+      "title": "Cash register",
+      "select": "Select register",
+      "name": "Register name",
+      "placeholder": "e.g. Main register",
+      "required": "Please enter a name",
+      "numberHint": "Register number: {{number}}",
+      "save": "Save register name",
+      "saveSuccess": "Register name saved.",
+      "saveFailed": "Could not save register name.",
+      "missing": "No cash register selected."
+    },
+    "fiscal": {
+      "title": "Fiscal settings",
+      "tseStatus": "TSE status",
+      "tseType": "TSE type",
+      "tseSerial": "Serial number",
+      "certificateValid": "Certificate valid until",
+      "healthDetail": "TSE health status",
+      "connected": "Connected",
+      "disconnected": "Not connected",
+      "manage": "Manage TSE settings",
+      "viewRksvStatus": "Open RKSV status"
+    },
+    "advanced": {
+      "title": "Advanced settings",
+      "backup": "Backup",
+      "finanzOnline": "FinanzOnline",
+      "tse": "TSE",
+      "offline": "Offline"
+    }
+  },
   "companyPage": {
     "pageTitle": "Company information",
     "cardTitle": "Company information",
