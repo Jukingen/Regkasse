@@ -178,6 +178,10 @@ export type UnifiedAdminUsersViewProps = {
     policy: UsersPolicy;
     roleDisplayLabel: (role: string) => string;
     currentUserId?: string | null;
+    /** When set, locks list/create to one mandant (Manager JWT context). Hides platform scope. */
+    tenantScopeId?: string;
+    /** False for tenant Managers — hides platform filter, groups, and platform-user actions. */
+    isSuperAdminActor?: boolean;
     onView: (user: UserInfo) => void;
     onEdit: (userId: string) => void;
     onDeactivate: (user: UserInfo) => void;
@@ -192,6 +196,8 @@ export function UnifiedAdminUsersView({
     policy,
     roleDisplayLabel,
     currentUserId,
+    tenantScopeId,
+    isSuperAdminActor = true,
     onView,
     onEdit,
     onDeactivate,
@@ -208,10 +214,13 @@ export function UnifiedAdminUsersView({
     const searchParams = useSearchParams();
     const queryClient = useQueryClient();
 
+    const isTenantScoped = Boolean(tenantScopeId);
     const [selectedTenant, setSelectedTenant] = useState(() =>
-        tenantFilterToUiValue(resolveAdminUsersTenantFilterFromSearchParams(searchParams)),
+        tenantScopeId ?? tenantFilterToUiValue(resolveAdminUsersTenantFilterFromSearchParams(searchParams)),
     );
-    const tenantFilter = tenantFilterFromUiValue(selectedTenant);
+    const tenantFilter = isTenantScoped
+        ? tenantScopeId!
+        : tenantFilterFromUiValue(selectedTenant);
     const [roleFilter, setRoleFilter] = useState<string | undefined>();
     const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
     const [searchInput, setSearchInput] = useState('');
@@ -229,15 +238,28 @@ export function UnifiedAdminUsersView({
     }, [pathname]);
 
     useEffect(() => {
+        if (tenantScopeId) {
+            setSelectedTenant(tenantScopeId);
+            return;
+        }
         setSelectedTenant(
             tenantFilterToUiValue(resolveAdminUsersTenantFilterFromSearchParams(searchParams)),
         );
-    }, [searchParams]);
+    }, [searchParams, tenantScopeId]);
 
-    const createFixedTenantId =
-        tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM ? tenantFilter : undefined;
+    const createFixedTenantId = tenantScopeId
+        ? tenantScopeId
+        : tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM
+          ? tenantFilter
+          : undefined;
+
+    const canCreateTenantUsers =
+        policy.canCreate &&
+        (policy.canProvisionTenantCredentials || isTenantScoped) &&
+        tenantFilter !== FILTER_PLATFORM;
 
     const handleTenantFilterChange = (value: string) => {
+        if (isTenantScoped) return;
         setSelectedTenant(value);
         const filter = tenantFilterFromUiValue(value);
         if (filter === FILTER_ALL) {
@@ -259,7 +281,9 @@ export function UnifiedAdminUsersView({
         setSearchInput('');
         setRoleFilter(undefined);
         setStatusFilter(true);
-        handleTenantFilterChange(tenantFilterToUiValue(FILTER_ALL));
+        if (!isTenantScoped) {
+            handleTenantFilterChange(tenantFilterToUiValue(FILTER_ALL));
+        }
     };
 
     const { tenants: createTenants, isLoading: createTenantsLoading } = useTenantList();
@@ -272,7 +296,7 @@ export function UnifiedAdminUsersView({
                 ...(roleFilter ? { role: roleFilter } : {}),
                 ...(searchParam ? { search: searchParam } : {}),
             }),
-        enabled: tenantFilter === FILTER_ALL,
+        enabled: !isTenantScoped && tenantFilter === FILTER_ALL,
         select: (data) => data.map(rowFromAdminDto),
     });
 
@@ -283,14 +307,15 @@ export function UnifiedAdminUsersView({
                 ...(statusFilter != null ? { isActive: statusFilter } : {}),
                 ...(searchParam ? { search: searchParam } : {}),
             }),
-        enabled: tenantFilter === FILTER_PLATFORM,
+        enabled: isSuperAdminActor && !isTenantScoped && tenantFilter === FILTER_PLATFORM,
         select: (data) => data.map(rowFromAdminDto),
     });
 
-    const tenantApiTenantId =
-        tenantFilter && tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM
-            ? tenantFilter
-            : undefined;
+    const tenantApiTenantId = isTenantScoped
+        ? tenantScopeId
+        : tenantFilter && tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM
+          ? tenantFilter
+          : undefined;
 
     const tenantUsersQuery = useQuery({
         queryKey: adminUsersQueryKeys.tenant(tenantApiTenantId, roleFilter, searchParam),
@@ -301,7 +326,7 @@ export function UnifiedAdminUsersView({
                 isActive: statusFilter,
                 ...(searchParam ? { search: searchParam } : {}),
             }),
-        enabled: tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM,
+        enabled: isTenantScoped || (tenantFilter !== FILTER_ALL && tenantFilter !== FILTER_PLATFORM),
         select: (data) =>
             data.map((row): UnifiedAdminUserRow => {
                 const tenantUser = tenantRowToTenantUser(row);
@@ -351,6 +376,9 @@ export function UnifiedAdminUsersView({
 
     const filteredRows = useMemo(() => {
         let rows = unifiedRows;
+        if (isTenantScoped || !isSuperAdminActor) {
+            rows = rows.filter((row) => row.userType !== 'Platform');
+        }
         if (tenantFilter === FILTER_PLATFORM) {
             rows = rows.filter((row) => row.userType === 'Platform');
         } else if (tenantApiTenantId) {
@@ -360,10 +388,13 @@ export function UnifiedAdminUsersView({
             rows = rows.filter((row) => row.role === roleFilter);
         }
         return rows;
-    }, [unifiedRows, roleFilter, tenantFilter, tenantApiTenantId]);
+    }, [unifiedRows, roleFilter, tenantFilter, tenantApiTenantId, isTenantScoped, isSuperAdminActor]);
 
     const hasCustomFilters =
-        tenantFilter !== FILTER_ALL || Boolean(roleFilter) || statusFilter !== true || searchInput.trim().length > 0;
+        (!isTenantScoped && tenantFilter !== FILTER_ALL) ||
+        Boolean(roleFilter) ||
+        statusFilter !== true ||
+        searchInput.trim().length > 0;
 
     const groupedRows = useMemo(() => {
         const groups = new Map<
@@ -413,7 +444,7 @@ export function UnifiedAdminUsersView({
             tenantId?: string;
             isOwner?: boolean;
         }) => {
-            const tenantId = values.tenantId ?? createFixedTenantId;
+            const tenantId = tenantScopeId ?? values.tenantId ?? createFixedTenantId;
             if (tenantId) {
                 return createAdminUser({
                     email: values.email.trim(),
@@ -423,6 +454,9 @@ export function UnifiedAdminUsersView({
                     tenantId,
                     isOwner: values.isOwner,
                 });
+            }
+            if (!isSuperAdminActor) {
+                throw new Error('tenantId required for tenant-scoped user create');
             }
             return createPlatformUser({
                 email: values.email.trim(),
@@ -451,7 +485,7 @@ export function UnifiedAdminUsersView({
 
     const quickMutation = useMutation({
         mutationFn: (values: CreateUserQuickFormValues) => {
-            const tenantId = values.tenantId ?? createFixedTenantId;
+            const tenantId = tenantScopeId ?? values.tenantId ?? createFixedTenantId;
             if (!tenantId) throw new Error('tenantId required');
             return createQuickUser(tenantId, { role: values.role });
         },
@@ -595,7 +629,9 @@ export function UnifiedAdminUsersView({
 
     const renderPasswordCell = (row: UnifiedAdminUserRow) => {
         const canRevealPassword =
-            policy.canProvisionTenantCredentials && policy.canResetPassword(row.role) && row.userId !== currentUserId;
+            (policy.canProvisionTenantCredentials || isTenantScoped) &&
+            policy.canResetPassword(row.role) &&
+            row.userId !== currentUserId;
 
         return (
             <Space size="small">
@@ -1057,9 +1093,14 @@ export function UnifiedAdminUsersView({
     }));
 
     return (
-        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+        <Space
+            orientation="vertical"
+            size="middle"
+            style={{ width: '100%' }}
+            data-testid="unified-admin-users-view"
+        >
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-                {t('users.unified.pageIntro')}
+                {isTenantScoped ? t('users.list.pageIntro') : t('users.unified.pageIntro')}
             </Typography.Paragraph>
 
             <Card size="small" styles={{ body: { padding: 16 } }}>
@@ -1073,12 +1114,14 @@ export function UnifiedAdminUsersView({
                             onChange={(e) => setSearchInput(e.target.value)}
                             onSearch={handleSearch}
                         />
-                        <TenantFilter
-                            value={selectedTenant}
-                            onChange={handleTenantFilterChange}
-                            includePlatformOption
-                            style={{ width: 180 }}
-                        />
+                        {!isTenantScoped ? (
+                            <TenantFilter
+                                value={selectedTenant}
+                                onChange={handleTenantFilterChange}
+                                includePlatformOption={isSuperAdminActor}
+                                style={{ width: 180 }}
+                            />
+                        ) : null}
                         <Select
                             allowClear
                             placeholder={t('users.unified.filters.roleFilter')}
@@ -1130,19 +1173,19 @@ export function UnifiedAdminUsersView({
                         {t('users.unified.export.button')}
                     </Button>
                 </Dropdown>
-                {policy.canProvisionTenantCredentials && tenantFilter !== FILTER_PLATFORM ? (
+                {canCreateTenantUsers ? (
                     <>
                         <Button type="primary" icon={<UserAddOutlined />} onClick={() => setCreateOpen(true)}>
                             {t('users.create.action')}
                         </Button>
-                        {policy.canCreate ? (
+                        {isSuperAdminActor && policy.canCreate ? (
                             <Button icon={<ImportOutlined />} onClick={() => setBulkImportOpen(true)}>
                                 Massenimport
                             </Button>
                         ) : null}
                     </>
                 ) : null}
-                {policy.canCreate ? (
+                {isSuperAdminActor && policy.canCreate ? (
                     <Button icon={<UserOutlined />} onClick={onCreatePlatformUser}>
                         {t('users.page.createPlatformAdmin')}
                     </Button>
@@ -1178,21 +1221,24 @@ export function UnifiedAdminUsersView({
                 )}
             </div>
 
-            {policy.canProvisionTenantCredentials ? (
+            {canCreateTenantUsers ? (
                 <>
                     <CreateUserModal
                         open={createOpen}
                         variant="usersPage"
-                        isSuperAdmin
+                        isSuperAdmin={isSuperAdminActor}
                         tenantId={createFixedTenantId}
                         tenantRows={createTenants}
                         tenantsLoading={createTenantsLoading}
                         confirmLoading={createMutation.isPending || quickPlatformMutation.isPending}
                         onClose={() => setCreateOpen(false)}
                         onComplete={() => setCreateOpen(false)}
-                        allowDeferredTenantAssignment
-                        onAssignTenants={(userId, tenantIds) =>
-                            assignTenantsMutation.mutateAsync({ userId, tenantIds })
+                        allowDeferredTenantAssignment={isSuperAdminActor}
+                        onAssignTenants={
+                            isSuperAdminActor
+                                ? (userId, tenantIds) =>
+                                      assignTenantsMutation.mutateAsync({ userId, tenantIds })
+                                : undefined
                         }
                         onSubmit={(values) =>
                             createMutation.mutateAsync({
@@ -1208,7 +1254,12 @@ export function UnifiedAdminUsersView({
                             tenantFilter !== FILTER_PLATFORM
                                 ? {
                                       onSubmit: (values) => quickMutation.mutateAsync(values),
-                                      onSubmitWithoutTenant: (values) => quickPlatformMutation.mutateAsync(values),
+                                      ...(isSuperAdminActor
+                                          ? {
+                                                onSubmitWithoutTenant: (values) =>
+                                                    quickPlatformMutation.mutateAsync(values),
+                                            }
+                                          : {}),
                                   }
                                 : undefined
                         }

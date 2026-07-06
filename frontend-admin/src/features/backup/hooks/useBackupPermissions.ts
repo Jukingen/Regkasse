@@ -35,7 +35,10 @@ export function useBackupPermissions() {
       canView,
       /** Trigger backups + edit backup schedule (own tenant for Manager). */
       canManageBackup,
+      /** Platform-wide backup settings (execution mode, deployment paths). */
       canConfigure,
+      /** Alias for {@link canConfigure} — Super Admin / platform operator surfaces. */
+      isPlatformAdmin: canConfigure,
       canTrigger,
       canDownloadBackup,
       canRestore,

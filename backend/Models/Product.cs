@@ -41,15 +41,19 @@ namespace KasseAPI_Final.Models
         public int TaxType { get; set; } = 1; // 1: Standard, 2: Reduced, etc.
 
         [Column("description")]
+        [MaxLength(2000)]
         public string? Description { get; set; }
 
         [Column("description_de")]
+        [MaxLength(2000)]
         public string? DescriptionDe { get; set; }
 
         [Column("description_en")]
+        [MaxLength(2000)]
         public string? DescriptionEn { get; set; }
 
         [Column("description_tr")]
+        [MaxLength(2000)]
         public string? DescriptionTr { get; set; }
 
         [Required]
@@ -58,6 +62,7 @@ namespace KasseAPI_Final.Models
         public string Category { get; set; } = string.Empty;
 
         [Column("image_url")]
+        [MaxLength(500)]
         public string? ImageUrl { get; set; }
 
         [Required]

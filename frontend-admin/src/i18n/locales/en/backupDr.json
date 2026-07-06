@@ -851,12 +851,12 @@
       "unknown": "Presence not reported — policy unknown until request"
     },
     "downloadBlocked": {
-      "no_manage": "Requires “Manage settings” permission",
+      "no_manage": "Requires “Manage backups” permission",
       "file_not_on_server": "Blocked — file reported absent",
       "file_presence_unknown": "Blocked — cannot pre-confirm file presence"
     },
     "error": "Download failed.",
-    "needManage": "You need “Manage settings” permission to download.",
+    "needManage": "You need “Manage backups” permission to download.",
     "suspicion": {
       "metadata_incomplete": {
         "short": "Size missing",

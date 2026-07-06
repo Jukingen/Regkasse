@@ -5,6 +5,7 @@ using KasseAPI_Final.Controllers;
 using KasseAPI_Final.Data;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.DTOs;
+using KasseAPI_Final.Services.Dashboard;
 using KasseAPI_Final.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -107,6 +108,21 @@ public sealed class DashboardControllerTests
         var salesB = prefsB.Widgets.First(w => w.WidgetId == "today-sales");
         Assert.True(salesA.IsVisible);
         Assert.False(salesB.IsVisible);
+    }
+
+    [Fact]
+    public async Task GetWidgets_Manager_IncludesBackupAndOfflineWidgets()
+    {
+        await using var db = CreateContext();
+        var controller = CreateController(db, role: Roles.Manager);
+
+        var result = await controller.GetWidgets(CancellationToken.None);
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var items = Assert.IsAssignableFrom<IReadOnlyList<DashboardWidgetCatalogItemDto>>(ok.Value);
+
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.BackupStatus);
+        Assert.Contains(items, i => i.WidgetId == DashboardWidgetCatalog.OfflineSystemStatus);
+        Assert.DoesNotContain(items, i => i.WidgetId == DashboardWidgetCatalog.LicenseExpiry);
     }
 
     [Fact]

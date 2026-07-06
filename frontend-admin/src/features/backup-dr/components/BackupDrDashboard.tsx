@@ -26,8 +26,7 @@ import { ReloadOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/i18n/formatting";
-import { hasAnyPermission, hasPermission, PERMISSIONS } from "@/shared/auth/permissions";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
 import {
   getGetApiAdminBackupRecoverabilitySummaryQueryKey,
   getGetApiAdminBackupRunsIdQueryKey,
@@ -79,7 +78,6 @@ import { BackupRecentRunsTable } from "@/features/backup-dr/components/BackupRec
 import { RestoreRequestModal } from "@/features/backup-dr/components/RestoreRequestModal";
 import { RestoreApprovalModal } from "@/features/backup-dr/components/RestoreApprovalModal";
 import { ManualRestoreRequestsTable } from "@/features/backup-dr/components/ManualRestoreRequestsTable";
-import { isSuperAdmin } from "@/features/auth/constants/roles";
 import { BackupStatusCard } from "@/features/backup-dr/components/BackupStatusCard";
 import { HealthBanner } from "@/features/backup-dr/components/HealthBanner";
 import { RestoreVerificationCard } from "@/features/backup-dr/components/RestoreVerificationCard";
@@ -139,16 +137,14 @@ export function BackupDrDashboard({
   onSelectBackupRun,
 }: BackupDrDashboardProps = {}) {
   const { t, formatLocale } = useI18n();
-  const { user } = useAuth();
+  const {
+    canManageBackup,
+    canConfigure: isPlatformAdmin,
+    canDownloadBackup,
+    canRestore,
+  } = useBackupPermissions();
   const queryClient = useQueryClient();
-  /** Instance-wide surfaces (execution mode, artifact download) — settings.manage only. */
-  const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
-  /** Tenant-scoped backup ops (manual trigger + schedule); Manager via backup.manage. */
-  const canManageBackup = hasAnyPermission(user, [
-    PERMISSIONS.SETTINGS_MANAGE,
-    PERMISSIONS.BACKUP_MANAGE,
-  ]);
-  const canRequestManualRestore = isSuperAdmin(user?.role);
+  const canRequestManualRestore = canRestore;
   const [manualRestoreRun, setManualRestoreRun] =
     React.useState<BackupRunResponseDto | null>(null);
   const [manualRestoreApprovalId, setManualRestoreApprovalId] =
@@ -565,7 +561,8 @@ export function BackupDrDashboard({
             latestDetail={detailForPipeline ?? undefined}
             configurationHealth={health}
             artifactPipelinePolicy={policy}
-            canManage={canManage}
+            canManageBackup={canManageBackup}
+            canRestore={canRestore}
             recoverability={recoverabilityQuery.data}
             restoreLatest={restoreLatestForTruth}
             restoreReadiness={restoreReady}
@@ -709,14 +706,18 @@ export function BackupDrDashboard({
                 </Col>
               </Row>
 
-              <Divider orientation="left" plain>
-                {t("backupDr.ia.drilldownExecution")}
-              </Divider>
-              <BackupExecutionModeCard
-                canManage={canManage}
-                t={t}
-                onModeSaved={() => invalidateAll()}
-              />
+              {isPlatformAdmin ? (
+                <>
+                  <Divider orientation="left" plain>
+                    {t("backupDr.ia.drilldownExecution")}
+                  </Divider>
+                  <BackupExecutionModeCard
+                    canManage={isPlatformAdmin}
+                    t={t}
+                    onModeSaved={() => invalidateAll()}
+                  />
+                </>
+              ) : null}
 
               <Collapse
                 size="small"
@@ -899,7 +900,7 @@ export function BackupDrDashboard({
                     variant="latest_success"
                     runId={latest.id}
                     artifacts={detailForPipeline?.artifacts ?? []}
-                    canManage={canManage}
+                    canManage={canDownloadBackup}
                     isSimulatedExecution={operatorTruth.run.simulatedEvidence}
                     runAdapterKind={detailForPipeline?.adapterKind ?? undefined}
                     realPostgreSqlLogicalDumpConfigured={
@@ -937,7 +938,7 @@ export function BackupDrDashboard({
                       variant="last_known_good"
                       runId={lkgRunId}
                       artifacts={lkgRunDetailQuery.data?.artifacts ?? []}
-                      canManage={canManage}
+                      canManage={canDownloadBackup}
                       isSimulatedExecution={
                         lkgRunDetailQuery.data?.isSimulatedExecution ??
                         recoverabilityQuery.data
@@ -1577,7 +1578,7 @@ export function BackupDrDashboard({
           >
             <BackupManualActionsPanel
               canManage={canManageBackup}
-              canRestore={canManage}
+              canRestore={canRestore}
               simulatedOperationalMode={isSimulatedAdapterEnvironment}
               modeAwareConfirmations={
                 operatorTruth.manualActionsModeConfirmations

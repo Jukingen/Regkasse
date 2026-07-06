@@ -345,4 +345,67 @@ describe('UnifiedAdminUsersView', () => {
         });
         expect(await screen.findByDisplayValue('Temp#Pass123')).toBeInTheDocument();
     });
+
+    it('scopes tenant managers to JWT mandant and hides platform filter', async () => {
+        mockListTenantUsers.mockResolvedValue([
+            {
+                userId: 'tenant-user-4',
+                userName: 'manager1',
+                email: 'manager@tenant.test',
+                name: 'Scoped Manager',
+                role: 'Cashier',
+                isOwner: false,
+                joinedAtUtc: '2025-01-01T00:00:00Z',
+                tenantId: 'tenant-1',
+                tenantSlug: 'cafe-central',
+                tenantName: 'Cafe Central',
+                isActive: true,
+                lastLoginAt: null,
+            },
+        ]);
+
+        const queryClient = new QueryClient({
+            defaultOptions: { queries: { retry: false } },
+        });
+
+        render(
+            <QueryClientProvider client={queryClient}>
+                <I18nProvider>
+                    <UnifiedAdminUsersView
+                        policy={{
+                            canView: true,
+                            canCreate: true,
+                            canEdit: true,
+                            canDeactivate: true,
+                            canReactivate: true,
+                            canCreateRole: false,
+                            canDeleteRole: false,
+                            canEditRolePermissions: false,
+                            canResetPassword: () => true,
+                            canProvisionTenantCredentials: false,
+                        }}
+                        roleDisplayLabel={(role) => role}
+                        tenantScopeId="tenant-1"
+                        isSuperAdminActor={false}
+                        onView={vi.fn()}
+                        onEdit={vi.fn()}
+                        onDeactivate={vi.fn()}
+                        onReactivate={vi.fn()}
+                        onResetPassword={vi.fn()}
+                        onCreatePlatformUser={vi.fn()}
+                    />
+                </I18nProvider>
+            </QueryClientProvider>,
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Scoped Manager')).toBeInTheDocument();
+        });
+
+        expect(screen.queryByTestId('tenant-filter')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Plattform-Admin anlegen/i })).not.toBeInTheDocument();
+        expect(mockListTenantUsers).toHaveBeenCalledWith(
+            expect.objectContaining({ tenantId: 'tenant-1' }),
+        );
+    });
 });

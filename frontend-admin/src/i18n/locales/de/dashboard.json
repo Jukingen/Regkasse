@@ -120,6 +120,14 @@
     "view_details": "Details anzeigen",
     "load_failed": "Offline-Status konnte nicht geladen werden."
   },
+  "backupStatusWidget": {
+    "last_backup": "Letztes Backup",
+    "no_backup": "Noch kein Backup",
+    "success_rate_30d": "Erfolgsrate (30 Tage)",
+    "config_health": "Konfiguration: {{level}}",
+    "view_details": "Backup-Übersicht öffnen",
+    "load_failed": "Backup-Status konnte nicht geladen werden."
+  },
   "widgetShell": {
     "refresh": "Aktualisieren",
     "drag_widget": "Widget verschieben"

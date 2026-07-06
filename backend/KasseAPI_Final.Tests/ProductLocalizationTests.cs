@@ -36,4 +36,24 @@ public class ProductLocalizationTests
         Assert.Equal("Pizza Salami", product.Name);
         Assert.Equal("mit Salami", product.Description);
     }
+
+    [Fact]
+    public void SyncCanonicalFields_DescriptionFallsBackToTurkish_WhenGermanMissing()
+    {
+        var product = new Product { DescriptionTr = "tesstt" };
+
+        ProductLocalization.SyncCanonicalFields(product);
+
+        Assert.Equal("tesstt", product.Description);
+    }
+
+    [Fact]
+    public void SyncCanonicalFields_DescriptionNeverNull_WhenAllMissing()
+    {
+        var product = new Product();
+
+        ProductLocalization.SyncCanonicalFields(product);
+
+        Assert.Equal(string.Empty, product.Description);
+    }
 }

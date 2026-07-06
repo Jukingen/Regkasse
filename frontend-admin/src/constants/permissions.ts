@@ -37,7 +37,7 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
 
   // Access & roles hub
   '/admin/access': PERMISSIONS.USER_VIEW,
-  '/admin/access/roles': PERMISSIONS.ROLE_VIEW,
+  '/admin/access/roles': PERMISSIONS.ROLE_MANAGE,
   '/admin/access/matrix': PERMISSIONS.ROLE_VIEW,
 
   // Tenant management (Super Admin)

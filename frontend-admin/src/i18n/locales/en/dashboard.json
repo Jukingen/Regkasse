@@ -120,6 +120,14 @@
     "view_details": "View details",
     "load_failed": "Could not load offline status."
   },
+  "backupStatusWidget": {
+    "last_backup": "Last backup",
+    "no_backup": "No backup yet",
+    "success_rate_30d": "Success rate (30 days)",
+    "config_health": "Configuration: {{level}}",
+    "view_details": "Open backup overview",
+    "load_failed": "Could not load backup status."
+  },
   "widgetShell": {
     "refresh": "Refresh",
     "drag_widget": "Move widget"

@@ -7,14 +7,23 @@ import dayjs from 'dayjs';
 
 import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { ActivitySummary } from '@/features/dashboard/components/ActivitySummary';
+import { Dashboard } from '@/features/dashboard/components/Dashboard';
+import { DashboardMonatsbelegSection } from '@/features/dashboard/components/DashboardMonatsbelegSection';
+import { HospitalityQuickLinksCard } from '@/features/dashboard/components/HospitalityQuickLinksCard';
+import { OfflineQueueDashboardCard } from '@/features/dashboard/components/OfflineQueueDashboardCard';
+import { RksvReminderCard } from '@/features/dashboard/components/RksvReminderCard';
+import { TseHealthCard } from '@/features/dashboard/components/TseHealthCard';
 import { useTodaySales } from '@/features/reports/hooks/useTodaySales';
 import { usePendingMonatsbeleg } from '@/features/rksv/hooks/usePendingMonatsbeleg';
 import { useActiveStaff } from '@/features/staff/hooks/useActiveStaff';
 import { useOpenShifts } from '@/features/shifts/hooks/useOpenShifts';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useAuthorizationGate } from '@/hooks/useAuthorizedQuery';
 import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useI18n } from '@/i18n/I18nProvider';
 import { formatCurrency } from '@/i18n/formatting';
+import { AppPermissions, PERMISSIONS } from '@/shared/auth/permissions';
 import { RKSV_SONDERBELEGE_PATH } from '@/shared/auth/rksvRoutePaths';
 
 function resolveUserDisplayName(
@@ -45,6 +54,13 @@ function formatRegisterLabel(
 export function ManagerDashboard() {
     const { t, formatLocale } = useI18n();
     const { user } = useAuth();
+    const { hasPermission } = usePermissions();
+    const { isAuthorized: canSeeRksvReminder } = useAuthorizationGate({
+        requiredPermission: AppPermissions.CashRegisterView,
+    });
+
+    const offlineQueueCardEnabled = hasPermission(PERMISSIONS.PAYMENT_VIEW);
+    const tseHealthCardEnabled = hasPermission(AppPermissions.CashRegisterView);
     const {
         selectedRegister,
         selectedRegisterId,
@@ -74,10 +90,22 @@ export function ManagerDashboard() {
     const balance = selectedRegister?.currentBalance ?? 0;
     const transactionCount = sales?.count ?? 0;
 
+    const operationalHeader = (
+        <>
+            {offlineQueueCardEnabled ? <OfflineQueueDashboardCard /> : null}
+            {tseHealthCardEnabled ? <TseHealthCard /> : null}
+            {canSeeRksvReminder ? <RksvReminderCard /> : null}
+            {canSeeRksvReminder ? (
+                <DashboardMonatsbelegSection enabled={canSeeRksvReminder} />
+            ) : null}
+            <HospitalityQuickLinksCard />
+        </>
+    );
+
     return (
         <div style={{ padding: 24 }}>
             <Card style={{ marginBottom: 16, background: '#f8fafc' }} variant="borderless">
-                <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                     <h2 style={{ margin: 0 }}>
                         {t('dashboard.manager.welcome', { name: userName })}
                     </h2>
@@ -190,6 +218,10 @@ export function ManagerDashboard() {
 
             <div style={{ marginTop: 16 }}>
                 <ActivitySummary limit={5} />
+            </div>
+
+            <div style={{ marginTop: 24 }}>
+                <Dashboard headerSlot={operationalHeader} />
             </div>
         </div>
     );

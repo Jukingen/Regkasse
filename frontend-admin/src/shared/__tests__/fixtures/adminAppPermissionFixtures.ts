@@ -136,7 +136,6 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
     '/admin/rksv/signature-verify',
     '/admin/users',
     '/admin/access',
-    '/admin/access/roles',
     '/admin/access/matrix',
     '/settings',
     '/settings/session',
@@ -150,6 +149,7 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
  * Manager must not see: POS floor signing, platform admin, benefits, receipt templates, dev tooling.
  */
 export const MANAGER_FORBIDDEN_MENU_KEYS: readonly string[] = [
+    '/admin/access/roles',
     '/tagesabschluss',
     '/receipt-templates',
     '/receipt-generate',

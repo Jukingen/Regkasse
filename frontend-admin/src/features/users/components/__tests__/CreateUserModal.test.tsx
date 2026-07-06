@@ -84,6 +84,21 @@ describe('CreateUserModal', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
+    it('hides modal mandant selector when isSuperAdmin is false (Manager tenant context)', () => {
+        renderModal(
+            <CreateUserModal
+                open
+                isSuperAdmin={false}
+                tenantId="tenant-1"
+                tenantRows={[...sampleTenants]}
+                onClose={vi.fn()}
+                onSubmit={vi.fn()}
+            />,
+        );
+
+        expect(screen.queryByLabelText('Mandant')).not.toBeInTheDocument();
+    });
+
     it('shows modal mandant selector when super admin has no fixed tenant (not header switcher)', () => {
         renderModal(
             <CreateUserModal

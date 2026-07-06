@@ -851,12 +851,12 @@
       "unknown": "Nicht gemeldet — Richtlinie bis zur Anfrage unbekannt"
     },
     "downloadBlocked": {
-      "no_manage": "Benötigt „Einstellungen verwalten“",
+      "no_manage": "Benötigt „Backups verwalten“",
       "file_not_on_server": "Gesperrt — Datei gemeldet fehlend",
       "file_presence_unknown": "Gesperrt — Anwesenheit nicht vorab bestätigbar"
     },
     "error": "Download fehlgeschlagen.",
-    "needManage": "Zum Herunterladen fehlt die Berechtigung „Einstellungen verwalten“.",
+    "needManage": "Zum Herunterladen fehlt die Berechtigung „Backups verwalten“.",
     "suspicion": {
       "metadata_incomplete": {
         "short": "Größe fehlt",

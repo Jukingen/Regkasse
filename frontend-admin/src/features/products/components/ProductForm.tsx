@@ -18,12 +18,19 @@ export type ProductFormSubmitValues = Product & { modifierGroupIds?: string[]; c
 interface ProductFormProps {
     visible: boolean;
     initialValues?: Product | null;
+    /** True while editing an existing product (detail may still be loading). */
+    isEditMode?: boolean;
     onCancel: () => void;
     onSubmit: (values: ProductFormSubmitValues) => Promise<void>;
     loading?: boolean;
 }
 
 const { TextArea } = Input;
+
+/** Aligned with backend Product model / AdminProductsController field limits. */
+const PRODUCT_NAME_MAX_LENGTH = 200;
+const PRODUCT_DESCRIPTION_MAX_LENGTH = 2000;
+const PRODUCT_BARCODE_MAX_LENGTH = 50;
 
 export default function ProductForm(props: ProductFormProps) {
     if (!props.visible) {
@@ -35,6 +42,7 @@ export default function ProductForm(props: ProductFormProps) {
 function ProductFormContent({
     visible,
     initialValues,
+    isEditMode = false,
     onCancel,
     onSubmit,
     loading,
@@ -78,15 +86,6 @@ function ProductFormContent({
         return () => { cancelled = true; };
     }, [visible, initialValues?.id, t]);
 
-    const taxTypeOptions = useMemo(
-        () => [
-            { value: TAX_TYPE_ENUM.Standard, label: t('products.form.taxStandard') },
-            { value: TAX_TYPE_ENUM.Reduced, label: t('products.form.taxReduced') },
-            { value: TAX_TYPE_ENUM.Special, label: t('products.form.taxSpecial') },
-        ],
-        [t],
-    );
-
     const productImageUrlRules = useMemo(
         () => [
             {
@@ -109,6 +108,30 @@ function ProductFormContent({
                 },
             },
         ],
+        [t],
+    );
+
+    const taxTypeOptions = useMemo(
+        () => [
+            { value: TAX_TYPE_ENUM.Standard, label: t('products.form.taxStandard') },
+            { value: TAX_TYPE_ENUM.Reduced, label: t('products.form.taxReduced') },
+            { value: TAX_TYPE_ENUM.Special, label: t('products.form.taxSpecial') },
+        ],
+        [t],
+    );
+
+    const nameMaxLengthRule = useMemo(
+        () => ({ max: PRODUCT_NAME_MAX_LENGTH, message: t('products.form.fieldMaxLength', { max: PRODUCT_NAME_MAX_LENGTH }) }),
+        [t],
+    );
+
+    const descriptionMaxLengthRule = useMemo(
+        () => ({ max: PRODUCT_DESCRIPTION_MAX_LENGTH, message: t('products.form.fieldMaxLength', { max: PRODUCT_DESCRIPTION_MAX_LENGTH }) }),
+        [t],
+    );
+
+    const barcodeMaxLengthRule = useMemo(
+        () => ({ max: PRODUCT_BARCODE_MAX_LENGTH, message: t('products.form.fieldMaxLength', { max: PRODUCT_BARCODE_MAX_LENGTH }) }),
         [t],
     );
 
@@ -160,7 +183,7 @@ function ProductFormContent({
                     minStockLevel: initialValues.minStockLevel ?? 0,
                     categoryId: categoryId || undefined,
                 });
-            } else {
+            } else if (!isEditMode) {
                 form.resetFields();
                 form.setFieldsValue({
                     isActive: true,
@@ -173,7 +196,7 @@ function ProductFormContent({
                 });
             }
         }
-    }, [visible, initialValues, form, categoryOptions]);
+    }, [visible, initialValues, form, categoryOptions, isEditMode]);
 
     const handleOk = async () => {
         try {
@@ -247,13 +270,13 @@ function ProductFormContent({
 
     return (
         <Modal
-            title={initialValues ? t('products.form.titleEdit') : t('products.form.titleCreate')}
+            title={isEditMode ? t('products.form.titleEdit') : t('products.form.titleCreate')}
             open={visible}
             onOk={handleOk}
             onCancel={onCancel}
             confirmLoading={!!loading || imageUploading}
             okButtonProps={{
-                disabled: !!initialValues && modifierGroupsLoading,
+                disabled: (isEditMode && !initialValues) || (!!isEditMode && modifierGroupsLoading),
             }}
             width={600}
             forceRender
@@ -282,24 +305,24 @@ function ProductFormContent({
                                     <Form.Item
                                         name="nameDe"
                                         label={t('products.form.nameDe')}
-                                        rules={[{ required: true, message: t('products.form.nameRequired') }]}
+                                        rules={[{ required: true, message: t('products.form.nameRequired') }, nameMaxLengthRule]}
                                     >
-                                        <Input placeholder="Pizza Margherita" />
+                                        <Input placeholder="Pizza Margherita" maxLength={PRODUCT_NAME_MAX_LENGTH} />
                                     </Form.Item>
-                                    <Form.Item name="nameEn" label={t('products.form.nameEn')}>
-                                        <Input placeholder="Margherita Pizza" />
+                                    <Form.Item name="nameEn" label={t('products.form.nameEn')} rules={[nameMaxLengthRule]}>
+                                        <Input placeholder="Margherita Pizza" maxLength={PRODUCT_NAME_MAX_LENGTH} />
                                     </Form.Item>
-                                    <Form.Item name="nameTr" label={t('products.form.nameTr')}>
-                                        <Input placeholder="Margherita Pizza" />
+                                    <Form.Item name="nameTr" label={t('products.form.nameTr')} rules={[nameMaxLengthRule]}>
+                                        <Input placeholder="Margherita Pizza" maxLength={PRODUCT_NAME_MAX_LENGTH} />
                                     </Form.Item>
-                                    <Form.Item name="descriptionDe" label={t('products.form.descriptionDe')}>
-                                        <TextArea rows={2} placeholder="mit Tomaten und Mozzarella" />
+                                    <Form.Item name="descriptionDe" label={t('products.form.descriptionDe')} rules={[descriptionMaxLengthRule]}>
+                                        <TextArea rows={2} placeholder="mit Tomaten und Mozzarella" maxLength={PRODUCT_DESCRIPTION_MAX_LENGTH} showCount />
                                     </Form.Item>
-                                    <Form.Item name="descriptionEn" label={t('products.form.descriptionEn')}>
-                                        <TextArea rows={2} placeholder="with tomatoes and mozzarella" />
+                                    <Form.Item name="descriptionEn" label={t('products.form.descriptionEn')} rules={[descriptionMaxLengthRule]}>
+                                        <TextArea rows={2} placeholder="with tomatoes and mozzarella" maxLength={PRODUCT_DESCRIPTION_MAX_LENGTH} showCount />
                                     </Form.Item>
-                                    <Form.Item name="descriptionTr" label={t('products.form.descriptionTr')}>
-                                        <TextArea rows={2} />
+                                    <Form.Item name="descriptionTr" label={t('products.form.descriptionTr')} rules={[descriptionMaxLengthRule]}>
+                                        <TextArea rows={2} maxLength={PRODUCT_DESCRIPTION_MAX_LENGTH} showCount />
                                     </Form.Item>
                                 </>
                             ),
@@ -314,8 +337,9 @@ function ProductFormContent({
                     <Form.Item
                         name="barcode"
                         label={t('products.form.barcode')}
+                        rules={[barcodeMaxLengthRule]}
                     >
-                        <Input placeholder={t('products.form.barcodePlaceholder')} />
+                        <Input placeholder={t('products.form.barcodePlaceholder')} maxLength={PRODUCT_BARCODE_MAX_LENGTH} />
                     </Form.Item>
 
                     <Form.Item

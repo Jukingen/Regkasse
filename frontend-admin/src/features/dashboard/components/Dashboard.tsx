@@ -13,7 +13,12 @@ import {
 } from '@/features/dashboard/api/dashboardPreferences';
 import { WidgetGrid } from '@/features/dashboard/components/WidgetGrid';
 import { DashboardSettingsPanel } from '@/features/dashboard/components/DashboardSettingsPanel';
+import {
+    filterDashboardCatalogByPermissions,
+    filterDashboardLayoutByCatalog,
+} from '@/features/dashboard/logic/dashboardWidgetVisibility';
 import type { DashboardWidgetPreference } from '@/features/dashboard/types';
+import { usePermissions } from '@/hooks/usePermissions';
 
 type DashboardProps = {
     /** Optional fixed sections rendered above the customizable widget grid. */
@@ -23,6 +28,7 @@ type DashboardProps = {
 /** Customizable admin dashboard with persisted per-user widget layout. */
 export function Dashboard({ headerSlot }: DashboardProps) {
     const queryClient = useQueryClient();
+    const { hasPermission } = usePermissions();
     const [layout, setLayout] = useState<DashboardWidgetPreference[] | null>(null);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,6 +86,16 @@ export function Dashboard({ headerSlot }: DashboardProps) {
         return map;
     }, [catalogQuery.data]);
 
+    const allowedCatalog = useMemo(
+        () => filterDashboardCatalogByPermissions(catalogQuery.data ?? [], hasPermission),
+        [catalogQuery.data, hasPermission],
+    );
+
+    const visibleLayout = useMemo(
+        () => (layout ? filterDashboardLayoutByCatalog(layout, allowedCatalog) : null),
+        [layout, allowedCatalog],
+    );
+
     const handleVisibilityChange = (widgetId: string, isVisible: boolean) => {
         if (!layout) return;
         const next = layout.map((w) =>
@@ -128,9 +144,9 @@ export function Dashboard({ headerSlot }: DashboardProps) {
                 />
             ) : null}
 
-            {layout && !loading ? (
+            {visibleLayout && !loading ? (
                 <WidgetGrid
-                    widgets={layout}
+                    widgets={visibleLayout}
                     titleById={titleById}
                     onReorder={scheduleSave}
                     onWidgetSettingsChange={handleWidgetSettingsChange}
@@ -150,8 +166,8 @@ export function Dashboard({ headerSlot }: DashboardProps) {
             <DashboardSettingsPanel
                 open={settingsOpen}
                 onClose={() => setSettingsOpen(false)}
-                catalog={catalogQuery.data ?? []}
-                widgets={layout ?? []}
+                catalog={allowedCatalog}
+                widgets={visibleLayout ?? []}
                 onVisibilityChange={handleVisibilityChange}
             />
         </>

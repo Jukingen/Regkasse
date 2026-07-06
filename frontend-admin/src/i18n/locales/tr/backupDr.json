@@ -851,12 +851,12 @@
       "unknown": "Varlık bildirilmedi — istekten önce politika bilinmez"
     },
     "downloadBlocked": {
-      "no_manage": "„Ayarları yönet“ gerekir",
+      "no_manage": "„Yedeklemeleri yönet“ gerekir",
       "file_not_on_server": "Kapalı — dosya yok bildirildi",
       "file_presence_unknown": "Kapalı — varlık önceden doğrulanamıyor"
     },
     "error": "İndirme başarısız.",
-    "needManage": "İndirmek için „Ayarları yönet“ yetkisi gerekir.",
+    "needManage": "İndirmek için „Yedeklemeleri yönet“ yetkisi gerekir.",
     "suspicion": {
       "metadata_incomplete": {
         "short": "Boyut yok",

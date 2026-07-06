@@ -259,7 +259,7 @@ export function QuickActions() {
                     </Button>,
                 ]}
             >
-                <Space direction="vertical" style={{ width: '100%' }}>
+                <Space orientation="vertical" style={{ width: '100%' }}>
                     <Alert
                         title={
                             action === 'open-shift'

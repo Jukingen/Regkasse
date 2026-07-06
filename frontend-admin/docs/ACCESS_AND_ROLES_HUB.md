@@ -13,7 +13,7 @@ Operational RBAC surfaces for tenant admins are grouped under **Verwaltung → Z
 |-------|---------|-------------------------------------|
 | `/admin/access` | Hub landing (overview cards) | `USER_VIEW` |
 | `/admin/users` | Tenant user lifecycle (list, create, deactivate, …) | `USER_VIEW` |
-| `/admin/access/roles` | Role CRUD + permission editor (full page) | `ROLE_VIEW` |
+| `/admin/access/roles` | Role CRUD + permission editor (full page) | `ROLE_MANAGE` |
 | `/admin/access/matrix` | Read-only role ↔ permission matrix summary | `ROLE_VIEW` |
 
 Super Admin platform mode uses **`/users`** (redirects to `/admin/users` when needed) with `UnifiedAdminUsersView`; the access hub secondary nav is hidden for Super Admin layout.

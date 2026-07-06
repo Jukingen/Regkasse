@@ -59,7 +59,7 @@ export interface BackupDetailModalProps {
 
 export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalProps) {
   const { t, formatLocale } = useI18n();
-  const { canConfigure: canManage } = useBackupPermissions();
+  const { canDownloadBackup } = useBackupPermissions();
   const [downloading, setDownloading] = useState(false);
 
   const { data: run, isLoading, isError, isFetching } = useBackupRun(runId, {
@@ -165,7 +165,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
         title: t("backupDr.runsTable.actions"),
         key: "actions",
         render: (_: unknown, row: BackupArtifactResponseDto) =>
-          run?.id && row.id && row.isFilePresentForDownload && canManage ? (
+          run?.id && row.id && row.isFilePresentForDownload && canDownloadBackup ? (
             <Button
               type="link"
               size="small"
@@ -185,7 +185,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
           ),
       },
     ],
-    [canManage, formatDateTime, formatLocale, run?.id, t],
+    [canDownloadBackup, formatDateTime, formatLocale, run?.id, t],
   );
 
   const renderOverviewMetrics = useCallback(() => {
@@ -349,7 +349,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
                 variant="latest_success"
                 runId={run.id}
                 artifacts={run.artifacts ?? []}
-                canManage={canManage}
+                canManage={canDownloadBackup}
                 isSimulatedExecution={simulated}
                 runAdapterKind={run.adapterKind}
                 simulatedOperationalMode={simulated}
@@ -429,7 +429,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     ];
   }, [
     artifactColumns,
-    canManage,
+    canDownloadBackup,
     formatDateTime,
     isFetching,
     pipelineResolved.steps,
@@ -443,7 +443,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
 
   const showDownloadFooter =
     isBackupRunSucceeded(run?.status) &&
-    Boolean(run?.id && primaryDownloadArtifact?.id && canManage);
+    Boolean(run?.id && primaryDownloadArtifact?.id && canDownloadBackup);
 
   return (
     <Modal

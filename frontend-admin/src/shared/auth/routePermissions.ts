@@ -63,7 +63,9 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/users': PERMISSIONS.USER_VIEW,
   '/admin/users': PERMISSIONS.USER_VIEW,
   '/admin/access': PERMISSIONS.USER_VIEW,
-  '/admin/access/roles': PERMISSIONS.ROLE_VIEW,
+  /** Role CRUD + permission editor — Super Admin only (role.manage). */
+  '/admin/access/roles': PERMISSIONS.ROLE_MANAGE,
+  /** Read-only matrix — Manager may view (role.view). */
   '/admin/access/matrix': PERMISSIONS.ROLE_VIEW,
   '/settings': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — firm-wide fiscal master data. */

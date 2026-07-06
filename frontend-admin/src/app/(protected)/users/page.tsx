@@ -7,15 +7,12 @@ import { useAntdApp } from '@/hooks/useAntdApp';
  * Filters: role, status, branch, search. Drawer create/edit, deactivate (reason), reactivate, activity timeline tab.
  */
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { Modal, Card, Typography, Tag, Space, Button, Select, Alert, Empty, Flex, Tooltip, Descriptions, Input } from 'antd';
+import { Modal, Card, Typography, Tag, Space, Button, Alert, Flex, Tooltip, Descriptions } from 'antd';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
-import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
+import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import {
     UserOutlined,
-    SearchOutlined,
-    ReloadOutlined,
-    ClearOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -23,10 +20,8 @@ import { AccessSecondaryNav } from '@/features/access/components/AccessSecondary
 import { useQueryClient, useMutation, useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useUsersPolicy } from '@/shared/auth/usersPolicy';
-import { useUsersList } from '@/features/users/hooks/useUsersList';
 import { useRoles } from '@/features/users/hooks/useRoles';
 import { useI18n } from '@/i18n/I18nProvider';
-import { formatNumber } from '@/i18n/formatting';
 import { useCreateRoleMutation } from '@/features/users/hooks/useCreateRoleMutation';
 import {
     listQueryKey,
@@ -45,7 +40,6 @@ import {
 } from '@/features/users/api/usersGateway';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import { EditUsernameModal } from '@/features/users/components/EditUsernameModal';
-import { UsersTable } from '@/features/users/components/UsersTable';
 import { UserFormDrawer, type UserFormSubmitValues } from '@/features/users/components/UserFormDrawer';
 import { UserPermissionsModal } from '@/features/users/components/UserPermissionsModal';
 import {
@@ -63,8 +57,6 @@ import { createPlatformUser, getAdminUserTenants, updateUserTenants } from '@/fe
 import { useUpdateUserRole } from '@/features/users/hooks/useUpdateUserRole';
 import { resolveRoleChangeTenantId } from '@/features/users/utils/resolveRoleChangeTenantId';
 import { shouldUseTenantRoleChangeApi } from '@/features/users/utils/roleChangeTenantApi';
-import { isPlatformUserRole } from '@/features/users/utils/userScope';
-import { adminTableScrollXy, shouldUseAdminTableVirtual } from '@/components/ui/adminTableVirtual';
 
 function fullName(record: UserInfo): string {
     const first = record.firstName ?? '';
@@ -82,9 +74,6 @@ const CANONICAL_ROLE_VALUES = [
     'ReportViewer',
     'Accountant',
 ] as const;
-
-const DEFAULT_PAGE = 1;
-const DEFAULT_PAGE_SIZE = 20;
 
 function isCanonicalRoleName(roleName: string): roleName is (typeof CANONICAL_ROLE_VALUES)[number] {
     return (CANONICAL_ROLE_VALUES as readonly string[]).includes(roleName);
@@ -177,7 +166,7 @@ function UsersPageActiveTenantContext() {
 export default function UsersPage() {
   const { message } = useAntdApp();
 
-    const { t, formatLocale } = useI18n();
+    const { t } = useI18n();
     const pathname = usePathname();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -187,13 +176,6 @@ export default function UsersPage() {
             isCanonicalRoleName(roleName) ? t(`users.roles.displayNames.${roleName}`) : roleName,
         [t],
     );
-    const [roleFilter, setRoleFilter] = useState<string | undefined>();
-    const [statusFilter, setStatusFilter] = useState<boolean | undefined>(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [searchInput, setSearchInput] = useState('');
-    const [page, setPage] = useState(DEFAULT_PAGE);
-    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-
     const [createOpen, setCreateOpen] = useState(false);
     /** Edit: only store selected user id. Detail is fetched by useQuery below; never use list row data for edit form. */
     const [editUserId, setEditUserId] = useState<string | null>(null);
@@ -247,115 +229,6 @@ export default function UsersPage() {
     }, [searchParams, policy.canView, pathname, router, message]);
 
     const queryClient = useQueryClient();
-    const listParams = useMemo(
-        () => ({
-            role: roleFilter,
-            isActive: statusFilter,
-            query: searchTerm.trim() || undefined,
-            page,
-            pageSize,
-        }),
-        [roleFilter, statusFilter, searchTerm, page, pageSize]
-    );
-    const tenantScopedListParams = useMemo(
-        () => ({
-            ...listParams,
-            role: roleFilter,
-        }),
-        [listParams, roleFilter],
-    );
-
-    const { data: listData, isLoading, isFetching, isPlaceholderData, isError, error: listError, refetch } = useUsersList(
-        tenantScopedListParams,
-        {
-            enabled: policy.canView && !isSuperAdminLayout,
-        },
-    );
-    const users = useMemo(() => {
-        const items = listData?.items ?? [];
-        return items.filter((u) => !isPlatformUserRole(u.role));
-    }, [listData?.items]);
-
-    const pagination = listData?.pagination;
-
-    const usersScopeSummary = useMemo(() => {
-        const parts: string[] = [
-            t('users.list.scopeLinePage', { page: String(pagination?.page ?? page) }),
-            t('users.list.scopeLinePerPage', { pageSize: String(pagination?.pageSize ?? pageSize) }),
-            pagination?.totalCount != null
-                ? t('users.list.scopeTotalApi', {
-                      count: formatNumber(pagination.totalCount, formatLocale, { maximumFractionDigits: 0 }),
-                  })
-                : t('users.list.scopeTotalLoading'),
-        ];
-        if (searchTerm.trim()) {
-            parts.push(
-                t('users.list.scopeSummarySearchPart', {
-                    prefix: t('users.list.scopeSearchPrefix'),
-                    term: searchTerm.trim(),
-                }),
-            );
-        }
-        if (roleFilter) {
-            parts.push(
-                t('users.list.scopeSummaryRolePart', {
-                    prefix: t('users.list.scopeRolePrefix'),
-                    role: roleDisplayLabel(roleFilter),
-                }),
-            );
-        }
-        if (statusFilter === undefined) {
-            parts.push(t('users.list.scopeStatusAll'));
-        } else {
-            parts.push(
-                t('users.list.scopeStatusLine', {
-                    prefix: t('users.list.scopeStatusPrefix'),
-                    status: statusFilter ? t('users.list.statusActive') : t('users.list.statusInactive'),
-                }),
-            );
-        }
-        return parts.join(' · ');
-    }, [pagination, page, pageSize, searchTerm, roleFilter, statusFilter, formatLocale, t, roleDisplayLabel]);
-
-    const resetAllFilters = useCallback(() => {
-        setSearchInput('');
-        setSearchTerm('');
-        setRoleFilter(undefined);
-        setStatusFilter(true);
-        setPage(DEFAULT_PAGE);
-        setPageSize(DEFAULT_PAGE_SIZE);
-    }, []);
-
-    const resetListPage = useCallback(() => setPage(DEFAULT_PAGE), []);
-
-    const handleSearchTerm = useCallback(
-        (value: string) => {
-            setSearchTerm(value);
-            resetListPage();
-        },
-        [resetListPage],
-    );
-
-    const handleRoleFilterChange = useCallback(
-        (value: string | undefined) => {
-            setRoleFilter(value);
-            resetListPage();
-        },
-        [resetListPage],
-    );
-
-    const handleStatusFilterChange = useCallback(
-        (value: string | undefined) => {
-            setStatusFilter(value === undefined ? undefined : value === 'active');
-            resetListPage();
-        },
-        [resetListPage],
-    );
-
-    /** Deviations from default list query: active-only, no role, no search text. */
-    const hasNonDefaultListFilters = Boolean(
-        searchTerm.trim() || roleFilter || statusFilter !== true,
-    );
 
     const { data: roles, isLoading: rolesLoading } = useRoles({ enabled: policy.canView || !!editUserId });
     const canManageRoles = policy.canCreateRole || policy.canDeleteRole || policy.canEditRolePermissions;
@@ -376,14 +249,6 @@ export default function UsersPage() {
                 label: t(`users.roles.displayNames.${value}`),
             })),
         [roles, t, roleDisplayLabel],
-    );
-
-    const statusFilterOptions = useMemo(
-        () => [
-            { value: 'active', label: t('users.list.statusActive') },
-            { value: 'inactive', label: t('users.list.statusInactive') },
-        ],
-        [t],
     );
 
     const [createPlatformMode, setCreatePlatformMode] = useState(false);
@@ -608,12 +473,11 @@ export default function UsersPage() {
                 prev?.id === userId ? { ...prev, userName: result.newUsername } : prev,
             );
             invalidateAllUserLists();
-            void refetch();
             if (editUserId === userId) {
                 void refetchEditUser();
             }
         },
-        [editUserId, refetch, refetchEditUser, queryClient],
+        [editUserId, refetchEditUser, queryClient],
     );
 
     if (!policy.canView) {
@@ -649,25 +513,6 @@ export default function UsersPage() {
                 ]}
                 actions={
                     <Space wrap>
-                        {!isSuperAdminLayout ? (
-                            <Tooltip title={t('common.toolbar.refetchHint')}>
-                                <Button icon={<ReloadOutlined />} onClick={() => refetch()} loading={isFetching}>
-                                    {t('users.list.actionRefresh')}
-                                </Button>
-                            </Tooltip>
-                        ) : null}
-                        {policy.canCreate && !isSuperAdminLayout && (
-                            <Button
-                                type="primary"
-                                icon={<UserOutlined />}
-                                onClick={() => {
-                                    setCreatePlatformMode(false);
-                                    setCreateOpen(true);
-                                }}
-                            >
-                                {t('users.page.createUser')}
-                            </Button>
-                        )}
                         {policy.canCreateRole && (
                             <Button icon={<UserOutlined />} onClick={() => setCreateRoleOpen(true)}>
                                 {t('users.page.createRole')}
@@ -681,7 +526,11 @@ export default function UsersPage() {
                         {isSuperAdminLayout ? (
                             <DevOrphanedUsersCleanupButton invalidatePlatformUsers />
                         ) : (
-                            <DevOrphanedUsersCleanupButton onTenantListRefetch={() => void refetch()} />
+                            <DevOrphanedUsersCleanupButton
+                                onTenantListRefetch={() => {
+                                    void queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+                                }}
+                            />
                         )}
                     </Space>
                 }
@@ -715,181 +564,22 @@ export default function UsersPage() {
                         setCreateOpen(true);
                     }}
                 />
-            ) : (
-                <>
-                    <Card size="small" title={t('users.list.filterCardTitle')}>
-                        <Flex wrap="wrap" gap="small" align="center">
-                            <Typography.Text type="secondary">{t('users.list.filterBandLabel')}</Typography.Text>
-                            <Input.Search
-                                placeholder={t('users.list.searchPlaceholder')}
-                                allowClear
-                                value={searchInput}
-                                onChange={(e) => {
-                                    const v = e.target.value;
-                                    setSearchInput(v);
-                                    if (!v) handleSearchTerm('');
-                                }}
-                                onSearch={(v) => handleSearchTerm(v ?? '')}
-                                style={{ width: 260 }}
-                                enterButton={<SearchOutlined />}
-                            />
-                            <Select
-                                placeholder={t('users.list.filterRolePlaceholder')}
-                                allowClear
-                                style={{ width: 140 }}
-                                value={roleFilter}
-                                onChange={handleRoleFilterChange}
-                                options={roleOptions}
-                            />
-                            <Select
-                                placeholder={t('users.list.filterStatusPlaceholder')}
-                                allowClear
-                                style={{ width: 120 }}
-                                value={statusFilter === undefined ? undefined : statusFilter ? 'active' : 'inactive'}
-                                onChange={handleStatusFilterChange}
-                                options={statusFilterOptions}
-                            />
-                            <Button icon={<ClearOutlined />} onClick={resetAllFilters}>
-                                {t('users.list.clearAllFilters')}
-                            </Button>
-                        </Flex>
-                    </Card>
-
-                    {hasNonDefaultListFilters ? (
-                        <div style={{ marginTop: 4 }}>
-                            <Space wrap size={[8, 8]} align="center">
-                                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                    {t('users.list.activeFiltersLabel')}
-                                </Typography.Text>
-                                {searchTerm.trim() ? (
-                                    <Tag
-                                        closable
-                                        onClose={() => {
-                                            setSearchInput('');
-                                            handleSearchTerm('');
-                                        }}
-                                    >
-                                        {t('users.list.scopeSearchChip', {
-                                            prefix: t('users.list.scopeSearchPrefix'),
-                                            term: searchTerm.trim(),
-                                        })}
-                                    </Tag>
-                                ) : null}
-                                {roleFilter ? (
-                                    <Tag closable onClose={() => handleRoleFilterChange(undefined)}>
-                                        {t('users.list.scopeRoleChip', {
-                                            prefix: t('users.list.scopeRolePrefix'),
-                                            role: roleDisplayLabel(roleFilter),
-                                        })}
-                                    </Tag>
-                                ) : null}
-                                <Tag
-                                    closable
-                                    onClose={() => handleStatusFilterChange('active')}
-                                    color={statusFilter === undefined ? 'purple' : statusFilter ? 'green' : 'red'}
-                                >
-                                    {t('users.list.scopeStatusChip', {
-                                        prefix: t('users.list.scopeStatusPrefix'),
-                                        status:
-                                            statusFilter === undefined
-                                                ? t('users.list.statusAll')
-                                                : statusFilter
-                                                  ? t('users.list.statusActive')
-                                                  : t('users.list.statusInactive'),
-                                    })}
-                                </Tag>
-                                <Button type="link" size="small" onClick={resetAllFilters}>
-                                    {t('users.list.clearAllFilters')}
-                                </Button>
-                            </Space>
-                        </div>
-                    ) : null}
-
-                    <AdminPageScopeSummary label={t('users.list.scopeSummaryLabel')}>
-                        {usersScopeSummary}
-                        {isFetching && !isLoading && !isError ? (
-                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                {' '}
-                                ({t('users.list.listRefreshingHint')})
-                            </Typography.Text>
-                        ) : null}
-                    </AdminPageScopeSummary>
-
-                    {isError && (
-                        <Alert
-                            type="error"
-                            showIcon
-                            title={t('users.list.errorLoad')}
-                            description={
-                                normalizeError(listError, t('users.list.errorLoadDetailFallback')).message ||
-                                t('users.list.errorLoadDetailFallback')
-                            }
-                            action={
-                                <Space orientation="vertical" size="small">
-                                    <Button size="small" onClick={() => refetch()}>
-                                        {t('users.list.retry')}
-                                    </Button>
-                                    <Button size="small" type="link" onClick={resetAllFilters} style={{ padding: 0, height: 'auto' }}>
-                                        {t('users.list.clearAllFilters')}
-                                    </Button>
-                                </Space>
-                            }
-                        />
-                    )}
-
-                    <UsersTable
-                        users={users}
-                        loading={isLoading}
-                        isPlaceholderData={isPlaceholderData}
-                        policy={policy}
-                        currentUserId={currentUser?.id}
-                        onView={setDetailUser}
-                        onEdit={(id) => setEditUserId(id)}
-                        onDeactivate={setDeactivateUserRecord}
-                        onReactivate={setReactivateUserRecord}
-                        onResetPassword={setResetPasswordUser}
-                        onManagePermissions={policy.canManagePermissions ? setPermissionsUser : undefined}
-                        onUsernameEdit={policy.canEdit ? setUsernameEditUser : undefined}
-                        virtual={shouldUseAdminTableVirtual(users.length)}
-                        scroll={adminTableScrollXy(1280, users.length)}
-                        pagination={{
-                            current: pagination?.page ?? DEFAULT_PAGE,
-                            pageSize: pagination?.pageSize ?? DEFAULT_PAGE_SIZE,
-                            total: pagination?.totalCount ?? 0,
-                            showSizeChanger: true,
-                            pageSizeOptions: [10, 20, 50],
-                            showTotal: (total, range) => {
-                                if (total <= 0) return t('users.list.paginationZeroResults');
-                                const from = range[0] ?? 0;
-                                const to = range[1] ?? 0;
-                                return t('users.list.paginationRange', {
-                                    from: formatNumber(from, formatLocale, { maximumFractionDigits: 0 }),
-                                    to: formatNumber(to, formatLocale, { maximumFractionDigits: 0 }),
-                                    total: formatNumber(total, formatLocale, { maximumFractionDigits: 0 }),
-                                });
-                            },
-                            onChange: (newPage, newPageSize) => {
-                                setPage(newPage);
-                                if (newPageSize != null) setPageSize(newPageSize);
-                            },
-                        }}
-                        emptyDescription={
-                            <div>
-                                <Typography.Paragraph style={{ marginBottom: 4 }}>
-                                    {hasNonDefaultListFilters
-                                        ? t('users.list.emptyListWithFilters')
-                                        : t('users.list.emptyList')}
-                                </Typography.Paragraph>
-                                {!hasNonDefaultListFilters ? (
-                                    <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
-                                        {t('users.list.emptyListDefaultHint')}
-                                    </Typography.Paragraph>
-                                ) : null}
-                            </div>
-                        }
-                    />
-                </>
-            )}
+            ) : currentTenantId ? (
+                <UnifiedAdminUsersView
+                    policy={policy}
+                    roleDisplayLabel={roleDisplayLabel}
+                    currentUserId={currentUser?.id}
+                    tenantScopeId={currentTenantId}
+                    isSuperAdminActor={false}
+                    onView={setDetailUser}
+                    onEdit={(id) => setEditUserId(id)}
+                    onDeactivate={setDeactivateUserRecord}
+                    onReactivate={setReactivateUserRecord}
+                    onResetPassword={setResetPasswordUser}
+                    onManagePermissions={policy.canManagePermissions ? setPermissionsUser : undefined}
+                    onCreatePlatformUser={() => {}}
+                />
+            ) : null}
 
             {createOpen ? (
                 <UserFormDrawer

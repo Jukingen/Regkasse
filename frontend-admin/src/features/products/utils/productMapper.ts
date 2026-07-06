@@ -130,23 +130,54 @@ function normalizeImageUrlForApi(v: unknown): string | null {
     return s;
 }
 
-/** Payload for backend: taxType integer (1,2,3), taxRate consistent with enum. Sends both categoryId and category (name) because Product.Category is [Required]. */
+function trimToNull(value: unknown): string | null {
+    if (value === undefined || value === null) return null;
+    const trimmed = String(value).trim();
+    return trimmed === '' ? null : trimmed;
+}
+
+/** First non-empty trimmed string; falls back to empty string (backend canonical description/name must not be null). */
+function firstNonEmpty(...values: Array<string | null | undefined>): string {
+    for (const value of values) {
+        if (value != null && value !== '') return value;
+    }
+    return '';
+}
+
+/** Payload for backend PUT/POST: camelCase, required category name, canonical description as string. */
 export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string; category?: string; taxType?: number }): Record<string, unknown> => {
-    const taxType = Number(uiProduct.taxType ?? (uiProduct as any).taxType ?? 1);
+    const taxType = Number(uiProduct.taxType ?? (uiProduct as { taxType?: number }).taxType ?? 1);
     const taxRate = taxTypeToRate(taxType);
     const category = typeof uiProduct.category === 'string' && uiProduct.category.trim() ? uiProduct.category.trim() : '';
 
+    const localized = uiProduct as Product & {
+        nameDe?: string;
+        nameEn?: string;
+        nameTr?: string;
+        descriptionDe?: string;
+        descriptionEn?: string;
+        descriptionTr?: string;
+    };
+
+    const nameDe = trimToNull(localized.nameDe) ?? trimToNull(uiProduct.name);
+    const nameEn = trimToNull(localized.nameEn);
+    const nameTr = trimToNull(localized.nameTr);
+    const descriptionDe = trimToNull(localized.descriptionDe);
+    const descriptionEn = trimToNull(localized.descriptionEn);
+    const descriptionTr = trimToNull(localized.descriptionTr);
+    const legacyDescription = trimToNull(uiProduct.description);
+
     return {
         id: uiProduct.id,
-        name: uiProduct.name,
-        nameDe: (uiProduct as { nameDe?: string }).nameDe ?? uiProduct.name,
-        nameEn: (uiProduct as { nameEn?: string }).nameEn ?? null,
-        nameTr: (uiProduct as { nameTr?: string }).nameTr ?? null,
+        name: firstNonEmpty(nameDe, nameEn, nameTr, trimToNull(uiProduct.name)),
+        nameDe,
+        nameEn,
+        nameTr,
         price: Number(uiProduct.price),
-        description: uiProduct.description ?? null,
-        descriptionDe: (uiProduct as { descriptionDe?: string }).descriptionDe ?? null,
-        descriptionEn: (uiProduct as { descriptionEn?: string }).descriptionEn ?? null,
-        descriptionTr: (uiProduct as { descriptionTr?: string }).descriptionTr ?? null,
+        description: firstNonEmpty(descriptionDe, descriptionEn, descriptionTr, legacyDescription),
+        descriptionDe,
+        descriptionEn,
+        descriptionTr,
         category,
         categoryId: uiProduct.categoryId,
         stockQuantity: Number(uiProduct.stockQuantity ?? 0),
@@ -156,7 +187,7 @@ export const mapUiProductToApi = (uiProduct: Product & { categoryId?: string; ca
         isActive: uiProduct.isActive ?? true,
         barcode: uiProduct.barcode ?? '',
         imageUrl: normalizeImageUrlForApi(uiProduct.imageUrl),
-        taxType, // Backend int enum bekliyor (1, 2, 3)
+        taxType,
         taxRate,
         isFiscalCompliant: true,
         isTaxable: true,

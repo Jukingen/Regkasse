@@ -60,8 +60,8 @@ export function ConfigurationHealthCard({
   poll = true,
 }: ConfigurationHealthCardProps) {
   const { t, formatLocale } = useI18n();
-  const { canConfigure } = useBackupPermissions();
-  const canManage = canManageProp ?? canConfigure;
+  const { canManageBackup } = useBackupPermissions();
+  const canManage = canManageProp ?? canManageBackup;
   const { health, isLoading, isError, updatedAt } = useBackupConfigurationHealth({ poll });
 
   const levelKey = resolveHealthLevelKey(health?.level);

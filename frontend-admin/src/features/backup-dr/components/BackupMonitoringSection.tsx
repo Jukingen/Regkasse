@@ -40,7 +40,10 @@ export interface BackupMonitoringSectionProps {
   latestDetail: BackupRunResponseDto | undefined;
   configurationHealth: BackupConfigurationHealthResponseDto | undefined;
   artifactPipelinePolicy?: BackupArtifactPipelinePolicyResponseDto;
-  canManage?: boolean;
+  /** Schedule / health edit link — backup.manage (Manager) or settings.manage. */
+  canManageBackup?: boolean;
+  /** Restore drill trigger — Super Admin only. */
+  canRestore?: boolean;
   recoverability: BackupRecoverabilitySummaryResponseDto | undefined;
   restoreLatest: RestoreVerificationRunResponseDto | undefined;
   restoreReadiness: RestoreVerificationReadinessResponseDto | undefined;
@@ -60,7 +63,8 @@ export function BackupMonitoringSection({
   latestDetail,
   configurationHealth,
   artifactPipelinePolicy,
-  canManage,
+  canManageBackup = false,
+  canRestore = false,
   recoverability,
   restoreLatest,
   restoreReadiness,
@@ -176,7 +180,7 @@ export function BackupMonitoringSection({
           <BackupConfigurationHealthCard
             config={configurationHealth}
             artifactPipelinePolicy={artifactPipelinePolicy}
-            canManage={canManage}
+            canManage={canManageBackup}
             t={t}
           />
         </Col>
@@ -191,7 +195,7 @@ export function BackupMonitoringSection({
             restoreStatusLabel={restoreStatusLabel}
             formatDt={formatDt}
             formatLocale={formatLocale}
-            canManage={canManage}
+            canManage={canRestore}
             t={t}
           />
         </Col>

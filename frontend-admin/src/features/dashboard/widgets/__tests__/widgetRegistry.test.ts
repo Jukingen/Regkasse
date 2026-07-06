@@ -13,4 +13,11 @@ describe('renderDashboardWidget', () => {
         });
         expect(node).not.toBeNull();
     });
+
+    it('renders backup-status widget', () => {
+        const node = renderDashboardWidget(DASHBOARD_WIDGET_IDS.backupStatus, {
+            title: 'Backup-Status',
+        });
+        expect(node).not.toBeNull();
+    });
 });

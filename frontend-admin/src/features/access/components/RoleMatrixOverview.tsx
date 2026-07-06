@@ -5,6 +5,8 @@ import { Alert, Card, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import Link from 'next/link';
 import { useI18n } from '@/i18n/I18nProvider';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/shared/auth/permissions';
 import type { RoleWithPermissionsDto } from '@/features/users/api/usersGateway';
 
 type RoleMatrixOverviewProps = {
@@ -26,6 +28,8 @@ const CANONICAL = new Set([
 
 export function RoleMatrixOverview({ roles, loading, error, onRetry }: RoleMatrixOverviewProps) {
     const { t } = useI18n();
+    const { hasPermission } = usePermissions();
+    const canManageRoles = hasPermission(PERMISSIONS.ROLE_MANAGE);
 
     const rows = useMemo(
         () =>
@@ -111,9 +115,13 @@ export function RoleMatrixOverview({ roles, loading, error, onRetry }: RoleMatri
         <Card>
             <Typography.Paragraph type="secondary">{t('access.matrix.intro')}</Typography.Paragraph>
             <Typography.Paragraph type="secondary" style={{ fontSize: 12 }}>
-                {t('access.matrix.editHint')}{' '}
-                <Link href="/admin/access/roles">{t('nav.accessRoles')}</Link>
-                {' · '}
+                {canManageRoles ? (
+                    <>
+                        {t('access.matrix.editHint')}{' '}
+                        <Link href="/admin/access/roles">{t('nav.accessRoles')}</Link>
+                        {' · '}
+                    </>
+                ) : null}
                 <Link href="/audit-logs">{t('nav.auditLogs')}</Link>
             </Typography.Paragraph>
             <Table

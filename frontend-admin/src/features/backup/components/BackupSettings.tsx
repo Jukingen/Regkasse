@@ -8,8 +8,7 @@
 
 import React from "react";
 import { Card, Space } from "antd";
-import { usePermissions } from "@/hooks/usePermissions";
-import { PERMISSIONS } from "@/shared/auth/permissions";
+import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
 import { BackupScheduleSettings } from "@/features/backup-dr/components/BackupScheduleSettings";
 import { BackupConfigurationForm } from "@/features/backup/components/BackupConfigurationForm";
 import { ConfigurationHealthCard } from "@/features/backup/components/ConfigurationHealthCard";
@@ -23,21 +22,15 @@ export interface BackupSettingsProps {
 }
 
 export function BackupSettings({ showManualTrigger = false, title = null }: BackupSettingsProps) {
-  const { hasPermission } = usePermissions();
-
-  const canManageBackup =
-    hasPermission(PERMISSIONS.BACKUP_MANAGE) || hasPermission(PERMISSIONS.SYSTEM_CRITICAL);
-  /** Same gate as schedule edits — no separate backup.execute in backend catalog. */
-  const canExecuteBackup = canManageBackup;
-  const canConfigureExecution = hasPermission(PERMISSIONS.SETTINGS_MANAGE);
+  const { canManageBackup, canConfigure, canTrigger } = useBackupPermissions();
 
   const content = (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <ConfigurationHealthCard canManage={canManageBackup} />
       <BackupScheduleSettings canManage={canManageBackup} />
-      {canConfigureExecution ? <BackupConfigurationForm /> : null}
-      {showManualTrigger && canExecuteBackup ? (
-        <TriggerBackupButton canManage={canExecuteBackup} />
+      {canConfigure ? <BackupConfigurationForm /> : null}
+      {showManualTrigger && canTrigger ? (
+        <TriggerBackupButton canManage={canTrigger} />
       ) : null}
     </Space>
   );

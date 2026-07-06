@@ -19,8 +19,8 @@ export function BackupConfigurationTab() {
       {access.isSuperAdmin ? (
         <Alert type="info" showIcon title={t("backupDr.management.scope.deploymentWide")} />
       ) : null}
-      <BackupConfigurationForm />
-      <ConfigurationHealthCard canManage={access.canEditConfiguration} poll={false} />
+      {access.canEditExecutionMode ? <BackupConfigurationForm /> : null}
+      <ConfigurationHealthCard canManage={access.canManageBackup} poll={false} />
     </Space>
   );
 }

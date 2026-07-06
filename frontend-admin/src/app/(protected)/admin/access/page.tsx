@@ -45,7 +45,7 @@ export default function AccessHubPage() {
             descriptionKey: 'access.hub.cardRolesDescription',
             href: '/admin/access/roles',
             icon: <SafetyOutlined style={{ fontSize: 28, color: '#722ed1' }} />,
-            permission: PERMISSIONS.ROLE_VIEW,
+            permission: PERMISSIONS.ROLE_MANAGE,
         },
         {
             titleKey: 'access.hub.cardMatrixTitle',

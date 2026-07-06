@@ -9,12 +9,14 @@ import type { UseMutationOptions, UseQueryOptions, UseQueryResult, UseMutationRe
 import { customInstance, AXIOS_INSTANCE } from '@/lib/axios';
 import { useCurrentTenant } from '@/features/tenancy/hooks/useCurrentTenant';
 import type { Product } from '@/api/generated/model';
+import { mapUiProductToApi } from '@/features/products/utils/productMapper';
 
 const ADMIN_PRODUCTS = '/api/admin/products';
 
 /** Shallow keys only – never store categoryNavigation, modifierGroupAssignments, or any nested graph in cache. */
 const SHALLOW_PRODUCT_KEYS = [
-  'id', 'name', 'price', 'description', 'barcode', 'categoryId', 'category', 'taxType', 'taxRate',
+  'id', 'name', 'nameDe', 'nameEn', 'nameTr', 'price', 'description', 'descriptionDe', 'descriptionEn', 'descriptionTr',
+  'barcode', 'categoryId', 'category', 'taxType', 'taxRate',
   'isActive', 'unit', 'stockQuantity', 'minStockLevel', 'cost', 'imageUrl',
   'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
   'isFiscalCompliant', 'isTaxable', 'fiscalCategoryCode', 'taxExemptionReason', 'rksvProductType',
@@ -152,12 +154,31 @@ export function getAdminProductById(id: string, options?: SecondParameter<typeof
 }
 
 export function createAdminProduct(data: Product, options?: SecondParameter<typeof customInstance>): Promise<{ id?: string } & Product> {
-  return customInstance<{ id?: string } & Product>({ url: ADMIN_PRODUCTS, method: 'POST', headers: { 'Content-Type': 'application/json' }, data }, options).then((res) => unwrapData(res) as { id?: string } & Product);
+  const payload = prepareAdminProductWritePayload(data);
+  return customInstance<{ id?: string } & Product>({ url: ADMIN_PRODUCTS, method: 'POST', headers: { 'Content-Type': 'application/json' }, data: payload }, options).then((res) => unwrapData(res) as { id?: string } & Product);
+}
+
+/** Normalizes UI/form product into a stable admin write payload (canonical description never null/undefined). */
+export function prepareAdminProductWritePayload(
+  data: Product & { categoryId?: string; category?: string },
+  id?: string,
+): Record<string, unknown> {
+  const payload = mapUiProductToApi(data);
+  if (id) payload.id = id;
+  else if (data.id) payload.id = data.id;
+  if (payload.description === undefined || payload.description === null) {
+    payload.description = '';
+  }
+  if (payload.barcode === undefined || payload.barcode === null) {
+    payload.barcode = '';
+  }
+  return payload;
 }
 
 /** Raw PUT – use updateAdminProductSafe for safe parsing and no giant graph in cache. */
 export function updateAdminProduct(id: string, data: Product, options?: SecondParameter<typeof customInstance>) {
-  return customInstance<void>({ url: `${ADMIN_PRODUCTS}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data }, options);
+  const payload = prepareAdminProductWritePayload(data, id);
+  return customInstance<void>({ url: `${ADMIN_PRODUCTS}/${id}`, method: 'PUT', headers: { 'Content-Type': 'application/json' }, data: payload }, options);
 }
 
 /**
@@ -169,23 +190,28 @@ export async function updateAdminProductSafe(
   data: Product,
   submittedPayload?: Partial<Product>
 ): Promise<UpdateProductResult> {
+  const payload = prepareAdminProductWritePayload(
+    data as Product & { categoryId?: string; category?: string },
+    id,
+  );
+  const cachePayload = (submittedPayload ?? payload) as Partial<Product>;
   try {
     const res = await AXIOS_INSTANCE.request({
       url: `${ADMIN_PRODUCTS}/${id}`,
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      data,
+      data: payload,
     });
     if (res.status === 200 || res.status === 204) {
       const shallow = pickShallowProduct(res.data);
       if (shallow) return { success: true, product: shallow };
-      return { success: true, product: submittedPayload ?? undefined, fromPayload: true };
+      return { success: true, product: cachePayload, fromPayload: true };
     }
     throw new Error(res.status ? `HTTP ${res.status}` : 'Update failed');
-  } catch (err: any) {
-    const status = err?.response?.status;
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
     if (status === 200 || status === 204) {
-      return { success: true, product: submittedPayload ?? undefined, fromPayload: true };
+      return { success: true, product: cachePayload, fromPayload: true };
     }
     throw err;
   }
@@ -421,7 +447,12 @@ export function useUpdateAdminProduct(
   const qc = useQueryClient();
   const { tenantSlug } = useCurrentTenant();
   return useMutation({
-    mutationFn: ({ id, data }) => updateAdminProductSafe(id, data, payloadToShallow(data)),
+    mutationFn: ({ id, data }) =>
+      updateAdminProductSafe(
+        id,
+        data,
+        payloadToShallow(prepareAdminProductWritePayload(data as Product & { categoryId?: string; category?: string }, id) as Product),
+      ),
     onSuccess: (result, { id, data }) => {
       const shallow = result.product ?? payloadToShallow(data);
       const safeProduct = { ...shallow, id } as Product;

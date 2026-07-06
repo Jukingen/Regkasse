@@ -8,7 +8,8 @@ public static class ProductLocalization
     public static void SyncCanonicalFields(Product product)
     {
         product.Name = ResolveName(product, "de");
-        product.Description = ResolveDescription(product, "de");
+        // DB column products.description is NOT NULL; canonical field must never be null.
+        product.Description = ResolveDescription(product, "de") ?? string.Empty;
     }
 
     public static string ResolveName(Product product, string? locale)
@@ -25,9 +26,9 @@ public static class ProductLocalization
     {
         return locale?.Split('-')[0].ToLowerInvariant() switch
         {
-            "en" => FirstNonEmptyOptional(product.DescriptionEn, product.DescriptionDe, product.Description),
-            "tr" => FirstNonEmptyOptional(product.DescriptionTr, product.DescriptionDe, product.Description),
-            _ => FirstNonEmptyOptional(product.DescriptionDe, product.Description),
+            "en" => FirstNonEmptyOptional(product.DescriptionEn, product.DescriptionDe, product.DescriptionTr, product.Description),
+            "tr" => FirstNonEmptyOptional(product.DescriptionTr, product.DescriptionDe, product.DescriptionEn, product.Description),
+            _ => FirstNonEmptyOptional(product.DescriptionDe, product.DescriptionEn, product.DescriptionTr, product.Description),
         };
     }
 

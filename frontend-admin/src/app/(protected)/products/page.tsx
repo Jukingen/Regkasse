@@ -63,6 +63,7 @@ export default function ProductsPage() {
 
     const {
         useList,
+        useDetail,
         useCreate,
         useUpdate,
         useDelete,
@@ -153,7 +154,10 @@ export default function ProductsPage() {
     const setModifierGroupsMutation = useSetModifierGroups();
 
     const [formVisible, setFormVisible] = useState(false);
-    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [editingProductId, setEditingProductId] = useState<string | null>(null);
+    const editDetailQuery = useDetail(editingProductId ?? '', {
+        enabled: formVisible && !!editingProductId,
+    });
     const [stockModalProduct, setStockModalProduct] = useState<Product | null>(null);
     const [stockQuantity, setStockQuantity] = useState<number>(0);
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -166,6 +170,13 @@ export default function ProductsPage() {
     );
     const rawItems = listData?.items ?? [];
     const products = rawItems.map(mapApiProductToUi);
+    const editingProductFallback = useMemo(
+        () => (editingProductId ? products.find((p) => p.id === editingProductId) ?? null : null),
+        [editingProductId, products],
+    );
+    const editingInitialValues = editingProductId
+        ? (editDetailQuery.data ?? editingProductFallback)
+        : null;
     const tablePagination = listData?.pagination
         ? {
             current: pagination.page,
@@ -196,20 +207,20 @@ export default function ProductsPage() {
     };
 
     const handleUpdate = async (values: ProductFormSubmitValues) => {
-        if (!editingProduct?.id) return;
+        if (!editingProductId) return;
         try {
             const apiData = mapUiProductToApi(values);
-            (apiData as Record<string, unknown>).id = editingProduct.id;
+            (apiData as Record<string, unknown>).id = editingProductId;
             const result = await updateMutation.mutateAsync({
-                id: editingProduct.id,
+                id: editingProductId,
                 data: apiData as unknown as Product,
             });
             if (values.modifierGroupIds !== undefined) {
-                await setModifierGroupsMutation.mutateAsync({ productId: editingProduct.id, modifierGroupIds: values.modifierGroupIds });
+                await setModifierGroupsMutation.mutateAsync({ productId: editingProductId, modifierGroupIds: values.modifierGroupIds });
             }
             message.success(result?.fromPayload ? t('products.messages.updateSuccessRefreshing') : t('products.messages.updateSuccess'));
             setFormVisible(false);
-            setEditingProduct(null);
+            setEditingProductId(null);
             invalidateList();
         } catch (err) {
             message.error(t('products.messages.updateError'));
@@ -314,12 +325,13 @@ export default function ProductsPage() {
     ]);
 
     const openCreate = () => {
-        setEditingProduct(null);
+        setEditingProductId(null);
         setFormVisible(true);
     };
 
     const openEdit = (product: Product) => {
-        setEditingProduct(product);
+        if (!product.id) return;
+        setEditingProductId(product.id);
         setFormVisible(true);
     };
 
@@ -646,10 +658,15 @@ export default function ProductsPage() {
 
             <ProductForm
                 visible={formVisible}
-                initialValues={editingProduct}
-                onCancel={() => { setFormVisible(false); setEditingProduct(null); }}
-                onSubmit={editingProduct ? handleUpdate : handleCreate}
-                loading={createMutation.isPending || updateMutation.isPending}
+                initialValues={editingInitialValues}
+                isEditMode={!!editingProductId}
+                onCancel={() => { setFormVisible(false); setEditingProductId(null); }}
+                onSubmit={editingProductId ? handleUpdate : handleCreate}
+                loading={
+                    createMutation.isPending
+                    || updateMutation.isPending
+                    || (!!editingProductId && editDetailQuery.isFetching)
+                }
             />
 
             {showProductLagerUi ? (

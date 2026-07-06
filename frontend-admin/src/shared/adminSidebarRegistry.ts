@@ -392,7 +392,7 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
         href: '/admin/access/roles',
         labelKey: 'nav.rolesPermissions',
         icon: 'SafetyOutlined',
-        permission: PERMISSIONS.ROLE_VIEW,
+        permission: PERMISSIONS.ROLE_MANAGE,
     },
     accessMatrix: {
         id: 'accessMatrix',

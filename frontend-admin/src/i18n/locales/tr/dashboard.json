@@ -120,6 +120,14 @@
     "view_details": "Detayları görüntüle",
     "load_failed": "Offline durumu yüklenemedi."
   },
+  "backupStatusWidget": {
+    "last_backup": "Son yedekleme",
+    "no_backup": "Henüz yedek yok",
+    "success_rate_30d": "Başarı oranı (30 gün)",
+    "config_health": "Yapılandırma: {{level}}",
+    "view_details": "Yedekleme özetini aç",
+    "load_failed": "Yedekleme durumu yüklenemedi."
+  },
   "widgetShell": {
     "refresh": "Yenile",
     "drag_widget": "Widget taşı"

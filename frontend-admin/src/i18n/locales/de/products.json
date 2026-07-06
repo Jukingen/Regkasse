@@ -160,6 +160,7 @@
     "imageUrlExtra": "Empfohlen: 120 × 120 px, JPG/PNG/WebP. HTTPS-URL; ohne Bild leer lassen.",
     "imageUrlInvalid": "Bitte eine gültige http(s)-URL eingeben.",
     "imageUrlTooLong": "URL ist zu lang (max. 500 Zeichen).",
+    "fieldMaxLength": "Max. {{max}} Zeichen.",
     "imageUploadLabel": "Oder: lokale Datei",
     "imageUploadExtra": "Empfohlen: 120 × 120 px, JPG/PNG/WebP, max. 500 KB. Upload wird automatisch quadratisch beschnitten und als WebP gespeichert.",
     "imageUploadButton": "Bild hochladen",

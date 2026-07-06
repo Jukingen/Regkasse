@@ -160,6 +160,7 @@
     "imageUrlExtra": "Önerilen: 120 × 120 px, JPG/PNG/WebP. HTTPS URL; gorsel yoksa bos birakin.",
     "imageUrlInvalid": "Gecerli bir http(s) URL girin.",
     "imageUrlTooLong": "URL cok uzun (en fazla 500 karakter).",
+    "fieldMaxLength": "En fazla {{max}} karakter.",
     "imageUploadLabel": "Ya da: yerel dosya",
     "imageUploadExtra": "Önerilen: 120 × 120 px, JPG/PNG/WebP, maks. 500 KB. Yüklenen görsel ortadan kare küçük resme kırpılır ve WebP olarak saklanır.",
     "imageUploadButton": "Gorsel yukle",

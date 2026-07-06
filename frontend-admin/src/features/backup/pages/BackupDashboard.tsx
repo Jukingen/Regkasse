@@ -10,8 +10,7 @@ import { Alert, Col, Row, Space, Spin, Typography } from "antd";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/i18n/formatting";
-import { useAuth } from "@/features/auth/hooks/useAuth";
-import { hasPermission, PERMISSIONS } from "@/shared/auth/permissions";
+import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
 import { MetricCard } from "@/features/backup/components/MetricCard";
 import { BackupHistoryChart } from "@/features/backup/components/BackupHistoryChart";
 import { ConfigurationHealthCard } from "@/features/backup/components/ConfigurationHealthCard";
@@ -43,8 +42,7 @@ export function BackupDashboard() {
   const { t, formatLocale } = useI18n();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const canManage = hasPermission(user, PERMISSIONS.SETTINGS_MANAGE);
+  const { canManageBackup, canRestore } = useBackupPermissions();
 
   const statsQuery = useQuery({
     queryKey: getBackupDashboardStatsQueryKey(),
@@ -138,7 +136,8 @@ export function BackupDashboard() {
       operatorTruth={operatorTruth}
       formatDt={formatDt}
       formatLocale={formatLocale}
-      canManage={canManage}
+      canManageBackup={canManageBackup}
+      canRestore={canRestore}
       statsFetching={statsQuery.isFetching}
       activeBackupHint={
         latestFromStatus?.status === BackupRunStatus.NUMBER_1 ||
@@ -160,7 +159,8 @@ function DashboardBody({
   operatorTruth,
   formatDt,
   formatLocale,
-  canManage,
+  canManageBackup,
+  canRestore,
   statsFetching,
   activeBackupHint,
   navigateToRun,
@@ -175,7 +175,8 @@ function DashboardBody({
   operatorTruth: ReturnType<typeof buildBackupOperatorTruthModel>;
   formatDt: (iso: string | undefined | null, locale: string) => string;
   formatLocale: string;
-  canManage: boolean;
+  canManageBackup: boolean;
+  canRestore: boolean;
   statsFetching: boolean;
   activeBackupHint: boolean;
   navigateToRun: (runId: string) => void;
@@ -248,7 +249,7 @@ function DashboardBody({
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <ConfigurationHealthCard canManage={canManage} />
+          <ConfigurationHealthCard canManage={canManageBackup} />
         </Col>
         <Col xs={24} lg={12}>
           <RestoreReadinessCard
@@ -260,7 +261,7 @@ function DashboardBody({
             restoreStatusLabel={(s) => operatorTruth.labels.restoreStatus(s)}
             formatDt={formatDt}
             formatLocale={formatLocale}
-            canManage={canManage}
+            canManage={canRestore}
             t={t}
           />
         </Col>

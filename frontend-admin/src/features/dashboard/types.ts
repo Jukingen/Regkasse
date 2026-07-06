@@ -7,6 +7,7 @@ export const DASHBOARD_WIDGET_IDS = {
     licenseExpiry: 'license-expiry',
     finanzOnlineStatus: 'finanzonline-status',
     offlineSystemStatus: 'offline-system-status',
+    backupStatus: 'backup-status',
     topSellingProducts: 'top-selling-products',
     paymentTrends: 'payment-trends',
 } as const;
