@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
+import { BACKUP_DASHBOARD_PATH } from '@/shared/backupAreaRoutes';
 
-/** Canonical backup settings UI lives at `/settings/backup-dr`. */
+/** Legacy `/settings/backup` → canonical backup dashboard. */
 export default function SettingsBackupPage() {
-    redirect('/settings/backup-dr');
+    redirect(BACKUP_DASHBOARD_PATH);
 }

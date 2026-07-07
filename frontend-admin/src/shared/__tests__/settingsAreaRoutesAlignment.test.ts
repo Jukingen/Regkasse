@@ -11,6 +11,8 @@ describe('settingsAreaRoutesAlignment', () => {
         for (const path of SETTINGS_AREA_ROUTE_PATHS) {
             expect(settings, 'settings group should include settings paths').toContain(path);
         }
+        expect(settings).not.toContain('/settings/backup-dr');
+        expect(settings).not.toContain('/admin/backup');
     });
 
     it('matches sidebar catalog hrefs for settings leaves', () => {

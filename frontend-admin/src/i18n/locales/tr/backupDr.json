@@ -1606,6 +1606,7 @@
   },
   "management": {
     "pageSubtitle": "Yedek çalıştırmaları, yapılandırma, izleme ve günlük — yetkiye göre salt okunur veya tam yönetim.",
+    "configurationSubtitle": "Zamanlama, saklama ve — platform operatörleri için — çalıştırma modu.",
     "tabs": {
       "operations": "İşlemler ve geçmiş",
       "monitoring": "İzleme",

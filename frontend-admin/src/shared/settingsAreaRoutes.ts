@@ -12,12 +12,10 @@ export const SETTINGS_AREA_ROUTE_PATHS = [
     '/settings/company',
     '/settings/tse',
     '/settings/finanzonline',
-    '/settings/backup',
     '/settings/session',
     '/settings/offline',
     '/settings/personalization',
     '/settings/payment-methods',
-    '/settings/backup-dr',
     '/settings/development-mode',
 ] as const;
 

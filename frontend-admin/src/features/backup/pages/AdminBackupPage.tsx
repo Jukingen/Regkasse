@@ -103,7 +103,7 @@ export function AdminBackupPage() {
 
   const navigateToRun = useCallback(
     (runId: string) => {
-      router.push(`/settings/backup-dr?runId=${encodeURIComponent(runId)}`);
+      router.push(`/backup/dashboard?runId=${encodeURIComponent(runId)}`);
     },
     [router],
   );

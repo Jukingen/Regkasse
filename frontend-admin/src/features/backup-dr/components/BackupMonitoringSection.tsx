@@ -169,7 +169,7 @@ export function BackupMonitoringSection({
             durationLabel={t("backupDr.monitoring.charts.legendDuration")}
             durationSuffix={t("backupDr.monitoring.charts.durationSuffix")}
             onBarClick={(runId) =>
-              router.push(`/settings/backup-dr?runId=${encodeURIComponent(runId)}`)
+              router.push(`/backup/dashboard?runId=${encodeURIComponent(runId)}`)
             }
           />
         </Col>

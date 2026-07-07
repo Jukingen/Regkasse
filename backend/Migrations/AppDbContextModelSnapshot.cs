@@ -890,6 +890,10 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("status");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.Property<int>("TriggerSource")
                         .HasColumnType("integer")
                         .HasColumnName("trigger_source");
@@ -911,6 +915,10 @@ namespace KasseAPI_Final.Migrations
                     b.HasIndex("RequestedAt");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_backup_runs_tenant_id")
+                        .HasFilter("tenant_id IS NOT NULL");
 
                     b.ToTable("backup_runs", (string)null);
                 });
@@ -5988,18 +5996,22 @@ namespace KasseAPI_Final.Migrations
                         .HasColumnName("created_by");
 
                     b.Property<string>("Description")
+                        .HasMaxLength(2000)
                         .HasColumnType("text")
                         .HasColumnName("description");
 
                     b.Property<string>("DescriptionDe")
+                        .HasMaxLength(2000)
                         .HasColumnType("text")
                         .HasColumnName("description_de");
 
                     b.Property<string>("DescriptionEn")
+                        .HasMaxLength(2000)
                         .HasColumnType("text")
                         .HasColumnName("description_en");
 
                     b.Property<string>("DescriptionTr")
+                        .HasMaxLength(2000)
                         .HasColumnType("text")
                         .HasColumnName("description_tr");
 
@@ -8926,6 +8938,14 @@ namespace KasseAPI_Final.Migrations
                         .IsRequired();
 
                     b.Navigation("BackupRun");
+                });
+
+            modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupRun", b =>
+                {
+                    b.HasOne("KasseAPI_Final.Models.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("KasseAPI_Final.Models.Backup.BackupScheduleConfiguration", b =>

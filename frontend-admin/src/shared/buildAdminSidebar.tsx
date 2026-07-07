@@ -67,6 +67,8 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     ClockCircleOutlined: Icons.ClockCircleOutlined,
     CloudDownloadOutlined: Icons.CloudDownloadOutlined,
     CloudSyncOutlined: Icons.CloudSyncOutlined,
+    DatabaseOutlined: Icons.DatabaseOutlined,
+    HistoryOutlined: Icons.HistoryOutlined,
     KeyOutlined: Icons.KeyOutlined,
     ApartmentOutlined: Icons.ApartmentOutlined,
     DisconnectOutlined: Icons.DisconnectOutlined,

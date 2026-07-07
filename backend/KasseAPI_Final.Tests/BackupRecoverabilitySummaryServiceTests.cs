@@ -126,6 +126,47 @@ public sealed class BackupRecoverabilitySummaryServiceTests
     }
 
     [Fact]
+    public async Task GetAsync_ManagerScope_UsesAccessibleLatestRun()
+    {
+        var now = new DateTime(2026, 7, 7, 12, 0, 0, DateTimeKind.Utc);
+        var tenantA = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        var tenantB = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        var dbName = $"recv_scope_{Guid.NewGuid():N}";
+        var (svc, db) = CreateSut(dbName, now);
+        var okId = Guid.NewGuid();
+
+        db.BackupRuns.AddRange(
+            new BackupRun
+            {
+                Id = okId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                TenantId = tenantA,
+                RequestedAt = now.AddHours(-2),
+                CompletedAt = now.AddHours(-2),
+            },
+            new BackupRun
+            {
+                Status = BackupRunStatus.Failed,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                TenantId = tenantB,
+                RequestedAt = now.AddHours(-1),
+                CompletedAt = now.AddHours(-1),
+                FailureCode = "X",
+            });
+        await db.SaveChangesAsync();
+
+        var scope = new BackupRunAccessScope(IsSuperAdmin: false, tenantA, "manager-1");
+        var summary = await svc.GetAsync(scope);
+
+        Assert.Equal(BackupRunStatus.Succeeded, summary.LatestRunStatus);
+        Assert.Equal(now.AddHours(-2), summary.LatestRunAt);
+        Assert.Equal(okId, summary.LastSuccessfulBackupRunId);
+    }
+
+    [Fact]
     public async Task GetAsync_last_successful_backup_simulated_flag_false_for_pg_dump_adapter()
     {
         var now = new DateTime(2026, 3, 29, 12, 0, 0, DateTimeKind.Utc);

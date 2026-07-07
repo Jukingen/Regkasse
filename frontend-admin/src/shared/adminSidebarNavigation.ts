@@ -20,6 +20,7 @@ import type { MenuProps } from 'antd';
 import type { RksvMenuGroup } from '@/shared/rksvMenuModel';
 import { getRksvOpenSubgroupKeys } from '@/shared/rksvMenuModel';
 import { SETTINGS_AREA_ROUTE_PATHS } from '@/shared/settingsAreaRoutes';
+import { BACKUP_AREA_ROUTE_PATHS } from '@/shared/backupAreaRoutes';
 import { ALLOW_EMPTY_PERMISSIONS_FOR_ROUTE_ACCESS } from '@/shared/auth/routeGuardConfig';
 
 /** RKSV landing URL vs menu leaf key (Orval / menu model use /rksv/operations as selected key). */
@@ -57,6 +58,10 @@ export const ADMIN_SIDEBAR_GROUP_KEYS = {
     admin: 'grp-admin',
     /** Nested under Verwaltung: Zugriff & Rollen hub */
     accessArea: 'grp-access',
+    /** Backup & Disaster Recovery */
+    backup: 'grp-backup',
+    /** Nested under Backup: schedule vs platform settings */
+    backupConfig: 'grp-backup-config',
     /** @deprecated Use `settings` — kept for open-keys merge during migration */
     settingsArea: 'grp-settings',
     /** @deprecated Use `rksv` */
@@ -136,7 +141,9 @@ export const ADMIN_SIDEBAR_GROUP_ROUTES: Record<string, readonly string[]> = {
         '/settings',
         ...SETTINGS_AREA_ROUTE_PATHS,
         '/admin/system/time-sync',
-        '/admin/backup',
+    ],
+    [ADMIN_SIDEBAR_GROUP_KEYS.backup]: [
+        ...BACKUP_AREA_ROUTE_PATHS,
     ],
     [ADMIN_SIDEBAR_GROUP_KEYS.admin]: [
         '/admin/access',
@@ -212,6 +219,20 @@ export function resolveAdminMenuSelectedKeys(
         }
     }
 
+    if (p === '/backup/configuration' || p.startsWith('/backup/configuration/')) {
+        const keys = selectableLeafKeys as string[];
+        if (keys.includes('/backup/configuration/schedule')) {
+            return ['/backup/configuration/schedule'];
+        }
+        if (keys.includes('/backup/configuration/platform')) {
+            return ['/backup/configuration/platform'];
+        }
+    }
+
+    if (p === '/backup/audit' && (selectableLeafKeys as string[]).includes('/backup/audit')) {
+        return ['/backup/audit'];
+    }
+
     const sorted = [...selectableLeafKeys].sort((a, b) => b.length - a.length);
     for (const key of sorted) {
         if (p === key || p.startsWith(`${key}/`)) return [key];
@@ -219,9 +240,16 @@ export function resolveAdminMenuSelectedKeys(
     return [p];
 }
 
-/** True when pathname is under Einstellungen or Verwaltung sidebar groups. */
+/** True when pathname is under Einstellungen or Verwaltung sidebar groups (excludes backup hub). */
 export function isVerwaltungAdminPath(pathname: string | null | undefined): boolean {
     const p = normalizeAdminPathname(pathname);
+    if (
+        BACKUP_AREA_ROUTE_PATHS.some(
+            (r) => p === r || p.startsWith(`${r}/`),
+        )
+    ) {
+        return false;
+    }
     const settingsRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.settings];
     const adminRoutes = ADMIN_SIDEBAR_GROUP_ROUTES[ADMIN_SIDEBAR_GROUP_KEYS.admin];
     return (
@@ -240,11 +268,15 @@ export function getNonRksvSidebarOpenGroupKeys(pathname: string | null | undefin
     if (
         p === '/settings' ||
         p.startsWith('/settings/') ||
-        p === '/admin/system/time-sync' ||
-        p === '/admin/backup' ||
-        p.startsWith('/admin/backup/')
+        p === '/admin/system/time-sync'
     ) {
         keys.push(ADMIN_SIDEBAR_GROUP_KEYS.settings);
+    }
+    if (
+        p === '/backup/configuration' ||
+        p.startsWith('/backup/configuration/')
+    ) {
+        keys.push(ADMIN_SIDEBAR_GROUP_KEYS.backupConfig);
     }
     if (
         p === '/admin/access' ||

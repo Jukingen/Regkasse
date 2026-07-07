@@ -21,6 +21,7 @@ import type { BackupTriggerRequestDto } from "@/api/generated/model";
 import type { GetApiAdminBackupRunsParams } from "@/api/generated/model/getApiAdminBackupRunsParams";
 import type { BackupArtifactPipelinePolicyResponseDto } from "@/api/generated/model";
 import type { BackupConfigurationHealthResponseDto } from "@/api/generated/model/backupConfigurationHealthResponseDto";
+import { useCurrentTenant } from "@/hooks/useCurrentTenant";
 import { useGetApiAdminBackupStatusLatest } from "@/api/generated/admin-backup/admin-backup";
 import {
   getBackupScheduleSettingsQueryKey,
@@ -140,15 +141,37 @@ function buildIdempotencyKey(params: TriggerBackupParams): string {
   return `manual-${stamp}`;
 }
 
+function resolveTriggerBackupParams(
+  params: TriggerBackupParams,
+  ambientTenantId: string | null | undefined,
+): TriggerBackupParams {
+  if (params.allTenants || params.tenantId?.trim()) {
+    return params;
+  }
+  if (ambientTenantId?.trim()) {
+    return { ...params, tenantId: ambientTenantId.trim() };
+  }
+  return params;
+}
+
 function toTriggerRequestBody(params: TriggerBackupParams): BackupTriggerRequestDto {
   return {
     idempotencyKey: buildIdempotencyKey(params),
   };
 }
 
+/** Builds POST /api/admin/backup/trigger body with tenant encoded in idempotency key when available. */
+export function buildBackupTriggerRequestBody(
+  params: TriggerBackupParams = {},
+  ambientTenantId?: string | null,
+): BackupTriggerRequestDto {
+  return toTriggerRequestBody(resolveTriggerBackupParams(params, ambientTenantId));
+}
+
 /** POST /api/admin/backup/trigger */
 export function useTriggerBackup() {
   const queryClient = useQueryClient();
+  const { tenantId: ambientTenantId } = useCurrentTenant();
 
   const mutation = usePostApiAdminBackupTrigger({
     mutation: {
@@ -158,11 +181,14 @@ export function useTriggerBackup() {
     },
   });
 
+  const toBody = (params: TriggerBackupParams = {}) =>
+    toTriggerRequestBody(resolveTriggerBackupParams(params, ambientTenantId));
+
   return {
     ...mutation,
     mutateAsync: (params: TriggerBackupParams = {}) =>
-      mutation.mutateAsync({ data: toTriggerRequestBody(params) }),
-    mutate: (params: TriggerBackupParams = {}) => mutation.mutate({ data: toTriggerRequestBody(params) }),
+      mutation.mutateAsync({ data: toBody(params) }),
+    mutate: (params: TriggerBackupParams = {}) => mutation.mutate({ data: toBody(params) }),
   };
 }
 

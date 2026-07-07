@@ -68,9 +68,16 @@ export const MENU_PERMISSIONS: Record<string, string | string[] | undefined> = {
   '/settings/personalization': PERMISSIONS.SETTINGS_VIEW,
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
+  '/backup': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/dashboard': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/runs': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/configuration': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/configuration/schedule': PERMISSIONS.BACKUP_MANAGE,
+  '/backup/configuration/platform': PERMISSIONS.SETTINGS_MANAGE,
+  '/backup/audit': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
 
-  // Backup
+  // Backup (legacy redirect)
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,
 
   // Audit log

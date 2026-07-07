@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using KasseAPI_Final.Configuration;
+using KasseAPI_Final.Services.Backup;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
@@ -63,6 +65,9 @@ public sealed class BackupImportWebApplicationFactory : WebApplicationFactory<Pr
                 ["Cors:AllowedOrigins:0"] = "https://test.local",
                 ["NtpSettings:Enabled"] = "false",
                 ["Backup:ArtifactStagingRoot"] = _stagingRoot,
+                ["Backup:ExecutionAdapterKind"] = nameof(BackupExecutionAdapterKind.Fake),
+                ["Backup:WorkerEnabled"] = "false",
+                ["Backup:OrchestratorDistributedLockEnabled"] = "false",
             });
         });
 
@@ -158,4 +163,13 @@ public sealed class BackupImportWebApplicationFactory : WebApplicationFactory<Pr
             BaseAddress = new Uri($"https://{tenantSlug}.regkasse.local"),
             AllowAutoRedirect = false,
         });
+
+    /// <summary>Dequeue and execute one queued backup run (test hook; background worker disabled).</summary>
+    internal async Task ProcessNextQueuedBackupRunAsync(CancellationToken cancellationToken = default)
+    {
+        var orchestrator = Services.GetServices<IHostedService>()
+            .OfType<BackupOrchestratorHostedService>()
+            .Single();
+        await orchestrator.ProcessNextExclusiveBodyAsync(cancellationToken);
+    }
 }

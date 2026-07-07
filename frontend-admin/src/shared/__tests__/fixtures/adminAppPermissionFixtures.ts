@@ -141,7 +141,8 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
     '/settings/session',
     '/settings/personalization',
     '/settings/payment-methods',
-    '/admin/backup',
+    '/backup/dashboard',
+    '/backup/runs',
     '/admin/license',
 ];
 

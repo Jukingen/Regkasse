@@ -55,7 +55,7 @@ Canonical list: `backend/Authorization/RolePermissionMatrix.cs`.
 | `PUT` | `/api/admin/backup/settings` | `backup.manage` | Schedule / retention / enabled. |
 | `POST` | `/api/settings/backup/now` | `backup.manage` | Legacy enqueue (same orchestration). |
 | `GET` | `/api/admin/backup/*` (reads) | `settings.view` | Status, runs, health, etc. |
-| `GET` | `/api/admin/backup/runs/{runId}/artifacts/{artifactId}/download` | `backup.manage` | Tenant-scoped: Manager may download own-tenant runs only (404 cross-tenant). Super Admin without tenant: deployment-wide. |
+| `GET` | `/api/admin/backup/runs/{runId}/artifacts/{artifactId}/download` | `backup.manage` | Tenant-scoped manual/import runs match `tenant_id` (404 cross-tenant). **Scheduled** and **manual-all-tenants** deployment-wide runs (`tenant_id` NULL) are downloadable by any Manager with tenant context (shared PostgreSQL dump). Super Admin without tenant: deployment-wide. |
 | `POST` | `/api/admin/backup/artifacts/import` | `backup.manage` | Register uploaded dump (+ optional manifest) for current tenant; **no automatic DB restore**. |
 | `PUT` | `/api/admin/backup/execution-mode` | `settings.manage` | Super Admin / platform operator only. |
 | Restore drill / restore approval | — | Super Admin (`system.critical` / role) | Not granted to Manager. |
@@ -71,14 +71,16 @@ Controller: `AdminBackupController`, `SettingsController` (legacy).
 1. JWT must include resolved **tenant context** (`tenant_id` claim → `ICurrentTenantAccessor`).
 2. `POST .../trigger` rejects non–Super Admin callers without tenant context: `400` `TENANT_CONTEXT_REQUIRED`.
 3. The trigger body does **not** accept a target `tenantId` from the client — cross-tenant selection is impossible by construction.
+4. Duplicate-active-manual suppression is **per manual trigger scope** (tenant-bound vs deployment-wide), not deployment-global — two Managers in different tenants may each queue a manual run while the other tenant's run is active.
 
 **Data plane (what is backed up):**
 
-- `backup_runs` is currently **deployment-scoped** (no `tenant_id` on `BackupRun`; not `ITenantEntity`).
-- A manual trigger enqueues one deployment-wide logical backup run today.
-- Per-tenant **artifact** isolation is a future schema/orchestrator change (additive `tenant_id` on runs + worker filter).
+- `backup_runs` carries optional `tenant_id` (nullable) for tenant-scoped manual/import runs; deployment-wide scheduled runs keep `tenant_id` NULL.
+- Legacy rows are backfilled from `idempotency_key` where parseable; idempotency encoding remains for traceability.
+- A manual trigger enqueues one deployment-wide logical backup run today (same PostgreSQL dump); `tenant_id` gates **access**, not separate dump files yet.
+- **Scheduled** cron backups and Super Admin **all-tenants** manual runs remain deployment-wide (`tenant_id` NULL) but are **readable/downloadable** by every tenant-bound Manager (one shared instance dump).
 
-Until per-tenant runs exist, “Manager only backs up their tenant” is enforced at **authorization + tenant binding**, not at separate dump files per tenant.
+**Scoped read endpoints (Manager, non–Super Admin):** `GET /runs`, `GET /runs/{id}`, `GET /status/latest`, `GET /runs/{id}/verification-report`, `GET /verification/latest`, `GET /dashboard/stats`, and `GET /recoverability-summary` require tenant context (`400` `TENANT_CONTEXT_REQUIRED` without it) and filter via `BackupRunAccessEvaluator` — cross-tenant run IDs return **404**, not 403. Super Admin without tenant context sees deployment-wide data. Restore-drill rows in dashboard/recoverability remain deployment-wide (shared infra).
 
 ---
 
@@ -86,12 +88,32 @@ Until per-tenant runs exist, “Manager only backs up their tenant” is enforce
 
 ### Routes (`routePermissions.ts`)
 
-| Path | Route guard | Manage actions |
-|------|-------------|----------------|
-| `/settings/backup-dr` | `settings.view` | Component-gated: `backup.manage` or `settings.manage` |
-| `/admin/backup` | `settings.view` | Same |
+Canonical App Router paths (2026-07 navigation IA):
 
-There is no `/settings/backup` or `/settings/backup/manage` route in the App Router.
+| Path | Route guard | Purpose |
+|------|-------------|---------|
+| `/backup/dashboard` | `settings.view` | DR overview / operator dashboard |
+| `/backup/runs` | `settings.view` | Metrics, run list, manual trigger |
+| `/backup/configuration` | `settings.view` | Schedule + execution mode (component-gated) |
+| `/backup/configuration/schedule` | `backup.manage` | Sidebar virtual key → schedule section |
+| `/backup/configuration/platform` | `settings.manage` | Sidebar virtual key → execution mode |
+| `/backup/audit` | `settings.view` | Activity + audit log |
+
+**Legacy redirects** (still guarded, redirect to canonical paths):
+
+| Legacy | Redirect |
+|--------|----------|
+| `/settings/backup-dr` | `/backup/*` (`tab` query mapped; `runId` preserved) |
+| `/settings/backup` | `/backup/dashboard` |
+| `/admin/backup` | `/backup/runs` |
+
+Manage actions remain component-gated: `backup.manage` or `settings.manage` via `useBackupManagementAccess` / `useBackupPermissions`.
+
+### Sidebar & secondary nav
+
+- Sidebar group: **Backup & Disaster Recovery** (`grp-backup` in `adminSidebarRegistry.ts`)
+- Horizontal tabs: `BackupSecondaryNav` on all `/backup/*` pages
+- Backup routes are **not** listed under Einstellungen (`SettingsSecondaryNav`)
 
 ### UI capability split
 
@@ -105,6 +127,9 @@ There is no `/settings/backup` or `/settings/backup/manage` route in the App Rou
 
 **Key files:**
 
+- `frontend-admin/src/shared/backupAreaRoutes.ts`
+- `frontend-admin/src/features/backup/components/BackupSecondaryNav.tsx`
+- `frontend-admin/src/features/backup/components/BackupPageShell.tsx`
 - `frontend-admin/src/features/backup/hooks/useBackupPermissions.ts`
 - `frontend-admin/src/features/backup/components/BackupSettings.tsx`
 - `frontend-admin/src/features/backup-dr/components/BackupDrDashboard.tsx`
@@ -122,6 +147,8 @@ There is no `/settings/backup` or `/settings/backup/manage` route in the App Rou
 | Role matrix | `RolePermissionMatrixTests` |
 | Policy / escalation | `EndpointAuthorizationRepresentativeTests` |
 | Trigger tenant guard | `AdminBackupTriggerTenantScopingTests` |
+| Read / verification tenant scope | `AdminBackupReadTenantScopingTests`, `BackupRunAccessEvaluatorTests` |
+| Trigger → succeed → download (HTTP) | `BackupTriggerDownloadIntegrationTests` |
 | FA fixtures | `adminAppPermissionFixtures.ts` (`MANAGER_ADMIN_PERMISSIONS` includes `BACKUP_MANAGE`) |
 
 ```bash

@@ -1606,6 +1606,7 @@
   },
   "management": {
     "pageSubtitle": "Backup-Läufe, Konfiguration, Monitoring und Protokoll — je nach Berechtigung nur Ansicht oder volle Verwaltung.",
+    "configurationSubtitle": "Zeitplan, Aufbewahrung und — für Plattform-Betreiber — Ausführungsmodus.",
     "tabs": {
       "operations": "Betrieb & Verlauf",
       "monitoring": "Monitoring",

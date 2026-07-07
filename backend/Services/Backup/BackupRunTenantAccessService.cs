@@ -17,6 +17,7 @@ public sealed class BackupRunTenantAccessService : IBackupRunTenantAccessService
         Guid backupRunId,
         bool isSuperAdmin,
         Guid? callerTenantId,
+        string? callerUserId = null,
         CancellationToken cancellationToken = default)
     {
         var run = await _db.BackupRuns.AsNoTracking()
@@ -24,12 +25,7 @@ public sealed class BackupRunTenantAccessService : IBackupRunTenantAccessService
         if (run == null)
             return null;
 
-        if (isSuperAdmin && !callerTenantId.HasValue)
-            return run;
-
-        if (!callerTenantId.HasValue)
-            return null;
-
-        return BackupRunTenantSlugResolver.MatchesTenantHint(run, callerTenantId.Value) ? run : null;
+        var scope = new BackupRunAccessScope(isSuperAdmin, callerTenantId, callerUserId);
+        return BackupRunAccessEvaluator.IsRunAccessible(run, scope) ? run : null;
     }
 }

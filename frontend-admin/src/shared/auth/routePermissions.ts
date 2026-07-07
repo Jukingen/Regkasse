@@ -77,13 +77,21 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/settings/payment-methods': PERMISSIONS.SETTINGS_VIEW,
   /** Super Admin / settings.manage — TSE defaults (legacy hub tab; deep-link route). */
   '/settings/tse': PERMISSIONS.SETTINGS_MANAGE,
-  /** Tenant backup schedule/trigger — backup.manage (Manager tenant scope; platform ops gated in UI). */
-  '/settings/backup': PERMISSIONS.BACKUP_MANAGE,
   /** Super Admin / settings.manage — FinanzOnline credentials (legacy hub tab; deep-link route). */
   '/settings/finanzonline': PERMISSIONS.SETTINGS_MANAGE,
-  /** Route gate: settings.view (Manager). Trigger + schedule mutations require backup.manage in UI/API. */
+  /** Tenant backup schedule/trigger — backup.manage (Manager tenant scope; platform ops gated in UI). */
+  '/settings/backup': PERMISSIONS.BACKUP_MANAGE,
+  /** Legacy redirect — canonical `/backup/dashboard`. */
   '/settings/backup-dr': PERMISSIONS.SETTINGS_VIEW,
-  /** Route gate: settings.view (Manager). No separate /settings/backup/manage route — manage is component-gated. */
+  /** Canonical backup & DR routes */
+  '/backup': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/dashboard': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/runs': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/configuration': PERMISSIONS.SETTINGS_VIEW,
+  '/backup/configuration/schedule': PERMISSIONS.BACKUP_MANAGE,
+  '/backup/configuration/platform': PERMISSIONS.SETTINGS_MANAGE,
+  '/backup/audit': PERMISSIONS.SETTINGS_VIEW,
+  /** Legacy redirect — canonical `/backup/runs`. */
   '/admin/backup': PERMISSIONS.SETTINGS_VIEW,
   '/settings/development-mode': PERMISSIONS.SYSTEM_CRITICAL,
   '/admin/system/time-sync': PERMISSIONS.SETTINGS_MANAGE,

@@ -9,6 +9,8 @@ import {
   getGetApiAdminBackupRecoverabilitySummaryQueryKey,
   usePostApiAdminBackupTrigger,
 } from "@/api/generated/admin-backup/admin-backup";
+import { buildBackupTriggerRequestBody } from "@/features/backup/api/backupHooks";
+import { useCurrentTenant } from "@/hooks/useCurrentTenant";
 import {
   getGetApiAdminRestoreVerificationReadinessQueryKey,
   getGetApiAdminRestoreVerificationRunsLatestQueryKey,
@@ -33,6 +35,7 @@ export function BackupManualActionsPanel(props: BackupManualActionsPanelProps) {
 
   const { t } = props;
   const queryClient = useQueryClient();
+  const { tenantId } = useCurrentTenant();
 
   const invalidateReadiness = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -94,7 +97,10 @@ export function BackupManualActionsPanel(props: BackupManualActionsPanelProps) {
   return (
     <ManualActionsPanel
       {...props}
-      backupTrigger={backupTrigger as ManualActionsPanelProps["backupTrigger"]}
+      backupTrigger={{
+        isPending: backupTrigger.isPending,
+        mutate: () => backupTrigger.mutate({ data: buildBackupTriggerRequestBody({}, tenantId) }),
+      }}
       restoreTrigger={restoreTrigger as ManualActionsPanelProps["restoreTrigger"]}
     />
   );

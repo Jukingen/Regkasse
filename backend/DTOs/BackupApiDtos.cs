@@ -58,7 +58,11 @@ public sealed class BackupPipelineSnapshotDto
 }
 
 /// <summary>İsteğe bağlı: admin detay uçlarında artefakt dosyası diskte mi (indirme ile aynı çözümleyici).</summary>
-public sealed record BackupDownloadEnrichment(BackupOptions Options, IHostEnvironment HostEnvironment, ILogger Logger);
+public sealed record BackupDownloadEnrichment(
+    BackupOptions Options,
+    IHostEnvironment HostEnvironment,
+    ILogger Logger,
+    bool CallerMayDownloadArtifacts = true);
 
 public sealed class BackupRunResponseDto
 {
@@ -797,6 +801,9 @@ public static class BackupRunMapper
         BackupDownloadEnrichment? enrichment)
     {
         if (!materializedChildren || enrichment == null || run.Status != BackupRunStatus.Succeeded)
+            return false;
+
+        if (!enrichment.CallerMayDownloadArtifacts)
             return false;
 
         return BackupArtifactOnDiskResolver.TryResolveForSingleRun(

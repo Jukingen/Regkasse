@@ -4,16 +4,21 @@ namespace KasseAPI_Final.Services.Backup;
 
 public interface IBackupRunQueryService
 {
-    Task<BackupRun?> GetLatestRunAsync(CancellationToken cancellationToken = default);
+    Task<BackupRun?> GetLatestRunAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default);
 
     Task<BackupRun?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<(IReadOnlyList<BackupRun> Items, int TotalCount)> GetHistoryAsync(
         int page,
         int pageSize,
+        BackupRunAccessScope? accessScope = null,
         CancellationToken cancellationToken = default);
 
-    Task<BackupVerification?> GetLatestVerificationAsync(CancellationToken cancellationToken = default);
+    Task<BackupVerification?> GetLatestVerificationAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// En yeni <see cref="BackupRunStatus.Succeeded"/> yedek çalıştırmalarının kimlikleri (RequestedAt azalan).
@@ -30,5 +35,6 @@ public interface IBackupRunQueryService
     /// </summary>
     Task<BackupSucceededDurationStatistics> GetAverageSucceededDurationAsync(
         int maxSamples,
+        BackupRunAccessScope? accessScope = null,
         CancellationToken cancellationToken = default);
 }

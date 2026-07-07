@@ -110,6 +110,45 @@ public sealed class BackupDashboardStatsServiceTests
         Assert.Equal(20, stats.RtoMinutes);
     }
 
+    [Fact]
+    public async Task GetAsync_ManagerScope_ExcludesOtherTenantTerminalRuns()
+    {
+        var now = new DateTime(2026, 7, 7, 12, 0, 0, DateTimeKind.Utc);
+        var (db, sut) = CreateSut(nameof(GetAsync_ManagerScope_ExcludesOtherTenantTerminalRuns), now);
+        var tenantA = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        var tenantB = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+
+        db.BackupRuns.AddRange(
+            new BackupRun
+            {
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                TenantId = tenantA,
+                RequestedAt = now.AddDays(-1),
+                StartedAt = now.AddDays(-1),
+                CompletedAt = now.AddDays(-1).AddMinutes(5),
+            },
+            new BackupRun
+            {
+                Status = BackupRunStatus.Failed,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                TenantId = tenantB,
+                RequestedAt = now.AddHours(-1),
+                CompletedAt = now.AddHours(-1),
+            });
+        await db.SaveChangesAsync();
+
+        var scope = new BackupRunAccessScope(IsSuperAdmin: false, tenantA, "manager-1");
+        var stats = await sut.GetAsync(scope);
+
+        Assert.Equal(100, stats.SuccessRate30DaysPercent);
+        Assert.Equal(1, stats.TerminalRuns30Days);
+        Assert.Equal(1, stats.SucceededRuns30Days);
+        Assert.Single(stats.History30Days);
+    }
+
     private sealed class FakeTimeProvider(DateTime utcNow) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => new(utcNow, TimeSpan.Zero);

@@ -10,5 +10,7 @@ namespace KasseAPI_Final.Services.Backup;
 /// </summary>
 public interface IBackupRecoverabilitySummaryService
 {
-    Task<BackupRecoverabilitySummaryResponseDto> GetAsync(CancellationToken cancellationToken = default);
+    Task<BackupRecoverabilitySummaryResponseDto> GetAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default);
 }

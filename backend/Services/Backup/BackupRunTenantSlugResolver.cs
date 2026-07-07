@@ -7,7 +7,7 @@ namespace KasseAPI_Final.Services.Backup;
 
 /// <summary>
 /// Resolves a filesystem-safe tenant slug label for backup artifact names from run metadata.
-/// <see cref="BackupRun"/> has no <c>tenant_id</c>; manual triggers encode tenant in <see cref="BackupRun.IdempotencyKey"/>.
+/// Prefers <see cref="BackupRun.TenantId"/>; falls back to <see cref="BackupRun.IdempotencyKey"/> encoding.
 /// </summary>
 public static partial class BackupRunTenantSlugResolver
 {
@@ -20,6 +20,18 @@ public static partial class BackupRunTenantSlugResolver
         AppDbContext db,
         CancellationToken cancellationToken = default)
     {
+        if (run.TenantId is Guid columnTenantId && columnTenantId != Guid.Empty)
+        {
+            var slugFromColumn = await db.Tenants
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(t => t.Id == columnTenantId)
+                .Select(t => t.Slug)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(slugFromColumn))
+                return slugFromColumn.Trim();
+        }
+
         var key = run.IdempotencyKey?.Trim();
         if (!string.IsNullOrEmpty(key))
         {
@@ -45,23 +57,21 @@ public static partial class BackupRunTenantSlugResolver
         return DeploymentSlug;
     }
 
-    /// <summary>Optional tenant scope via manual/import backup idempotency key (<see cref="BackupRun"/> has no tenant_id column).</summary>
+    /// <summary>Tenant-scoped runs via <see cref="BackupRun.TenantId"/> or legacy idempotency key.</summary>
     public static IQueryable<BackupRun> ApplyTenantHint(IQueryable<BackupRun> query, Guid? tenantId)
     {
         if (!tenantId.HasValue || tenantId.Value == Guid.Empty)
             return query;
 
-        var manualNeedle = $"manual-tenant-{tenantId.Value}".ToLowerInvariant();
-        var importNeedle = $"import-tenant-{tenantId.Value}".ToLowerInvariant();
-        return query.Where(r =>
-            r.IdempotencyKey != null
-            && (r.IdempotencyKey.ToLower().Contains(manualNeedle)
-                || r.IdempotencyKey.ToLower().Contains(importNeedle)));
+        return BackupRunAccessEvaluator.ApplyTenantScopeFilter(query, tenantId.Value);
     }
 
-    /// <summary>Whether <paramref name="run"/> belongs to <paramref name="tenantId"/> via idempotency key encoding.</summary>
+    /// <summary>Whether <paramref name="run"/> belongs to <paramref name="tenantId"/>.</summary>
     public static bool MatchesTenantHint(BackupRun run, Guid tenantId)
     {
+        if (run.TenantId is Guid columnTenantId && columnTenantId != Guid.Empty)
+            return columnTenantId == tenantId;
+
         var key = run.IdempotencyKey;
         if (string.IsNullOrWhiteSpace(key))
             return false;
@@ -73,6 +83,25 @@ public static partial class BackupRunTenantSlugResolver
 
         var importNeedle = $"import-tenant-{tenantId}".ToLowerInvariant();
         return lower.Contains(importNeedle);
+    }
+
+    /// <inheritdoc cref="BackupRunAccessEvaluator.ApplyCallerAccessFilter"/>
+    public static IQueryable<BackupRun> ApplyCallerAccessFilter(
+        IQueryable<BackupRun> query,
+        BackupRunAccessScope scope) =>
+        BackupRunAccessEvaluator.ApplyCallerAccessFilter(query, scope);
+
+    /// <summary>Whether the key already scopes a tenant (manual/import prefix or all-tenants marker).</summary>
+    public static bool EncodesTenantScope(string? idempotencyKey)
+    {
+        var key = idempotencyKey?.Trim();
+        if (string.IsNullOrEmpty(key))
+            return false;
+
+        if (key.StartsWith("manual-all-tenants", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return TryParseTenantIdFromIdempotencyKey(key, out _);
     }
 
     public static bool TryParseTenantIdFromIdempotencyKey(string? idempotencyKey, out Guid tenantId)
@@ -92,6 +121,13 @@ public static partial class BackupRunTenantSlugResolver
 
     public static string ResolveSlug(BackupRun run, IReadOnlyDictionary<Guid, string> slugByTenantId)
     {
+        if (run.TenantId is Guid columnTenantId
+            && slugByTenantId.TryGetValue(columnTenantId, out var columnSlug)
+            && !string.IsNullOrWhiteSpace(columnSlug))
+        {
+            return columnSlug.Trim();
+        }
+
         var key = run.IdempotencyKey?.Trim();
         if (!string.IsNullOrEmpty(key))
         {
@@ -120,6 +156,9 @@ public static partial class BackupRunTenantSlugResolver
         var tenantIds = new HashSet<Guid>();
         foreach (var run in runs)
         {
+            if (run.TenantId is Guid columnTenantId && columnTenantId != Guid.Empty)
+                tenantIds.Add(columnTenantId);
+
             var key = run.IdempotencyKey?.Trim();
             if (string.IsNullOrEmpty(key))
                 continue;

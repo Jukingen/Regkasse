@@ -52,7 +52,7 @@ describe("BackupConfigurationHealthCard", () => {
     expect(screen.getByText("missing archive")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "backupDr.monitoring.configHealth.editSettings" })).toHaveAttribute(
       "href",
-      "/settings/backup-dr#backup-dr-schedule-settings",
+      "/backup/configuration#backup-dr-schedule-settings",
     );
   });
 

@@ -87,11 +87,11 @@ export function buildDefaultCommands(ctx: DefaultCommandsContext): CommandItem[]
             id: 'page:backup',
             type: 'page',
             label: t('nav.backupDr'),
-            description: '/settings/backup-dr',
+            description: '/backup/dashboard',
             group: 'Navigation',
             keywords: ['backup', 'restore', 'dr', 'sicherung'],
-            menuKey: '/settings/backup-dr',
-            action: go('/settings/backup-dr'),
+            menuKey: '/backup/dashboard',
+            action: go('/backup/dashboard'),
         },
         {
             id: 'page:audit',
@@ -150,7 +150,7 @@ export function buildDefaultCommands(ctx: DefaultCommandsContext): CommandItem[]
             description: t('adminShell.commandPalette.action.triggerBackupHint'),
             group: 'Actions',
             keywords: ['backup now', 'trigger', 'jetzt', 'starten'],
-            menuKey: '/settings/backup-dr',
+            menuKey: '/backup/dashboard',
             action: () => {
                 ctx.closePalette();
                 ctx.triggerBackup();

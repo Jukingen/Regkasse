@@ -31,7 +31,7 @@ public sealed class BackupRunTenantAccessServiceTests
         await db.SaveChangesAsync();
 
         var svc = new BackupRunTenantAccessService(db);
-        var run = await svc.TryGetAccessibleRunAsync(runId, isSuperAdmin: true, callerTenantId: null, CancellationToken.None);
+        var run = await svc.TryGetAccessibleRunAsync(runId, isSuperAdmin: true, callerTenantId: null, cancellationToken: CancellationToken.None);
         Assert.NotNull(run);
         Assert.Equal(runId, run!.Id);
     }
@@ -63,8 +63,69 @@ public sealed class BackupRunTenantAccessServiceTests
         await db.SaveChangesAsync();
 
         var svc = new BackupRunTenantAccessService(db);
-        var allowed = await svc.TryGetAccessibleRunAsync(allowedId, false, tenantId, CancellationToken.None);
-        var denied = await svc.TryGetAccessibleRunAsync(deniedId, false, tenantId, CancellationToken.None);
+        var allowed = await svc.TryGetAccessibleRunAsync(allowedId, false, tenantId, cancellationToken: CancellationToken.None);
+        var denied = await svc.TryGetAccessibleRunAsync(deniedId, false, tenantId, cancellationToken: CancellationToken.None);
+
+        Assert.NotNull(allowed);
+        Assert.Null(denied);
+    }
+
+    [Fact]
+    public async Task Manager_legacy_manual_run_without_tenant_key_allowed_for_requester()
+    {
+        var tenantId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        const string managerUserId = "manager-1";
+        await using var db = CreateDb();
+        var runId = Guid.NewGuid();
+        db.BackupRuns.Add(new BackupRun
+        {
+            Id = runId,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Manual,
+            AdapterKind = "Fake",
+            IdempotencyKey = null,
+            RequestedByUserId = managerUserId,
+        });
+        await db.SaveChangesAsync();
+
+        var svc = new BackupRunTenantAccessService(db);
+        var allowed = await svc.TryGetAccessibleRunAsync(
+            runId,
+            isSuperAdmin: false,
+            tenantId,
+            managerUserId,
+            CancellationToken.None);
+        var denied = await svc.TryGetAccessibleRunAsync(
+            runId,
+            isSuperAdmin: false,
+            tenantId,
+            "other-manager",
+            CancellationToken.None);
+
+        Assert.NotNull(allowed);
+        Assert.Null(denied);
+    }
+
+    [Fact]
+    public async Task Manager_sees_run_with_tenant_id_column()
+    {
+        var tenantId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        await using var db = CreateDb();
+        var runId = Guid.NewGuid();
+        db.BackupRuns.Add(new BackupRun
+        {
+            Id = runId,
+            Status = BackupRunStatus.Succeeded,
+            TriggerSource = BackupTriggerSource.Manual,
+            AdapterKind = "Fake",
+            TenantId = tenantId,
+            IdempotencyKey = "legacy-key-without-tenant-encoding",
+        });
+        await db.SaveChangesAsync();
+
+        var svc = new BackupRunTenantAccessService(db);
+        var allowed = await svc.TryGetAccessibleRunAsync(runId, false, tenantId, cancellationToken: CancellationToken.None);
+        var denied = await svc.TryGetAccessibleRunAsync(runId, false, Guid.NewGuid(), cancellationToken: CancellationToken.None);
 
         Assert.NotNull(allowed);
         Assert.Null(denied);
@@ -87,7 +148,7 @@ public sealed class BackupRunTenantAccessServiceTests
         await db.SaveChangesAsync();
 
         var svc = new BackupRunTenantAccessService(db);
-        var run = await svc.TryGetAccessibleRunAsync(runId, false, tenantId, CancellationToken.None);
+        var run = await svc.TryGetAccessibleRunAsync(runId, false, tenantId, cancellationToken: CancellationToken.None);
         Assert.NotNull(run);
     }
 }

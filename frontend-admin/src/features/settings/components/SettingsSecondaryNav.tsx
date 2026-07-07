@@ -15,7 +15,6 @@ import {
     ShopOutlined,
     BgColorsOutlined,
     CreditCardOutlined,
-    CloudServerOutlined,
     ExperimentOutlined,
     ClockCircleOutlined,
     DisconnectOutlined,
@@ -40,12 +39,10 @@ const SETTINGS_TAB_META: Record<
     '/settings/company': { labelKey: ADMIN_NAV_LABEL_KEYS.companySettings, Icon: ShopOutlined },
     '/settings/tse': { labelKey: 'settings.tabs.tse', Icon: SafetyCertificateOutlined },
     '/settings/finanzonline': { labelKey: 'settings.tabs.finanzOnline', Icon: BankOutlined },
-    '/settings/backup': { labelKey: 'settings.manager.advanced.backup', Icon: CloudServerOutlined },
     '/settings/session': { labelKey: ADMIN_NAV_LABEL_KEYS.sessionSettings, Icon: ClockCircleOutlined },
     '/settings/offline': { labelKey: ADMIN_NAV_LABEL_KEYS.offlineSettings, Icon: DisconnectOutlined },
     '/settings/personalization': { labelKey: ADMIN_NAV_LABEL_KEYS.personalization, Icon: BgColorsOutlined },
     '/settings/payment-methods': { labelKey: ADMIN_NAV_LABEL_KEYS.paymentMethods, Icon: CreditCardOutlined },
-    '/settings/backup-dr': { labelKey: ADMIN_NAV_LABEL_KEYS.backupDr, Icon: CloudServerOutlined },
     '/settings/development-mode': { labelKey: ADMIN_NAV_LABEL_KEYS.developmentMode, Icon: ExperimentOutlined },
 };
 

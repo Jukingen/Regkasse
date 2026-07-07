@@ -59,7 +59,7 @@ public sealed class DrOperationalObservabilityHostedService : BackgroundService
                 await using var scope = _scopeFactory.CreateAsyncScope();
                 var sp = scope.ServiceProvider;
                 var summary = await sp.GetRequiredService<IBackupRecoverabilitySummaryService>()
-                    .GetAsync(stoppingToken);
+                    .GetAsync(accessScope: null, stoppingToken);
 
                 _metrics.SetRecoverabilityProofAgeSeconds("backup", summary.BackupProofAgeSeconds);
                 _metrics.SetRecoverabilityProofAgeSeconds("restore", summary.RestoreProofAgeSeconds);

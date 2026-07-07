@@ -50,7 +50,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         string? correlationId,
         CancellationToken cancellationToken = default)
     {
-        var normalizedIdempotency = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
+        var normalizedIdempotency = NormalizeIdempotencyKeyForTenantScope(idempotencyKey);
 
         await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
         await TryAcquirePostgresManualEnqueueSerializationAsync(_db, cancellationToken);
@@ -74,7 +74,13 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             }
         }
 
-        var activeManual = await _db.BackupRuns.AsNoTracking()
+        var manualScopeTenantId = BackupRunAccessEvaluator.ResolveManualTriggerScopeTenantId(
+            _tenantAccessor.TenantId,
+            normalizedIdempotency);
+
+        var activeManual = await BackupRunAccessEvaluator.ApplyActiveManualConflictScope(
+                _db.BackupRuns.AsNoTracking(),
+                manualScopeTenantId)
             .Where(r => r.TriggerSource == BackupTriggerSource.Manual)
             .Where(r =>
                 r.Status == BackupRunStatus.Queued
@@ -118,6 +124,13 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             TriggerSource = BackupTriggerSource.Manual,
             AdapterKind = adapterKind,
             IdempotencyKey = normalizedIdempotency,
+            TenantId = _tenantAccessor.TenantId is Guid ambientTenantId && ambientTenantId != Guid.Empty
+                ? ambientTenantId
+                : BackupRunTenantSlugResolver.TryParseTenantIdFromIdempotencyKey(
+                    normalizedIdempotency,
+                    out var parsedTenantId)
+                    ? parsedTenantId
+                    : null,
             RequestedByUserId = requestedByUserId,
             RequestedAt = DateTime.UtcNow,
             QueuedAt = DateTime.UtcNow,
@@ -159,12 +172,7 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
         await transaction.CommitAsync(cancellationToken);
 
         var actorId = requestedByUserId ?? "system";
-        var auditTenantId = _tenantAccessor.TenantId
-            ?? (BackupRunTenantSlugResolver.TryParseTenantIdFromIdempotencyKey(
-                    run.IdempotencyKey,
-                    out var parsedTenantId)
-                ? parsedTenantId
-                : (Guid?)null);
+        var auditTenantId = run.TenantId ?? _tenantAccessor.TenantId;
         await _audit.LogSystemOperationAsync(
             action: "BACKUP_MANUAL_ENQUEUED",
             entityType: "BackupRun",
@@ -181,6 +189,23 @@ public sealed class BackupManualTriggerService : IBackupManualTriggerService
             tenantId: auditTenantId);
 
         return new BackupManualTriggerOutcome { Run = run, Kind = BackupManualTriggerResultKind.NewRunQueued };
+    }
+
+    /// <summary>
+    /// When ambient tenant context exists, ensure manual runs encode tenant in the idempotency key
+    /// so tenant-scoped download ACL can resolve deployment-wide <see cref="BackupRun"/> rows.
+    /// </summary>
+    private string? NormalizeIdempotencyKeyForTenantScope(string? idempotencyKey)
+    {
+        var normalized = string.IsNullOrWhiteSpace(idempotencyKey) ? null : idempotencyKey.Trim();
+        var ambientTenantId = _tenantAccessor.TenantId;
+        if (!ambientTenantId.HasValue || ambientTenantId.Value == Guid.Empty)
+            return normalized;
+
+        if (BackupRunTenantSlugResolver.EncodesTenantScope(normalized))
+            return normalized;
+
+        return $"manual-tenant-{ambientTenantId.Value:D}-{DateTime.UtcNow.Ticks}";
     }
 
     private static async Task TryAcquirePostgresManualEnqueueSerializationAsync(

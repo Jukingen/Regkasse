@@ -141,4 +141,74 @@ public sealed class BackupRunMapperSimulatedArtifactAvailabilityTests
             }
         }
     }
+
+    [Fact]
+    public void IsFilePresentForDownload_false_when_caller_may_not_download_even_if_file_on_disk()
+    {
+        var runId = Guid.NewGuid();
+        var artifactId = Guid.NewGuid();
+        var staging = Path.Combine(Path.GetTempPath(), "bk_map_no_dl_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(staging);
+        const string fileName = "stub.dump";
+        var full = Path.Combine(staging, fileName);
+        File.WriteAllText(full, "x");
+
+        try
+        {
+            var run = new BackupRun
+            {
+                Id = runId,
+                Status = BackupRunStatus.Succeeded,
+                TriggerSource = BackupTriggerSource.Manual,
+                AdapterKind = "Fake",
+                RequestedAt = DateTime.UtcNow,
+                Artifacts =
+                [
+                    new BackupArtifact
+                    {
+                        Id = artifactId,
+                        BackupRunId = runId,
+                        ArtifactType = BackupArtifactType.LogicalDump,
+                        StorageDescriptor = fileName,
+                        CreatedAt = DateTime.UtcNow,
+                        LifecycleState = BackupArtifactLifecycleState.Staging,
+                    }
+                ]
+            };
+
+            var opts = new BackupOptions { ArtifactStagingRoot = staging };
+            var env = new Mock<IHostEnvironment>();
+            env.Setup(e => e.EnvironmentName).Returns(Environments.Development);
+            var enrichment = new BackupDownloadEnrichment(
+                opts,
+                env.Object,
+                NullLogger.Instance,
+                CallerMayDownloadArtifacts: false);
+
+            var dto = BackupRunMapper.ToDto(
+                run,
+                includeChildren: true,
+                pipelinePolicy: null,
+                materializedChildren: true,
+                automaticRetryMaxAttemptsBudget: null,
+                downloadEnrichment: enrichment);
+
+            Assert.NotNull(dto.Artifacts);
+            Assert.False(Assert.Single(dto.Artifacts).IsFilePresentForDownload);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(full))
+                    File.Delete(full);
+                if (Directory.Exists(staging))
+                    Directory.Delete(staging, recursive: true);
+            }
+            catch
+            {
+                // best-effort
+            }
+        }
+    }
 }

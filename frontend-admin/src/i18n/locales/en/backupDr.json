@@ -1606,6 +1606,7 @@
   },
   "management": {
     "pageSubtitle": "Backup runs, configuration, monitoring, and logs — read-only or full management depending on permissions.",
+    "configurationSubtitle": "Schedule, retention, and — for platform operators — execution mode.",
     "tabs": {
       "operations": "Operations & history",
       "monitoring": "Monitoring",

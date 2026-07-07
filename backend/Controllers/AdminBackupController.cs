@@ -236,21 +236,29 @@ public sealed class AdminBackupController : ControllerBase
     [ProducesResponseType(typeof(BackupDashboardStatsResponseDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<BackupDashboardStatsResponseDto>> GetDashboardStats(
         CancellationToken cancellationToken)
-        => Ok(await _dashboardStats.GetAsync(cancellationToken));
+    {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        return Ok(await _dashboardStats.GetAsync(BuildRunAccessScope(), cancellationToken));
+    }
 
     [HttpGet("status/latest")]
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<BackupLatestStatusResponseDto>> GetLatestStatus(CancellationToken cancellationToken)
     {
-        var latest = await _query.GetLatestRunAsync(cancellationToken);
-        var durationStats = await _query.GetAverageSucceededDurationAsync(15, cancellationToken);
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var accessScope = BuildRunAccessScope();
+        var latest = await _query.GetLatestRunAsync(accessScope, cancellationToken);
+        var durationStats = await _query.GetAverageSucceededDurationAsync(15, accessScope, cancellationToken);
         var cap = _restore.DescribeCapabilities();
         var cfg = _readiness.GetConfigurationHealth();
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
-        var downloadEnrichment = new BackupDownloadEnrichment(
-            _backupOptions.CurrentValue,
-            _hostEnvironment,
-            _logger);
+        var downloadEnrichment = CreateDownloadEnrichment(CanCallerDownloadArtifacts());
         return Ok(new BackupLatestStatusResponseDto
         {
             LatestRun = latest == null
@@ -290,10 +298,20 @@ public sealed class AdminBackupController : ControllerBase
         CancellationToken cancellationToken)
     {
         var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        if (!isSuperAdmin && !_tenantAccessor.TenantId.HasValue)
+        {
+            return BadRequest(new
+            {
+                code = "TENANT_CONTEXT_REQUIRED",
+                message = "Tenant context is required to download backup artifacts."
+            });
+        }
+
         var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
             runId,
             isSuperAdmin,
             _tenantAccessor.TenantId,
+            User.GetActorUserId(),
             cancellationToken);
         if (accessibleRun == null)
         {
@@ -488,7 +506,11 @@ public sealed class AdminBackupController : ControllerBase
     public async Task<ActionResult<BackupRecoverabilitySummaryResponseDto>> GetRecoverabilitySummary(
         CancellationToken cancellationToken)
     {
-        var dto = await _recoverabilitySummary.GetAsync(cancellationToken);
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var dto = await _recoverabilitySummary.GetAsync(BuildRunAccessScope(), cancellationToken);
         return Ok(dto);
     }
 
@@ -558,8 +580,14 @@ public sealed class AdminBackupController : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var (items, total) = await _query.GetHistoryAsync(page, pageSize, cancellationToken);
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var accessScope = BuildRunAccessScope();
+        var (items, total) = await _query.GetHistoryAsync(page, pageSize, accessScope, cancellationToken);
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
+        var downloadEnrichment = CreateDownloadEnrichment(CanCallerDownloadArtifacts());
         return Ok(new BackupHistoryResponseDto
         {
             Items = items.Select(r => BackupRunMapper.ToDto(
@@ -567,7 +595,8 @@ public sealed class AdminBackupController : ControllerBase
                     includeChildren: true,
                     pipelinePolicy: artifactPolicy,
                     materializedChildren: false,
-                    automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts))
+                    automaticRetryMaxAttemptsBudget: _backupOptions.CurrentValue.AutomaticRetryMaxAttempts,
+                    downloadEnrichment: downloadEnrichment))
                 .ToList(),
             Page = page,
             PageSize = pageSize,
@@ -579,11 +608,22 @@ public sealed class AdminBackupController : ControllerBase
     [HasPermission(AppPermissions.SettingsView)]
     public async Task<ActionResult<BackupRunResponseDto>> GetRunById(Guid id, CancellationToken cancellationToken)
     {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
+            id,
+            isSuperAdmin,
+            _tenantAccessor.TenantId,
+            User.GetActorUserId(),
+            cancellationToken);
+        if (accessibleRun == null)
+            return NotFound();
+
         var artifactPolicy = _readiness.GetArtifactPipelinePolicy();
-        var downloadEnrichment = new BackupDownloadEnrichment(
-            _backupOptions.CurrentValue,
-            _hostEnvironment,
-            _logger);
+        var downloadEnrichment = CreateDownloadEnrichment(CanCallerDownloadArtifacts());
         var dto = await _backupRunService.GetBackupRunAsync(
             id,
             new BackupRunDtoMappingOptions
@@ -607,6 +647,20 @@ public sealed class AdminBackupController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var isSuperAdmin = User.IsInRole(Roles.SuperAdmin);
+        var accessibleRun = await _backupTenantAccess.TryGetAccessibleRunAsync(
+            id,
+            isSuperAdmin,
+            _tenantAccessor.TenantId,
+            User.GetActorUserId(),
+            cancellationToken);
+        if (accessibleRun == null)
+            return NotFound();
+
         try
         {
             var report = await _verificationReport.GenerateReportAsync(id, cancellationToken);
@@ -623,7 +677,11 @@ public sealed class AdminBackupController : ControllerBase
     public async Task<ActionResult<BackupVerificationResponseDto?>> GetLatestVerification(
         CancellationToken cancellationToken)
     {
-        var v = await _query.GetLatestVerificationAsync(cancellationToken);
+        var tenantGuard = ValidateScopedReadTenantContext();
+        if (tenantGuard != null)
+            return tenantGuard;
+
+        var v = await _query.GetLatestVerificationAsync(BuildRunAccessScope(), cancellationToken);
         if (v == null)
             return Ok(null);
         var completenessRequired = v.BackupRun != null
@@ -769,4 +827,32 @@ public sealed class AdminBackupController : ControllerBase
             _backupOptions.CurrentValue,
             _hostEnvironment,
             _readiness);
+
+    private BackupRunAccessScope BuildRunAccessScope() =>
+        new(
+            User.IsInRole(Roles.SuperAdmin),
+            _tenantAccessor.TenantId,
+            User.GetActorUserId());
+
+    private ActionResult? ValidateScopedReadTenantContext()
+    {
+        if (User.IsInRole(Roles.SuperAdmin) || _tenantAccessor.TenantId.HasValue)
+            return null;
+
+        return BadRequest(new
+        {
+            code = "TENANT_CONTEXT_REQUIRED",
+            message = "Tenant context is required to read tenant-scoped backup runs."
+        });
+    }
+
+    private bool CanCallerDownloadArtifacts() =>
+        PermissionClaimHelper.PrincipalHasAppPermission(User, AppPermissions.BackupManage);
+
+    private BackupDownloadEnrichment CreateDownloadEnrichment(bool callerMayDownloadArtifacts) =>
+        new(
+            _backupOptions.CurrentValue,
+            _hostEnvironment,
+            _logger,
+            callerMayDownloadArtifacts);
 }

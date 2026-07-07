@@ -20,6 +20,7 @@ export type SidebarGroupId =
     | 'catalog'
     | 'customers'
     | 'reports'
+    | 'backup'
     | 'settings'
     | 'administration';
 
@@ -65,6 +66,8 @@ export type SidebarIconToken =
     | 'ClockCircleOutlined'
     | 'CloudDownloadOutlined'
     | 'CloudSyncOutlined'
+    | 'DatabaseOutlined'
+    | 'HistoryOutlined'
     | 'KeyOutlined'
     | 'ApartmentOutlined'
     | 'DisconnectOutlined';
@@ -476,18 +479,42 @@ export const SIDEBAR_NAV_ITEM_CATALOG: Record<string, SidebarNavCatalogItem> = {
     },
     backupDr: {
         id: 'backupDr',
-        menuKey: '/settings/backup-dr',
-        href: '/settings/backup-dr',
-        labelKey: 'nav.backupDr',
-        icon: 'CloudServerOutlined',
-        sidebarHidden: true,
+        menuKey: '/backup/dashboard',
+        href: '/backup/dashboard',
+        labelKey: 'nav.backupOverview',
+        icon: 'DashboardOutlined',
+        permission: PERMISSIONS.SETTINGS_VIEW,
     },
-    backupMonitoring: {
-        id: 'backupMonitoring',
-        menuKey: '/admin/backup',
-        href: '/admin/backup',
-        labelKey: 'nav.backupRestore',
+    backupRuns: {
+        id: 'backupRuns',
+        menuKey: '/backup/runs',
+        href: '/backup/runs',
+        labelKey: 'nav.backupRuns',
+        icon: 'DatabaseOutlined',
+        permission: PERMISSIONS.SETTINGS_VIEW,
+    },
+    backupSchedule: {
+        id: 'backupSchedule',
+        menuKey: '/backup/configuration/schedule',
+        href: '/backup/configuration#backup-dr-schedule-settings',
+        labelKey: 'nav.backupScheduleRetention',
+        icon: 'ClockCircleOutlined',
+        permission: PERMISSIONS.BACKUP_MANAGE,
+    },
+    backupPlatform: {
+        id: 'backupPlatform',
+        menuKey: '/backup/configuration/platform',
+        href: '/backup/configuration',
+        labelKey: 'nav.backupPlatformSettings',
         icon: 'CloudSyncOutlined',
+        permission: PERMISSIONS.SETTINGS_MANAGE,
+    },
+    backupAuditLog: {
+        id: 'backupAuditLog',
+        menuKey: '/backup/audit',
+        href: '/backup/audit',
+        labelKey: 'nav.backupAuditLog',
+        icon: 'AuditOutlined',
         permission: PERMISSIONS.SETTINGS_VIEW,
     },
     developmentMode: {
@@ -701,6 +728,11 @@ export const SIDEBAR_GROUP_META: Record<
         labelKey: 'nav.reports',
         icon: 'LineChartOutlined',
     },
+    backup: {
+        menuKey: ADMIN_SIDEBAR_GROUP_KEYS.backup,
+        labelKey: 'nav.backupDisasterRecovery',
+        icon: 'CloudServerOutlined',
+    },
     settings: {
         menuKey: ADMIN_SIDEBAR_GROUP_KEYS.settings,
         labelKey: 'nav.settings',
@@ -855,6 +887,21 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
     },
     {
         kind: 'group',
+        group: 'backup',
+        blocks: [
+            { kind: 'leaves', catalogIds: ['backupDr', 'backupRuns'] },
+            {
+                kind: 'nested',
+                menuKey: ADMIN_SIDEBAR_GROUP_KEYS.backupConfig,
+                labelKey: 'nav.backupConfiguration',
+                icon: 'SettingOutlined',
+                catalogIds: ['backupSchedule', 'backupPlatform'],
+            },
+            { kind: 'leaves', catalogIds: ['backupAuditLog'] },
+        ],
+    },
+    {
+        kind: 'group',
         group: 'settings',
         blocks: [
             {
@@ -864,11 +911,9 @@ export const SIDEBAR_LAYOUT_ROWS: SidebarLayoutRow[] = [
                     'companySettings',
                     'tseSettings',
                     'finanzonlineSettings',
-                    'backupSettings',
                     'sessionSettings',
                     'personalization',
                     'paymentMethods',
-                    'backupMonitoring',
                 ],
             },
         ],

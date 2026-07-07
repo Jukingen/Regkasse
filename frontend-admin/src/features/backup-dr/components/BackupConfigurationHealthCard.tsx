@@ -14,7 +14,7 @@ import type {
 } from "@/api/generated/model";
 import { mapConfigurationHealthLevel } from "@/features/backup-dr/logic/backupDrMappers";
 
-const BACKUP_SETTINGS_HASH = "#backup-dr-schedule-settings";
+import { BACKUP_SCHEDULE_SETTINGS_HREF } from '@/shared/backupAreaRoutes';
 
 export interface BackupConfigurationHealthCardProps {
   config: BackupConfigurationHealthResponseDto | undefined;
@@ -106,7 +106,7 @@ export function BackupConfigurationHealthCard({
       ) : null}
 
       {canManage ? (
-        <Link href={`/settings/backup-dr${BACKUP_SETTINGS_HASH}`} style={{ marginTop: 8, display: "inline-block" }}>
+        <Link href={BACKUP_SCHEDULE_SETTINGS_HREF} style={{ marginTop: 8, display: "inline-block" }}>
           <Button type="link" style={{ paddingInline: 0 }}>
             {t("backupDr.monitoring.configHealth.editSettings")}
           </Button>

@@ -26,7 +26,7 @@ import { formatDateTime } from "@/i18n/formatting";
 import { useBackupConfigurationHealth } from "@/features/backup/hooks/useBackupConfigurationHealth";
 import { useBackupPermissions } from "@/features/backup/hooks/useBackupPermissions";
 
-const BACKUP_SETTINGS_HASH = "#backup-dr-schedule-settings";
+import { BACKUP_SCHEDULE_SETTINGS_HREF } from '@/shared/backupAreaRoutes';
 
 type HealthLevelKey = "Healthy" | "Degraded" | "Unhealthy";
 
@@ -159,7 +159,7 @@ export function ConfigurationHealthCard({
       ) : null}
 
       {canManage ? (
-        <Link href={`/settings/backup-dr${BACKUP_SETTINGS_HASH}`} className="mt-3 inline-block">
+        <Link href={BACKUP_SCHEDULE_SETTINGS_HREF} className="mt-3 inline-block">
           <Button type="link" style={{ paddingInline: 0 }}>
             {t("backupDr.monitoring.configHealth.editSettings")}
           </Button>

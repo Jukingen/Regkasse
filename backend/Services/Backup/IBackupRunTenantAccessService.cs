@@ -14,5 +14,6 @@ public interface IBackupRunTenantAccessService
         Guid backupRunId,
         bool isSuperAdmin,
         Guid? callerTenantId,
+        string? callerUserId = null,
         CancellationToken cancellationToken = default);
 }

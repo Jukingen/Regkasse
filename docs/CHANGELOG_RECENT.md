@@ -25,9 +25,27 @@ Engineering changelog (not legal advice). Dates reflect documentation / feature 
 - `routePermissions.ts` comments for `/settings/backup-dr`, `/admin/backup`
 - i18n: tenant-scoped backup copy uses *„Backups verwalten“* instead of *„Einstellungen verwalten“*
 
+### Known limitation (2026-07-02 wave)
+
+- Per-tenant **access** was JWT/idempotency-only; see **2026-07-07** for `tenant_id` column.
+
+---
+
+## 2026-07-07 — Backup tenant scoping Phase 3 (access + `tenant_id`)
+
+**Reference:** [`docs/BACKUP_PERMISSIONS.md`](BACKUP_PERMISSIONS.md)
+
+### Backend
+
+- Migration `AddTenantIdToBackupRuns`: nullable `backup_runs.tenant_id`, backfill from idempotency keys
+- `BackupRunAccessEvaluator` centralizes read/download/trigger scope (column-first, shared scheduled runs, legacy fallback)
+- Scoped reads: `runs`, `status/latest`, `verification/latest`, `dashboard/stats`, `recoverability-summary`
+- Tenant-scoped manual queue (duplicate-active per tenant scope)
+- HTTP integration: `BackupTriggerDownloadIntegrationTests` (trigger → orchestrator → download)
+
 ### Known limitation
 
-- `backup_runs` remains deployment-scoped (no `tenant_id`); per-tenant backup artifacts are a future schema/worker change.
+- Data plane remains one deployment-wide PostgreSQL dump; `tenant_id` is **access control**, not per-tenant dump files.
 
 ---
 

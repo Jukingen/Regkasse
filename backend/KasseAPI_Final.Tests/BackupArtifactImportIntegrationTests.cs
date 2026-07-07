@@ -17,7 +17,8 @@ namespace KasseAPI_Final.Tests;
 /// <summary>
 /// HTTP integration: Manager imports a dump for own tenant; list + tenant-scoped audit are updated.
 /// </summary>
-public sealed class BackupArtifactImportIntegrationTests : IClassFixture<BackupImportWebApplicationFactory>
+[Collection("BackupHttpIntegration")]
+public sealed class BackupArtifactImportIntegrationTests
 {
     private readonly BackupImportWebApplicationFactory _factory;
 

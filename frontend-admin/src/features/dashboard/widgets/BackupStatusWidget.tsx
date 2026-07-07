@@ -116,7 +116,7 @@ export function BackupStatusWidget({ title, dragHandleProps, onRefresh }: Props)
                     </div>
                 ) : null}
 
-                <Link href="/settings/backup-dr" style={{ display: 'block' }}>
+                <Link href="/backup/dashboard" style={{ display: 'block' }}>
                     <Button type="primary" icon={<CloudServerOutlined />} block>
                         {t('dashboard.backupStatusWidget.view_details')}
                     </Button>

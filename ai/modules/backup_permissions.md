@@ -12,7 +12,8 @@
 - **Tenant scoping:** Non–Super Admin trigger requires `ICurrentTenantAccessor.TenantId`; no client `tenantId` on trigger body.
 - **No** `backup.view` / `backup.execute` keys — view uses `settings.view`.
 - **Implication:** `settings.manage` → `backup.manage`; reverse must **not** hold (escalation guard in `PermissionImplication`).
-- **Data gap:** `backup_runs` has no `tenant_id` yet — deployment-wide run; access isolation is JWT/tenant context, not per-tenant dump files.
+- **`backup_runs.tenant_id`:** Nullable column (2026-07 migration). Manual/import runs stamp tenant; scheduled / all-tenants runs stay `NULL`. Access uses `BackupRunAccessEvaluator` (column + idempotency legacy + shared deployment-wide scheduled runs).
+- **Data plane:** Still one deployment-wide PostgreSQL dump per run — `tenant_id` gates **access**, not separate dump files per tenant (future worker/schema work).
 
 ## Key files
 

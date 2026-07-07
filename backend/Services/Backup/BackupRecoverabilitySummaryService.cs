@@ -28,26 +28,24 @@ public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySu
     }
 
     /// <inheritdoc />
-    public async Task<BackupRecoverabilitySummaryResponseDto> GetAsync(CancellationToken cancellationToken = default)
+    public async Task<BackupRecoverabilitySummaryResponseDto> GetAsync(
+        BackupRunAccessScope? accessScope = null,
+        CancellationToken cancellationToken = default)
     {
         var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
 
-        var latestBackup = await _db.BackupRuns.AsNoTracking()
+        var latestBackup = await AccessibleRuns(accessScope)
             .OrderByDescending(r => r.RequestedAt)
             .Select(r => new { r.RequestedAt, r.Status })
             .FirstOrDefaultAsync(cancellationToken);
 
-        var lastSucceededBackup = await _db.BackupRuns.AsNoTracking()
+        var lastSucceededBackup = await AccessibleRuns(accessScope)
             .Where(r => r.Status == BackupRunStatus.Succeeded)
             .OrderByDescending(r => r.CompletedAt ?? r.RequestedAt)
             .Select(r => new { r.Id, ProofAt = r.CompletedAt ?? r.RequestedAt, r.AdapterKind })
             .FirstOrDefaultAsync(cancellationToken);
 
-        var lastPassedVerification = await _db.BackupVerifications.AsNoTracking()
-            .Where(v => v.Status == BackupVerificationStatus.Passed)
-            .OrderByDescending(v => v.CompletedAt ?? v.StartedAt)
-            .Select(v => new { At = v.CompletedAt ?? v.StartedAt })
-            .FirstOrDefaultAsync(cancellationToken);
+        var lastPassedVerificationAt = await LastPassedVerificationAtAsync(accessScope, cancellationToken);
 
         // Zamanlanmış drill cadence / DR gözlemi ile hizalı: yalnızca Scheduled başarılı kanıt (manuel başarılar özet yaşını düşürmez).
         var lastRestoreProof = await _db.RestoreVerificationRuns.AsNoTracking()
@@ -79,7 +77,7 @@ public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySu
             LastSuccessfulBackupAt = lastSucceededBackup?.ProofAt,
             LastSuccessfulBackupRunId = lastSucceededBackup?.Id,
             LastSuccessfulBackupRunIsSimulatedExecution = lastSuccessSimulated,
-            LastSuccessfulArtifactVerificationAt = lastPassedVerification?.At,
+            LastSuccessfulArtifactVerificationAt = lastPassedVerificationAt,
             LastSuccessfulRestoreProofAt = lastRestoreProof?.CompletedAt,
             LastSuccessfulRestoreProofRunId = lastRestoreProof?.Id,
             BackupProofAgeSeconds = AgeSeconds(lastSucceededBackup?.ProofAt, nowUtc),
@@ -93,6 +91,27 @@ public sealed class BackupRecoverabilitySummaryService : IBackupRecoverabilitySu
             BackupReadinessLevel = cfg.Level.ToString(),
             BackupReadinessNarrative = cfg.ReadinessNarrative
         };
+    }
+
+    private IQueryable<BackupRun> AccessibleRuns(BackupRunAccessScope? accessScope)
+    {
+        var q = _db.BackupRuns.AsNoTracking();
+        return accessScope == null
+            ? q
+            : BackupRunAccessEvaluator.ApplyCallerAccessFilter(q, accessScope);
+    }
+
+    private async Task<DateTime?> LastPassedVerificationAtAsync(
+        BackupRunAccessScope? accessScope,
+        CancellationToken cancellationToken)
+    {
+        var accessibleRunIds = AccessibleRuns(accessScope);
+        return await _db.BackupVerifications.AsNoTracking()
+            .Where(v => v.Status == BackupVerificationStatus.Passed
+                        && accessibleRunIds.Select(r => r.Id).Contains(v.BackupRunId))
+            .OrderByDescending(v => v.CompletedAt ?? v.StartedAt)
+            .Select(v => (DateTime?)(v.CompletedAt ?? v.StartedAt))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     private static long? AgeSeconds(DateTime? proofAtUtc, DateTime nowUtc)

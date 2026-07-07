@@ -32,6 +32,13 @@ public sealed class BackupRun : KasseAPI_Final.Models.IRunLeaseColumns
     [Column("idempotency_key")]
     public string? IdempotencyKey { get; set; }
 
+    /// <summary>
+    /// Owning tenant when the run is tenant-scoped (manual/import). Null for deployment-wide scheduled or all-tenant runs.
+    /// Not <see cref="ITenantEntity"/> — explicit access filters only (nullable deployment rows).
+    /// </summary>
+    [Column("tenant_id")]
+    public Guid? TenantId { get; set; }
+
     [MaxLength(450)]
     [Column("requested_by_user_id")]
     public string? RequestedByUserId { get; set; }

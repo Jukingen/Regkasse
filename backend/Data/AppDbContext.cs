@@ -2532,6 +2532,9 @@ namespace KasseAPI_Final.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.RequestedAt);
                 entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.TenantId)
+                    .HasDatabaseName("ix_backup_runs_tenant_id")
+                    .HasFilter("tenant_id IS NOT NULL");
                 entity.HasIndex(e => e.NextRetryAtUtc)
                     .HasDatabaseName("ix_backup_runs_next_retry_at")
                     .HasFilter("next_retry_at_utc IS NOT NULL");
@@ -2541,6 +2544,10 @@ namespace KasseAPI_Final.Data
                 entity.HasIndex(e => e.IdempotencyKey)
                     .IsUnique()
                     .HasFilter("idempotency_key IS NOT NULL");
+                entity.HasOne<Tenant>()
+                    .WithMany()
+                    .HasForeignKey(e => e.TenantId)
+                    .OnDelete(DeleteBehavior.Restrict);
                 entity.HasMany(e => e.Artifacts)
                     .WithOne(a => a.BackupRun!)
                     .HasForeignKey(a => a.BackupRunId)

@@ -382,7 +382,7 @@ Requires JDK 17+ on PATH; uses `backend/Tests/regkassen-verification-depformat-1
 
 **Permission keys:** `settings.view` (read routes), `backup.manage` (trigger + schedule), `settings.manage` (platform backup ops; implies `backup.manage`). Manager must **not** receive `settings.manage` for backup-only access.
 
-**Tenant scoping:** Trigger endpoints do not accept client `tenantId`; non–Super Admin requires resolved tenant context (`TENANT_CONTEXT_REQUIRED` otherwise). `backup_runs` is deployment-scoped until per-tenant run metadata exists — see doc for data-plane vs access-plane distinction.
+**Tenant scoping:** Trigger endpoints do not accept client `tenantId`; non–Super Admin requires resolved tenant context (`TENANT_CONTEXT_REQUIRED` otherwise). `backup_runs.tenant_id` (nullable) gates access for manual/import runs; scheduled deployment-wide runs remain shared. **Access plane** is tenant-filtered; **data plane** is still one instance dump per run — see `docs/BACKUP_PERMISSIONS.md`.
 
 ### Backup Types
 | Type | Scope | Who Can Trigger |

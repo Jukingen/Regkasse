@@ -147,6 +147,7 @@ public sealed class BackupArtifactImportService : IBackupArtifactImportService
             TriggerSource = BackupTriggerSource.OperatorApi,
             AdapterKind = ImportedAdapterKind,
             IdempotencyKey = idempotencyKey,
+            TenantId = tenantId,
             RequestedByUserId = request.RequestedByUserId,
             RequestedAt = utcNow,
             QueuedAt = utcNow,

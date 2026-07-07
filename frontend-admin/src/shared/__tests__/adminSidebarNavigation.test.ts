@@ -94,16 +94,37 @@ describe('adminSidebarNavigation', () => {
         expect(getNonRksvSidebarOpenGroupKeys('/settings/payment-methods')).toContain(
             ADMIN_SIDEBAR_GROUP_KEYS.settings,
         );
+        expect(getNonRksvSidebarOpenGroupKeys('/backup/dashboard')).toContain(
+            ADMIN_SIDEBAR_GROUP_KEYS.backup,
+        );
+        expect(getNonRksvSidebarOpenGroupKeys('/backup/runs')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.backup);
+        expect(getNonRksvSidebarOpenGroupKeys('/backup/configuration')).toContain(
+            ADMIN_SIDEBAR_GROUP_KEYS.backupConfig,
+        );
         expect(getNonRksvSidebarOpenGroupKeys('/admin/tenants')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.admin);
         expect(getNonRksvSidebarOpenGroupKeys('/admin/users')).toContain(ADMIN_SIDEBAR_GROUP_KEYS.accessArea);
     });
 
     it('detects Verwaltung routes for tenant context card', () => {
         expect(isVerwaltungAdminPath('/admin/users')).toBe(true);
-        expect(isVerwaltungAdminPath('/settings/backup-dr')).toBe(true);
+        expect(isVerwaltungAdminPath('/settings/backup-dr')).toBe(false);
+        expect(isVerwaltungAdminPath('/backup/dashboard')).toBe(false);
         expect(isVerwaltungAdminPath('/admin/tenants')).toBe(true);
         expect(isVerwaltungAdminPath('/products')).toBe(false);
         expect(isVerwaltungAdminPath('/receipts/abc')).toBe(false);
+    });
+
+    it('maps backup configuration path to virtual sidebar keys', () => {
+        const leaves = [
+            '/backup/dashboard',
+            '/backup/audit',
+            '/backup/configuration/schedule',
+            '/backup/configuration/platform',
+        ];
+        expect(resolveAdminMenuSelectedKeys('/backup/audit', leaves)).toEqual(['/backup/audit']);
+        expect(resolveAdminMenuSelectedKeys('/backup/configuration', leaves)).toEqual([
+            '/backup/configuration/schedule',
+        ]);
     });
 });
 

@@ -154,7 +154,7 @@ export function QuickActions() {
                 key: 'backup-failed',
                 icon: <CloudServerOutlined />,
                 label: t('quickActions.actions.backupFailed'),
-                onClick: () => router.push('/settings/backup-dr'),
+                onClick: () => router.push('/backup/dashboard'),
                 visible: Boolean(canViewBackup && backupNeedsAttention),
                 type: 'warning',
             },
