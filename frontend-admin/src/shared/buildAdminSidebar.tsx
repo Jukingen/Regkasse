@@ -72,11 +72,13 @@ const ICON_MAP: Record<SidebarIconToken, React.ComponentType> = {
     KeyOutlined: Icons.KeyOutlined,
     ApartmentOutlined: Icons.ApartmentOutlined,
     DisconnectOutlined: Icons.DisconnectOutlined,
+    UnorderedListOutlined: Icons.UnorderedListOutlined,
 };
 
 function iconEl(token?: SidebarIconToken): React.ReactNode {
     if (!token) return undefined;
     const C = ICON_MAP[token];
+    if (!C) return undefined;
     return <C />;
 }
 

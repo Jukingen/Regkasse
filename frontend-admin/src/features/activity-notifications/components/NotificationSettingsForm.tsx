@@ -75,23 +75,29 @@ export function NotificationSettingsForm() {
 
     if (isLoading) {
         return (
-            <div style={{ padding: 48, textAlign: 'center' }}>
-                <Spin />
-            </div>
+            <>
+                <Form form={form} style={{ display: 'none' }} preserve />
+                <div style={{ padding: 48, textAlign: 'center' }}>
+                    <Spin />
+                </div>
+            </>
         );
     }
 
     if (isError) {
         return (
-            <Alert
-                type="error"
-                title={t('activityNotifications.settingsLoadError')}
-                action={
-                    <Button size="small" onClick={() => void refetch()}>
-                        {t('common.buttons.retry')}
-                    </Button>
-                }
-            />
+            <>
+                <Form form={form} style={{ display: 'none' }} preserve />
+                <Alert
+                    type="error"
+                    title={t('activityNotifications.settingsLoadError')}
+                    action={
+                        <Button size="small" onClick={() => void refetch()}>
+                            {t('common.buttons.retry')}
+                        </Button>
+                    }
+                />
+            </>
         );
     }
 
@@ -101,7 +107,7 @@ export function NotificationSettingsForm() {
                 <Switch />
             </Form.Item>
 
-            <Divider>{t('activityNotifications.settings.emailSection')}</Divider>
+            <Divider titlePlacement="left">{t('activityNotifications.settings.emailSection')}</Divider>
             <Form.Item name="emailEnabled" label={t('activityNotifications.settings.emailEnabled')} valuePropName="checked">
                 <Switch />
             </Form.Item>
@@ -109,7 +115,7 @@ export function NotificationSettingsForm() {
                 <Input.TextArea rows={3} placeholder="ops@example.com" />
             </Form.Item>
 
-            <Divider>{t('activityNotifications.settings.webhookSection')}</Divider>
+            <Divider titlePlacement="left">{t('activityNotifications.settings.webhookSection')}</Divider>
             <Form.Item name="webhookEnabled" label={t('activityNotifications.settings.webhookEnabled')} valuePropName="checked">
                 <Switch />
             </Form.Item>
@@ -120,7 +126,7 @@ export function NotificationSettingsForm() {
                 <Input.Password autoComplete="off" />
             </Form.Item>
 
-            <Divider>{t('activityNotifications.settings.eventsSection')}</Divider>
+            <Divider titlePlacement="left">{t('activityNotifications.settings.eventsSection')}</Divider>
             <Form.Item label={t('activityNotifications.settings.enabledEvents')}>
                 <Space orientation="vertical" style={{ width: '100%' }}>
                     {ACTIVITY_EVENT_TYPES.map((eventType) => (

@@ -80,6 +80,7 @@ export function SuperAdminSettings() {
     if (isLoading) {
         return (
             <SpaceWrapper>
+                <Form form={form} style={{ display: 'none' }} preserve />
                 <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
                 <Card>
                     <div style={{ textAlign: 'center', padding: '48px 24px' }}>
@@ -96,6 +97,7 @@ export function SuperAdminSettings() {
     if (isError) {
         return (
             <SpaceWrapper>
+                <Form form={form} style={{ display: 'none' }} preserve />
                 <AdminPageHeader title={t('settings.page.title')} breadcrumbs={[...headerBreadcrumbs]} />
                 <Alert
                     type="error"

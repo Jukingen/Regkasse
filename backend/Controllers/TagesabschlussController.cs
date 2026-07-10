@@ -4,6 +4,7 @@ using KasseAPI_Final.Authorization;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Models;
 using KasseAPI_Final.Security;
+using KasseAPI_Final.Tenancy;
 using KasseAPI_Final.Time;
 using System.ComponentModel.DataAnnotations;
 
@@ -15,11 +16,16 @@ namespace KasseAPI_Final.Controllers
     public class TagesabschlussController : ControllerBase
     {
         private readonly ITagesabschlussService _tagesabschlussService;
+        private readonly ISettingsTenantResolver _settingsTenantResolver;
         private readonly ILogger<TagesabschlussController> _logger;
 
-        public TagesabschlussController(ITagesabschlussService tagesabschlussService, ILogger<TagesabschlussController> logger)
+        public TagesabschlussController(
+            ITagesabschlussService tagesabschlussService,
+            ISettingsTenantResolver settingsTenantResolver,
+            ILogger<TagesabschlussController> logger)
         {
             _tagesabschlussService = tagesabschlussService;
+            _settingsTenantResolver = settingsTenantResolver;
             _logger = logger;
         }
 
@@ -150,17 +156,23 @@ namespace KasseAPI_Final.Controllers
         [HasPermission(AppPermissions.DailyClosingView)]
         [ProducesResponseType(typeof(List<TagesabschlussResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<List<TagesabschlussResult>>> GetClosingHistory([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
+        public async Task<ActionResult<List<TagesabschlussResult>>> GetClosingHistory(
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] Guid? cashRegisterId,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var userId = User.GetActorUserId();
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
-                }
+                var registerResolution = await ResolveOperationalCashRegisterAsync(cashRegisterId, cancellationToken);
+                if (registerResolution.ErrorResult is { } error)
+                    return error;
 
-                var history = await _tagesabschlussService.GetClosingHistoryAsync(userId, fromDate, toDate, cashRegisterId);
+                var history = await _tagesabschlussService.GetClosingHistoryAsync(
+                    fromDate,
+                    toDate,
+                    registerResolution.RegisterId!.Value,
+                    cancellationToken);
                 return Ok(history);
             }
             catch (Exception ex)
@@ -216,26 +228,32 @@ namespace KasseAPI_Final.Controllers
         [HasPermission(AppPermissions.DailyClosingView)]
         [ProducesResponseType(typeof(TagesabschlussStatisticsResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(TagesabschlussErrorResponse), StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<TagesabschlussStatisticsResponse>> GetClosingStatistics([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? cashRegisterId)
+        public async Task<ActionResult<TagesabschlussStatisticsResponse>> GetClosingStatistics(
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] Guid? cashRegisterId,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var userId = User.GetActorUserId();
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized(new TagesabschlussErrorResponse { error = "User ID not found in token" });
-                }
+                var registerResolution = await ResolveOperationalCashRegisterAsync(cashRegisterId, cancellationToken);
+                if (registerResolution.ErrorResult is { } error)
+                    return error;
 
-                var history = await _tagesabschlussService.GetClosingHistoryAsync(userId, fromDate, toDate, cashRegisterId);
-                
+                var history = await _tagesabschlussService.GetClosingHistoryAsync(
+                    fromDate,
+                    toDate,
+                    registerResolution.RegisterId!.Value,
+                    cancellationToken);
+
                 var statistics = new TagesabschlussStatisticsResponse
                 {
                     totalClosings = history.Count,
                     totalAmount = history.Sum(h => h.TotalAmount),
                     totalTaxAmount = history.Sum(h => h.TotalTaxAmount),
                     totalTransactions = history.Sum(h => h.TransactionCount),
-                    averageDailyAmount = history.Where(h => h.ClosingType == "Daily").Any() 
-                        ? history.Where(h => h.ClosingType == "Daily").Average(h => h.TotalAmount) 
+                    averageDailyAmount = history.Where(h => h.ClosingType == "Daily").Any()
+                        ? history.Where(h => h.ClosingType == "Daily").Average(h => h.TotalAmount)
                         : 0,
                     lastClosingDate = history.OrderByDescending(h => h.ClosingDate).FirstOrDefault()?.ClosingDate
                 };
@@ -246,6 +264,36 @@ namespace KasseAPI_Final.Controllers
             {
                 return StatusCode(500, new TagesabschlussErrorResponse { error = "Internal server error", details = ex.Message });
             }
+        }
+
+        private async Task<(Guid? RegisterId, ActionResult? ErrorResult)> ResolveOperationalCashRegisterAsync(
+            Guid? cashRegisterId,
+            CancellationToken cancellationToken)
+        {
+            var tenantId = await _settingsTenantResolver.ResolveEffectiveTenantIdAsync(cancellationToken);
+            if (tenantId == Guid.Empty)
+            {
+                return (null, BadRequest(new TagesabschlussErrorResponse
+                {
+                    error = "Tenant context required",
+                    details = "TENANT_CONTEXT_REQUIRED",
+                }));
+            }
+
+            var resolved = await _tagesabschlussService.ResolveOperationalCashRegisterIdAsync(
+                tenantId,
+                cashRegisterId,
+                cancellationToken);
+            if (!resolved.HasValue)
+            {
+                return (null, NotFound(new TagesabschlussErrorResponse
+                {
+                    error = "No cash register found for this tenant",
+                    details = "TAGESABSCHLUSS_NO_REGISTER",
+                }));
+            }
+
+            return (resolved.Value, null);
         }
     }
 

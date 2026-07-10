@@ -4,7 +4,7 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Compliance user activity report — filters, summary, charts, timeline, export, schedule.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Modal, Alert, Button, Card, Col, DatePicker, Form, Input, Row, Select, Space, Statistic, Table, Tag } from 'antd';
 import type { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
@@ -12,7 +12,6 @@ import { DownloadOutlined, MailOutlined, SearchOutlined } from '@ant-design/icon
 import { useQuery } from '@tanstack/react-query';
 
 import {
-    buildUserActivityExportUrl,
     exportUserActivityReportBlob,
     fetchUserActivityReport,
     scheduleUserActivityReport,
@@ -48,7 +47,7 @@ export function UserActivityReport({ initialUserId }: Props) {
     );
     const [userSearch, setUserSearch] = useState('');
     const [scheduleOpen, setScheduleOpen] = useState(false);
-    const [scheduleForm] = Form.useForm();
+    const [scheduleDefaultName, setScheduleDefaultName] = useState('');
 
     const { data: userRows = [], isLoading: usersLoading } = useQuery({
         queryKey: ['tenant-users-picker', userSearch],
@@ -129,31 +128,6 @@ export function UserActivityReport({ initialUserId }: Props) {
         [reportParams, report?.userName, filters?.userId, message, t],
     );
 
-    const handleSchedule = async () => {
-        if (!reportParams) return;
-        try {
-            const values = await scheduleForm.validateFields();
-            const recipients = String(values.recipients)
-                .split(',')
-                .map((e: string) => e.trim())
-                .filter(Boolean);
-            await scheduleUserActivityReport({
-                userId: reportParams.userId,
-                name: values.name,
-                schedule: values.schedule,
-                recipients,
-                format: 'csv',
-                fromDate: reportParams.fromDate,
-                toDate: reportParams.toDate,
-                actionType: reportParams.actionType,
-            });
-            message.success(t('reporting.userActivity.scheduleSuccess'));
-            setScheduleOpen(false);
-        } catch {
-            /* validation */
-        }
-    };
-
     return (
         <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <Card size="small">
@@ -217,12 +191,11 @@ export function UserActivityReport({ initialUserId }: Props) {
                             icon={<MailOutlined />}
                             disabled={!reportParams}
                             onClick={() => {
-                                scheduleForm.setFieldsValue({
-                                    name: t('reporting.userActivity.scheduleNameDefault', {
+                                setScheduleDefaultName(
+                                    t('reporting.userActivity.scheduleNameDefault', {
                                         userName: report?.userName ?? '',
                                     }),
-                                    schedule: 'weekly',
-                                });
+                                );
                                 setScheduleOpen(true);
                             }}
                         >
@@ -322,46 +295,117 @@ export function UserActivityReport({ initialUserId }: Props) {
                 </>
             )}
 
-            <Modal
-                title={t('reporting.userActivity.scheduleTitle')}
-                open={scheduleOpen}
-                onCancel={() => setScheduleOpen(false)}
-                onOk={handleSchedule}
-                okText={t('reporting.userActivity.scheduleReport')}
-            >
-                <Form form={scheduleForm} layout="vertical">
-                    <Form.Item
-                        name="name"
-                        label={t('reporting.userActivity.scheduleName')}
-                        rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
-                    >
-                        <Input />
-                    </Form.Item>
-                    <Form.Item
-                        name="schedule"
-                        label={t('reporting.userActivity.scheduleInterval')}
-                        rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
-                    >
-                        <Select
-                            options={[
-                                { value: 'weekly', label: t('reporting.userActivity.scheduleWeekly') },
-                                { value: 'monthly', label: t('reporting.userActivity.scheduleMonthly') },
-                            ]}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        name="recipients"
-                        label={t('reporting.userActivity.scheduleRecipients')}
-                        rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
-                    >
-                        <Input.TextArea
-                            rows={2}
-                            placeholder={t('reporting.userActivity.scheduleRecipientsPlaceholder')}
-                        />
-                    </Form.Item>
-                </Form>
-            </Modal>
+            {reportParams ? (
+                <UserActivityScheduleModal
+                    open={scheduleOpen}
+                    reportParams={reportParams}
+                    defaultName={scheduleDefaultName}
+                    onClose={() => setScheduleOpen(false)}
+                    onScheduled={() => message.success(t('reporting.userActivity.scheduleSuccess'))}
+                />
+            ) : null}
         </Space>
+    );
+}
+
+type UserActivityScheduleModalProps = {
+    open: boolean;
+    reportParams: {
+        userId: string;
+        fromDate: string;
+        toDate: string;
+        actionType?: string;
+    };
+    defaultName: string;
+    onClose: () => void;
+    onScheduled: () => void;
+};
+
+function UserActivityScheduleModal(props: UserActivityScheduleModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <UserActivityScheduleModalContent {...props} />;
+}
+
+function UserActivityScheduleModalContent({
+    open,
+    reportParams,
+    defaultName,
+    onClose,
+    onScheduled,
+}: UserActivityScheduleModalProps) {
+    const { t } = useI18n();
+    const [form] = Form.useForm<{ name: string; schedule: 'weekly' | 'monthly'; recipients: string }>();
+
+    useEffect(() => {
+        form.setFieldsValue({ name: defaultName, schedule: 'weekly' });
+    }, [defaultName, form]);
+
+    const handleSchedule = async () => {
+        try {
+            const values = await form.validateFields();
+            const recipients = String(values.recipients)
+                .split(',')
+                .map((e: string) => e.trim())
+                .filter(Boolean);
+            await scheduleUserActivityReport({
+                userId: reportParams.userId,
+                name: values.name,
+                schedule: values.schedule,
+                recipients,
+                format: 'csv',
+                fromDate: reportParams.fromDate,
+                toDate: reportParams.toDate,
+                actionType: reportParams.actionType,
+            });
+            onScheduled();
+            onClose();
+        } catch {
+            /* validation */
+        }
+    };
+
+    return (
+        <Modal
+            title={t('reporting.userActivity.scheduleTitle')}
+            open={open}
+            onCancel={onClose}
+            onOk={handleSchedule}
+            okText={t('reporting.userActivity.scheduleReport')}
+        >
+            <Form form={form} layout="vertical">
+                <Form.Item
+                    name="name"
+                    label={t('reporting.userActivity.scheduleName')}
+                    rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+                >
+                    <Input />
+                </Form.Item>
+                <Form.Item
+                    name="schedule"
+                    label={t('reporting.userActivity.scheduleInterval')}
+                    rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+                >
+                    <Select
+                        options={[
+                            { value: 'weekly', label: t('reporting.userActivity.scheduleWeekly') },
+                            { value: 'monthly', label: t('reporting.userActivity.scheduleMonthly') },
+                        ]}
+                    />
+                </Form.Item>
+                <Form.Item
+                    name="recipients"
+                    label={t('reporting.userActivity.scheduleRecipients')}
+                    rules={[{ required: true, message: t('common.validation.fieldRequired') }]}
+                >
+                    <Input.TextArea
+                        rows={2}
+                        placeholder={t('reporting.userActivity.scheduleRecipientsPlaceholder')}
+                    />
+                </Form.Item>
+            </Form>
+        </Modal>
     );
 }
 

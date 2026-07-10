@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Descriptions, Tag, Button, Space, Spin, Form, Input } from 'antd';
+import { Card, Descriptions, Tag, Button, Space, Spin, Form, Input, Modal } from 'antd';
 import { FilePdfOutlined, DeleteOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { useAntdApp } from '@/hooks/useAntdApp';
@@ -38,10 +38,9 @@ export default function BillingSaleDetailPage() {
     const params = useParams<{ id: string }>();
     const id = typeof params.id === 'string' ? params.id : '';
     const router = useRouter();
-    const { message, modal } = useAntdApp();
+    const { message } = useAntdApp();
     const { t } = useI18n();
-    const [cancelForm] = Form.useForm<{ cancellationReason: string }>();
-    const [isCancelling, setIsCancelling] = useState(false);
+    const [cancelOpen, setCancelOpen] = useState(false);
     const [pdfLoading, setPdfLoading] = useState(false);
 
     const { data: sale, isLoading, refetch } = useBillingSale(id);
@@ -64,48 +63,7 @@ export default function BillingSaleDetailPage() {
 
     const handleCancel = () => {
         if (!id) return;
-        cancelForm.resetFields();
-        modal.confirm({
-            title: 'Lizenzverkauf stornieren',
-            content: (
-                <div>
-                    <p>Möchten Sie diesen Lizenzverkauf wirklich stornieren?</p>
-                    <p style={{ color: '#dc2626', fontSize: 12 }}>
-                        Die Lizenz wird deaktiviert und der Mandant verliert den Zugang.
-                    </p>
-                    <Form form={cancelForm} layout="vertical" style={{ marginTop: 16 }}>
-                        <Form.Item
-                            name="cancellationReason"
-                            label="Stornierungsgrund"
-                            rules={[
-                                { required: true, message: 'Bitte einen Grund angeben (mind. 10 Zeichen).' },
-                                { min: CANCEL_REASON_MIN_LENGTH, message: 'Bitte mindestens 10 Zeichen eingeben.' },
-                            ]}
-                            initialValue="Storniert durch Administrator"
-                        >
-                            <Input.TextArea rows={3} />
-                        </Form.Item>
-                    </Form>
-                </div>
-            ),
-            okText: 'Ja, stornieren',
-            okType: 'danger',
-            cancelText: 'Abbrechen',
-            onOk: async () => {
-                const values = await cancelForm.validateFields();
-                setIsCancelling(true);
-                try {
-                    await cancelMutation.mutateAsync({
-                        id,
-                        data: { cancellationReason: values.cancellationReason },
-                    });
-                    message.success('Lizenzverkauf wurde storniert');
-                    await refetch();
-                } catch (err) {
-                    openApiErrorMessage(message.open, t, err, { logContext: 'BillingSaleDetailPage.cancelSale' });
-                }
-            },
-        });
+        setCancelOpen(true);
     };
 
     if (isLoading) {
@@ -162,7 +120,7 @@ export default function BillingSaleDetailPage() {
                                     danger
                                     icon={<DeleteOutlined />}
                                     onClick={handleCancel}
-                                    loading={isCancelling}
+                                    loading={cancelMutation.isPending}
                                 >
                                     Stornieren
                                 </Button>
@@ -234,6 +192,91 @@ export default function BillingSaleDetailPage() {
                     ) : null}
                 </Space>
             </div>
+
+            {cancelOpen ? (
+                <BillingSaleDetailCancelModal
+                    saleId={id}
+                    loading={cancelMutation.isPending}
+                    onClose={() => setCancelOpen(false)}
+                    onSuccess={async () => {
+                        message.success('Lizenzverkauf wurde storniert');
+                        setCancelOpen(false);
+                        await refetch();
+                    }}
+                    onError={(err) =>
+                        openApiErrorMessage(message.open, t, err, { logContext: 'BillingSaleDetailPage.cancelSale' })
+                    }
+                    onCancel={async (cancellationReason) => {
+                        await cancelMutation.mutateAsync({ id, data: { cancellationReason } });
+                    }}
+                />
+            ) : null}
         </BillingAccessGate>
+    );
+}
+
+type BillingSaleDetailCancelModalProps = {
+    saleId: string;
+    loading: boolean;
+    onClose: () => void;
+    onSuccess: () => void | Promise<void>;
+    onError: (err: unknown) => void;
+    onCancel: (cancellationReason: string) => Promise<void>;
+};
+
+function BillingSaleDetailCancelModal({
+    loading,
+    onClose,
+    onSuccess,
+    onError,
+    onCancel,
+}: BillingSaleDetailCancelModalProps) {
+    const [form] = Form.useForm<{ cancellationReason: string }>();
+
+    const handleOk = async () => {
+        try {
+            const values = await form.validateFields();
+            await onCancel(values.cancellationReason);
+            await onSuccess();
+        } catch (err) {
+            if (err && typeof err === 'object' && 'errorFields' in err) return;
+            onError(err);
+        }
+    };
+
+    return (
+        <Modal
+            open
+            title="Lizenzverkauf stornieren"
+            onCancel={onClose}
+            onOk={handleOk}
+            confirmLoading={loading}
+            okText="Ja, stornieren"
+            okButtonProps={{ danger: true }}
+            cancelText="Abbrechen"
+            destroyOnHidden
+        >
+            <p>Möchten Sie diesen Lizenzverkauf wirklich stornieren?</p>
+            <p style={{ color: '#dc2626', fontSize: 12 }}>
+                Die Lizenz wird deaktiviert und der Mandant verliert den Zugang.
+            </p>
+            <Form
+                form={form}
+                layout="vertical"
+                style={{ marginTop: 16 }}
+                initialValues={{ cancellationReason: 'Storniert durch Administrator' }}
+            >
+                <Form.Item
+                    name="cancellationReason"
+                    label="Stornierungsgrund"
+                    rules={[
+                        { required: true, message: 'Bitte einen Grund angeben (mind. 10 Zeichen).' },
+                        { min: CANCEL_REASON_MIN_LENGTH, message: 'Bitte mindestens 10 Zeichen eingeben.' },
+                    ]}
+                >
+                    <Input.TextArea rows={3} />
+                </Form.Item>
+            </Form>
+        </Modal>
     );
 }

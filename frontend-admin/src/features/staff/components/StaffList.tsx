@@ -21,9 +21,7 @@ import { useStaffList } from '@/features/staff/hooks/useStaffList';
 import { UserDetailDrawer } from '@/features/users/components/UserDetailDrawer';
 import type { UserInfo } from '@/features/users/api/usersGateway';
 import { useRoles } from '@/features/users/hooks/useRoles';
-import { useUsersPolicy } from '@/shared/auth/usersPolicy';
-import { usePermissions } from '@/shared/auth/usePermissions';
-import { PERMISSIONS } from '@/shared/auth/permissions';
+import { useStaffPolicy } from '@/shared/auth/staffPolicy';
 import { useI18n } from '@/i18n';
 import { formatDateTime } from '@/i18n/formatting';
 
@@ -53,9 +51,8 @@ function initials(record: UserInfo): string {
 
 export function StaffList() {
     const { t, formatLocale } = useI18n();
-    const policy = useUsersPolicy();
-    const { hasPermission } = usePermissions();
-    const canManageUsers = hasPermission(PERMISSIONS.USER_MANAGE);
+    const staffPolicy = useStaffPolicy();
+    const canManageUsers = staffPolicy.canManage;
 
     const [searchInput, setSearchInput] = useState('');
     const [detailUser, setDetailUser] = useState<UserInfo | null>(null);
@@ -75,9 +72,9 @@ export function StaffList() {
         setSearch,
         setRoleFilter,
         setStatusFilter,
-    } = useStaffList({ enabled: policy.canView });
+    } = useStaffList({ enabled: staffPolicy.canView });
 
-    const { data: roles = [] } = useRoles({ enabled: policy.canView });
+    const { data: roles = [] } = useRoles({ enabled: staffPolicy.canView });
 
     const roleDisplayLabel = useCallback(
         (roleName: string) =>
@@ -147,7 +144,7 @@ export function StaffList() {
         [formatLocale, roleDisplayLabel, t],
     );
 
-    if (!policy.canView) {
+    if (!staffPolicy.canView) {
         return (
             <Alert
                 type="warning"
@@ -243,6 +240,7 @@ export function StaffList() {
                 onClose={() => setDetailUser(null)}
                 user={detailUser}
                 canEditUsername={false}
+                context="staff"
             />
         </>
     );

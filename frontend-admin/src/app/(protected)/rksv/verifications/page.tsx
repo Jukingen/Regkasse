@@ -367,7 +367,7 @@ export default function RksvVerificationsPage() {
                     {OPERATOR_VERIFICATIONS_COPY.expandPanelIntro}
                 </Typography.Text>
 
-                <Divider orientation="left" plain style={{ margin: '12px 0 8px' }}>
+                <Divider titlePlacement="left" plain style={{ margin: '12px 0 8px' }}>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {OPERATOR_VERIFICATIONS_COPY.expandWhyTitle}
                     </Typography.Text>
@@ -379,7 +379,7 @@ export default function RksvVerificationsPage() {
                     {OPERATOR_VERIFICATIONS_COPY.expandWhyBody}
                 </Typography.Paragraph>
 
-                <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                <Divider titlePlacement="left" plain style={{ margin: '16px 0 8px' }}>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {OPERATOR_VERIFICATIONS_COPY.expandTechnicalTitle}
                     </Typography.Text>
@@ -492,7 +492,7 @@ export default function RksvVerificationsPage() {
                     />
                 )}
 
-                <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                <Divider titlePlacement="left" plain style={{ margin: '16px 0 8px' }}>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                         {OPERATOR_VERIFICATIONS_COPY.expandAuthoritativeLinksTitle}
                     </Typography.Text>

@@ -260,7 +260,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
     if (!run) return null;
     return (
       <>
-        <Divider orientation="left">{t("backupDr.detailModal.artifactsSection")}</Divider>
+        <Divider titlePlacement="left">{t("backupDr.detailModal.artifactsSection")}</Divider>
         <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
           {t("backupDr.detailModal.artifacts.sizeBreakdownHint")}
         </Typography.Paragraph>
@@ -368,7 +368,7 @@ export function BackupDetailModal({ runId, open, onClose }: BackupDetailModalPro
             {verificationItems}
             {run.id && isBackupRunSucceeded(run.status) ? (
               <>
-                <Divider orientation="left">{t("backupDr.verificationReport.sectionTitle")}</Divider>
+                <Divider titlePlacement="left">{t("backupDr.verificationReport.sectionTitle")}</Divider>
                 <BackupVerificationReportPanel runId={run.id} enabled={open} />
               </>
             ) : null}

@@ -45,7 +45,14 @@ function statusIcon(kind: MandantLicenseOverviewKind): ReactNode {
     }
 }
 
-export function EditTenantLicenseModal({
+export function EditTenantLicenseModal(props: EditTenantLicenseModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <EditTenantLicenseModalContent {...props} />;
+}
+
+function EditTenantLicenseModalContent({
     open,
     tenant,
     onClose,

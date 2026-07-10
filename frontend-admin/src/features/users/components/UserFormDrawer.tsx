@@ -78,7 +78,14 @@ function userToFormValues(u: UserInfo | Record<string, unknown>): Record<string,
   };
 }
 
-export function UserFormDrawer({
+export function UserFormDrawer(props: Props) {
+  if (!props.open) {
+    return null;
+  }
+  return <UserFormDrawerContent {...props} />;
+}
+
+function UserFormDrawerContent({
   open,
   onClose,
   mode,
@@ -196,7 +203,6 @@ export function UserFormDrawer({
       }
     >
       {mode === 'edit' && (initialLoading || user == null) ? (
-        // Spin tip only works in nest pattern (child required); avoid useForm-disconnected phase without Form mounted.
         <div style={{ display: 'flex', justifyContent: 'center', padding: 48 }}>
           <Spin spinning description={t('common.loading.data')}>
             <div style={{ minHeight: 80 }} />
@@ -210,14 +216,17 @@ export function UserFormDrawer({
           action={onRetryFetch && <Button size="small" onClick={onRetryFetch}>{t('common.buttons.retry')}</Button>}
           showIcon
         />
-      ) : showForm ? (
-        <Form
-          key={mode === 'edit' && user ? `edit-${user.id ?? 'user'}` : 'create'}
-          form={form}
-          layout="vertical"
-          preserve={false}
-          initialValues={formValues ?? undefined}
-        >
+      ) : null}
+      <Form
+        key={mode === 'edit' && user ? `edit-${user.id ?? 'user'}` : 'create'}
+        form={form}
+        layout="vertical"
+        preserve={false}
+        initialValues={formValues ?? undefined}
+        style={{ display: showForm ? undefined : 'none' }}
+      >
+        {showForm ? (
+          <>
           {mode === 'create' && (
             <>
               <Form.Item name="userName" label={t('users.form.userName')} rules={rules.userName}>
@@ -307,8 +316,9 @@ export function UserFormDrawer({
               ) : null}
             </>
           ) : null}
-        </Form>
-      ) : null}
+          </>
+        ) : null}
+      </Form>
     </Drawer>
   );
 }

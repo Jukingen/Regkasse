@@ -49,20 +49,25 @@ export function CompanySettingsForm() {
 
     if (isLoading) {
         return (
-            <Card>
-                <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-                    <Spin size="large" />
-                    <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
-                        {t('settings.page.loading')}
-                    </Typography.Paragraph>
-                </div>
-            </Card>
+            <>
+                <Form form={form} style={{ display: 'none' }} preserve />
+                <Card>
+                    <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+                        <Spin size="large" />
+                        <Typography.Paragraph type="secondary" style={{ marginTop: 16, marginBottom: 0 }}>
+                            {t('settings.page.loading')}
+                        </Typography.Paragraph>
+                    </div>
+                </Card>
+            </>
         );
     }
 
     if (isError) {
         return (
-            <Alert
+            <>
+                <Form form={form} style={{ display: 'none' }} preserve />
+                <Alert
                 type="error"
                 title={t('settings.page.loadErrorTitle')}
                 description={getLoadErrorDescription(error, t)}
@@ -73,17 +78,21 @@ export function CompanySettingsForm() {
                     </Button>
                 }
             />
+            </>
         );
     }
 
     if (isSuccess && settings == null) {
         return (
-            <Card>
-                <Typography.Paragraph type="secondary">{t('settings.page.empty')}</Typography.Paragraph>
-                <Button type="primary" onClick={() => refetch()} loading={isFetching}>
-                    {t('common.buttons.retry')}
-                </Button>
-            </Card>
+            <>
+                <Form form={form} style={{ display: 'none' }} preserve />
+                <Card>
+                    <Typography.Paragraph type="secondary">{t('settings.page.empty')}</Typography.Paragraph>
+                    <Button type="primary" onClick={() => refetch()} loading={isFetching}>
+                        {t('common.buttons.retry')}
+                    </Button>
+                </Card>
+            </>
         );
     }
 

@@ -45,7 +45,14 @@ export type ReceiptReprintWizardProps = {
     receiptNumberHint?: string;
 };
 
-export default function ReceiptReprintWizard({
+export default function ReceiptReprintWizard(props: ReceiptReprintWizardProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <ReceiptReprintWizardContent {...props} />;
+}
+
+function ReceiptReprintWizardContent({
     open,
     onClose,
     paymentId,
@@ -156,6 +163,48 @@ export default function ReceiptReprintWizard({
                 ]}
             />
 
+            <Form
+                form={form}
+                layout="vertical"
+                preserve
+                style={{ display: step === 1 ? undefined : 'none' }}
+                initialValues={{ deviceId: 'default-register', reprintReasonCode: 'CUSTOMER_REQUEST' }}
+            >
+                <Form.Item
+                    name="reprintReasonCode"
+                    label={t('adminShell.operationsCenter.reprintReasonLabel')}
+                    rules={[{ required: true, message: t('adminShell.operationsCenter.reprintReasonRequired') }]}
+                >
+                    <Select options={reasonOptions} showSearch optionFilterProp="label" />
+                </Form.Item>
+                <Form.Item name="reasonDetail" label={t('adminShell.operationsCenter.reprintReasonDetailLabel')}>
+                    <Input.TextArea rows={2} maxLength={500} showCount />
+                </Form.Item>
+                <Form.Item name="deviceId" label={t('adminShell.operationsCenter.deviceLabel')}>
+                    <Select
+                        allowClear
+                        loading={routingOptionsQuery.isLoading}
+                        options={deviceOptions}
+                        placeholder={t('adminShell.operationsCenter.devicePlaceholder')}
+                    />
+                </Form.Item>
+                <Form.Item name="note" label={t('adminShell.operationsCenter.reprintNoteLabel')}>
+                    <Input.TextArea rows={2} maxLength={500} showCount />
+                </Form.Item>
+                <Alert
+                    style={{ marginBottom: 12 }}
+                    type="warning"
+                    showIcon
+                    title={t('adminShell.operationsCenter.reprintRoutingSimulatedHint')}
+                />
+                <Space>
+                    <Button onClick={() => setStep(0)}>{t('adminShell.operationsCenter.reprintBack')}</Button>
+                    <Button type="primary" onClick={() => setStep(2)}>
+                        {t('adminShell.operationsCenter.reprintNext')}
+                    </Button>
+                </Space>
+            </Form>
+
             {step === 0 ? (
                 <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     {!paymentId?.trim() ? (
@@ -216,48 +265,6 @@ export default function ReceiptReprintWizard({
                         </Button>
                     </Space>
                 </Space>
-            ) : null}
-
-            {step === 1 ? (
-                <Form
-                    form={form}
-                    layout="vertical"
-                    initialValues={{ deviceId: 'default-register', reprintReasonCode: 'CUSTOMER_REQUEST' }}
-                >
-                    <Form.Item
-                        name="reprintReasonCode"
-                        label={t('adminShell.operationsCenter.reprintReasonLabel')}
-                        rules={[{ required: true, message: t('adminShell.operationsCenter.reprintReasonRequired') }]}
-                    >
-                        <Select options={reasonOptions} showSearch optionFilterProp="label" />
-                    </Form.Item>
-                    <Form.Item name="reasonDetail" label={t('adminShell.operationsCenter.reprintReasonDetailLabel')}>
-                        <Input.TextArea rows={2} maxLength={500} showCount />
-                    </Form.Item>
-                    <Form.Item name="deviceId" label={t('adminShell.operationsCenter.deviceLabel')}>
-                        <Select
-                            allowClear
-                            loading={routingOptionsQuery.isLoading}
-                            options={deviceOptions}
-                            placeholder={t('adminShell.operationsCenter.devicePlaceholder')}
-                        />
-                    </Form.Item>
-                    <Form.Item name="note" label={t('adminShell.operationsCenter.reprintNoteLabel')}>
-                        <Input.TextArea rows={2} maxLength={500} showCount />
-                    </Form.Item>
-                    <Alert
-                        style={{ marginBottom: 12 }}
-                        type="warning"
-                        showIcon
-                        title={t('adminShell.operationsCenter.reprintRoutingSimulatedHint')}
-                    />
-                    <Space>
-                        <Button onClick={() => setStep(0)}>{t('adminShell.operationsCenter.reprintBack')}</Button>
-                        <Button type="primary" onClick={() => setStep(2)}>
-                            {t('adminShell.operationsCenter.reprintNext')}
-                        </Button>
-                    </Space>
-                </Form>
             ) : null}
 
             {step === 2 ? (

@@ -64,7 +64,14 @@ const ROLE_I18N_KEYS: Record<string, string> = {
     Kitchen: 'users.create.roleOptions.Kitchen.label',
 };
 
-export function CreateUserModal({
+export function CreateUserModal(props: CreateUserModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <CreateUserModalContent {...props} />;
+}
+
+function CreateUserModalContent({
     open,
     confirmLoading = false,
     onClose,
@@ -360,6 +367,14 @@ export function CreateUserModal({
 
     const loading = activeTab === 'quick' ? quickSubmitting : confirmLoading || submitting || assignmentSubmitting;
 
+    const hiddenFormAnchors =
+        open && !createFormModalOpen ? (
+            <>
+                <Form form={form} style={{ display: 'none' }} preserve />
+                {quickMode ? <Form form={quickForm} style={{ display: 'none' }} preserve /> : null}
+            </>
+        ) : null;
+
     const normalForm = (
         <Form form={form} layout="vertical" onFinish={handleFinish}>
             <Form.Item
@@ -469,6 +484,7 @@ export function CreateUserModal({
 
     return (
         <>
+            {hiddenFormAnchors}
             <Modal
                 title={modalTitle}
                 open={createFormModalOpen}
@@ -500,6 +516,7 @@ export function CreateUserModal({
                 {quickMode ? (
                     <Tabs
                         activeKey={activeTab}
+                        destroyOnHidden={false}
                         onChange={(key) => setActiveTab(key as 'normal' | 'quick')}
                         items={[
                             {

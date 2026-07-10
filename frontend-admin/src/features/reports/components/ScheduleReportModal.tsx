@@ -18,7 +18,14 @@ export type ScheduleReportModalProps = {
     onScheduled?: () => void;
 };
 
-export function ScheduleReportModal({
+export function ScheduleReportModal(props: ScheduleReportModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <ScheduleReportModalContent {...props} />;
+}
+
+function ScheduleReportModalContent({
     open,
     reportType,
     filters,

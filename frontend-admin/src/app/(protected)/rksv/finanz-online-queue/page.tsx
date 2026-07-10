@@ -1001,7 +1001,7 @@ export default function FinanzOnlineReconciliationPage() {
                                             {t('finanzOnlineReconciliation.queuePage.expandRow.technicalDetailsHeader')}
                                         </Typography.Text>
 
-                                        <Divider orientation="left" plain style={{ margin: '12px 0 8px' }}>
+                                        <Divider titlePlacement="left" plain style={{ margin: '12px 0 8px' }}>
                                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                                 {t('finanzOnlineReconciliation.queuePage.expandRow.authoritativeOutboxTitle')}
                                             </Typography.Text>
@@ -1099,7 +1099,7 @@ export default function FinanzOnlineReconciliationPage() {
                                             </Typography.Paragraph>
                                         ) : null}
 
-                                        <Divider orientation="left" plain style={{ margin: '12px 0 8px' }}>
+                                        <Divider titlePlacement="left" plain style={{ margin: '12px 0 8px' }}>
                                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                                 {OPERATOR_FO_QUEUE_COPY.expandSectionErrorTitle}
                                             </Typography.Text>
@@ -1118,7 +1118,7 @@ export default function FinanzOnlineReconciliationPage() {
                                             </Descriptions.Item>
                                         </Descriptions>
 
-                                        <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                                        <Divider titlePlacement="left" plain style={{ margin: '16px 0 8px' }}>
                                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                                 {OPERATOR_FO_QUEUE_COPY.expandSectionIdentifiersTitle}
                                             </Typography.Text>
@@ -1170,7 +1170,7 @@ export default function FinanzOnlineReconciliationPage() {
                                             </Descriptions.Item>
                                         </Descriptions>
 
-                                        <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                                        <Divider titlePlacement="left" plain style={{ margin: '16px 0 8px' }}>
                                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                                 {OPERATOR_FO_QUEUE_COPY.expandSectionTimestampsTitle}
                                             </Typography.Text>
@@ -1204,7 +1204,7 @@ export default function FinanzOnlineReconciliationPage() {
                                             </Descriptions.Item>
                                         </Descriptions>
 
-                                        <Divider orientation="left" plain style={{ margin: '16px 0 8px' }}>
+                                        <Divider titlePlacement="left" plain style={{ margin: '16px 0 8px' }}>
                                             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                                                 {OPERATOR_FO_QUEUE_COPY.expandSectionInvestigationTitle}
                                             </Typography.Text>

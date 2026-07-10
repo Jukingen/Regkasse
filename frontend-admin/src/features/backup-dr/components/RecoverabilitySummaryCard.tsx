@@ -227,7 +227,7 @@ export function RecoverabilitySummaryCard({
                       ? "backupDr.recoverability.proofBlock.backupStub"
                       : "backupDr.recoverability.proofBlock.backup",
                   )}
-                  span={2}
+                  span={{ xs: 1, sm: 2 }}
                 >
                   <Typography.Text strong>
                     {formatRecoverabilityTimestampOrProofGap(
@@ -270,7 +270,7 @@ export function RecoverabilitySummaryCard({
                   label={t(
                     "backupDr.recoverability.proofBlock.artifactVerification",
                   )}
-                  span={2}
+                  span={{ xs: 1, sm: 2 }}
                 >
                   <Typography.Text strong>
                     {formatRecoverabilityTimestampOrProofGap(
@@ -292,7 +292,7 @@ export function RecoverabilitySummaryCard({
 
                 <Descriptions.Item
                   label={t("backupDr.recoverability.proofBlock.restoreDrill")}
-                  span={2}
+                  span={{ xs: 1, sm: 2 }}
                 >
                   <Typography.Text strong>
                     {formatRecoverabilityTimestampOrProofGap(
@@ -338,7 +338,7 @@ export function RecoverabilitySummaryCard({
             <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
               <Descriptions.Item
                 label={t("backupDr.recoverability.executionProfile")}
-                span={2}
+                span={{ xs: 1, sm: 2 }}
               >
                 <Typography.Text code>
                   {summary.backupExecutionReality ?? "—"}
@@ -346,7 +346,7 @@ export function RecoverabilitySummaryCard({
               </Descriptions.Item>
               <Descriptions.Item
                 label={t("backupDr.recoverability.realPgDumpConfigured")}
-                span={2}
+                span={{ xs: 1, sm: 2 }}
               >
                 {summary.realPostgreSqlLogicalDumpConfigured
                   ? t("common.buttons.yes")
@@ -354,13 +354,13 @@ export function RecoverabilitySummaryCard({
               </Descriptions.Item>
               <Descriptions.Item
                 label={t("backupDr.recoverability.readinessLevel")}
-                span={2}
+                span={{ xs: 1, sm: 2 }}
               >
                 {summary.backupReadinessLevel ?? "—"}
               </Descriptions.Item>
               <Descriptions.Item
                 label={t("backupDr.recoverability.serverNarrative")}
-                span={2}
+                span={{ xs: 1, sm: 2 }}
               >
                 <Typography.Text
                   type="secondary"
@@ -389,7 +389,7 @@ export function RecoverabilitySummaryCard({
             <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
               <Descriptions.Item
                 label={t("backupDr.recoverability.latestBackupRequest")}
-                span={2}
+                span={{ xs: 1, sm: 2 }}
               >
                 {formatDt(summary.latestRunAt, formatLocale)}{" "}
                 {summary.latestRunStatus !== undefined &&
@@ -403,7 +403,7 @@ export function RecoverabilitySummaryCard({
               </Descriptions.Item>
               <Descriptions.Item
                 label={t("backupDr.recoverability.latestRestoreRequest")}
-                span={2}
+                span={{ xs: 1, sm: 2 }}
               >
                 {formatDt(summary.latestRestoreRunAt, formatLocale)}{" "}
                 {summary.latestRestoreRunStatus !== undefined &&

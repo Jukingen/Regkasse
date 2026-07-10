@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.EntityFrameworkCore;
@@ -19,8 +20,19 @@ namespace KasseAPI_Final.Services
         Task<TagesabschlussResult> PerformDailyClosingAsync(string userId, Guid cashRegisterId);
         Task<TagesabschlussResult> PerformMonthlyClosingAsync(string userId, Guid cashRegisterId);
         Task<TagesabschlussResult> PerformYearlyClosingAsync(string userId, Guid cashRegisterId);
-        /// <param name="cashRegisterId">When set, restricts history to closings for that register (still scoped to the authenticated user).</param>
-        Task<List<TagesabschlussResult>> GetClosingHistoryAsync(string userId, DateTime? fromDate = null, DateTime? toDate = null, Guid? cashRegisterId = null);
+        /// <param name="cashRegisterId">Register whose closing rows are returned (tenant-scoped via EF filters).</param>
+        Task<List<TagesabschlussResult>> GetClosingHistoryAsync(
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            Guid cashRegisterId = default,
+            CancellationToken cancellationToken = default);
+        /// <summary>
+        /// Resolves the operational register for Manager FA: explicit id when valid, otherwise default/sole/first active register.
+        /// </summary>
+        Task<Guid?> ResolveOperationalCashRegisterIdAsync(
+            Guid tenantId,
+            Guid? cashRegisterId,
+            CancellationToken cancellationToken = default);
         Task<bool> CanPerformClosingAsync(Guid cashRegisterId);
         Task<DateTime?> GetLastClosingDateAsync(Guid cashRegisterId);
         /// <summary>Sprint 4: Count active payments in scope with no Invoice (SourcePaymentId). Used for blocking and readiness.</summary>
@@ -398,13 +410,45 @@ namespace KasseAPI_Final.Services
             }
         }
 
-        public async Task<List<TagesabschlussResult>> GetClosingHistoryAsync(string userId, DateTime? fromDate = null, DateTime? toDate = null, Guid? cashRegisterId = null)
+        public async Task<Guid?> ResolveOperationalCashRegisterIdAsync(
+            Guid tenantId,
+            Guid? cashRegisterId,
+            CancellationToken cancellationToken = default)
         {
-            var query = _context.DailyClosings
-                .Where(d => d.UserId == userId);
+            if (tenantId == Guid.Empty)
+                return null;
 
             if (cashRegisterId.HasValue && cashRegisterId.Value != Guid.Empty)
-                query = query.Where(d => d.CashRegisterId == cashRegisterId.Value);
+            {
+                var exists = await _context.CashRegisters.AsNoTracking()
+                    .AnyAsync(
+                        r => r.Id == cashRegisterId.Value && r.TenantId == tenantId,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                return exists ? cashRegisterId.Value : null;
+            }
+
+            var registers = await _context.CashRegisters.AsNoTracking()
+                .Where(r => r.TenantId == tenantId && r.Status != RegisterStatus.Decommissioned)
+                .OrderByDescending(r => r.IsDefaultForTenant)
+                .ThenBy(r => r.RegisterNumber)
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return registers.FirstOrDefault()?.Id;
+        }
+
+        public async Task<List<TagesabschlussResult>> GetClosingHistoryAsync(
+            DateTime? fromDate = null,
+            DateTime? toDate = null,
+            Guid cashRegisterId = default,
+            CancellationToken cancellationToken = default)
+        {
+            if (cashRegisterId == Guid.Empty)
+                return new List<TagesabschlussResult>();
+
+            var query = _context.DailyClosings
+                .Where(d => d.CashRegisterId == cashRegisterId);
 
             // ClosingDate rows are discrete Vienna-midnight anchors (one instant per business day), not arbitrary instants.
             // Inclusive calendar filter: lower bound = start of from-day; upper bound = start of to-day (equals that day's stored anchor).
@@ -422,7 +466,8 @@ namespace KasseAPI_Final.Services
 
             var closings = await query
                 .OrderByDescending(d => d.ClosingDate)
-                .ToListAsync();
+                .ToListAsync(cancellationToken)
+                .ConfigureAwait(false);
 
             return closings.Select(c => new TagesabschlussResult
             {

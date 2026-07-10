@@ -107,7 +107,7 @@ describe('PermissionRouteGuard', () => {
     expect(getByText('Payments')).toBeInTheDocument();
   });
 
-  it('Manager without tse.sign is blocked on /tagesabschluss', () => {
+  it('Manager with daily-closing.view can access /tagesabschluss', () => {
     mockPathname = '/tagesabschluss';
     mockUseAuth.mockReturnValue({
       user: {
@@ -124,7 +124,7 @@ describe('PermissionRouteGuard', () => {
         <div>Tagesabschluss</div>
       </PermissionRouteGuard>
     );
-    expect(getByText('common.system.forbidden403Title')).toBeInTheDocument();
+    expect(getByText('Tagesabschluss')).toBeInTheDocument();
   });
 
   it('Manager is blocked on platform admin /admin/tenants', () => {

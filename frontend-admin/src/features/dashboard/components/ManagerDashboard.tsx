@@ -154,7 +154,7 @@ export function ManagerDashboard() {
                             prefix={<DollarOutlined />}
                             suffix="€"
                             loading={salesLoading}
-                            valueStyle={{ color: '#16a34a' }}
+                            styles={{ content: { color: '#16a34a' } }}
                         />
                         <small style={{ color: '#64748b' }}>
                             {t('dashboard.manager.transactionCount', {
@@ -171,7 +171,7 @@ export function ManagerDashboard() {
                             value={openShifts.length}
                             prefix={<ClockCircleOutlined />}
                             loading={shiftsLoading}
-                            valueStyle={{ color: '#eab308' }}
+                            styles={{ content: { color: '#eab308' } }}
                         />
                         <small style={{ color: '#64748b' }}>
                             {openShifts.length > 0
@@ -191,7 +191,7 @@ export function ManagerDashboard() {
                             value={activeStaff.length}
                             prefix={<TeamOutlined />}
                             loading={staffLoading}
-                            valueStyle={{ color: '#1a56db' }}
+                            styles={{ content: { color: '#1a56db' } }}
                         />
                         <small style={{ color: '#64748b' }}>
                             {t('dashboard.manager.onDutyToday')}
@@ -209,7 +209,7 @@ export function ManagerDashboard() {
                             value={balance}
                             formatter={(value) => formatCurrency(Number(value ?? 0), formatLocale)}
                             prefix={<DollarOutlined />}
-                            valueStyle={{ color: '#1a56db' }}
+                            styles={{ content: { color: '#1a56db' } }}
                         />
                         <small style={{ color: '#64748b' }}>{registerLabel}</small>
                     </Card>

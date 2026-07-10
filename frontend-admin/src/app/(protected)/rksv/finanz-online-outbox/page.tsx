@@ -539,7 +539,7 @@ export default function FinanzOnlineOutboxPage() {
                             <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0, fontSize: 12 }}>
                                 {t('finanzOnlineOutbox.readiness.healthProbeHint')}
                             </Typography.Paragraph>
-                            <Divider orientation="left" plain>
+                            <Divider titlePlacement="left" plain>
                                 {t('finanzOnlineOutbox.readiness.findingsTitle')}
                             </Divider>
                             <Typography.Paragraph type="secondary" style={{ marginTop: -8, marginBottom: 12, fontSize: 12 }}>
@@ -574,7 +574,7 @@ export default function FinanzOnlineOutboxPage() {
                                     ))}
                                 </Space>
                             )}
-                            <Divider orientation="left" plain>
+                            <Divider titlePlacement="left" plain>
                                 {t('finanzOnlineOutbox.readiness.outboxCountsTitle')}
                             </Divider>
                             {outboxCountEntries.length === 0 ? (
@@ -765,7 +765,7 @@ export default function FinanzOnlineOutboxPage() {
                             {fmtUtc(displayRow.nextAttemptAtUtc)}
                         </Descriptions.Item>
                     </Descriptions>
-                    <Divider orientation="left" plain style={{ marginTop: 16 }}>
+                    <Divider titlePlacement="left" plain style={{ marginTop: 16 }}>
                         {t('finanzOnlineOutbox.drawer.evidenceSectionTitle')}
                     </Divider>
                     {displayRow.status === 'ProtocolSuccess' &&

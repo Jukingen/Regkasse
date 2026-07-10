@@ -660,6 +660,7 @@ function IssuedLicensesTableCard() {
             <Modal
                 title={t('license.issued.super.extendModalTitle')}
                 open={extendRow !== null}
+                forceRender
                 okText={t('license.issued.super.extendSubmit')}
                 confirmLoading={extendMutation.isPending}
                 onCancel={() => {

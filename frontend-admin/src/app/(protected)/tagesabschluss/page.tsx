@@ -4,13 +4,13 @@ import { useAntdApp } from '@/hooks/useAntdApp';
 /**
  * Gun sonu admin sayfasi; metinler tagesabschluss namespace, para/tarih formatLocale ile.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Descriptions, Empty, Input, Row, Space, Spin, Table, Typography } from 'antd';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Alert, Button, Card, Col, DatePicker, Descriptions, Empty, Form, Row, Select, Skeleton, Space, Spin, Table, Tag, Typography } from 'antd';
 import { CalendarOutlined, ReloadOutlined } from '@ant-design/icons';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
 
-import { getApiCashRegister } from '@/api/generated/cash-register/cash-register';
 import {
   getGetApiTagesabschlussCanCloseCashRegisterIdQueryKey,
   useGetApiTagesabschlussCanCloseCashRegisterId,
@@ -20,14 +20,13 @@ import {
   usePostApiTagesabschlussMonthly,
   usePostApiTagesabschlussYearly,
 } from '@/api/generated/tagesabschluss/tagesabschluss';
-import {
-  normalizeCashRegisterListBody,
-} from '@/features/tagesabschluss/normalizers';
 import type {
   TagesabschlussCanCloseResponse,
   TagesabschlussResult,
   TagesabschlussStatisticsResponse,
 } from '@/api/generated/model';
+import type { AdminCashRegisterListItem } from '@/features/cash-registers/api/cashRegisters';
+import { useCashRegisterSelection } from '@/hooks/useCashRegisterSelection';
 import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
@@ -43,10 +42,20 @@ import { FA_QUICK_CASH_REGISTER_QUERY_PARAM } from '@/features/cash-registers/co
 const { Title, Paragraph, Text } = Typography;
 const { RangePicker } = DatePicker;
 
-function isUuid(v: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    v.trim()
-  );
+const EMPTY_REGISTER_ID = '00000000-0000-0000-0000-000000000000';
+
+function isOperationalRegisterId(v: string | null | undefined): boolean {
+  const s = v?.trim();
+  if (!s || s === EMPTY_REGISTER_ID) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+}
+
+function formatRegisterDisplayName(register: AdminCashRegisterListItem | null | undefined): string | null {
+  if (!register) return null;
+  const number = register.registerNumber?.trim();
+  const location = register.location?.trim();
+  if (number && location) return `${number} — ${location}`;
+  return number || location || null;
 }
 
 export default function TagesabschlussPage() {
@@ -103,83 +112,94 @@ export default function TagesabschlussPage() {
   );
 
   const { hasPermission } = usePermissions();
-  const canListRegisters = hasPermission(PERMISSIONS.CASHREGISTER_VIEW);
   const canView = hasPermission(PERMISSIONS.DAILY_CLOSING_VIEW);
   const canExecute = hasPermission(PERMISSIONS.DAILY_CLOSING_EXECUTE);
+
+  const queryRegisterId = searchParams.get(FA_QUICK_CASH_REGISTER_QUERY_PARAM)?.trim();
+  const [selectedRegisterId, setSelectedRegisterId] = useState<string | undefined>(() =>
+    isOperationalRegisterId(queryRegisterId) ? queryRegisterId : undefined,
+  );
+
+  const {
+    selectedRegister,
+    selectedRegisterId: resolvedRegisterId,
+    setSelectedRegisterId,
+    registerOptions,
+    registers,
+    isLoading: registersLoading,
+    error: registersError,
+    hasRegisters,
+    isSingleRegister,
+    hasMultipleRegisters,
+  } = useCashRegisterSelection({
+    value: selectedRegisterId,
+    onChange: (next) => setSelectedRegisterId(next),
+    controlled: true,
+    autoSelect: true,
+    persistSelection: true,
+  });
 
   const [range, setRange] = useState<[Dayjs, Dayjs]>([
     dayjs().subtract(30, 'day'),
     dayjs(),
   ]);
-  const [selectedRegisterId, setSelectedRegisterId] = useState<string>('');
-  const [manualRegisterId, setManualRegisterId] = useState<string>('');
+
+  const effectiveRegisterId = resolvedRegisterId?.trim() ?? '';
+  const registerIdValid = isOperationalRegisterId(effectiveRegisterId);
+  const registerDisplayName = formatRegisterDisplayName(selectedRegister);
+
+  const registerSelectionHint = useMemo(() => {
+    if (registersLoading) return t('tagesabschluss.scope.registerLoading');
+    if (!hasRegisters) return t('tagesabschluss.scope.noRegisters');
+    if (!registerIdValid) {
+      return hasMultipleRegisters
+        ? t('tagesabschluss.scope.registerSelectPrompt')
+        : t('tagesabschluss.scope.registerNotSelected');
+    }
+    if (registerDisplayName) {
+      return t('tagesabschluss.scope.registerWithName', { name: registerDisplayName });
+    }
+    return t('tagesabschluss.scope.registerSelected');
+  }, [
+    hasMultipleRegisters,
+    hasRegisters,
+    registerDisplayName,
+    registerIdValid,
+    registersLoading,
+    t,
+  ]);
+
+  const dataBlockedHint = useMemo(() => {
+    if (!hasRegisters) return t('tagesabschluss.register.noRegistersTitle');
+    if (!registerIdValid) {
+      return hasMultipleRegisters
+        ? t('tagesabschluss.register.selectRequired')
+        : t('tagesabschluss.register.noSelection');
+    }
+    return null;
+  }, [hasMultipleRegisters, hasRegisters, registerIdValid, t]);
 
   const historyParams = useMemo(() => {
     const base = {
       fromDate: range[0].format('YYYY-MM-DD'),
       toDate: range[1].format('YYYY-MM-DD'),
     };
-    const id = selectedRegisterId || manualRegisterId.trim();
-    if (id.length > 0 && isUuid(id)) {
-      return { ...base, cashRegisterId: id };
+    if (registerIdValid) {
+      return { ...base, cashRegisterId: effectiveRegisterId };
     }
     return base;
-  }, [range, selectedRegisterId, manualRegisterId]);
+  }, [range, effectiveRegisterId, registerIdValid]);
 
   const statsParams = historyParams;
 
-  const { data: registersRaw, isLoading: registersLoading } = useQuery({
-    queryKey: ['admin', 'cashRegisters', 'list'],
-    queryFn: async () => getApiCashRegister(),
-    enabled: canListRegisters,
+  const historyQuery = useGetApiTagesabschlussHistory(historyParams, {
+    query: { enabled: registerIdValid },
   });
-
-  const registerOptions = useMemo(() => {
-    const list = normalizeCashRegisterListBody(registersRaw);
-    return list
-      .filter((r) => r.id && isUuid(String(r.id)))
-      .map((r) => ({
-        value: r.id as string,
-        label: `${r.registerNumber ?? r.id} — ${r.location ?? ''}`,
-      }));
-  }, [registersRaw]);
-
-  const selectedRegisterSummary = useMemo(() => {
-    const opt = registerOptions.find((o) => o.value === selectedRegisterId);
-    if (!opt?.label?.trim()) return null;
-    return opt.label.trim().replace(/\s+—\s*$/, '').trim() || opt.label.trim();
-  }, [registerOptions, selectedRegisterId]);
-
-  /** Single-register deployments: preselect the first inventory register; honor deep-link query. */
-  useEffect(() => {
-    if (!canListRegisters || registersLoading) return;
-
-    const fromQuery = searchParams.get(FA_QUICK_CASH_REGISTER_QUERY_PARAM)?.trim();
-    if (fromQuery && isUuid(fromQuery)) {
-      setSelectedRegisterId(fromQuery);
-      setManualRegisterId('');
-      return;
-    }
-
-    const list = normalizeCashRegisterListBody(registersRaw).filter(
-      (r) => r.id && isUuid(String(r.id)),
-    );
-    if (list.length === 0) return;
-    const primaryId = String(list[0].id);
-    setSelectedRegisterId((prev) => {
-      if (prev && list.some((r) => String(r.id) === prev)) return prev;
-      return primaryId;
-    });
-    setManualRegisterId('');
-  }, [canListRegisters, registersLoading, registersRaw, searchParams]);
-
-  const effectiveRegisterId = selectedRegisterId || manualRegisterId.trim();
-  const registerIdValid = effectiveRegisterId.length > 0 && isUuid(effectiveRegisterId);
-
-  const historyQuery = useGetApiTagesabschlussHistory(historyParams);
   const historyRows: TagesabschlussResult[] = historyQuery.data ?? [];
 
-  const statsQuery = useGetApiTagesabschlussStatistics(statsParams);
+  const statsQuery = useGetApiTagesabschlussStatistics(statsParams, {
+    query: { enabled: registerIdValid },
+  });
   const stats: TagesabschlussStatisticsResponse | undefined = statsQuery.data;
 
   const canCloseQuery = useGetApiTagesabschlussCanCloseCashRegisterId(effectiveRegisterId, {
@@ -248,7 +268,7 @@ export default function TagesabschlussPage() {
       return;
     }
     if (!registerIdValid) {
-      message.warning(t('tagesabschluss.messages.warningUuid'));
+      message.warning(t('tagesabschluss.messages.warningNoRegister'));
       return;
     }
     const modalTitle =
@@ -328,25 +348,60 @@ export default function TagesabschlussPage() {
   const closingBusy = dailyMu.isPending || monthlyMu.isPending || yearlyMu.isPending;
 
   const tagesabschlussScopeSummary = useMemo(() => {
-    const regPart = !registerIdValid
-      ? t('tagesabschluss.scope.registerInvalid')
-      : selectedRegisterSummary
-        ? t('tagesabschluss.scope.registerWithName', { name: selectedRegisterSummary })
-        : t('tagesabschluss.scope.registerWithId', { id: effectiveRegisterId });
     const fromStr = formatDateTime(range[0].startOf('day').toDate(), formatLocale, { dateStyle: 'short' });
     const toStr = formatDateTime(range[1].startOf('day').toDate(), formatLocale, { dateStyle: 'short' });
     const period = t('tagesabschluss.scope.historyPeriod', { from: fromStr, to: toStr });
     const hist = t('tagesabschluss.scope.historyCount', { count: historyRows.length });
-    return `${regPart} · ${period} · ${hist}`;
-  }, [
-    registerIdValid,
-    effectiveRegisterId,
-    selectedRegisterSummary,
-    range,
-    historyRows.length,
-    t,
-    formatLocale,
-  ]);
+    return `${registerSelectionHint} · ${period} · ${hist}`;
+  }, [registerSelectionHint, range, historyRows.length, t, formatLocale]);
+
+  const registerPicker = (() => {
+    if (registersLoading) {
+      return <Skeleton.Input active size="small" style={{ width: 240 }} />;
+    }
+    if (registersError) {
+      return (
+        <Alert
+          type="error"
+          showIcon
+          title={t('cashRegisters.selector.loadErrorTitle')}
+        />
+      );
+    }
+    if (!hasRegisters) {
+      return (
+        <Alert
+          type="warning"
+          showIcon
+          title={t('tagesabschluss.register.noRegistersTitle')}
+        />
+      );
+    }
+    if (isSingleRegister && registers[0]) {
+      const register = registers[0];
+      const label = formatRegisterDisplayName(register) ?? register.registerNumber;
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <Text strong>{t('tagesabschluss.register.fromList')}:</Text>
+          <Text>{label}</Text>
+          <Tag color="blue" variant="filled">
+            {t('cashRegisters.selector.autoSelectedTag')}
+          </Tag>
+        </div>
+      );
+    }
+    return (
+      <Form.Item label={t('tagesabschluss.register.fromList')} required style={{ marginBottom: 0 }}>
+        <Select
+          style={{ minWidth: 240 }}
+          value={resolvedRegisterId}
+          onChange={(next) => setSelectedRegisterId(next)}
+          placeholder={t('tagesabschluss.register.selectPlaceholder')}
+          options={registerOptions}
+        />
+      </Form.Item>
+    );
+  })();
 
   return (
     <AdminPageShell>
@@ -361,6 +416,7 @@ export default function TagesabschlussPage() {
               void statsQuery.refetch();
               if (registerIdValid) void canCloseQuery.refetch();
             }}
+            disabled={!registerIdValid}
           >
             {t('tagesabschluss.toolbar.refresh')}
           </Button>
@@ -376,47 +432,9 @@ export default function TagesabschlussPage() {
 
       <Card title={t('tagesabschluss.card.register')}>
         <Space orientation="vertical" style={{ width: '100%' }} size="middle">
-          {canListRegisters ? (
-            registersLoading ? (
-              <Spin />
-            ) : registerOptions.length === 0 ? (
-              <Alert type="warning" showIcon title={t('tagesabschluss.register.noRegistersTitle')} />
-            ) : (
-              <div>
-                <Title level={5} style={{ marginTop: 0, marginBottom: 6 }}>
-                  {t('tagesabschluss.register.fixedRegisterTitle')}
-                </Title>
-                <Text>
-                  {selectedRegisterSummary ?? (registerIdValid ? effectiveRegisterId : '—')}
-                </Text>
-                <Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
-                  {t('tagesabschluss.register.fixedRegisterHint')}
-                </Paragraph>
-              </div>
-            )
-          ) : (
-            <Alert
-              type="info"
-              showIcon
-              title={t('tagesabschluss.register.noListTitle')}
-              description={t('tagesabschluss.register.noListDescription')}
-            />
-          )}
-          {!canListRegisters || registerOptions.length === 0 ? (
-            <div>
-              <Text type="secondary">{t('tagesabschluss.register.manualLabel')}</Text>
-              <Input
-                style={{ marginTop: 6 }}
-                placeholder={t('tagesabschluss.register.manualPlaceholder')}
-                value={manualRegisterId}
-                onChange={(e) => setManualRegisterId(e.target.value)}
-              />
-            </div>
-          ) : null}
+          {registerPicker}
 
-          {!registerIdValid ? (
-            <Text type="warning">{t('tagesabschluss.register.uuidWarning')}</Text>
-          ) : canCloseQuery.isLoading ? (
+          {!registerIdValid ? null : canCloseQuery.isLoading ? (
             <Spin />
           ) : canCloseQuery.isError ? (
             <Alert
@@ -497,6 +515,7 @@ export default function TagesabschlussPage() {
                 void statsQuery.refetch();
                 if (registerIdValid) void canCloseQuery.refetch();
               }}
+              disabled={!registerIdValid}
             >
               {t('tagesabschluss.stats.refresh')}
             </Button>
@@ -506,7 +525,9 @@ export default function TagesabschlussPage() {
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
             <Title level={5}>{t('tagesabschluss.stats.sectionTitle')}</Title>
-            {statsQuery.isLoading ? (
+            {dataBlockedHint ? (
+              <Empty description={dataBlockedHint} />
+            ) : statsQuery.isLoading ? (
               <Spin />
             ) : statsQuery.isError ? (
               <Alert
@@ -548,7 +569,9 @@ export default function TagesabschlussPage() {
           </Col>
           <Col xs={24} lg={24}>
             <Title level={5}>{t('tagesabschluss.history.sectionTitle')}</Title>
-            {historyQuery.isLoading ? (
+            {dataBlockedHint ? (
+              <Empty description={dataBlockedHint} />
+            ) : historyQuery.isLoading ? (
               <Spin />
             ) : historyQuery.isError ? (
               <Alert

@@ -34,8 +34,8 @@ export type UserActivityReport = {
 };
 
 export type UserActivityReportParams = {
-    startDate?: string;
-    endDate?: string;
+    fromDate?: string;
+    toDate?: string;
     timelineLimit?: number;
 };
 
@@ -46,6 +46,11 @@ export async function fetchUserActivityReport(
     return customInstance<UserActivityReport>({
         url: '/api/admin/reports/user-activity',
         method: 'GET',
-        params: { userId, ...params },
+        params: {
+            userId,
+            fromDate: params?.fromDate,
+            toDate: params?.toDate,
+            timelineLimit: params?.timelineLimit,
+        },
     });
 }

@@ -155,11 +155,21 @@ export function BackupConfigurationForm() {
   };
 
   if (executionModeQuery.isError) {
-    return <Alert type="error" showIcon title={t("backupDr.scheduleSettings.loadError")} />;
+    return (
+      <>
+        <Form form={form} style={{ display: 'none' }} preserve />
+        <Alert type="error" showIcon title={t("backupDr.scheduleSettings.loadError")} />
+      </>
+    );
   }
 
   if (executionModeQuery.isLoading) {
-    return <Spin />;
+    return (
+      <>
+        <Form form={form} style={{ display: 'none' }} preserve />
+        <Spin />
+      </>
+    );
   }
 
   return (

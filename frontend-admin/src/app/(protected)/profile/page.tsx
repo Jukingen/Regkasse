@@ -85,18 +85,24 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
-        <Spin size="large" description={t('profile.loading')} />
-      </div>
+      <>
+        <Form form={form} style={{ display: 'none' }} preserve />
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
+          <Spin size="large" description={t('profile.loading')} />
+        </div>
+      </>
     );
   }
 
   if (isError || !profile) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <AdminPageHeader title={t('profile.pageTitle')} breadcrumbs={breadcrumbs} />
-        <Card variant="borderless">{t('profile.loadError')}</Card>
-      </div>
+      <>
+        <Form form={form} style={{ display: 'none' }} preserve />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <AdminPageHeader title={t('profile.pageTitle')} breadcrumbs={breadcrumbs} />
+          <Card variant="borderless">{t('profile.loadError')}</Card>
+        </div>
+      </>
     );
   }
 

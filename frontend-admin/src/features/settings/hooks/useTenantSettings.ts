@@ -42,8 +42,13 @@ export function useTenantSettings(options?: { enabled?: boolean }) {
     const enabled = options?.enabled ?? true;
 
     const companyQuery = useGetApiCompanySettings({ query: { enabled } });
-    const taxRatesQuery = useGetApiSettingsTaxRates({ query: { enabled } });
-    const tseQuery = useGetApiTseHealth({ query: { enabled } });
+    const taxRatesQuery = useGetApiSettingsTaxRates({
+        query: {
+            enabled,
+            retry: false,
+        },
+    });
+    const tseQuery = useGetApiTseHealth(undefined, { query: { enabled } });
     const registerSelection = useCashRegisterSelection({
         enabled,
         autoSelectSingle: true,
@@ -83,7 +88,7 @@ export function useTenantSettings(options?: { enabled?: boolean }) {
 
     const isLoading =
         companyQuery.isLoading ||
-        taxRatesQuery.isLoading ||
+        (taxRatesQuery.isLoading && !taxRatesQuery.isError) ||
         tseQuery.isLoading ||
         registerSelection.isLoading;
 

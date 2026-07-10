@@ -251,10 +251,10 @@ export default function BenefitAssignmentsPage() {
       <Modal
         title={editing ? t('benefits.assignments.modalEditTitle') : t('benefits.assignments.modalCreateTitle')}
         open={modalOpen}
+        forceRender
         onOk={handleSubmit}
         onCancel={() => { setModalOpen(false); setEditing(null); }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnHidden
         okText={t('common.buttons.save')}
         cancelText={t('common.buttons.cancel')}
       >

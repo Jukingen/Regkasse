@@ -85,6 +85,7 @@ export function ManagerSettings() {
     if (isLoading) {
         return (
             <PageShell>
+                <Form form={registerForm} style={{ display: 'none' }} preserve />
                 <AdminPageHeader title={pageTitle} breadcrumbs={breadcrumbs} />
                 <Card>
                     <div style={{ textAlign: 'center', padding: '48px 24px' }}>
@@ -101,6 +102,7 @@ export function ManagerSettings() {
     if (isError) {
         return (
             <PageShell>
+                <Form form={registerForm} style={{ display: 'none' }} preserve />
                 <AdminPageHeader title={pageTitle} breadcrumbs={breadcrumbs} />
                 <Alert
                     type="error"

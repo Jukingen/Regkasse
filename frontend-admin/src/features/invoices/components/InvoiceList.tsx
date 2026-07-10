@@ -1558,6 +1558,7 @@ export const InvoiceList: React.FC = () => {
             <Modal
                 title={t('invoices.creditNote.modalTitle')}
                 open={creditNoteVisible}
+                forceRender
                 onCancel={() => { setCreditNoteVisible(false); creditNoteForm.resetFields(); }}
                 onOk={handleCreateCreditNote}
                 confirmLoading={creditNoteLoading}

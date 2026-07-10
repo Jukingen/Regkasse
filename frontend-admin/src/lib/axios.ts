@@ -49,6 +49,14 @@ function isExpectedLicenseWriteBlock403(
     return haystack.includes('license') || haystack.includes('lizenz');
 }
 
+/** Optional settings rows may be absent until tenant system settings are seeded. */
+function isOptionalSettingsNotFound404(status: number | undefined, url: string): boolean {
+    if (status !== 404) {
+        return false;
+    }
+    return /\/api\/Settings\/tax-rates\b/i.test(url);
+}
+
 const configuredBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 const baseURL = configuredBaseUrl || (isDev ? 'http://localhost:5184' : '');
 
@@ -210,6 +218,8 @@ const createAxiosInstance = () => {
                     const logPayload = serverMessage ?? data ?? fallbackMessage;
                     if (isExpectedLicenseWriteBlock403(status, data, serverMessage)) {
                         technicalConsole.warn(`[API] HTTP ${status} ${url} (license read-only)`, logPayload);
+                    } else if (isOptionalSettingsNotFound404(status, url)) {
+                        technicalConsole.warn(`[API] HTTP ${status} ${url} (optional settings)`, logPayload);
                     } else {
                         technicalConsole.error(`[API] HTTP ${status} ${url}`, logPayload);
                     }

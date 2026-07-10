@@ -30,7 +30,14 @@ export type SelfServiceUsernameModalProps = {
     onSuccess: (newUsername: string) => void;
 };
 
-export function SelfServiceUsernameModal({
+export function SelfServiceUsernameModal(props: SelfServiceUsernameModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <SelfServiceUsernameModalContent {...props} />;
+}
+
+function SelfServiceUsernameModalContent({
     open,
     currentUsername,
     userEmail,

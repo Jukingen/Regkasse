@@ -43,9 +43,9 @@ export function UserActivityReportPanel({ userId, userName }: Props) {
     ]);
 
     const params = useMemo(() => {
-        const p: { startDate?: string; endDate?: string } = {};
-        if (dateRange[0]) p.startDate = dateRange[0].format('YYYY-MM-DD');
-        if (dateRange[1]) p.endDate = dateRange[1].format('YYYY-MM-DD');
+        const p: { fromDate?: string; toDate?: string } = {};
+        if (dateRange[0]) p.fromDate = dateRange[0].format('YYYY-MM-DD');
+        if (dateRange[1]) p.toDate = dateRange[1].format('YYYY-MM-DD');
         return p;
     }, [dateRange]);
 

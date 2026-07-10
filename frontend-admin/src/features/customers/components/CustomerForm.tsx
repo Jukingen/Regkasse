@@ -53,6 +53,7 @@ export default function CustomerForm({ visible, initialValues, onCancel, onSubmi
         <Modal
             title={initialValues ? t('customers.form.titleEdit') : t('customers.form.titleNew')}
             open={visible}
+            forceRender
             onCancel={onCancel}
             onOk={readOnly ? undefined : handleSubmit}
             confirmLoading={loading}

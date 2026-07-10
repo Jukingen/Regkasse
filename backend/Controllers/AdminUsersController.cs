@@ -625,8 +625,11 @@ public partial class AdminUsersController : ControllerBase
         return Ok(ToDto(user, businessTenantIdSet));
     }
 
-    /// <summary>Active tenant memberships for a user (super-admin user management).</summary>
-    [HasPermission(AppPermissions.UserManage)]
+    /// <summary>
+    /// Active tenant memberships for a user. Requires <c>user.view</c>.
+    /// Non–Super Admin actors only see memberships in their ambient tenant (404 when user is out of scope).
+    /// </summary>
+    [HasPermission(AppPermissions.UserView)]
     [HttpGet("{id}/tenants")]
     [ProducesResponseType(typeof(IEnumerable<AdminUserTenantMembershipDto>), 200)]
     [ProducesResponseType(typeof(ApiError), 404)]
@@ -634,15 +637,31 @@ public partial class AdminUsersController : ControllerBase
         string id,
         CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByIdAsync(id);
+        var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
+        var businessTenantIdSet = businessTenantIds.ToHashSet();
+
+        var user = await UsersWithMembershipsQuery()
+            .FirstOrDefaultAsync(u => u.Id == id, cancellationToken)
+            .ConfigureAwait(false);
         if (user == null)
             return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
 
-        var businessTenantIds = await GetBusinessTenantIdsAsync(cancellationToken).ConfigureAwait(false);
-        var rows = await _context.UserTenantMemberships
+        if (!IsActorSuperAdmin()
+            && _tenantAccessor.TenantId is Guid ambientTenantId
+            && !CanAccessUserInAmbientTenant(user, ambientTenantId, businessTenantIdSet))
+        {
+            return NotFound(ApiError.NotFound("User not found", $"User id '{id}' was not found."));
+        }
+
+        var membershipQuery = _context.UserTenantMemberships
             .AsNoTracking()
             .Include(m => m.Tenant)
-            .Where(m => m.UserId == id && m.IsActive && businessTenantIds.Contains(m.TenantId))
+            .Where(m => m.UserId == id && m.IsActive && businessTenantIds.Contains(m.TenantId));
+
+        if (!IsActorSuperAdmin() && _tenantAccessor.TenantId is Guid scopedTenantId)
+            membershipQuery = membershipQuery.Where(m => m.TenantId == scopedTenantId);
+
+        var rows = await membershipQuery
             .OrderBy(m => m.Tenant!.Slug)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

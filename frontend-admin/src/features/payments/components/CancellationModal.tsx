@@ -202,8 +202,13 @@ function CancellationModalContent({
                 style={{ marginBottom: 16 }}
             />
 
-            {step === 'form' ? (
-                <Form form={form} layout="vertical" disabled={disabled}>
+            <Form
+                form={form}
+                layout="vertical"
+                disabled={disabled}
+                preserve
+                style={{ display: step === 'form' ? undefined : 'none' }}
+            >
                     <Form.Item
                         name="reasonCode"
                         label={t('payments.cancellationModal.reasonCodeLabel')}
@@ -278,7 +283,8 @@ function CancellationModalContent({
                         </Typography.Text>
                     </div>
                 </Form>
-            ) : (
+
+            {step === 'approval' ? (
                 <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
                     <Alert
                         type="info"
@@ -334,7 +340,7 @@ function CancellationModalContent({
                         </Form.Item>
                     </Form>
                 </Space>
-            )}
+            ) : null}
         </Modal>
     );
 }

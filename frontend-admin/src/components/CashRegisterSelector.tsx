@@ -63,6 +63,7 @@ export function CashRegisterSelector({
     } = useCashRegisterSelection({
         value,
         onChange,
+        controlled: onChange !== undefined,
         autoSelect: resolvedAutoSelect,
         persistSelection,
     });

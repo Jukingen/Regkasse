@@ -49,7 +49,14 @@ export type CreateTenantWizardProps = {
 
 type WizardPhase = 'form' | 'processing' | 'processingDone';
 
-export function CreateTenantWizard({
+export function CreateTenantWizard(props: CreateTenantWizardProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <CreateTenantWizardContent {...props} />;
+}
+
+function CreateTenantWizardContent({
     open,
     onClose,
     onCreated,

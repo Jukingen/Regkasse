@@ -35,7 +35,14 @@ export type LicenseExtendModalProps = {
     onSuccess?: () => void;
 };
 
-export function LicenseExtendModal({
+export function LicenseExtendModal(props: LicenseExtendModalProps) {
+    if (!props.open) {
+        return null;
+    }
+    return <LicenseExtendModalContent {...props} />;
+}
+
+function LicenseExtendModalContent({
     open,
     tenantId,
     status,

@@ -493,7 +493,10 @@ export function BackupArtifactsDownloadCard({
       ) : null}
 
       <Table<ArtifactRow>
-        rowKey={(r, i) => r.id ?? `row-${i}-${r.storageLocator ?? 'na'}`}
+        rowKey={(r) =>
+          r.id ??
+          `${r.storageLocator ?? r.artifactType ?? 'artifact'}-${r.contentHashSha256 ?? r.createdAt ?? 'na'}`
+        }
         size="small"
         pagination={false}
         dataSource={rows}

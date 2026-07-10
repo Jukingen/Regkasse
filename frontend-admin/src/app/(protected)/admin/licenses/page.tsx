@@ -142,13 +142,21 @@ function downloadCsv(filename: string, content: string): void {
     globalThis.URL.revokeObjectURL(url);
 }
 
-function ExtendLicenseModal({
+function ExtendLicenseModal(props: ExtendLicenseModalProps) {
+    if (!props.visible) {
+        return null;
+    }
+    return <ExtendLicenseModalContent {...props} />;
+}
+
+function ExtendLicenseModalContent({
     visible,
     tenant,
     onClose,
     onSuccess,
     t,
 }: ExtendLicenseModalProps) {
+    const { message } = useAntdApp();
     const [form] = Form.useForm<ExtendLicenseFormValues>();
 
     const extendMutation = useMutation({

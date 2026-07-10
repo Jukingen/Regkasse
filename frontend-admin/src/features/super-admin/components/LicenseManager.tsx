@@ -342,9 +342,9 @@ export function LicenseManager({ tenant, onUpdated }: LicenseManagerProps) {
             <Modal
                 title={t('tenants.detail.license.renewModalTitle')}
                 open={renewOpen}
+                forceRender
                 onCancel={() => setRenewOpen(false)}
                 footer={null}
-                destroyOnHidden
             >
                 {inGracePeriod ? (
                     <Alert

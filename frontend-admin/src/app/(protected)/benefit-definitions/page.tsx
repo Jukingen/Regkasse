@@ -229,10 +229,10 @@ export default function BenefitDefinitionsPage() {
       <Modal
         title={editing ? t('benefits.definitions.modalEditTitle') : t('benefits.definitions.modalCreateTitle')}
         open={modalOpen}
+        forceRender
         onOk={handleSubmit}
         onCancel={() => { setModalOpen(false); setEditing(null); }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnHidden
         okText={t('common.buttons.save')}
         cancelText={t('common.buttons.cancel')}
       >

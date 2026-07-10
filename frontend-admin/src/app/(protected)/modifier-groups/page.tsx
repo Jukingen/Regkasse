@@ -279,6 +279,7 @@ export default function ModifierGroupsPage() {
       <Modal
         title={t('modifierGroups.modal.newGroupTitle')}
         open={groupModalOpen}
+        forceRender
         onOk={handleAddGroup}
         onCancel={() => { setGroupModalOpen(false); groupForm.resetFields(); }}
         okText={t('modifierGroups.modal.okCreate')}
@@ -310,6 +311,7 @@ export default function ModifierGroupsPage() {
             : t('modifierGroups.modal.editGroupTitleFallback')
         }
         open={editGroupModalOpen}
+        forceRender
         onOk={handleEditGroup}
         onCancel={() => { setEditGroupModalOpen(false); setGroupToEdit(null); editGroupForm.resetFields(); }}
         okText={t('modifierGroups.modal.okSave')}
@@ -341,6 +343,7 @@ export default function ModifierGroupsPage() {
             : t('modifierGroups.modal.addProductTitleFallback')
         }
         open={productModalOpen}
+        forceRender
         onOk={handleAddProduct}
         onCancel={() => { setProductModalOpen(false); setSelectedGroup(null); productForm.resetFields(); }}
         okText={t('modifierGroups.modal.okAdd')}

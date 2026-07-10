@@ -47,7 +47,17 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   '/kassenverwaltung': AppPermissions.CashRegisterManage,
   /** Shift overview — requires shift.view (Manager also has cash_register.view for register list API). */
   '/shifts': PERMISSIONS.SHIFT_VIEW,
-  /** Manager staff hub — any staff-related view permission (list / performance / shifts). */
+  /**
+   * Staff hub (Manager read-only oversight). No `staff.*` keys in backend catalog — map spec aliases:
+   * | Spec route / concept        | App Router path      | JWT permission(s)        |
+   * |-----------------------------|----------------------|--------------------------|
+   * | staff.view (hub + list)     | /staff, /staff/list  | user.view                |
+   * | staff.view_activity (drawer)| (no dedicated route)| user.view (+ report.view for compliance tab) |
+   * | staff.view (performance)    | /staff/performance   | report.view              |
+   * | staff.view (shifts)         | /staff/shifts        | shift.view               |
+   * | staff.manage (CRUD)         | /admin/users         | user.manage (not /staff) |
+   * Hub entry: any of list / performance / shifts permissions (secondary nav filters per tab).
+   */
   '/staff': [PERMISSIONS.USER_VIEW, PERMISSIONS.REPORT_VIEW, PERMISSIONS.SHIFT_VIEW],
   '/staff/list': PERMISSIONS.USER_VIEW,
   '/staff/performance': PERMISSIONS.REPORT_VIEW,

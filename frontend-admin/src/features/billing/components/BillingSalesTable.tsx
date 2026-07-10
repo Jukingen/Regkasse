@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Button, Card, DatePicker, Descriptions, Drawer, Form, Input, Select, Space, Table, Tag } from 'antd';
+import { Button, Card, DatePicker, Descriptions, Drawer, Form, Input, Modal, Select, Space, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { DownloadOutlined, PlusOutlined } from '@ant-design/icons';
 import Link from 'next/link';
@@ -39,14 +39,14 @@ const STATUS_OPTIONS = ['active', 'cancelled', 'refunded'] as const;
 
 export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActions?: boolean }) {
     const { t, formatLocale } = useI18n();
-    const { message, modal } = useAntdApp();
+    const { message } = useAntdApp();
     const router = useRouter();
     const queryClient = useQueryClient();
     const canAccess = useBillingAccess();
 
     const [filters, setFilters] = useState<FilterState>({ page: 1, pageSize: 20 });
     const [selectedSale, setSelectedSale] = useState<LicenseSaleResponse | null>(null);
-    const [cancelForm] = Form.useForm<{ cancellationReason: string }>();
+    const [cancelTarget, setCancelTarget] = useState<LicenseSaleResponse | null>(null);
     const [pdfLoadingId, setPdfLoadingId] = useState<string | null>(null);
 
     const tenantsQuery = useQuery({
@@ -108,31 +108,7 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
 
     const handleCancel = (sale: LicenseSaleResponse) => {
         if (!sale.id) return;
-        cancelForm.resetFields();
-        modal.confirm({
-            title: t('billing.sales.cancelConfirmTitle'),
-            content: (
-                <Form form={cancelForm} layout="vertical" style={{ marginTop: 16 }}>
-                    <Form.Item
-                        name="cancellationReason"
-                        label={t('billing.sales.cancelReasonLabel')}
-                        rules={[
-                            { required: true, message: t('billing.sales.cancelReasonRequired') },
-                            { min: 10, message: t('billing.sales.cancelReasonRequired') },
-                        ]}
-                    >
-                        <Input.TextArea rows={3} />
-                    </Form.Item>
-                </Form>
-            ),
-            onOk: async () => {
-                const values = await cancelForm.validateFields();
-                await cancelMutation.mutateAsync({
-                    id: sale.id!,
-                    data: { cancellationReason: values.cancellationReason },
-                });
-            },
-        });
+        setCancelTarget(sale);
     };
 
     const columns: ColumnsType<LicenseSaleResponse> = [
@@ -333,6 +309,65 @@ export function BillingSalesTable({ showHeaderActions = true }: { showHeaderActi
                     </Descriptions>
                 ) : null}
             </Drawer>
+
+            {cancelTarget ? (
+                <BillingSaleCancelModal
+                    sale={cancelTarget}
+                    loading={cancelMutation.isPending}
+                    onClose={() => setCancelTarget(null)}
+                    onConfirm={async (cancellationReason) => {
+                        await cancelMutation.mutateAsync({
+                            id: cancelTarget.id!,
+                            data: { cancellationReason },
+                        });
+                        setCancelTarget(null);
+                    }}
+                />
+            ) : null}
         </>
+    );
+}
+
+type BillingSaleCancelModalProps = {
+    sale: LicenseSaleResponse;
+    loading: boolean;
+    onClose: () => void;
+    onConfirm: (cancellationReason: string) => Promise<void>;
+};
+
+function BillingSaleCancelModal({ loading, onClose, onConfirm }: BillingSaleCancelModalProps) {
+    const { t } = useI18n();
+    const [form] = Form.useForm<{ cancellationReason: string }>();
+
+    const handleOk = async () => {
+        const values = await form.validateFields();
+        await onConfirm(values.cancellationReason);
+    };
+
+    return (
+        <Modal
+            open
+            title={t('billing.sales.cancelConfirmTitle')}
+            onCancel={onClose}
+            onOk={handleOk}
+            confirmLoading={loading}
+            okText={t('billing.sales.cancelSale')}
+            okButtonProps={{ danger: true }}
+            cancelText={t('common.buttons.cancel')}
+            destroyOnHidden
+        >
+            <Form form={form} layout="vertical" style={{ marginTop: 8 }}>
+                <Form.Item
+                    name="cancellationReason"
+                    label={t('billing.sales.cancelReasonLabel')}
+                    rules={[
+                        { required: true, message: t('billing.sales.cancelReasonRequired') },
+                        { min: 10, message: t('billing.sales.cancelReasonRequired') },
+                    ]}
+                >
+                    <Input.TextArea rows={3} />
+                </Form.Item>
+            </Form>
+        </Modal>
     );
 }

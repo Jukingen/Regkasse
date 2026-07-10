@@ -29,7 +29,7 @@ export function HospitalityQuickLinksCard() {
   const links: LinkDef[] = useMemo(
     () => [
       { href: '/reporting', labelKey: 'adminShell.hospitalityHub.linkReporting', visible: hasPermission(PERMISSIONS.REPORT_VIEW) },
-      { href: '/tagesabschluss', labelKey: 'adminShell.hospitalityHub.linkTagesabschluss', visible: hasPermission(PERMISSIONS.TSE_SIGN) },
+      { href: '/tagesabschluss', labelKey: 'adminShell.hospitalityHub.linkTagesabschluss', visible: hasPermission(PERMISSIONS.DAILY_CLOSING_VIEW) },
       {
         href: '/operations-center',
         labelKey: 'adminShell.hospitalityHub.linkOperations',

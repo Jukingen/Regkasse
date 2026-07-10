@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { BellOutlined } from '@ant-design/icons';
-import { Card, List, Space, Tag, Typography } from 'antd';
+import { Card, Space, Tag, Typography } from 'antd';
+import { SimpleList as List } from '@/components/ui/SimpleList';
 
 import type { ActivitySeverity } from '@/api/manual/activityEvents';
 import { useRecentActivities } from '@/features/audit/hooks/useRecentActivities';

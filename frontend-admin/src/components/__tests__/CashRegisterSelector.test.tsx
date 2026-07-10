@@ -125,7 +125,16 @@ describe('Operational CashRegisterSelector', () => {
         renderSelector({ required: true });
 
         expect(mockUseCashRegisterSelection).toHaveBeenCalledWith(
-            expect.objectContaining({ autoSelect: true, persistSelection: true }),
+            expect.objectContaining({ autoSelect: true, persistSelection: true, controlled: false }),
+        );
+    });
+
+    it('marks selection as controlled when onChange is provided', () => {
+        const onChange = vi.fn();
+        renderSelector({ required: true, onChange });
+
+        expect(mockUseCashRegisterSelection).toHaveBeenCalledWith(
+            expect.objectContaining({ controlled: true, autoSelect: true }),
         );
     });
 

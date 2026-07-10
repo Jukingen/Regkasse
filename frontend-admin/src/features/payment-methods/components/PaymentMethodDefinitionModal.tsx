@@ -65,10 +65,10 @@ export function PaymentMethodDefinitionModal({
     <Modal
       title={editing ? t('settings.paymentMethods.editTitle') : t('settings.paymentMethods.createTitle')}
       open={open}
+      forceRender
       onCancel={onCancel}
       onOk={handleOk}
       confirmLoading={confirmLoading}
-      destroyOnHidden
       width={640}
       okText={t('common.buttons.save')}
       cancelText={t('common.buttons.cancel')}

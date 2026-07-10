@@ -257,6 +257,7 @@ function AdminVoucherDetailContent({ id }: { id: string }) {
 
       <Modal
         open={cancelOpen}
+        forceRender
         title={t('vouchers.cancel.title')}
         onCancel={() => {
           setCancelOpen(false);

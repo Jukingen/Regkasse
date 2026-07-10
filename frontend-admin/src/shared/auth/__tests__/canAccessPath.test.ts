@@ -75,4 +75,25 @@ describe('canAccessPath', () => {
     it('Manager can access /admin/license with license.manage', () => {
         expect(canAccessPath('/admin/license', [...MANAGER_ADMIN_PERMISSIONS])).toBe(true);
     });
+
+    it('Manager can access staff hub sub-routes (user.view / report.view / shift.view, not staff.*)', () => {
+        const perms = [...MANAGER_ADMIN_PERMISSIONS];
+        expect(canAccessPath('/staff', perms)).toBe(true);
+        expect(canAccessPath('/staff/list', perms)).toBe(true);
+        expect(canAccessPath('/staff/performance', perms)).toBe(true);
+        expect(canAccessPath('/staff/shifts', perms)).toBe(true);
+    });
+
+    it('unlisted /staff/* paths inherit /staff hub guard via longest-prefix match', () => {
+        const perms = [...MANAGER_ADMIN_PERMISSIONS];
+        // No App Router pages at these paths; guard still allows (Next.js 404). CRUD lives at /admin/users.
+        expect(canAccessPath('/staff/activity', perms)).toBe(true);
+        expect(canAccessPath('/staff/create', perms)).toBe(true);
+        expect(canAccessPath('/staff/edit/abc', perms)).toBe(true);
+    });
+
+    it('staff list requires user.view only', () => {
+        expect(canAccessPath('/staff/list', [PERMISSIONS.USER_VIEW])).toBe(true);
+        expect(canAccessPath('/staff/list', [PERMISSIONS.REPORT_VIEW])).toBe(false);
+    });
 });

@@ -33,6 +33,8 @@ export const MANAGER_ADMIN_PERMISSIONS: readonly string[] = [
     PERMISSIONS.SALE_VIEW,
     PERMISSIONS.REPORT_VIEW,
     PERMISSIONS.REPORT_EXPORT,
+    PERMISSIONS.DAILY_CLOSING_VIEW,
+    PERMISSIONS.DAILY_CLOSING_EXECUTE,
     PERMISSIONS.CASHREGISTER_VIEW,
     PERMISSIONS.CASHREGISTER_MANAGE,
     PERMISSIONS.SETTINGS_VIEW,
@@ -87,6 +89,7 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
     '/tables',
     '/kassenverwaltung',
     '/shifts',
+    '/tagesabschluss',
     '/staff',
     '/receipts',
     '/payments',
@@ -151,7 +154,6 @@ export const MANAGER_REQUIRED_MENU_KEYS: readonly string[] = [
  */
 export const MANAGER_FORBIDDEN_MENU_KEYS: readonly string[] = [
     '/admin/access/roles',
-    '/tagesabschluss',
     '/receipt-templates',
     '/receipt-generate',
     '/benefit-definitions',

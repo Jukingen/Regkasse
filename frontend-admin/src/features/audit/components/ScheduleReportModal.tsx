@@ -15,7 +15,14 @@ type Props = {
     onScheduled?: () => void;
 };
 
-export function ScheduleReportModal({ open, params, onClose, onScheduled }: Props) {
+export function ScheduleReportModal(props: Props) {
+    if (!props.open) {
+        return null;
+    }
+    return <ScheduleReportModalContent {...props} />;
+}
+
+function ScheduleReportModalContent({ open, params, onClose, onScheduled }: Props) {
   const { message } = useAntdApp();
 
     const { t } = useI18n();

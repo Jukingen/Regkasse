@@ -220,12 +220,12 @@ export default function PricingRulesPage() {
 
       <Modal
         open={modalOpen}
+        forceRender
         onCancel={() => setModalOpen(false)}
         onOk={handleSubmit}
         okButtonProps={{ loading: createMutation.isPending || updateMutation.isPending }}
         title={editing ? t('settings.pricingRules.editTitle') : t('settings.pricingRules.createTitle')}
         width={640}
-        destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Form.Item name="name" label={t('settings.pricingRules.form.name')} rules={[{ required: true, message: t('common.validation.fieldRequired') }]}>

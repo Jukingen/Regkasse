@@ -8,8 +8,11 @@
   "scope": {
     "label": "Current view:",
     "registerWithName": "Register: {{name}}",
-    "registerWithId": "Register (ID): {{id}}",
-    "registerInvalid": "Register: no valid UUID",
+    "registerNotSelected": "Register: not selected",
+    "registerSelectPrompt": "Register: please select",
+    "registerSelected": "Register: selected",
+    "registerLoading": "Register: loading…",
+    "noRegisters": "Register: none found",
     "historyPeriod": "History {{from}}–{{to}}",
     "historyCount": "{{count}} closings in the period"
   },
@@ -26,8 +29,9 @@
     "noListTitle": "No register list",
     "noListDescription": "Permission cash_register.view is missing — enter register ID manually as UUID.",
     "manualLabel": "Register ID",
-    "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
-    "uuidWarning": "Please set a valid UUID (from list or manual)."
+    "manualPlaceholder": "Register ID",
+    "selectRequired": "Please select a register.",
+    "noSelection": "No register selected."
   },
   "check": {
     "failedTitle": "Check failed",
@@ -92,7 +96,7 @@
     "successDaily": "Daily closing executed.",
     "successMonthly": "Monthly closing executed.",
     "successYearly": "Yearly closing executed.",
-    "warningUuid": "Please select or enter a valid register ID (UUID)."
+    "warningNoRegister": "Please select a register first."
   },
   "errors": {
     "unknown": "Unknown error",

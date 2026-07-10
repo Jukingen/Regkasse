@@ -75,6 +75,54 @@ describe('useCashRegisterSelection', () => {
         expect(onChange).toHaveBeenCalledWith('reg-2', expect.objectContaining({ id: 'reg-2' }));
     });
 
+    it('auto-selects first register when autoSelect is enabled and no default is flagged', async () => {
+        mockUseAdminCashRegisterList.mockReturnValue({
+            registers: [
+                { ...sampleRegisters[0], isDefaultForTenant: false },
+                { ...sampleRegisters[1], isDefaultForTenant: false },
+            ],
+            isLoading: false,
+            isFetching: false,
+            error: null,
+            refetch: vi.fn(),
+        });
+
+        const onChange = vi.fn();
+        const { result } = renderHook(() =>
+            useCashRegisterSelection({ autoSelect: true, onChange }),
+        );
+
+        await waitFor(() => {
+            expect(result.current.selectedRegisterId).toBe('reg-1');
+        });
+        expect(onChange).toHaveBeenCalledWith('reg-1', expect.objectContaining({ id: 'reg-1' }));
+    });
+
+    it('exposes hasRegisters when tenant inventory is non-empty', () => {
+        const { result } = renderHook(() => useCashRegisterSelection());
+
+        expect(result.current.hasRegisters).toBe(true);
+        expect(result.current.hasMultipleRegisters).toBe(true);
+        expect(result.current.isSingleRegister).toBe(false);
+    });
+
+    it('notifies controlled parent when value starts undefined', async () => {
+        const onChange = vi.fn();
+
+        renderHook(() =>
+            useCashRegisterSelection({
+                value: undefined,
+                onChange,
+                controlled: true,
+                autoSelect: true,
+            }),
+        );
+
+        await waitFor(() => {
+            expect(onChange).toHaveBeenCalledWith('reg-2', expect.objectContaining({ id: 'reg-2' }));
+        });
+    });
+
     it('auto-selects sole register when autoSelect is enabled', async () => {
         mockUseAdminCashRegisterList.mockReturnValue({
             registers: [sampleRegisters[0]],

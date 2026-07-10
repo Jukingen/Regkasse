@@ -8,8 +8,11 @@
   "scope": {
     "label": "Aktive Ansicht:",
     "registerWithName": "Kasse: {{name}}",
-    "registerWithId": "Kasse (ID): {{id}}",
-    "registerInvalid": "Kasse: keine gültige UUID",
+    "registerNotSelected": "Kasse: nicht ausgewählt",
+    "registerSelectPrompt": "Kasse: bitte wählen",
+    "registerSelected": "Kasse: ausgewählt",
+    "registerLoading": "Kasse: wird geladen…",
+    "noRegisters": "Kasse: keine gefunden",
     "historyPeriod": "Historie {{from}}–{{to}}",
     "historyCount": "{{count}} Abschlüsse im Zeitraum"
   },
@@ -26,8 +29,9 @@
     "noListTitle": "Keine Kassenliste",
     "noListDescription": "Berechtigung cash_register.view fehlt — Kassen-ID manuell als UUID eingeben.",
     "manualLabel": "Kassen-ID",
-    "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
-    "uuidWarning": "Bitte gültige UUID setzen (Liste oder manuell)."
+    "manualPlaceholder": "Kassen-ID",
+    "selectRequired": "Bitte wählen Sie eine Kasse.",
+    "noSelection": "Keine Kasse ausgewählt."
   },
   "check": {
     "failedTitle": "Prüfung fehlgeschlagen",
@@ -92,7 +96,7 @@
     "successDaily": "Tagesabschluss (täglich) ausgeführt.",
     "successMonthly": "Monatsabschluss ausgeführt.",
     "successYearly": "Jahresabschluss ausgeführt.",
-    "warningUuid": "Bitte gültige Kassen-ID wählen oder eingeben (UUID)."
+    "warningNoRegister": "Bitte wählen Sie zuerst eine Kasse."
   },
   "errors": {
     "unknown": "Unbekannter Fehler",

@@ -70,7 +70,8 @@ export type SidebarIconToken =
     | 'HistoryOutlined'
     | 'KeyOutlined'
     | 'ApartmentOutlined'
-    | 'DisconnectOutlined';
+    | 'DisconnectOutlined'
+    | 'UnorderedListOutlined';
 
 export type SidebarNavCatalogItem = {
     /** Stable id for tests and layout references */

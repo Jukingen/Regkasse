@@ -616,7 +616,7 @@ export function BackupDrDashboard({
             t={t}
           >
             <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
-              <Divider orientation="left" plain style={{ marginTop: 0 }}>
+              <Divider titlePlacement="left" plain style={{ marginTop: 0 }}>
                 {t("backupDr.ia.drilldownGlance")}
               </Divider>
               <Row gutter={[16, 16]}>
@@ -708,7 +708,7 @@ export function BackupDrDashboard({
 
               {isPlatformAdmin ? (
                 <>
-                  <Divider orientation="left" plain>
+                  <Divider titlePlacement="left" plain>
                     {t("backupDr.ia.drilldownExecution")}
                   </Divider>
                   <BackupExecutionModeCard

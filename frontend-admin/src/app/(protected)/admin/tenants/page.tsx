@@ -324,10 +324,10 @@ export default function SuperAdminTenantsPage() {
             <Modal
                 title={t('tenants.edit.title')}
                 open={!!editRow}
+                forceRender
                 onCancel={() => setEditRow(null)}
                 onOk={() => editForm.submit()}
                 confirmLoading={updateMutation.isPending}
-                destroyOnHidden
             >
                 <Form
                     form={editForm}

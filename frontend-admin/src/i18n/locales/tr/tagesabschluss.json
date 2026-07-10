@@ -8,8 +8,11 @@
   "scope": {
     "label": "Aktif gorunum:",
     "registerWithName": "Kasa: {{name}}",
-    "registerWithId": "Kasa (ID): {{id}}",
-    "registerInvalid": "Kasa: gecerli UUID yok",
+    "registerNotSelected": "Kasa: secilmedi",
+    "registerSelectPrompt": "Kasa: lutfen secin",
+    "registerSelected": "Kasa: secildi",
+    "registerLoading": "Kasa: yukleniyor…",
+    "noRegisters": "Kasa: bulunamadi",
     "historyPeriod": "Gecmis {{from}}–{{to}}",
     "historyCount": "Donemde {{count}} gun sonu"
   },
@@ -26,8 +29,9 @@
     "noListTitle": "Kasa listesi yok",
     "noListDescription": "cash_register.view yetkisi yok — kasa kimligini UUID olarak elle girin.",
     "manualLabel": "Kasa kimligi",
-    "manualPlaceholder": "00000000-0000-0000-0000-000000000000",
-    "uuidWarning": "Gecerli UUID girin (liste veya elle)."
+    "manualPlaceholder": "Kasa kimligi",
+    "selectRequired": "Lutfen bir kasa secin.",
+    "noSelection": "Kasa secilmedi."
   },
   "check": {
     "failedTitle": "Kontrol basarisiz",
@@ -92,7 +96,7 @@
     "successDaily": "Gunluk gun sonu uygulandi.",
     "successMonthly": "Aylik kapanis uygulandi.",
     "successYearly": "Yillik kapanis uygulandi.",
-    "warningUuid": "Gecerli kasa kimligi secin veya girin (UUID)."
+    "warningNoRegister": "Lutfen once bir kasa secin."
   },
   "errors": {
     "unknown": "Bilinmeyen hata",
