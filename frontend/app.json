@@ -68,7 +68,9 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/OCRA-B.ttf"]
+          "fonts": [
+            "./assets/fonts/OCRA-B.ttf"
+          ]
         }
       ],
       [
@@ -84,7 +86,8 @@
         {
           "cameraPermission": "Kamera wird für Kunden-QR und Gutschein-Scan benötigt."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true
