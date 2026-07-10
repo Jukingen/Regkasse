@@ -23,16 +23,26 @@ public sealed class TagesabschlussServiceOperationalTests
             TenantTestDoubles.TenantAccessorReturning(tenantId));
     }
 
-    private static TagesabschlussService CreateService(AppDbContext ctx) =>
+    private static TagesabschlussService CreateService(
+        AppDbContext ctx,
+        IDevelopmentModeService? developmentMode = null,
+        TseOptions? tseOptions = null) =>
         new(
             ctx,
-            Mock.Of<ITseService>(),
+            Mock.Of<ITseService>(s =>
+                s.GetTseStatusAsync() == Task.FromResult(new TseStatus
+                {
+                    IsConnected = false,
+                    Status = "Disconnected",
+                    ErrorMessage = "TSE device is not connected",
+                })),
             new FakeTseProvider(NullLogger<FakeTseProvider>.Instance),
             new SoftwareTseKeyProvider(),
             Mock.Of<IFinanzOnlineService>(),
-            Options.Create(new TseOptions()),
-            Mock.Of<IHostEnvironment>(),
-            NullLogger<TagesabschlussService>.Instance);
+            Options.Create(tseOptions ?? new TseOptions { Mode = "Real", TseMode = "Device" }),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
+            NullLogger<TagesabschlussService>.Instance,
+            developmentMode);
 
     [Fact]
     public async Task ResolveOperationalCashRegisterIdAsync_WhenNull_PicksDefaultThenFirst()
@@ -126,5 +136,90 @@ public sealed class TagesabschlussServiceOperationalTests
         Assert.Single(history);
         Assert.Equal(120m, history[0].TotalAmount);
         Assert.Equal("manager-user", await ctx.DailyClosings.Select(d => d.UserId).FirstAsync());
+    }
+
+    [Fact]
+    public async Task PerformDailyClosingAsync_WhenDevBypassTse_AllowsFakeClosingWithoutHardware()
+    {
+        var tenantId = Guid.NewGuid();
+        var registerId = Guid.NewGuid();
+        var userId = "dev-user";
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+        var (dayStartUtc, dayEndExclusiveUtc) =
+            PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
+        var noonUtc = dayStartUtc.AddHours(12);
+
+        await using var ctx = CreateContext(tenantId);
+        ctx.Tenants.Add(new Tenant { Id = tenantId, Name = "T", Slug = "t-dev", IsActive = true });
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            Id = registerId,
+            TenantId = tenantId,
+            RegisterNumber = "K1",
+            Location = "L",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = noonUtc,
+            Status = RegisterStatus.Open,
+            CreatedAt = noonUtc,
+        });
+        ctx.Customers.Add(new Customer
+        {
+            Id = Guid.NewGuid(),
+            Name = "C",
+            CustomerNumber = "00000001",
+            TaxNumber = "ATU12345678",
+            CreatedAt = noonUtc,
+        });
+        await ctx.SaveChangesAsync();
+
+        var custId = await ctx.Customers.Select(c => c.Id).FirstAsync();
+        ctx.Invoices.Add(new Invoice
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CashRegisterId = registerId,
+            CustomerId = custId,
+            InvoiceNumber = "INV-1",
+            TotalAmount = 10m,
+            TaxAmount = 2m,
+            Status = InvoiceStatus.Paid,
+            CreatedAt = noonUtc,
+        });
+        await ctx.SaveChangesAsync();
+
+        var tseMock = new Mock<ITseService>();
+        tseMock.Setup(s => s.GetTseStatusAsync()).ReturnsAsync(new TseStatus
+        {
+            IsConnected = false,
+            Status = "Disconnected",
+            ErrorMessage = "TSE device is not connected",
+        });
+        tseMock
+            .Setup(s => s.CreateDailyClosingSignatureAsync(
+                registerId,
+                It.IsAny<string>(),
+                It.IsAny<DateTime>(),
+                It.IsAny<decimal>(),
+                It.IsAny<int>()))
+            .ReturnsAsync("dev-daily-closing-jws");
+
+        var devMode = Mock.Of<IDevelopmentModeService>(d => d.ShouldBypassTseCheck() == true);
+
+        var sut = new TagesabschlussService(
+            ctx,
+            tseMock.Object,
+            new FakeTseProvider(NullLogger<FakeTseProvider>.Instance),
+            new SoftwareTseKeyProvider(),
+            Mock.Of<IFinanzOnlineService>(f => f.IsEnabledAsync() == Task.FromResult(false)),
+            Options.Create(new TseOptions { Mode = "Real", TseMode = "Device" }),
+            Mock.Of<IHostEnvironment>(h => h.EnvironmentName == Environments.Development),
+            NullLogger<TagesabschlussService>.Instance,
+            devMode);
+
+        var result = await sut.PerformDailyClosingAsync(userId, registerId);
+
+        Assert.True(result.Success);
+        Assert.Equal(1, result.TransactionCount);
     }
 }

@@ -48,6 +48,7 @@ namespace KasseAPI_Final.Services
         private readonly IFinanzOnlineService _finanzOnlineService;
         private readonly TseOptions _tseOptions;
         private readonly IHostEnvironment _hostEnvironment;
+        private readonly IDevelopmentModeService? _developmentModeService;
         private readonly ILogger<TagesabschlussService> _logger;
 
         public TagesabschlussService(
@@ -58,7 +59,8 @@ namespace KasseAPI_Final.Services
             IFinanzOnlineService finanzOnlineService,
             IOptions<TseOptions> tseOptions,
             IHostEnvironment hostEnvironment,
-            ILogger<TagesabschlussService> logger)
+            ILogger<TagesabschlussService> logger,
+            IDevelopmentModeService? developmentModeService = null)
         {
             _context = context;
             _tseService = tseService;
@@ -68,6 +70,24 @@ namespace KasseAPI_Final.Services
             _tseOptions = tseOptions.Value;
             _hostEnvironment = hostEnvironment;
             _logger = logger;
+            _developmentModeService = developmentModeService;
+        }
+
+        /// <summary>
+        /// Dev/demo bypass for daily closing when no hardware TSE is connected.
+        /// Aligns with <see cref="TseService.GetDeviceStatusAsync"/> and payment TSE policy.
+        /// </summary>
+        private bool AllowDailyClosingWithoutConnectedTse()
+        {
+            if (_developmentModeService?.ShouldBypassTseCheck() == true)
+                return true;
+
+            if (_tseProvider is not FakeTseProvider)
+                return false;
+
+            return _tseOptions.AllowSimulatedDailyClosing
+                || _tseOptions.IsFakeSigningMode
+                || _tseOptions.UseSoftTseWhenNoDevice;
         }
 
         /// <summary>Sprint 4: Count active payments in scope (register + date range) that have no Invoice with SourcePaymentId. Used to block closing when &gt; 0.</summary>
@@ -94,26 +114,22 @@ namespace KasseAPI_Final.Services
         {
             try
             {
-                // Check if TSE is connected
+                // Check if TSE is connected (dev/demo may bypass — see AllowDailyClosingWithoutConnectedTse).
                 var tseStatus = await _tseService.GetTseStatusAsync();
                 if (!tseStatus.IsConnected)
                 {
-                    var isFakeProvider = _tseProvider is FakeTseProvider;
-                    var allowConfiguredSimulatedBypass =
-                        _tseOptions.AllowSimulatedDailyClosing && isFakeProvider;
-
-                    // Bypass connection validation only when explicitly enabled and fake provider is active.
-                    if (!allowConfiguredSimulatedBypass)
+                    if (!AllowDailyClosingWithoutConnectedTse())
                     {
                         throw new InvalidOperationException("TSE device is not connected. Daily closing cannot be performed.");
                     }
 
                     _logger.LogWarning(
-                        "TSE device is not connected, but daily closing is allowed by configuration. Provider={ProviderType}, Mode={Mode}, Environment={EnvironmentName}, AllowSimulatedDailyClosing={AllowSimulatedDailyClosing}",
+                        "TSE device is not connected, but daily closing is allowed in dev/demo. Provider={ProviderType}, Mode={Mode}, TseMode={TseMode}, Environment={EnvironmentName}, DevBypassTse={DevBypassTse}",
                         _tseProvider.GetType().Name,
                         _tseOptions.Mode,
+                        _tseOptions.TseMode,
                         _hostEnvironment.EnvironmentName,
-                        _tseOptions.AllowSimulatedDailyClosing);
+                        _developmentModeService?.ShouldBypassTseCheck() == true);
                 }
 
                 var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();

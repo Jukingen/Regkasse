@@ -50,6 +50,20 @@ namespace KasseAPI_Final.Services
         {
             try
             {
+                if (_developmentModeService?.ShouldBypassTseCheck() == true)
+                {
+                    var now = DateTime.UtcNow;
+                    return new TseStatus
+                    {
+                        IsConnected = true,
+                        IsReady = true,
+                        IsOperational = true,
+                        Status = "DevelopmentBypass",
+                        ErrorMessage = "",
+                        LastConnectionTime = now,
+                    };
+                }
+
                 var tseDevice = await _context.TseDevices
                     .OrderBy(t => t.CreatedAt)
                     .FirstOrDefaultAsync();

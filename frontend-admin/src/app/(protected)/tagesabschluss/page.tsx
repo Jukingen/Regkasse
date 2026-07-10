@@ -123,7 +123,7 @@ export default function TagesabschlussPage() {
   const {
     selectedRegister,
     selectedRegisterId: resolvedRegisterId,
-    setSelectedRegisterId,
+    setSelectedRegisterId: updateRegisterSelection,
     registerOptions,
     registers,
     isLoading: registersLoading,
@@ -395,7 +395,7 @@ export default function TagesabschlussPage() {
         <Select
           style={{ minWidth: 240 }}
           value={resolvedRegisterId}
-          onChange={(next) => setSelectedRegisterId(next)}
+          onChange={(next) => updateRegisterSelection(next)}
           placeholder={t('tagesabschluss.register.selectPlaceholder')}
           options={registerOptions}
         />
