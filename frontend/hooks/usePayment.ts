@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Alert } from 'react-native';
 import {
   paymentService,
@@ -20,15 +20,23 @@ export const usePayment = (cashRegisterId?: string | null) => {
   const [error, setError] = useState<string | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
 
+  useEffect(() => {
+    if (!cashRegisterId?.trim()) {
+      setPaymentMethods([]);
+      setError(null);
+    }
+  }, [cashRegisterId]);
+
   // Ödeme yöntemlerini getir
   const getPaymentMethods = useCallback(async () => {
+    if (!cashRegisterId?.trim()) {
+      // Register assignment still loading — caller should retry when id is available.
+      return [];
+    }
+
     try {
       setMethodsLoading(true);
       setError(null);
-
-      if (!cashRegisterId?.trim()) {
-        throw new Error('cashRegisterId is required to load payment methods');
-      }
 
       const methods = await paymentService.getPaymentMethods(cashRegisterId.trim());
       setPaymentMethods(methods);

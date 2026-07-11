@@ -9,7 +9,7 @@ import {
     postApiCashRegisterIdOpen,
 } from '@/api/generated/cash-register/cash-register';
 import type { CashRegisterActionKey } from '@/features/cash-registers/components/CashRegisterActions';
-import { cashRegisterListQueryKey } from '@/features/cash-registers/api/cashRegisters';
+import { invalidateShiftRelatedQueries } from '@/features/shifts/api/shiftQueryInvalidation';
 import { FA_QUICK_CASH_REGISTER_QUERY_PARAM } from '@/features/cash-registers/constants/quickSwitch';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
@@ -31,21 +31,12 @@ export function useCashRegisterActionHandler({
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    const invalidateRegisters = useCallback(async () => {
-        await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['admin', 'cash-registers'] }),
-            queryClient.invalidateQueries({ queryKey: cashRegisterListQueryKey }),
-            queryClient.invalidateQueries({ queryKey: ['cash-registers'] }),
-            queryClient.invalidateQueries({ queryKey: ['admin', 'cash-registers', 'list'] }),
-        ]);
-    }, [queryClient]);
-
     const openMutation = useMutation({
         mutationFn: (register: CashRegister) =>
             postApiCashRegisterIdOpen(register.id!.trim(), { openingBalance: 0 }),
-        onSuccess: async () => {
+        onSuccess: async (_data, register) => {
             message.success(t('cashRegisters.shift.openSuccess'));
-            await invalidateRegisters();
+            await invalidateShiftRelatedQueries(queryClient, register.id?.trim());
         },
         onError: (err) => {
             message.error(
@@ -62,9 +53,9 @@ export function useCashRegisterActionHandler({
             postApiCashRegisterIdClose(register.id!.trim(), {
                 closingBalance: register.currentBalance ?? 0,
             }),
-        onSuccess: async () => {
+        onSuccess: async (_data, register) => {
             message.success(t('cashRegisters.shift.closeSuccess'));
-            await invalidateRegisters();
+            await invalidateShiftRelatedQueries(queryClient, register.id?.trim());
         },
         onError: (err) => {
             message.error(

@@ -179,6 +179,7 @@ export interface PosDailyClosingStatusDto {
   canClose: boolean;
   hasActiveShift: boolean;
   message: string;
+  blockReason?: string | null;
   lastClosingDate?: string | null;
   paymentsWithoutInvoiceCount: number;
 }
@@ -259,6 +260,7 @@ export function parsePosDailyClosingStatus(raw: unknown): PosDailyClosingStatusD
     canClose: layer.canClose === true || layer.CanClose === true,
     hasActiveShift: layer.hasActiveShift === true || layer.HasActiveShift === true,
     message: readString(layer.message ?? layer.Message),
+    blockReason: readString(layer.blockReason ?? layer.BlockReason) || null,
     lastClosingDate: (layer.lastClosingDate ?? layer.LastClosingDate ?? null) as string | null,
     paymentsWithoutInvoiceCount: readNumber(
       layer.paymentsWithoutInvoiceCount ?? layer.PaymentsWithoutInvoiceCount,

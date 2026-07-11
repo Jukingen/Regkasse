@@ -114,11 +114,21 @@ public sealed class PosDailyClosingResult
     public PosDailyClosingReportDto? Report { get; init; }
 }
 
+public static class PosDailyClosingBlockReasons
+{
+    public const string AlreadyClosedToday = "already_closed_today";
+    public const string PaymentsWithoutInvoice = "payments_without_invoice";
+    public const string RegisterUnavailable = "register_unavailable";
+    public const string NoActiveShift = "no_active_shift";
+}
+
 public sealed class PosDailyClosingStatusDto
 {
     public bool CanClose { get; init; }
     public bool HasActiveShift { get; init; }
     public string Message { get; init; } = string.Empty;
+    /// <summary>Machine-readable block reason for POS i18n (<see cref="PosDailyClosingBlockReasons"/>).</summary>
+    public string? BlockReason { get; init; }
     public DateTime? LastClosingDate { get; init; }
     public int PaymentsWithoutInvoiceCount { get; init; }
 }

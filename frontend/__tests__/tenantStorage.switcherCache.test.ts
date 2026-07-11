@@ -1,4 +1,5 @@
-import { tenantStorage, TENANT_STORAGE_KEYS } from '@/services/tenant/tenantStorage';
+import { fetchFreshTenants, tenantStorage, TENANT_STORAGE_KEYS } from '@/services/tenant/tenantStorage';
+import { sessionManager } from '@/services/session/sessionManager';
 import { storage } from '@/utils/storage';
 
 jest.mock('@/utils/storage', () => ({
@@ -7,6 +8,17 @@ jest.mock('@/utils/storage', () => ({
     setItem: jest.fn(),
     removeItem: jest.fn(),
   },
+}));
+
+jest.mock('@/services/session/sessionManager', () => ({
+  sessionManager: {
+    getAccessToken: jest.fn(),
+    isExpired: jest.fn(),
+  },
+}));
+
+jest.mock('@/services/tenant/tenantSwitcherApi', () => ({
+  fetchTenantSwitcherList: jest.fn(),
 }));
 
 describe('tenantStorage switcher cache', () => {
@@ -36,5 +48,29 @@ describe('tenantStorage switcher cache', () => {
       TENANT_STORAGE_KEYS.switcherList,
       JSON.stringify(rows),
     );
+  });
+});
+
+describe('fetchFreshTenants', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (storage.getItem as jest.Mock).mockResolvedValue(null);
+  });
+
+  it('skips API when there is no access token', async () => {
+    const { fetchTenantSwitcherList } = jest.requireMock('@/services/tenant/tenantSwitcherApi');
+    (sessionManager.getAccessToken as jest.Mock).mockResolvedValue(null);
+
+    await expect(fetchFreshTenants()).resolves.toEqual({ tenants: [], fromCache: false });
+    expect(fetchTenantSwitcherList).not.toHaveBeenCalled();
+  });
+
+  it('skips API when access token is expired', async () => {
+    const { fetchTenantSwitcherList } = jest.requireMock('@/services/tenant/tenantSwitcherApi');
+    (sessionManager.getAccessToken as jest.Mock).mockResolvedValue('expired-token');
+    (sessionManager.isExpired as jest.Mock).mockReturnValue(true);
+
+    await expect(fetchFreshTenants()).resolves.toEqual({ tenants: [], fromCache: false });
+    expect(fetchTenantSwitcherList).not.toHaveBeenCalled();
   });
 });

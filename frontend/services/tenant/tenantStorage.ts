@@ -1,4 +1,5 @@
 import { storage } from '../../utils/storage';
+import { sessionManager } from '../session/sessionManager';
 
 import type { TenantSwitcherListItem } from './tenantSwitcherApi';
 
@@ -124,7 +125,17 @@ export type FetchFreshTenantsResult = {
  * Always requests GET /api/tenants/switcher; updates switcher cache on success.
  * On failure returns last cached list (may be empty).
  */
+async function resolveSwitcherListFromCache(): Promise<FetchFreshTenantsResult> {
+  const tenants = await tenantStorage.getCachedSwitcherList();
+  return { tenants, fromCache: tenants.length > 0 };
+}
+
 export async function fetchFreshTenants(): Promise<FetchFreshTenantsResult> {
+  const token = await sessionManager.getAccessToken();
+  if (!token || sessionManager.isExpired(token)) {
+    return resolveSwitcherListFromCache();
+  }
+
   const { fetchTenantSwitcherList } = await import('./tenantSwitcherApi');
 
   try {
@@ -132,8 +143,7 @@ export async function fetchFreshTenants(): Promise<FetchFreshTenantsResult> {
     await tenantStorage.setCachedSwitcherList(tenants);
     return { tenants, fromCache: false };
   } catch {
-    const tenants = await tenantStorage.getCachedSwitcherList();
-    return { tenants, fromCache: tenants.length > 0 };
+    return resolveSwitcherListFromCache();
   }
 }
 

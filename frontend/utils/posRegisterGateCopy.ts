@@ -352,10 +352,15 @@ export function registerGateFooterHint(ctx: PosRegisterGateContext): string {
   }
   if (
     ctx.posReadinessNextAction === 'open_register' &&
-    (ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CLOSED ||
-      ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.FORBIDDEN)
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.CLOSED
   ) {
-    return '„Zahlen“ ist deaktiviert: Kasse muss geöffnet werden bzw. fehlende Berechtigung.';
+    return '„Zahlen“ ist deaktiviert: keine aktive Schicht — zuerst Schicht starten.';
+  }
+  if (
+    ctx.posReadinessNextAction === 'open_register' &&
+    ctx.posReadinessMessageCode === POS_READINESS_MESSAGE_CODES.FORBIDDEN
+  ) {
+    return '„Zahlen“ ist deaktiviert: Kasse öffnen nicht erlaubt — Berechtigung oder Administrator.';
   }
   if (ctx.posReadinessError) {
     return '„Zahlen“ ist deaktiviert: Kassenbereitschaft fehlt — „Erneut versuchen“ oder Einstellungen prüfen.';

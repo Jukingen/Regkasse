@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { cashRegisterListQueryKey } from '@/features/cash-registers/api/cashRegisters';
 import {
     closeCashRegisterShift,
     fetchShiftStatus,
@@ -10,25 +9,10 @@ import {
     shiftStatusQueryKey,
     type ShiftStatusDto,
 } from '@/features/shifts/api/shiftManagement';
-import { adminShiftOverviewQueryKey } from '@/features/shifts/api/shiftsOverview';
+import { invalidateShiftRelatedQueries } from '@/features/shifts/api/shiftQueryInvalidation';
 import { useAntdApp } from '@/hooks/useAntdApp';
 import { useI18n } from '@/i18n';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
-
-async function invalidateShiftQueries(
-    queryClient: ReturnType<typeof useQueryClient>,
-    registerId?: string,
-) {
-    await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['shift', 'status'] }),
-        queryClient.invalidateQueries({ queryKey: shiftStatusQueryKey(registerId) }),
-        queryClient.invalidateQueries({ queryKey: ['admin', 'cash-registers'] }),
-        queryClient.invalidateQueries({ queryKey: cashRegisterListQueryKey }),
-        queryClient.invalidateQueries({ queryKey: ['cash-registers'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin', 'cash-registers', 'list'] }),
-        queryClient.invalidateQueries({ queryKey: adminShiftOverviewQueryKey() }),
-    ]);
-}
 
 /**
  * Manager quick actions: register open/close (operational shift) for one cash register.
@@ -49,7 +33,7 @@ export function useShiftManagement(cashRegisterId?: string) {
     const openShiftMutation = useMutation({
         mutationFn: (registerId: string) => openCashRegisterShift(registerId),
         onSuccess: async (_data, registerId) => {
-            await invalidateShiftQueries(queryClient, registerId);
+            await invalidateShiftRelatedQueries(queryClient, registerId);
         },
         onError: (err) => {
             message.error(
@@ -69,7 +53,7 @@ export function useShiftManagement(cashRegisterId?: string) {
             return closeCashRegisterShift(id, status.currentBalance);
         },
         onSuccess: async (_data, registerId) => {
-            await invalidateShiftQueries(queryClient, registerId);
+            await invalidateShiftRelatedQueries(queryClient, registerId);
         },
         onError: (err) => {
             message.error(

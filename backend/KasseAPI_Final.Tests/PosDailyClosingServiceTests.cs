@@ -5,6 +5,7 @@ using KasseAPI_Final.Models;
 using KasseAPI_Final.Models.Reports;
 using KasseAPI_Final.Services;
 using KasseAPI_Final.Tenancy;
+using KasseAPI_Final.Time;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -209,6 +210,69 @@ public class PosDailyClosingServiceTests
         var register = await ctx.CashRegisters.FindAsync(regId);
         Assert.Equal(RegisterStatus.Closed, register!.Status);
         Assert.Null(register.CurrentUserId);
+    }
+
+    [Fact]
+    public async Task GetStatus_AlreadyClosedToday_ReturnsBlockReason()
+    {
+        await using var ctx = CreateContext();
+        const string userId = "cashier-1";
+        var regId = Guid.NewGuid();
+        var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
+
+        ctx.CashRegisters.Add(new CashRegister
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            Id = regId,
+            RegisterNumber = "K1",
+            Location = "Front",
+            StartingBalance = 0,
+            CurrentBalance = 0,
+            LastBalanceUpdate = DateTime.UtcNow,
+            Status = RegisterStatus.Open,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        ctx.CashierShifts.Add(new CashierShift
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            CashRegisterId = regId,
+            CashierId = userId,
+            CashierName = "Max",
+            StartBalance = 0m,
+            StartedAt = DateTime.UtcNow.AddHours(-1),
+            Status = CashierShiftStatuses.Active,
+            CreatedAt = DateTime.UtcNow,
+            IsActive = true,
+        });
+        ctx.DailyClosings.Add(new DailyClosing
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            CashRegisterId = regId,
+            UserId = userId,
+            ClosingDate = PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday),
+            ClosingType = "Daily",
+            TotalAmount = 10m,
+            TotalTaxAmount = 2m,
+            TransactionCount = 1,
+            TseSignature = "sig",
+            Status = "Completed",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await ctx.SaveChangesAsync();
+
+        var tagesabschluss = new Mock<ITagesabschlussService>();
+        tagesabschluss.Setup(t => t.GetLastClosingDateAsync(regId))
+            .ReturnsAsync(PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday));
+        tagesabschluss.Setup(t => t.GetPaymentsWithoutInvoiceCountAsync(regId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(0);
+
+        var svc = CreateService(ctx, tagesabschluss.Object);
+        var status = await svc.GetStatusAsync(userId);
+
+        Assert.True(status.HasActiveShift);
+        Assert.False(status.CanClose);
+        Assert.Equal(PosDailyClosingBlockReasons.AlreadyClosedToday, status.BlockReason);
     }
 
     private static PosDailyClosingService CreateService(AppDbContext ctx, ITagesabschlussService? tagesabschluss = null)

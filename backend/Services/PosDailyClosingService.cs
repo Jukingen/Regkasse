@@ -55,11 +55,14 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
             {
                 CanClose = false,
                 HasActiveShift = false,
+                BlockReason = PosDailyClosingBlockReasons.NoActiveShift,
                 Message = "No active shift",
             };
         }
 
-        var canClose = await _tagesabschluss.CanPerformClosingAsync(shift.CashRegisterId);
+        var register = await _context.CashRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == shift.CashRegisterId, cancellationToken);
+
         var lastClosingDate = await _tagesabschluss.GetLastClosingDateAsync(shift.CashRegisterId);
         var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
         var (dayStartUtc, dayEndExclusiveUtc) =
@@ -69,16 +72,43 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
             dayStartUtc,
             dayEndExclusiveUtc);
 
-        var message = canClose
-            ? "Daily closing can be performed"
-            : paymentsWithoutInvoiceCount > 0
-                ? $"{paymentsWithoutInvoiceCount} payment(s) without invoice; resolve before closing."
-                : "Daily closing already performed for today";
+        var closedToday = lastClosingDate.HasValue
+                          && PostgreSqlUtcDateTime.ViennaCalendarMidnightContainingInstant(lastClosingDate.Value)
+                          >= viennaToday;
+
+        string? blockReason = null;
+        var canClose = true;
+        string message;
+
+        if (register == null || register.Status == RegisterStatus.Decommissioned)
+        {
+            canClose = false;
+            blockReason = PosDailyClosingBlockReasons.RegisterUnavailable;
+            message = "Cash register is not available for daily closing";
+        }
+        else if (closedToday)
+        {
+            canClose = false;
+            blockReason = PosDailyClosingBlockReasons.AlreadyClosedToday;
+            message = "Daily closing already performed for today";
+        }
+        else if (paymentsWithoutInvoiceCount > 0)
+        {
+            canClose = false;
+            blockReason = PosDailyClosingBlockReasons.PaymentsWithoutInvoice;
+            message =
+                $"{paymentsWithoutInvoiceCount} payment(s) without invoice; resolve before closing.";
+        }
+        else
+        {
+            message = "Daily closing can be performed";
+        }
 
         return new PosDailyClosingStatusDto
         {
             CanClose = canClose,
             HasActiveShift = true,
+            BlockReason = blockReason,
             Message = message,
             LastClosingDate = lastClosingDate,
             PaymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,

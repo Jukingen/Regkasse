@@ -46,10 +46,16 @@ public sealed class PosShiftService : IPosShiftService
     if (shift == null)
       return new CurrentShiftResponse { HasActiveShift = false };
 
+    var liveTotals = await GetShiftTotalsAsync(
+        shift.CashRegisterId,
+        shift.StartedAt,
+        DateTime.UtcNow,
+        cancellationToken);
+
     return new CurrentShiftResponse
     {
       HasActiveShift = true,
-      Shift = MapToDto(shift),
+      Shift = MapToDto(shift, liveTotals),
     };
   }
 
@@ -272,7 +278,7 @@ public sealed class PosShiftService : IPosShiftService
     return string.IsNullOrWhiteSpace(fallback) ? "Unknown" : fallback;
   }
 
-  private static CashierShiftDto MapToDto(CashierShift shift) => new()
+  private static CashierShiftDto MapToDto(CashierShift shift, ShiftTotalsDto? liveTotals = null) => new()
   {
     Id = shift.Id,
     TenantId = shift.TenantId,
@@ -281,9 +287,9 @@ public sealed class PosShiftService : IPosShiftService
     CashierName = shift.CashierName,
     StartBalance = shift.StartBalance,
     EndBalance = shift.EndBalance,
-    TotalSales = shift.TotalSales,
-    TotalCash = shift.TotalCash,
-    TotalCard = shift.TotalCard,
+    TotalSales = liveTotals?.Sales ?? shift.TotalSales,
+    TotalCash = liveTotals?.Cash ?? shift.TotalCash,
+    TotalCard = liveTotals?.Card ?? shift.TotalCard,
     Difference = shift.Difference,
     StartedAt = shift.StartedAt,
     EndedAt = shift.EndedAt,

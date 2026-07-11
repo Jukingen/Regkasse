@@ -334,6 +334,19 @@ axiosInstance.interceptors.response.use(
     }
 );
 
+function getApiErrorStatus(error: unknown): number | undefined {
+    if (!error || typeof error !== 'object') return undefined;
+    const candidate = error as { response?: { status?: number }; status?: number };
+    return candidate.response?.status ?? candidate.status;
+}
+
+function logApiClientError(method: string, error: unknown): void {
+    if (!isDev) return;
+    // 401 is common on login/bootstrap; response interceptor already handles refresh/logout.
+    if (getApiErrorStatus(error) === 401) return;
+    console.error(`${method} request failed:`, error);
+}
+
 // API client
 export const apiClient = {
     get: async <T>(url: string, config?: any): Promise<T> => {
@@ -341,9 +354,7 @@ export const apiClient = {
             const response = await axiosInstance.get<T>(url, config);
             return response as T;
         } catch (error) {
-            if (isDev) {
-                console.error('GET request failed:', error);
-            }
+            logApiClientError('GET', error);
             throw error;
         }
     },
@@ -353,9 +364,7 @@ export const apiClient = {
             const response = await axiosInstance.post<T>(url, data, config);
             return response as T;
         } catch (error) {
-            if (isDev) {
-                console.error('POST request failed:', error);
-            }
+            logApiClientError('POST', error);
             throw error;
         }
     },
@@ -365,9 +374,7 @@ export const apiClient = {
             const response = await axiosInstance.put<T>(url, data, config);
             return response as T;
         } catch (error) {
-            if (isDev) {
-                console.error('PUT request failed:', error);
-            }
+            logApiClientError('PUT', error);
             throw error;
         }
     },
@@ -377,9 +384,7 @@ export const apiClient = {
             const response = await axiosInstance.delete<T>(url, config);
             return response as T;
         } catch (error) {
-            if (isDev) {
-                console.error('DELETE request failed:', error);
-            }
+            logApiClientError('DELETE', error);
             throw error;
         }
     }

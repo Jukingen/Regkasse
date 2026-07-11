@@ -224,4 +224,46 @@ public class PosShiftServiceTests
         Assert.Equal(RegisterStatus.Closed, register!.Status);
         Assert.Null(register.CurrentUserId);
     }
+
+    [Fact]
+    public async Task GetCurrentShift_ReturnsLiveTotalsFromPayments()
+    {
+        await using var ctx = CreateContext();
+        const string userId = "cashier-1";
+        var regId = Guid.NewGuid();
+        var startedAt = DateTime.UtcNow.AddHours(-1);
+
+        ctx.CashierShifts.Add(new CashierShift
+        {
+            TenantId = LegacyDefaultTenantIds.Primary,
+            CashRegisterId = regId,
+            CashierId = userId,
+            CashierName = "Max",
+            StartBalance = 100m,
+            StartedAt = startedAt,
+            Status = CashierShiftStatuses.Active,
+            CreatedAt = startedAt,
+            IsActive = true,
+        });
+        ctx.PaymentDetails.Add(new PaymentDetails
+        {
+            Id = Guid.NewGuid(),
+            CashRegisterId = regId,
+            TotalAmount = 15m,
+            PaymentMethodRaw = ((int)PaymentMethod.Cash).ToString(),
+            CreatedAt = startedAt.AddMinutes(5),
+            IsActive = true,
+            ReceiptNumber = "R-live",
+        });
+        await ctx.SaveChangesAsync();
+
+        var svc = CreateService(ctx);
+        var result = await svc.GetCurrentShiftAsync(userId);
+
+        Assert.True(result.HasActiveShift);
+        Assert.NotNull(result.Shift);
+        Assert.Equal(15m, result.Shift!.TotalSales);
+        Assert.Equal(15m, result.Shift.TotalCash);
+        Assert.Equal(0m, result.Shift.TotalCard);
+    }
 }

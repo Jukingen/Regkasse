@@ -21,8 +21,6 @@ import { PosStatusOverviewProvider } from '../contexts/PosStatusOverviewContext'
 import { useMemoryMonitor } from '../hooks/useMemoryOptimization';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { clearLegacyTenantSwitcherCache } from '../services/tenant/clearLegacyTenantSwitcherCache';
-import { fetchFreshTenants } from '../services/tenant/tenantStorage';
-import { sessionManager } from '../services/session/sessionManager';
 
 console.log('🚀 ROOT LAYOUT: Module loaded successfully');
 
@@ -43,15 +41,7 @@ export default function RootLayout() {
   }, []);
 
   React.useEffect(() => {
-    void (async () => {
-      await clearLegacyTenantSwitcherCache();
-      if (!__DEV__) return;
-
-      const token = await sessionManager.getAccessToken();
-      if (!token) return;
-
-      await fetchFreshTenants();
-    })();
+    void clearLegacyTenantSwitcherCache();
   }, []);
 
   React.useEffect(() => {

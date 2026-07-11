@@ -6,7 +6,7 @@ $backend = Join-Path $PSScriptRoot '..\backend' | Resolve-Path
 
 Get-Process -Name 'KasseAPI_Final' -ErrorAction SilentlyContinue | Stop-Process -Force
 
-$dirs = @('obj', 'bin', '_test_build_out', '_ef_build', '_build_out')
+$dirs = @('obj', 'bin', '_test_build_out', '_testout', '_ef_build', '_build_out')
 foreach ($name in $dirs) {
     $path = Join-Path $backend $name
     if (Test-Path $path) {

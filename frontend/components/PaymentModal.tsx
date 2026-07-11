@@ -758,7 +758,9 @@ export default function PaymentModal({
   // Load payment methods and guest customer when modal opens (cash register: usePosCashRegisterAssignment)
   useEffect(() => {
     if (!visible) return;
-    getPaymentMethods();
+    if (cashRegisterId?.trim()) {
+      getPaymentMethods();
+    }
     customerService.getGuestCustomer()
       .then((id) => setGuestCustomerId(id))
       .catch((err) => console.warn('[PaymentModal] Failed to load guest customer:', err));
@@ -1662,7 +1664,7 @@ export default function PaymentModal({
                 ]}
               >
               <View style={styles.paymentMethodsContainer}>
-                {methodsLoading ? (
+                {methodsLoading || !cashRegisterResolved ? (
                   <View style={styles.paymentMethodsLoading}>
                     <WaveLoader color={SoftColors.accent} />
                     <Text style={styles.paymentMethodsLoadingLabel}>{t('common:loading')}</Text>
@@ -1705,6 +1707,10 @@ export default function PaymentModal({
                       </Pressable>
                     );
                   })
+                ) : isRegisterGateBlockingPayment || !hasValidCashRegisterId ? (
+                  <Text style={styles.paymentMethodsGateHint}>
+                    {registerGateFooterHint(registerGateCtx)}
+                  </Text>
                 ) : (
                   <View style={styles.errorBlock}>
                     <Text style={styles.errorText}>{t('payment:errors.generalError')}</Text>
@@ -2481,6 +2487,13 @@ const styles = StyleSheet.create({
     color: SoftColors.textSecondary,
     textAlign: 'center',
     marginTop: SoftSpacing.sm,
+  },
+  paymentMethodsGateHint: {
+    ...SoftTypography.bodySmall,
+    color: SoftColors.textSecondary,
+    textAlign: 'center',
+    paddingHorizontal: SoftSpacing.sm,
+    width: '100%',
   },
   paymentMethod: {
     alignItems: 'center',

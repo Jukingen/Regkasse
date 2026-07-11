@@ -98,6 +98,8 @@ describe('posRegisterGateCopy blocked-state differentiation', () => {
     expect(registerGateBannerTitle(ctx)).toMatch(/nicht erlaubt/i);
     expect(registerGateBannerDetail(ctx)).toMatch(/Rolle|Administrator/i);
     expect(registerGateBannerDetail(ctx)).not.toMatch(/anderen Benutzern zugeordnet/i);
+    expect(registerGateFooterHint(ctx)).toMatch(/nicht erlaubt|Berechtigung/i);
+    expect(registerGateFooterHint(ctx)).not.toMatch(/Schicht starten/i);
   });
 
   it('RKSV Monatsbeleg missing: dedicated title/detail/footer/alert', () => {

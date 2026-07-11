@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import {
   DailyClosingApiError,
   downloadDailyClosingReportPdf,
+  type PosDailyClosingStatusDto,
 } from '../services/api/shiftService';
 import { useShift } from '../hooks/useShift';
 import { WaveLoader } from '../src/components/common/WaveLoader';
@@ -28,6 +29,24 @@ function parseMoneyInput(value: string): number | null {
   if (!normalized) return null;
   const n = Number(normalized);
   return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
+function resolveDailyClosingStatusMessage(
+  status: PosDailyClosingStatusDto,
+  t: (key: string, options?: Record<string, unknown>) => string
+): string {
+  switch (status.blockReason) {
+    case 'already_closed_today':
+      return t('settings:shift.dailyClosing.statusAlreadyClosedToday');
+    case 'payments_without_invoice':
+      return t('settings:shift.dailyClosing.statusPaymentsWithoutInvoice', {
+        count: status.paymentsWithoutInvoiceCount,
+      });
+    case 'register_unavailable':
+      return t('settings:shift.dailyClosing.statusRegisterUnavailable');
+    default:
+      return t('settings:shift.dailyClosing.statusBlocked');
+  }
 }
 
 export function ShiftManager() {
@@ -228,7 +247,7 @@ export function ShiftManager() {
           </Text>
           {dailyClosingStatus && !dailyClosingStatus.canClose ? (
             <Text style={styles.statusHint}>
-              {dailyClosingStatus.message || t('settings:shift.dailyClosing.statusBlocked')}
+              {resolveDailyClosingStatusMessage(dailyClosingStatus, t)}
             </Text>
           ) : null}
           <Pressable

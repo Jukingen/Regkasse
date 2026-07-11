@@ -18,7 +18,7 @@ import {
 } from '@/api/generated/cash-register/cash-register';
 import { useI18n } from '@/i18n';
 import { getUserFacingApiErrorMessage } from '@/shared/errors/userFacingApiError';
-import { cashRegisterListQueryKey } from '@/features/cash-registers/api/cashRegisters';
+import { invalidateShiftRelatedQueries } from '@/features/shifts/api/shiftQueryInvalidation';
 import {
     canDecommissionRegister,
     isDecommissionedRegister,
@@ -50,19 +50,11 @@ export function CashRegisterQuickActions({
     const isOpen = status === REGISTER_STATUS.open;
     const isClosed = status === REGISTER_STATUS.closed;
 
-    const invalidate = async () => {
-        await Promise.all([
-            queryClient.invalidateQueries({ queryKey: ['admin', 'cash-registers'] }),
-            queryClient.invalidateQueries({ queryKey: cashRegisterListQueryKey }),
-            queryClient.invalidateQueries({ queryKey: ['cash-registers'] }),
-        ]);
-    };
-
     const openMutation = useMutation({
         mutationFn: () => postApiCashRegisterIdOpen(registerId!, { openingBalance: 0 }),
         onSuccess: async () => {
             message.success(t('cashRegisters.shift.openSuccess'));
-            await invalidate();
+            await invalidateShiftRelatedQueries(queryClient, registerId);
         },
         onError: (err) => {
             message.error(
@@ -78,7 +70,7 @@ export function CashRegisterQuickActions({
         mutationFn: () => postApiCashRegisterIdClose(registerId!, { closingBalance: register.currentBalance ?? 0 }),
         onSuccess: async () => {
             message.success(t('cashRegisters.shift.closeSuccess'));
-            await invalidate();
+            await invalidateShiftRelatedQueries(queryClient, registerId);
         },
         onError: (err) => {
             message.error(

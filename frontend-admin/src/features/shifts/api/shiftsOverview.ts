@@ -1,3 +1,5 @@
+import type { QueryClient } from '@tanstack/react-query';
+
 import { customInstance } from '@/lib/axios';
 
 export type AdminShiftRow = {
@@ -56,8 +58,16 @@ export type AdminShiftOverviewParams = {
   limit?: number;
 };
 
+export const adminShiftOverviewQueryKeyPrefix = ['admin', 'shifts', 'overview'] as const;
+
 export const adminShiftOverviewQueryKey = (params: AdminShiftOverviewParams = {}) =>
-  ['admin', 'shifts', 'overview', params] as const;
+  [...adminShiftOverviewQueryKeyPrefix, params] as const;
+
+export async function invalidateAdminShiftOverviewQueries(
+  queryClient: QueryClient,
+): Promise<void> {
+  await queryClient.invalidateQueries({ queryKey: adminShiftOverviewQueryKeyPrefix });
+}
 
 export async function fetchAdminShiftOverview(
   params: AdminShiftOverviewParams = {},

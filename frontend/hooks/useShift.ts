@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 
 import { usePosRegisterReadiness } from '../contexts/PosRegisterReadinessContext';
 import { usePosStatusOverview } from '../contexts/PosStatusOverviewContext';
@@ -56,12 +57,22 @@ export function useShift(explicitRegisterId?: string | null) {
 
   const refreshDailyClosingStatus = useCallback(async () => {
     try {
-      const status = await fetchDailyClosingStatus();
+      const [status, shiftRes] = await Promise.all([
+        fetchDailyClosingStatus(),
+        fetchCurrentShift(),
+      ]);
       setDailyClosingStatus(status);
+      if (shiftRes.hasActiveShift && shiftRes.shift) {
+        setActiveShift(shiftRes.shift);
+      }
     } catch {
       setDailyClosingStatus(null);
     }
   }, []);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([refresh(), refreshDailyClosingStatus()]);
+  }, [refresh, refreshDailyClosingStatus]);
 
   useEffect(() => {
     void refresh();
@@ -74,6 +85,13 @@ export function useShift(explicitRegisterId?: string | null) {
     }
     void refreshDailyClosingStatus();
   }, [activeShift?.id, refreshDailyClosingStatus]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!activeShift) return;
+      void refreshDailyClosingStatus();
+    }, [activeShift, refreshDailyClosingStatus])
+  );
 
   const startShift = useCallback(
     async (startBalance: number): Promise<CashierShiftDto> => {
@@ -158,5 +176,6 @@ export function useShift(explicitRegisterId?: string | null) {
     error,
     refresh,
     refreshDailyClosingStatus,
+    refreshAll,
   };
 }

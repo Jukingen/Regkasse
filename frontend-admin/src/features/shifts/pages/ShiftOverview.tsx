@@ -12,8 +12,8 @@ import { CashRegisterSelector } from '@/components/CashRegisterSelector';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell } from '@/components/admin-layout/AdminPageShell';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
+import { invalidateShiftRelatedQueries } from '@/features/shifts/api/shiftQueryInvalidation';
 import {
-  adminShiftOverviewQueryKey,
   forceCloseAdminShiftRegister,
   type AdminDailyClosingOverviewRow,
   type AdminShiftRow,
@@ -76,9 +76,9 @@ export const ShiftOverview: React.FC<ShiftOverviewProps> = ({ staffHubMode = fal
           ? 'Orphaned register session'
           : 'Manual admin force-close',
       }),
-    onSuccess: async () => {
+    onSuccess: async (_data, row) => {
       message.success(ts('actions.forceCloseSuccess'));
-      await queryClient.invalidateQueries({ queryKey: adminShiftOverviewQueryKey() });
+      await invalidateShiftRelatedQueries(queryClient, row.cashRegisterId);
     },
     onError: (err) => {
       message.error(

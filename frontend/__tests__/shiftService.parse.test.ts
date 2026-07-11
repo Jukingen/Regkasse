@@ -53,15 +53,17 @@ describe('shiftService parsers', () => {
     expect(parseCashierShiftDto({ startBalance: 1 })).toBeNull();
   });
 
-  it('parsePosDailyClosingStatus reads canClose', () => {
+  it('parsePosDailyClosingStatus reads canClose and blockReason', () => {
     const res = parsePosDailyClosingStatus({
-      canClose: true,
+      canClose: false,
       hasActiveShift: true,
-      message: 'ok',
+      message: 'Daily closing already performed for today',
+      blockReason: 'already_closed_today',
       paymentsWithoutInvoiceCount: 0,
     });
-    expect(res.canClose).toBe(true);
+    expect(res.canClose).toBe(false);
     expect(res.hasActiveShift).toBe(true);
+    expect(res.blockReason).toBe('already_closed_today');
   });
 
   it('parsePosDailyClosingResult maps report', () => {
