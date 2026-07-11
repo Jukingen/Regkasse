@@ -264,6 +264,8 @@ public class PosDailyClosingServiceTests
         var tagesabschluss = new Mock<ITagesabschlussService>();
         tagesabschluss.Setup(t => t.GetLastClosingDateAsync(regId))
             .ReturnsAsync(PostgreSqlUtcDateTime.ViennaCalendarAnchorToPersistUtc(viennaToday));
+        tagesabschluss.Setup(t => t.GetLastClosingPerformedAtForTypeAsync(regId, "Daily"))
+            .ReturnsAsync(DateTime.UtcNow);
         tagesabschluss.Setup(t => t.GetPaymentsWithoutInvoiceCountAsync(regId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
             .ReturnsAsync(0);
 
@@ -273,11 +275,12 @@ public class PosDailyClosingServiceTests
         Assert.True(status.HasActiveShift);
         Assert.False(status.CanClose);
         Assert.Equal(PosDailyClosingBlockReasons.AlreadyClosedToday, status.BlockReason);
+        Assert.NotNull(status.LastClosingPerformedAt);
     }
 
     private static PosDailyClosingService CreateService(AppDbContext ctx, ITagesabschlussService? tagesabschluss = null)
     {
-        var tages = tagesabschluss ?? Mock.Of<ITagesabschlussService>();
+        var tages = tagesabschluss ?? CreateDefaultTagesabschlussService();
         var cashRegisterShift = new CashRegisterShiftService(
             ctx,
             Mock.Of<UserManager<ApplicationUser>>(),
@@ -295,5 +298,13 @@ public class PosDailyClosingServiceTests
             TenantTestDoubles.PrimaryTenantResolver,
             Mock.Of<IAuditLogService>(),
             Mock.Of<ILogger<PosDailyClosingService>>());
+    }
+
+    private static ITagesabschlussService CreateDefaultTagesabschlussService()
+    {
+        var mock = new Mock<ITagesabschlussService>();
+        mock.Setup(t => t.GetLastClosingPerformedAtForTypeAsync(It.IsAny<Guid>(), It.IsAny<string>()))
+            .ReturnsAsync((DateTime?)null);
+        return mock.Object;
     }
 }

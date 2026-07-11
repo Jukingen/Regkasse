@@ -137,7 +137,7 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                 ) : '—'}
             </Descriptions.Item>
             {receipt.hasOfflineOrigin ? (
-                <Descriptions.Item label={c('labelOfflineOrigin')} span={3}>
+                <Descriptions.Item label={c('labelOfflineOrigin')} span={{ xs: 1, sm: 2, md: 3 }}>
                     <Tag color="purple">{c('tagReplay')}</Tag>
                     {receipt.clockDriftWarning ? (
                         <Tag color="red" style={{ marginLeft: 8 }}>
@@ -204,7 +204,7 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
             <Descriptions.Item label={c('labelGrandTotal')}>
                 <Text strong style={{ fontSize: 16 }}>{formatEUR(receipt.grandTotal)}</Text>
             </Descriptions.Item>
-            <Descriptions.Item label={c('labelQrCode')} span={3}>
+            <Descriptions.Item label={c('labelQrCode')} span={{ xs: 1, sm: 2, md: 3 }}>
                 {qrRaw ? (
                     <Space orientation="vertical" size="small" style={{ width: '100%' }}>
                         <Text code style={{ fontSize: 11, wordBreak: 'break-all' }}>
@@ -226,7 +226,7 @@ export default function ReceiptDetailCard({ receipt }: ReceiptDetailCardProps) {
                     '—'
                 )}
             </Descriptions.Item>
-            <Descriptions.Item label={c('labelSignature')} span={3}>
+            <Descriptions.Item label={c('labelSignature')} span={{ xs: 1, sm: 2, md: 3 }}>
                 {receipt.signatureValue ? (
                     <Text code style={{ fontSize: 11, wordBreak: 'break-all' }}>
                         {receipt.signatureValue}

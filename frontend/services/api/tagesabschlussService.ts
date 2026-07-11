@@ -1,7 +1,7 @@
 import { apiClient, API_BASE_URL, resolveTenantFetchHeaders } from './config';
 import { sessionManager } from '../session/sessionManager';
 import { unwrapApiResponseLayer } from './normalizePosPaymentMethods';
-import { formatUserDate, formatUserTime } from '../../utils/dateFormatter';
+import { formatUserDate, formatUserDateTime } from '../../utils/dateFormatter';
 
 export interface DailyClosingRequest {
     cashRegisterId: string;
@@ -41,8 +41,11 @@ export interface CanCloseResponse {
     canCloseMonthly?: boolean;
     canCloseYearly?: boolean;
     lastClosingDate?: string;
+    lastClosingPerformedAt?: string;
     lastMonthlyClosingDate?: string;
+    lastMonthlyClosingPerformedAt?: string;
     lastYearlyClosingDate?: string;
+    lastYearlyClosingPerformedAt?: string;
     message: string;
     paymentsWithoutInvoiceCount?: number;
 }
@@ -257,6 +260,8 @@ export async function downloadClosingReportPdf(
 
 /** Format closing date for display (DD.MM.YYYY). */
 export const formatClosingDate = (dateString: string): string => formatUserDate(dateString);
+
+export const formatClosingDateTime = (dateString: string): string => formatUserDateTime(dateString);
 
 /** Format closing time for display (HH:mm:ss). */
 export const formatClosingTime = (dateString: string): string =>

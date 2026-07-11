@@ -91,6 +91,7 @@
       "statusCanClose": "Daily closing can be performed.",
       "statusAlreadyClosedToday": "Daily closing has already been performed for today. You can still end the shift.",
       "statusAlreadyClosedOnDate": "Daily closing has already been performed for {{date}}. You can still end the shift.",
+      "statusAlreadyClosedAt": "Daily closing has already been performed on {{dateTime}}. You can still end the shift.",
       "statusPaymentsWithoutInvoice": "{{count}} payment(s) without invoice — resolve before closing.",
       "statusRegisterUnavailable": "Cash register is not available for daily closing.",
       "successTitle": "Daily closing completed",

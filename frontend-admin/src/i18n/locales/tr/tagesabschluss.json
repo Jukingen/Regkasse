@@ -103,8 +103,11 @@
     "successYearly": "Yillik kapanis uygulandi.",
     "warningNoRegister": "Lutfen once bir kasa secin.",
     "warningDailyNotAllowed": "Bugun icin gunluk kapanis yapilamaz (zaten yapildi veya onkosullar eksik).",
+    "warningDailyAlreadyClosed": "{{dateTime}} icin gunluk kapanis zaten yapildi.",
     "warningMonthlyNotAllowed": "Bu ay icin aylik kapanis yapilamaz (zaten yapildi veya onkosullar eksik).",
+    "warningMonthlyAlreadyClosed": "{{dateTime}} icin aylik kapanis zaten yapildi.",
     "warningYearlyNotAllowed": "Bu yil icin yillik kapanis yapilamaz (zaten yapildi veya onkosullar eksik).",
+    "warningYearlyAlreadyClosed": "{{dateTime}} icin yillik kapanis zaten yapildi.",
     "pdfUnavailable": "Bu kayit icin PDF yok.",
     "pdfAutoDownloadFailed": "Kapanis basarili, ancak PDF indirilemedi."
   },

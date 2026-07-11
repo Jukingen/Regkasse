@@ -181,6 +181,7 @@ export interface PosDailyClosingStatusDto {
   message: string;
   blockReason?: string | null;
   lastClosingDate?: string | null;
+  lastClosingPerformedAt?: string | null;
   paymentsWithoutInvoiceCount: number;
 }
 
@@ -262,6 +263,9 @@ export function parsePosDailyClosingStatus(raw: unknown): PosDailyClosingStatusD
     message: readString(layer.message ?? layer.Message),
     blockReason: readString(layer.blockReason ?? layer.BlockReason) || null,
     lastClosingDate: (layer.lastClosingDate ?? layer.LastClosingDate ?? null) as string | null,
+    lastClosingPerformedAt: (layer.lastClosingPerformedAt ?? layer.LastClosingPerformedAt ?? null) as
+      | string
+      | null,
     paymentsWithoutInvoiceCount: readNumber(
       layer.paymentsWithoutInvoiceCount ?? layer.PaymentsWithoutInvoiceCount,
       0

@@ -103,8 +103,11 @@
     "successYearly": "Yearly closing executed.",
     "warningNoRegister": "Please select a register first.",
     "warningDailyNotAllowed": "Daily closing is not available for today (already performed or prerequisites missing).",
+    "warningDailyAlreadyClosed": "Daily closing was already performed on {{dateTime}}.",
     "warningMonthlyNotAllowed": "Monthly closing is not available for this month (already performed or prerequisites missing).",
+    "warningMonthlyAlreadyClosed": "Monthly closing was already performed on {{dateTime}}.",
     "warningYearlyNotAllowed": "Yearly closing is not available for this year (already performed or prerequisites missing).",
+    "warningYearlyAlreadyClosed": "Yearly closing was already performed on {{dateTime}}.",
     "pdfUnavailable": "No PDF is available for this entry.",
     "pdfAutoDownloadFailed": "Closing succeeded, but the PDF could not be downloaded."
   },

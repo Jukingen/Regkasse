@@ -223,10 +223,16 @@ namespace KasseAPI_Final.Controllers
                 var canCloseMonthly = await _tagesabschlussService.CanPerformMonthlyClosingAsync(cashRegisterId);
                 var canCloseYearly = await _tagesabschlussService.CanPerformYearlyClosingAsync(cashRegisterId);
                 var lastClosingDate = await _tagesabschlussService.GetLastClosingDateAsync(cashRegisterId);
+                var lastClosingPerformedAt =
+                    await _tagesabschlussService.GetLastClosingPerformedAtForTypeAsync(cashRegisterId, "Daily");
                 var lastMonthlyClosingDate =
                     await _tagesabschlussService.GetLastClosingDateForTypeAsync(cashRegisterId, "Monthly");
+                var lastMonthlyClosingPerformedAt =
+                    await _tagesabschlussService.GetLastClosingPerformedAtForTypeAsync(cashRegisterId, "Monthly");
                 var lastYearlyClosingDate =
                     await _tagesabschlussService.GetLastClosingDateForTypeAsync(cashRegisterId, "Yearly");
+                var lastYearlyClosingPerformedAt =
+                    await _tagesabschlussService.GetLastClosingPerformedAtForTypeAsync(cashRegisterId, "Yearly");
                 var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
                 var (dayStartUtc, dayEndExclusiveUtc) =
                     PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
@@ -246,8 +252,11 @@ namespace KasseAPI_Final.Controllers
                     canCloseMonthly = canCloseMonthly,
                     canCloseYearly = canCloseYearly,
                     lastClosingDate = lastClosingDate,
+                    lastClosingPerformedAt = lastClosingPerformedAt,
                     lastMonthlyClosingDate = lastMonthlyClosingDate,
+                    lastMonthlyClosingPerformedAt = lastMonthlyClosingPerformedAt,
                     lastYearlyClosingDate = lastYearlyClosingDate,
+                    lastYearlyClosingPerformedAt = lastYearlyClosingPerformedAt,
                     paymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
                     message = message
                 });
@@ -349,8 +358,11 @@ namespace KasseAPI_Final.Controllers
         [Required]
         public bool canCloseYearly { get; set; }
         public DateTime? lastClosingDate { get; set; }
+        public DateTime? lastClosingPerformedAt { get; set; }
         public DateTime? lastMonthlyClosingDate { get; set; }
+        public DateTime? lastMonthlyClosingPerformedAt { get; set; }
         public DateTime? lastYearlyClosingDate { get; set; }
+        public DateTime? lastYearlyClosingPerformedAt { get; set; }
         [Required]
         public int paymentsWithoutInvoiceCount { get; set; }
         public string? message { get; set; }

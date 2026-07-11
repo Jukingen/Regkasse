@@ -14,6 +14,8 @@ export interface PosDailyClosingStatusDto {
   /** @nullable */
   lastClosingDate?: string | null;
   /** @nullable */
+  lastClosingPerformedAt?: string | null;
+  /** @nullable */
   message?: string | null;
   paymentsWithoutInvoiceCount?: number;
 }

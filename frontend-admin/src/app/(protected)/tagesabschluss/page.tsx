@@ -31,6 +31,7 @@ import { usePermissions } from '@/shared/auth/usePermissions';
 import { PERMISSIONS } from '@/shared/auth/permissions';
 import { AdminPageHeader } from '@/components/admin-layout/AdminPageHeader';
 import { AdminPageShell, AdminPageScopeSummary } from '@/components/admin-layout/AdminPageShell';
+import { BackendRawTextBlock } from '@/components/admin-layout/BackendRawTextBlock';
 import { adminOverviewCrumb } from '@/shared/adminShellLabels';
 import { useI18n } from '@/i18n';
 import { FORMAT_EMPTY_DISPLAY, formatCurrency, formatDateTime, formatNumber } from '@/i18n/formatting';
@@ -49,7 +50,23 @@ type ExtendedCanCloseResponse = TagesabschlussCanCloseResponse & {
   canCloseYearly?: boolean;
   lastMonthlyClosingDate?: string | null;
   lastYearlyClosingDate?: string | null;
+  lastClosingPerformedAt?: string | null;
+  lastMonthlyClosingPerformedAt?: string | null;
+  lastYearlyClosingPerformedAt?: string | null;
 };
+
+function formatClosingPerformedAt(
+  performedAt: string | null | undefined,
+  closingDate: string | null | undefined,
+  formatLocale: string,
+): string | null {
+  const source = performedAt ?? closingDate;
+  if (!source) return null;
+  return formatDateTime(source, formatLocale, {
+    dateStyle: 'short',
+    timeStyle: performedAt ? 'short' : undefined,
+  });
+}
 
 function isOperationalRegisterId(v: string | null | undefined): boolean {
   const s = v?.trim();
@@ -338,15 +355,42 @@ export default function TagesabschlussPage() {
       return;
     }
     if (kind === 'daily' && canClose && !canClose.canClose) {
-      message.warning(t('tagesabschluss.messages.warningDailyNotAllowed'));
+      const dateTime = formatClosingPerformedAt(
+        canClose.lastClosingPerformedAt,
+        canClose.lastClosingDate,
+        formatLocale,
+      );
+      message.warning(
+        dateTime && (canClose.paymentsWithoutInvoiceCount ?? 0) === 0
+          ? t('tagesabschluss.messages.warningDailyAlreadyClosed', { dateTime })
+          : t('tagesabschluss.messages.warningDailyNotAllowed'),
+      );
       return;
     }
     if (kind === 'monthly' && !canCloseMonthly) {
-      message.warning(t('tagesabschluss.messages.warningMonthlyNotAllowed'));
+      const dateTime = formatClosingPerformedAt(
+        canClose?.lastMonthlyClosingPerformedAt,
+        canClose?.lastMonthlyClosingDate,
+        formatLocale,
+      );
+      message.warning(
+        dateTime && (canClose?.paymentsWithoutInvoiceCount ?? 0) === 0
+          ? t('tagesabschluss.messages.warningMonthlyAlreadyClosed', { dateTime })
+          : t('tagesabschluss.messages.warningMonthlyNotAllowed'),
+      );
       return;
     }
     if (kind === 'yearly' && !canCloseYearly) {
-      message.warning(t('tagesabschluss.messages.warningYearlyNotAllowed'));
+      const dateTime = formatClosingPerformedAt(
+        canClose?.lastYearlyClosingPerformedAt,
+        canClose?.lastYearlyClosingDate,
+        formatLocale,
+      );
+      message.warning(
+        dateTime && (canClose?.paymentsWithoutInvoiceCount ?? 0) === 0
+          ? t('tagesabschluss.messages.warningYearlyAlreadyClosed', { dateTime })
+          : t('tagesabschluss.messages.warningYearlyNotAllowed'),
+      );
       return;
     }
     const modalTitle =
@@ -566,19 +610,25 @@ export default function TagesabschlussPage() {
                 )}
               </Descriptions.Item>
               <Descriptions.Item label={t('tagesabschluss.check.lastClosing')}>
-                {canClose?.lastClosingDate
-                  ? formatDateTime(canClose.lastClosingDate, formatLocale)
-                  : FORMAT_EMPTY_DISPLAY}
+                {formatClosingPerformedAt(
+                  canClose?.lastClosingPerformedAt,
+                  canClose?.lastClosingDate,
+                  formatLocale,
+                ) ?? FORMAT_EMPTY_DISPLAY}
               </Descriptions.Item>
               <Descriptions.Item label={t('tagesabschluss.check.lastMonthlyClosing')}>
-                {canClose?.lastMonthlyClosingDate
-                  ? formatDateTime(canClose.lastMonthlyClosingDate, formatLocale)
-                  : FORMAT_EMPTY_DISPLAY}
+                {formatClosingPerformedAt(
+                  canClose?.lastMonthlyClosingPerformedAt,
+                  canClose?.lastMonthlyClosingDate,
+                  formatLocale,
+                ) ?? FORMAT_EMPTY_DISPLAY}
               </Descriptions.Item>
               <Descriptions.Item label={t('tagesabschluss.check.lastYearlyClosing')}>
-                {canClose?.lastYearlyClosingDate
-                  ? formatDateTime(canClose.lastYearlyClosingDate, formatLocale)
-                  : FORMAT_EMPTY_DISPLAY}
+                {formatClosingPerformedAt(
+                  canClose?.lastYearlyClosingPerformedAt,
+                  canClose?.lastYearlyClosingDate,
+                  formatLocale,
+                ) ?? FORMAT_EMPTY_DISPLAY}
               </Descriptions.Item>
               <Descriptions.Item label={t('tagesabschluss.check.paymentsWithoutInvoice')}>
                 {formatNumber(canClose?.paymentsWithoutInvoiceCount ?? 0, formatLocale, { maximumFractionDigits: 0 })}

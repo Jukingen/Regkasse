@@ -64,6 +64,8 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
             .FirstOrDefaultAsync(r => r.Id == shift.CashRegisterId, cancellationToken);
 
         var lastClosingDate = await _tagesabschluss.GetLastClosingDateAsync(shift.CashRegisterId);
+        var lastClosingPerformedAt =
+            await _tagesabschluss.GetLastClosingPerformedAtForTypeAsync(shift.CashRegisterId, "Daily");
         var viennaToday = PostgreSqlUtcDateTime.GetViennaTodayCalendarMidnightUnspecified();
         var (dayStartUtc, dayEndExclusiveUtc) =
             PostgreSqlUtcDateTime.AustriaLocalCalendarDayToUtcRange(viennaToday);
@@ -111,6 +113,7 @@ public sealed class PosDailyClosingService : IPosDailyClosingService
             BlockReason = blockReason,
             Message = message,
             LastClosingDate = lastClosingDate,
+            LastClosingPerformedAt = lastClosingPerformedAt,
             PaymentsWithoutInvoiceCount = paymentsWithoutInvoiceCount,
         };
     }

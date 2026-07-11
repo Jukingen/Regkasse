@@ -13,9 +13,15 @@ export interface TagesabschlussCanCloseResponse {
   /** @nullable */
   lastClosingDate?: string | null;
   /** @nullable */
+  lastClosingPerformedAt?: string | null;
+  /** @nullable */
   lastMonthlyClosingDate?: string | null;
   /** @nullable */
+  lastMonthlyClosingPerformedAt?: string | null;
+  /** @nullable */
   lastYearlyClosingDate?: string | null;
+  /** @nullable */
+  lastYearlyClosingPerformedAt?: string | null;
   /** @nullable */
   message?: string | null;
   paymentsWithoutInvoiceCount: number;

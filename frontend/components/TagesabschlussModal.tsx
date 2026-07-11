@@ -34,6 +34,7 @@ import {
   getClosingHistory,
   getClosingStatistics,
   formatClosingDate,
+  formatClosingDateTime,
   getClosingTypeDisplayName,
   getClosingStatusDisplayName,
   type DailyClosingRequest,
@@ -42,6 +43,7 @@ import {
   type ClosingStatistics
 } from '../services/api/tagesabschlussService';
 import { printDailyClosingReportPdf } from '../utils/dailyClosingReportPrint';
+import { resolveAlreadyClosedDailyMessage } from '../utils/resolveDailyClosingStatusMessage';
 
 interface TagesabschlussModalProps {
   visible: boolean;
@@ -64,6 +66,7 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   const [canCloseMonthly, setCanCloseMonthly] = useState(false);
   const [canCloseYearly, setCanCloseYearly] = useState(false);
   const [lastClosingDate, setLastClosingDate] = useState<string | null>(null);
+  const [lastClosingPerformedAt, setLastClosingPerformedAt] = useState<string | null>(null);
   /** Backend message (why closing is blocked or already performed). */
   const [canCloseMessage, setCanCloseMessage] = useState<string>('');
   /** Count of payments without invoice when canClose is false (from can-close or from close failure). */
@@ -94,6 +97,7 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
       setCanCloseMonthly(response.canCloseMonthly === true);
       setCanCloseYearly(response.canCloseYearly === true);
       setLastClosingDate(response.lastClosingDate || null);
+      setLastClosingPerformedAt(response.lastClosingPerformedAt || null);
       setCanCloseMessage(response.message || '');
       setPaymentsWithoutInvoiceCount(
         typeof response.paymentsWithoutInvoiceCount === 'number' ? response.paymentsWithoutInvoiceCount : null
@@ -139,8 +143,10 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
   const handleDailyClosing = async () => {
     if (!canClose) {
       Alert.alert(
-        t('tagesabschluss.alreadyClosed', 'Already Closed'),
-        t('tagesabschluss.dailyAlreadyClosed', 'Daily closing has already been performed for today.')
+        t('tagesabschluss.alreadyClosed', 'Bereits abgeschlossen'),
+        resolveAlreadyClosedDailyMessage(lastClosingPerformedAt, lastClosingDate, (key, options) =>
+          t(key, options as Record<string, unknown>)
+        )
       );
       return;
     }
@@ -338,13 +344,15 @@ const TagesabschlussModal: React.FC<TagesabschlussModalProps> = ({
             {canCloseYearly ? t('common.yes', 'Yes') : t('common.no', 'No')}
           </Text>
         </View>
-        {lastClosingDate && (
+        {(lastClosingPerformedAt || lastClosingDate) && (
           <View style={styles.statusRow}>
             <Text style={styles.statusLabel}>
-              {t('tagesabschluss.lastClosing', 'Last Closing:')}
+              {t('tagesabschluss.lastClosing', 'Letzter Abschluss:')}
             </Text>
             <Text style={styles.statusValue}>
-              {formatClosingDate(lastClosingDate)}
+              {lastClosingPerformedAt
+                ? formatClosingDateTime(lastClosingPerformedAt)
+                : formatClosingDate(lastClosingDate!)}
             </Text>
           </View>
         )}

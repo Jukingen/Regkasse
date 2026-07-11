@@ -41099,6 +41099,11 @@
             "format": "date-time",
             "nullable": true
           },
+          "lastClosingPerformedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "paymentsWithoutInvoiceCount": {
             "type": "integer",
             "format": "int32"
@@ -46117,12 +46122,27 @@
             "format": "date-time",
             "nullable": true
           },
+          "lastClosingPerformedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "lastMonthlyClosingDate": {
             "type": "string",
             "format": "date-time",
             "nullable": true
           },
+          "lastMonthlyClosingPerformedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
           "lastYearlyClosingDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastYearlyClosingPerformedAt": {
             "type": "string",
             "format": "date-time",
             "nullable": true

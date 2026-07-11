@@ -132,5 +132,7 @@ public sealed class PosDailyClosingStatusDto
     /// <summary>Machine-readable block reason for POS i18n (<see cref="PosDailyClosingBlockReasons"/>).</summary>
     public string? BlockReason { get; init; }
     public DateTime? LastClosingDate { get; init; }
+    /// <summary>When the latest daily closing was performed (UTC <see cref="DailyClosing.CreatedAt"/>).</summary>
+    public DateTime? LastClosingPerformedAt { get; init; }
     public int PaymentsWithoutInvoiceCount { get; init; }
 }

@@ -39,6 +39,8 @@ namespace KasseAPI_Final.Services
         Task<bool> CanPerformYearlyClosingAsync(Guid cashRegisterId);
         Task<DateTime?> GetLastClosingDateAsync(Guid cashRegisterId);
         Task<DateTime?> GetLastClosingDateForTypeAsync(Guid cashRegisterId, string closingType);
+        /// <summary>UTC instant when the latest completed closing of the given type was persisted (<see cref="DailyClosing.CreatedAt"/>).</summary>
+        Task<DateTime?> GetLastClosingPerformedAtForTypeAsync(Guid cashRegisterId, string closingType);
         /// <summary>Sprint 4: Count active payments in scope with no Invoice (SourcePaymentId). Used for blocking and readiness.</summary>
         Task<int> GetPaymentsWithoutInvoiceCountAsync(Guid cashRegisterId, DateTime fromInclusive, DateTime toExclusive);
     }
@@ -738,12 +740,26 @@ namespace KasseAPI_Final.Services
 
         public async Task<DateTime?> GetLastClosingDateForTypeAsync(Guid cashRegisterId, string closingType)
         {
-            var lastClosing = await _context.DailyClosings
-                .Where(d => d.CashRegisterId == cashRegisterId && d.ClosingType == closingType)
-                .OrderByDescending(d => d.ClosingDate)
-                .FirstOrDefaultAsync();
-
+            var lastClosing = await GetLatestCompletedClosingForTypeAsync(cashRegisterId, closingType);
             return lastClosing?.ClosingDate;
+        }
+
+        public async Task<DateTime?> GetLastClosingPerformedAtForTypeAsync(Guid cashRegisterId, string closingType)
+        {
+            var lastClosing = await GetLatestCompletedClosingForTypeAsync(cashRegisterId, closingType);
+            return lastClosing?.CreatedAt;
+        }
+
+        private async Task<DailyClosing?> GetLatestCompletedClosingForTypeAsync(Guid cashRegisterId, string closingType)
+        {
+            return await _context.DailyClosings
+                .Where(d =>
+                    d.CashRegisterId == cashRegisterId
+                    && d.ClosingType == closingType
+                    && d.Status == "Completed")
+                .OrderByDescending(d => d.ClosingDate)
+                .ThenByDescending(d => d.CreatedAt)
+                .FirstOrDefaultAsync();
         }
 
         private async Task<TagesabschlussResult?> TrySaveClosingOrReturnDuplicateAsync(string closingType)

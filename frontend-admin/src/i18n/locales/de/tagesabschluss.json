@@ -103,8 +103,11 @@
     "successYearly": "Jahresabschluss ausgeführt.",
     "warningNoRegister": "Bitte wählen Sie zuerst eine Kasse.",
     "warningDailyNotAllowed": "Tagesabschluss für heute ist nicht möglich (bereits durchgeführt oder Voraussetzungen fehlen).",
+    "warningDailyAlreadyClosed": "Tagesabschluss für {{dateTime}} bereits durchgeführt.",
     "warningMonthlyNotAllowed": "Monatsabschluss für diesen Monat ist nicht möglich (bereits durchgeführt oder Voraussetzungen fehlen).",
+    "warningMonthlyAlreadyClosed": "Monatsabschluss für {{dateTime}} bereits durchgeführt.",
     "warningYearlyNotAllowed": "Jahresabschluss für dieses Jahr ist nicht möglich (bereits durchgeführt oder Voraussetzungen fehlen).",
+    "warningYearlyAlreadyClosed": "Jahresabschluss für {{dateTime}} bereits durchgeführt.",
     "pdfUnavailable": "Für diesen Eintrag ist kein PDF verfügbar.",
     "pdfAutoDownloadFailed": "Abschluss erfolgreich, aber PDF konnte nicht heruntergeladen werden."
   },

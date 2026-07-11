@@ -91,6 +91,7 @@
       "statusCanClose": "Günlük kapanış yapılabilir.",
       "statusAlreadyClosedToday": "Bugün için günlük kapanış zaten yapıldı. Vardiyayı yine de bitirebilirsiniz.",
       "statusAlreadyClosedOnDate": "{{date}} için günlük kapanış zaten yapıldı. Vardiyayı yine de bitirebilirsiniz.",
+      "statusAlreadyClosedAt": "{{dateTime}} için günlük kapanış zaten yapıldı. Vardiyayı yine de bitirebilirsiniz.",
       "statusPaymentsWithoutInvoice": "{{count}} fatura eşleşmeyen ödeme — önce düzeltin.",
       "statusRegisterUnavailable": "Kasa günlük kapanış için kullanılamıyor.",
       "successTitle": "Günlük kapanış tamamlandı",

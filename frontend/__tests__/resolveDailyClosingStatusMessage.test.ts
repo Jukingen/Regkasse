@@ -1,11 +1,17 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { resolveDailyClosingStatusMessage } from '../utils/resolveDailyClosingStatusMessage';
+import {
+  resolveAlreadyClosedDailyMessage,
+  resolveDailyClosingStatusMessage,
+} from '../utils/resolveDailyClosingStatusMessage';
 import type { PosDailyClosingStatusDto } from '../services/api/shiftService';
-import { formatUserDate } from '../utils/dateFormatter';
+import { formatUserDate, formatUserDateTime } from '../utils/dateFormatter';
 
 const t = (key: string, options?: Record<string, unknown>) => {
   if (key === 'settings:shift.dailyClosing.statusCanClose') return 'CAN_CLOSE';
+  if (key === 'settings:shift.dailyClosing.statusAlreadyClosedAt') {
+    return `CLOSED_AT_${options?.dateTime}`;
+  }
   if (key === 'settings:shift.dailyClosing.statusAlreadyClosedOnDate') {
     return `CLOSED_ON_${options?.date}`;
   }
@@ -32,7 +38,20 @@ describe('resolveDailyClosingStatusMessage', () => {
     expect(resolveDailyClosingStatusMessage(baseStatus({ canClose: true }), t)).toBe('CAN_CLOSE');
   });
 
-  it('includes last closing date when already closed today', () => {
+  it('includes date and time when lastClosingPerformedAt is available', () => {
+    const lastClosingPerformedAt = '2026-07-11T12:30:00.000Z';
+    expect(
+      resolveDailyClosingStatusMessage(
+        baseStatus({
+          blockReason: 'already_closed_today',
+          lastClosingPerformedAt,
+        }),
+        t
+      )
+    ).toBe(`CLOSED_AT_${formatUserDateTime(lastClosingPerformedAt)}`);
+  });
+
+  it('includes last closing date when performedAt is missing', () => {
     const lastClosingDate = '2026-07-11T10:00:00.000Z';
     expect(
       resolveDailyClosingStatusMessage(
@@ -45,7 +64,7 @@ describe('resolveDailyClosingStatusMessage', () => {
     ).toBe(`CLOSED_ON_${formatUserDate(lastClosingDate)}`);
   });
 
-  it('falls back to today wording without lastClosingDate', () => {
+  it('falls back to today wording without closing timestamps', () => {
     expect(
       resolveDailyClosingStatusMessage(
         baseStatus({ blockReason: 'already_closed_today', lastClosingDate: null }),
@@ -64,5 +83,13 @@ describe('resolveDailyClosingStatusMessage', () => {
         t
       )
     ).toBe('PAYMENTS_3');
+  });
+});
+
+describe('resolveAlreadyClosedDailyMessage', () => {
+  it('prefers performedAt over closingDate anchor', () => {
+    expect(
+      resolveAlreadyClosedDailyMessage('2026-07-11T14:00:00.000Z', '2026-07-11T00:00:00.000Z', t)
+    ).toBe(`CLOSED_AT_${formatUserDateTime('2026-07-11T14:00:00.000Z')}`);
   });
 });
